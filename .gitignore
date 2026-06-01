@@ -1,0 +1,3 @@
+target/
+# Materialized fixture sources (generated from .slop at test/runtime)
+target/slopguard-fixtures/

@@ -1,0 +1,28 @@
+//! CWE (Common Weakness Enumeration) catalog + helpers.
+//!
+//! References: <https://cwe.mitre.org/>
+
+mod catalog;
+mod cwe;
+pub mod helpers;
+
+pub use catalog::CWE_CATALOG;
+pub use cwe::CweRef;
+
+use std::fmt;
+
+/// Look up a CWE by its numeric id (e.g. `400`).
+pub fn lookup(id: u32) -> Option<&'static CweRef> {
+    CWE_CATALOG.iter().find(|c| c.id == id)
+}
+
+/// Format a CWE as `CWE-400` for display.
+pub fn format_cwe(id: u32) -> impl fmt::Display {
+    struct W(u32);
+    impl fmt::Display for W {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(f, "CWE-{}", self.0)
+        }
+    }
+    W(id)
+}
