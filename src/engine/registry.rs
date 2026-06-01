@@ -21,10 +21,7 @@ impl Registry {
         for plugin in &plugins {
             for det in plugin.detectors() {
                 let idx = detectors.len();
-                by_language
-                    .entry(det.language())
-                    .or_default()
-                    .push(idx);
+                by_language.entry(det.language()).or_default().push(idx);
                 detectors.push(det);
             }
         }
@@ -34,10 +31,6 @@ impl Registry {
             detectors,
             by_language,
         }
-    }
-
-    pub fn default() -> Self {
-        Self::from_plugins(crate::lang::enabled_plugins())
     }
 
     pub fn detector_indices(&self, language: LanguageId) -> &[usize] {
@@ -63,7 +56,20 @@ impl Registry {
         self.plugin_for_extension(ext)
     }
 
+    pub fn plugin_for_id(&self, id: LanguageId) -> Option<&dyn LanguagePlugin> {
+        self.plugins
+            .iter()
+            .find(|p| p.id() == id)
+            .map(|p| p.as_ref())
+    }
+
     pub fn enabled_languages(&self) -> impl Iterator<Item = LanguageId> + '_ {
         self.plugins.iter().map(|p| p.id())
+    }
+}
+
+impl Default for Registry {
+    fn default() -> Self {
+        Self::from_plugins(crate::lang::enabled_plugins())
     }
 }

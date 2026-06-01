@@ -20,9 +20,5 @@ pub fn walk_calls<F: FnMut(Node)>(node: Node, f: &mut F) {
 
 /// Visit assignment-like nodes.
 pub fn walk_assignments<F: FnMut(Node)>(node: Node, f: &mut F) {
-    walk_nodes(
-        node,
-        &["assignment_statement", "short_var_declaration"],
-        f,
-    );
+    walk_nodes(node, &["assignment_statement", "short_var_declaration"], f);
 }

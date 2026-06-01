@@ -14,11 +14,7 @@ pub fn configure(parser: &mut Parser) {
         .expect("tree-sitter-go grammar must load");
 }
 
-pub fn parse_with(
-    parser: &mut Parser,
-    path: &Path,
-    source: Arc<str>,
-) -> Result<ParsedUnit> {
+pub fn parse_with(parser: &mut Parser, path: &Path, source: Arc<str>) -> Result<ParsedUnit> {
     let tree = parser
         .parse(source.as_ref(), None)
         .ok_or_else(|| anyhow::anyhow!("tree-sitter failed to parse {}", path.display()))?;

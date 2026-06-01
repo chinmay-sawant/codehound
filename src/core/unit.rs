@@ -9,7 +9,7 @@ use super::LanguageId;
 use crate::ast;
 
 /// A single source file parsed for analysis.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ParsedUnit {
     pub language: LanguageId,
     pub path: PathBuf,

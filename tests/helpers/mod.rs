@@ -1,4 +1,7 @@
 //! Shared integration-test helpers.
+//!
+//! Each integration test binary only uses a subset of these helpers.
+#![allow(dead_code)]
 
 use std::path::Path;
 

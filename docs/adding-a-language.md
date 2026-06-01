@@ -30,7 +30,7 @@ tests/fixtures/<lang>/
 ## Shared helpers
 
 - `ast::walk_calls`, `ast::walk_assignments`, `ast::nearest_loop`
-- `cwe::helpers::cwe_slice` for rule metadata
+- `cwe::catalog::CWE_REFS_*` static slices (or compose from `CWE_CATALOG` consts) for rule metadata
 - `engine::ParsePool` reuses one parser per language per scan
 
 ## CLI

@@ -14,7 +14,10 @@ pub enum Severity {
 
 impl Severity {
     pub fn is_failure(self) -> bool {
-        matches!(self, Severity::Warning | Severity::High | Severity::Critical)
+        matches!(
+            self,
+            Severity::Warning | Severity::High | Severity::Critical
+        )
     }
 
     pub fn as_str(self) -> &'static str {
