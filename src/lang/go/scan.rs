@@ -7,7 +7,7 @@ use crate::lang::go::loop_kinds::LOOP_NODE_KINDS;
 use crate::lang::go::matchers::{
     is_append_call, is_make_map_call, is_regexp_compile, is_string_concat_assign,
 };
-use crate::rules::{emit, Finding, Rule, RuleMetadata, Severity};
+use crate::rules::{Finding, Rule, RuleMetadata, Severity, emit};
 
 pub const GO_RULE_IDS: &[&str] = &["SLOP001", "SLOP002", "SLOP003", "SLOP004"];
 
@@ -65,8 +65,14 @@ pub fn analyze_unit(ctx: &ScanContext, unit: &ParsedUnit, out: &mut Vec<Finding>
         return;
     }
 
-    walk_nodes(root, &["call_expression", "assignment_statement", "short_var_declaration"], &mut |node| {
-        match node.kind() {
+    walk_nodes(
+        root,
+        &[
+            "call_expression",
+            "assignment_statement",
+            "short_var_declaration",
+        ],
+        &mut |node| match node.kind() {
             "call_expression" if check_s001 || check_s003 || check_s004 => {
                 if check_s001
                     && is_regexp_compile(node, src)
@@ -128,8 +134,8 @@ pub fn analyze_unit(ctx: &ScanContext, unit: &ParsedUnit, out: &mut Vec<Finding>
                 }
             }
             _ => {}
-        }
-    });
+        },
+    );
 }
 
 /// Bundled Go detector registered in the plugin registry.

@@ -5,7 +5,7 @@ use crate::core::{Detector, LanguageId, ParsedUnit, ScanContext};
 use crate::cwe::helpers::CWE_REFS_400_1336;
 use crate::lang::python::loop_kinds::LOOP_NODE_KINDS;
 use crate::lang::python::matchers::is_re_compile_call;
-use crate::rules::{emit, Finding, Rule, RuleMetadata, Severity};
+use crate::rules::{Finding, Rule, RuleMetadata, Severity, emit};
 
 pub struct ReCompileInLoop;
 

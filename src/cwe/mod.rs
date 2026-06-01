@@ -3,11 +3,11 @@
 //! References: <https://cwe.mitre.org/>
 
 mod catalog;
-mod cwe;
 pub mod helpers;
+mod reference;
 
 pub use catalog::CWE_CATALOG;
-pub use cwe::CweRef;
+pub use reference::CweRef;
 
 use std::fmt;
 

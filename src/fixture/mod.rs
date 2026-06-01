@@ -3,7 +3,5 @@
 mod format;
 mod materialize;
 
-pub use format::{
-    parse_fixture, FixtureLanguage, TextFixture, FIXTURE_EXTENSION,
-};
+pub use format::{FIXTURE_EXTENSION, FixtureLanguage, TextFixture, parse_fixture};
 pub use materialize::{materialize_fixture, materialize_tree, materialized_root};

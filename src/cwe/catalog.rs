@@ -2,7 +2,7 @@
 //!
 //! Last reviewed against <https://cwe.mitre.org/data/definitions/>.
 
-use super::cwe::CweRef;
+use super::CweRef;
 
 pub const CWE_400: CweRef = CweRef::new(
     400,
@@ -41,9 +41,7 @@ pub const CWE_1041: CweRef = CweRef::new(
 );
 
 /// Curated CWE entries referenced by SlopGuard rules.
-pub static CWE_CATALOG: &[CweRef] = &[
-    CWE_400, CWE_405, CWE_407, CWE_770, CWE_1336, CWE_1041,
-];
+pub static CWE_CATALOG: &[CweRef] = &[CWE_400, CWE_405, CWE_407, CWE_770, CWE_1336, CWE_1041];
 
 /// Precomposed slices for rule metadata (no runtime allocation).
 pub static CWE_REFS_400_1336: &[CweRef] = &[CWE_400, CWE_1336];

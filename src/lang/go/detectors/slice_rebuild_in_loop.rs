@@ -5,7 +5,7 @@ use crate::core::{Detector, LanguageId, ParsedUnit, ScanContext};
 use crate::cwe::helpers::CWE_REFS_770;
 use crate::lang::go::loop_kinds::LOOP_NODE_KINDS;
 use crate::lang::go::matchers::is_append_call;
-use crate::rules::{emit, Finding, Rule, RuleMetadata, Severity};
+use crate::rules::{Finding, Rule, RuleMetadata, Severity, emit};
 
 #[allow(dead_code)]
 pub struct SliceRebuildInLoop;

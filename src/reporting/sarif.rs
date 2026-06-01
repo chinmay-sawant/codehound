@@ -84,7 +84,9 @@ pub fn print(result: &AnalysisResult) -> Result<()> {
             rules.push(SarifRule {
                 id: f.rule_id,
                 name: f.rule_title,
-                short_description: SarifText { text: f.message.as_str() },
+                short_description: SarifText {
+                    text: f.message.as_str(),
+                },
             });
         }
         results.push(SarifResult {

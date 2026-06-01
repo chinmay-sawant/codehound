@@ -5,6 +5,6 @@ mod finding;
 mod rule;
 mod severity;
 
-pub use finding::Finding;
+pub use finding::{Finding, LineCol};
 pub use rule::{Rule, RuleMetadata};
 pub use severity::Severity;

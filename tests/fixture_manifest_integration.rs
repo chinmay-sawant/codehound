@@ -52,7 +52,8 @@ fn manifest_entries_exist_and_fire() {
 fn manifest_covers_default_languages() {
     let text = std::fs::read_to_string("tests/fixtures/manifest.toml").unwrap();
     let manifest: Manifest = toml::from_str(&text).unwrap();
-    let langs: std::collections::HashSet<_> = manifest.fixture.iter().map(|e| e.lang.as_str()).collect();
+    let langs: std::collections::HashSet<_> =
+        manifest.fixture.iter().map(|e| e.lang.as_str()).collect();
 
     for lang in ["go", "python"] {
         assert!(

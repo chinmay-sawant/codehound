@@ -12,7 +12,14 @@ pub fn print(result: &AnalysisResult) -> Result<()> {
     }
 
     for f in &result.findings {
-        let head = format!("{}  {}  {}:{}:{}", f.severity, f.rule_id.bold(), f.file, f.line, f.column);
+        let head = format!(
+            "{}  {}  {}:{}:{}",
+            f.severity,
+            f.rule_id.bold(),
+            f.file,
+            f.line,
+            f.column
+        );
         println!("{head}");
         println!("  {}", f.message);
         if let Some(snip) = &f.snippet {

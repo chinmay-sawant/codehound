@@ -1,6 +1,6 @@
 //! Helpers for building findings on detector hot paths.
 
-use super::{Finding, RuleMetadata, Severity};
+use super::{Finding, LineCol, RuleMetadata, Severity};
 
 /// Push a finding using cached rule metadata and a precomputed file path.
 pub fn push_finding(
@@ -15,8 +15,7 @@ pub fn push_finding(
         meta.id,
         meta.title,
         file,
-        line,
-        col,
+        LineCol { line, column: col },
         message,
         meta.severity,
         meta.cwe.to_vec(),
@@ -38,8 +37,7 @@ pub fn push_finding_with_snippet(
             meta.id,
             meta.title,
             file,
-            line,
-            col,
+            LineCol { line, column: col },
             message,
             meta.severity,
             meta.cwe.to_vec(),

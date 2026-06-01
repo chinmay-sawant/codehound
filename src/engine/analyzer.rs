@@ -31,7 +31,7 @@ impl AnalyzerBuilder {
 
     pub fn build(self) -> Analyzer {
         Analyzer {
-            registry: self.registry.unwrap_or_else(Registry::default),
+            registry: self.registry.unwrap_or_default(),
             ctx: self.ctx,
             lang_filter: self.lang_filter,
         }
@@ -60,8 +60,7 @@ impl Analyzer {
         P: AsRef<Path>,
     {
         let entries = collect_entries(&self.registry, paths, self.lang_filter)?;
-        let mut findings =
-            scan_entries_parallel(&self.registry, &self.ctx, &entries)?;
+        let mut findings = scan_entries_parallel(&self.registry, &self.ctx, &entries)?;
         sort_findings(&mut findings);
         Ok(AnalysisResult { findings })
     }

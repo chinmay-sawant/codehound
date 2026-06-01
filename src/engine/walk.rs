@@ -70,8 +70,8 @@ pub fn scan_entry(
         .plugin_for_id(entry.language)
         .with_context(|| format!("no plugin registered for {:?}", entry.language))?;
 
-    let bytes = std::fs::read(&entry.path)
-        .with_context(|| format!("reading {}", entry.path.display()))?;
+    let bytes =
+        std::fs::read(&entry.path).with_context(|| format!("reading {}", entry.path.display()))?;
     let source = Arc::from(
         String::from_utf8(bytes)
             .with_context(|| format!("source is not valid UTF-8: {}", entry.path.display()))?,

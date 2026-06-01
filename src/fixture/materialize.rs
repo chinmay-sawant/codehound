@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use walkdir::WalkDir;
 
-use super::format::{parse_fixture, TextFixture, FIXTURE_EXTENSION};
+use super::format::{FIXTURE_EXTENSION, TextFixture, parse_fixture};
 
 /// Root directory for generated sources (gitignored).
 pub fn materialized_root() -> PathBuf {

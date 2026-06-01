@@ -5,6 +5,13 @@ use serde::Serialize;
 use super::Severity;
 use crate::cwe::CweRef;
 
+/// 1-indexed line and column in a source file.
+#[derive(Debug, Clone, Copy)]
+pub struct LineCol {
+    pub line: usize,
+    pub column: usize,
+}
+
 /// A single static-analysis finding.
 #[derive(Debug, Clone, Serialize)]
 pub struct Finding {
@@ -35,8 +42,7 @@ impl Finding {
         rule_id: &'static str,
         rule_title: &'static str,
         file: impl Into<String>,
-        line: usize,
-        column: usize,
+        location: LineCol,
         message: impl Into<String>,
         severity: Severity,
         cwe: Vec<CweRef>,
@@ -45,8 +51,8 @@ impl Finding {
             rule_id,
             rule_title,
             file: file.into(),
-            line,
-            column,
+            line: location.line,
+            column: location.column,
             snippet: None,
             message: message.into(),
             severity,
