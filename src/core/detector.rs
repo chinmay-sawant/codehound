@@ -6,5 +6,9 @@ use crate::rules::{Finding, Rule};
 /// Walks one parsed unit and appends findings.
 pub trait Detector: Rule + Send + Sync {
     fn language(&self) -> LanguageId;
+
+    /// Rule ids implemented by this detector (one id, or all ids in a language bundle).
+    fn rule_ids(&self) -> &'static [&'static str];
+
     fn run(&self, ctx: &ScanContext, unit: &ParsedUnit, out: &mut Vec<Finding>);
 }

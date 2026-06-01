@@ -1,27 +1,35 @@
-//! Collect and parse source files from paths.
+//! Collect source paths and scan files (parallel parse + detect).
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::{Context, Result};
 use ignore::WalkBuilder;
+use rayon::prelude::*;
 
-use crate::core::{LanguageId, ParsedUnit};
+use crate::core::{LanguageId, ParsedUnit, ScanContext};
 use crate::engine::parse_pool::ParsePool;
 use crate::engine::registry::Registry;
+use crate::rules::Finding;
 
-/// Walk paths and parse supported source files.
-pub fn collect_units<I, P>(
+/// A source file queued for analysis.
+#[derive(Debug, Clone)]
+pub struct ScanEntry {
+    pub path: PathBuf,
+    pub language: LanguageId,
+}
+
+/// Walk paths and collect supported source files (no I/O beyond directory walk).
+pub fn collect_entries<I, P>(
     registry: &Registry,
     paths: I,
     lang_filter: Option<LanguageId>,
-) -> Result<Vec<ParsedUnit>>
+) -> Result<Vec<ScanEntry>>
 where
     I: IntoIterator<Item = P>,
     P: AsRef<Path>,
 {
-    let mut units = Vec::new();
-    let mut pool = ParsePool::new();
+    let mut entries = Vec::new();
 
     for path in paths {
         let path = path.as_ref();
@@ -36,19 +44,74 @@ where
             let Some(plugin) = registry.plugin_for_path(entry.path()) else {
                 continue;
             };
+            let language = plugin.id();
             if let Some(want) = lang_filter {
-                if plugin.id() != want {
+                if language != want {
                     continue;
                 }
             }
-            let bytes = std::fs::read(entry.path())?;
-            let source = Arc::from(std::str::from_utf8(&bytes)?.to_owned());
-            let parser = pool.parser_for(plugin);
-            let unit = plugin
-                .parse_with(parser, entry.path(), source)
-                .with_context(|| format!("parsing {}", entry.path().display()))?;
-            units.push(unit);
+            entries.push(ScanEntry {
+                path: entry.path().to_path_buf(),
+                language,
+            });
         }
     }
-    Ok(units)
+
+    Ok(entries)
+}
+
+/// Read, parse, and analyze a single file. Drops the parse tree before returning.
+pub fn scan_entry(
+    registry: &Registry,
+    ctx: &ScanContext,
+    entry: &ScanEntry,
+) -> Result<Vec<Finding>> {
+    let plugin = registry
+        .plugin_for_id(entry.language)
+        .with_context(|| format!("no plugin registered for {:?}", entry.language))?;
+
+    let bytes = std::fs::read(&entry.path)
+        .with_context(|| format!("reading {}", entry.path.display()))?;
+    let source = Arc::from(
+        String::from_utf8(bytes)
+            .with_context(|| format!("source is not valid UTF-8: {}", entry.path.display()))?,
+    );
+
+    let mut pool = ParsePool::new();
+    let parser = pool.parser_for(plugin);
+    let unit = plugin
+        .parse_with(parser, &entry.path, source)
+        .with_context(|| format!("parsing {}", entry.path.display()))?;
+
+    Ok(analyze_parsed_unit(registry, ctx, &unit))
+}
+
+/// Run enabled detectors on an already-parsed unit.
+pub fn analyze_parsed_unit(
+    registry: &Registry,
+    ctx: &ScanContext,
+    unit: &ParsedUnit,
+) -> Vec<Finding> {
+    let mut findings = Vec::new();
+    for &idx in registry.detector_indices(unit.language) {
+        let det = registry.detector(idx);
+        if !det.rule_ids().iter().any(|id| ctx.allows(id)) {
+            continue;
+        }
+        det.run(ctx, unit, &mut findings);
+    }
+    findings
+}
+
+/// Parallel scan: read → parse → detect → drop per file.
+pub fn scan_entries_parallel(
+    registry: &Registry,
+    ctx: &ScanContext,
+    entries: &[ScanEntry],
+) -> Result<Vec<Finding>> {
+    entries
+        .par_iter()
+        .map(|entry| scan_entry(registry, ctx, entry))
+        .collect::<Result<Vec<_>>>()
+        .map(|chunks| chunks.into_iter().flatten().collect())
 }

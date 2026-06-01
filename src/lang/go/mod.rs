@@ -4,6 +4,7 @@ mod detectors;
 mod loop_kinds;
 mod matchers;
 mod parser;
+mod scan;
 #[cfg(test)]
 pub mod test_utils;
 

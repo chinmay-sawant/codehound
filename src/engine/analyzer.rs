@@ -7,7 +7,7 @@ use anyhow::Result;
 use crate::core::{LanguageId, ScanContext};
 use crate::engine::registry::Registry;
 use crate::engine::result::AnalysisResult;
-use crate::engine::walk::collect_units;
+use crate::engine::walk::{analyze_parsed_unit, collect_entries, scan_entries_parallel};
 use crate::rules::Finding;
 
 /// Builder for [`Analyzer`].
@@ -59,29 +59,28 @@ impl Analyzer {
         I: IntoIterator<Item = P>,
         P: AsRef<Path>,
     {
-        let units = collect_units(&self.registry, paths, self.lang_filter)?;
-        Ok(AnalysisResult {
-            findings: self.analyze_units(&units),
-        })
+        let entries = collect_entries(&self.registry, paths, self.lang_filter)?;
+        let mut findings =
+            scan_entries_parallel(&self.registry, &self.ctx, &entries)?;
+        sort_findings(&mut findings);
+        Ok(AnalysisResult { findings })
     }
 
     pub fn analyze_units(&self, units: &[crate::core::ParsedUnit]) -> Vec<Finding> {
         let mut findings = Vec::new();
         for unit in units {
-            for &idx in self.registry.detector_indices(unit.language) {
-                let det = self.registry.detector(idx);
-                if !self.ctx.allows(det.metadata().id) {
-                    continue;
-                }
-                det.run(&self.ctx, unit, &mut findings);
-            }
+            findings.extend(analyze_parsed_unit(&self.registry, &self.ctx, unit));
         }
-        findings.sort_by(|a, b| {
-            a.file
-                .cmp(&b.file)
-                .then(a.line.cmp(&b.line))
-                .then(a.column.cmp(&b.column))
-        });
+        sort_findings(&mut findings);
         findings
     }
+}
+
+fn sort_findings(findings: &mut [Finding]) {
+    findings.sort_by(|a, b| {
+        a.file
+            .cmp(&b.file)
+            .then(a.line.cmp(&b.line))
+            .then(a.column.cmp(&b.column))
+    });
 }

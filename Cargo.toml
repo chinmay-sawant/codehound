@@ -32,7 +32,6 @@ clap = { version = "4.6", features = ["derive", "cargo", "wrap_help"] }
 
 # Errors
 anyhow = "1.0"
-thiserror = "2.0"
 
 # Serde / config
 serde = { version = "1.0", features = ["derive"] }
@@ -44,19 +43,17 @@ tree-sitter = "0.25"
 tree-sitter-go = { version = "0.25", optional = true }
 tree-sitter-python = { version = "0.25", optional = true }
 
+# Parallel file scan
+rayon = "1.10"
+
 # Logging / output
 colored = "2.1"
-owo-colors = { version = "4.1", features = ["supports-colors"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 
 # Path / file walking
 walkdir = "2.5"
 ignore = "0.4"
-
-# Utilities
-indexmap = { version = "2.6", features = ["serde"] }
-once_cell = "1.20"
 
 [dev-dependencies]
 insta = { version = "1.41", features = ["yaml"] }

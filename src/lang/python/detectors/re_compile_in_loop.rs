@@ -2,23 +2,23 @@
 
 use crate::ast::{nearest_loop, snippet_of, walk_calls};
 use crate::core::{Detector, LanguageId, ParsedUnit, ScanContext};
-use crate::cwe::helpers::cwe_slice;
+use crate::cwe::helpers::CWE_REFS_400_1336;
 use crate::lang::python::loop_kinds::LOOP_NODE_KINDS;
 use crate::lang::python::matchers::is_re_compile_call;
-use crate::rules::{Finding, Rule, RuleMetadata, Severity};
+use crate::rules::{emit, Finding, Rule, RuleMetadata, Severity};
 
 pub struct ReCompileInLoop;
 
 impl Rule for ReCompileInLoop {
     fn metadata(&self) -> RuleMetadata {
-        RuleMetadata {
-            id: "SLOP101",
-            title: "re.compile called inside loop",
-            description: "Compiling a regex on every iteration is wasteful; compile once outside the loop.",
-            severity: Severity::Warning,
-            cwe: cwe_slice(&[400, 1336]),
-            fix: Some("Hoist `re.compile(...)` before the loop or use a module-level pattern."),
-        }
+        emit::rule_meta(
+            "SLOP101",
+            "re.compile called inside loop",
+            "Compiling a regex on every iteration is wasteful; compile once outside the loop.",
+            Severity::Warning,
+            CWE_REFS_400_1336,
+            Some("Hoist `re.compile(...)` before the loop or use a module-level pattern."),
+        )
     }
 }
 
@@ -27,7 +27,12 @@ impl Detector for ReCompileInLoop {
         LanguageId::Python
     }
 
+    fn rule_ids(&self) -> &'static [&'static str] {
+        &["SLOP101"]
+    }
+
     fn run(&self, _ctx: &ScanContext, unit: &ParsedUnit, out: &mut Vec<Finding>) {
+        let file = unit.path.display().to_string();
         let src = unit.source.as_ref();
         walk_calls(unit.tree.root_node(), &mut |call| {
             if !is_re_compile_call(call, src.as_bytes()) {
@@ -37,20 +42,14 @@ impl Detector for ReCompileInLoop {
                 return;
             }
             let (line, col) = unit.line_col(call.start_byte());
-            let meta = self.metadata();
-            out.push(
-                Finding::new(
-                    meta.id,
-                    meta.title,
-                    unit.path.display().to_string(),
-                    line,
-                    col,
-                    "re.compile called inside loop body",
-                    meta.severity,
-                    meta.cwe.to_vec(),
-                )
-                .with_snippet(snippet_of(src, call))
-                .with_fix(meta.fix.unwrap_or("")),
+            emit::push_finding_with_snippet(
+                &self.metadata(),
+                &file,
+                line,
+                col,
+                "re.compile called inside loop body",
+                snippet_of(src, call),
+                out,
             );
         });
     }

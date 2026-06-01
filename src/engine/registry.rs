@@ -63,6 +63,13 @@ impl Registry {
         self.plugin_for_extension(ext)
     }
 
+    pub fn plugin_for_id(&self, id: LanguageId) -> Option<&dyn LanguagePlugin> {
+        self.plugins
+            .iter()
+            .find(|p| p.id() == id)
+            .map(|p| p.as_ref())
+    }
+
     pub fn enabled_languages(&self) -> impl Iterator<Item = LanguageId> + '_ {
         self.plugins.iter().map(|p| p.id())
     }

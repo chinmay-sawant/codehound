@@ -2,24 +2,25 @@
 
 use crate::ast::{nearest_loop, snippet_of, walk_calls};
 use crate::core::{Detector, LanguageId, ParsedUnit, ScanContext};
-use crate::cwe::helpers::cwe_slice;
+use crate::cwe::helpers::CWE_REFS_400_1336;
 use crate::lang::go::loop_kinds::LOOP_NODE_KINDS;
 use crate::lang::go::matchers::is_regexp_compile;
-use crate::rules::{Finding, Rule, RuleMetadata, Severity};
+use crate::rules::{emit, Finding, Rule, RuleMetadata, Severity};
 
+#[allow(dead_code)]
 pub struct RegexpInLoop;
 
 impl Rule for RegexpInLoop {
     fn metadata(&self) -> RuleMetadata {
-        RuleMetadata {
-            id: "SLOP001",
-            title: "regexp.MustCompile called inside loop",
-            description: "Compiling a regular expression on every loop iteration \
+        emit::rule_meta(
+            "SLOP001",
+            "regexp.MustCompile called inside loop",
+            "Compiling a regular expression on every loop iteration \
                 is wasteful; compile once and reuse.",
-            severity: Severity::Warning,
-            cwe: cwe_slice(&[400, 1336]),
-            fix: Some("Move `regexp.MustCompile` out of the loop, e.g. as a package-level var."),
-        }
+            Severity::Warning,
+            CWE_REFS_400_1336,
+            Some("Move `regexp.MustCompile` out of the loop, e.g. as a package-level var."),
+        )
     }
 }
 
@@ -28,10 +29,14 @@ impl Detector for RegexpInLoop {
         LanguageId::Go
     }
 
+    fn rule_ids(&self) -> &'static [&'static str] {
+        &["SLOP001"]
+    }
+
     fn run(&self, _ctx: &ScanContext, unit: &ParsedUnit, out: &mut Vec<Finding>) {
+        let file = unit.path.display().to_string();
         let src = unit.source.as_ref();
-        let root = unit.tree.root_node();
-        walk_calls(root, &mut |call| {
+        walk_calls(unit.tree.root_node(), &mut |call| {
             if !is_regexp_compile(call, src.as_bytes()) {
                 return;
             }
@@ -40,19 +45,14 @@ impl Detector for RegexpInLoop {
             }
             let (line, col) = unit.line_col(call.start_byte());
             let meta = self.metadata();
-            out.push(
-                Finding::new(
-                    meta.id,
-                    meta.title,
-                    unit.path.display().to_string(),
-                    line,
-                    col,
-                    "regexp.MustCompile / regexp.Compile called inside loop body",
-                    meta.severity,
-                    meta.cwe.to_vec(),
-                )
-                .with_snippet(snippet_of(src, call))
-                .with_fix(meta.fix.unwrap_or("")),
+            emit::push_finding_with_snippet(
+                &meta,
+                &file,
+                line,
+                col,
+                "regexp.MustCompile / regexp.Compile called inside loop body",
+                snippet_of(src, call),
+                out,
             );
         });
     }
