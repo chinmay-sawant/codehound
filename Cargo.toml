@@ -1,0 +1,69 @@
+[package]
+name = "slopguard"
+version = "0.0.1"
+edition = "2024"
+rust-version = "1.85"
+description = "A static code analyzer for detecting performance bottlenecks and 'slop' in codebases"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/chinmay/slopguard"
+readme = "README.md"
+keywords = ["static-analysis", "linter", "performance", "go", "slop"]
+categories = ["command-line-utilities", "development-tools::static-analysis"]
+
+[lib]
+name = "slopguard"
+path = "src/lib.rs"
+
+[[bin]]
+name = "slopguard"
+path = "src/main.rs"
+
+[features]
+# Default: all shipped languages — mixed Go + Python repos work out of the box.
+default = ["go", "python"]
+go = ["dep:tree-sitter-go"]
+python = ["dep:tree-sitter-python"]
+# Minimal build: `cargo build --no-default-features --features go`
+all-langs = ["go", "python"]
+
+[dependencies]
+# CLI
+clap = { version = "4.6", features = ["derive", "cargo", "wrap_help"] }
+
+# Errors
+anyhow = "1.0"
+thiserror = "2.0"
+
+# Serde / config
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Tree-sitter grammars (gated by feature for slim builds)
+tree-sitter = "0.25"
+tree-sitter-go = { version = "0.25", optional = true }
+tree-sitter-python = { version = "0.25", optional = true }
+
+# Logging / output
+colored = "2.1"
+owo-colors = { version = "4.1", features = ["supports-colors"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+# Path / file walking
+walkdir = "2.5"
+ignore = "0.4"
+
+# Utilities
+indexmap = { version = "2.6", features = ["serde"] }
+once_cell = "1.20"
+
+[dev-dependencies]
+insta = { version = "1.41", features = ["yaml"] }
+pretty_assertions = "1.4"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = "symbols"

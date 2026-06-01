@@ -1,0 +1,7 @@
+# Example SlopGuard configuration (optional).
+# CLI flags override these when both are set for skip/only.
+
+[slopguard]
+# fail_on = "warning"   # warning | high | none
+# skip = ["SLOP003"]
+# only = ["SLOP001"]
