@@ -56,8 +56,13 @@ walkdir = "2.5"
 ignore = "0.4"
 
 [dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
 insta = { version = "1.41", features = ["yaml"] }
 pretty_assertions = "1.4"
+
+[[bench]]
+name = "scan_throughput"
+harness = false
 
 [profile.release]
 opt-level = 3

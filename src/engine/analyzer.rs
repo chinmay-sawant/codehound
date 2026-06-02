@@ -4,10 +4,14 @@ use std::path::Path;
 
 use anyhow::Result;
 
-use crate::core::{LanguageId, ScanContext};
+use crate::core::ScanContext;
+use crate::engine::language_filter::LanguageFilter;
 use crate::engine::registry::Registry;
 use crate::engine::result::AnalysisResult;
-use crate::engine::walk::{analyze_parsed_unit, collect_entries, scan_entries_parallel};
+use crate::engine::{
+    SCAN_CHUNK_SIZE,
+    walk::{analyze_parsed_unit, collect_entries, scan_entries_parallel},
+};
 use crate::rules::Finding;
 
 /// Builder for [`Analyzer`].
@@ -15,7 +19,7 @@ use crate::rules::Finding;
 pub struct AnalyzerBuilder {
     ctx: ScanContext,
     registry: Option<Registry>,
-    lang_filter: Option<LanguageId>,
+    lang_filter: LanguageFilter,
 }
 
 impl AnalyzerBuilder {
@@ -24,8 +28,8 @@ impl AnalyzerBuilder {
         self
     }
 
-    pub fn language(mut self, id: LanguageId) -> Self {
-        self.lang_filter = Some(id);
+    pub fn language_filter(mut self, filter: LanguageFilter) -> Self {
+        self.lang_filter = filter;
         self
     }
 
@@ -42,7 +46,7 @@ impl AnalyzerBuilder {
 pub struct Analyzer {
     registry: Registry,
     ctx: ScanContext,
-    lang_filter: Option<LanguageId>,
+    lang_filter: LanguageFilter,
 }
 
 impl Analyzer {
@@ -59,8 +63,11 @@ impl Analyzer {
         I: IntoIterator<Item = P>,
         P: AsRef<Path>,
     {
-        let entries = collect_entries(&self.registry, paths, self.lang_filter)?;
-        let mut findings = scan_entries_parallel(&self.registry, &self.ctx, &entries)?;
+        let entries = collect_entries(&self.registry, paths, &self.lang_filter)?;
+        let mut findings = Vec::new();
+        for chunk in entries.chunks(SCAN_CHUNK_SIZE) {
+            findings.extend(scan_entries_parallel(&self.registry, &self.ctx, chunk)?);
+        }
         sort_findings(&mut findings);
         Ok(AnalysisResult { findings })
     }

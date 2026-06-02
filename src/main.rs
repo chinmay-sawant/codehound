@@ -5,7 +5,7 @@ use clap::Parser;
 use colored::control::ShouldColorize;
 use colored::control::set_override;
 use slopguard::cli::{Cli, OutputFormat};
-use slopguard::engine::Analyzer;
+use slopguard::engine::{Analyzer, load_discovered_config, resolve_language_filter};
 use slopguard::reporting;
 use tracing_subscriber::EnvFilter;
 
@@ -38,11 +38,14 @@ fn run(cli: Cli) -> Result<ExitCode> {
         set_override(false);
     }
 
-    let mut builder = Analyzer::builder().scan_context(cli.scan_context());
-    if let Some(lang) = cli.lang.language_id() {
-        builder = builder.language(lang);
-    }
-    let analyzer = builder.build();
+    let config = load_discovered_config()?;
+    let registry = slopguard::engine::Registry::default();
+    let lang_filter = resolve_language_filter(cli.lang.language_id(), config.as_ref(), &registry)?;
+
+    let analyzer = Analyzer::builder()
+        .scan_context(cli.scan_context(config))
+        .language_filter(lang_filter)
+        .build();
 
     let result = analyzer.analyze_paths(&cli.paths)?;
 

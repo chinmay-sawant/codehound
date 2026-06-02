@@ -24,6 +24,24 @@ impl LanguageId {
             _ => None,
         }
     }
+
+    /// Parse a `slopguard.toml` / operator language name (e.g. `go`, `python`, `py`).
+    pub fn from_config_name(name: &str) -> Option<Self> {
+        match name.trim().to_lowercase().as_str() {
+            "go" => Some(Self::Go),
+            "python" | "py" => Some(Self::Python),
+            "typescript" | "ts" => Some(Self::TypeScript),
+            _ => None,
+        }
+    }
+
+    pub fn config_names(self) -> &'static [&'static str] {
+        match self {
+            Self::Go => &["go"],
+            Self::Python => &["python", "py"],
+            Self::TypeScript => &["typescript", "ts"],
+        }
+    }
 }
 
 /// Per-language backend: parse sources and supply detectors.

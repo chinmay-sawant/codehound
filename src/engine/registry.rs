@@ -8,6 +8,8 @@ use crate::core::{Detector, LanguageId, LanguagePlugin};
 /// Holds enabled language plugins and detectors indexed by language.
 pub struct Registry {
     plugins: Vec<Box<dyn LanguagePlugin>>,
+    /// File extension (no dot) → index in `plugins`.
+    by_extension: HashMap<&'static str, usize>,
     detectors: Vec<Box<dyn Detector>>,
     /// Detector indices grouped by language (avoids scanning all rules per file).
     by_language: HashMap<LanguageId, Vec<usize>>,
@@ -15,6 +17,13 @@ pub struct Registry {
 
 impl Registry {
     pub fn from_plugins(plugins: Vec<Box<dyn LanguagePlugin>>) -> Self {
+        let mut by_extension = HashMap::new();
+        for (idx, plugin) in plugins.iter().enumerate() {
+            for &ext in plugin.extensions() {
+                by_extension.insert(ext, idx);
+            }
+        }
+
         let mut detectors: Vec<Box<dyn Detector>> = Vec::new();
         let mut by_language: HashMap<LanguageId, Vec<usize>> = HashMap::new();
 
@@ -28,6 +37,7 @@ impl Registry {
 
         Self {
             plugins,
+            by_extension,
             detectors,
             by_language,
         }
@@ -45,10 +55,9 @@ impl Registry {
     }
 
     pub fn plugin_for_extension(&self, ext: &str) -> Option<&dyn LanguagePlugin> {
-        self.plugins
-            .iter()
-            .find(|p| p.extensions().contains(&ext))
-            .map(|p| p.as_ref())
+        self.by_extension
+            .get(ext)
+            .map(|&idx| self.plugins[idx].as_ref())
     }
 
     pub fn plugin_for_path(&self, path: &Path) -> Option<&dyn LanguagePlugin> {

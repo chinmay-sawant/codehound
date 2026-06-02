@@ -8,6 +8,7 @@ use ignore::WalkBuilder;
 use rayon::prelude::*;
 
 use crate::core::{LanguageId, ParsedUnit, ScanContext};
+use crate::engine::language_filter::LanguageFilter;
 use crate::engine::parse_pool::ParsePool;
 use crate::engine::registry::Registry;
 use crate::rules::Finding;
@@ -23,7 +24,7 @@ pub struct ScanEntry {
 pub fn collect_entries<I, P>(
     registry: &Registry,
     paths: I,
-    lang_filter: Option<LanguageId>,
+    lang_filter: &LanguageFilter,
 ) -> Result<Vec<ScanEntry>>
 where
     I: IntoIterator<Item = P>,
@@ -45,10 +46,8 @@ where
                 continue;
             };
             let language = plugin.id();
-            if let Some(want) = lang_filter {
-                if language != want {
-                    continue;
-                }
+            if !lang_filter.allows(language) {
+                continue;
             }
             entries.push(ScanEntry {
                 path: entry.path().to_path_buf(),
@@ -61,10 +60,13 @@ where
 }
 
 /// Read, parse, and analyze a single file. Drops the parse tree before returning.
+///
+/// `pool` is reused across many files on the same worker thread (see [`scan_entries_parallel`]).
 pub fn scan_entry(
     registry: &Registry,
     ctx: &ScanContext,
     entry: &ScanEntry,
+    pool: &mut ParsePool,
 ) -> Result<Vec<Finding>> {
     let plugin = registry
         .plugin_for_id(entry.language)
@@ -77,7 +79,6 @@ pub fn scan_entry(
             .with_context(|| format!("source is not valid UTF-8: {}", entry.path.display()))?,
     );
 
-    let mut pool = ParsePool::new();
     let parser = pool.parser_for(plugin);
     let unit = plugin
         .parse_with(parser, &entry.path, source)
@@ -104,6 +105,8 @@ pub fn analyze_parsed_unit(
 }
 
 /// Parallel scan: read → parse → detect → drop per file.
+///
+/// Each Rayon worker keeps one [`ParsePool`] and reuses parsers across files.
 pub fn scan_entries_parallel(
     registry: &Registry,
     ctx: &ScanContext,
@@ -111,7 +114,9 @@ pub fn scan_entries_parallel(
 ) -> Result<Vec<Finding>> {
     entries
         .par_iter()
-        .map(|entry| scan_entry(registry, ctx, entry))
+        .map_init(ParsePool::new, |pool, entry| {
+            scan_entry(registry, ctx, entry, pool)
+        })
         .collect::<Result<Vec<_>>>()
         .map(|chunks| chunks.into_iter().flatten().collect())
 }
