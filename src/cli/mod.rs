@@ -99,11 +99,12 @@ impl SeverityArgs {
 }
 
 impl Cli {
-    pub fn scan_context(&self) -> ScanContext {
+    pub fn scan_context(&self, config: Option<crate::engine::SlopguardConfig>) -> ScanContext {
         build_scan_context(
             self.only.clone(),
             self.skip.clone(),
             self.severity.fail_policy(),
+            config,
         )
     }
 }

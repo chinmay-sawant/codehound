@@ -1,4 +1,4 @@
-//! Reused tree-sitter parsers (one per language per scan).
+//! Reused tree-sitter parsers (one per language per Rayon worker).
 
 use std::collections::HashMap;
 

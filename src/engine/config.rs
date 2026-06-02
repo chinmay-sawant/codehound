@@ -34,12 +34,7 @@ impl SlopguardConfig {
     }
 
     pub fn discover() -> Option<Self> {
-        let path = Path::new("slopguard.toml");
-        if path.is_file() {
-            Self::load(path).ok()
-        } else {
-            None
-        }
+        load_discovered_config().ok().flatten()
     }
 
     pub fn merge_into(self, mut ctx: ScanContext) -> ScanContext {
@@ -64,11 +59,22 @@ fn fail_on_to_policy(s: &str) -> FailPolicy {
     }
 }
 
+/// Load `slopguard.toml` from the current directory when present.
+pub fn load_discovered_config() -> Result<Option<SlopguardConfig>> {
+    let path = Path::new("slopguard.toml");
+    if path.is_file() {
+        Ok(Some(SlopguardConfig::load(path)?))
+    } else {
+        Ok(None)
+    }
+}
+
 /// Build scan context from CLI + optional config file.
 pub fn build_scan_context(
     only: Vec<String>,
     skip: Vec<String>,
     fail_policy: FailPolicy,
+    config: Option<SlopguardConfig>,
 ) -> ScanContext {
     let mut ctx = ScanContext {
         only: if only.is_empty() {
@@ -79,7 +85,7 @@ pub fn build_scan_context(
         skip: skip.into_iter().collect(),
         fail_policy,
     };
-    if let Some(cfg) = SlopguardConfig::discover() {
+    if let Some(cfg) = config {
         ctx = cfg.merge_into(ctx);
     }
     ctx
