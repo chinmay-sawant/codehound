@@ -1,0 +1,32 @@
+# CWE-1289 safe: canonical path prefix check
+lang: go
+file: CWE-1289-safe.go
+---
+package sample
+
+// CWE-1289 mitigated: cleaned path must remain under the public assets directory.
+
+import (
+	"net/http"
+	"path/filepath"
+	"strings"
+
+	"github.com/gin-gonic/gin"
+)
+
+func FetchSharedAssetSafe() gin.HandlerFunc {
+	root := "/srv/assets/public"
+	return func(c *gin.Context) {
+		requested := c.Param("path")
+		clean := filepath.Clean(filepath.Join(root, requested))
+		if !strings.HasPrefix(clean, root+string(filepath.Separator)) {
+			c.JSON(http.StatusForbidden, gin.H{"error": "blocked"})
+			return
+		}
+		if strings.Contains(clean, "private") {
+			c.JSON(http.StatusForbidden, gin.H{"error": "blocked"})
+			return
+		}
+		c.File(clean)
+	}
+}

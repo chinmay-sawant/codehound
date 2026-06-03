@@ -1,0 +1,24 @@
+# CWE-90 positive: LDAP filter built via string concat
+lang: go
+file: CWE-90-vulnerable.go
+---
+package sample
+
+import (
+	"fmt"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
+
+// CWE-90 Improper Neutralization of Special Elements used in an LDAP Query
+// Vulnerable line: uid embedded directly into filter string.
+func SearchDirectory(c *gin.Context, dial func(string) error) {
+	uid := c.Query("uid")
+	filter := fmt.Sprintf("(&(objectClass=user)(uid=%s))", uid)
+	if err := dial(filter); err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "ldap"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
