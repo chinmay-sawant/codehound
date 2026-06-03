@@ -1,0 +1,26 @@
+# CWE-90 positive: LDAP filter built via string concat (pure stdlib)
+lang: go
+file: CWE-90-vulnerable.pure.go
+variant: pure-go
+---
+package sample
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+)
+
+// CWE-90 Improper Neutralization of Special Elements used in an LDAP Query
+// Vulnerable line: mail attribute embedded directly into filter string.
+func QueryLDAP(w http.ResponseWriter, r *http.Request, dial func(string) error) {
+	mail := r.URL.Query().Get("mail")
+	filter := fmt.Sprintf("(&(objectClass=person)(mail=%s))", mail)
+	if err := dial(filter); err != nil {
+		http.Error(w, "ldap", http.StatusBadGateway)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+}

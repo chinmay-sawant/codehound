@@ -1762,3 +1762,1763 @@ required_rules = ["CWE-1392"]
 lang = "go"
 path = "tests/fixtures/go/CWE-1392-safe.txt"
 required_rules = []
+
+
+# Pure-stdlib Go fixtures (CWE-15 through CWE-257)
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-15-vulnerable.txt"
+required_rules = ["CWE-15"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-15-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-22-vulnerable.txt"
+required_rules = ["CWE-22"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-22-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-41-vulnerable.txt"
+required_rules = ["CWE-41"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-41-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-59-vulnerable.txt"
+required_rules = ["CWE-59"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-59-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-76-vulnerable.txt"
+required_rules = ["CWE-76"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-76-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-78-vulnerable.txt"
+required_rules = ["CWE-78"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-78-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-79-vulnerable.txt"
+required_rules = ["CWE-79"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-79-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-89-vulnerable.txt"
+required_rules = ["CWE-89"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-89-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-90-vulnerable.txt"
+required_rules = ["CWE-90"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-90-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-91-vulnerable.txt"
+required_rules = ["CWE-91"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-91-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-93-vulnerable.txt"
+required_rules = ["CWE-93"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-93-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-112-vulnerable.txt"
+required_rules = ["CWE-112"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-112-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-140-vulnerable.txt"
+required_rules = ["CWE-140"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-140-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-178-vulnerable.txt"
+required_rules = ["CWE-178"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-178-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-179-vulnerable.txt"
+required_rules = ["CWE-179"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-179-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-182-vulnerable.txt"
+required_rules = ["CWE-182"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-182-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-184-vulnerable.txt"
+required_rules = ["CWE-184"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-184-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-186-vulnerable.txt"
+required_rules = ["CWE-186"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-186-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-201-vulnerable.txt"
+required_rules = ["CWE-201"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-201-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-204-vulnerable.txt"
+required_rules = ["CWE-204"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-204-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-208-vulnerable.txt"
+required_rules = ["CWE-208"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-208-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-209-vulnerable.txt"
+required_rules = ["CWE-209"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-209-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-212-vulnerable.txt"
+required_rules = ["CWE-212"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-212-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-213-vulnerable.txt"
+required_rules = ["CWE-213"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-213-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-214-vulnerable.txt"
+required_rules = ["CWE-214"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-214-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-215-vulnerable.txt"
+required_rules = ["CWE-215"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-215-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-250-vulnerable.txt"
+required_rules = ["CWE-250"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-250-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-252-vulnerable.txt"
+required_rules = ["CWE-252"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-252-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-256-vulnerable.txt"
+required_rules = ["CWE-256"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-256-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-257-vulnerable.txt"
+required_rules = ["CWE-257"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-257-safe.txt"
+required_rules = []
+
+
+# Pure-stdlib Go fixtures (CWE-260 through CWE-319)
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-260-vulnerable.txt"
+required_rules = ["CWE-260"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-260-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-261-vulnerable.txt"
+required_rules = ["CWE-261"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-261-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-262-vulnerable.txt"
+required_rules = ["CWE-262"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-262-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-263-vulnerable.txt"
+required_rules = ["CWE-263"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-263-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-266-vulnerable.txt"
+required_rules = ["CWE-266"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-266-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-267-vulnerable.txt"
+required_rules = ["CWE-267"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-267-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-268-vulnerable.txt"
+required_rules = ["CWE-268"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-268-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-270-vulnerable.txt"
+required_rules = ["CWE-270"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-270-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-272-vulnerable.txt"
+required_rules = ["CWE-272"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-272-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-273-vulnerable.txt"
+required_rules = ["CWE-273"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-273-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-274-vulnerable.txt"
+required_rules = ["CWE-274"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-274-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-276-vulnerable.txt"
+required_rules = ["CWE-276"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-276-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-277-vulnerable.txt"
+required_rules = ["CWE-277"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-277-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-278-vulnerable.txt"
+required_rules = ["CWE-278"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-278-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-279-vulnerable.txt"
+required_rules = ["CWE-279"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-279-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-280-vulnerable.txt"
+required_rules = ["CWE-280"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-280-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-281-vulnerable.txt"
+required_rules = ["CWE-281"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-281-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-283-vulnerable.txt"
+required_rules = ["CWE-283"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-283-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-289-vulnerable.txt"
+required_rules = ["CWE-289"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-289-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-290-vulnerable.txt"
+required_rules = ["CWE-290"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-290-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-294-vulnerable.txt"
+required_rules = ["CWE-294"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-294-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-301-vulnerable.txt"
+required_rules = ["CWE-301"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-301-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-303-vulnerable.txt"
+required_rules = ["CWE-303"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-303-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-305-vulnerable.txt"
+required_rules = ["CWE-305"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-305-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-306-vulnerable.txt"
+required_rules = ["CWE-306"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-306-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-307-vulnerable.txt"
+required_rules = ["CWE-307"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-307-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-308-vulnerable.txt"
+required_rules = ["CWE-308"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-308-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-309-vulnerable.txt"
+required_rules = ["CWE-309"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-309-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-312-vulnerable.txt"
+required_rules = ["CWE-312"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-312-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-319-vulnerable.txt"
+required_rules = ["CWE-319"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-319-safe.txt"
+required_rules = []
+
+
+# Pure-stdlib Go fixtures (CWE-322 through CWE-408)
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-322-vulnerable.txt"
+required_rules = ["CWE-322"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-322-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-323-vulnerable.txt"
+required_rules = ["CWE-323"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-323-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-324-vulnerable.txt"
+required_rules = ["CWE-324"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-324-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-325-vulnerable.txt"
+required_rules = ["CWE-325"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-325-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-328-vulnerable.txt"
+required_rules = ["CWE-328"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-328-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-331-vulnerable.txt"
+required_rules = ["CWE-331"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-331-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-334-vulnerable.txt"
+required_rules = ["CWE-334"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-334-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-335-vulnerable.txt"
+required_rules = ["CWE-335"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-335-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-338-vulnerable.txt"
+required_rules = ["CWE-338"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-338-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-341-vulnerable.txt"
+required_rules = ["CWE-341"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-341-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-342-vulnerable.txt"
+required_rules = ["CWE-342"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-342-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-343-vulnerable.txt"
+required_rules = ["CWE-343"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-343-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-344-vulnerable.txt"
+required_rules = ["CWE-344"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-344-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-346-vulnerable.txt"
+required_rules = ["CWE-346"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-346-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-347-vulnerable.txt"
+required_rules = ["CWE-347"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-347-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-349-vulnerable.txt"
+required_rules = ["CWE-349"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-349-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-353-vulnerable.txt"
+required_rules = ["CWE-353"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-353-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-356-vulnerable.txt"
+required_rules = ["CWE-356"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-356-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-358-vulnerable.txt"
+required_rules = ["CWE-358"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-358-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-359-vulnerable.txt"
+required_rules = ["CWE-359"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-359-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-360-vulnerable.txt"
+required_rules = ["CWE-360"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-360-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-366-vulnerable.txt"
+required_rules = ["CWE-366"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-366-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-367-vulnerable.txt"
+required_rules = ["CWE-367"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-367-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-368-vulnerable.txt"
+required_rules = ["CWE-368"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-368-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-378-vulnerable.txt"
+required_rules = ["CWE-378"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-378-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-379-vulnerable.txt"
+required_rules = ["CWE-379"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-379-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-385-vulnerable.txt"
+required_rules = ["CWE-385"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-385-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-393-vulnerable.txt"
+required_rules = ["CWE-393"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-393-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-403-vulnerable.txt"
+required_rules = ["CWE-403"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-403-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-408-vulnerable.txt"
+required_rules = ["CWE-408"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-408-safe.txt"
+required_rules = []
+
+
+# Pure-stdlib Go fixtures (CWE-611 through CWE-915)
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-611-vulnerable.txt"
+required_rules = ["CWE-611"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-611-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-613-vulnerable.txt"
+required_rules = ["CWE-613"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-613-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-618-vulnerable.txt"
+required_rules = ["CWE-618"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-618-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-619-vulnerable.txt"
+required_rules = ["CWE-619"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-619-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-620-vulnerable.txt"
+required_rules = ["CWE-620"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-620-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-639-vulnerable.txt"
+required_rules = ["CWE-639"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-639-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-640-vulnerable.txt"
+required_rules = ["CWE-640"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-640-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-645-vulnerable.txt"
+required_rules = ["CWE-645"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-645-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-648-vulnerable.txt"
+required_rules = ["CWE-648"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-648-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-649-vulnerable.txt"
+required_rules = ["CWE-649"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-649-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-653-vulnerable.txt"
+required_rules = ["CWE-653"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-653-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-654-vulnerable.txt"
+required_rules = ["CWE-654"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-654-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-656-vulnerable.txt"
+required_rules = ["CWE-656"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-656-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-708-vulnerable.txt"
+required_rules = ["CWE-708"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-708-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-756-vulnerable.txt"
+required_rules = ["CWE-756"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-756-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-765-vulnerable.txt"
+required_rules = ["CWE-765"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-765-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-778-vulnerable.txt"
+required_rules = ["CWE-778"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-778-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-783-vulnerable.txt"
+required_rules = ["CWE-783"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-783-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-798-vulnerable.txt"
+required_rules = ["CWE-798"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-798-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-807-vulnerable.txt"
+required_rules = ["CWE-807"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-807-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-820-vulnerable.txt"
+required_rules = ["CWE-820"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-820-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-821-vulnerable.txt"
+required_rules = ["CWE-821"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-821-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-826-vulnerable.txt"
+required_rules = ["CWE-826"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-826-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-829-vulnerable.txt"
+required_rules = ["CWE-829"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-829-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-836-vulnerable.txt"
+required_rules = ["CWE-836"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-836-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-838-vulnerable.txt"
+required_rules = ["CWE-838"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-838-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-841-vulnerable.txt"
+required_rules = ["CWE-841"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-841-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-842-vulnerable.txt"
+required_rules = ["CWE-842"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-842-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-909-vulnerable.txt"
+required_rules = ["CWE-909"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-909-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-915-vulnerable.txt"
+required_rules = ["CWE-915"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-915-safe.txt"
+required_rules = []
+
+# Pure-stdlib Go fixtures (CWE-916 through CWE-1392)
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-916-vulnerable.txt"
+required_rules = ["CWE-916"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-916-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-917-vulnerable.txt"
+required_rules = ["CWE-917"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-917-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-918-vulnerable.txt"
+required_rules = ["CWE-918"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-918-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-921-vulnerable.txt"
+required_rules = ["CWE-921"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-921-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-924-vulnerable.txt"
+required_rules = ["CWE-924"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-924-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-940-vulnerable.txt"
+required_rules = ["CWE-940"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-940-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-941-vulnerable.txt"
+required_rules = ["CWE-941"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-941-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1051-vulnerable.txt"
+required_rules = ["CWE-1051"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1051-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1052-vulnerable.txt"
+required_rules = ["CWE-1052"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1052-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1067-vulnerable.txt"
+required_rules = ["CWE-1067"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1067-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1125-vulnerable.txt"
+required_rules = ["CWE-1125"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1125-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1173-vulnerable.txt"
+required_rules = ["CWE-1173"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1173-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1204-vulnerable.txt"
+required_rules = ["CWE-1204"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1204-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1220-vulnerable.txt"
+required_rules = ["CWE-1220"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1220-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1230-vulnerable.txt"
+required_rules = ["CWE-1230"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1230-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1236-vulnerable.txt"
+required_rules = ["CWE-1236"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1236-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1240-vulnerable.txt"
+required_rules = ["CWE-1240"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1240-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1265-vulnerable.txt"
+required_rules = ["CWE-1265"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1265-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1286-vulnerable.txt"
+required_rules = ["CWE-1286"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1286-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1289-vulnerable.txt"
+required_rules = ["CWE-1289"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1289-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1322-vulnerable.txt"
+required_rules = ["CWE-1322"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1322-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1327-vulnerable.txt"
+required_rules = ["CWE-1327"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1327-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1333-vulnerable.txt"
+required_rules = ["CWE-1333"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1333-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1389-vulnerable.txt"
+required_rules = ["CWE-1389"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1389-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1392-vulnerable.txt"
+required_rules = ["CWE-1392"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-1392-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-412-vulnerable.txt"
+required_rules = ["CWE-412"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-412-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-420-vulnerable.txt"
+required_rules = ["CWE-420"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-420-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-421-vulnerable.txt"
+required_rules = ["CWE-421"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-421-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-425-vulnerable.txt"
+required_rules = ["CWE-425"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-425-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-426-vulnerable.txt"
+required_rules = ["CWE-426"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-426-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-427-vulnerable.txt"
+required_rules = ["CWE-427"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-427-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-434-vulnerable.txt"
+required_rules = ["CWE-434"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-434-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-454-vulnerable.txt"
+required_rules = ["CWE-454"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-454-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-455-vulnerable.txt"
+required_rules = ["CWE-455"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-455-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-459-vulnerable.txt"
+required_rules = ["CWE-459"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-459-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-472-vulnerable.txt"
+required_rules = ["CWE-472"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-472-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-488-vulnerable.txt"
+required_rules = ["CWE-488"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-488-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-494-vulnerable.txt"
+required_rules = ["CWE-494"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-494-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-497-vulnerable.txt"
+required_rules = ["CWE-497"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-497-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-501-vulnerable.txt"
+required_rules = ["CWE-501"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-501-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-502-vulnerable.txt"
+required_rules = ["CWE-502"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-502-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-515-vulnerable.txt"
+required_rules = ["CWE-515"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-515-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-521-vulnerable.txt"
+required_rules = ["CWE-521"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-521-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-523-vulnerable.txt"
+required_rules = ["CWE-523"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-523-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-524-vulnerable.txt"
+required_rules = ["CWE-524"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-524-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-538-vulnerable.txt"
+required_rules = ["CWE-538"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-538-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-544-vulnerable.txt"
+required_rules = ["CWE-544"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-544-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-547-vulnerable.txt"
+required_rules = ["CWE-547"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-547-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-549-vulnerable.txt"
+required_rules = ["CWE-549"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-549-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-551-vulnerable.txt"
+required_rules = ["CWE-551"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-551-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-552-vulnerable.txt"
+required_rules = ["CWE-552"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-552-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-565-vulnerable.txt"
+required_rules = ["CWE-565"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-565-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-601-vulnerable.txt"
+required_rules = ["CWE-601"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-601-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-603-vulnerable.txt"
+required_rules = ["CWE-603"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-603-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-605-vulnerable.txt"
+required_rules = ["CWE-605"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/stdlib/CWE-605-safe.txt"
+required_rules = []
