@@ -1,0 +1,29 @@
+# CWE-79 positive: reflected HTML without escaping (pure stdlib)
+lang: go
+file: CWE-79-vulnerable.pure.go
+variant: pure-go
+---
+package sample
+
+import (
+	"fmt"
+	"net/http"
+)
+
+// CWE-79 Improper Neutralization of Input During Web Page Generation
+// Vulnerable line: writes raw query value into HTML response.
+func ShowWelcome(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method", http.StatusMethodNotAllowed)
+		return
+	}
+	visitor := r.URL.Query().Get("name")
+	if visitor == "" {
+		visitor = "guest"
+	}
+	title := "Visitor Greeting"
+	page := fmt.Sprintf("<html><head><title>%s</title></head><body><p>Welcome, %s!</p></body></html>", title, visitor)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(page))
+}

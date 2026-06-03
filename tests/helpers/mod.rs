@@ -8,6 +8,21 @@ use std::path::Path;
 use slopguard::engine::Analyzer;
 use slopguard::fixture::{materialize_fixture, materialize_tree, materialized_root};
 
+/// Materialize a `.txt` fixture and verify it parses; does not run the analyzer.
+pub fn assert_fixture_materializes(txt_path: &str) -> std::path::PathBuf {
+    assert!(
+        Path::new(txt_path).is_file(),
+        "fixture missing (mandatory .txt): {txt_path}"
+    );
+    assert!(
+        txt_path.ends_with(".txt"),
+        "fixtures must use .txt text format, not source extensions: {txt_path}"
+    );
+
+    materialize_fixture(Path::new(txt_path))
+        .unwrap_or_else(|e| panic!("materialize {txt_path}: {e:#}"))
+}
+
 /// Materialize a `.txt` fixture, analyze it, and assert required rules fired.
 pub fn assert_fixture_rules(txt_path: &str, required_rules: &[&str]) {
     assert!(
@@ -19,8 +34,7 @@ pub fn assert_fixture_rules(txt_path: &str, required_rules: &[&str]) {
         "fixtures must use .txt text format, not source extensions: {txt_path}"
     );
 
-    let source_path = materialize_fixture(Path::new(txt_path))
-        .unwrap_or_else(|e| panic!("materialize {txt_path}: {e:#}"));
+    let source_path = assert_fixture_materializes(txt_path);
 
     let analyzer = Analyzer::builder().build();
     let result = analyzer
