@@ -3,7 +3,7 @@
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/sample.txt"
+path = "tests/fixtures/go/frameworks/sample.txt"
 required_rules = ["SLOP001"]
 
 [[fixture]]
@@ -14,1753 +14,1753 @@ required_rules = ["SLOP101"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-15-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-15-vulnerable.txt"
 required_rules = ["CWE-15"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-15-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-15-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-22-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-22-vulnerable.txt"
 required_rules = ["CWE-22"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-22-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-22-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-41-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-41-vulnerable.txt"
 required_rules = ["CWE-41"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-41-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-41-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-59-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-59-vulnerable.txt"
 required_rules = ["CWE-59"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-59-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-59-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-76-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-76-vulnerable.txt"
 required_rules = ["CWE-76"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-76-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-76-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-78-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-78-vulnerable.txt"
 required_rules = ["CWE-78"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-78-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-78-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-79-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-79-vulnerable.txt"
 required_rules = ["CWE-79"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-79-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-79-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-89-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-89-vulnerable.txt"
 required_rules = ["CWE-89"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-89-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-89-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-90-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-90-vulnerable.txt"
 required_rules = ["CWE-90"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-90-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-90-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-91-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-91-vulnerable.txt"
 required_rules = ["CWE-91"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-91-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-91-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-93-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-93-vulnerable.txt"
 required_rules = ["CWE-93"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-93-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-93-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-112-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-112-vulnerable.txt"
 required_rules = ["CWE-112"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-112-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-112-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-140-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-140-vulnerable.txt"
 required_rules = ["CWE-140"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-140-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-140-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-178-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-178-vulnerable.txt"
 required_rules = ["CWE-178"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-178-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-178-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-179-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-179-vulnerable.txt"
 required_rules = ["CWE-179"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-179-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-179-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-182-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-182-vulnerable.txt"
 required_rules = ["CWE-182"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-182-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-182-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-184-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-184-vulnerable.txt"
 required_rules = ["CWE-184"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-184-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-184-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-186-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-186-vulnerable.txt"
 required_rules = ["CWE-186"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-186-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-186-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-201-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-201-vulnerable.txt"
 required_rules = ["CWE-201"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-201-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-201-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-204-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-204-vulnerable.txt"
 required_rules = ["CWE-204"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-204-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-204-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-208-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-208-vulnerable.txt"
 required_rules = ["CWE-208"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-208-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-208-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-209-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-209-vulnerable.txt"
 required_rules = ["CWE-209"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-209-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-209-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-212-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-212-vulnerable.txt"
 required_rules = ["CWE-212"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-212-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-212-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-213-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-213-vulnerable.txt"
 required_rules = ["CWE-213"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-213-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-213-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-214-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-214-vulnerable.txt"
 required_rules = ["CWE-214"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-214-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-214-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-215-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-215-vulnerable.txt"
 required_rules = ["CWE-215"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-215-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-215-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-250-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-250-vulnerable.txt"
 required_rules = ["CWE-250"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-250-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-250-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-252-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-252-vulnerable.txt"
 required_rules = ["CWE-252"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-252-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-252-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-256-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-256-vulnerable.txt"
 required_rules = ["CWE-256"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-256-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-256-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-257-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-257-vulnerable.txt"
 required_rules = ["CWE-257"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-257-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-257-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-260-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-260-vulnerable.txt"
 required_rules = ["CWE-260"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-260-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-260-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-261-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-261-vulnerable.txt"
 required_rules = ["CWE-261"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-261-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-261-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-262-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-262-vulnerable.txt"
 required_rules = ["CWE-262"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-262-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-262-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-263-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-263-vulnerable.txt"
 required_rules = ["CWE-263"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-263-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-263-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-266-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-266-vulnerable.txt"
 required_rules = ["CWE-266"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-266-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-266-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-267-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-267-vulnerable.txt"
 required_rules = ["CWE-267"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-267-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-267-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-268-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-268-vulnerable.txt"
 required_rules = ["CWE-268"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-268-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-268-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-270-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-270-vulnerable.txt"
 required_rules = ["CWE-270"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-270-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-270-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-272-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-272-vulnerable.txt"
 required_rules = ["CWE-272"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-272-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-272-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-273-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-273-vulnerable.txt"
 required_rules = ["CWE-273"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-273-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-273-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-274-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-274-vulnerable.txt"
 required_rules = ["CWE-274"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-274-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-274-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-276-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-276-vulnerable.txt"
 required_rules = ["CWE-276"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-276-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-276-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-277-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-277-vulnerable.txt"
 required_rules = ["CWE-277"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-277-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-277-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-278-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-278-vulnerable.txt"
 required_rules = ["CWE-278"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-278-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-278-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-279-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-279-vulnerable.txt"
 required_rules = ["CWE-279"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-279-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-279-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-280-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-280-vulnerable.txt"
 required_rules = ["CWE-280"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-280-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-280-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-281-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-281-vulnerable.txt"
 required_rules = ["CWE-281"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-281-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-281-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-283-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-283-vulnerable.txt"
 required_rules = ["CWE-283"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-283-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-283-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-289-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-289-vulnerable.txt"
 required_rules = ["CWE-289"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-289-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-289-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-290-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-290-vulnerable.txt"
 required_rules = ["CWE-290"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-290-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-290-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-294-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-294-vulnerable.txt"
 required_rules = ["CWE-294"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-294-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-294-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-301-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-301-vulnerable.txt"
 required_rules = ["CWE-301"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-301-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-301-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-303-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-303-vulnerable.txt"
 required_rules = ["CWE-303"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-303-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-303-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-305-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-305-vulnerable.txt"
 required_rules = ["CWE-305"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-305-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-305-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-306-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-306-vulnerable.txt"
 required_rules = ["CWE-306"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-306-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-306-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-307-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-307-vulnerable.txt"
 required_rules = ["CWE-307"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-307-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-307-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-308-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-308-vulnerable.txt"
 required_rules = ["CWE-308"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-308-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-308-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-309-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-309-vulnerable.txt"
 required_rules = ["CWE-309"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-309-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-309-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-312-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-312-vulnerable.txt"
 required_rules = ["CWE-312"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-312-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-312-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-319-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-319-vulnerable.txt"
 required_rules = ["CWE-319"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-319-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-319-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-322-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-322-vulnerable.txt"
 required_rules = ["CWE-322"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-322-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-322-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-323-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-323-vulnerable.txt"
 required_rules = ["CWE-323"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-323-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-323-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-324-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-324-vulnerable.txt"
 required_rules = ["CWE-324"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-324-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-324-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-325-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-325-vulnerable.txt"
 required_rules = ["CWE-325"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-325-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-325-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-328-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-328-vulnerable.txt"
 required_rules = ["CWE-328"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-328-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-328-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-331-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-331-vulnerable.txt"
 required_rules = ["CWE-331"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-331-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-331-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-334-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-334-vulnerable.txt"
 required_rules = ["CWE-334"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-334-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-334-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-335-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-335-vulnerable.txt"
 required_rules = ["CWE-335"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-335-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-335-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-338-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-338-vulnerable.txt"
 required_rules = ["CWE-338"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-338-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-338-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-341-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-341-vulnerable.txt"
 required_rules = ["CWE-341"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-341-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-341-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-342-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-342-vulnerable.txt"
 required_rules = ["CWE-342"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-342-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-342-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-343-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-343-vulnerable.txt"
 required_rules = ["CWE-343"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-343-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-343-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-344-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-344-vulnerable.txt"
 required_rules = ["CWE-344"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-344-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-344-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-346-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-346-vulnerable.txt"
 required_rules = ["CWE-346"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-346-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-346-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-347-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-347-vulnerable.txt"
 required_rules = ["CWE-347"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-347-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-347-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-349-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-349-vulnerable.txt"
 required_rules = ["CWE-349"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-349-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-349-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-353-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-353-vulnerable.txt"
 required_rules = ["CWE-353"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-353-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-353-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-356-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-356-vulnerable.txt"
 required_rules = ["CWE-356"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-356-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-356-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-358-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-358-vulnerable.txt"
 required_rules = ["CWE-358"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-358-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-358-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-359-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-359-vulnerable.txt"
 required_rules = ["CWE-359"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-359-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-359-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-360-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-360-vulnerable.txt"
 required_rules = ["CWE-360"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-360-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-360-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-366-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-366-vulnerable.txt"
 required_rules = ["CWE-366"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-366-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-366-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-367-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-367-vulnerable.txt"
 required_rules = ["CWE-367"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-367-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-367-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-368-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-368-vulnerable.txt"
 required_rules = ["CWE-368"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-368-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-368-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-378-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-378-vulnerable.txt"
 required_rules = ["CWE-378"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-378-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-378-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-379-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-379-vulnerable.txt"
 required_rules = ["CWE-379"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-379-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-379-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-385-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-385-vulnerable.txt"
 required_rules = ["CWE-385"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-385-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-385-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-393-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-393-vulnerable.txt"
 required_rules = ["CWE-393"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-393-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-393-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-403-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-403-vulnerable.txt"
 required_rules = ["CWE-403"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-403-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-403-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-408-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-408-vulnerable.txt"
 required_rules = ["CWE-408"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-408-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-408-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-412-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-412-vulnerable.txt"
 required_rules = ["CWE-412"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-412-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-412-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-420-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-420-vulnerable.txt"
 required_rules = ["CWE-420"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-420-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-420-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-421-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-421-vulnerable.txt"
 required_rules = ["CWE-421"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-421-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-421-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-425-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-425-vulnerable.txt"
 required_rules = ["CWE-425"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-425-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-425-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-426-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-426-vulnerable.txt"
 required_rules = ["CWE-426"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-426-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-426-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-427-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-427-vulnerable.txt"
 required_rules = ["CWE-427"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-427-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-427-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-434-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-434-vulnerable.txt"
 required_rules = ["CWE-434"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-434-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-434-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-454-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-454-vulnerable.txt"
 required_rules = ["CWE-454"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-454-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-454-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-455-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-455-vulnerable.txt"
 required_rules = ["CWE-455"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-455-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-455-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-459-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-459-vulnerable.txt"
 required_rules = ["CWE-459"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-459-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-459-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-472-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-472-vulnerable.txt"
 required_rules = ["CWE-472"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-472-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-472-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-488-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-488-vulnerable.txt"
 required_rules = ["CWE-488"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-488-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-488-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-494-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-494-vulnerable.txt"
 required_rules = ["CWE-494"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-494-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-494-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-497-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-497-vulnerable.txt"
 required_rules = ["CWE-497"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-497-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-497-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-501-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-501-vulnerable.txt"
 required_rules = ["CWE-501"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-501-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-501-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-502-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-502-vulnerable.txt"
 required_rules = ["CWE-502"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-502-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-502-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-515-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-515-vulnerable.txt"
 required_rules = ["CWE-515"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-515-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-515-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-521-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-521-vulnerable.txt"
 required_rules = ["CWE-521"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-521-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-521-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-523-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-523-vulnerable.txt"
 required_rules = ["CWE-523"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-523-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-523-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-524-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-524-vulnerable.txt"
 required_rules = ["CWE-524"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-524-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-524-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-538-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-538-vulnerable.txt"
 required_rules = ["CWE-538"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-538-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-538-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-544-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-544-vulnerable.txt"
 required_rules = ["CWE-544"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-544-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-544-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-547-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-547-vulnerable.txt"
 required_rules = ["CWE-547"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-547-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-547-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-549-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-549-vulnerable.txt"
 required_rules = ["CWE-549"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-549-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-549-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-551-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-551-vulnerable.txt"
 required_rules = ["CWE-551"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-551-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-551-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-552-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-552-vulnerable.txt"
 required_rules = ["CWE-552"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-552-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-552-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-565-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-565-vulnerable.txt"
 required_rules = ["CWE-565"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-565-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-565-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-601-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-601-vulnerable.txt"
 required_rules = ["CWE-601"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-601-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-601-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-603-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-603-vulnerable.txt"
 required_rules = ["CWE-603"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-603-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-603-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-605-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-605-vulnerable.txt"
 required_rules = ["CWE-605"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-605-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-605-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-611-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-611-vulnerable.txt"
 required_rules = ["CWE-611"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-611-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-611-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-613-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-613-vulnerable.txt"
 required_rules = ["CWE-613"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-613-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-613-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-618-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-618-vulnerable.txt"
 required_rules = ["CWE-618"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-618-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-618-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-619-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-619-vulnerable.txt"
 required_rules = ["CWE-619"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-619-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-619-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-620-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-620-vulnerable.txt"
 required_rules = ["CWE-620"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-620-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-620-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-639-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-639-vulnerable.txt"
 required_rules = ["CWE-639"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-639-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-639-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-640-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-640-vulnerable.txt"
 required_rules = ["CWE-640"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-640-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-640-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-645-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-645-vulnerable.txt"
 required_rules = ["CWE-645"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-645-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-645-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-648-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-648-vulnerable.txt"
 required_rules = ["CWE-648"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-648-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-648-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-649-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-649-vulnerable.txt"
 required_rules = ["CWE-649"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-649-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-649-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-653-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-653-vulnerable.txt"
 required_rules = ["CWE-653"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-653-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-653-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-654-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-654-vulnerable.txt"
 required_rules = ["CWE-654"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-654-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-654-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-656-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-656-vulnerable.txt"
 required_rules = ["CWE-656"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-656-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-656-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-708-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-708-vulnerable.txt"
 required_rules = ["CWE-708"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-708-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-708-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-756-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-756-vulnerable.txt"
 required_rules = ["CWE-756"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-756-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-756-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-765-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-765-vulnerable.txt"
 required_rules = ["CWE-765"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-765-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-765-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-778-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-778-vulnerable.txt"
 required_rules = ["CWE-778"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-778-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-778-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-783-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-783-vulnerable.txt"
 required_rules = ["CWE-783"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-783-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-783-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-798-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-798-vulnerable.txt"
 required_rules = ["CWE-798"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-798-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-798-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-807-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-807-vulnerable.txt"
 required_rules = ["CWE-807"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-807-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-807-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-820-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-820-vulnerable.txt"
 required_rules = ["CWE-820"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-820-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-820-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-821-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-821-vulnerable.txt"
 required_rules = ["CWE-821"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-821-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-821-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-826-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-826-vulnerable.txt"
 required_rules = ["CWE-826"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-826-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-826-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-829-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-829-vulnerable.txt"
 required_rules = ["CWE-829"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-829-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-829-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-836-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-836-vulnerable.txt"
 required_rules = ["CWE-836"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-836-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-836-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-838-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-838-vulnerable.txt"
 required_rules = ["CWE-838"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-838-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-838-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-841-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-841-vulnerable.txt"
 required_rules = ["CWE-841"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-841-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-841-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-842-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-842-vulnerable.txt"
 required_rules = ["CWE-842"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-842-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-842-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-909-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-909-vulnerable.txt"
 required_rules = ["CWE-909"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-909-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-909-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-915-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-915-vulnerable.txt"
 required_rules = ["CWE-915"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-915-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-915-safe.txt"
 required_rules = []
 # CWE-916 through CWE-1392 — merge into tests/fixtures/manifest.toml after all ranges land.
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-916-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-916-vulnerable.txt"
 required_rules = ["CWE-916"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-916-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-916-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-917-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-917-vulnerable.txt"
 required_rules = ["CWE-917"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-917-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-917-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-918-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-918-vulnerable.txt"
 required_rules = ["CWE-918"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-918-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-918-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-921-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-921-vulnerable.txt"
 required_rules = ["CWE-921"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-921-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-921-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-924-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-924-vulnerable.txt"
 required_rules = ["CWE-924"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-924-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-924-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-940-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-940-vulnerable.txt"
 required_rules = ["CWE-940"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-940-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-940-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-941-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-941-vulnerable.txt"
 required_rules = ["CWE-941"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-941-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-941-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1051-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-1051-vulnerable.txt"
 required_rules = ["CWE-1051"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1051-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-1051-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1052-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-1052-vulnerable.txt"
 required_rules = ["CWE-1052"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1052-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-1052-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1067-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-1067-vulnerable.txt"
 required_rules = ["CWE-1067"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1067-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-1067-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1125-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-1125-vulnerable.txt"
 required_rules = ["CWE-1125"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1125-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-1125-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1173-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-1173-vulnerable.txt"
 required_rules = ["CWE-1173"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1173-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-1173-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1204-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-1204-vulnerable.txt"
 required_rules = ["CWE-1204"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1204-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-1204-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1220-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-1220-vulnerable.txt"
 required_rules = ["CWE-1220"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1220-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-1220-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1230-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-1230-vulnerable.txt"
 required_rules = ["CWE-1230"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1230-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-1230-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1236-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-1236-vulnerable.txt"
 required_rules = ["CWE-1236"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1236-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-1236-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1240-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-1240-vulnerable.txt"
 required_rules = ["CWE-1240"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1240-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-1240-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1265-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-1265-vulnerable.txt"
 required_rules = ["CWE-1265"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1265-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-1265-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1286-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-1286-vulnerable.txt"
 required_rules = ["CWE-1286"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1286-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-1286-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1289-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-1289-vulnerable.txt"
 required_rules = ["CWE-1289"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1289-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-1289-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1322-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-1322-vulnerable.txt"
 required_rules = ["CWE-1322"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1322-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-1322-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1327-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-1327-vulnerable.txt"
 required_rules = ["CWE-1327"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1327-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-1327-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1333-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-1333-vulnerable.txt"
 required_rules = ["CWE-1333"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1333-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-1333-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1389-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-1389-vulnerable.txt"
 required_rules = ["CWE-1389"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1389-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-1389-safe.txt"
 required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1392-vulnerable.txt"
+path = "tests/fixtures/go/frameworks/CWE-1392-vulnerable.txt"
 required_rules = ["CWE-1392"]
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/CWE-1392-safe.txt"
+path = "tests/fixtures/go/frameworks/CWE-1392-safe.txt"
 required_rules = []
 
 
