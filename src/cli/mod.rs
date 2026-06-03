@@ -1,9 +1,12 @@
 //! Command-line argument definitions.
 
+use std::path::PathBuf;
+
 use clap::{Args, Parser, ValueEnum};
 
 use crate::core::{FailPolicy, LanguageId, ScanContext};
 use crate::engine::build_scan_context;
+use crate::export::ExportOptions;
 
 /// SlopGuard — static analyzer for performance slop in multiple languages.
 #[derive(Debug, Parser)]
@@ -42,6 +45,30 @@ pub struct Cli {
     /// Disable colored output.
     #[arg(long)]
     pub no_color: bool,
+
+    /// Do not print findings to stdout.
+    #[arg(long)]
+    pub no_terminal: bool,
+
+    /// Do not write per-finding context files.
+    #[arg(long)]
+    pub no_context: bool,
+
+    /// Do not write chunk files.
+    #[arg(long)]
+    pub no_chunks: bool,
+
+    /// Number of findings per chunk file.
+    #[arg(long, default_value_t = 25)]
+    pub chunk_size: usize,
+
+    /// Directory for numbered finding context files.
+    #[arg(long, default_value = "scripts/findings/functions")]
+    pub context_output_dir: PathBuf,
+
+    /// Directory for chunk files.
+    #[arg(long, default_value = "scripts/chunks")]
+    pub chunks_output_dir: PathBuf,
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum, Default)]
@@ -106,5 +133,15 @@ impl Cli {
             self.severity.fail_policy(),
             config,
         )
+    }
+
+    pub fn export_options(&self) -> ExportOptions {
+        ExportOptions {
+            export_context: !self.no_context,
+            export_chunks: !self.no_chunks,
+            chunk_size: self.chunk_size,
+            context_output_dir: self.context_output_dir.clone(),
+            chunks_output_dir: self.chunks_output_dir.clone(),
+        }
     }
 }

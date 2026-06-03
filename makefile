@@ -1,4 +1,6 @@
 CARGO ?= cargo
+SCAN_PATH ?= /home/chinmay/ChinmayPersonalProjects/gopdfsuit
+RUN_ARGS ?=
 
 ifeq ($(OS),Windows_NT)
 ifeq ($(shell where cargo 2>NUL),)
@@ -24,4 +26,4 @@ fmt:
 	$(CARGO) fmt
 
 run:
-	$(CARGO) run -- /home/chinmay/ChinmayPersonalProjects/gopdfsuit
+	@$(CARGO) run --quiet -- $(SCAN_PATH) --no-fail --no-terminal $(RUN_ARGS)
