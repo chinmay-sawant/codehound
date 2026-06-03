@@ -5,6 +5,7 @@ pub mod cli;
 pub mod core;
 pub mod cwe;
 pub mod engine;
+pub mod export;
 pub mod fixture;
 pub mod lang;
 pub mod reporting;
