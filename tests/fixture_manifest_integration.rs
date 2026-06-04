@@ -44,13 +44,7 @@ fn manifest_entries_exist_and_fire() {
             entry.lang
         );
         let rules: Vec<&str> = entry.required_rules.iter().map(String::as_str).collect();
-        let pending_cwe = !rules.is_empty() && rules.iter().all(|r| r.starts_with("CWE-"));
-        if pending_cwe {
-            // CWE detectors are Phase 2; manifest records expected rules for later.
-            helpers::assert_fixture_materializes(&entry.path);
-        } else {
-            helpers::assert_fixture_rules(&entry.path, &rules);
-        }
+        helpers::assert_fixture_rules(&entry.path, &rules);
     }
 }
 

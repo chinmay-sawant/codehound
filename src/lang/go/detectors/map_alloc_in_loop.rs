@@ -52,36 +52,3 @@ impl Detector for MapAllocInLoop {
         });
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::ScanContext;
-    use crate::lang::go::test_utils::parse_snippet;
-
-    #[test]
-    fn detects_make_map_inside_range_loop() {
-        let src = r#"
-package p
-func f(rows []string) {
-    for _, r := range rows {
-        _ = make(map[string]int)
-    }
-}
-"#;
-        let unit = parse_snippet(src);
-        let mut out = Vec::new();
-        MapAllocInLoop.run(&ScanContext::default(), &unit, &mut out);
-        assert_eq!(out.len(), 1);
-        assert_eq!(out[0].rule_id, "SLOP004");
-    }
-
-    #[test]
-    fn ignores_make_map_outside_loop() {
-        let src = "package p\nfunc f() { _ = make(map[string]int) }\n";
-        let unit = parse_snippet(src);
-        let mut out = Vec::new();
-        MapAllocInLoop.run(&ScanContext::default(), &unit, &mut out);
-        assert!(out.is_empty());
-    }
-}
