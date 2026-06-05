@@ -1,0 +1,27 @@
+# PERF-027 negative: bytes.Buffer is served from a sync.Pool
+lang: go
+file: PERF-027-safe.go
+---
+package sample
+
+import (
+	"bytes"
+	"net/http"
+	"sync"
+
+	"github.com/gin-gonic/gin"
+)
+
+var bufPool = sync.Pool{
+	New: func() interface{} {
+		return &bytes.Buffer{}
+	},
+}
+
+func Render(c *gin.Context) {
+	buf := bufPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	buf.WriteString("hello")
+	c.Data(http.StatusOK, "text/plain", buf.Bytes())
+	bufPool.Put(buf)
+}

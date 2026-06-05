@@ -1,0 +1,16 @@
+# PERF-77 negative: db.Updates writes only the changed fields
+lang: go
+file: PERF-077-safe.go
+---
+package sample
+
+import "gorm.io/gorm"
+
+type User struct {
+	gorm.Model
+	Name string
+}
+
+func RenameUser(db *gorm.DB, id uint, name string) error {
+	return db.Model(&User{}).Where("id = ?", id).Updates(map[string]interface{}{"name": name}).Error
+}

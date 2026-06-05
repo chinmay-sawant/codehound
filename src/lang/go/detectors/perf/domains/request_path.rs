@@ -2,7 +2,7 @@
 //! string building, copy / conversion, reflection, body / file reads,
 //! hashing, and key generation.
 
-use super::super::common::{is_assignment_in_loop, is_in_loop};
+use super::super::common::{has_echo_handler, has_gin_handler, has_http_handler, is_assignment_in_loop, is_in_loop, is_request_path};
 use super::super::facts::GoPerfFacts;
 use super::super::metadata::*;
 use crate::core::ParsedUnit;
@@ -11,37 +11,21 @@ use crate::rules::{Finding, emit};
 /// Returns true when the source file shows evidence of a request handler
 /// (Gin / Echo / net/http). Used to decide whether a call is on the hot path.
 fn is_request_handler(source: &str) -> bool {
-    source.contains("gin.HandlerFunc")
-        || source.contains("echo.HandlerFunc")
-        || source.contains("http.HandlerFunc")
-        || source.contains("func Handle")
-        || source.contains("func ServeHTTP")
-        || source.contains("c.JSON(")
-        || source.contains("c.String(")
-        || source.contains("c.HTML(")
-        || source.contains("c.Bind(")
-        || source.contains("c.ShouldBind")
-        || has_gin_handler_method(source)
-        || has_echo_handler_method(source)
-        || has_http_handler_method(source)
-}
-
-/// `func Xxx(c *gin.Context) { ... }` — Gin handlers with a `*gin.Context`
-/// receiver are the canonical Gin handler shape. We treat any function whose
-/// parameter list contains a `*gin.Context` (orgin alias) as a request path.
-fn has_gin_handler_method(source: &str) -> bool {
-    source.contains("*gin.Context")
-}
-
-/// `func Xxx(c echo.Context) { ... }` — Echo handlers take the context as a
-/// parameter rather than a receiver.
-fn has_echo_handler_method(source: &str) -> bool {
-    source.contains("echo.Context")
-}
-
-/// `func Xxx(w http.ResponseWriter, r *http.Request)` — net/http handlers.
-fn has_http_handler_method(source: &str) -> bool {
-    source.contains("http.ResponseWriter")
+    is_request_path(source) && (
+        source.contains("gin.HandlerFunc")
+            || source.contains("echo.HandlerFunc")
+            || source.contains("http.HandlerFunc")
+            || source.contains("func Handle")
+            || source.contains("func ServeHTTP")
+            || source.contains("c.JSON(")
+            || source.contains("c.String(")
+            || source.contains("c.HTML(")
+            || source.contains("c.Bind(")
+            || source.contains("c.ShouldBind")
+            || has_gin_handler(source)
+            || has_echo_handler(source)
+            || has_http_handler(source)
+    )
 }
 
 /// PERF-017: string concatenation per request body parsing.
