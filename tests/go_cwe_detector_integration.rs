@@ -304,6 +304,630 @@ fn cwe_290_framework_fixture_pair() {
 }
 
 #[test]
+fn cwe_294_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-294-vulnerable.txt", &["CWE-294"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-294-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_301_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-301-vulnerable.txt", &["CWE-301"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-301-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_303_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-303-vulnerable.txt", &["CWE-303"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-303-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_305_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-305-vulnerable.txt", &["CWE-305"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-305-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_306_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-306-vulnerable.txt", &["CWE-306"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-306-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_307_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-307-vulnerable.txt", &["CWE-307"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-307-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_308_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-308-vulnerable.txt", &["CWE-308"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-308-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_309_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-309-vulnerable.txt", &["CWE-309"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-309-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_312_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-312-vulnerable.txt", &["CWE-312"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-312-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_319_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-319-vulnerable.txt", &["CWE-319"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-319-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_322_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-322-vulnerable.txt", &["CWE-322"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-322-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_323_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-323-vulnerable.txt", &["CWE-323"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-323-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_324_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-324-vulnerable.txt", &["CWE-324"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-324-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_325_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-325-vulnerable.txt", &["CWE-325"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-325-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_328_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-328-vulnerable.txt", &["CWE-328"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-328-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_331_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-331-vulnerable.txt", &["CWE-331"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-331-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_334_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-334-vulnerable.txt", &["CWE-334"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-334-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_335_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-335-vulnerable.txt", &["CWE-335"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-335-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_338_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-338-vulnerable.txt", &["CWE-338"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-338-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_341_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-341-vulnerable.txt", &["CWE-341"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-341-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_342_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-342-vulnerable.txt", &["CWE-342"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-342-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_343_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-343-vulnerable.txt", &["CWE-343"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-343-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_344_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-344-vulnerable.txt", &["CWE-344"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-344-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_346_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-346-vulnerable.txt", &["CWE-346"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-346-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_347_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-347-vulnerable.txt", &["CWE-347"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-347-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_349_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-349-vulnerable.txt", &["CWE-349"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-349-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_353_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-353-vulnerable.txt", &["CWE-353"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-353-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_356_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-356-vulnerable.txt", &["CWE-356"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-356-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_358_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-358-vulnerable.txt", &["CWE-358"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-358-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_359_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-359-vulnerable.txt", &["CWE-359"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-359-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_360_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-360-vulnerable.txt", &["CWE-360"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-360-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_366_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-366-vulnerable.txt", &["CWE-366"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-366-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_367_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-367-vulnerable.txt", &["CWE-367"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-367-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_368_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-368-vulnerable.txt", &["CWE-368"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-368-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_378_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-378-vulnerable.txt", &["CWE-378"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-378-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_379_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-379-vulnerable.txt", &["CWE-379"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-379-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_385_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-385-vulnerable.txt", &["CWE-385"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-385-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_393_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-393-vulnerable.txt", &["CWE-393"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-393-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_403_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-403-vulnerable.txt", &["CWE-403"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-403-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_408_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-408-vulnerable.txt", &["CWE-408"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-408-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_412_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-412-vulnerable.txt", &["CWE-412"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-412-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_420_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-420-vulnerable.txt", &["CWE-420"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-420-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_421_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-421-vulnerable.txt", &["CWE-421"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-421-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_425_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-425-vulnerable.txt", &["CWE-425"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-425-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_426_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-426-vulnerable.txt", &["CWE-426"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-426-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_427_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-427-vulnerable.txt", &["CWE-427"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-427-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_434_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-434-vulnerable.txt", &["CWE-434"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-434-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_454_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-454-vulnerable.txt", &["CWE-454"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-454-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_455_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-455-vulnerable.txt", &["CWE-455"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-455-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_459_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-459-vulnerable.txt", &["CWE-459"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-459-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_472_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-472-vulnerable.txt", &["CWE-472"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-472-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_488_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-488-vulnerable.txt", &["CWE-488"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-488-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_494_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-494-vulnerable.txt", &["CWE-494"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-494-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_497_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-497-vulnerable.txt", &["CWE-497"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-497-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_501_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-501-vulnerable.txt", &["CWE-501"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-501-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_502_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-502-vulnerable.txt", &["CWE-502"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-502-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_515_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-515-vulnerable.txt", &["CWE-515"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-515-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_521_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-521-vulnerable.txt", &["CWE-521"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-521-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_523_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-523-vulnerable.txt", &["CWE-523"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-523-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_524_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-524-vulnerable.txt", &["CWE-524"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-524-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_547_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-547-vulnerable.txt", &["CWE-547"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-547-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_538_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-538-vulnerable.txt", &["CWE-538"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-538-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_544_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-544-vulnerable.txt", &["CWE-544"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-544-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_549_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-549-vulnerable.txt", &["CWE-549"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-549-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_551_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-551-vulnerable.txt", &["CWE-551"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-551-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_552_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-552-vulnerable.txt", &["CWE-552"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-552-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_565_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-565-vulnerable.txt", &["CWE-565"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-565-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_601_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-601-vulnerable.txt", &["CWE-601"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-601-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_603_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-603-vulnerable.txt", &["CWE-603"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-603-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_605_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-605-vulnerable.txt", &["CWE-605"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-605-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_611_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-611-vulnerable.txt", &["CWE-611"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-611-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_613_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-613-vulnerable.txt", &["CWE-613"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-613-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_618_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-618-vulnerable.txt", &["CWE-618"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-618-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_619_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-619-vulnerable.txt", &["CWE-619"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-619-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_620_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-620-vulnerable.txt", &["CWE-620"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-620-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_639_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-639-vulnerable.txt", &["CWE-639"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-639-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_640_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-640-vulnerable.txt", &["CWE-640"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-640-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_645_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-645-vulnerable.txt", &["CWE-645"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-645-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_648_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-648-vulnerable.txt", &["CWE-648"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-648-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_649_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-649-vulnerable.txt", &["CWE-649"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-649-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_653_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-653-vulnerable.txt", &["CWE-653"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-653-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_654_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-654-vulnerable.txt", &["CWE-654"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-654-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_656_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-656-vulnerable.txt", &["CWE-656"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-656-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_708_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-708-vulnerable.txt", &["CWE-708"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-708-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_756_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-756-vulnerable.txt", &["CWE-756"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-756-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_765_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-765-vulnerable.txt", &["CWE-765"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-765-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_778_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-778-vulnerable.txt", &["CWE-778"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-778-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_783_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-783-vulnerable.txt", &["CWE-783"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-783-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_798_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-798-vulnerable.txt", &["CWE-798"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-798-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_820_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-820-vulnerable.txt", &["CWE-820"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-820-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_821_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-821-vulnerable.txt", &["CWE-821"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-821-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_826_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-826-vulnerable.txt", &["CWE-826"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-826-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_829_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-829-vulnerable.txt", &["CWE-829"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-829-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_836_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-836-vulnerable.txt", &["CWE-836"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-836-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_838_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-838-vulnerable.txt", &["CWE-838"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-838-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_841_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-841-vulnerable.txt", &["CWE-841"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-841-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_842_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-842-vulnerable.txt", &["CWE-842"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-842-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_909_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-909-vulnerable.txt", &["CWE-909"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-909-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_915_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-915-vulnerable.txt", &["CWE-915"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-915-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_916_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-916-vulnerable.txt", &["CWE-916"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-916-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_917_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-917-vulnerable.txt", &["CWE-917"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-917-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_918_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-918-vulnerable.txt", &["CWE-918"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-918-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_921_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-921-vulnerable.txt", &["CWE-921"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-921-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_807_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-807-vulnerable.txt", &["CWE-807"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-807-safe.txt", &[]);
+}
+
+#[test]
 fn cwe_15_stdlib_fixture_pair() {
     helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-15-vulnerable.txt", &["CWE-15"]);
     helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-15-safe.txt", &[]);
@@ -601,4 +1225,880 @@ fn cwe_289_stdlib_fixture_pair() {
 fn cwe_290_stdlib_fixture_pair() {
     helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-290-vulnerable.txt", &["CWE-290"]);
     helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-290-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_294_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-294-vulnerable.txt", &["CWE-294"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-294-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_301_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-301-vulnerable.txt", &["CWE-301"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-301-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_303_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-303-vulnerable.txt", &["CWE-303"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-303-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_305_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-305-vulnerable.txt", &["CWE-305"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-305-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_306_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-306-vulnerable.txt", &["CWE-306"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-306-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_307_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-307-vulnerable.txt", &["CWE-307"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-307-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_308_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-308-vulnerable.txt", &["CWE-308"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-308-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_309_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-309-vulnerable.txt", &["CWE-309"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-309-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_312_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-312-vulnerable.txt", &["CWE-312"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-312-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_319_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-319-vulnerable.txt", &["CWE-319"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-319-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_322_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-322-vulnerable.txt", &["CWE-322"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-322-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_323_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-323-vulnerable.txt", &["CWE-323"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-323-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_324_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-324-vulnerable.txt", &["CWE-324"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-324-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_325_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-325-vulnerable.txt", &["CWE-325"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-325-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_328_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-328-vulnerable.txt", &["CWE-328"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-328-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_331_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-331-vulnerable.txt", &["CWE-331"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-331-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_334_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-334-vulnerable.txt", &["CWE-334"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-334-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_335_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-335-vulnerable.txt", &["CWE-335"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-335-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_338_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-338-vulnerable.txt", &["CWE-338"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-338-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_341_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-341-vulnerable.txt", &["CWE-341"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-341-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_342_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-342-vulnerable.txt", &["CWE-342"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-342-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_343_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-343-vulnerable.txt", &["CWE-343"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-343-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_344_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-344-vulnerable.txt", &["CWE-344"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-344-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_346_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-346-vulnerable.txt", &["CWE-346"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-346-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_347_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-347-vulnerable.txt", &["CWE-347"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-347-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_349_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-349-vulnerable.txt", &["CWE-349"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-349-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_353_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-353-vulnerable.txt", &["CWE-353"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-353-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_356_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-356-vulnerable.txt", &["CWE-356"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-356-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_358_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-358-vulnerable.txt", &["CWE-358"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-358-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_359_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-359-vulnerable.txt", &["CWE-359"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-359-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_360_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-360-vulnerable.txt", &["CWE-360"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-360-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_366_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-366-vulnerable.txt", &["CWE-366"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-366-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_367_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-367-vulnerable.txt", &["CWE-367"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-367-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_368_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-368-vulnerable.txt", &["CWE-368"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-368-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_378_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-378-vulnerable.txt", &["CWE-378"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-378-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_379_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-379-vulnerable.txt", &["CWE-379"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-379-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_385_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-385-vulnerable.txt", &["CWE-385"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-385-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_393_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-393-vulnerable.txt", &["CWE-393"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-393-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_403_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-403-vulnerable.txt", &["CWE-403"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-403-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_408_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-408-vulnerable.txt", &["CWE-408"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-408-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_412_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-412-vulnerable.txt", &["CWE-412"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-412-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_420_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-420-vulnerable.txt", &["CWE-420"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-420-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_421_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-421-vulnerable.txt", &["CWE-421"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-421-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_425_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-425-vulnerable.txt", &["CWE-425"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-425-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_426_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-426-vulnerable.txt", &["CWE-426"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-426-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_427_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-427-vulnerable.txt", &["CWE-427"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-427-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_434_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-434-vulnerable.txt", &["CWE-434"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-434-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_454_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-454-vulnerable.txt", &["CWE-454"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-454-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_455_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-455-vulnerable.txt", &["CWE-455"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-455-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_459_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-459-vulnerable.txt", &["CWE-459"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-459-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_472_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-472-vulnerable.txt", &["CWE-472"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-472-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_488_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-488-vulnerable.txt", &["CWE-488"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-488-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_494_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-494-vulnerable.txt", &["CWE-494"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-494-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_497_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-497-vulnerable.txt", &["CWE-497"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-497-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_501_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-501-vulnerable.txt", &["CWE-501"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-501-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_502_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-502-vulnerable.txt", &["CWE-502"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-502-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_515_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-515-vulnerable.txt", &["CWE-515"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-515-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_521_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-521-vulnerable.txt", &["CWE-521"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-521-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_523_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-523-vulnerable.txt", &["CWE-523"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-523-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_524_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-524-vulnerable.txt", &["CWE-524"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-524-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_547_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-547-vulnerable.txt", &["CWE-547"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-547-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_538_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-538-vulnerable.txt", &["CWE-538"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-538-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_544_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-544-vulnerable.txt", &["CWE-544"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-544-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_549_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-549-vulnerable.txt", &["CWE-549"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-549-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_551_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-551-vulnerable.txt", &["CWE-551"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-551-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_552_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-552-vulnerable.txt", &["CWE-552"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-552-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_565_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-565-vulnerable.txt", &["CWE-565"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-565-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_601_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-601-vulnerable.txt", &["CWE-601"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-601-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_603_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-603-vulnerable.txt", &["CWE-603"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-603-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_605_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-605-vulnerable.txt", &["CWE-605"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-605-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_611_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-611-vulnerable.txt", &["CWE-611"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-611-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_613_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-613-vulnerable.txt", &["CWE-613"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-613-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_618_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-618-vulnerable.txt", &["CWE-618"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-618-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_619_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-619-vulnerable.txt", &["CWE-619"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-619-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_620_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-620-vulnerable.txt", &["CWE-620"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-620-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_639_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-639-vulnerable.txt", &["CWE-639"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-639-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_640_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-640-vulnerable.txt", &["CWE-640"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-640-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_645_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-645-vulnerable.txt", &["CWE-645"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-645-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_648_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-648-vulnerable.txt", &["CWE-648"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-648-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_649_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-649-vulnerable.txt", &["CWE-649"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-649-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_653_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-653-vulnerable.txt", &["CWE-653"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-653-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_654_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-654-vulnerable.txt", &["CWE-654"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-654-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_656_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-656-vulnerable.txt", &["CWE-656"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-656-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_708_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-708-vulnerable.txt", &["CWE-708"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-708-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_756_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-756-vulnerable.txt", &["CWE-756"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-756-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_765_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-765-vulnerable.txt", &["CWE-765"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-765-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_778_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-778-vulnerable.txt", &["CWE-778"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-778-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_783_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-783-vulnerable.txt", &["CWE-783"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-783-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_798_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-798-vulnerable.txt", &["CWE-798"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-798-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_820_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-820-vulnerable.txt", &["CWE-820"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-820-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_821_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-821-vulnerable.txt", &["CWE-821"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-821-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_826_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-826-vulnerable.txt", &["CWE-826"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-826-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_829_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-829-vulnerable.txt", &["CWE-829"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-829-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_836_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-836-vulnerable.txt", &["CWE-836"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-836-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_838_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-838-vulnerable.txt", &["CWE-838"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-838-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_841_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-841-vulnerable.txt", &["CWE-841"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-841-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_842_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-842-vulnerable.txt", &["CWE-842"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-842-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_909_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-909-vulnerable.txt", &["CWE-909"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-909-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_915_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-915-vulnerable.txt", &["CWE-915"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-915-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_916_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-916-vulnerable.txt", &["CWE-916"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-916-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_917_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-917-vulnerable.txt", &["CWE-917"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-917-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_918_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-918-vulnerable.txt", &["CWE-918"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-918-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_921_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-921-vulnerable.txt", &["CWE-921"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-921-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_924_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-924-vulnerable.txt", &["CWE-924"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-924-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_924_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-924-vulnerable.txt", &["CWE-924"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-924-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_940_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-940-vulnerable.txt", &["CWE-940"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-940-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_940_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-940-vulnerable.txt", &["CWE-940"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-940-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_941_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-941-vulnerable.txt", &["CWE-941"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-941-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_941_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-941-vulnerable.txt", &["CWE-941"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-941-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1051_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1051-vulnerable.txt", &["CWE-1051"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1051-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1051_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1051-vulnerable.txt", &["CWE-1051"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1051-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1052_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1052-vulnerable.txt", &["CWE-1052"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1052-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1052_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1052-vulnerable.txt", &["CWE-1052"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1052-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1067_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1067-vulnerable.txt", &["CWE-1067"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1067-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1067_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1067-vulnerable.txt", &["CWE-1067"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1067-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1173_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1173-vulnerable.txt", &["CWE-1173"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1173-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1173_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1173-vulnerable.txt", &["CWE-1173"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1173-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1125_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1125-vulnerable.txt", &["CWE-1125"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1125-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1125_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1125-vulnerable.txt", &["CWE-1125"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1125-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1204_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1204-vulnerable.txt", &["CWE-1204"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1204-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1204_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1204-vulnerable.txt", &["CWE-1204"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1204-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1220_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1220-vulnerable.txt", &["CWE-1220"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1220-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1220_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1220-vulnerable.txt", &["CWE-1220"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1220-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1230_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1230-vulnerable.txt", &["CWE-1230"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1230-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1230_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1230-vulnerable.txt", &["CWE-1230"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1230-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1236_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1236-vulnerable.txt", &["CWE-1236"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1236-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1236_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1236-vulnerable.txt", &["CWE-1236"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1236-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1240_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1240-vulnerable.txt", &["CWE-1240"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1240-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1240_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1240-vulnerable.txt", &["CWE-1240"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1240-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1265_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1265-vulnerable.txt", &["CWE-1265"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1265-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1265_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1265-vulnerable.txt", &["CWE-1265"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1265-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1286_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1286-vulnerable.txt", &["CWE-1286"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1286-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1286_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1286-vulnerable.txt", &["CWE-1286"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1286-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1289_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1289-vulnerable.txt", &["CWE-1289"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1289-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1289_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1289-vulnerable.txt", &["CWE-1289"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1289-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1322_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1322-vulnerable.txt", &["CWE-1322"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1322-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1322_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1322-vulnerable.txt", &["CWE-1322"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1322-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1327_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1327-vulnerable.txt", &["CWE-1327"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1327-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1327_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1327-vulnerable.txt", &["CWE-1327"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1327-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1333_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1333-vulnerable.txt", &["CWE-1333"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1333-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1333_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1333-vulnerable.txt", &["CWE-1333"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1333-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1389_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1389-vulnerable.txt", &["CWE-1389"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1389-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1389_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1389-vulnerable.txt", &["CWE-1389"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1389-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1392_framework_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1392-vulnerable.txt", &["CWE-1392"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/frameworks/CWE-1392-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_1392_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1392-vulnerable.txt", &["CWE-1392"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-1392-safe.txt", &[]);
+}
+
+#[test]
+fn cwe_807_stdlib_fixture_pair() {
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-807-vulnerable.txt", &["CWE-807"]);
+    helpers::assert_fixture_rules("tests/fixtures/go/stdlib/CWE-807-safe.txt", &[]);
 }

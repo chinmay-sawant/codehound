@@ -1,6 +1,6 @@
 //! Go language plugin.
 
-mod detectors;
+pub mod detectors;
 mod loop_kinds;
 mod matchers;
 mod parser;

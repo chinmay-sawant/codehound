@@ -1,6 +1,6 @@
 //! Go performance detectors.
 
-mod cwe;
+pub mod cwe;
 mod map_alloc_in_loop;
 mod regexp_in_loop;
 mod slice_rebuild_in_loop;
