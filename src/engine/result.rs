@@ -69,4 +69,3 @@ impl AnalysisResult {
         self.findings.iter().any(|f| policy.should_fail(f.severity))
     }
 }
-

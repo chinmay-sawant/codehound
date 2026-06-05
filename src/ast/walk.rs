@@ -38,4 +38,3 @@ pub fn walk_calls_and_assignments<F: FnMut(Node)>(node: Node, f: &mut F) {
         walk_calls_and_assignments(child, f);
     }
 }
-

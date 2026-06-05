@@ -109,4 +109,3 @@ fn print_summary(result: &AnalysisResult) {
         println!("  scan errors: {}", result.errors.len());
     }
 }
-

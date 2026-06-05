@@ -73,4 +73,3 @@ fn format_known_language_names(enabled: &HashSet<LanguageId>) -> String {
     names.dedup();
     names.join(", ")
 }
-

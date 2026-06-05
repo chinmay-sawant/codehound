@@ -12,8 +12,7 @@ fn cli_lang_overrides_config_languages() {
             ..Default::default()
         },
     };
-    let filter =
-        resolve_language_filter(Some(LanguageId::Go), Some(&config), &registry).unwrap();
+    let filter = resolve_language_filter(Some(LanguageId::Go), Some(&config), &registry).unwrap();
     assert_eq!(filter, LanguageFilter::One(LanguageId::Go));
 }
 

@@ -5,9 +5,11 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use ignore::WalkBuilder;
+use ignore::gitignore::{Gitignore, GitignoreBuilder};
 use rayon::prelude::*;
 
 use crate::core::{LanguageId, ParsedUnit, ScanContext};
+use crate::engine::config::{RuntimePathFilters, current_runtime_path_filters};
 use crate::engine::language_filter::LanguageFilter;
 use crate::engine::parse_pool::ParsePool;
 use crate::engine::registry::Registry;
@@ -35,15 +37,20 @@ where
     P: AsRef<Path>,
 {
     let mut entries = Vec::new();
+    let filters = current_runtime_path_filters();
 
     for path in paths {
         let path = path.as_ref();
+        let matcher = RootPathMatcher::new(path, &filters)?;
         let mut builder = WalkBuilder::new(path);
         builder
             .standard_filters(true)
             .add_custom_ignore_filename(".slopguardignore");
         for entry in builder.build().filter_map(Result::ok) {
             if !entry.file_type().is_some_and(|t| t.is_file()) {
+                continue;
+            }
+            if !matcher.allows(entry.path()) {
                 continue;
             }
             let Some(plugin) = registry.plugin_for_path(entry.path()) else {
@@ -61,6 +68,55 @@ where
     }
 
     Ok(entries)
+}
+
+#[derive(Debug)]
+struct RootPathMatcher {
+    include: Option<Gitignore>,
+    exclude: Option<Gitignore>,
+}
+
+impl RootPathMatcher {
+    fn new(root: &Path, filters: &RuntimePathFilters) -> Result<Self> {
+        let base = if root.is_dir() {
+            root
+        } else {
+            root.parent().unwrap_or_else(|| Path::new("."))
+        };
+
+        Ok(Self {
+            include: build_globset(base, &filters.include)?,
+            exclude: build_globset(base, &filters.exclude)?,
+        })
+    }
+
+    fn allows(&self, path: &Path) -> bool {
+        if let Some(include) = &self.include {
+            if !include.matched(path, false).is_ignore() {
+                return false;
+            }
+        }
+        if let Some(exclude) = &self.exclude {
+            if exclude.matched(path, false).is_ignore() {
+                return false;
+            }
+        }
+        true
+    }
+}
+
+fn build_globset(base: &Path, patterns: &[String]) -> Result<Option<Gitignore>> {
+    if patterns.is_empty() {
+        return Ok(None);
+    }
+
+    let mut builder = GitignoreBuilder::new(base);
+    for pattern in patterns {
+        builder
+            .add_line(None, pattern)
+            .map_err(anyhow::Error::from)?;
+    }
+    Ok(Some(builder.build()?))
 }
 
 /// Read, parse, and analyze a single file. Drops the parse tree before returning.
@@ -224,12 +280,7 @@ fn panic_message(payload: &Box<dyn std::any::Any + Send>) -> String {
 /// Each rayon worker thread has its own buffer; the buffer is reused
 /// across all calls in that worker, so the steady-state cost is zero
 /// allocations.
-pub fn scratch_contains(
-    source: &str,
-    prefix: &str,
-    dynamic: &str,
-    suffix: &str,
-) -> bool {
+pub fn scratch_contains(source: &str, prefix: &str, dynamic: &str, suffix: &str) -> bool {
     use std::cell::RefCell;
     use std::fmt::Write;
 

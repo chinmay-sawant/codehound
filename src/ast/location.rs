@@ -40,4 +40,3 @@ pub fn compute_line_starts(source: &str) -> Vec<usize> {
     }
     starts
 }
-

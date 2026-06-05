@@ -1,7 +1,16 @@
 use std::path::Path;
+use std::sync::{Mutex, OnceLock};
 
 use slopguard::core::{FailPolicy, ScanContext};
-use slopguard::engine::{discover_config, fail_on_to_policy, SlopguardConfig, SlopguardSection};
+use slopguard::engine::{
+    Analyzer, SlopguardConfig, SlopguardSection, discover_config, fail_on_to_policy,
+};
+use slopguard::fixture::{materialize_tree, materialized_root};
+
+fn runtime_filter_test_lock() -> &'static Mutex<()> {
+    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(|| Mutex::new(()))
+}
 
 #[test]
 fn deny_unknown_fields_at_top_level() {
@@ -58,7 +67,10 @@ fn discover_config_finds_in_subdir() {
     let target = Path::new("./target");
     if target.is_dir() {
         let path = discover_config(target);
-        assert!(path.is_some(), "expected upward walk to find slopguard.toml");
+        assert!(
+            path.is_some(),
+            "expected upward walk to find slopguard.toml"
+        );
     }
 }
 
@@ -98,6 +110,75 @@ fn merge_into_config_fail_on_applies_when_cli_didnt_set_it() {
     };
     let merged = cfg.merge_into(ctx, false);
     assert_eq!(merged.fail_policy, FailPolicy::NoFail);
+}
+
+#[test]
+fn merge_into_only_is_additive_with_cli_values() {
+    let cfg = SlopguardConfig {
+        slopguard: SlopguardSection {
+            only: vec!["CWE-22".to_string()],
+            ..Default::default()
+        },
+    };
+    let ctx = ScanContext {
+        only: Some(["CWE-89".to_string()].into_iter().collect()),
+        ..Default::default()
+    };
+
+    let merged = cfg.merge_into(ctx, false);
+    let only = merged.only.expect("merged only set");
+    assert!(only.contains("CWE-22"));
+    assert!(only.contains("CWE-89"));
+    assert_eq!(only.len(), 2);
+}
+
+#[test]
+fn runtime_include_exclude_filters_apply_during_collection() {
+    let _guard = runtime_filter_test_lock()
+        .lock()
+        .expect("lock runtime filter test");
+    materialize_tree(Path::new("tests/fixtures")).expect("materialize");
+
+    let config = SlopguardConfig {
+        slopguard: SlopguardSection {
+            include: vec!["**/*.go".to_string()],
+            exclude: vec!["**/frameworks/**".to_string()],
+            ..Default::default()
+        },
+    };
+    config.install_runtime_path_filters();
+
+    let analyzer = Analyzer::builder().build();
+    let result = analyzer
+        .analyze_paths([materialized_root()])
+        .expect("analyze with runtime filters");
+
+    SlopguardConfig::clear_runtime_path_filters();
+
+    assert!(
+        result
+            .findings
+            .iter()
+            .all(|finding| finding.file.ends_with(".go")),
+        "include filter should keep only Go files: {:?}",
+        result
+            .findings
+            .iter()
+            .map(|finding| finding.file.clone())
+            .collect::<Vec<_>>()
+    );
+    assert!(
+        result
+            .findings
+            .iter()
+            .all(|finding| !finding.file.contains("/frameworks/")),
+        "exclude filter should remove framework fixtures: {:?}",
+        result
+            .findings
+            .iter()
+            .map(|finding| finding.file.clone())
+            .collect::<Vec<_>>()
+    );
 }
 
 #[test]

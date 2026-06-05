@@ -175,11 +175,8 @@ fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
         })
         .collect();
 
-    let rule_index_of: std::collections::HashMap<&str, usize> = rules
-        .iter()
-        .enumerate()
-        .map(|(i, r)| (r.id, i))
-        .collect();
+    let rule_index_of: std::collections::HashMap<&str, usize> =
+        rules.iter().enumerate().map(|(i, r)| (r.id, i)).collect();
 
     let results: Vec<SarifResult> = result
         .findings
@@ -284,9 +281,7 @@ fn iso8601_utc_now() -> String {
         .unwrap_or_default();
     let secs = dur.as_secs();
     let (year, month, day, hour, minute, second) = unix_epoch_to_ymdhms(secs);
-    format!(
-        "{year:04}-{month:02}-{day:02}T{hour:02}:{minute:02}:{second:02}Z"
-    )
+    format!("{year:04}-{month:02}-{day:02}T{hour:02}:{minute:02}:{second:02}Z")
 }
 
 fn unix_epoch_to_ymdhms(secs: u64) -> (u32, u32, u32, u32, u32, u32) {
@@ -307,7 +302,14 @@ fn unix_epoch_to_ymdhms(secs: u64) -> (u32, u32, u32, u32, u32, u32) {
     let d = doy - (153 * mp + 2) / 5 + 1;
     let m = if mp < 10 { mp + 3 } else { mp - 9 };
     let y = if m <= 2 { y + 1 } else { y };
-    (y as u32, m as u32, d as u32, hour as u32, minute as u32, second as u32)
+    (
+        y as u32,
+        m as u32,
+        d as u32,
+        hour as u32,
+        minute as u32,
+        second as u32,
+    )
 }
 
 #[doc(hidden)]

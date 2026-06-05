@@ -126,7 +126,9 @@ impl Finding {
     /// Compute a stable cross-run fingerprint (`<rule>:<file>:<line>:<col>`).
     /// Consumers can use this to deduplicate findings across CI runs.
     pub fn fingerprint(&self) -> String {
-        format!("{}:{}:{}:{}", self.rule_id, self.file, self.line, self.column)
+        format!(
+            "{}:{}:{}:{}",
+            self.rule_id, self.file, self.line, self.column
+        )
     }
 }
-

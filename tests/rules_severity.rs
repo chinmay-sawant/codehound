@@ -10,7 +10,12 @@ fn as_str_matches_variant() {
 
 #[test]
 fn display_matches_as_str() {
-    for s in [Severity::Info, Severity::Warning, Severity::High, Severity::Critical] {
+    for s in [
+        Severity::Info,
+        Severity::Warning,
+        Severity::High,
+        Severity::Critical,
+    ] {
         assert_eq!(format!("{s}"), s.as_str());
     }
 }

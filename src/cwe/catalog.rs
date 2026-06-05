@@ -100,4 +100,3 @@ pub fn default_ruleset_path() -> PathBuf {
 }
 
 include!(concat!(env!("OUT_DIR"), "/rule_catalogue.rs"));
-

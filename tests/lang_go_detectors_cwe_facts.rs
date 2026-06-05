@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use tree_sitter::Parser;
 
-use slopguard::core::{LanguagePlugin, LanguageId, ParsedUnit};
+use slopguard::core::{LanguageId, LanguagePlugin, ParsedUnit};
 use slopguard::lang::go::GoPlugin;
 use slopguard::lang::go::detectors::cwe::facts::*;
 
@@ -38,14 +38,18 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 
     let facts = build_go_unit_facts(&unit);
 
-    assert!(facts
-        .input_bindings
-        .iter()
-        .any(|binding| { binding.name == "path" && binding.kind == InputKind::UserControlled }));
-    assert!(facts
-        .input_bindings
-        .iter()
-        .any(|binding| { binding.name == "mode" && binding.kind == InputKind::UserControlled }));
+    assert!(
+        facts
+            .input_bindings
+            .iter()
+            .any(|binding| { binding.name == "path" && binding.kind == InputKind::UserControlled })
+    );
+    assert!(
+        facts
+            .input_bindings
+            .iter()
+            .any(|binding| { binding.name == "mode" && binding.kind == InputKind::UserControlled })
+    );
     assert!(facts.call_facts.iter().any(|call| {
         call.callee == "http.Get" && call.arguments.iter().any(|arg| arg == "path")
     }));
@@ -71,28 +75,21 @@ func Build() string {
     assert!(facts.input_bindings.iter().any(|binding| {
         binding.name == "billingAPI" && binding.kind == InputKind::TrustedConfig
     }));
-    assert!(facts
-        .assignments
-        .iter()
-        .any(|assignment| assignment.name == "billingAPI"
-            && assignment.expr.contains("os.Getenv")));
+    assert!(
+        facts
+            .assignments
+            .iter()
+            .any(|assignment| assignment.name == "billingAPI"
+                && assignment.expr.contains("os.Getenv"))
+    );
 }
 
 #[test]
 fn split_assignment_handles_both_forms() {
-    assert_eq!(
-        split_assignment("a := b"),
-        Some(("a", "b"))
-    );
-    assert_eq!(
-        split_assignment("a = b"),
-        Some(("a", "b"))
-    );
+    assert_eq!(split_assignment("a := b"), Some(("a", "b")));
+    assert_eq!(split_assignment("a = b"), Some(("a", "b")));
     assert_eq!(split_assignment("a"), None);
-    assert_eq!(
-        split_assignment("a, b := 1, 2"),
-        Some(("a, b", "1, 2"))
-    );
+    assert_eq!(split_assignment("a, b := 1, 2"), Some(("a, b", "1, 2")));
 }
 
 #[test]

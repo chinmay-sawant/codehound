@@ -218,4 +218,3 @@ fn clean_matching_txt_files(output_dir: &Path, keep_if: impl Fn(&str) -> bool) -
     }
     Ok(())
 }
-

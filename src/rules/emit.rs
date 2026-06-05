@@ -67,4 +67,3 @@ pub const fn rule_meta(
         fix,
     }
 }
-

@@ -1,4 +1,7 @@
-use slopguard::cwe::{CWE_CATALOG, CWE_REFS_400_1336, CWE_REFS_407, CWE_REFS_770, CWE_REFS_770_400, builtin_rule_catalogue, default_ruleset_path};
+use slopguard::cwe::{
+    CWE_CATALOG, CWE_REFS_400_1336, CWE_REFS_407, CWE_REFS_770, CWE_REFS_770_400,
+    builtin_rule_catalogue, default_ruleset_path,
+};
 
 #[test]
 fn catalog_entries_are_ordered() {

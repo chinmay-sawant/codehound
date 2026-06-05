@@ -74,7 +74,10 @@ impl Analyzer {
         }
         sort_findings(&mut findings);
         if !errors.is_empty() {
-            tracing::warn!(error_count = errors.len(), "scan completed with per-file errors");
+            tracing::warn!(
+                error_count = errors.len(),
+                "scan completed with per-file errors"
+            );
         }
         Ok(AnalysisResult { findings, errors })
     }

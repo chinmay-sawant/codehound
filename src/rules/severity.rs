@@ -35,4 +35,3 @@ impl fmt::Display for Severity {
         f.write_str(self.as_str())
     }
 }
-

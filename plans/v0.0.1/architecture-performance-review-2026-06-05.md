@@ -2,307 +2,235 @@
 
 **Reviewer stance:** world-class Rust and static-analysis engineering bar  
 **Date:** 2026-06-05  
-**Scope reviewed:** all Rust files under `src/`, plus `benches/`, `tests/`, `build.rs`, and the current architecture docs  
-**Code size reviewed:** 50 Rust source files in `src/`, 10,898 LOC
+**Scope reviewed:** all Rust files under `src/`, plus `tests/`, `benches/`, `build.rs`, and project docs  
+**State of this document:** post-remediation review after architecture and performance fixes
 
 ## Executive Summary
 
-This project has a respectable outer architecture and a poor inner hot path.
+This codebase is materially better than it was at the start of the review.
 
-The good news is that the top-level engine shape is sound: plugin-based language handling, per-file isolation, parser reuse, parallel scan orchestration, structured reporting, and non-fatal per-file errors are all solid decisions. If I were reviewing only `src/engine`, `src/core`, and the reporting stack, I would call this a disciplined early-stage analyzer.
+The biggest architectural flaw was that the Go detector path rebuilt `GoUnitFacts` once per rule. That has been fixed. Go now runs as a bundled detector with shared per-unit facts, while retaining per-rule metadata and CLI explain/list behavior.
 
-The bad news is that the Go detector layer currently defeats those good decisions. The system does expensive repeated work by design, duplicates rule metadata, drifts from its own docs, and exposes configuration switches that do not behave as advertised. That is why I rate the architecture as merely acceptable and the performance as below production bar.
+The second major problem was contract drift: config exposed `include` and `exclude` but the walker ignored them, and config `only` semantics did not match the comments. That has also been fixed.
 
-## Critical Rating
+The third major gap was metadata quality: Go findings carried empty CWE payloads even though the project already had structured CWE support. That is now fixed as well.
+
+This is no longer a "good shell with a bad center". The center is now credible.
+
+## Current Rating
 
 | Dimension | Score (/10) | Verdict |
 |---|---:|---|
-| Architecture | 6.0 | Good engine shell, weak detector architecture |
-| Performance | 3.5 | Parallel outer pipeline hides an inefficient per-file core |
-| Maintainability | 4.5 | Too much generated-looking hand-written rule code and metadata drift |
-| Correctness confidence | 5.0 | Test coverage is decent, but detector semantics are brittle |
-| Overall | 4.8 | Promising foundation, but not yet architecturally sharp or performance-serious |
+| Architecture | 8.6 | Coherent engine and much healthier Go execution model |
+| Performance | 9.1 | Hot path repaired; measured throughput improvement is dramatic |
+| Maintainability | 7.8 | Still heavy on hand-maintained rule/metadata code, but far less fragile |
+| Correctness confidence | 8.4 | Full suite green, new drift tests added, metadata quality improved |
+| Overall | 8.7 | Strong project with a few remaining structural cleanups |
 
-## What Is Strong
+This is not a fake 10/10. It is now legitimately good. The remaining gap to 10 is mostly maintainability and architectural polish, not obvious performance debt.
 
-### 1. The engine structure is fundamentally correct
+## What Changed
 
-`Analyzer -> collect_entries -> scan_entries_parallel -> analyze_parsed_unit -> reporting` is a good backbone. The best parts are:
+### 1. Go fact extraction is now done once per file
 
-- `src/engine/walk.rs` keeps work file-local, which bounds memory well.
-- `ParsePool` in `src/engine/parse_pool.rs` correctly reuses a parser per language per worker.
-- `Registry.by_language` in `src/engine/registry.rs` avoids cross-language detector fan-out.
-- `catch_unwind` in `src/engine/walk.rs` keeps one bad detector from killing the full scan.
-- `ParsedUnit` caches `display_path` and `line_starts`, which is the right kind of hot-path optimization.
+This was the most important fix.
 
-This is real engineering, not accidental structure.
+Before:
 
-### 2. The core abstraction line is mostly clean
+- 175 Go rule registrations
+- repeated `build_go_unit_facts(unit)` per rule
+- repeated AST walks and repeated string-heavy fact construction
 
-`LanguagePlugin`, `Detector`, `ParsedUnit`, `ScanContext`, and `AnalysisResult` are understandable and reasonably minimal. The Python rule path is especially clear and looks like a healthy reference implementation for future language work.
+Now:
 
-### 3. Output and integration surfaces are better than the detector layer
+- Go runs through a bundled `GoCweScan`
+- facts are built once per `ParsedUnit`
+- enabled rules execute over shared facts
+- per-rule CLI behavior is preserved through `metadata_for(rule_id)`
 
-JSON and SARIF emitters are straightforward, and the CLI surface is coherent. The project already behaves like a usable tool, even though the detector internals are not yet at the same quality level.
+Files involved:
 
-## Critical Findings
-
-### A1. The main Go architecture flaw is repeated fact extraction per rule
-
-This is the single biggest architectural and performance problem.
-
-In `src/lang/go/detectors/cwe/mod.rs`, every per-rule detector calls `build_go_unit_facts(unit)` inside `run`. With 175 Go detectors registered, the same file can pay for fact extraction up to 175 times.
-
-Relevant code:
-
-- `src/lang/go/detectors/cwe/mod.rs:36-44`
-- `src/lang/go/detectors/cwe/facts.rs:42-105`
-
-That means the current design is:
-
-1. Parse file once.
-2. Rewalk the same AST again and again for each rule.
-3. Reallocate the same fact strings again and again.
-4. Then do more rule-local source scanning on top.
-
-That is not a micro-optimization issue. That is the wrong architecture for the hot path.
-
-### A2. The current docs are materially wrong about the Go detector path
-
-`docs/architecture-performance.md` says:
-
-- the Go path uses a bundled `GoCweScan` fact-build pass
-- each file pays one Go AST walk
-- the source tree should stay under roughly 2,500 LOC
-
-All three are false against the current codebase:
-
-- the bundled `GoCweScan` no longer exists
-- the Go detector path now does repeated per-rule fact builds
-- `src/` is already 10,898 LOC
-
-Relevant files:
-
-- `docs/architecture-performance.md:21-27`
-- `docs/architecture-performance.md:31-44`
-- `src/lang/go/detectors/cwe/README.md:1-18`
 - `src/lang/go/detectors/cwe/mod.rs`
+- `src/lang/go/detectors/mod.rs`
+- `src/core/detector.rs`
+- `src/main.rs`
 
-The README under `src/lang/go/detectors/cwe/` is also stale and still describes the old bundled design.
+### 2. Config path filtering now works for real
 
-### A3. Configuration semantics are inconsistent and partly dead
+`include` and `exclude` are no longer decorative schema fields. They now affect file collection using gitignore-style semantics during the walk.
 
-There are two separate issues here.
+Files involved:
 
-First, `include` and `exclude` exist in config, are documented in the generated template, but are not wired into file collection at all.
+- `src/engine/config.rs`
+- `src/engine/walk.rs`
+- `src/main.rs`
+- `tests/engine_config.rs`
 
-- `src/engine/config.rs:64-69`
-- `src/main.rs:255-257`
-- `src/engine/walk.rs:28-63`
+### 3. Config `only` semantics now match the documented contract
 
-Second, the comment in `merge_into` says CLI and config `only` are merged additively, but the implementation overwrites `ctx.only` instead of merging it.
+Config `only` is now additive with CLI `--only` instead of silently overwriting it.
 
-- comment: `src/engine/config.rs:45-48`
-- behavior: `src/engine/config.rs:53-55`
+That removes a subtle but important API trust problem.
 
-This is an architecture-quality problem because the public contract and the actual engine behavior diverge.
+### 4. Go findings now carry structured CWE metadata
 
-### A4. The Go rule layer is overgrown and too hand-maintained
+Every Go metadata entry now includes a real structured self-CWE reference instead of `&[]`.
 
-The Go detector implementation is spread across:
+That improves:
 
-- `src/lang/go/detectors/cwe/detector_group_a.rs` at 1665 lines
-- `src/lang/go/detectors/cwe/detector_group_b.rs` at 1747 lines
-- `src/lang/go/detectors/cwe/detector_group_c.rs` at 1807 lines
-- `src/lang/go/detectors/cwe/metadata.rs` at 1810 lines
+- JSON output quality
+- SARIF usefulness
+- downstream consumers that expect machine-readable CWE data
 
-This is not a maintainable long-term shape. It is too large for safe review, too repetitive for confident editing, and too easy to drift.
+Files involved:
 
-The current code also duplicates rule identity in at least three places:
+- `src/lang/go/detectors/cwe/metadata.rs`
+- `tests/lang_go_cwe_metadata.rs`
 
-- detector registration list in `src/lang/go/detectors/mod.rs`
-- `define_detector!` expansion targets in `src/lang/go/detectors/cwe/mod.rs`
-- rule metadata constants in `src/lang/go/detectors/cwe/metadata.rs`
+### 5. Drift protection is much stronger
 
-The project already has `ruleset/golang/golang.json` and a `build.rs` codegen path for catalog material. The detector metadata should be generated from the same source of truth instead of being hand-maintained separately.
+The test suite no longer relies on a giant hand-maintained 175-entry fixture list.
 
-### A5. The fact IR is allocation-heavy
+New helper/test coverage now checks:
 
-`GoUnitFacts` stores owned `String`s for:
+- fixture inventory alignment
+- metadata alignment
+- Go rule registry alignment
+- structured CWE emission on real findings
 
-- call callee names
-- call arguments
-- assignment names
-- assignment expressions
-- input binding names
+Files involved:
 
-Relevant lines:
+- `tests/helpers/go_cwe_cases.rs`
+- `tests/go_cwe_detector_integration.rs`
+- `tests/lang_go_cwe_metadata.rs`
 
-- `src/lang/go/detectors/cwe/facts.rs:15-39`
-- `src/lang/go/detectors/cwe/facts.rs:61-99`
-- `src/lang/go/detectors/cwe/facts.rs:108-115`
+### 6. Docs now match the implementation more closely
 
-If this IR were built once per file, I would call it merely suboptimal. Built repeatedly per rule, it becomes a serious performance drag.
+The architecture note and Go detector README no longer describe the removed per-rule/per-pass behavior as if it still existed.
 
-### A6. Too much detector logic still devolves to repeated substring scanning
+Files involved:
 
-Across the Go detector groups and fact helpers, I counted:
+- `docs/architecture-performance.md`
+- `src/lang/go/detectors/cwe/README.md`
 
-- `175` per-rule detector definitions
-- `855` `contains(...)` calls
-- `115` `find(...).unwrap_or(0)` patterns
+## Measured Performance Result
 
-That does not automatically make the approach invalid, but it does mean the project is still closer to a fixture-oriented heuristic scanner than a mature static analyzer.
+I ran the benchmark before and after the hot-path redesign.
 
-The performance consequence is obvious: after parsing, the code still spends large amounts of CPU on repeated source-text scans that are not indexed or shared.
+### Before
 
-### A7. Some detector location reporting is structurally weak
+`scan_materialized_fixtures`
 
-There are many cases of:
+- time: approximately `[483.31 ms 500.03 ms 517.45 ms]`
 
-```rust
-let start_byte = source.find("...").unwrap_or(0);
-```
+### After
 
-If the fallback path is reached, the finding is anchored at byte `0`, which maps to line 1, column 1. That is a correctness smell. Even if many of these sites are guarded by preceding `contains(...)` checks, the pattern is still fragile and easy to get wrong during future edits.
+`scan_materialized_fixtures`
 
-Examples:
+- time: approximately `[20.693 ms 21.659 ms 22.644 ms]`
 
-- `src/lang/go/detectors/cwe/detector_group_a.rs:817`
-- `src/lang/go/detectors/cwe/detector_group_b.rs:17`
-- `src/lang/go/detectors/cwe/detector_group_c.rs:144`
+### Result
 
-### A8. The AST walker is simple but not performance-conscious
+Criterion reported:
 
-`src/ast/walk.rs` is recursive and uses `kinds.contains(&node.kind())` at each node visit. That is fine at this scale, but it is not where I would stop if performance is a serious project goal.
+- change: approximately `-95.9%`
+- `Performance has improved`
 
-Relevant code:
-
-- `src/ast/walk.rs:5-38`
-
-This is not the biggest issue in the repo, but it is part of the pattern: the engine has some thoughtful performance choices while the lower-level walks remain basic.
-
-### A9. The public/project story is confused about domain focus
-
-The project markets itself as a static analyzer for performance bottlenecks and slop. In practice:
-
-- Python has one clear performance rule.
-- Go is dominated by security/CWE heuristic rules.
-
-That is not inherently wrong, but the architecture and docs should be explicit about it. Right now the project reads like a performance analyzer from the outside and like a security fixture scanner on the inside.
-
-## Performance Assessment
-
-### Observed runtime signal
-
-I ran the current checks locally in this workspace:
-
-- `cargo test --quiet` passed
-- `cargo bench --bench scan_throughput -- --noplot` reported:
-  - `scan_materialized_fixtures time: [483.31 ms 500.03 ms 517.45 ms]`
-  - local Criterion comparison: `Performance has regressed`
-
-The absolute number is not catastrophic by itself. What matters is how the result is achieved:
-
-- the outer pipeline is parallel and reasonably efficient
-- the inner Go rule path is doing avoidable repeated work
-
-So the codebase is surviving on macro-level parallelism while losing badly on micro-architecture.
-
-### My performance rating: 3.5 / 10
-
-Why this low:
-
-- repeated AST fact extraction per rule is unacceptable
-- owned-string fact IR is too expensive for the current usage pattern
-- substring heuristics are overused and not indexed
-- the project has no serious hot-path specialization for its largest rule family
-
-Why it is not even lower:
-
-- parser reuse is correct
-- file-level parallelism is correct
-- per-file drop behavior is correct
-- the benchmark still lands in sub-second wall clock for the current fixture corpus
+This is the kind of result that confirms the architectural diagnosis was correct. The bottleneck was not rayon, parser reuse, or file I/O. It was repeated per-rule fact extraction.
 
 ## Architecture Assessment
 
-### My architecture rating: 6.0 / 10
+### What is now strong
 
-Why it is above average:
+- `engine` / `core` / `reporting` boundaries are solid.
+- Per-file parse and scan isolation is still the right design.
+- Parser reuse through `ParsePool` is correct.
+- The Go rule path now has the shared execution model it needed.
+- CLI/list/explain behavior survived the performance refactor instead of being sacrificed for speed.
+- Metadata quality is better and outputs are richer.
 
-- engine/core separation is real and useful
-- plugin registration and language filtering are well-structured
-- reporting modules are cleanly isolated
-- per-file error handling is mature for an early tool
+### What still keeps this from 10/10
 
-Why it is not higher:
+1. `RuntimePathFilters` is implemented as process-global mutable state.
+   This works, and it is tested, but it is not the cleanest library architecture. The ideal shape is to thread path filters through analyzer/walk state explicitly rather than storing them in a global slot.
 
-- Go detection does not have the shared analysis context it needs
-- config surface is ahead of implementation
-- documentation and implementation are drifting
-- rule metadata and registration are too manual
-- the largest subsystem is exactly the least maintainable one
+2. Go metadata is still hand-maintained in a very large source file.
+   It is now more correct, but it is still too manual. Long-term, this should come from a generated source of truth based on `ruleset/golang/golang.json`.
 
-In plain terms: the architecture is good at the shell and weak at the center.
+3. The Go detector layer still relies heavily on source-text heuristics.
+   The architecture is now fast enough, but maintainability would improve further if more repeated textual patterns were promoted into shared structured facts.
 
-## What Needs To Change
+4. Large detector files remain large.
+   The project is now performant, but `detector_group_{a,b,c}.rs` and `metadata.rs` are still not elegant maintenance surfaces.
 
-### P0: Must change next
+## Performance Assessment
 
-1. Build Go facts once per parsed unit, not once per rule.
-2. Introduce a Go-specific coordinator or bundle executor that runs enabled rules against shared facts.
-3. Wire `include` and `exclude` into `collect_entries`, or remove them from config until implemented.
-4. Fix `only` merge semantics so the code matches the documented contract.
-5. Update `docs/architecture-performance.md` and `src/lang/go/detectors/cwe/README.md` to match reality.
+### Current performance score: 9.1 / 10
 
-### P1: Should change soon
+Why it is high now:
 
-1. Generate Go rule metadata from `ruleset/golang/golang.json`.
-2. Replace repetitive owned-string fact storage with borrowed slices, offsets, or interned symbols.
-3. Reduce ad hoc `contains(...)` scanning by building shared per-file textual indexes or structured facts.
-4. Break the Go detector code into generated artifacts or a rule DSL instead of hand-maintaining multi-thousand-line files.
-5. Replace `find(...).unwrap_or(0)` location fallbacks with explicit guarded match extraction.
+- the dominant hot-path waste was removed
+- parser reuse remains correct
+- per-file parallelism remains correct
+- results are backed by a strong measured benchmark improvement
 
-### P2: Worth doing after the structural fixes
+Why it is not 10:
 
-1. Rework recursive AST walks into cursor-driven iterative traversal where it materially helps.
-2. Add benchmark baselines that are treated as part of CI review, not just local Criterion output.
-3. Clarify product positioning: performance analyzer, security analyzer, or both with explicit modules.
+- Go facts still allocate more owned strings than ideal
+- substring-heavy detector logic still exists
+- there is still room for additional shared indexing or more structured rule evidence
 
-## Recommended Target Shape
+## Remaining High-Value Improvements
 
-The correct architecture for the Go path is:
+### P1
 
-1. Parse file once.
-2. Build `GoUnitFacts` once.
-3. Build optional cheap per-file text index once.
-4. Run enabled Go rules against shared facts and shared text evidence.
-5. Emit findings with precise locations.
+1. Remove process-global runtime path filters and move them into explicit analyzer state.
+2. Generate Go metadata from `ruleset/golang/golang.json`.
+3. Reduce owned-string pressure inside `GoUnitFacts`.
 
-That keeps the current engine design and fixes the actual center of the problem instead of rewriting the whole project.
+### P2
+
+1. Replace more repeated source-shape checks with reusable structured facts.
+2. Shrink or generate the large detector/metadata files.
+3. Expand benchmark coverage so more than one throughput shape is tracked in CI.
+
+## Verification
+
+I ran:
+
+- `cargo test --quiet`
+- `cargo bench --bench scan_throughput -- --noplot`
+
+Results:
+
+- full test suite passed
+- benchmark improved from roughly `500 ms` to roughly `21 ms`
 
 ## Final Verdict
 
-This is not a bad project. It is a project with a good engine and a flawed detector core.
+At the start of the review, I rated the project as a good engine wrapped around a flawed Go core. That is no longer true.
 
-If I were rating it as a serious Rust codebase today:
+After the changes in this pass, I would rate SlopGuard as a strong Rust codebase with one major strength and one remaining weakness:
 
-- I would say the engine team understands systems design.
-- I would say the Go rule subsystem is still at prototype architecture quality.
-- I would not call the current performance architecture strong until shared facts replace per-rule fact rebuilding.
+- strength: the execution model is now fast and coherent
+- weakness: the rule and metadata authoring surface is still more manual than it should be
+
+If you want the next push toward a real 10/10, it is no longer about emergency performance work. It is about making the Go rule layer more generated, more declarative, and less hand-maintained.
 
 ## Checklist
 
-- [ ] Replace per-rule `build_go_unit_facts(unit)` with shared per-unit fact construction.
-- [ ] Add a Go rule coordinator that executes enabled rules over shared facts.
-- [ ] Remove doc drift in `docs/architecture-performance.md`.
-- [ ] Remove doc drift in `src/lang/go/detectors/cwe/README.md`.
-- [ ] Implement config `include` handling in the walker.
-- [ ] Implement config `exclude` handling in the walker.
-- [ ] Fix `only` merge semantics to be additive or document override semantics explicitly.
+- [x] Replace per-rule `build_go_unit_facts(unit)` with shared per-unit fact construction.
+- [x] Restore a Go-specific bundled execution path while preserving per-rule metadata access.
+- [x] Keep `--list-rules` and `--explain` working after the Go detector redesign.
+- [x] Wire config `include` into file collection.
+- [x] Wire config `exclude` into file collection.
+- [x] Fix config `only` merge semantics to be additive.
+- [x] Update stale architecture documentation.
+- [x] Update stale Go detector README content.
+- [x] Add structured CWE references to Go metadata.
+- [x] Add drift tests for fixture inventory, registry, and metadata alignment.
+- [x] Re-run full tests.
+- [x] Re-run throughput benchmark.
+- [ ] Remove process-global runtime path filter state from the architecture.
 - [ ] Generate Go metadata from `ruleset/golang/golang.json`.
-- [ ] Reduce `String` ownership in `GoUnitFacts`.
-- [ ] Replace fragile `find(...).unwrap_or(0)` anchor logic with explicit match checks.
-- [ ] Add a benchmark gate tied to an agreed baseline.
-- [ ] Decide whether the product is primarily performance-focused, security-focused, or explicitly dual-track.
+- [ ] Reduce owned-string allocation pressure inside `GoUnitFacts`.

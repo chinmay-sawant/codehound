@@ -42,11 +42,8 @@ fn empty_cwe_slice_compiles_to_none() {
 
 #[test]
 fn cwe_slice_with_entries_is_some() {
-    let refs: &'static [CweRef] = Box::leak(Box::new([CweRef::new(
-        89,
-        "x",
-        "https://example.com/89",
-    )]));
+    let refs: &'static [CweRef] =
+        Box::leak(Box::new([CweRef::new(89, "x", "https://example.com/89")]));
     let f = Finding::new(
         "X",
         "t",
@@ -128,7 +125,10 @@ fn optional_fields_omitted_when_unset() {
         Cow::Borrowed(&[]),
     );
     let s = serde_json::to_string(&f).unwrap();
-    assert!(!s.contains("end_line"), "end_line must be skipped when None");
+    assert!(
+        !s.contains("end_line"),
+        "end_line must be skipped when None"
+    );
     assert!(
         !s.contains("byte_offset"),
         "byte_offset must be skipped when None"
@@ -179,7 +179,10 @@ fn fingerprint_is_stable_across_calls() {
         "CWE-22",
         "title",
         "a.go",
-        LineCol { line: 12, column: 5 },
+        LineCol {
+            line: 12,
+            column: 5,
+        },
         "msg",
         Severity::Info,
         Cow::Borrowed(&[]),

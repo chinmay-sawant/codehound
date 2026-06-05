@@ -11,7 +11,10 @@ fn sample() -> AnalysisResult {
             "CWE-89",
             "SQL injection",
             "a.go",
-            LineCol { line: 12, column: 5 },
+            LineCol {
+                line: 12,
+                column: 5,
+            },
             "user input is concatenated into the query",
             Severity::High,
             Cow::Borrowed(&[]),
@@ -103,8 +106,16 @@ fn ndjson_emits_one_finding_per_line() {
     let s = std::str::from_utf8(&buf).unwrap();
     let lines: Vec<&str> = s.lines().collect();
     assert_eq!(lines.len(), 2, "expected 2 NDJSON lines, got: {s}");
-    assert!(lines[0].contains("\"rule_id\":\"CWE-1\""), "got: {}", lines[0]);
-    assert!(lines[1].contains("\"rule_id\":\"CWE-2\""), "got: {}", lines[1]);
+    assert!(
+        lines[0].contains("\"rule_id\":\"CWE-1\""),
+        "got: {}",
+        lines[0]
+    );
+    assert!(
+        lines[1].contains("\"rule_id\":\"CWE-2\""),
+        "got: {}",
+        lines[1]
+    );
 }
 
 #[test]

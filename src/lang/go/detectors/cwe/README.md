@@ -5,11 +5,14 @@ This module implements the Go CWE fixture detector as one bundled scan, not as o
 ## Pipeline
 
 1. The engine parses each Go unit once.
-2. `GoCweScan` builds `GoUnitFacts` once for that `ParsedUnit`.
-3. Rule evaluators query those facts plus a few targeted source-shape checks.
-4. Matching rules emit `Finding` values directly.
+2. File collection already honors language filtering, `.slopguardignore`, and config-driven `include`/`exclude` path globs before the Go detector runs.
+3. `GoCweScan` builds `GoUnitFacts` once for that `ParsedUnit`.
+4. Rule evaluators query those facts plus a few targeted source-shape checks.
+5. Matching rules emit `Finding` values directly.
 
 The current implementation keeps the hot path file-local and sequential. The engine already parallelizes across files, so the detector does not add nested intra-file parallelism.
+
+Rule activation is also pre-filtered by the merged `ScanContext`: config `only`/`skip` and CLI `--only`/`--skip` combine additively before the detector is entered.
 
 ## Fact Model
 
@@ -27,7 +30,7 @@ Rules should prefer these facts when the pattern is structural. Plain source sca
 
 The detector lives in [mod.rs](/home/chinmay/ChinmayPersonalProjects/slopguard/src/lang/go/detectors/cwe/mod.rs) as:
 
-- metadata constants
+- metadata constants with one structured self-CWE reference per rule
 - a single `GO_CWE_RULE_IDS` registry
 - one `run` orchestrator
 - small rule functions such as `detect_cwe_22`
@@ -53,7 +56,8 @@ The important constraint is locality: suppression should be cheap, deterministic
 3. Gate it in `GoCweScan::run`.
 4. Implement `detect_cwe_*`.
 5. Add framework and stdlib fixture coverage in [tests/go_cwe_detector_integration.rs](/home/chinmay/ChinmayPersonalProjects/slopguard/tests/go_cwe_detector_integration.rs).
-6. Verify with:
+6. Keep [tests/lang_go_cwe_metadata.rs](/home/chinmay/ChinmayPersonalProjects/slopguard/tests/lang_go_cwe_metadata.rs) green so fixture inventory, detector registration, and metadata stay aligned.
+7. Verify with:
    - `cargo test --test go_cwe_detector_integration`
    - `cargo test --test fixture_manifest_integration`
 

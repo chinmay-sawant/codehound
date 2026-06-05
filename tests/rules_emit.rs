@@ -1,4 +1,6 @@
-use slopguard::rules::{push_finding, push_finding_with_snippet, rule_meta, RuleMetadata, Severity};
+use slopguard::rules::{
+    RuleMetadata, Severity, push_finding, push_finding_with_snippet, rule_meta,
+};
 
 fn meta_with_cwe() -> RuleMetadata {
     rule_meta(

@@ -1,6 +1,7 @@
 //! Optional `slopguard.toml` configuration.
 
 use std::path::Path;
+use std::sync::{Mutex, OnceLock};
 
 use anyhow::{Context, Result};
 use serde::Deserialize;
@@ -31,6 +32,17 @@ pub struct SlopguardSection {
     pub exclude: Vec<String>,
 }
 
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct RuntimePathFilters {
+    pub include: Vec<String>,
+    pub exclude: Vec<String>,
+}
+
+fn runtime_path_filters_slot() -> &'static Mutex<RuntimePathFilters> {
+    static SLOT: OnceLock<Mutex<RuntimePathFilters>> = OnceLock::new();
+    SLOT.get_or_init(|| Mutex::new(RuntimePathFilters::default()))
+}
+
 impl SlopguardConfig {
     pub fn load(path: &Path) -> Result<Self> {
         let text = std::fs::read_to_string(path)
@@ -43,7 +55,7 @@ impl SlopguardConfig {
     }
 
     /// Merge this config into a `ScanContext`. CLI-set fields take precedence:
-    /// `skip` and `only` are merged additively (config adds to CLI), but
+    /// `skip` and `only` are merged additively, but
     /// `fail_policy` is only applied when the CLI did not pass an explicit
     /// one (signaled by `cli_set_fail_policy`).
     pub fn merge_into(self, mut ctx: ScanContext, cli_set_fail_policy: bool) -> ScanContext {
@@ -51,7 +63,9 @@ impl SlopguardConfig {
             ctx.skip.extend(self.slopguard.skip);
         }
         if !self.slopguard.only.is_empty() {
-            ctx.only = Some(self.slopguard.only.into_iter().collect());
+            let mut only = ctx.only.take().unwrap_or_default();
+            only.extend(self.slopguard.only);
+            ctx.only = Some(only);
         }
         if let Some(fail_on) = self.slopguard.fail_on.as_deref() {
             if !cli_set_fail_policy {
@@ -68,6 +82,30 @@ impl SlopguardConfig {
     pub fn exclude(&self) -> &[String] {
         &self.slopguard.exclude
     }
+
+    pub fn install_runtime_path_filters(&self) {
+        let mut slot = runtime_path_filters_slot()
+            .lock()
+            .expect("runtime path filters mutex poisoned");
+        *slot = RuntimePathFilters {
+            include: self.slopguard.include.clone(),
+            exclude: self.slopguard.exclude.clone(),
+        };
+    }
+
+    pub fn clear_runtime_path_filters() {
+        let mut slot = runtime_path_filters_slot()
+            .lock()
+            .expect("runtime path filters mutex poisoned");
+        *slot = RuntimePathFilters::default();
+    }
+}
+
+pub(crate) fn current_runtime_path_filters() -> RuntimePathFilters {
+    runtime_path_filters_slot()
+        .lock()
+        .expect("runtime path filters mutex poisoned")
+        .clone()
 }
 
 #[doc(hidden)]
@@ -125,4 +163,3 @@ pub fn build_scan_context(
     }
     ctx
 }
-

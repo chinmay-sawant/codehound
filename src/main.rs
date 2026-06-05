@@ -40,8 +40,8 @@ fn main() -> ExitCode {
 }
 
 fn init_tracing() {
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("warn,slopguard=info"));
+    let filter =
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("warn,slopguard=info"));
     tracing_subscriber::fmt()
         .with_env_filter(filter)
         .with_target(false)
@@ -73,6 +73,11 @@ fn run(cli: Cli) -> Result<ExitCode> {
     }
 
     let config = load_config(cli.config.as_deref())?;
+    if let Some(cfg) = config.as_ref() {
+        cfg.install_runtime_path_filters();
+    } else {
+        SlopguardConfig::clear_runtime_path_filters();
+    }
     let registry = Registry::default();
     let lang_filter = resolve_language_filter(cli.lang.language_id(), config.as_ref(), &registry)?;
 
@@ -105,9 +110,7 @@ fn run(cli: Cli) -> Result<ExitCode> {
                 reporting::text::print_without_snippet(&result)?
             }
             OutputFormat::Text => reporting::text::print(&result)?,
-            OutputFormat::Json if cli.json_envelope => {
-                reporting::json::print_envelope(&result)?
-            }
+            OutputFormat::Json if cli.json_envelope => reporting::json::print_envelope(&result)?,
             OutputFormat::Json => reporting::json::print(&result)?,
             OutputFormat::Sarif if cli.no_snippet => reporting::sarif::print_compact(&result)?,
             OutputFormat::Sarif => reporting::sarif::print(&result)?,
@@ -174,7 +177,8 @@ fn print_rules() {
             let title = descriptions
                 .get(*id)
                 .map(|d| d.name.as_str())
-                .unwrap_or_else(|| det.metadata().title);
+                .or_else(|| det.metadata_for(id).map(|m| m.title))
+                .unwrap_or("<missing metadata>");
             println!("  {id:<12} {title}");
         }
     }
@@ -190,7 +194,9 @@ fn print_rule_explanation(rule_id: &str) {
     let registry = Registry::default();
     for det in registry.detectors() {
         if det.rule_ids().contains(&rule_id) {
-            let m = det.metadata();
+            let Some(m) = det.metadata_for(rule_id) else {
+                continue;
+            };
             println!("{} — {}", m.id, m.title);
             println!();
             println!("{}", m.description);
@@ -243,16 +249,16 @@ fn init_subcommand() -> ExitCode {
 # Limit analysis to specific languages.
 # languages = [\"go\", \"python\"]
 
-# Only run the named rules (comma-separated via --only on the CLI).
+# Only run the union of these rule IDs and any passed via --only.
 # only = [\"CWE-22\", \"CWE-89\"]
 
-# Skip the named rules.
+# Skip the union of these rule IDs and any passed via --skip.
 # skip = [\"CWE-15\"]
 
 # Exit policy: \"none\" | \"high\" | \"strict\" | anything else = warnings as errors.
 # fail_on = \"high\"
 
-# Optional include/exclude globs (relative to scan root).
+# Optional include/exclude gitignore-style globs, relative to each scan root.
 # include = [\"**/*.go\"]
 # exclude = [\"**/vendor/**\", \"**/*_test.go\"]
 ";

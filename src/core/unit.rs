@@ -29,4 +29,3 @@ impl ParsedUnit {
         ast::line_col_with_starts(&self.line_starts, byte_offset)
     }
 }
-

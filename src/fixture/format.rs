@@ -101,4 +101,3 @@ fn split_header_body(text: &str) -> Result<(&str, &str)> {
     }
     bail!("fixture must contain a `{SEPARATOR}` separator between header and source")
 }
-

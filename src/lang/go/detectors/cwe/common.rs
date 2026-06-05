@@ -27,12 +27,7 @@ pub fn expression_uses_request_input(expr: &str) -> bool {
 
 pub fn is_path_confined(source: &str, assignment: &facts::AssignmentFact) -> bool {
     (assignment.expr.contains("filepath.Clean(")
-        && crate::engine::scratch_contains(
-            source,
-            "strings.HasPrefix(",
-            &assignment.name,
-            ",",
-        ))
+        && crate::engine::scratch_contains(source, "strings.HasPrefix(", &assignment.name, ","))
         || assignment.expr.contains("filepath.Base(")
         || (assignment.expr.contains("filepath.Abs(")
             && has_canonical_path_guard(source, &assignment.name))
