@@ -8,7 +8,7 @@ mod reference;
 
 pub use catalog::{
     CWE_CATALOG, CWE_REFS_400_1336, CWE_REFS_407, CWE_REFS_770, CWE_REFS_770_400,
-    RuleDescription, default_ruleset_path, load_rule_descriptions,
+    RuleDescription, builtin_rule_catalogue, default_ruleset_path, load_rule_descriptions,
 };
 pub use reference::CweRef;
 

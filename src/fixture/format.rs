@@ -102,16 +102,3 @@ fn split_header_body(text: &str) -> Result<(&str, &str)> {
     bail!("fixture must contain a `{SEPARATOR}` separator between header and source")
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parses_minimal_header() {
-        let text = "lang: python\n---\nimport re\n";
-        let f = parse_fixture(text, Path::new("sample.txt")).unwrap();
-        assert_eq!(f.language, FixtureLanguage::Python);
-        assert_eq!(f.filename, "sample.py");
-        assert!(f.source.contains("import re"));
-    }
-}

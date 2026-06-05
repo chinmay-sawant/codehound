@@ -7,6 +7,15 @@ expected every minor release; pin to a git revision or exact version.
 ## [Unreleased]
 
 ### Added
+- Per-rule Go CWE detector structs via `define_detector!` macro — 175
+  individual `Detector` impls replace the single monolithic `GoCweScan`
+  struct, allowing fine-grained rule-level registration and filtering
+- `build.rs` codegen: the JSON rule catalogue (`ruleset/golang/golang.json`)
+  is now compiled into a `LazyLock<Vec<RuleDescription>>` at build time
+  (zero runtime JSON parsing); `builtin_rule_catalogue()` returns the
+  static array
+- 25 integration test files migrated from `#[cfg(test)] mod tests` blocks
+  in `src/` to `tests/` (cleaner structure, single test binary per module)
 - `--json-envelope` flag (and `SLOPGUARD_JSON_ENVELOPE` env) that wraps the
   default text/JSON output in a machine-readable `Envelope` struct with
   `tool.version`, `schema`, `exit_code`, `findings[]`, and `errors[]`
@@ -59,6 +68,16 @@ expected every minor release; pin to a git revision or exact version.
   scratch buffer (`scratch_contains`).
 
 ### Changed
+- **Architecture**: Go CWE detectors split from single `GoCweScan` struct
+  into 175 per-rule structs via `define_detector!` macro (`cwe/mod.rs`).
+  Each detector is independently filterable by rule id; the `all()`
+  function in `detectors/mod.rs` returns a flat `Vec<Box<dyn Detector>>`.
+- **Test structure**: all 17 `#[cfg(test)] mod tests` blocks moved from
+  `src/` to `tests/` integration test files. Internals previously sealed
+  as `pub(crate)` / `pub(super)` are now `pub` (with `#[doc(hidden)]`
+  where appropriate) to support integration testing. Cargo.toml
+  `[dev-dependencies]` gained `tree-sitter`, `tree-sitter-go`, and
+  `tree-sitter-python` (non-optional, test-profile only).
 - **Performance**: a further 15% faster scan of the 701-fixture corpus
   (`scan_materialized_fixtures`: 28.1 ms → 23.8 ms on top of last commit's
   32% win). The biggest wins this round came from:
@@ -112,6 +131,8 @@ expected every minor release; pin to a git revision or exact version.
   the whole scan process
 
 ### Removed
+- `GoCweScan` single-detector struct (replaced by 175 per-rule structs)
+- Redundant inline `#[cfg(test)] mod tests` blocks in `src/` (moved to `tests/`)
 - Dead `severity_threshold` function (`#[allow(dead_code)]` in
   `engine/config.rs`)
 - Duplicate `all-langs` feature flag (was identical to `default`)

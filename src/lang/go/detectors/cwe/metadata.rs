@@ -1,6 +1,7 @@
 use crate::rules::{RuleMetadata, Severity, emit};
 
-pub(super) const GO_CWE_RULE_IDS: &[&str] = &[
+#[allow(dead_code)]
+pub const GO_CWE_RULE_IDS: &[&str] = &[
     "CWE-15", "CWE-22", "CWE-41", "CWE-59", "CWE-76", "CWE-78", "CWE-79", "CWE-89", "CWE-90",
     "CWE-91", "CWE-93", "CWE-112", "CWE-140", "CWE-178", "CWE-179", "CWE-182", "CWE-184",
     "CWE-186", "CWE-201", "CWE-204", "CWE-208", "CWE-209", "CWE-212", "CWE-213", "CWE-214",

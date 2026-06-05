@@ -110,33 +110,3 @@ fn print_summary(result: &AnalysisResult) {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::rules::{Finding, LineCol, Severity};
-    use std::borrow::Cow;
-
-    #[test]
-    fn empty_result_renders_summary() {
-        let r = AnalysisResult::default();
-        // Should not panic; produces a single line.
-        assert!(print(&r).is_ok());
-    }
-
-    #[test]
-    fn finding_with_cwe_renders() {
-        let r = AnalysisResult {
-            findings: vec![Finding::new(
-                "CWE-89",
-                "SQL injection",
-                "a.go",
-                LineCol { line: 1, column: 1 },
-                "msg",
-                Severity::High,
-                Cow::Borrowed(&[]),
-            )],
-            errors: vec![],
-        };
-        assert!(print(&r).is_ok());
-    }
-}

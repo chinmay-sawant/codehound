@@ -16,122 +16,128 @@ const TOOL_VERSION: &str = env!("CARGO_PKG_VERSION");
 const TOOL_URI: &str = env!("CARGO_PKG_REPOSITORY");
 
 #[derive(Serialize)]
-struct SarifLog<'a> {
+#[doc(hidden)]
+pub struct SarifLog<'a> {
     #[serde(rename = "$schema")]
-    schema: &'static str,
-    version: &'static str,
-    runs: Vec<SarifRun<'a>>,
+    pub schema: &'static str,
+    pub version: &'static str,
+    pub runs: Vec<SarifRun<'a>>,
 }
 
 #[derive(Serialize)]
-struct SarifRun<'a> {
-    tool: SarifTool<'a>,
-    invocations: Vec<SarifInvocation<'a>>,
-    results: Vec<SarifResult<'a>>,
+#[doc(hidden)]
+pub struct SarifRun<'a> {
+    pub tool: SarifTool<'a>,
+    pub invocations: Vec<SarifInvocation<'a>>,
+    pub results: Vec<SarifResult<'a>>,
 }
 
 #[derive(Serialize)]
-struct SarifTool<'a> {
-    driver: SarifDriver<'a>,
+#[doc(hidden)]
+pub struct SarifTool<'a> {
+    pub driver: SarifDriver<'a>,
 }
 
 #[derive(Serialize)]
-struct SarifDriver<'a> {
-    name: &'static str,
+#[doc(hidden)]
+pub struct SarifDriver<'a> {
+    pub name: &'static str,
     #[serde(rename = "informationUri")]
-    information_uri: &'static str,
-    version: &'static str,
+    pub information_uri: &'static str,
+    pub version: &'static str,
     #[serde(rename = "semanticVersion")]
-    semantic_version: &'static str,
-    rules: Vec<SarifRule<'a>>,
+    pub semantic_version: &'static str,
+    pub rules: Vec<SarifRule<'a>>,
 }
 
 #[derive(Serialize)]
-struct SarifRule<'a> {
-    id: &'a str,
-    name: &'a str,
-    short_description: SarifText<'a>,
+#[doc(hidden)]
+pub struct SarifRule<'a> {
+    pub id: &'a str,
+    pub name: &'a str,
+    pub short_description: SarifText<'a>,
 }
 
 #[derive(Serialize)]
-struct SarifText<'a> {
-    text: &'a str,
+#[doc(hidden)]
+pub struct SarifText<'a> {
+    pub text: &'a str,
 }
 
 #[derive(Serialize)]
-struct SarifResult<'a> {
+#[doc(hidden)]
+pub struct SarifResult<'a> {
     #[serde(rename = "ruleId")]
-    rule_id: &'a str,
+    pub rule_id: &'a str,
     #[serde(rename = "ruleIndex")]
-    rule_index: usize,
-    level: &'static str,
-    message: SarifText<'a>,
-    locations: Vec<SarifLocation<'a>>,
+    pub rule_index: usize,
+    pub level: &'static str,
+    pub message: SarifText<'a>,
+    pub locations: Vec<SarifLocation<'a>>,
     #[serde(rename = "partialFingerprints")]
-    partial_fingerprints: BTreeMap<&'static str, String>,
-    properties: SarifProperties,
-    // Carried through the test render helper for parity with the production
-    // struct, but never read; the production code only constructs these
-    // inside the `print_with` function.
+    pub partial_fingerprints: BTreeMap<&'static str, String>,
+    pub properties: SarifProperties,
     #[serde(skip)]
-    #[allow(dead_code)]
-    end_line: Option<usize>,
+    pub end_line: Option<usize>,
     #[serde(skip)]
-    #[allow(dead_code)]
-    end_column: Option<usize>,
+    pub end_column: Option<usize>,
     #[serde(skip)]
-    #[allow(dead_code)]
-    byte_offset: Option<usize>,
+    pub byte_offset: Option<usize>,
     #[serde(skip)]
-    #[allow(dead_code)]
-    byte_length: Option<usize>,
+    pub byte_length: Option<usize>,
 }
 
 #[derive(Serialize)]
-struct SarifProperties {
-    tags: Vec<String>,
+#[doc(hidden)]
+pub struct SarifProperties {
+    pub tags: Vec<String>,
     #[serde(rename = "security-severity")]
-    security_severity: &'static str,
+    pub security_severity: &'static str,
 }
 
 #[derive(Serialize)]
-struct SarifLocation<'a> {
-    physical_location: SarifPhysicalLocation<'a>,
+#[doc(hidden)]
+pub struct SarifLocation<'a> {
+    pub physical_location: SarifPhysicalLocation<'a>,
 }
 
 #[derive(Serialize)]
-struct SarifPhysicalLocation<'a> {
-    artifact_location: SarifArtifactLocation<'a>,
-    region: SarifRegion,
+#[doc(hidden)]
+pub struct SarifPhysicalLocation<'a> {
+    pub artifact_location: SarifArtifactLocation<'a>,
+    pub region: SarifRegion,
 }
 
 #[derive(Serialize)]
-struct SarifArtifactLocation<'a> {
-    uri: &'a str,
+#[doc(hidden)]
+pub struct SarifArtifactLocation<'a> {
+    pub uri: &'a str,
 }
 
 #[derive(Serialize)]
-struct SarifRegion {
-    start_line: usize,
-    start_column: usize,
+#[doc(hidden)]
+pub struct SarifRegion {
+    pub start_line: usize,
+    pub start_column: usize,
     #[serde(rename = "endLine", skip_serializing_if = "Option::is_none")]
-    end_line: Option<usize>,
+    pub end_line: Option<usize>,
     #[serde(rename = "endColumn", skip_serializing_if = "Option::is_none")]
-    end_column: Option<usize>,
+    pub end_column: Option<usize>,
     #[serde(rename = "byteOffset", skip_serializing_if = "Option::is_none")]
-    byte_offset: Option<usize>,
+    pub byte_offset: Option<usize>,
     #[serde(rename = "byteLength", skip_serializing_if = "Option::is_none")]
-    byte_length: Option<usize>,
+    pub byte_length: Option<usize>,
 }
 
 #[derive(Serialize)]
-struct SarifInvocation<'a> {
+#[doc(hidden)]
+pub struct SarifInvocation<'a> {
     #[serde(rename = "executionSuccessful")]
-    execution_successful: bool,
+    pub execution_successful: bool,
     #[serde(rename = "endTimeUtc")]
-    end_time_utc: String,
+    pub end_time_utc: String,
     #[serde(rename = "workingDirectory")]
-    working_directory: SarifArtifactLocation<'a>,
+    pub working_directory: SarifArtifactLocation<'a>,
 }
 
 pub fn print(result: &AnalysisResult) -> Result<()> {
@@ -143,7 +149,19 @@ pub fn print_compact(result: &AnalysisResult) -> Result<()> {
 }
 
 fn print_with(result: &AnalysisResult, pretty: bool) -> Result<()> {
-    // 1. Collect unique rules, sorted alphabetically for deterministic output.
+    let log = build_log(result);
+    let stdout = io::stdout();
+    let mut out = stdout.lock();
+    if pretty {
+        serde_json::to_writer_pretty(&mut out, &log)?;
+    } else {
+        serde_json::to_writer(&mut out, &log)?;
+    }
+    out.write_all(b"\n")?;
+    Ok(())
+}
+
+fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
     let mut seen: BTreeMap<&str, &str> = BTreeMap::new();
     for f in &result.findings {
         seen.entry(f.rule_id).or_insert(f.rule_title);
@@ -157,14 +175,12 @@ fn print_with(result: &AnalysisResult, pretty: bool) -> Result<()> {
         })
         .collect();
 
-    // 2. Map rule_id → index in `rules` for ruleIndex.
     let rule_index_of: std::collections::HashMap<&str, usize> = rules
         .iter()
         .enumerate()
         .map(|(i, r)| (r.id, i))
         .collect();
 
-    // 3. Build results.
     let results: Vec<SarifResult> = result
         .findings
         .iter()
@@ -237,14 +253,13 @@ fn print_with(result: &AnalysisResult, pretty: bool) -> Result<()> {
         })
         .collect();
 
-    // 4. Invocation block.
     let invocation = SarifInvocation {
         execution_successful: result.errors.is_empty(),
         end_time_utc: iso8601_utc_now(),
         working_directory: SarifArtifactLocation { uri: "." },
     };
 
-    let log = SarifLog {
+    SarifLog {
         schema: SCHEMA_URL,
         version: SARIF_VERSION,
         runs: vec![SarifRun {
@@ -260,17 +275,7 @@ fn print_with(result: &AnalysisResult, pretty: bool) -> Result<()> {
             invocations: vec![invocation],
             results,
         }],
-    };
-
-    let stdout = io::stdout();
-    let mut out = stdout.lock();
-    if pretty {
-        serde_json::to_writer_pretty(&mut out, &log)?;
-    } else {
-        serde_json::to_writer(&mut out, &log)?;
     }
-    out.write_all(b"\n")?;
-    Ok(())
 }
 
 fn iso8601_utc_now() -> String {
@@ -305,188 +310,10 @@ fn unix_epoch_to_ymdhms(secs: u64) -> (u32, u32, u32, u32, u32, u32) {
     (y as u32, m as u32, d as u32, hour as u32, minute as u32, second as u32)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::rules::{Finding, LineCol, Severity};
-    use std::borrow::Cow;
-
-    fn sample_result() -> AnalysisResult {
-        AnalysisResult {
-            findings: vec![
-                Finding::new(
-                    "CWE-22",
-                    "Path traversal",
-                    "a.go",
-                    LineCol { line: 1, column: 1 },
-                    "msg",
-                    Severity::High,
-                    Cow::Borrowed(&[]),
-                ),
-                Finding::new(
-                    "CWE-89",
-                    "SQL injection",
-                    "b.go",
-                    LineCol { line: 2, column: 3 },
-                    "msg2",
-                    Severity::Critical,
-                    Cow::Borrowed(&[]),
-                ),
-            ],
-            errors: vec![],
-        }
-    }
-
-    fn render_to_string(result: &AnalysisResult) -> String {
-        let mut seen: BTreeMap<&str, &str> = BTreeMap::new();
-        for f in &result.findings {
-            seen.entry(f.rule_id).or_insert(f.rule_title);
-        }
-        let rules: Vec<SarifRule> = seen
-            .iter()
-            .map(|(id, name)| SarifRule {
-                id,
-                name,
-                short_description: SarifText { text: name },
-            })
-            .collect();
-        let rule_index_of: std::collections::HashMap<&str, usize> = rules
-            .iter()
-            .enumerate()
-            .map(|(i, r)| (r.id, i))
-            .collect();
-        let results: Vec<SarifResult> = result
-            .findings
-            .iter()
-            .map(|f| SarifResult {
-                rule_id: f.rule_id,
-                rule_index: rule_index_of.get(f.rule_id).copied().unwrap_or(0),
-                level: "warning",
-                message: SarifText { text: f.message.as_str() },
-                locations: vec![SarifLocation {
-                    physical_location: SarifPhysicalLocation {
-                        artifact_location: SarifArtifactLocation { uri: f.file.as_str() },
-                        region: SarifRegion {
-                            start_line: f.line,
-                            start_column: f.column,
-                            end_line: f.end_line,
-                            end_column: f.end_column,
-                            byte_offset: f.byte_offset,
-                            byte_length: f.byte_length,
-                        },
-                    },
-                }],
-                partial_fingerprints: BTreeMap::new(),
-                properties: SarifProperties {
-                    tags: vec!["security".to_string()],
-                    security_severity: "5.0",
-                },
-                end_line: f.end_line,
-                end_column: f.end_column,
-                byte_offset: f.byte_offset,
-                byte_length: f.byte_length,
-            })
-            .collect();
-        let log = SarifLog {
-            schema: SCHEMA_URL,
-            version: SARIF_VERSION,
-            runs: vec![SarifRun {
-                tool: SarifTool {
-                    driver: SarifDriver {
-                        name: TOOL_NAME,
-                        information_uri: TOOL_URI,
-                        version: TOOL_VERSION,
-                        semantic_version: TOOL_VERSION,
-                        rules,
-                    },
-                },
-                invocations: vec![SarifInvocation {
-                    execution_successful: true,
-                    end_time_utc: "1970-01-01T00:00:00Z".to_string(),
-                    working_directory: SarifArtifactLocation { uri: "." },
-                }],
-                results,
-            }],
-        };
-        serde_json::to_string_pretty(&log).unwrap()
-    }
-
-    #[test]
-    fn driver_fields_are_populated() {
-        let log = render_to_string(&sample_result());
-        assert!(log.contains("\"informationUri\""), "got: {log}");
-        assert!(log.contains("\"semanticVersion\""), "got: {log}");
-        assert!(log.contains("\"name\": \"slopguard\""), "got: {log}");
-    }
-
-    #[test]
-    fn rules_array_is_sorted_alphabetically() {
-        let log = render_to_string(&sample_result());
-        let i22 = log.find("\"CWE-22\"").expect("CWE-22");
-        let i89 = log.find("\"CWE-89\"").expect("CWE-89");
-        assert!(i22 < i89, "CWE-22 should appear before CWE-89, got: {log}");
-    }
-
-    #[test]
-    fn results_have_rule_index_pointing_into_rules() {
-        let log = render_to_string(&sample_result());
-        assert!(log.contains("\"ruleIndex\""), "got: {log}");
-    }
-
-    #[test]
-    fn results_have_partial_fingerprints() {
-        let log = render_to_string(&sample_result());
-        assert!(
-            log.contains("\"partialFingerprints\""),
-            "missing partialFingerprints, got: {log}"
-        );
-    }
-
-    #[test]
-    fn results_have_security_severity_in_properties() {
-        let log = render_to_string(&sample_result());
-        assert!(log.contains("\"security-severity\""), "got: {log}");
-        assert!(log.contains("\"tags\""), "got: {log}");
-    }
-
-    #[test]
-    fn invocations_block_present() {
-        let log = render_to_string(&sample_result());
-        assert!(log.contains("\"invocations\""), "got: {log}");
-        assert!(log.contains("\"endTimeUtc\""), "got: {log}");
-    }
-
-    #[test]
-    fn end_line_end_column_byte_offset_optional() {
-        let mut r = sample_result();
-        r.findings[0].end_line = Some(2);
-        r.findings[0].end_column = Some(8);
-        r.findings[0].byte_offset = Some(42);
-        r.findings[0].byte_length = Some(7);
-        let log = render_to_string(&r);
-        assert!(log.contains("\"endLine\": 2"), "got: {log}");
-        assert!(log.contains("\"endColumn\": 8"), "got: {log}");
-        assert!(log.contains("\"byteOffset\": 42"), "got: {log}");
-        assert!(log.contains("\"byteLength\": 7"), "got: {log}");
-    }
-
-    #[test]
-    fn region_end_fields_absent_when_unset() {
-        let r = sample_result();
-        let log = render_to_string(&r);
-        assert!(!log.contains("endLine"), "got: {log}");
-        assert!(!log.contains("byteOffset"), "got: {log}");
-    }
-
-    #[test]
-    fn iso8601_format_is_correct() {
-        // 2024-01-01T00:00:00Z = 1704067200
-        let s = iso8601_from_secs(1_704_067_200);
-        assert_eq!(s, "2024-01-01T00:00:00Z");
-    }
-
-    fn iso8601_from_secs(secs: u64) -> String {
-        let (y, mo, d, h, mi, s) = unix_epoch_to_ymdhms(secs);
-        format!("{y:04}-{mo:02}-{d:02}T{h:02}:{mi:02}:{s:02}Z")
-    }
+#[doc(hidden)]
+pub fn render_to_string(result: &AnalysisResult) -> String {
+    let log = build_log(result);
+    let mut buf = Vec::new();
+    serde_json::to_writer_pretty(&mut buf, &log).unwrap();
+    String::from_utf8(buf).unwrap()
 }

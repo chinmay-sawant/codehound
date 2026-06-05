@@ -10,7 +10,8 @@ mod walk;
 
 pub use analyzer::{Analyzer, AnalyzerBuilder};
 pub use config::{
-    SlopguardConfig, SlopguardSection, build_scan_context, discover_config, load_discovered_config,
+    SlopguardConfig, SlopguardSection, build_scan_context, discover_config,
+    fail_on_to_policy, load_discovered_config,
 };
 pub use language_filter::{LanguageFilter, resolve_language_filter};
 pub use registry::Registry;
