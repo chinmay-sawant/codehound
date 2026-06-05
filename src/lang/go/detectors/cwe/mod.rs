@@ -3296,9 +3296,9 @@ fn detect_cwe_201(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>
         return;
     }
 
-    let sensitive_record_name = if source.contains("type userRecord struct") {
-        Some("record")
-    } else if source.contains("type memberRecord struct") {
+    let sensitive_record_name = if source.contains("type userRecord struct")
+        || source.contains("type memberRecord struct")
+    {
         Some("record")
     } else {
         None
