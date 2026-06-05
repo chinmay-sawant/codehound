@@ -4,8 +4,8 @@ use std::path::Path;
 use std::sync::Arc;
 
 use slopguard::core::LanguagePlugin;
-use slopguard::lang::go::detectors::cwe::facts::{build_go_unit_facts, InputKind};
 use slopguard::lang::go::GoPlugin;
+use slopguard::lang::go::detectors::cwe::facts::{InputKind, build_go_unit_facts};
 
 fn parse_go_source(source: &str) -> slopguard::core::ParsedUnit {
     let plugin = GoPlugin;
@@ -36,12 +36,18 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 
     let facts = build_go_unit_facts(&unit);
 
-    assert!(facts.input_bindings.iter().any(|binding| {
-        binding.name == "path" && binding.kind == InputKind::UserControlled
-    }));
-    assert!(facts.input_bindings.iter().any(|binding| {
-        binding.name == "mode" && binding.kind == InputKind::UserControlled
-    }));
+    assert!(
+        facts
+            .input_bindings
+            .iter()
+            .any(|binding| { binding.name == "path" && binding.kind == InputKind::UserControlled })
+    );
+    assert!(
+        facts
+            .input_bindings
+            .iter()
+            .any(|binding| { binding.name == "mode" && binding.kind == InputKind::UserControlled })
+    );
     assert!(facts
         .call_facts
         .iter()
@@ -68,8 +74,11 @@ func Build() string {
     assert!(facts.input_bindings.iter().any(|binding| {
         binding.name == "billingAPI" && binding.kind == InputKind::TrustedConfig
     }));
-    assert!(facts
-        .assignments
-        .iter()
-        .any(|assignment| assignment.name == "billingAPI" && assignment.expr.contains("os.Getenv")));
+    assert!(
+        facts
+            .assignments
+            .iter()
+            .any(|assignment| assignment.name == "billingAPI"
+                && assignment.expr.contains("os.Getenv"))
+    );
 }

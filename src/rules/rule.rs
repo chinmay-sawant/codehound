@@ -8,7 +8,7 @@ use crate::cwe::CweRef;
 /// Description of a detector / rule.
 #[derive(Debug, Clone, Serialize)]
 pub struct RuleMetadata {
-    /// Stable identifier, e.g. `SLOP001`.
+    /// Stable identifier, e.g. `CWE-89`.
     pub id: &'static str,
     /// Short title.
     pub title: &'static str,

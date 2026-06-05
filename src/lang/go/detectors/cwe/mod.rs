@@ -3,13 +3,36 @@
 pub mod facts;
 
 use crate::core::{Detector, LanguageId, ParsedUnit, ScanContext};
-use crate::rules::{emit, Finding, Rule, RuleMetadata, Severity};
+use crate::rules::{Finding, Rule, RuleMetadata, Severity, emit};
 
-use self::facts::{build_go_unit_facts, GoUnitFacts, InputKind};
+use self::facts::{GoUnitFacts, InputKind, build_go_unit_facts};
 
 pub struct GoCweScan;
 
-const GO_CWE_RULE_IDS: &[&str] = &["CWE-15", "CWE-22", "CWE-41", "CWE-59", "CWE-76", "CWE-78", "CWE-79", "CWE-89", "CWE-90", "CWE-91", "CWE-93", "CWE-112", "CWE-140", "CWE-178", "CWE-179", "CWE-182", "CWE-184", "CWE-186", "CWE-201", "CWE-204", "CWE-208", "CWE-209", "CWE-212", "CWE-213", "CWE-214", "CWE-215", "CWE-250", "CWE-252", "CWE-256", "CWE-257", "CWE-260", "CWE-261", "CWE-262", "CWE-263", "CWE-266", "CWE-267", "CWE-268", "CWE-270", "CWE-272", "CWE-273", "CWE-274", "CWE-276", "CWE-277", "CWE-278", "CWE-279", "CWE-280", "CWE-281", "CWE-283", "CWE-289", "CWE-290", "CWE-294", "CWE-301", "CWE-303", "CWE-305", "CWE-306", "CWE-307", "CWE-308", "CWE-309", "CWE-312", "CWE-319", "CWE-322", "CWE-323", "CWE-324", "CWE-325", "CWE-328", "CWE-331", "CWE-334", "CWE-335", "CWE-338", "CWE-341", "CWE-342", "CWE-343", "CWE-344", "CWE-346", "CWE-347", "CWE-349", "CWE-353", "CWE-356", "CWE-358", "CWE-359", "CWE-360", "CWE-366", "CWE-367", "CWE-368", "CWE-378", "CWE-379", "CWE-385", "CWE-393", "CWE-403", "CWE-408", "CWE-412", "CWE-420", "CWE-421", "CWE-425", "CWE-426", "CWE-427", "CWE-434", "CWE-454", "CWE-455", "CWE-459", "CWE-472", "CWE-488", "CWE-494", "CWE-497", "CWE-501", "CWE-502", "CWE-515", "CWE-521", "CWE-523", "CWE-524", "CWE-538", "CWE-544", "CWE-547", "CWE-549", "CWE-551", "CWE-552", "CWE-565", "CWE-601", "CWE-603", "CWE-605", "CWE-611", "CWE-613", "CWE-618", "CWE-619", "CWE-620", "CWE-639", "CWE-640", "CWE-645", "CWE-648", "CWE-649", "CWE-653", "CWE-654", "CWE-656", "CWE-708", "CWE-756", "CWE-765", "CWE-778", "CWE-783", "CWE-798", "CWE-807", "CWE-820", "CWE-821", "CWE-826", "CWE-829", "CWE-836", "CWE-838", "CWE-841", "CWE-842", "CWE-909", "CWE-915", "CWE-916", "CWE-917", "CWE-918", "CWE-921", "CWE-924", "CWE-940", "CWE-941", "CWE-1051", "CWE-1052", "CWE-1067", "CWE-1125", "CWE-1173", "CWE-1204", "CWE-1220", "CWE-1230", "CWE-1236", "CWE-1240", "CWE-1265", "CWE-1286", "CWE-1289", "CWE-1322", "CWE-1327", "CWE-1333", "CWE-1389", "CWE-1392"];
+const GO_CWE_RULE_IDS: &[&str] = &[
+    "CWE-15", "CWE-22", "CWE-41", "CWE-59", "CWE-76", "CWE-78", "CWE-79", "CWE-89", "CWE-90",
+    "CWE-91", "CWE-93", "CWE-112", "CWE-140", "CWE-178", "CWE-179", "CWE-182", "CWE-184",
+    "CWE-186", "CWE-201", "CWE-204", "CWE-208", "CWE-209", "CWE-212", "CWE-213", "CWE-214",
+    "CWE-215", "CWE-250", "CWE-252", "CWE-256", "CWE-257", "CWE-260", "CWE-261", "CWE-262",
+    "CWE-263", "CWE-266", "CWE-267", "CWE-268", "CWE-270", "CWE-272", "CWE-273", "CWE-274",
+    "CWE-276", "CWE-277", "CWE-278", "CWE-279", "CWE-280", "CWE-281", "CWE-283", "CWE-289",
+    "CWE-290", "CWE-294", "CWE-301", "CWE-303", "CWE-305", "CWE-306", "CWE-307", "CWE-308",
+    "CWE-309", "CWE-312", "CWE-319", "CWE-322", "CWE-323", "CWE-324", "CWE-325", "CWE-328",
+    "CWE-331", "CWE-334", "CWE-335", "CWE-338", "CWE-341", "CWE-342", "CWE-343", "CWE-344",
+    "CWE-346", "CWE-347", "CWE-349", "CWE-353", "CWE-356", "CWE-358", "CWE-359", "CWE-360",
+    "CWE-366", "CWE-367", "CWE-368", "CWE-378", "CWE-379", "CWE-385", "CWE-393", "CWE-403",
+    "CWE-408", "CWE-412", "CWE-420", "CWE-421", "CWE-425", "CWE-426", "CWE-427", "CWE-434",
+    "CWE-454", "CWE-455", "CWE-459", "CWE-472", "CWE-488", "CWE-494", "CWE-497", "CWE-501",
+    "CWE-502", "CWE-515", "CWE-521", "CWE-523", "CWE-524", "CWE-538", "CWE-544", "CWE-547",
+    "CWE-549", "CWE-551", "CWE-552", "CWE-565", "CWE-601", "CWE-603", "CWE-605", "CWE-611",
+    "CWE-613", "CWE-618", "CWE-619", "CWE-620", "CWE-639", "CWE-640", "CWE-645", "CWE-648",
+    "CWE-649", "CWE-653", "CWE-654", "CWE-656", "CWE-708", "CWE-756", "CWE-765", "CWE-778",
+    "CWE-783", "CWE-798", "CWE-807", "CWE-820", "CWE-821", "CWE-826", "CWE-829", "CWE-836",
+    "CWE-838", "CWE-841", "CWE-842", "CWE-909", "CWE-915", "CWE-916", "CWE-917", "CWE-918",
+    "CWE-921", "CWE-924", "CWE-940", "CWE-941", "CWE-1051", "CWE-1052", "CWE-1067", "CWE-1125",
+    "CWE-1173", "CWE-1204", "CWE-1220", "CWE-1230", "CWE-1236", "CWE-1240", "CWE-1265", "CWE-1286",
+    "CWE-1289", "CWE-1322", "CWE-1327", "CWE-1333", "CWE-1389", "CWE-1392",
+];
 
 const META_CWE_15: RuleMetadata = emit::rule_meta(
     "CWE-15",
@@ -26,7 +49,9 @@ const META_CWE_22: RuleMetadata = emit::rule_meta(
     "User-controlled input is joined into a filesystem path without confining it to a trusted base directory.",
     Severity::High,
     &[],
-    Some("Normalize user input with filepath.Clean and enforce a trusted base-directory prefix check before file access."),
+    Some(
+        "Normalize user input with filepath.Clean and enforce a trusted base-directory prefix check before file access.",
+    ),
 );
 
 const META_CWE_41: RuleMetadata = emit::rule_meta(
@@ -35,7 +60,9 @@ const META_CWE_41: RuleMetadata = emit::rule_meta(
     "A partial path check rejects some traversal markers but still allows equivalent filesystem aliases to reach a file-read sink.",
     Severity::High,
     &[],
-    Some("Resolve to a canonical path and verify it remains under the trusted root before file access."),
+    Some(
+        "Resolve to a canonical path and verify it remains under the trusted root before file access.",
+    ),
 );
 
 const META_CWE_59: RuleMetadata = emit::rule_meta(
@@ -62,7 +89,9 @@ const META_CWE_78: RuleMetadata = emit::rule_meta(
     "User-controlled input is interpolated into a shell command string executed through sh -c.",
     Severity::High,
     &[],
-    Some("Avoid sh -c for user input; pass fixed argv entries directly to exec.Command and validate the input."),
+    Some(
+        "Avoid sh -c for user input; pass fixed argv entries directly to exec.Command and validate the input.",
+    ),
 );
 
 const META_CWE_79: RuleMetadata = emit::rule_meta(
@@ -98,7 +127,9 @@ const META_CWE_91: RuleMetadata = emit::rule_meta(
     "User-controlled input is formatted into an XML document string instead of using typed XML marshaling.",
     Severity::High,
     &[],
-    Some("Use xml.Marshal or another structured XML encoder instead of formatting XML strings manually."),
+    Some(
+        "Use xml.Marshal or another structured XML encoder instead of formatting XML strings manually.",
+    ),
 );
 
 const META_CWE_93: RuleMetadata = emit::rule_meta(
@@ -134,7 +165,9 @@ const META_CWE_178: RuleMetadata = emit::rule_meta(
     "User-controlled resource names are lowercased and then used in direct membership checks instead of a deliberate case-insensitive comparison.",
     Severity::High,
     &[],
-    Some("Use strings.EqualFold or normalize both the allow-list and the incoming value consistently."),
+    Some(
+        "Use strings.EqualFold or normalize both the allow-list and the incoming value consistently.",
+    ),
 );
 
 const META_CWE_179: RuleMetadata = emit::rule_meta(
@@ -152,7 +185,9 @@ const META_CWE_182: RuleMetadata = emit::rule_meta(
     "A normalization step removes non-alphanumeric content and collapses user input into an authorization-relevant value.",
     Severity::High,
     &[],
-    Some("Reject unexpected input instead of stripping characters into an allow-listed authorization token."),
+    Some(
+        "Reject unexpected input instead of stripping characters into an allow-listed authorization token.",
+    ),
 );
 
 const META_CWE_184: RuleMetadata = emit::rule_meta(
@@ -161,7 +196,9 @@ const META_CWE_184: RuleMetadata = emit::rule_meta(
     "User-controlled input is normalized and checked against a small deny-list instead of being validated against an allow-list.",
     Severity::High,
     &[],
-    Some("Use an allow-list or strict parser for accepted filter syntax instead of a partial deny-list."),
+    Some(
+        "Use an allow-list or strict parser for accepted filter syntax instead of a partial deny-list.",
+    ),
 );
 
 const META_CWE_186: RuleMetadata = emit::rule_meta(
@@ -170,7 +207,9 @@ const META_CWE_186: RuleMetadata = emit::rule_meta(
     "A simplistic host-validation regex rejects realistic hostnames and can lead to incorrect downstream behavior.",
     Severity::High,
     &[],
-    Some("Use a hostname regex that permits realistic labels and separators instead of only lowercase letters."),
+    Some(
+        "Use a hostname regex that permits realistic labels and separators instead of only lowercase letters.",
+    ),
 );
 
 const META_CWE_201: RuleMetadata = emit::rule_meta(
@@ -197,7 +236,9 @@ const META_CWE_208: RuleMetadata = emit::rule_meta(
     "A byte-by-byte comparison returns as soon as bytes differ instead of using a constant-time comparison.",
     Severity::High,
     &[],
-    Some("Use subtle.ConstantTimeCompare or another constant-time comparison primitive for secret values."),
+    Some(
+        "Use subtle.ConstantTimeCompare or another constant-time comparison primitive for secret values.",
+    ),
 );
 
 const META_CWE_209: RuleMetadata = emit::rule_meta(
@@ -206,7 +247,9 @@ const META_CWE_209: RuleMetadata = emit::rule_meta(
     "A database error is formatted directly into a client-facing response instead of being logged and replaced with a generic message.",
     Severity::High,
     &[],
-    Some("Log internal errors server-side and return a generic client message without embedded error details."),
+    Some(
+        "Log internal errors server-side and return a generic client message without embedded error details.",
+    ),
 );
 
 const META_CWE_212: RuleMetadata = emit::rule_meta(
@@ -215,7 +258,9 @@ const META_CWE_212: RuleMetadata = emit::rule_meta(
     "A response or export marshals records that still contain sensitive payment fields such as card numbers or PANs.",
     Severity::High,
     &[],
-    Some("Project records into an export type that omits or clears sensitive payment fields before marshaling."),
+    Some(
+        "Project records into an export type that omits or clears sensitive payment fields before marshaling.",
+    ),
 );
 
 const META_CWE_213: RuleMetadata = emit::rule_meta(
@@ -224,7 +269,9 @@ const META_CWE_213: RuleMetadata = emit::rule_meta(
     "A public-facing profile response serializes internal compensation information instead of projecting to a policy-appropriate DTO.",
     Severity::High,
     &[],
-    Some("Return a policy-specific public profile DTO that omits compensation or other restricted fields."),
+    Some(
+        "Return a policy-specific public profile DTO that omits compensation or other restricted fields.",
+    ),
 );
 
 const META_CWE_214: RuleMetadata = emit::rule_meta(
@@ -251,7 +298,9 @@ const META_CWE_250: RuleMetadata = emit::rule_meta(
     "A file containing runtime state is written with world-accessible permissions instead of a restrictive owner-only mode.",
     Severity::High,
     &[],
-    Some("Write sensitive runtime files with restrictive permissions such as 0o600 instead of 0o777."),
+    Some(
+        "Write sensitive runtime files with restrictive permissions such as 0o600 instead of 0o777.",
+    ),
 );
 
 const META_CWE_252: RuleMetadata = emit::rule_meta(
@@ -269,7 +318,9 @@ const META_CWE_256: RuleMetadata = emit::rule_meta(
     "A user-provided password is persisted directly instead of being transformed into a hash or digest before storage.",
     Severity::High,
     &[],
-    Some("Hash or otherwise transform passwords before persistence instead of storing the plaintext value."),
+    Some(
+        "Hash or otherwise transform passwords before persistence instead of storing the plaintext value.",
+    ),
 );
 
 const META_CWE_257: RuleMetadata = emit::rule_meta(
@@ -278,7 +329,9 @@ const META_CWE_257: RuleMetadata = emit::rule_meta(
     "A password or login secret is encrypted with a reversible cipher and then stored, allowing later recovery.",
     Severity::High,
     &[],
-    Some("Use a one-way password hashing scheme instead of reversible encryption for stored passwords."),
+    Some(
+        "Use a one-way password hashing scheme instead of reversible encryption for stored passwords.",
+    ),
 );
 
 const META_CWE_260: RuleMetadata = emit::rule_meta(
@@ -287,7 +340,9 @@ const META_CWE_260: RuleMetadata = emit::rule_meta(
     "A password or secret-bearing field is read from a configuration file on disk instead of being sourced from a dedicated secret channel.",
     Severity::High,
     &[],
-    Some("Keep non-secret settings in config files and source secrets from the environment or a secret manager."),
+    Some(
+        "Keep non-secret settings in config files and source secrets from the environment or a secret manager.",
+    ),
 );
 
 const META_CWE_261: RuleMetadata = emit::rule_meta(
@@ -296,7 +351,9 @@ const META_CWE_261: RuleMetadata = emit::rule_meta(
     "A password is only Base64-encoded before storage, which preserves the underlying secret in a recoverable form.",
     Severity::High,
     &[],
-    Some("Use a one-way hash or digest for password storage instead of reversible encodings like Base64."),
+    Some(
+        "Use a one-way hash or digest for password storage instead of reversible encodings like Base64.",
+    ),
 );
 
 const META_CWE_262: RuleMetadata = emit::rule_meta(
@@ -305,7 +362,9 @@ const META_CWE_262: RuleMetadata = emit::rule_meta(
     "Authentication logic loads credential metadata but does not check whether the password is older than a configured rotation window.",
     Severity::High,
     &[],
-    Some("Track password change timestamps and reject or rotate credentials older than the allowed maximum age."),
+    Some(
+        "Track password change timestamps and reject or rotate credentials older than the allowed maximum age.",
+    ),
 );
 
 const META_CWE_263: RuleMetadata = emit::rule_meta(
@@ -314,7 +373,9 @@ const META_CWE_263: RuleMetadata = emit::rule_meta(
     "The configured password maximum age is so long that password aging is effectively defeated.",
     Severity::High,
     &[],
-    Some("Use a reasonably short password expiration window instead of multi-year validity periods."),
+    Some(
+        "Use a reasonably short password expiration window instead of multi-year validity periods.",
+    ),
 );
 
 const META_CWE_266: RuleMetadata = emit::rule_meta(
@@ -323,7 +384,9 @@ const META_CWE_266: RuleMetadata = emit::rule_meta(
     "A role or privilege value is taken directly from client input when provisioning access instead of being assigned server-side.",
     Severity::High,
     &[],
-    Some("Assign roles server-side from a trusted default or policy instead of accepting them directly from the client."),
+    Some(
+        "Assign roles server-side from a trusted default or policy instead of accepting them directly from the client.",
+    ),
 );
 
 const META_CWE_267: RuleMetadata = emit::rule_meta(
@@ -332,7 +395,9 @@ const META_CWE_267: RuleMetadata = emit::rule_meta(
     "A low-trust reviewer role is allowed to perform unsafe filesystem deletion actions.",
     Severity::High,
     &[],
-    Some("Restrict reviewer roles to safe review-specific actions and avoid granting direct destructive filesystem operations."),
+    Some(
+        "Restrict reviewer roles to safe review-specific actions and avoid granting direct destructive filesystem operations.",
+    ),
 );
 
 const META_CWE_268: RuleMetadata = emit::rule_meta(
@@ -341,7 +406,9 @@ const META_CWE_268: RuleMetadata = emit::rule_meta(
     "A sensitive export path is unlocked by combining weaker scopes instead of requiring a dedicated high-trust role or permission.",
     Severity::High,
     &[],
-    Some("Require an explicit high-trust role or dedicated export permission for sensitive bulk export paths."),
+    Some(
+        "Require an explicit high-trust role or dedicated export permission for sensitive bulk export paths.",
+    ),
 );
 
 const META_CWE_270: RuleMetadata = emit::rule_meta(
@@ -350,7 +417,9 @@ const META_CWE_270: RuleMetadata = emit::rule_meta(
     "The handler elevates the effective user or request context for privileged work but does not restore the original caller context afterward.",
     Severity::High,
     &[],
-    Some("Save and restore the original execution context around privileged work instead of leaving the elevated principal in place."),
+    Some(
+        "Save and restore the original execution context around privileged work instead of leaving the elevated principal in place.",
+    ),
 );
 
 const META_CWE_272: RuleMetadata = emit::rule_meta(
@@ -359,7 +428,9 @@ const META_CWE_272: RuleMetadata = emit::rule_meta(
     "The handler raises privilege for a privileged operation and keeps the elevated uid in place for the rest of the request instead of dropping it immediately.",
     Severity::High,
     &[],
-    Some("Drop the elevated uid as soon as the privileged operation completes instead of retaining it for the remainder of the handler."),
+    Some(
+        "Drop the elevated uid as soon as the privileged operation completes instead of retaining it for the remainder of the handler.",
+    ),
 );
 
 const META_CWE_273: RuleMetadata = emit::rule_meta(
@@ -377,7 +448,9 @@ const META_CWE_274: RuleMetadata = emit::rule_meta(
     "A privileged filesystem operation can fail due to insufficient privilege, but the handler still reports success instead of mapping the privilege error to a denial.",
     Severity::High,
     &[],
-    Some("Detect insufficient privilege errors such as EPERM and return a denial or failure response instead of reporting success."),
+    Some(
+        "Detect insufficient privilege errors such as EPERM and return a denial or failure response instead of reporting success.",
+    ),
 );
 
 const META_CWE_276: RuleMetadata = emit::rule_meta(
@@ -386,7 +459,9 @@ const META_CWE_276: RuleMetadata = emit::rule_meta(
     "A session or secret-bearing artifact is written with world-readable or world-writable permissions instead of an owner-only mode.",
     Severity::High,
     &[],
-    Some("Write session and secret-bearing artifacts with restrictive owner-only permissions such as 0o600."),
+    Some(
+        "Write session and secret-bearing artifacts with restrictive owner-only permissions such as 0o600.",
+    ),
 );
 
 const META_CWE_277: RuleMetadata = emit::rule_meta(
@@ -404,7 +479,9 @@ const META_CWE_278: RuleMetadata = emit::rule_meta(
     "Archive entry permission bits are restored verbatim when creating files, allowing untrusted metadata to set insecure modes.",
     Severity::High,
     &[],
-    Some("Clamp extracted file modes to a safe value instead of preserving untrusted archive permission bits."),
+    Some(
+        "Clamp extracted file modes to a safe value instead of preserving untrusted archive permission bits.",
+    ),
 );
 
 const META_CWE_279: RuleMetadata = emit::rule_meta(
@@ -422,7 +499,9 @@ const META_CWE_280: RuleMetadata = emit::rule_meta(
     "Failure to access a protected resource is treated as the branch that performs a destructive or privileged action instead of denying the request.",
     Severity::High,
     &[],
-    Some("Treat access failures as denial conditions and do not continue into privileged deletion or mutation paths."),
+    Some(
+        "Treat access failures as denial conditions and do not continue into privileged deletion or mutation paths.",
+    ),
 );
 
 const META_CWE_281: RuleMetadata = emit::rule_meta(
@@ -431,7 +510,9 @@ const META_CWE_281: RuleMetadata = emit::rule_meta(
     "A file is copied with os.Create, which recreates it using process defaults instead of preserving the source file mode.",
     Severity::High,
     &[],
-    Some("Stat the source and recreate the destination with the source mode or another explicitly safe mode."),
+    Some(
+        "Stat the source and recreate the destination with the source mode or another explicitly safe mode.",
+    ),
 );
 
 const META_CWE_283: RuleMetadata = emit::rule_meta(
@@ -440,7 +521,9 @@ const META_CWE_283: RuleMetadata = emit::rule_meta(
     "A user-selected path is deleted without checking that the underlying file is owned by the authenticated caller.",
     Severity::High,
     &[],
-    Some("Check the file's owner metadata against the authenticated caller before destructive file operations."),
+    Some(
+        "Check the file's owner metadata against the authenticated caller before destructive file operations.",
+    ),
 );
 
 const META_CWE_289: RuleMetadata = emit::rule_meta(
@@ -449,7 +532,9 @@ const META_CWE_289: RuleMetadata = emit::rule_meta(
     "Authentication looks up only the local username portion before the @ and can accept alternate-name aliases as the same principal.",
     Severity::High,
     &[],
-    Some("Match against a canonical normalized principal identifier, including the full realm-qualified name."),
+    Some(
+        "Match against a canonical normalized principal identifier, including the full realm-qualified name.",
+    ),
 );
 
 const META_CWE_290: RuleMetadata = emit::rule_meta(
@@ -458,7 +543,9 @@ const META_CWE_290: RuleMetadata = emit::rule_meta(
     "The handler trusts a caller-supplied X-Remote-User header instead of deriving identity from validated server-side session state.",
     Severity::High,
     &[],
-    Some("Derive identity from a validated server-side session or middleware context, not from caller-controlled headers."),
+    Some(
+        "Derive identity from a validated server-side session or middleware context, not from caller-controlled headers.",
+    ),
 );
 
 const META_CWE_294: RuleMetadata = emit::rule_meta(
@@ -467,7 +554,9 @@ const META_CWE_294: RuleMetadata = emit::rule_meta(
     "A login flow accepts a bearer or signed token without validating a one-time nonce or recording prior use, allowing capture and replay.",
     Severity::High,
     &[],
-    Some("Require a nonce or one-time identifier and reject tokens whose nonce has already been consumed."),
+    Some(
+        "Require a nonce or one-time identifier and reject tokens whose nonce has already been consumed.",
+    ),
 );
 
 const META_CWE_301: RuleMetadata = emit::rule_meta(
@@ -476,7 +565,9 @@ const META_CWE_301: RuleMetadata = emit::rule_meta(
     "The server returns the client-provided challenge directly as the authentication proof instead of transforming it with server-only key material.",
     Severity::High,
     &[],
-    Some("Generate the proof from server-held secret material, such as an HMAC over the challenge, instead of echoing the challenge."),
+    Some(
+        "Generate the proof from server-held secret material, such as an HMAC over the challenge, instead of echoing the challenge.",
+    ),
 );
 
 const META_CWE_303: RuleMetadata = emit::rule_meta(
@@ -494,7 +585,9 @@ const META_CWE_305: RuleMetadata = emit::rule_meta(
     "A query-controlled debug branch reaches privileged functionality before the authenticated subject check runs.",
     Severity::High,
     &[],
-    Some("Require authentication before any privileged branch and never use caller-controlled debug flags to bypass auth."),
+    Some(
+        "Require authentication before any privileged branch and never use caller-controlled debug flags to bypass auth.",
+    ),
 );
 
 const META_CWE_306: RuleMetadata = emit::rule_meta(
@@ -503,7 +596,9 @@ const META_CWE_306: RuleMetadata = emit::rule_meta(
     "A destructive operation is reachable without any authenticated operator or subject check.",
     Severity::High,
     &[],
-    Some("Gate destructive functions with an authenticated operator check before performing the action."),
+    Some(
+        "Gate destructive functions with an authenticated operator check before performing the action.",
+    ),
 );
 
 const META_CWE_307: RuleMetadata = emit::rule_meta(
@@ -512,7 +607,9 @@ const META_CWE_307: RuleMetadata = emit::rule_meta(
     "The login path performs credential lookup and returns failures without tracking repeated attempts, delaying, or rate limiting.",
     Severity::High,
     &[],
-    Some("Track repeated failures and apply throttling, backoff, or lockout before processing more attempts."),
+    Some(
+        "Track repeated failures and apply throttling, backoff, or lockout before processing more attempts.",
+    ),
 );
 
 const META_CWE_308: RuleMetadata = emit::rule_meta(
@@ -521,7 +618,9 @@ const META_CWE_308: RuleMetadata = emit::rule_meta(
     "A sensitive wire-transfer style action is authorized by password presence alone instead of requiring a validated second factor.",
     Severity::High,
     &[],
-    Some("Require a validated second factor such as TOTP in addition to the password for high-value actions."),
+    Some(
+        "Require a validated second factor such as TOTP in addition to the password for high-value actions.",
+    ),
 );
 
 const META_CWE_309: RuleMetadata = emit::rule_meta(
@@ -530,7 +629,9 @@ const META_CWE_309: RuleMetadata = emit::rule_meta(
     "An enterprise login route treats username and password form fields as the primary authentication method instead of requiring a stronger assertion flow.",
     Severity::High,
     &[],
-    Some("Use a stronger primary authentication method such as WebAuthn or a trusted SSO assertion instead of password-only form login."),
+    Some(
+        "Use a stronger primary authentication method such as WebAuthn or a trusted SSO assertion instead of password-only form login.",
+    ),
 );
 
 const META_CWE_312: RuleMetadata = emit::rule_meta(
@@ -539,7 +640,9 @@ const META_CWE_312: RuleMetadata = emit::rule_meta(
     "A sensitive identifier such as an SSN is persisted directly in plaintext instead of being encrypted before storage.",
     Severity::High,
     &[],
-    Some("Encrypt sensitive identifiers before database or disk persistence instead of storing cleartext values."),
+    Some(
+        "Encrypt sensitive identifiers before database or disk persistence instead of storing cleartext values.",
+    ),
 );
 
 const META_CWE_319: RuleMetadata = emit::rule_meta(
@@ -566,7 +669,9 @@ const META_CWE_323: RuleMetadata = emit::rule_meta(
     "A static nonce is reused with the same key for repeated AEAD encryption operations.",
     Severity::High,
     &[],
-    Some("Generate a fresh random nonce for each AEAD encryption and store it alongside the ciphertext."),
+    Some(
+        "Generate a fresh random nonce for each AEAD encryption and store it alongside the ciphertext.",
+    ),
 );
 
 const META_CWE_324: RuleMetadata = emit::rule_meta(
@@ -584,7 +689,9 @@ const META_CWE_325: RuleMetadata = emit::rule_meta(
     "Sensitive data is encrypted with a stream mode like CTR but without an authentication tag or AEAD integrity step.",
     Severity::High,
     &[],
-    Some("Use an authenticated encryption mode such as AES-GCM instead of raw CTR encryption for sensitive data."),
+    Some(
+        "Use an authenticated encryption mode such as AES-GCM instead of raw CTR encryption for sensitive data.",
+    ),
 );
 
 const META_CWE_328: RuleMetadata = emit::rule_meta(
@@ -602,7 +709,9 @@ const META_CWE_331: RuleMetadata = emit::rule_meta(
     "A security-sensitive recovery code is generated from a small decimal range using math/rand instead of cryptographic randomness.",
     Severity::High,
     &[],
-    Some("Generate recovery codes from cryptographic randomness with a large enough entropy budget."),
+    Some(
+        "Generate recovery codes from cryptographic randomness with a large enough entropy budget.",
+    ),
 );
 
 const META_CWE_334: RuleMetadata = emit::rule_meta(
@@ -611,7 +720,9 @@ const META_CWE_334: RuleMetadata = emit::rule_meta(
     "A registration or invite token is generated from a very small 4096-value space and is easy to brute force.",
     Severity::High,
     &[],
-    Some("Generate tokens from a much larger cryptographic random space instead of small integer ranges."),
+    Some(
+        "Generate tokens from a much larger cryptographic random space instead of small integer ranges.",
+    ),
 );
 
 const META_CWE_335: RuleMetadata = emit::rule_meta(
@@ -620,7 +731,9 @@ const META_CWE_335: RuleMetadata = emit::rule_meta(
     "A pseudo-random ticket is derived from a PRNG seeded with current time, making outputs predictable.",
     Severity::High,
     &[],
-    Some("Use cryptographic randomness instead of seeding a PRNG from time for security-sensitive tokens or tickets."),
+    Some(
+        "Use cryptographic randomness instead of seeding a PRNG from time for security-sensitive tokens or tickets.",
+    ),
 );
 
 const META_CWE_338: RuleMetadata = emit::rule_meta(
@@ -638,7 +751,9 @@ const META_CWE_341: RuleMetadata = emit::rule_meta(
     "A device or pairing token is assembled from observable process id, timestamp, or caller-controlled values instead of cryptographic randomness.",
     Severity::High,
     &[],
-    Some("Generate device tokens from cryptographic randomness instead of predictable process and time state."),
+    Some(
+        "Generate device tokens from cryptographic randomness instead of predictable process and time state.",
+    ),
 );
 
 const META_CWE_342: RuleMetadata = emit::rule_meta(
@@ -647,7 +762,9 @@ const META_CWE_342: RuleMetadata = emit::rule_meta(
     "A login code is produced by incrementing the prior OTP value, making the next exact value predictable from previous ones.",
     Severity::High,
     &[],
-    Some("Generate one-time codes from cryptographic randomness instead of incrementing previous values."),
+    Some(
+        "Generate one-time codes from cryptographic randomness instead of incrementing previous values.",
+    ),
 );
 
 const META_CWE_343: RuleMetadata = emit::rule_meta(
@@ -656,7 +773,9 @@ const META_CWE_343: RuleMetadata = emit::rule_meta(
     "A raffle or prize value is computed from a deterministic linear recurrence over shared state instead of fresh random input.",
     Severity::High,
     &[],
-    Some("Use fresh cryptographic randomness instead of deterministic state transitions for security-sensitive draws."),
+    Some(
+        "Use fresh cryptographic randomness instead of deterministic state transitions for security-sensitive draws.",
+    ),
 );
 
 const META_CWE_344: RuleMetadata = emit::rule_meta(
@@ -665,7 +784,9 @@ const META_CWE_344: RuleMetadata = emit::rule_meta(
     "An HMAC secret is hard-coded as a constant instead of being sourced from deploy-time secret material.",
     Severity::High,
     &[],
-    Some("Load signing secrets from managed secret material instead of embedding invariant constants in code."),
+    Some(
+        "Load signing secrets from managed secret material instead of embedding invariant constants in code.",
+    ),
 );
 
 const META_CWE_346: RuleMetadata = emit::rule_meta(
@@ -674,7 +795,9 @@ const META_CWE_346: RuleMetadata = emit::rule_meta(
     "A cross-origin response reflects the caller-supplied Origin value and enables credentials without validating the origin against a trusted allow-list.",
     Severity::High,
     &[],
-    Some("Validate Origin against a trusted allow-list before reflecting it and avoid credentialed reflection for untrusted origins."),
+    Some(
+        "Validate Origin against a trusted allow-list before reflecting it and avoid credentialed reflection for untrusted origins.",
+    ),
 );
 
 const META_CWE_347: RuleMetadata = emit::rule_meta(
@@ -683,7 +806,9 @@ const META_CWE_347: RuleMetadata = emit::rule_meta(
     "A signed token payload is decoded and trusted without verifying the cryptographic signature first.",
     Severity::High,
     &[],
-    Some("Verify the JWT signature with the expected public key before trusting any decoded claims."),
+    Some(
+        "Verify the JWT signature with the expected public key before trusting any decoded claims.",
+    ),
 );
 
 const META_CWE_349: RuleMetadata = emit::rule_meta(
@@ -692,7 +817,9 @@ const META_CWE_349: RuleMetadata = emit::rule_meta(
     "A trusted flag is accepted together with an untyped raw profile blob, and role-bearing fields from that raw blob are used directly.",
     Severity::High,
     &[],
-    Some("Use a typed validated trusted payload instead of mixing trusted indicators with raw untrusted profile data."),
+    Some(
+        "Use a typed validated trusted payload instead of mixing trusted indicators with raw untrusted profile data.",
+    ),
 );
 
 const META_CWE_353: RuleMetadata = emit::rule_meta(
@@ -710,7 +837,9 @@ const META_CWE_356: RuleMetadata = emit::rule_meta(
     "A destructive delete or purge action is executed without a separate explicit confirmation value from the caller.",
     Severity::High,
     &[],
-    Some("Require an explicit confirmation token or deliberate second confirmation step before destructive actions."),
+    Some(
+        "Require an explicit confirmation token or deliberate second confirmation step before destructive actions.",
+    ),
 );
 
 const META_CWE_358: RuleMetadata = emit::rule_meta(
@@ -719,7 +848,9 @@ const META_CWE_358: RuleMetadata = emit::rule_meta(
     "Bearer token claims are decoded without checking required structural or algorithm constraints from the token standard.",
     Severity::High,
     &[],
-    Some("Validate required JWT structure and expected algorithm fields before accepting bearer token contents."),
+    Some(
+        "Validate required JWT structure and expected algorithm fields before accepting bearer token contents.",
+    ),
 );
 
 const META_CWE_359: RuleMetadata = emit::rule_meta(
@@ -728,7 +859,9 @@ const META_CWE_359: RuleMetadata = emit::rule_meta(
     "A profile response returns sensitive PII fields like SSN or phone without verifying the requester is authorized and without projecting to a public view.",
     Severity::High,
     &[],
-    Some("Authorize the requester and project data into a public-safe response shape before serialization."),
+    Some(
+        "Authorize the requester and project data into a public-safe response shape before serialization.",
+    ),
 );
 
 const META_CWE_360: RuleMetadata = emit::rule_meta(
@@ -737,7 +870,9 @@ const META_CWE_360: RuleMetadata = emit::rule_meta(
     "Security-sensitive IP recording trusts X-Forwarded-For instead of deriving the client address from the connection metadata.",
     Severity::High,
     &[],
-    Some("Use trusted connection metadata such as RemoteAddr instead of caller-controlled forwarded headers."),
+    Some(
+        "Use trusted connection metadata such as RemoteAddr instead of caller-controlled forwarded headers.",
+    ),
 );
 
 const META_CWE_366: RuleMetadata = emit::rule_meta(
@@ -755,7 +890,9 @@ const META_CWE_367: RuleMetadata = emit::rule_meta(
     "A filesystem path is checked for existence or state and then used in a separate operation, creating a TOCTOU race window.",
     Severity::High,
     &[],
-    Some("Avoid separate check-then-use file flows; validate the path and use it directly in a single operation where possible."),
+    Some(
+        "Avoid separate check-then-use file flows; validate the path and use it directly in a single operation where possible.",
+    ),
 );
 
 const META_CWE_368: RuleMetadata = emit::rule_meta(
@@ -764,7 +901,9 @@ const META_CWE_368: RuleMetadata = emit::rule_meta(
     "A shared privileged-mode flag controls context switching without synchronization, creating race-prone privilege behavior.",
     Severity::High,
     &[],
-    Some("Guard privilege mode transitions with synchronization and avoid unsafely shared context flags."),
+    Some(
+        "Guard privilege mode transitions with synchronization and avoid unsafely shared context flags.",
+    ),
 );
 
 const META_CWE_378: RuleMetadata = emit::rule_meta(
@@ -782,7 +921,9 @@ const META_CWE_379: RuleMetadata = emit::rule_meta(
     "A temporary file is staged in a shared world-writable directory instead of a private restricted temporary directory.",
     Severity::High,
     &[],
-    Some("Create private temporary directories with restrictive permissions before staging temporary files."),
+    Some(
+        "Create private temporary directories with restrictive permissions before staging temporary files.",
+    ),
 );
 
 const META_CWE_385: RuleMetadata = emit::rule_meta(
@@ -800,7 +941,9 @@ const META_CWE_393: RuleMetadata = emit::rule_meta(
     "An account lookup failure still returns HTTP 200 and a fallback payload instead of an error status.",
     Severity::High,
     &[],
-    Some("Return an error status such as 500 or 404 when the lookup fails instead of replying with success."),
+    Some(
+        "Return an error status such as 500 or 404 when the lookup fails instead of replying with success.",
+    ),
 );
 
 const META_CWE_403: RuleMetadata = emit::rule_meta(
@@ -809,7 +952,9 @@ const META_CWE_403: RuleMetadata = emit::rule_meta(
     "A sensitive file is opened before spawning a child process and is not closed before exec, exposing the descriptor to the child control sphere.",
     Severity::High,
     &[],
-    Some("Close sensitive descriptors before launching child processes and avoid inheriting them into execed commands."),
+    Some(
+        "Close sensitive descriptors before launching child processes and avoid inheriting them into execed commands.",
+    ),
 );
 
 const META_CWE_408: RuleMetadata = emit::rule_meta(
@@ -827,7 +972,9 @@ const META_CWE_412: RuleMetadata = emit::rule_meta(
     "A lock file path is taken directly from the request, allowing external actors to point the lock mechanism at arbitrary locations.",
     Severity::High,
     &[],
-    Some("Use a fixed server-controlled lock path rather than accepting the lock target from the client."),
+    Some(
+        "Use a fixed server-controlled lock path rather than accepting the lock target from the client.",
+    ),
 );
 
 const META_CWE_420: RuleMetadata = emit::rule_meta(
@@ -836,7 +983,9 @@ const META_CWE_420: RuleMetadata = emit::rule_meta(
     "A debug or alternate route exposes related functionality without the same authentication guard as the primary API route.",
     Severity::High,
     &[],
-    Some("Place alternate and debug channels behind the same authentication guard as the primary route."),
+    Some(
+        "Place alternate and debug channels behind the same authentication guard as the primary route.",
+    ),
 );
 
 const META_CWE_421: RuleMetadata = emit::rule_meta(
@@ -863,7 +1012,9 @@ const META_CWE_426: RuleMetadata = emit::rule_meta(
     "Plugin or extension load paths are built from caller-controlled directories instead of fixed trusted roots.",
     Severity::High,
     &[],
-    Some("Load plugins only from fixed trusted directories and reject caller-controlled search paths."),
+    Some(
+        "Load plugins only from fixed trusted directories and reject caller-controlled search paths.",
+    ),
 );
 
 const META_CWE_427: RuleMetadata = emit::rule_meta(
@@ -917,7 +1068,9 @@ const META_CWE_472: RuleMetadata = emit::rule_meta(
     "Authorization uses a role value submitted by the client rather than resolving the role server-side from the authenticated identity.",
     Severity::High,
     &[],
-    Some("Resolve authorization roles server-side from the authenticated session or account state."),
+    Some(
+        "Resolve authorization roles server-side from the authenticated session or account state.",
+    ),
 );
 
 const META_CWE_488: RuleMetadata = emit::rule_meta(
@@ -926,7 +1079,9 @@ const META_CWE_488: RuleMetadata = emit::rule_meta(
     "Cross-request cart state is stored in a global map keyed directly by a caller-supplied session identifier.",
     Severity::High,
     &[],
-    Some("Bind cart state to a validated server session instead of a client-controlled identifier."),
+    Some(
+        "Bind cart state to a validated server session instead of a client-controlled identifier.",
+    ),
 );
 
 const META_CWE_494: RuleMetadata = emit::rule_meta(
@@ -944,7 +1099,9 @@ const META_CWE_497: RuleMetadata = emit::rule_meta(
     "A diagnostics endpoint returns hostnames, environment variables, or similar system internals to arbitrary callers.",
     Severity::High,
     &[],
-    Some("Return only coarse health information from diagnostics and avoid exposing system internals."),
+    Some(
+        "Return only coarse health information from diagnostics and avoid exposing system internals.",
+    ),
 );
 
 const META_CWE_501: RuleMetadata = emit::rule_meta(
@@ -962,7 +1119,9 @@ const META_CWE_502: RuleMetadata = emit::rule_meta(
     "User-controlled gob data is decoded directly into an action struct that drives privileged state changes.",
     Severity::High,
     &[],
-    Some("Use validated JSON or another constrained format for request payloads before privileged updates."),
+    Some(
+        "Use validated JSON or another constrained format for request payloads before privileged updates.",
+    ),
 );
 
 const META_CWE_515: RuleMetadata = emit::rule_meta(
@@ -971,7 +1130,9 @@ const META_CWE_515: RuleMetadata = emit::rule_meta(
     "A global flag is written from one request and later read from another handler to disclose sensitive state.",
     Severity::High,
     &[],
-    Some("Store per-tenant or per-request state in scoped storage instead of global cross-request flags."),
+    Some(
+        "Store per-tenant or per-request state in scoped storage instead of global cross-request flags.",
+    ),
 );
 
 const META_CWE_521: RuleMetadata = emit::rule_meta(
@@ -998,7 +1159,9 @@ const META_CWE_524: RuleMetadata = emit::rule_meta(
     "Bearer or session tokens are cached in shared process memory keyed by user-controlled identifiers.",
     Severity::High,
     &[],
-    Some("Keep tokens request-scoped or server-session-bound instead of storing them in shared process-wide caches."),
+    Some(
+        "Keep tokens request-scoped or server-session-bound instead of storing them in shared process-wide caches.",
+    ),
 );
 
 const META_CWE_538: RuleMetadata = emit::rule_meta(
@@ -1007,7 +1170,9 @@ const META_CWE_538: RuleMetadata = emit::rule_meta(
     "Database connection secrets are written to a world-readable path under a public static directory.",
     Severity::High,
     &[],
-    Some("Write operational secrets only to restricted internal paths with tight file permissions."),
+    Some(
+        "Write operational secrets only to restricted internal paths with tight file permissions.",
+    ),
 );
 
 const META_CWE_544: RuleMetadata = emit::rule_meta(
@@ -1025,7 +1190,9 @@ const META_CWE_547: RuleMetadata = emit::rule_meta(
     "JWT or MAC signing material is embedded as a source constant instead of loaded from managed runtime configuration.",
     Severity::High,
     &[],
-    Some("Load signing secrets from environment or secret storage instead of hard-coding them in source."),
+    Some(
+        "Load signing secrets from environment or secret storage instead of hard-coding them in source.",
+    ),
 );
 
 const META_CWE_549: RuleMetadata = emit::rule_meta(
@@ -1052,7 +1219,9 @@ const META_CWE_552: RuleMetadata = emit::rule_meta(
     "Uploaded contract files are stored and then assigned world-readable or world-writable permissions.",
     Severity::High,
     &[],
-    Some("Restrict uploaded document permissions to owner-only access and sanitize the stored name."),
+    Some(
+        "Restrict uploaded document permissions to owner-only access and sanitize the stored name.",
+    ),
 );
 
 const META_CWE_565: RuleMetadata = emit::rule_meta(
@@ -1061,7 +1230,9 @@ const META_CWE_565: RuleMetadata = emit::rule_meta(
     "Authorization for a privileged delete action is derived directly from a client-controlled role cookie.",
     Severity::High,
     &[],
-    Some("Validate cookie role claims against server-side session state before authorizing privileged actions."),
+    Some(
+        "Validate cookie role claims against server-side session state before authorizing privileged actions.",
+    ),
 );
 
 const META_CWE_601: RuleMetadata = emit::rule_meta(
@@ -1079,7 +1250,9 @@ const META_CWE_603: RuleMetadata = emit::rule_meta(
     "Sensitive state changes rely on a client-provided authenticated marker instead of server-validated identity.",
     Severity::High,
     &[],
-    Some("Authorize state changes from server-side session identity instead of caller-supplied auth headers."),
+    Some(
+        "Authorize state changes from server-side session identity instead of caller-supplied auth headers.",
+    ),
 );
 
 const META_CWE_605: RuleMetadata = emit::rule_meta(
@@ -1088,7 +1261,9 @@ const META_CWE_605: RuleMetadata = emit::rule_meta(
     "A service listener explicitly enables address reuse on the bound socket, weakening exclusive ownership on restart.",
     Severity::High,
     &[],
-    Some("Bind service listeners exclusively unless address reuse is explicitly required and justified."),
+    Some(
+        "Bind service listeners exclusively unless address reuse is explicitly required and justified.",
+    ),
 );
 
 const META_CWE_611: RuleMetadata = emit::rule_meta(
@@ -1115,7 +1290,9 @@ const META_CWE_618: RuleMetadata = emit::rule_meta(
     "A public endpoint forwards caller-controlled plugin method names and arguments to a privileged local helper binary.",
     Severity::High,
     &[],
-    Some("Expose only an allow-listed set of non-privileged methods instead of passing raw method names to a native helper."),
+    Some(
+        "Expose only an allow-listed set of non-privileged methods instead of passing raw method names to a native helper.",
+    ),
 );
 
 const META_CWE_619: RuleMetadata = emit::rule_meta(
@@ -1133,7 +1310,9 @@ const META_CWE_620: RuleMetadata = emit::rule_meta(
     "A password update replaces the stored credential without proving knowledge of the existing password.",
     Severity::High,
     &[],
-    Some("Require the current password or equivalent verified session proof before changing credentials."),
+    Some(
+        "Require the current password or equivalent verified session proof before changing credentials.",
+    ),
 );
 
 const META_CWE_639: RuleMetadata = emit::rule_meta(
@@ -1142,7 +1321,9 @@ const META_CWE_639: RuleMetadata = emit::rule_meta(
     "A caller-supplied record identifier is used directly without constraining the query to the authenticated owner.",
     Severity::High,
     &[],
-    Some("Scope caller-controlled record identifiers to the authenticated owner in the data query."),
+    Some(
+        "Scope caller-controlled record identifiers to the authenticated owner in the data query.",
+    ),
 );
 
 const META_CWE_640: RuleMetadata = emit::rule_meta(
@@ -1160,7 +1341,9 @@ const META_CWE_645: RuleMetadata = emit::rule_meta(
     "The lockout policy permanently or immediately blocks the account after one failed attempt.",
     Severity::High,
     &[],
-    Some("Allow several failures and use a temporary lockout window instead of locking after one attempt."),
+    Some(
+        "Allow several failures and use a temporary lockout window instead of locking after one attempt.",
+    ),
 );
 
 const META_CWE_648: RuleMetadata = emit::rule_meta(
@@ -1169,7 +1352,9 @@ const META_CWE_648: RuleMetadata = emit::rule_meta(
     "A request handler passes caller-controlled path and uid values into a privileged ownership-changing API.",
     Severity::High,
     &[],
-    Some("Restrict ownership changes to application-controlled paths and fixed service identities."),
+    Some(
+        "Restrict ownership changes to application-controlled paths and fixed service identities.",
+    ),
 );
 
 const META_CWE_649: RuleMetadata = emit::rule_meta(
@@ -1178,7 +1363,9 @@ const META_CWE_649: RuleMetadata = emit::rule_meta(
     "The application decodes an obfuscated profile cookie and trusts the embedded role without verifying integrity.",
     Severity::High,
     &[],
-    Some("Authenticate encoded profile data with an HMAC or signature before trusting embedded roles."),
+    Some(
+        "Authenticate encoded profile data with an HMAC or signature before trusting embedded roles.",
+    ),
 );
 
 const META_CWE_653: RuleMetadata = emit::rule_meta(
@@ -1214,7 +1401,9 @@ const META_CWE_708: RuleMetadata = emit::rule_meta(
     "A file ownership operation uses caller-controlled destination and owner identifiers rather than a fixed service identity.",
     Severity::High,
     &[],
-    Some("Restrict ownership assignments to controlled directories and fixed service uid or gid values."),
+    Some(
+        "Restrict ownership assignments to controlled directories and fixed service uid or gid values.",
+    ),
 );
 
 const META_CWE_756: RuleMetadata = emit::rule_meta(
@@ -1232,7 +1421,9 @@ const META_CWE_765: RuleMetadata = emit::rule_meta(
     "The same critical-section lock is explicitly released more than once on a validation failure path.",
     Severity::High,
     &[],
-    Some("Use a single defer-based unlock or ensure each control path releases the lock exactly once."),
+    Some(
+        "Use a single defer-based unlock or ensure each control path releases the lock exactly once.",
+    ),
 );
 
 const META_CWE_778: RuleMetadata = emit::rule_meta(
@@ -1286,7 +1477,9 @@ const META_CWE_826: RuleMetadata = emit::rule_meta(
     "A background task still depends on a database handle after the shared handle has already been closed.",
     Severity::High,
     &[],
-    Some("Keep shared resources alive until background work finishes or bind workers to scoped handles."),
+    Some(
+        "Keep shared resources alive until background work finishes or bind workers to scoped handles.",
+    ),
 );
 
 const META_CWE_829: RuleMetadata = emit::rule_meta(
@@ -1304,7 +1497,9 @@ const META_CWE_836: RuleMetadata = emit::rule_meta(
     "The caller submits a password hash that is compared directly to stored credential material.",
     Severity::High,
     &[],
-    Some("Accept plaintext passwords over the authenticated channel and verify them against stored hashes server-side."),
+    Some(
+        "Accept plaintext passwords over the authenticated channel and verify them against stored hashes server-side.",
+    ),
 );
 
 const META_CWE_838: RuleMetadata = emit::rule_meta(
@@ -1322,7 +1517,9 @@ const META_CWE_841: RuleMetadata = emit::rule_meta(
     "A multi-step recovery or reset flow changes credentials without enforcing the required MFA gate.",
     Severity::High,
     &[],
-    Some("Require successful completion of the MFA or equivalent workflow step before password changes."),
+    Some(
+        "Require successful completion of the MFA or equivalent workflow step before password changes.",
+    ),
 );
 
 const META_CWE_842: RuleMetadata = emit::rule_meta(
@@ -1358,7 +1555,9 @@ const META_CWE_916: RuleMetadata = emit::rule_meta(
     "Password registration uses a fast hash such as MD5 rather than a work-factor-based password hashing scheme.",
     Severity::High,
     &[],
-    Some("Use a dedicated password hashing scheme with sufficient work factor such as bcrypt or equivalent."),
+    Some(
+        "Use a dedicated password hashing scheme with sufficient work factor such as bcrypt or equivalent.",
+    ),
 );
 
 const META_CWE_917: RuleMetadata = emit::rule_meta(
@@ -1403,7 +1602,9 @@ const META_CWE_940: RuleMetadata = emit::rule_meta(
     "An inbound callback consumes authorization data without validating the origin through a state binding.",
     Severity::High,
     &[],
-    Some("Validate callback origin with a bound state token before accepting the authorization response."),
+    Some(
+        "Validate callback origin with a bound state token before accepting the authorization response.",
+    ),
 );
 
 const META_CWE_941: RuleMetadata = emit::rule_meta(
@@ -1412,7 +1613,9 @@ const META_CWE_941: RuleMetadata = emit::rule_meta(
     "A password-reset or account message is delivered to an arbitrary user-supplied email destination.",
     Severity::High,
     &[],
-    Some("Derive notification destinations from authenticated or persisted account state rather than request parameters."),
+    Some(
+        "Derive notification destinations from authenticated or persisted account state rather than request parameters.",
+    ),
 );
 
 const META_CWE_1051: RuleMetadata = emit::rule_meta(
@@ -1421,7 +1624,9 @@ const META_CWE_1051: RuleMetadata = emit::rule_meta(
     "An outbound HTTP client always uses a fixed internal billing host instead of runtime configuration.",
     Severity::Warning,
     &[],
-    Some("Load network destinations from deployment configuration rather than hard-coded literals."),
+    Some(
+        "Load network destinations from deployment configuration rather than hard-coded literals.",
+    ),
 );
 
 const META_CWE_1052: RuleMetadata = emit::rule_meta(
@@ -1430,7 +1635,9 @@ const META_CWE_1052: RuleMetadata = emit::rule_meta(
     "A database connection string hard-codes host and credentials directly in the source.",
     Severity::High,
     &[],
-    Some("Source database connection parameters from environment or secret-backed runtime configuration."),
+    Some(
+        "Source database connection parameters from environment or secret-backed runtime configuration.",
+    ),
 );
 
 const META_CWE_1067: RuleMetadata = emit::rule_meta(
@@ -1457,7 +1664,9 @@ const META_CWE_1125: RuleMetadata = emit::rule_meta(
     "Debug, admin, or internal maintenance endpoints are registered directly on the public router.",
     Severity::High,
     &[],
-    Some("Expose only the minimum route surface publicly and gate administrative endpoints behind dedicated authorization."),
+    Some(
+        "Expose only the minimum route surface publicly and gate administrative endpoints behind dedicated authorization.",
+    ),
 );
 
 const META_CWE_1204: RuleMetadata = emit::rule_meta(
@@ -1466,7 +1675,9 @@ const META_CWE_1204: RuleMetadata = emit::rule_meta(
     "A fixed IV literal is reused across requests instead of generating a fresh random IV per ciphertext.",
     Severity::High,
     &[],
-    Some("Generate a unique random IV for each encryption operation and include it alongside the ciphertext."),
+    Some(
+        "Generate a unique random IV for each encryption operation and include it alongside the ciphertext.",
+    ),
 );
 
 const META_CWE_1220: RuleMetadata = emit::rule_meta(
@@ -1475,7 +1686,9 @@ const META_CWE_1220: RuleMetadata = emit::rule_meta(
     "Any authenticated caller can fetch arbitrary invoice records because the lookup omits owner scoping.",
     Severity::High,
     &[],
-    Some("Include the authenticated principal in the data access predicate, not just a coarse login check."),
+    Some(
+        "Include the authenticated principal in the data access predicate, not just a coarse login check.",
+    ),
 );
 
 const META_CWE_1230: RuleMetadata = emit::rule_meta(
@@ -1484,7 +1697,9 @@ const META_CWE_1230: RuleMetadata = emit::rule_meta(
     "A download response omits content but still returns the original filename or file size metadata.",
     Severity::Warning,
     &[],
-    Some("Strip sensitive metadata from redacted responses and return only the minimum transport headers needed."),
+    Some(
+        "Strip sensitive metadata from redacted responses and return only the minimum transport headers needed.",
+    ),
 );
 
 const META_CWE_1236: RuleMetadata = emit::rule_meta(
@@ -1502,7 +1717,9 @@ const META_CWE_1240: RuleMetadata = emit::rule_meta(
     "Session tokens are sealed with a homegrown XOR primitive instead of a standard authenticated cipher.",
     Severity::High,
     &[],
-    Some("Use a standard authenticated encryption primitive such as AES-GCM instead of custom ciphers."),
+    Some(
+        "Use a standard authenticated encryption primitive such as AES-GCM instead of custom ciphers.",
+    ),
 );
 
 const META_CWE_1265: RuleMetadata = emit::rule_meta(
@@ -1511,7 +1728,9 @@ const META_CWE_1265: RuleMetadata = emit::rule_meta(
     "A transfer path acquires a mutex and then re-enters a helper that acquires the same mutex again.",
     Severity::High,
     &[],
-    Some("Keep the lock scope in one place or move the shared helper outside the locked section to avoid nested acquisition."),
+    Some(
+        "Keep the lock scope in one place or move the shared helper outside the locked section to avoid nested acquisition.",
+    ),
 );
 
 const META_CWE_1286: RuleMetadata = emit::rule_meta(
@@ -1520,7 +1739,9 @@ const META_CWE_1286: RuleMetadata = emit::rule_meta(
     "Configuration input is unmarshaled directly without unknown-field rejection or URL syntax validation.",
     Severity::Warning,
     &[],
-    Some("Use a strict decoder and validate structural fields before persisting configuration input."),
+    Some(
+        "Use a strict decoder and validate structural fields before persisting configuration input.",
+    ),
 );
 
 const META_CWE_1289: RuleMetadata = emit::rule_meta(
@@ -1529,7 +1750,9 @@ const META_CWE_1289: RuleMetadata = emit::rule_meta(
     "A protected asset path is denied only by literal comparison before normalization, allowing equivalent bypass forms.",
     Severity::High,
     &[],
-    Some("Normalize the full path and enforce a canonical prefix constraint before serving the resource."),
+    Some(
+        "Normalize the full path and enforce a canonical prefix constraint before serving the resource.",
+    ),
 );
 
 const META_CWE_1322: RuleMetadata = emit::rule_meta(
@@ -1538,7 +1761,9 @@ const META_CWE_1322: RuleMetadata = emit::rule_meta(
     "A queued worker uses blocking sleep inside the loop instead of scheduling retries asynchronously.",
     Severity::Warning,
     &[],
-    Some("Schedule retries with timers or separate workers instead of blocking the event loop with sleep."),
+    Some(
+        "Schedule retries with timers or separate workers instead of blocking the event loop with sleep.",
+    ),
 );
 
 const META_CWE_1327: RuleMetadata = emit::rule_meta(
@@ -1556,7 +1781,9 @@ const META_CWE_1333: RuleMetadata = emit::rule_meta(
     "A catastrophic backtracking pattern validates user input without a tight length limit.",
     Severity::High,
     &[],
-    Some("Use linear-time validation patterns plus explicit length limits for attacker-controlled input."),
+    Some(
+        "Use linear-time validation patterns plus explicit length limits for attacker-controlled input.",
+    ),
 );
 
 const META_CWE_1389: RuleMetadata = emit::rule_meta(
@@ -1574,7 +1801,9 @@ const META_CWE_1392: RuleMetadata = emit::rule_meta(
     "Administrative account initialization uses the literal password 'admin' instead of runtime secrets.",
     Severity::Critical,
     &[],
-    Some("Require bootstrap credentials from secret-backed configuration and avoid shipping default passwords."),
+    Some(
+        "Require bootstrap credentials from secret-backed configuration and avoid shipping default passwords.",
+    ),
 );
 
 const META_CWE_807: RuleMetadata = emit::rule_meta(
@@ -1583,7 +1812,9 @@ const META_CWE_807: RuleMetadata = emit::rule_meta(
     "Authorization or blocking logic uses a client-controlled forwarded IP header instead of a trusted connection address.",
     Severity::High,
     &[],
-    Some("Make security decisions from trusted connection metadata rather than spoofable request headers."),
+    Some(
+        "Make security decisions from trusted connection metadata rather than spoofable request headers.",
+    ),
 );
 
 impl Rule for GoCweScan {
@@ -2320,7 +2551,8 @@ fn detect_cwe_15(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>)
 
         if !call.arguments.iter().any(|arg| {
             facts.input_bindings.iter().any(|binding| {
-                binding.kind == InputKind::UserControlled && argument_uses_identifier(arg, &binding.name)
+                binding.kind == InputKind::UserControlled
+                    && argument_uses_identifier(arg, &binding.name)
             })
         }) {
             continue;
@@ -2348,8 +2580,7 @@ fn detect_cwe_22(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>)
         }
 
         let uses_user_input = facts.input_bindings.iter().any(|binding| {
-            binding.kind == InputKind::UserControlled
-                && assignment.expr.contains(&binding.name)
+            binding.kind == InputKind::UserControlled && assignment.expr.contains(&binding.name)
         });
         if !uses_user_input {
             continue;
@@ -2392,8 +2623,7 @@ fn detect_cwe_41(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>)
         }
 
         let Some(binding) = facts.input_bindings.iter().find(|binding| {
-            binding.kind == InputKind::UserControlled
-                && assignment.expr.contains(&binding.name)
+            binding.kind == InputKind::UserControlled && assignment.expr.contains(&binding.name)
         }) else {
             continue;
         };
@@ -2487,9 +2717,11 @@ fn detect_cwe_76(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>)
     {
         return;
     }
-    if !facts.input_bindings.iter().any(|binding| {
-        binding.kind == InputKind::UserControlled && binding.name == "raw"
-    }) {
+    if !facts
+        .input_bindings
+        .iter()
+        .any(|binding| binding.kind == InputKind::UserControlled && binding.name == "raw")
+    {
         return;
     }
     if !source.contains("text/html") {
@@ -2499,7 +2731,9 @@ fn detect_cwe_76(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>)
     let start_byte = facts
         .assignments
         .iter()
-        .find(|assignment| assignment.name == "safe" && assignment.expr.contains("strings.ReplaceAll"))
+        .find(|assignment| {
+            assignment.name == "safe" && assignment.expr.contains("strings.ReplaceAll")
+        })
         .map(|assignment| assignment.start_byte)
         .unwrap_or(0);
 
@@ -2597,7 +2831,11 @@ fn detect_cwe_89(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>)
         if !assignment.expr.contains("fmt.Sprintf(") {
             continue;
         }
-        if !(assignment.expr.contains("SELECT ") || assignment.expr.contains("UPDATE ") || assignment.expr.contains("DELETE ") || assignment.expr.contains("INSERT ")) {
+        if !(assignment.expr.contains("SELECT ")
+            || assignment.expr.contains("UPDATE ")
+            || assignment.expr.contains("DELETE ")
+            || assignment.expr.contains("INSERT "))
+        {
             continue;
         }
 
@@ -2725,8 +2963,14 @@ fn detect_cwe_93(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>)
             continue;
         }
 
-        let strips_cr = source.contains(&format!(r#"strings.ReplaceAll({}, "\r", "")"#, binding.name));
-        let strips_lf = source.contains(&format!(r#"strings.ReplaceAll({}, "\n", "")"#, binding.name));
+        let strips_cr = source.contains(&format!(
+            r#"strings.ReplaceAll({}, "\r", "")"#,
+            binding.name
+        ));
+        let strips_lf = source.contains(&format!(
+            r#"strings.ReplaceAll({}, "\n", "")"#,
+            binding.name
+        ));
         if strips_cr && strips_lf {
             continue;
         }
@@ -2769,14 +3013,18 @@ fn detect_cwe_112(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let has_xml_unmarshal =
-        facts.call_facts.iter().any(|call| call.callee == "xml.Unmarshal") || source.contains("xml.Unmarshal(");
+    let has_xml_unmarshal = facts
+        .call_facts
+        .iter()
+        .any(|call| call.callee == "xml.Unmarshal")
+        || source.contains("xml.Unmarshal(");
     if !has_xml_unmarshal {
         return;
     }
 
     let has_untrusted_payload = facts.input_bindings.iter().any(|binding| {
-        binding.kind == InputKind::UserControlled && source.contains(&format!("xml.Unmarshal({},", binding.name))
+        binding.kind == InputKind::UserControlled
+            && source.contains(&format!("xml.Unmarshal({},", binding.name))
     });
     if !has_untrusted_payload {
         return;
@@ -2819,9 +3067,10 @@ fn detect_cwe_140(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>
         return;
     }
 
-    let uses_user_input = facts.input_bindings.iter().any(|binding| {
-        binding.kind == InputKind::UserControlled && source.contains(&binding.name)
-    });
+    let uses_user_input = facts
+        .input_bindings
+        .iter()
+        .any(|binding| binding.kind == InputKind::UserControlled && source.contains(&binding.name));
     if !uses_user_input {
         return;
     }
@@ -2852,9 +3101,11 @@ fn detect_cwe_178(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>
         return;
     }
 
-    let Some(assignment) = facts.assignments.iter().find(|assignment| {
-        assignment.expr.contains("strings.ToLower(")
-    }) else {
+    let Some(assignment) = facts
+        .assignments
+        .iter()
+        .find(|assignment| assignment.expr.contains("strings.ToLower("))
+    else {
         return;
     };
 
@@ -2872,7 +3123,9 @@ fn detect_cwe_178(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>
         return;
     }
 
-    if !(source.contains(&format!("[{}]", assignment.name)) || source.contains(&format!("({})", assignment.name))) {
+    if !(source.contains(&format!("[{}]", assignment.name))
+        || source.contains(&format!("({})", assignment.name)))
+    {
         return;
     }
 
@@ -2910,7 +3163,10 @@ fn detect_cwe_179(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>
         let start_byte = facts
             .call_facts
             .iter()
-            .find(|call| call.callee == "url.QueryUnescape" && call.arguments.iter().any(|arg| arg == &binding.name))
+            .find(|call| {
+                call.callee == "url.QueryUnescape"
+                    && call.arguments.iter().any(|arg| arg == &binding.name)
+            })
             .map(|call| call.start_byte)
             .unwrap_or(0);
 
@@ -2931,9 +3187,11 @@ fn detect_cwe_182(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let Some(collapse_assignment) = facts.assignments.iter().find(|assignment| {
-        assignment.expr.contains("ReplaceAllString(")
-    }) else {
+    let Some(collapse_assignment) = facts
+        .assignments
+        .iter()
+        .find(|assignment| assignment.expr.contains("ReplaceAllString("))
+    else {
         return;
     };
 
@@ -2973,9 +3231,11 @@ fn detect_cwe_184(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>
         return;
     }
 
-    let Some(lower_assignment) = facts.assignments.iter().find(|assignment| {
-        assignment.expr.contains("strings.ToLower(")
-    }) else {
+    let Some(lower_assignment) = facts
+        .assignments
+        .iter()
+        .find(|assignment| assignment.expr.contains("strings.ToLower("))
+    else {
         return;
     };
 
@@ -3100,7 +3360,9 @@ fn detect_cwe_208(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     if source.contains("subtle.ConstantTimeCompare(") {
         return;
     }
-    if !(source.contains("for i := range expected") && source.contains("provided[i] != expected[i]")) {
+    if !(source.contains("for i := range expected")
+        && source.contains("provided[i] != expected[i]"))
+    {
         return;
     }
 
@@ -3124,7 +3386,9 @@ fn detect_cwe_209(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
         return;
     }
 
-    let start_byte = source.find(r#"fmt.Sprintf("db failure: %v", err)"#).unwrap_or(0);
+    let start_byte = source
+        .find(r#"fmt.Sprintf("db failure: %v", err)"#)
+        .unwrap_or(0);
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_209,
@@ -3296,9 +3560,10 @@ fn detect_cwe_252(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>
         if source.contains("if err := os.WriteFile(") {
             return;
         }
-        let writes_audit_log = call.arguments.iter().any(|arg| {
-            arg.contains("/var/log/audit.log") || arg.contains("/var/log/journal.log")
-        });
+        let writes_audit_log = call
+            .arguments
+            .iter()
+            .any(|arg| arg.contains("/var/log/audit.log") || arg.contains("/var/log/journal.log"));
         if !writes_audit_log {
             continue;
         }
@@ -3329,7 +3594,8 @@ fn detect_cwe_256(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     }
 
     let gorm_plaintext = source.contains("Password: c.PostForm(\"password\")");
-    let sql_plaintext = source.contains("db.Exec(\"INSERT INTO credentials(login, pass) VALUES(?, ?)\", login, pass)");
+    let sql_plaintext = source
+        .contains("db.Exec(\"INSERT INTO credentials(login, pass) VALUES(?, ?)\", login, pass)");
     if !(gorm_plaintext || sql_plaintext) {
         return;
     }
@@ -3423,12 +3689,15 @@ fn detect_cwe_261(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     if !source.contains("base64.StdEncoding.EncodeToString(") {
         return;
     }
-    let stores_encoded_secret = source.contains("Secret: encoded") || source.contains("Store(user, encoded)");
+    let stores_encoded_secret =
+        source.contains("Secret: encoded") || source.contains("Store(user, encoded)");
     if !stores_encoded_secret {
         return;
     }
 
-    let start_byte = source.find("base64.StdEncoding.EncodeToString(").unwrap_or(0);
+    let start_byte = source
+        .find("base64.StdEncoding.EncodeToString(")
+        .unwrap_or(0);
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_261,
@@ -3493,22 +3762,24 @@ fn detect_cwe_266(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let Some(role_assignment) = facts.assignments.iter().find(|assignment| {
-        assignment.name == "role"
-    }) else {
+    let Some(role_assignment) = facts
+        .assignments
+        .iter()
+        .find(|assignment| assignment.name == "role")
+    else {
         return;
     };
 
-    let role_is_user_controlled = facts.input_bindings.iter().any(|binding| {
-        binding.kind == InputKind::UserControlled
-            && binding.name == "role"
-    });
+    let role_is_user_controlled = facts
+        .input_bindings
+        .iter()
+        .any(|binding| binding.kind == InputKind::UserControlled && binding.name == "role");
     if !role_is_user_controlled {
         return;
     }
 
-    let role_is_used_for_membership = source.contains("Role: role")
-        || source.contains("Store(userID, role)");
+    let role_is_used_for_membership =
+        source.contains("Role: role") || source.contains("Store(userID, role)");
     if !role_is_used_for_membership {
         return;
     }
@@ -3528,12 +3799,17 @@ fn detect_cwe_267(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let reviewer_guard = source.contains(r#"!= "reviewer""#) || source.contains(r#".Get("X-Role") != "reviewer""#);
+    let reviewer_guard =
+        source.contains(r#"!= "reviewer""#) || source.contains(r#".Get("X-Role") != "reviewer""#);
     if !reviewer_guard {
         return;
     }
 
-    let Some(remove_call) = facts.call_facts.iter().find(|call| call.callee == "os.Remove") else {
+    let Some(remove_call) = facts
+        .call_facts
+        .iter()
+        .find(|call| call.callee == "os.Remove")
+    else {
         return;
     };
 
@@ -3552,7 +3828,8 @@ fn detect_cwe_268(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let has_chained_scopes = (source.contains(r#"p == "read""#) || source.contains(r#"case "read":"#))
+    let has_chained_scopes = (source.contains(r#"p == "read""#)
+        || source.contains(r#"case "read":"#))
         && (source.contains(r#"p == "export""#) || source.contains(r#"case "export":"#))
         && (source.contains("hasRead && hasExport") || source.contains("hasExport && hasRead"));
     if !has_chained_scopes {
@@ -3591,11 +3868,13 @@ fn detect_cwe_270(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>
         (call.callee == "c.Set"
             && call.arguments.len() >= 2
             && call.arguments[0].contains("effective_user")
-            && (call.arguments[1].contains(r#""root""#) || call.arguments[1].contains(r#""maintenance""#)))
+            && (call.arguments[1].contains(r#""root""#)
+                || call.arguments[1].contains(r#""maintenance""#)))
             || (call.callee == "context.WithValue"
                 && call.arguments.len() >= 3
                 && call.arguments[1].contains("effectiveUserKey")
-                && (call.arguments[2].contains(r#""root""#) || call.arguments[2].contains(r#""maintenance""#)))
+                && (call.arguments[2].contains(r#""root""#)
+                    || call.arguments[2].contains(r#""maintenance""#)))
     }) else {
         return;
     };
@@ -3621,15 +3900,16 @@ fn detect_cwe_270(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>
 fn detect_cwe_272(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.path.display().to_string();
 
-    let Some(elevate_call) = facts
-        .call_facts
-        .iter()
-        .find(|call| call.callee == "syscall.Setuid" && call.arguments.first().is_some_and(|arg| arg == "0"))
-    else {
+    let Some(elevate_call) = facts.call_facts.iter().find(|call| {
+        call.callee == "syscall.Setuid" && call.arguments.first().is_some_and(|arg| arg == "0")
+    }) else {
         return;
     };
 
-    let performs_privileged_work = facts.call_facts.iter().any(|call| call.callee == "os.Chown");
+    let performs_privileged_work = facts
+        .call_facts
+        .iter()
+        .any(|call| call.callee == "os.Chown");
     if !performs_privileged_work {
         return;
     }
@@ -3660,19 +3940,15 @@ fn detect_cwe_273(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>
         return;
     }
 
-    if facts
-        .call_facts
-        .iter()
-        .any(|call| call.callee == "syscall.Setuid" && call.arguments.first().is_some_and(|arg| arg == "0"))
-    {
+    if facts.call_facts.iter().any(|call| {
+        call.callee == "syscall.Setuid" && call.arguments.first().is_some_and(|arg| arg == "0")
+    }) {
         return;
     }
 
-    let Some(drop_call) = facts
-        .call_facts
-        .iter()
-        .find(|call| call.callee == "syscall.Setuid" && call.arguments.first().is_some_and(|arg| arg == "1000"))
-    else {
+    let Some(drop_call) = facts.call_facts.iter().find(|call| {
+        call.callee == "syscall.Setuid" && call.arguments.first().is_some_and(|arg| arg == "1000")
+    }) else {
         return;
     };
 
@@ -3691,7 +3967,11 @@ fn detect_cwe_274(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let Some(rename_call) = facts.call_facts.iter().find(|call| call.callee == "os.Rename") else {
+    let Some(rename_call) = facts
+        .call_facts
+        .iter()
+        .find(|call| call.callee == "os.Rename")
+    else {
         return;
     };
 
@@ -3722,7 +4002,9 @@ fn detect_cwe_276(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>
         call.callee == "os.WriteFile"
             && call.arguments.len() >= 3
             && call.arguments[2] == "0666"
-            && (call.arguments[0].contains("sessions") || source.contains("session_data") || source.contains("X-Session-Data"))
+            && (call.arguments[0].contains("sessions")
+                || source.contains("session_data")
+                || source.contains("X-Session-Data"))
     }) else {
         return;
     };
@@ -3741,18 +4023,15 @@ fn detect_cwe_276(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>
 fn detect_cwe_277(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.path.display().to_string();
 
-    let clears_umask = facts
-        .call_facts
-        .iter()
-        .any(|call| call.callee == "syscall.Umask" && call.arguments.first().is_some_and(|arg| arg == "0"));
+    let clears_umask = facts.call_facts.iter().any(|call| {
+        call.callee == "syscall.Umask" && call.arguments.first().is_some_and(|arg| arg == "0")
+    });
     if !clears_umask {
         return;
     }
 
     let Some(mkdir_call) = facts.call_facts.iter().find(|call| {
-        call.callee == "os.MkdirAll"
-            && call.arguments.len() >= 2
-            && call.arguments[1] == "0777"
+        call.callee == "os.MkdirAll" && call.arguments.len() >= 2 && call.arguments[1] == "0777"
     }) else {
         return;
     };
@@ -3799,9 +4078,7 @@ fn detect_cwe_279(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>
     }
 
     let Some(write_call) = facts.call_facts.iter().find(|call| {
-        call.callee == "os.WriteFile"
-            && call.arguments.len() >= 3
-            && call.arguments[2] == "0777"
+        call.callee == "os.WriteFile" && call.arguments.len() >= 3 && call.arguments[2] == "0777"
     }) else {
         return;
     };
@@ -3821,7 +4098,11 @@ fn detect_cwe_280(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let Some(open_call) = facts.call_facts.iter().find(|call| call.callee == "os.Open") else {
+    let Some(open_call) = facts
+        .call_facts
+        .iter()
+        .find(|call| call.callee == "os.Open")
+    else {
         return;
     };
 
@@ -3853,7 +4134,11 @@ fn detect_cwe_281(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>
         return;
     }
 
-    let Some(create_call) = facts.call_facts.iter().find(|call| call.callee == "os.Create") else {
+    let Some(create_call) = facts
+        .call_facts
+        .iter()
+        .find(|call| call.callee == "os.Create")
+    else {
         return;
     };
 
@@ -3880,7 +4165,11 @@ fn detect_cwe_283(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>
         return;
     }
 
-    let Some(remove_call) = facts.call_facts.iter().find(|call| call.callee == "os.Remove") else {
+    let Some(remove_call) = facts
+        .call_facts
+        .iter()
+        .find(|call| call.callee == "os.Remove")
+    else {
         return;
     };
     let removes_user_controlled_path = facts.input_bindings.iter().any(|binding| {
@@ -3930,7 +4219,10 @@ fn detect_cwe_290(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>
 
     let Some(header_call) = facts.call_facts.iter().find(|call| {
         (call.callee == "c.GetHeader" || call.callee == "r.Header.Get")
-            && call.arguments.first().is_some_and(|arg| arg.contains("X-Remote-User"))
+            && call
+                .arguments
+                .first()
+                .is_some_and(|arg| arg.contains("X-Remote-User"))
     }) else {
         return;
     };
@@ -4045,7 +4337,11 @@ fn detect_cwe_305(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
         return;
     }
 
-    let start_byte = if let Some(idx) = source.find("debug") { idx } else { return; };
+    let start_byte = if let Some(idx) = source.find("debug") {
+        idx
+    } else {
+        return;
+    };
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_305,
@@ -4099,7 +4395,11 @@ fn detect_cwe_307(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
         return;
     }
 
-    let start_byte = if let Some(idx) = source.find("email") { idx } else { return; };
+    let start_byte = if let Some(idx) = source.find("email") {
+        idx
+    } else {
+        return;
+    };
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_307,
@@ -4115,8 +4415,8 @@ fn detect_cwe_308(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let has_password_gate = source.contains(r#"PostForm("password")"#)
-        || source.contains(r#"FormValue("password")"#);
+    let has_password_gate =
+        source.contains(r#"PostForm("password")"#) || source.contains(r#"FormValue("password")"#);
     if !has_password_gate {
         return;
     }
@@ -4156,12 +4456,17 @@ fn detect_cwe_309(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
         return;
     }
 
-    let password_form_login = (source.contains(r#"PostForm("username")"#) || source.contains(r#"FormValue("username")"#))
-        && (source.contains(r#"PostForm("password")"#) || source.contains(r#"FormValue("password")"#));
+    let password_form_login = (source.contains(r#"PostForm("username")"#)
+        || source.contains(r#"FormValue("username")"#))
+        && (source.contains(r#"PostForm("password")"#)
+            || source.contains(r#"FormValue("password")"#));
     if !password_form_login {
         return;
     }
-    if source.contains("webauthn_assertion") || source.contains("X-WebAuthn-OK") || source.contains("webauthn_ok") {
+    if source.contains("webauthn_assertion")
+        || source.contains("X-WebAuthn-OK")
+        || source.contains("webauthn_ok")
+    {
         return;
     }
 
@@ -4181,10 +4486,10 @@ fn detect_cwe_312(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let stores_plain_ssn = source.contains("SSN: c.PostForm(\"ssn\")")
-        || source.contains("SSN: r.FormValue(\"ssn\")");
-    let writes_plain_ssn_json = source.contains(r#"SSN string `json:"ssn"`"#)
-        && source.contains("json.Marshal(rec)");
+    let stores_plain_ssn =
+        source.contains("SSN: c.PostForm(\"ssn\")") || source.contains("SSN: r.FormValue(\"ssn\")");
+    let writes_plain_ssn_json =
+        source.contains(r#"SSN string `json:"ssn"`"#) && source.contains("json.Marshal(rec)");
     if !(stores_plain_ssn || writes_plain_ssn_json) {
         return;
     }
@@ -4192,7 +4497,11 @@ fn detect_cwe_312(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
         return;
     }
 
-    let start_byte = if let Some(idx) = source.find("ssn") { idx } else { return; };
+    let start_byte = if let Some(idx) = source.find("ssn") {
+        idx
+    } else {
+        return;
+    };
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_312,
@@ -4219,7 +4528,11 @@ fn detect_cwe_319(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
         return;
     }
 
-    let start_byte = if let Some(idx) = source.find("ListenAndServe") { idx } else { return; };
+    let start_byte = if let Some(idx) = source.find("ListenAndServe") {
+        idx
+    } else {
+        return;
+    };
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_319,
@@ -4303,7 +4616,8 @@ fn detect_cwe_324(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
         return;
     }
 
-    let expired_key_source = source.contains("Add(-48 * time.Hour)") || source.contains("ExpiresAt time.Time");
+    let expired_key_source =
+        source.contains("Add(-48 * time.Hour)") || source.contains("ExpiresAt time.Time");
     if !expired_key_source {
         return;
     }
@@ -4410,8 +4724,10 @@ fn detect_cwe_335(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let predictable_seed = (source.contains("seed := time.Now().Unix()") || source.contains("rand.NewSource(seed)"))
-        && (source.contains("rand.Seed(seed)") || source.contains("rand.New(rand.NewSource(seed))"));
+    let predictable_seed = (source.contains("seed := time.Now().Unix()")
+        || source.contains("rand.NewSource(seed)"))
+        && (source.contains("rand.Seed(seed)")
+            || source.contains("rand.New(rand.NewSource(seed))"));
     if !predictable_seed {
         return;
     }
@@ -4443,11 +4759,14 @@ fn detect_cwe_338(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
         return;
     }
 
-    let start_byte = if let Some(idx) = source.find("rand.New(rand.NewSource(time.Now().UnixNano()))") {
-        idx
-    } else {
-        source.find("rand.NewSource(time.Now().UnixNano())").unwrap_or(0)
-    };
+    let start_byte =
+        if let Some(idx) = source.find("rand.New(rand.NewSource(time.Now().UnixNano()))") {
+            idx
+        } else {
+            source
+                .find("rand.NewSource(time.Now().UnixNano())")
+                .unwrap_or(0)
+        };
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_338,
@@ -4512,8 +4831,8 @@ fn detect_cwe_343(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let deterministic_state_machine = source.contains("*3 + 1) % 97")
-        || source.contains("*5 + 3) % 101");
+    let deterministic_state_machine =
+        source.contains("*3 + 1) % 97") || source.contains("*5 + 3) % 101");
     if !deterministic_state_machine {
         return;
     }
@@ -4569,7 +4888,10 @@ fn detect_cwe_346(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     if !reflects_origin {
         return;
     }
-    if source.contains("allowedOrigins") || source.contains("trustedOrigins") || source.contains("forbidden origin") {
+    if source.contains("allowedOrigins")
+        || source.contains("trustedOrigins")
+        || source.contains("forbidden origin")
+    {
         return;
     }
 
@@ -4615,12 +4937,16 @@ fn detect_cwe_349(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let mixed_trust_blob = (source.contains("json.RawMessage") && source.contains("json.Unmarshal(bundle.Profile, &profile)"))
-        || (source.contains("json.RawMessage") && source.contains("json.Unmarshal(env.Profile, &profile)"));
+    let mixed_trust_blob = (source.contains("json.RawMessage")
+        && source.contains("json.Unmarshal(bundle.Profile, &profile)"))
+        || (source.contains("json.RawMessage")
+            && source.contains("json.Unmarshal(env.Profile, &profile)"));
     if !mixed_trust_blob {
         return;
     }
-    if source.contains("Role != \"support\"") || source.contains("role not allowed from trusted channel") {
+    if source.contains("Role != \"support\"")
+        || source.contains("role not allowed from trusted channel")
+    {
         return;
     }
 
@@ -4665,8 +4991,10 @@ fn detect_cwe_356(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let destructive_delete = (source.contains("func PurgeTenant(") && source.contains("DELETE FROM tenants WHERE slug = ?"))
-        || (source.contains("func DeleteWorkspaceRecords(") && source.contains("DELETE FROM workspaces WHERE slug = ?"));
+    let destructive_delete = (source.contains("func PurgeTenant(")
+        && source.contains("DELETE FROM tenants WHERE slug = ?"))
+        || (source.contains("func DeleteWorkspaceRecords(")
+            && source.contains("DELETE FROM workspaces WHERE slug = ?"));
     if !destructive_delete {
         return;
     }
@@ -4720,16 +5048,26 @@ fn detect_cwe_359(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let serializes_pii = (source.contains("SSN") && source.contains("Phone") && source.contains("json.Marshal(row)"))
-        || (source.contains("SSN") && source.contains("Phone") && source.contains("json.Marshal(") && source.contains("PersonRecord"));
+    let serializes_pii = (source.contains("SSN")
+        && source.contains("Phone")
+        && source.contains("json.Marshal(row)"))
+        || (source.contains("SSN")
+            && source.contains("Phone")
+            && source.contains("json.Marshal(")
+            && source.contains("PersonRecord"));
     if !serializes_pii {
         return;
     }
-    if source.contains("PublicProfile") || source.contains("PublicPersonView") || source.contains("requester != target") {
+    if source.contains("PublicProfile")
+        || source.contains("PublicPersonView")
+        || source.contains("requester != target")
+    {
         return;
     }
 
-    let start_byte = source.find("json.Marshal(row)").unwrap_or_else(|| source.find("SSN").unwrap_or(0));
+    let start_byte = source
+        .find("json.Marshal(row)")
+        .unwrap_or_else(|| source.find("SSN").unwrap_or(0));
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_359,
@@ -4768,8 +5106,8 @@ fn detect_cwe_366(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let direct_credit_increment = source.contains("walletCredits += amount")
-        || source.contains("referralCredits += 10");
+    let direct_credit_increment =
+        source.contains("walletCredits += amount") || source.contains("referralCredits += 10");
     if !direct_credit_increment {
         return;
     }
@@ -4797,7 +5135,8 @@ fn detect_cwe_367(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let stat_then_use = source.contains("os.Stat(target)") && source.contains("os.ReadFile(target)");
+    let stat_then_use =
+        source.contains("os.Stat(target)") && source.contains("os.ReadFile(target)");
     if !stat_then_use {
         return;
     }
@@ -4818,7 +5157,8 @@ fn detect_cwe_368(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let shared_privilege_flag = (source.contains("actingAsRoot = true") || source.contains("privilegedMode = true"))
+    let shared_privilege_flag = (source.contains("actingAsRoot = true")
+        || source.contains("privilegedMode = true"))
         && source.contains("os.Setenv(");
     if !shared_privilege_flag {
         return;
@@ -4855,7 +5195,11 @@ fn detect_cwe_378(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
         return;
     }
 
-    let start_byte = if let Some(idx) = source.find("os.TempDir()") { idx } else { source.find("0666").unwrap_or(0) };
+    let start_byte = if let Some(idx) = source.find("os.TempDir()") {
+        idx
+    } else {
+        source.find("0666").unwrap_or(0)
+    };
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_378,
@@ -4906,7 +5250,9 @@ fn detect_cwe_385(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
         return;
     }
 
-    let start_byte = source.find("for i := 0; i < len(provided); i++").unwrap_or(0);
+    let start_byte = source
+        .find("for i := 0; i < len(provided); i++")
+        .unwrap_or(0);
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_385,
@@ -4954,7 +5300,9 @@ fn detect_cwe_403(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
         return;
     }
 
-    let start_byte = source.find("os.Open(\"/etc/slopguard/master.key\")").unwrap_or(0);
+    let start_byte = source
+        .find("os.Open(\"/etc/slopguard/master.key\")")
+        .unwrap_or(0);
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_403,
@@ -4970,14 +5318,19 @@ fn detect_cwe_408(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let query_before_auth = (source.contains("SELECT * FROM orders WHERE tenant_id = ?") && source.contains("Authorization"))
-        && (source.find("SELECT * FROM orders WHERE tenant_id = ?").unwrap_or(usize::MAX)
+    let query_before_auth = (source.contains("SELECT * FROM orders WHERE tenant_id = ?")
+        && source.contains("Authorization"))
+        && (source
+            .find("SELECT * FROM orders WHERE tenant_id = ?")
+            .unwrap_or(usize::MAX)
             < source.find("Authorization").unwrap_or(0));
     if !query_before_auth {
         return;
     }
 
-    let start_byte = source.find("SELECT * FROM orders WHERE tenant_id = ?").unwrap_or(0);
+    let start_byte = source
+        .find("SELECT * FROM orders WHERE tenant_id = ?")
+        .unwrap_or(0);
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_408,
@@ -5017,8 +5370,10 @@ fn detect_cwe_420(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let has_unprotected_debug_route = (source.contains("r.GET(\"/debug/sqltrace\"") && source.contains("r.Group(\"/api\", requireJWT())"))
-        || (source.contains("http.HandleFunc(\"/debug/sqltrace\"") && source.contains("http.Handle(\"/api/invoices\", protected)"));
+    let has_unprotected_debug_route = (source.contains("r.GET(\"/debug/sqltrace\"")
+        && source.contains("r.Group(\"/api\", requireJWT())"))
+        || (source.contains("http.HandleFunc(\"/debug/sqltrace\"")
+            && source.contains("http.Handle(\"/api/invoices\", protected)"));
     if !has_unprotected_debug_route {
         return;
     }
@@ -5039,8 +5394,10 @@ fn detect_cwe_421(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let shared_event_state = (source.contains("transferToken =") && source.contains("event: status\\ndata: \" + transferToken"))
-        || (source.contains("wireTransferCode =") && source.contains("event: status\\ndata: %s\\n\\n\", wireTransferCode"));
+    let shared_event_state = (source.contains("transferToken =")
+        && source.contains("event: status\\ndata: \" + transferToken"))
+        || (source.contains("wireTransferCode =")
+            && source.contains("event: status\\ndata: %s\\n\\n\", wireTransferCode"));
     if !shared_event_state {
         return;
     }
@@ -5068,7 +5425,8 @@ fn detect_cwe_425(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let admin_export = source.contains("/internal/admin/export.csv") && source.contains("SELECT email, ssn FROM customers");
+    let admin_export = source.contains("/internal/admin/export.csv")
+        && source.contains("SELECT email, ssn FROM customers");
     if !admin_export {
         return;
     }
@@ -5092,7 +5450,8 @@ fn detect_cwe_426(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let request_controlled_plugin_dir = source.contains("plugin_dir") && source.contains("plugin.Open(modPath)");
+    let request_controlled_plugin_dir =
+        source.contains("plugin_dir") && source.contains("plugin.Open(modPath)");
     if !request_controlled_plugin_dir {
         return;
     }
@@ -5116,7 +5475,8 @@ fn detect_cwe_427(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let path_mutation = source.contains("os.Setenv(\"PATH\",") && source.contains("exec.Command(\"pdftopng\"");
+    let path_mutation =
+        source.contains("os.Setenv(\"PATH\",") && source.contains("exec.Command(\"pdftopng\"");
     if !path_mutation {
         return;
     }
@@ -5140,7 +5500,8 @@ fn detect_cwe_434(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let stores_client_filename = (source.contains("file.Filename") && source.contains("SaveUploadedFile(file, dest)"))
+    let stores_client_filename = (source.contains("file.Filename")
+        && source.contains("SaveUploadedFile(file, dest)"))
         || (source.contains("hdr.Filename") && source.contains("os.Create(dest)"));
     if !stores_client_filename {
         return;
@@ -5148,11 +5509,16 @@ fn detect_cwe_434(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let executable_web_serve_shape = (source.contains("/var/www/static/avatars")
         || source.contains("/static/avatars/"))
         && (source.contains("c.Redirect(http.StatusFound, \"/static/avatars/\"+file.Filename)")
-            || source.contains("http.Redirect(w, r, \"/static/avatars/\"+hdr.Filename, http.StatusFound)"));
+            || source.contains(
+                "http.Redirect(w, r, \"/static/avatars/\"+hdr.Filename, http.StatusFound)",
+            ));
     if !executable_web_serve_shape {
         return;
     }
-    if source.contains("unsupported file type") || source.contains("filepath.Ext(") || source.contains("hex.EncodeToString(") {
+    if source.contains("unsupported file type")
+        || source.contains("filepath.Ext(")
+        || source.contains("hex.EncodeToString(")
+    {
         return;
     }
 
@@ -5176,7 +5542,8 @@ fn detect_cwe_552(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let permissive_upload_mode = (source.contains("FormFile(\"contract\")") || source.contains("FormFile(\"contract\")"))
+    let permissive_upload_mode = (source.contains("FormFile(\"contract\")")
+        || source.contains("FormFile(\"contract\")"))
         && source.contains("/srv/contracts")
         && source.contains("os.Chmod(dest, 0o777)");
     if !permissive_upload_mode {
@@ -5202,7 +5569,8 @@ fn detect_cwe_565(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let trusts_role_cookie = (source.contains("c.Cookie(\"role\")") || source.contains("r.Cookie(\"role\")"))
+    let trusts_role_cookie = (source.contains("c.Cookie(\"role\")")
+        || source.contains("r.Cookie(\"role\")"))
         && source.contains(r#""admin""#)
         && source.contains("DELETE FROM tenants");
     if !trusts_role_cookie {
@@ -5228,7 +5596,8 @@ fn detect_cwe_454(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let request_bootstrap_flag = source.contains("enforceMFA = c.PostForm(\"enforce_mfa\") == \"true\"")
+    let request_bootstrap_flag = source
+        .contains("enforceMFA = c.PostForm(\"enforce_mfa\") == \"true\"")
         || source.contains("enforceMFA = r.FormValue(\"enforce_mfa\") == \"true\"");
     if !request_bootstrap_flag {
         return;
@@ -5250,8 +5619,8 @@ fn detect_cwe_455(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let continues_after_tls_failure = source.contains("tls.LoadX509KeyPair(")
-        && source.contains("continuing without mTLS");
+    let continues_after_tls_failure =
+        source.contains("tls.LoadX509KeyPair(") && source.contains("continuing without mTLS");
     if !continues_after_tls_failure {
         return;
     }
@@ -5275,7 +5644,8 @@ fn detect_cwe_459(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let temp_export = source.contains("CreateTemp(") && (source.contains("c.File(f.Name())") || source.contains("ServeFile(w, r, f.Name())"));
+    let temp_export = source.contains("CreateTemp(")
+        && (source.contains("c.File(f.Name())") || source.contains("ServeFile(w, r, f.Name())"));
     if !temp_export {
         return;
     }
@@ -5408,9 +5778,10 @@ fn detect_cwe_501(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let merged_trust_struct = (source.contains("Approved bool") && source.contains("Amount") && source.contains("Memo"))
-        && (source.contains("ShouldBindJSON(&msg)") || source.contains("Decode(&msg)"))
-        && source.contains("msg.Approved = true");
+    let merged_trust_struct =
+        (source.contains("Approved bool") && source.contains("Amount") && source.contains("Memo"))
+            && (source.contains("ShouldBindJSON(&msg)") || source.contains("Decode(&msg)"))
+            && source.contains("msg.Approved = true");
     if !merged_trust_struct {
         return;
     }
@@ -5442,7 +5813,9 @@ fn detect_cwe_502(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     if !untrusted_gob_decode {
         return;
     }
-    if source.contains("ShouldBindJSON(&req)") || source.contains("json.NewDecoder(r.Body).Decode(&req)") {
+    if source.contains("ShouldBindJSON(&req)")
+        || source.contains("json.NewDecoder(r.Body).Decode(&req)")
+    {
         return;
     }
 
@@ -5475,7 +5848,10 @@ fn detect_cwe_515(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     if !shared_covert_flag {
         return;
     }
-    if source.contains("WHERE tenant = ?") || source.contains("GetString(\"tenant\")") || source.contains("X-Tenant") {
+    if source.contains("WHERE tenant = ?")
+        || source.contains("GetString(\"tenant\")")
+        || source.contains("X-Tenant")
+    {
         return;
     }
 
@@ -5501,9 +5877,10 @@ fn detect_cwe_521(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
 
     let weak_password_policy = source.contains("Password")
         && source.contains("len(body.Password) < 1")
-            || source.contains("len(body.Password)<1")
-            || source.contains("len(pw) < 1");
-    let stores_password = source.contains("password_hash") && (source.contains("body.Password") || source.contains("body.Password"));
+        || source.contains("len(body.Password)<1")
+        || source.contains("len(pw) < 1");
+    let stores_password = source.contains("password_hash")
+        && (source.contains("body.Password") || source.contains("body.Password"));
     if !(weak_password_policy && stores_password) {
         return;
     }
@@ -5532,11 +5909,18 @@ fn detect_cwe_523(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     if !cleartext_login {
         return;
     }
-    if source.contains("requireTLS(") || source.contains("Request.TLS == nil") || source.contains("r.TLS == nil") {
+    if source.contains("requireTLS(")
+        || source.contains("Request.TLS == nil")
+        || source.contains("r.TLS == nil")
+    {
         return;
     }
 
-    let start_byte = if let Some(idx) = source.find("/login") { idx } else { source.find("password").unwrap_or(0) };
+    let start_byte = if let Some(idx) = source.find("/login") {
+        idx
+    } else {
+        source.find("password").unwrap_or(0)
+    };
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_523,
@@ -5552,7 +5936,8 @@ fn detect_cwe_524(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let process_wide_token_cache = (source.contains("map[string]string{}") && source.contains("Authorization"))
+    let process_wide_token_cache = (source.contains("map[string]string{}")
+        && source.contains("Authorization"))
         && (source.contains("tokenCache") || source.contains("tokenVault"));
     if !process_wide_token_cache {
         return;
@@ -5612,7 +5997,8 @@ fn detect_cwe_544(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let inconsistent_db_failure_paths = (source.contains("panic(err)") || source.contains("panic(err)\n"))
+    let inconsistent_db_failure_paths = (source.contains("panic(err)")
+        || source.contains("panic(err)\n"))
         && source.contains("log.Println(err)")
         && (source.contains("db.Get(") || source.contains("db.QueryRow("));
     if !inconsistent_db_failure_paths {
@@ -5642,12 +6028,14 @@ fn detect_cwe_547(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let hardcoded_signing_secret = source.contains("const jwtSecret = ")
-        || source.contains("const sessionMACKey = ");
+    let hardcoded_signing_secret =
+        source.contains("const jwtSecret = ") || source.contains("const sessionMACKey = ");
     if !hardcoded_signing_secret {
         return;
     }
-    if source.contains("os.Getenv(\"JWT_SIGNING_KEY\")") || source.contains("os.Getenv(\"SESSION_MAC_KEY\")") {
+    if source.contains("os.Getenv(\"JWT_SIGNING_KEY\")")
+        || source.contains("os.Getenv(\"SESSION_MAC_KEY\")")
+    {
         return;
     }
 
@@ -5709,7 +6097,9 @@ fn detect_cwe_551(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
         return;
     }
 
-    let start_byte = source.find("strings.HasPrefix(raw, \"/admin\")").unwrap_or(0);
+    let start_byte = source
+        .find("strings.HasPrefix(raw, \"/admin\")")
+        .unwrap_or(0);
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_551,
@@ -5731,7 +6121,9 @@ fn detect_cwe_601(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     if !caller_redirect {
         return;
     }
-    if source.contains("strings.HasPrefix(target, \"/\")") || source.contains("strings.Contains(target, \"//\")") {
+    if source.contains("strings.HasPrefix(target, \"/\")")
+        || source.contains("strings.Contains(target, \"//\")")
+    {
         return;
     }
 
@@ -5806,7 +6198,10 @@ fn detect_cwe_611(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     if !unsafe_xml {
         return;
     }
-    if source.contains("<!DOCTYPE") || source.contains("dec.Strict = true") || source.contains("LimitReader") {
+    if source.contains("<!DOCTYPE")
+        || source.contains("dec.Strict = true")
+        || source.contains("LimitReader")
+    {
         return;
     }
 
@@ -5832,7 +6227,11 @@ fn detect_cwe_613(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     if !non_expiring_cookie {
         return;
     }
-    if source.contains("revokedSessions[sid]") || source.contains("revokedSessions[c.Value]") || source.contains("MaxAge: 900") || source.contains(", 900,") {
+    if source.contains("revokedSessions[sid]")
+        || source.contains("revokedSessions[c.Value]")
+        || source.contains("MaxAge: 900")
+        || source.contains(", 900,")
+    {
         return;
     }
 
@@ -5911,7 +6310,8 @@ fn detect_cwe_620(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
 
     let blind_password_update = source.contains("ChangePassword")
         && source.contains(r#""new_password""#)
-        && (source.contains("Update(\"password\",") || source.contains("UPDATE accounts SET password"));
+        && (source.contains("Update(\"password\",")
+            || source.contains("UPDATE accounts SET password"));
     if !blind_password_update {
         return;
     }
@@ -5941,11 +6341,15 @@ fn detect_cwe_639(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
 
     let user_controlled_key = source.contains("invoice_id")
         && (source.contains("SELECT id, user_id, amount FROM invoices WHERE id = $1")
-            || source.contains("SELECT id, user_id, amount FROM invoices WHERE id = $1\", invoiceID"));
+            || source
+                .contains("SELECT id, user_id, amount FROM invoices WHERE id = $1\", invoiceID"));
     if !user_controlled_key {
         return;
     }
-    if source.contains("AND user_id = $2") || source.contains("ownerID") || source.contains("X-User-ID") {
+    if source.contains("AND user_id = $2")
+        || source.contains("ownerID")
+        || source.contains("X-User-ID")
+    {
         return;
     }
 
@@ -5973,7 +6377,10 @@ fn detect_cwe_640(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     if !email_only_reset {
         return;
     }
-    if source.contains("reset_tokens") || source.contains(r#""token""#) || source.contains("expires_at") {
+    if source.contains("reset_tokens")
+        || source.contains(r#""token""#)
+        || source.contains("expires_at")
+    {
         return;
     }
 
@@ -5993,7 +6400,8 @@ fn detect_cwe_645(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let one_strike_lockout = source.contains("failedAttempts[user]++") && source.contains("failedAttempts[user] >= 1");
+    let one_strike_lockout =
+        source.contains("failedAttempts[user]++") && source.contains("failedAttempts[user] >= 1");
     if !one_strike_lockout {
         return;
     }
@@ -6054,7 +6462,10 @@ fn detect_cwe_649(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     if !obfuscated_role_cookie {
         return;
     }
-    if source.contains("hmac.New(") || source.contains("hmac.Equal(") || source.contains("RawURLEncoding") {
+    if source.contains("hmac.New(")
+        || source.contains("hmac.Equal(")
+        || source.contains("RawURLEncoding")
+    {
         return;
     }
 
@@ -6074,13 +6485,18 @@ fn detect_cwe_653(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let shared_privileged_store = (source.contains("sharedDB") || source.contains("sharedAuditStore"))
+    let shared_privileged_store = (source.contains("sharedDB")
+        || source.contains("sharedAuditStore"))
         && source.contains("PublicSearch")
         && source.contains("AdminPurge");
     if !shared_privileged_store {
         return;
     }
-    if source.contains("readOnlyDB") || source.contains("readOnlyAuditStore") || source.contains("adminDB") || source.contains("adminAuditStore") {
+    if source.contains("readOnlyDB")
+        || source.contains("readOnlyAuditStore")
+        || source.contains("adminDB")
+        || source.contains("adminAuditStore")
+    {
         return;
     }
 
@@ -6130,7 +6546,8 @@ fn detect_cwe_656(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let hidden_path_gate = source.contains("/maintenance-portal-9f3c2a") && source.contains("HiddenConfigPanel");
+    let hidden_path_gate =
+        source.contains("/maintenance-portal-9f3c2a") && source.contains("HiddenConfigPanel");
     if !hidden_path_gate {
         return;
     }
@@ -6160,7 +6577,8 @@ fn detect_cwe_708(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     if !caller_chosen_owner {
         return;
     }
-    if source.contains("spoolDir") || source.contains("serviceUID") || source.contains("serviceGID") {
+    if source.contains("spoolDir") || source.contains("serviceUID") || source.contains("serviceGID")
+    {
         return;
     }
 
@@ -6208,7 +6626,9 @@ fn detect_cwe_765(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let double_unlock = source.contains("Unlock()") && source.matches("Unlock()").count() >= 2 && source.contains("DebitWallet");
+    let double_unlock = source.contains("Unlock()")
+        && source.matches("Unlock()").count() >= 2
+        && source.contains("DebitWallet");
     if !double_unlock {
         return;
     }
@@ -6267,7 +6687,9 @@ fn detect_cwe_783(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
         return;
     }
 
-    let start_byte = source.find("!authenticated || isAdmin && ownerID == docOwner").unwrap_or(0);
+    let start_byte = source
+        .find("!authenticated || isAdmin && ownerID == docOwner")
+        .unwrap_or(0);
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_783,
@@ -6283,7 +6705,8 @@ fn detect_cwe_798(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let hardcoded_dsn = source.contains("postgres://reporting:Tr4ck3rP@ss@db.internal:5432/reports?sslmode=disable");
+    let hardcoded_dsn = source
+        .contains("postgres://reporting:Tr4ck3rP@ss@db.internal:5432/reports?sslmode=disable");
     if !hardcoded_dsn {
         return;
     }
@@ -6291,7 +6714,9 @@ fn detect_cwe_798(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
         return;
     }
 
-    let start_byte = source.find("postgres://reporting:Tr4ck3rP@ss@db.internal:5432/reports?sslmode=disable").unwrap_or(0);
+    let start_byte = source
+        .find("postgres://reporting:Tr4ck3rP@ss@db.internal:5432/reports?sslmode=disable")
+        .unwrap_or(0);
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_798,
@@ -6307,7 +6732,8 @@ fn detect_cwe_820(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let unsynchronized_map_write = source.contains("visitCounts[key] = visitCounts[key] + 1") && source.contains("TrackVisit");
+    let unsynchronized_map_write =
+        source.contains("visitCounts[key] = visitCounts[key] + 1") && source.contains("TrackVisit");
     if !unsynchronized_map_write {
         return;
     }
@@ -6315,7 +6741,9 @@ fn detect_cwe_820(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
         return;
     }
 
-    let start_byte = source.find("visitCounts[key] = visitCounts[key] + 1").unwrap_or(0);
+    let start_byte = source
+        .find("visitCounts[key] = visitCounts[key] + 1")
+        .unwrap_or(0);
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_820,
@@ -6331,7 +6759,8 @@ fn detect_cwe_821(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let writes_under_rlock = source.contains("RLock()") && source.contains("tokenCache[key] = value");
+    let writes_under_rlock =
+        source.contains("RLock()") && source.contains("tokenCache[key] = value");
     if !writes_under_rlock {
         return;
     }
@@ -6361,7 +6790,9 @@ fn detect_cwe_826(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     if !premature_release {
         return;
     }
-    if source.contains("QueryContext(") || source.contains("<-done\n\tc.Status(") && !source.contains("db.Close()") {
+    if source.contains("QueryContext(")
+        || source.contains("<-done\n\tc.Status(") && !source.contains("db.Close()")
+    {
         return;
     }
 
@@ -6406,8 +6837,8 @@ fn detect_cwe_836(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let client_submits_hash = source.contains("PasswordHash string")
-        || source.contains("`json:\"password_hash\"`");
+    let client_submits_hash =
+        source.contains("PasswordHash string") || source.contains("`json:\"password_hash\"`");
     let hash_as_password = client_submits_hash
         && (source.contains("password_hash = ?")
             || source.contains("WHERE username = ? AND password_hash = ?")
@@ -6435,8 +6866,8 @@ fn detect_cwe_838(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let invalid_utf8 = source.contains("application/json; charset=utf-8")
-        && source.contains("0xC3, 0x28");
+    let invalid_utf8 =
+        source.contains("application/json; charset=utf-8") && source.contains("0xC3, 0x28");
     if !invalid_utf8 {
         return;
     }
@@ -6485,8 +6916,8 @@ fn detect_cwe_842(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let wrong_default_group = source.contains("RegisterMember")
-        && source.contains("Group: \"administrators\"");
+    let wrong_default_group =
+        source.contains("RegisterMember") && source.contains("Group: \"administrators\"");
     if !wrong_default_group {
         return;
     }
@@ -6566,7 +6997,8 @@ fn detect_cwe_916(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     if !weak_password_hash {
         return;
     }
-    if source.contains("bcrypt.GenerateFromPassword") || source.contains("hashIterations = 100_000") {
+    if source.contains("bcrypt.GenerateFromPassword") || source.contains("hashIterations = 100_000")
+    {
         return;
     }
 
@@ -6617,7 +7049,10 @@ fn detect_cwe_918(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     if !ssrf_fetch {
         return;
     }
-    if source.contains("allowedHosts") || source.contains("allowedHostsPure") || source.contains("Hostname()") {
+    if source.contains("allowedHosts")
+        || source.contains("allowedHostsPure")
+        || source.contains("Hostname()")
+    {
         return;
     }
 
@@ -6668,7 +7103,9 @@ fn detect_cwe_924(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
         || source.contains("AcceptWebhookVerified(")
         || source.contains("AcceptWebhookVerifiedPure("))
         && source.contains("UPDATE invoices SET paid = true")
-        && (source.contains("BindJSON(&evt)") || source.contains("Decode(&evt)") || source.contains("Unmarshal(body, &evt)"));
+        && (source.contains("BindJSON(&evt)")
+            || source.contains("Decode(&evt)")
+            || source.contains("Unmarshal(body, &evt)"));
     if !applies_payment_webhook {
         return;
     }
@@ -6698,7 +7135,8 @@ fn detect_cwe_940(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let oauth_callback = (source.contains("OAuthCallback(") || source.contains("OAuthCallbackPure("))
+    let oauth_callback = (source.contains("OAuthCallback(")
+        || source.contains("OAuthCallbackPure("))
         && source.contains("code")
         && source.contains("INSERT INTO oauth_tokens (user_id, code) VALUES ($1, $2)");
     if !oauth_callback {
@@ -6731,7 +7169,8 @@ fn detect_cwe_941(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let caller_directed_reset = (source.contains("SendResetLink(") || source.contains("SendResetLinkPure("))
+    let caller_directed_reset = (source.contains("SendResetLink(")
+        || source.contains("SendResetLinkPure("))
         && source.contains("smtp.SendMail")
         && (source.contains("Query(\"email\")") || source.contains("Query().Get(\"email\")"))
         && source.contains("[]string{email}");
@@ -6764,7 +7203,8 @@ fn detect_cwe_1051(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Findin
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let hard_coded_upstream = (source.contains("ChargeCard(") || source.contains("ChargeCardPure("))
+    let hard_coded_upstream = (source.contains("ChargeCard(")
+        || source.contains("ChargeCardPure("))
         && source.contains("10.20.30.40:9090")
         && source.contains("http.NewRequest(")
         && source.contains("X-Card-Token");
@@ -6874,7 +7314,8 @@ fn detect_cwe_1125(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Findin
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let wide_surface = (source.contains("MountWideSurface(") || source.contains("MountWideSurfacePure("))
+    let wide_surface = (source.contains("MountWideSurface(")
+        || source.contains("MountWideSurfacePure("))
         && (source.contains("/debug/pprof") || source.contains("pprof.Index"))
         && source.contains("/admin/sql")
         && source.contains("/admin/config")
@@ -6928,13 +7369,17 @@ fn detect_cwe_1220(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Findin
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let unscoped_invoice_read = (source.contains("GetInvoice(") || source.contains("GetInvoicePure("))
+    let unscoped_invoice_read = (source.contains("GetInvoice(")
+        || source.contains("GetInvoicePure("))
         && source.contains("Authorization")
         && source.contains("FROM invoices WHERE id = $1");
     if !unscoped_invoice_read {
         return;
     }
-    if source.contains("owner_id = $2") || source.contains("ownerID") || source.contains("X-User-ID") {
+    if source.contains("owner_id = $2")
+        || source.contains("ownerID")
+        || source.contains("X-User-ID")
+    {
         return;
     }
 
@@ -6954,7 +7399,8 @@ fn detect_cwe_1230(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Findin
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let metadata_leak = (source.contains("DownloadRedacted(") || source.contains("DownloadRedactedPure("))
+    let metadata_leak = (source.contains("DownloadRedacted(")
+        || source.contains("DownloadRedactedPure("))
         && source.contains("X-Original-Name")
         && source.contains("X-File-Size")
         && source.contains("[REDACTED CONTENT]");
@@ -6981,14 +7427,18 @@ fn detect_cwe_1236(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Findin
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let raw_csv_export = (source.contains("ExportFeedbackCSV(") || source.contains("ExportFeedbackCSVPure("))
+    let raw_csv_export = (source.contains("ExportFeedbackCSV(")
+        || source.contains("ExportFeedbackCSVPure("))
         && source.contains("id,comment")
         && source.contains("fmt.Sprintf(\"%d,%s\\n\"")
         && source.contains("row.Comment");
     if !raw_csv_export {
         return;
     }
-    if source.contains("sanitizeCSVField(") || source.contains("sanitizeCSVFieldPure(") || source.contains("csv.NewWriter(") {
+    if source.contains("sanitizeCSVField(")
+        || source.contains("sanitizeCSVFieldPure(")
+        || source.contains("csv.NewWriter(")
+    {
         return;
     }
 
@@ -7008,7 +7458,8 @@ fn detect_cwe_1240(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Findin
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let custom_xor_cipher = (source.contains("SealSessionToken(") || source.contains("SealSessionTokenPure("))
+    let custom_xor_cipher = (source.contains("SealSessionToken(")
+        || source.contains("SealSessionTokenPure("))
         && (source.contains("xorCipher(") || source.contains("xorCipherPure("))
         && source.contains("^ key");
     if !custom_xor_cipher {
@@ -7034,7 +7485,8 @@ fn detect_cwe_1265(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Findin
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let nested_lock_reentry = (source.contains("UpdateBalance(") || source.contains("UpdateBalancePure("))
+    let nested_lock_reentry = (source.contains("UpdateBalance(")
+        || source.contains("UpdateBalancePure("))
         && (source.contains("ledgerMu.Lock()") || source.contains("ledgerMuPure.Lock()"))
         && (source.contains("PostTransfer(") || source.contains("PostTransferPure("));
     if !nested_lock_reentry {
@@ -7044,7 +7496,8 @@ fn detect_cwe_1265(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Findin
         return;
     }
 
-    let start_byte = source.find("UpdateBalance(")
+    let start_byte = source
+        .find("UpdateBalance(")
         .or_else(|| source.find("UpdateBalancePure("))
         .unwrap_or(0);
     let (line, col) = unit.line_col(start_byte);
@@ -7062,8 +7515,10 @@ fn detect_cwe_1286(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Findin
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let loose_json_config = (source.contains("SaveHookConfig(") || source.contains("SaveHookConfigPure("))
-        && (source.contains("json.Unmarshal(body, &cfg)") || source.contains("json.NewDecoder(r.Body).Decode(&cfg)"))
+    let loose_json_config = (source.contains("SaveHookConfig(")
+        || source.contains("SaveHookConfigPure("))
+        && (source.contains("json.Unmarshal(body, &cfg)")
+            || source.contains("json.NewDecoder(r.Body).Decode(&cfg)"))
         && source.contains("hook_configs");
     if !loose_json_config {
         return;
@@ -7072,7 +7527,8 @@ fn detect_cwe_1286(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Findin
         return;
     }
 
-    let start_byte = source.find("json.Unmarshal(body, &cfg)")
+    let start_byte = source
+        .find("json.Unmarshal(body, &cfg)")
         .or_else(|| source.find("json.NewDecoder(r.Body).Decode(&cfg)"))
         .unwrap_or(0);
     let (line, col) = unit.line_col(start_byte);
@@ -7090,17 +7546,22 @@ fn detect_cwe_1289(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Findin
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let literal_path_block = (source.contains("FetchSharedAsset(") || source.contains("FetchSharedAssetPure("))
+    let literal_path_block = (source.contains("FetchSharedAsset(")
+        || source.contains("FetchSharedAssetPure("))
         && source.contains("requested == \"private/keys.pem\"")
         && source.contains("filepath.Join(root, requested)");
     if !literal_path_block {
         return;
     }
-    if source.contains("filepath.Clean(filepath.Join(root, requested))") || source.contains("HasPrefix(clean, root+string(filepath.Separator))") {
+    if source.contains("filepath.Clean(filepath.Join(root, requested))")
+        || source.contains("HasPrefix(clean, root+string(filepath.Separator))")
+    {
         return;
     }
 
-    let start_byte = source.find("requested == \"private/keys.pem\"").unwrap_or(0);
+    let start_byte = source
+        .find("requested == \"private/keys.pem\"")
+        .unwrap_or(0);
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_1289,
@@ -7116,7 +7577,8 @@ fn detect_cwe_1322(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Findin
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let blocking_worker = (source.contains("StartWebhookWorker(") || source.contains("StartWebhookWorkerPure("))
+    let blocking_worker = (source.contains("StartWebhookWorker(")
+        || source.contains("StartWebhookWorkerPure("))
         && source.contains("queue := make(chan")
         && source.contains("for payload := range queue")
         && source.contains("time.Sleep(2 * time.Second)");
@@ -7143,7 +7605,8 @@ fn detect_cwe_1327(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Findin
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let unrestricted_bind = (source.contains("StartPublicAPI(") || source.contains("StartPublicAPIPure("))
+    let unrestricted_bind = (source.contains("StartPublicAPI(")
+        || source.contains("StartPublicAPIPure("))
         && (source.contains("Run(\":9090\")") || source.contains("ListenAndServe(\":9090\","));
     if !unrestricted_bind {
         return;
@@ -7219,7 +7682,8 @@ fn detect_cwe_1392(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Findin
     let file = unit.path.display().to_string();
     let source = unit.source.as_ref();
 
-    let default_admin = (source.contains("BootstrapAdmin(") || source.contains("BootstrapAdminPure("))
+    let default_admin = (source.contains("BootstrapAdmin(")
+        || source.contains("BootstrapAdminPure("))
         && source.contains("Username: \"admin\"")
         && source.contains("Password: \"admin\"");
     if !default_admin {
@@ -7297,9 +7761,11 @@ fn expression_uses_request_input(expr: &str) -> bool {
 }
 
 fn is_path_confined(source: &str, assignment: &facts::AssignmentFact) -> bool {
-    (assignment.expr.contains("filepath.Clean(") && source.contains(&format!("strings.HasPrefix({},", assignment.name)))
+    (assignment.expr.contains("filepath.Clean(")
+        && source.contains(&format!("strings.HasPrefix({},", assignment.name)))
         || assignment.expr.contains("filepath.Base(")
-        || (assignment.expr.contains("filepath.Abs(") && has_canonical_path_guard(source, &assignment.name))
+        || (assignment.expr.contains("filepath.Abs(")
+            && has_canonical_path_guard(source, &assignment.name))
 }
 
 fn has_canonical_path_guard(source: &str, path_name: &str) -> bool {
@@ -7308,6 +7774,5 @@ fn has_canonical_path_guard(source: &str, path_name: &str) -> bool {
 }
 
 fn has_symlink_guard(source: &str, path_name: &str) -> bool {
-    source.contains(&format!("os.Lstat({})", path_name))
-        && source.contains("os.ModeSymlink")
+    source.contains(&format!("os.Lstat({})", path_name)) && source.contains("os.ModeSymlink")
 }

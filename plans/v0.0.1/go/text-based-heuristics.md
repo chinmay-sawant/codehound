@@ -29,11 +29,11 @@ Add real detection logic for the Go CWE fixtures so the analyzer validates vulne
 ## Current state
 
 - `tests/fixture_manifest_integration.rs` now enforces `CWE-*` fixtures for real.
-- The Go plugin registers both `GoScan` and the bundled `GoCweScan`.
+- The Go plugin registers the bundled `GoCweScan`.
 - The manifest-driven implementation loop is complete for the current Go fixture corpus.
 - `cargo test --test go_cwe_detector_integration` is green for all current Go CWE fixtures: `350 passed`.
 - `cargo test --test fixture_manifest_integration` is green.
-- `cargo test --test go_integration`, `cargo test --test go_slop_detector_integration`, and `cargo test --test perf_regression` are green.
+- `cargo test --test mixed_integration` and `cargo test --test perf_regression` are green.
 - Current manifest frontier: none. All current Go `CWE-*` fixture entries fire as expected.
 - Current measured timings:
   - `cargo test --test go_cwe_detector_integration`: `real 0.63s`
@@ -499,7 +499,7 @@ Suppression:
 
 - vulnerable fixture should emit the expected rule id
 - safe fixture should not emit that rule id
-- existing `SLOP001` to `SLOP004` tests must remain green
+- active non-CWE and mixed-fixture tests must remain green
 
 ### Precision safeguards
 
@@ -532,7 +532,7 @@ Add at least one targeted performance regression check around the fact-builder o
 - [x] High-priority rule groups are implemented and passing
 - [x] Remaining Go fixture rules are implemented, deferred explicitly, or redesign-noted
 - [x] Safe fixtures no longer pass trivially
-- [x] Existing Go `SLOP001` to `SLOP004` coverage still passes
+- [x] Removed Go `SLOP00N` rule paths no longer participate in active tests
 - [x] Performance measurements are recorded for the current detector and manifest path
 - [x] `src/lang/go/detectors/cwe/README.md` documents the architecture
 
