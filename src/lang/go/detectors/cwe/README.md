@@ -31,9 +31,9 @@ Rules should prefer these facts when the pattern is structural. Plain source sca
 The detector lives in [mod.rs](/home/chinmay/ChinmayPersonalProjects/slopguard/src/lang/go/detectors/cwe/mod.rs) as:
 
 - metadata constants with one structured self-CWE reference per rule
-- a single `GO_CWE_RULE_IDS` registry
-- one `run` orchestrator
-- small rule functions such as `detect_cwe_22`
+- a typed [registry.toml](/home/chinmay/ChinmayPersonalProjects/slopguard/src/lang/go/detectors/cwe/registry.toml) (source of truth for `build.rs`)
+- domain modules under [domains/](/home/chinmay/ChinmayPersonalProjects/slopguard/src/lang/go/detectors/cwe/domains/) with rule functions such as `detect_cwe_22`
+- one `run` orchestrator and a `SourceIndex` built once per file for hot substring guards
 
 This shape keeps registration static and avoids the overhead of a trait-object registry for every CWE.
 

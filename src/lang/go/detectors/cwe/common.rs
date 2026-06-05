@@ -1,4 +1,5 @@
 use super::facts;
+use super::source_index::SourceIndex;
 
 pub fn is_configuration_sink(callee: &str) -> bool {
     matches!(callee, "sql.Open" | "factory")
@@ -25,20 +26,24 @@ pub fn expression_uses_request_input(expr: &str) -> bool {
         || expr.contains(".PathValue(")
 }
 
-pub fn is_path_confined(source: &str, assignment: &facts::AssignmentFact) -> bool {
+pub fn is_path_confined(
+    index: &SourceIndex,
+    source: &str,
+    assignment: &facts::AssignmentFact,
+) -> bool {
     (assignment.expr.contains("filepath.Clean(")
         && crate::engine::scratch_contains(source, "strings.HasPrefix(", &assignment.name, ","))
         || assignment.expr.contains("filepath.Base(")
         || (assignment.expr.contains("filepath.Abs(")
-            && has_canonical_path_guard(source, &assignment.name))
+            && has_canonical_path_guard(index, source, &assignment.name))
 }
 
-pub fn has_canonical_path_guard(source: &str, path_name: &str) -> bool {
+pub fn has_canonical_path_guard(index: &SourceIndex, source: &str, path_name: &str) -> bool {
     crate::engine::scratch_contains(source, "strings.HasPrefix(", path_name, ",")
-        && source.contains("filepath.Abs(")
+        && index.has("filepath.Abs(")
 }
 
-pub fn has_symlink_guard(source: &str, path_name: &str) -> bool {
+pub fn has_symlink_guard(index: &SourceIndex, source: &str, path_name: &str) -> bool {
     crate::engine::scratch_contains(source, "os.Lstat(", path_name, ")")
-        && source.contains("os.ModeSymlink")
+        && index.has("os.ModeSymlink")
 }

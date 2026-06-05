@@ -1,19 +1,16 @@
 //! Bundled Go CWE heuristics.
 
-pub mod facts;
-
 pub mod common;
-mod detector_group_a;
-mod detector_group_b;
-mod detector_group_c;
+pub mod domains;
+pub mod facts;
+pub mod source_index;
+
 mod metadata;
 
-use self::detector_group_a::*;
-use self::detector_group_b::*;
-use self::detector_group_c::*;
-use self::facts::{GoUnitFacts, build_go_unit_facts};
 use crate::core::{Detector, LanguageId, ParsedUnit, ScanContext};
 use crate::rules::{Finding, Rule, RuleMetadata};
+use domains::*;
+use facts::{GoUnitFacts, build_go_unit_facts};
 
 type GoRuleFn = fn(&ParsedUnit, &GoUnitFacts, &mut Vec<Finding>);
 type GoRuleEntry = (&'static str, GoRuleFn, &'static RuleMetadata);
@@ -48,6 +45,9 @@ impl Detector for GoCweScan {
     }
 
     fn run(&self, ctx: &ScanContext, unit: &ParsedUnit, out: &mut Vec<Finding>) {
+        if !self.rule_ids().iter().any(|id| ctx.allows(id)) {
+            return;
+        }
         let facts = build_go_unit_facts(unit);
         for (rule_id, detector, _) in GO_RULES {
             if ctx.allows(rule_id) {

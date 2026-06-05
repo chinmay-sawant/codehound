@@ -1,7 +1,8 @@
 //! Finding export helpers for context files and chunk files.
 
 use std::collections::HashMap;
-use std::fs;
+use std::fs::{self, File};
+use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 
 use anyhow::Result;
@@ -23,44 +24,46 @@ pub struct ExportSummary {
     pub chunk_files_written: usize,
 }
 
-#[derive(Debug, Clone)]
-struct FindingBlock {
-    text: String,
-}
-
 pub fn export_findings(findings: &[Finding], options: &ExportOptions) -> Result<ExportSummary> {
     if !options.export_context && !options.export_chunks {
         return Ok(ExportSummary::default());
     }
 
-    let mut source_cache = HashMap::<String, Option<String>>::new();
     let total = findings.len();
-    let blocks = findings
-        .iter()
-        .enumerate()
-        .map(|(index, finding)| build_finding_block(finding, index + 1, total, &mut source_cache))
-        .collect::<Vec<_>>();
-
+    let mut source_cache = HashMap::<String, Option<String>>::new();
     let mut summary = ExportSummary::default();
+
     if options.export_context {
-        summary.context_files_written = write_context_files(&blocks, &options.context_output_dir)?;
+        fs::create_dir_all(&options.context_output_dir)?;
+        clean_matching_txt_files(&options.context_output_dir, |name| name.ends_with(".txt"))?;
+        for (index, finding) in findings.iter().enumerate() {
+            let text = format_finding_block(finding, index + 1, total, &mut source_cache);
+            let output_path = options
+                .context_output_dir
+                .join(format!("{}.txt", index + 1));
+            fs::write(output_path, text)?;
+            summary.context_files_written += 1;
+        }
     }
+
     if options.export_chunks {
-        summary.chunk_files_written = write_chunk_files(
-            &blocks,
+        summary.chunk_files_written = write_chunk_files_streaming(
+            findings,
             &options.chunks_output_dir,
             options.chunk_size.max(1),
+            &mut source_cache,
         )?;
     }
+
     Ok(summary)
 }
 
-fn build_finding_block(
+fn format_finding_block(
     finding: &Finding,
     index: usize,
     total: usize,
     source_cache: &mut HashMap<String, Option<String>>,
-) -> FindingBlock {
+) -> String {
     let mut lines = vec![
         format!("Finding {index}/{total}"),
         format!(
@@ -95,9 +98,7 @@ fn build_finding_block(
         lines.push(format!("    {line}"));
     }
 
-    FindingBlock {
-        text: format!("{}\n", lines.join("\n")),
-    }
+    format!("{}\n", lines.join("\n"))
 }
 
 fn finding_context_lines(
@@ -143,64 +144,49 @@ fn finding_context_lines(
     vec!["<context unavailable>".to_string()]
 }
 
-fn write_context_files(blocks: &[FindingBlock], output_dir: &Path) -> Result<usize> {
-    fs::create_dir_all(output_dir)?;
-    clean_matching_txt_files(output_dir, |name| name.ends_with(".txt"))?;
-
-    for (index, block) in blocks.iter().enumerate() {
-        let output_path = output_dir.join(format!("{}.txt", index + 1));
-        fs::write(output_path, &block.text)?;
-    }
-    Ok(blocks.len())
-}
-
-fn write_chunk_files(
-    blocks: &[FindingBlock],
+fn write_chunk_files_streaming(
+    findings: &[Finding],
     output_dir: &Path,
     chunk_size: usize,
+    source_cache: &mut HashMap<String, Option<String>>,
 ) -> Result<usize> {
     fs::create_dir_all(output_dir)?;
     clean_matching_txt_files(output_dir, |name| {
         name.starts_with("Chunk_") && name.ends_with(".txt")
     })?;
 
-    let separator = "=".repeat(100);
-    let total = blocks.len();
+    if findings.is_empty() {
+        return Ok(0);
+    }
 
-    for (chunk_index, chunk) in blocks.chunks(chunk_size).enumerate() {
+    let separator = "=".repeat(100);
+    let total = findings.len();
+    let mut chunk_count = 0;
+
+    for (chunk_index, chunk) in findings.chunks(chunk_size).enumerate() {
         let start_index = chunk_index * chunk_size + 1;
         let end_index = start_index + chunk.len().saturating_sub(1);
-        let output_path = output_dir.join(format!("Chunk_{start_index}_{end_index}.txt"));
-        fs::write(
-            output_path,
-            build_chunk_content(chunk, start_index, end_index, total, &separator),
-        )?;
-    }
+        let path = output_dir.join(format!("Chunk_{start_index}_{end_index}.txt"));
+        let mut writer = BufWriter::new(File::create(path)?);
+        writeln!(writer, "Findings {start_index}-{end_index} of {total}")?;
+        writeln!(writer)?;
 
-    Ok(blocks.chunks(chunk_size).count())
-}
-
-fn build_chunk_content(
-    blocks: &[FindingBlock],
-    start_index: usize,
-    end_index: usize,
-    total: usize,
-    separator: &str,
-) -> String {
-    let mut parts = vec![
-        format!("Findings {start_index}-{end_index} of {total}"),
-        String::new(),
-    ];
-
-    for (offset, block) in blocks.iter().enumerate() {
-        if offset > 0 {
-            parts.push(separator.to_string());
-            parts.push(String::new());
+        for (offset, finding) in chunk.iter().enumerate() {
+            if offset > 0 {
+                writeln!(writer)?;
+                writeln!(writer, "{separator}")?;
+                writeln!(writer)?;
+            }
+            let one_based = start_index + offset;
+            let block = format_finding_block(finding, one_based, total, source_cache);
+            write!(writer, "{}", block.trim_end())?;
         }
-        parts.push(block.text.trim_end().to_string());
+        writeln!(writer)?;
+        writer.flush()?;
+        chunk_count += 1;
     }
 
-    format!("{}\n", parts.join("\n"))
+    Ok(chunk_count)
 }
 
 fn clean_matching_txt_files(output_dir: &Path, keep_if: impl Fn(&str) -> bool) -> Result<()> {

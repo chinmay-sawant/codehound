@@ -9,6 +9,8 @@ use std::sync::Arc;
 use crate::ast::walk_calls_and_assignments;
 use crate::core::ParsedUnit;
 
+use super::source_index::SourceIndex;
+
 type SharedText = Arc<str>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,6 +44,8 @@ pub struct GoUnitFacts {
     pub input_bindings: Vec<InputBinding>,
     pub call_facts: Vec<CallFact>,
     pub assignments: Vec<AssignmentFact>,
+    /// Single-pass substring flags for hot detector guards.
+    pub source_index: SourceIndex,
 }
 
 pub fn build_go_unit_facts(unit: &ParsedUnit) -> GoUnitFacts {
@@ -108,6 +112,7 @@ pub fn build_go_unit_facts(unit: &ParsedUnit) -> GoUnitFacts {
         _ => {}
     });
 
+    facts.source_index = SourceIndex::build(unit.source.as_ref());
     facts
 }
 

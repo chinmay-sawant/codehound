@@ -65,8 +65,15 @@ pub struct Cli {
     #[arg(long, global = true)]
     pub quiet: bool,
 
-    /// Disable colored output.
-    #[arg(long, env = "NO_COLOR")]
+    /// Disable colored output (honors `NO_COLOR=1` and similar truthy env values).
+    #[arg(
+        long,
+        env = "NO_COLOR",
+        action = clap::ArgAction::Set,
+        value_parser = clap::builder::BoolishValueParser::new(),
+        default_value = "false",
+        hide_env_values = true,
+    )]
     pub no_color: bool,
 
     /// Do not print findings to stdout.
