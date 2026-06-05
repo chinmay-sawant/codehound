@@ -97,6 +97,10 @@ pub struct Cli {
     #[arg(long, default_value = "scripts/chunks")]
     pub chunks_output_dir: PathBuf,
 
+    /// Emit JSON as a single envelope object (not NDJSON).
+    #[arg(long)]
+    pub json_envelope: bool,
+
     /// List all registered rules and exit.
     #[arg(long)]
     pub list_rules: bool,

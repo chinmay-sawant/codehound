@@ -39,6 +39,18 @@ pub struct Finding {
     pub line: usize,
     /// 1-indexed column.
     pub column: usize,
+    /// 1-indexed end line of the matched region, when known.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end_line: Option<usize>,
+    /// 1-indexed end column of the matched region, when known.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end_column: Option<usize>,
+    /// 0-indexed byte offset of the match start within the source file.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub byte_offset: Option<usize>,
+    /// Number of bytes covered by the match, when known.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub byte_length: Option<usize>,
     /// Source snippet, if available.
     pub snippet: Option<String>,
     /// Free-form message.
@@ -54,6 +66,7 @@ pub struct Finding {
 }
 
 impl Finding {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         rule_id: &'static str,
         rule_title: &'static str,
@@ -74,6 +87,10 @@ impl Finding {
             file: file.into(),
             line: location.line,
             column: location.column,
+            end_line: None,
+            end_column: None,
+            byte_offset: None,
+            byte_length: None,
             snippet: None,
             message: message.into(),
             severity,
@@ -90,6 +107,26 @@ impl Finding {
     pub fn with_fix(mut self, fix: impl Into<String>) -> Self {
         self.fix = Some(fix.into());
         self
+    }
+
+    /// Attach byte-range information to the finding.
+    pub fn with_byte_range(mut self, byte_offset: usize, byte_length: usize) -> Self {
+        self.byte_offset = Some(byte_offset);
+        self.byte_length = Some(byte_length);
+        self
+    }
+
+    /// Attach end-line/end-column information to the finding.
+    pub fn with_end(mut self, end_line: usize, end_column: usize) -> Self {
+        self.end_line = Some(end_line);
+        self.end_column = Some(end_column);
+        self
+    }
+
+    /// Compute a stable cross-run fingerprint (`<rule>:<file>:<line>:<col>`).
+    /// Consumers can use this to deduplicate findings across CI runs.
+    pub fn fingerprint(&self) -> String {
+        format!("{}:{}:{}:{}", self.rule_id, self.file, self.line, self.column)
     }
 }
 
@@ -208,5 +245,77 @@ mod tests {
         );
         let s = serde_json::to_string(&f).unwrap();
         assert!(s.contains("\"cwe\":[]"), "expected 'cwe':[], got: {s}");
+    }
+
+    #[test]
+    fn optional_fields_omitted_when_unset() {
+        let f = Finding::new(
+            "X",
+            "t",
+            "f",
+            LineCol { line: 1, column: 1 },
+            "m",
+            Severity::Info,
+            Cow::Borrowed(&[]),
+        );
+        let s = serde_json::to_string(&f).unwrap();
+        assert!(!s.contains("end_line"), "end_line must be skipped when None");
+        assert!(
+            !s.contains("byte_offset"),
+            "byte_offset must be skipped when None"
+        );
+        assert!(
+            !s.contains("fingerprint"),
+            "fingerprint field must be skipped when None"
+        );
+    }
+
+    #[test]
+    fn byte_range_appears_in_json() {
+        let f = Finding::new(
+            "X",
+            "t",
+            "f",
+            LineCol { line: 1, column: 1 },
+            "m",
+            Severity::Info,
+            Cow::Borrowed(&[]),
+        )
+        .with_byte_range(42, 7);
+        let s = serde_json::to_string(&f).unwrap();
+        assert!(s.contains("\"byte_offset\":42"), "got: {s}");
+        assert!(s.contains("\"byte_length\":7"), "got: {s}");
+    }
+
+    #[test]
+    fn end_position_appears_in_json() {
+        let f = Finding::new(
+            "X",
+            "t",
+            "f",
+            LineCol { line: 1, column: 1 },
+            "m",
+            Severity::Info,
+            Cow::Borrowed(&[]),
+        )
+        .with_end(3, 5);
+        let s = serde_json::to_string(&f).unwrap();
+        assert!(s.contains("\"end_line\":3"), "got: {s}");
+        assert!(s.contains("\"end_column\":5"), "got: {s}");
+    }
+
+    #[test]
+    fn fingerprint_is_stable_across_calls() {
+        let f = Finding::new(
+            "CWE-22",
+            "title",
+            "a.go",
+            LineCol { line: 12, column: 5 },
+            "msg",
+            Severity::Info,
+            Cow::Borrowed(&[]),
+        );
+        assert_eq!(f.fingerprint(), "CWE-22:a.go:12:5");
+        assert_eq!(f.fingerprint(), "CWE-22:a.go:12:5");
     }
 }

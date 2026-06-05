@@ -2,24 +2,19 @@
 
 use std::path::PathBuf;
 
+use thiserror::Error;
+
 use crate::rules::Finding;
 
 /// A non-fatal error encountered while scanning a single file. The scan
 /// continues; this entry is reported so the caller can surface it.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Error)]
+#[error("{}: {message}", path.display())]
 pub struct ScanError {
     pub path: PathBuf,
     pub kind: ScanErrorKind,
     pub message: String,
 }
-
-impl std::fmt::Display for ScanError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}: {}", self.path.display(), self.message)
-    }
-}
-
-impl std::error::Error for ScanError {}
 
 /// Coarse error category — used to map to distinct process exit codes
 /// (config / I-O / parse / engine-internal).
@@ -44,6 +39,18 @@ impl ScanErrorKind {
             ScanErrorKind::Parse => 3,
             ScanErrorKind::Engine => 3,
         }
+    }
+}
+
+impl std::fmt::Display for ScanErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            ScanErrorKind::Io => "io",
+            ScanErrorKind::Encoding => "encoding",
+            ScanErrorKind::Parse => "parse",
+            ScanErrorKind::Engine => "engine",
+        };
+        f.write_str(s)
     }
 }
 

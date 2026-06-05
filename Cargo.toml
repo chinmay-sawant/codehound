@@ -30,6 +30,7 @@ clap = { version = "4.6", features = ["derive", "cargo", "env", "wrap_help"] }
 
 # Errors
 anyhow = "1.0"
+thiserror = "2.0"
 
 # Serde / config
 serde = { version = "1.0", features = ["derive"] }

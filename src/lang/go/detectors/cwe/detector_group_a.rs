@@ -91,7 +91,12 @@ pub(super) fn detect_cwe_41(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
             continue;
         };
 
-        if !source.contains(&format!(r#"strings.Contains({}, "..")"#, binding.name)) {
+        if !crate::engine::scratch_contains(
+            source,
+            r#"strings.Contains("#,
+            &binding.name,
+            r#", "..")"#,
+        ) {
             continue;
         }
 
@@ -418,6 +423,7 @@ pub(super) fn detect_cwe_91(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
 }
 
 pub(super) fn detect_cwe_93(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+    use crate::engine::scratch_contains;
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
@@ -426,14 +432,18 @@ pub(super) fn detect_cwe_93(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
             continue;
         }
 
-        let strips_cr = source.contains(&format!(
-            r#"strings.ReplaceAll({}, "\r", "")"#,
-            binding.name
-        ));
-        let strips_lf = source.contains(&format!(
-            r#"strings.ReplaceAll({}, "\n", "")"#,
-            binding.name
-        ));
+        let strips_cr = scratch_contains(
+            source,
+            r#"strings.ReplaceAll("#,
+            &binding.name,
+            r#", "\r", "")"#,
+        );
+        let strips_lf = scratch_contains(
+            source,
+            r#"strings.ReplaceAll("#,
+            &binding.name,
+            r#", "\n", "")"#,
+        );
         if strips_cr && strips_lf {
             continue;
         }
@@ -487,7 +497,7 @@ pub(super) fn detect_cwe_112(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 
     let has_untrusted_payload = facts.input_bindings.iter().any(|binding| {
         binding.kind == InputKind::UserControlled
-            && source.contains(&format!("xml.Unmarshal({},", binding.name))
+            && crate::engine::scratch_contains(source, "xml.Unmarshal(", &binding.name, ",")
     });
     if !has_untrusted_payload {
         return;
@@ -586,8 +596,8 @@ pub(super) fn detect_cwe_178(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         return;
     }
 
-    if !(source.contains(&format!("[{}]", assignment.name))
-        || source.contains(&format!("({})", assignment.name)))
+    if !(crate::engine::scratch_contains(source, "[", &assignment.name, "]")
+        || crate::engine::scratch_contains(source, "(", &assignment.name, ")"))
     {
         return;
     }
@@ -616,10 +626,10 @@ pub(super) fn detect_cwe_179(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
             continue;
         }
 
-        if !source.contains(&format!(".MatchString({})", binding.name)) {
+        if !crate::engine::scratch_contains(source, ".MatchString(", &binding.name, ")") {
             continue;
         }
-        if !source.contains(&format!("url.QueryUnescape({})", binding.name)) {
+        if !crate::engine::scratch_contains(source, "url.QueryUnescape(", &binding.name, ")") {
             continue;
         }
 
@@ -671,7 +681,7 @@ pub(super) fn detect_cwe_182(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         return;
     }
 
-    if !source.contains(&format!("[{}]", lower_assignment.name)) {
+    if !crate::engine::scratch_contains(source, "[", &lower_assignment.name, "]") {
         return;
     }
 

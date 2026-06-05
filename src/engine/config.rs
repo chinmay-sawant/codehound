@@ -173,7 +173,6 @@ exclude = []
 
     #[test]
     fn discover_config_finds_in_cwd() {
-        // tests run from the crate root, where slopguard.toml exists.
         let path = discover_config(Path::new("."));
         assert!(path.is_some(), "expected slopguard.toml in cwd");
         let path = path.unwrap();
@@ -182,7 +181,6 @@ exclude = []
 
     #[test]
     fn discover_config_finds_in_subdir() {
-        // target/ exists in the workspace; walk upward from there.
         let target = Path::new("./target");
         if target.is_dir() {
             let path = discover_config(target);
@@ -209,7 +207,6 @@ exclude = []
             ..Default::default()
         };
         let merged = cfg.merge_into(ctx, true);
-        // CLI was explicit → config is ignored.
         assert_eq!(merged.fail_policy, FailPolicy::Strict);
     }
 
@@ -227,5 +224,29 @@ exclude = []
         };
         let merged = cfg.merge_into(ctx, false);
         assert_eq!(merged.fail_policy, FailPolicy::NoFail);
+    }
+
+    #[test]
+    fn schema_file_is_valid_json_and_covers_known_fields() {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("slopguard.schema.json");
+        let text = std::fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
+        let v: serde_json::Value = serde_json::from_str(&text)
+            .unwrap_or_else(|e| panic!("parse schema: {e}"));
+        let props = v
+            .pointer("/properties/slopguard/properties")
+            .expect("schema.properties.slopguard.properties");
+        for field in ["languages", "fail_on", "skip", "only", "include", "exclude"] {
+            assert!(
+                props.get(field).is_some(),
+                "schema must describe `{field}`; got keys: {:?}",
+                props.as_object().map(|o| o.keys().collect::<Vec<_>>())
+            );
+        }
+        // additionalProperties=false on the slopguard section.
+        assert_eq!(
+            v.pointer("/properties/slopguard/additionalProperties"),
+            Some(&serde_json::Value::Bool(false))
+        );
     }
 }

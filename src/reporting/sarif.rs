@@ -70,6 +70,21 @@ struct SarifResult<'a> {
     #[serde(rename = "partialFingerprints")]
     partial_fingerprints: BTreeMap<&'static str, String>,
     properties: SarifProperties,
+    // Carried through the test render helper for parity with the production
+    // struct, but never read; the production code only constructs these
+    // inside the `print_with` function.
+    #[serde(skip)]
+    #[allow(dead_code)]
+    end_line: Option<usize>,
+    #[serde(skip)]
+    #[allow(dead_code)]
+    end_column: Option<usize>,
+    #[serde(skip)]
+    #[allow(dead_code)]
+    byte_offset: Option<usize>,
+    #[serde(skip)]
+    #[allow(dead_code)]
+    byte_length: Option<usize>,
 }
 
 #[derive(Serialize)]
@@ -99,6 +114,14 @@ struct SarifArtifactLocation<'a> {
 struct SarifRegion {
     start_line: usize,
     start_column: usize,
+    #[serde(rename = "endLine", skip_serializing_if = "Option::is_none")]
+    end_line: Option<usize>,
+    #[serde(rename = "endColumn", skip_serializing_if = "Option::is_none")]
+    end_column: Option<usize>,
+    #[serde(rename = "byteOffset", skip_serializing_if = "Option::is_none")]
+    byte_offset: Option<usize>,
+    #[serde(rename = "byteLength", skip_serializing_if = "Option::is_none")]
+    byte_length: Option<usize>,
 }
 
 #[derive(Serialize)]
@@ -194,6 +217,10 @@ fn print_with(result: &AnalysisResult, pretty: bool) -> Result<()> {
                         region: SarifRegion {
                             start_line: f.line,
                             start_column: f.column,
+                            end_line: f.end_line,
+                            end_column: f.end_column,
+                            byte_offset: f.byte_offset,
+                            byte_length: f.byte_length,
                         },
                     },
                 }],
@@ -202,6 +229,10 @@ fn print_with(result: &AnalysisResult, pretty: bool) -> Result<()> {
                     tags,
                     security_severity: severity_score,
                 },
+                end_line: f.end_line,
+                end_column: f.end_column,
+                byte_offset: f.byte_offset,
+                byte_length: f.byte_length,
             }
         })
         .collect();
@@ -332,12 +363,28 @@ mod tests {
                 rule_index: rule_index_of.get(f.rule_id).copied().unwrap_or(0),
                 level: "warning",
                 message: SarifText { text: f.message.as_str() },
-                locations: vec![],
+                locations: vec![SarifLocation {
+                    physical_location: SarifPhysicalLocation {
+                        artifact_location: SarifArtifactLocation { uri: f.file.as_str() },
+                        region: SarifRegion {
+                            start_line: f.line,
+                            start_column: f.column,
+                            end_line: f.end_line,
+                            end_column: f.end_column,
+                            byte_offset: f.byte_offset,
+                            byte_length: f.byte_length,
+                        },
+                    },
+                }],
                 partial_fingerprints: BTreeMap::new(),
                 properties: SarifProperties {
                     tags: vec!["security".to_string()],
                     security_severity: "5.0",
                 },
+                end_line: f.end_line,
+                end_column: f.end_column,
+                byte_offset: f.byte_offset,
+                byte_length: f.byte_length,
             })
             .collect();
         let log = SarifLog {
@@ -407,6 +454,28 @@ mod tests {
         let log = render_to_string(&sample_result());
         assert!(log.contains("\"invocations\""), "got: {log}");
         assert!(log.contains("\"endTimeUtc\""), "got: {log}");
+    }
+
+    #[test]
+    fn end_line_end_column_byte_offset_optional() {
+        let mut r = sample_result();
+        r.findings[0].end_line = Some(2);
+        r.findings[0].end_column = Some(8);
+        r.findings[0].byte_offset = Some(42);
+        r.findings[0].byte_length = Some(7);
+        let log = render_to_string(&r);
+        assert!(log.contains("\"endLine\": 2"), "got: {log}");
+        assert!(log.contains("\"endColumn\": 8"), "got: {log}");
+        assert!(log.contains("\"byteOffset\": 42"), "got: {log}");
+        assert!(log.contains("\"byteLength\": 7"), "got: {log}");
+    }
+
+    #[test]
+    fn region_end_fields_absent_when_unset() {
+        let r = sample_result();
+        let log = render_to_string(&r);
+        assert!(!log.contains("endLine"), "got: {log}");
+        assert!(!log.contains("byteOffset"), "got: {log}");
     }
 
     #[test]

@@ -105,6 +105,9 @@ fn run(cli: Cli) -> Result<ExitCode> {
                 reporting::text::print_without_snippet(&result)?
             }
             OutputFormat::Text => reporting::text::print(&result)?,
+            OutputFormat::Json if cli.json_envelope => {
+                reporting::json::print_envelope(&result)?
+            }
             OutputFormat::Json => reporting::json::print(&result)?,
             OutputFormat::Sarif if cli.no_snippet => reporting::sarif::print_compact(&result)?,
             OutputFormat::Sarif => reporting::sarif::print(&result)?,

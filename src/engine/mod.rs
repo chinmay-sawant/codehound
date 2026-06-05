@@ -15,6 +15,7 @@ pub use config::{
 pub use language_filter::{LanguageFilter, resolve_language_filter};
 pub use registry::Registry;
 pub use result::{AnalysisResult, ScanError, ScanErrorKind};
+pub use walk::scratch_contains;
 
 /// Process large entry lists in bounded chunks to cap parallel work memory.
 pub const SCAN_CHUNK_SIZE: usize = 1024;

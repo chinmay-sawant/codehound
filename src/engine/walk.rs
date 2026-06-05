@@ -147,9 +147,9 @@ pub enum ScanOutcome {
 /// Parallel scan: read → parse → detect → drop per file.
 ///
 /// Per-file errors are collected and returned alongside findings — the scan
-/// does **not** abort on the first bad file. Fatal configuration errors
-/// (e.g. no plugin for a language) still bubble up as `Err` from this
-/// function only if every single file failed.
+/// does **not** abort on the first bad file. Worker panics are caught and
+/// surfaced as `ScanError::Engine` rather than tearing down the rayon
+/// driver.
 pub fn scan_entries_parallel(
     registry: &Registry,
     ctx: &ScanContext,
@@ -159,11 +159,28 @@ pub fn scan_entries_parallel(
     let outcomes: Vec<ScanOutcome> = entries
         .par_iter()
         .map_init(ParsePool::new, |pool, entry| {
-            scan_entry(registry, ctx, entry, pool)
-        })
-        .map(|res| match res {
-            Ok(findings) => ScanOutcome::Ok(findings),
-            Err(e) => ScanOutcome::Err(e),
+            // `catch_unwind` so a panic in one worker (e.g. a tree-sitter
+            // bug or a bug in a detector) does not bubble up and exit the
+            // process with code 101. We surface it as a ScanError instead
+            // so the run completes and the user can see which file failed.
+            let unwind = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                scan_entry(registry, ctx, entry, pool)
+            }));
+            match unwind {
+                Ok(res) => match res {
+                    Ok(findings) => ScanOutcome::Ok(findings),
+                    Err(e) => ScanOutcome::Err(e),
+                },
+                Err(payload) => {
+                    let msg = panic_message(&payload);
+                    tracing::error!(file = %entry.path.display(), "worker panicked: {msg}");
+                    ScanOutcome::Err(ScanError {
+                        path: entry.path.clone(),
+                        kind: ScanErrorKind::Engine,
+                        message: format!("worker panicked: {msg}"),
+                    })
+                }
+            }
         })
         .collect();
 
@@ -184,4 +201,47 @@ pub fn scan_entries_parallel(
     );
 
     Ok((findings, errors))
+}
+
+/// Best-effort message extraction from a `catch_unwind` payload. The payload
+/// is typically `Box<dyn Any + Send>`, holding either `&'static str`,
+/// `String`, or some other type from the panic site.
+fn panic_message(payload: &Box<dyn std::any::Any + Send>) -> String {
+    if let Some(s) = payload.downcast_ref::<&'static str>() {
+        (*s).to_string()
+    } else if let Some(s) = payload.downcast_ref::<String>() {
+        s.clone()
+    } else {
+        "<non-string panic payload>".to_string()
+    }
+}
+
+/// Per-thread scratch buffer for hot-path format-style string concatenation.
+/// Detectors that build a needle string with `format!` (e.g. to check whether
+/// the source contains a function call with a specific argument) can use
+/// [`scratch_contains`] to avoid per-binding `String` allocations.
+///
+/// Each rayon worker thread has its own buffer; the buffer is reused
+/// across all calls in that worker, so the steady-state cost is zero
+/// allocations.
+pub fn scratch_contains(
+    source: &str,
+    prefix: &str,
+    dynamic: &str,
+    suffix: &str,
+) -> bool {
+    use std::cell::RefCell;
+    use std::fmt::Write;
+
+    thread_local! {
+        static BUF: RefCell<String> = RefCell::new(String::with_capacity(128));
+    }
+
+    BUF.with_borrow_mut(|s| {
+        s.clear();
+        if write!(s, "{}{}{}", prefix, dynamic, suffix).is_err() {
+            return false;
+        }
+        source.contains(s.as_str())
+    })
 }
