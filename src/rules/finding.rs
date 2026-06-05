@@ -15,7 +15,7 @@ pub struct LineCol {
 /// A single static-analysis finding.
 #[derive(Debug, Clone, Serialize)]
 pub struct Finding {
-    /// Rule id, e.g. `SLOP001`.
+    /// Rule id, e.g. `CWE-89`.
     pub rule_id: &'static str,
     /// Rule title.
     pub rule_title: &'static str,

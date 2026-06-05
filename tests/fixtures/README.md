@@ -28,7 +28,6 @@ Integration tests call `slopguard::fixture::materialize_fixture` automatically.
 
 | Language | Text fixture | Generated (gitignored) |
 |----------|--------------|-------------------------|
-| Go (framework) | `go/frameworks/sample.txt` | `target/slopguard-fixtures/go/sample.go` |
 | Go (stdlib) | `go/stdlib/*.txt` | `target/slopguard-fixtures/go/*.pure.go` |
 | Python | `python/sample.txt` | `target/slopguard-fixtures/python/sample.py` |
 | Rust | `rust/sample.txt` | `target/slopguard-fixtures/rust/sample.rs` (plugin TBD) |

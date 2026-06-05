@@ -42,6 +42,20 @@ pub fn assert_fixture_rules(txt_path: &str, required_rules: &[&str]) {
         .unwrap_or_else(|e| panic!("analyze {}: {e:#}", source_path.display()));
 
     let ids: Vec<&str> = result.findings.iter().map(|f| f.rule_id).collect();
+    if required_rules.is_empty() {
+        let cwe_ids: Vec<&str> = ids
+            .iter()
+            .copied()
+            .filter(|id| id.starts_with("CWE-"))
+            .collect();
+        assert!(
+            cwe_ids.is_empty(),
+            "fixture {txt_path} → {}: expected no CWE findings, got {ids:?}",
+            source_path.display()
+        );
+        return;
+    }
+
     for rule in required_rules {
         assert!(
             ids.contains(rule),

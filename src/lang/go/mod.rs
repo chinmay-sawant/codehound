@@ -1,12 +1,7 @@
 //! Go language plugin.
 
-mod detectors;
-mod loop_kinds;
-mod matchers;
+pub mod detectors;
 mod parser;
-mod scan;
-#[cfg(test)]
-pub mod test_utils;
 
 use std::path::Path;
 use std::sync::Arc;
@@ -15,9 +10,9 @@ use anyhow::Result;
 
 use crate::core::{Detector, LanguageId, LanguagePlugin, ParsedUnit};
 
-pub use loop_kinds::LOOP_NODE_KINDS;
-
 pub struct GoPlugin;
+
+const GO_LOOP_NODE_KINDS: &[&str] = &[];
 
 impl LanguagePlugin for GoPlugin {
     fn id(&self) -> LanguageId {
@@ -46,6 +41,6 @@ impl LanguagePlugin for GoPlugin {
     }
 
     fn loop_node_kinds(&self) -> &'static [&'static str] {
-        LOOP_NODE_KINDS
+        GO_LOOP_NODE_KINDS
     }
 }

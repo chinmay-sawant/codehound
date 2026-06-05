@@ -242,16 +242,16 @@ mod tests {
         .unwrap();
 
         let findings = vec![Finding::new(
-            "SLOP002",
-            "String concatenation inside loop",
+            "CWE-89",
+            "SQL injection via concatenated query",
             source_path.to_string_lossy().to_string(),
             LineCol { line: 4, column: 5 },
-            "string concatenation inside loop body",
+            "query string is built from untrusted input",
             Severity::Warning,
             vec![CweRef::new(
-                407,
-                "Algorithmic Complexity",
-                "https://cwe.mitre.org/data/definitions/407.html",
+                89,
+                "Improper Neutralization of Special Elements used in an SQL Command",
+                "https://cwe.mitre.org/data/definitions/89.html",
             )],
         )];
 

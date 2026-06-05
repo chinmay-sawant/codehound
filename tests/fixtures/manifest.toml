@@ -2,11 +2,6 @@
 # Sources are materialized under target/slopguard-fixtures/ before analysis.
 
 [[fixture]]
-lang = "go"
-path = "tests/fixtures/go/frameworks/sample.txt"
-required_rules = ["SLOP001"]
-
-[[fixture]]
 lang = "python"
 path = "tests/fixtures/python/sample.txt"
 required_rules = ["SLOP101"]

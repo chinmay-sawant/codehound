@@ -3,5 +3,5 @@
 
 [slopguard]
 # fail_on = "warning"   # warning | high | none
-# skip = ["SLOP003"]
-# only = ["SLOP001"]
+# skip = ["CWE-89"]
+# only = ["CWE-22"]

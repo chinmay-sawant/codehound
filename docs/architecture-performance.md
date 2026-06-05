@@ -20,7 +20,7 @@ Each file is read, parsed, analyzed, and dropped independently so peak memory st
 |------|--------|-------|
 | Parser | New `Parser` + `set_language` per file | `ParsePool`: one parser per `LanguageId` per file (thread-local in parallel scan) |
 | Detectors | Every detector × every file | `Registry.by_language`: only matching rules per file |
-| Go AST | 4 full-tree walks (one per rule) | `GoScan`: single pass for SLOP001–004 |
+| Go AST | Detector-specific repeated passes | Bundled `GoCweScan` fact-build pass for Go CWE heuristics |
 | CWE metadata | `cwe_slice` allocated + leaked per finding | Static `CWE_REFS_*` slices in `cwe/catalog.rs` |
 | File pipeline | Parse all files into `Vec`, then analyze | Parallel read → parse → detect → drop per file (`rayon`) |
 | Source load | `read` + `from_utf8().to_owned()` (double copy) | `String::from_utf8(bytes)` into `Arc<str>` |
