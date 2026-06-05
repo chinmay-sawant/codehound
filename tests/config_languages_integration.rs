@@ -24,8 +24,14 @@ fn go_only_filter_skips_python_files() {
         .expect("analyze");
 
     let ids: Vec<&str> = result.findings.iter().map(|f| f.rule_id).collect();
-    assert!(ids.iter().any(|id| id.starts_with("SLOP00")));
-    assert!(!ids.contains(&"SLOP101"));
+    assert!(
+        ids.iter().any(|id| id.starts_with("CWE-")),
+        "expected at least one Go CWE finding with the go-only filter, got {ids:?}"
+    );
+    assert!(
+        !ids.contains(&"SLOP101"),
+        "python rule SLOP101 must be filtered out under a go-only filter, got {ids:?}"
+    );
 }
 
 #[test]

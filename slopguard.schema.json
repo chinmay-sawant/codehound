@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "slopguard.toml",
+  "description": "Configuration file for SlopGuard. All fields are optional; unknown fields are rejected.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "slopguard": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "languages": {
+          "description": "Restrict analysis to these languages. Allowed values: go, python (alias: py).",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["go", "python", "py", "ts", "typescript"]
+          }
+        },
+        "fail_on": {
+          "description": "Exit policy: 'none' / 'never' / 'high' / 'strict' / 'warnings' (default). CLI --strict / --no-fail / --warnings-as-errors always win when set.",
+          "type": "string"
+        },
+        "skip": {
+          "description": "Skip the named rule IDs.",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "only": {
+          "description": "Only run the named rule IDs.",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "include": {
+          "description": "Glob patterns to include (relative to scan root).",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "exclude": {
+          "description": "Glob patterns to exclude (relative to scan root).",
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

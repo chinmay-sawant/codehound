@@ -9,10 +9,14 @@ mod result;
 mod walk;
 
 pub use analyzer::{Analyzer, AnalyzerBuilder};
-pub use config::{SlopguardConfig, SlopguardSection, build_scan_context, load_discovered_config};
+pub use config::{
+    PathFilters, SlopguardConfig, SlopguardSection, build_scan_context, discover_config,
+    fail_on_to_policy, load_discovered_config,
+};
 pub use language_filter::{LanguageFilter, resolve_language_filter};
 pub use registry::Registry;
-pub use result::AnalysisResult;
+pub use result::{AnalysisResult, ScanError, ScanErrorKind};
+pub use walk::{collect_entries, scratch_contains};
 
 /// Process large entry lists in bounded chunks to cap parallel work memory.
 pub const SCAN_CHUNK_SIZE: usize = 1024;

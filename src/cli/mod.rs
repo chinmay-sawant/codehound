@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-use clap::{Args, Parser, ValueEnum};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 
 use crate::core::{FailPolicy, LanguageId, ScanContext};
 use crate::engine::build_scan_context;
@@ -16,8 +16,19 @@ use crate::export::ExportOptions;
     about = "Detect performance bottlenecks and slop (Go, Python, …) in source code",
     long_about = None,
     styles = clap::builder::Styles::styled(),
+    after_help = "EXAMPLES:\n  \
+        slopguard                            # scan the current directory\n  \
+        slopguard ./cmd/foo.go               # scan a single file\n  \
+        slopguard --only CWE-22,CWE-89       # only the named rules\n  \
+        slopguard --format sarif > out.sarif # SARIF for CI\n  \
+        slopguard --list-rules               # show every registered rule\n  \
+        slopguard --explain CWE-89           # details for a specific rule\n  \
+        slopguard init                       # write a starter slopguard.toml"
 )]
 pub struct Cli {
+    #[command(subcommand)]
+    pub command: Option<Command>,
+
     /// Paths to analyze (files or directories).
     #[arg(value_name = "PATH", default_values = ["."])]
     pub paths: Vec<String>,
@@ -30,20 +41,39 @@ pub struct Cli {
     #[arg(long, value_enum, default_value_t = OutputFormat::Text)]
     pub format: OutputFormat,
 
+    /// Path to a `slopguard.toml` (overrides auto-discovery).
+    #[arg(long, env = "SLOPGUARD_CONFIG")]
+    pub config: Option<PathBuf>,
+
     /// Only run the given rule IDs (comma-separated).
-    #[arg(long, value_delimiter = ',')]
+    #[arg(long, value_delimiter = ',', env = "SLOPGUARD_ONLY")]
     pub only: Vec<String>,
 
     /// Skip the given rule IDs (comma-separated).
-    #[arg(long, value_delimiter = ',')]
+    #[arg(long, value_delimiter = ',', env = "SLOPGUARD_SKIP")]
     pub skip: Vec<String>,
 
     /// Exit policy for findings.
     #[command(flatten)]
     pub severity: SeverityArgs,
 
-    /// Disable colored output.
-    #[arg(long)]
+    /// Verbosity: 0 = default, 1 = info, 2 = debug.
+    #[arg(long, value_name = "LEVEL", default_value_t = 0, global = true)]
+    pub verbose: u8,
+
+    /// Suppress all output except errors.
+    #[arg(long, global = true)]
+    pub quiet: bool,
+
+    /// Disable colored output (honors `NO_COLOR=1` and similar truthy env values).
+    #[arg(
+        long,
+        env = "NO_COLOR",
+        action = clap::ArgAction::Set,
+        value_parser = clap::builder::BoolishValueParser::new(),
+        default_value = "false",
+        hide_env_values = true,
+    )]
     pub no_color: bool,
 
     /// Do not print findings to stdout.
@@ -58,6 +88,10 @@ pub struct Cli {
     #[arg(long)]
     pub no_chunks: bool,
 
+    /// Suppress the source snippet in text output.
+    #[arg(long)]
+    pub no_snippet: bool,
+
     /// Number of findings per chunk file.
     #[arg(long, default_value_t = 25)]
     pub chunk_size: usize,
@@ -69,6 +103,24 @@ pub struct Cli {
     /// Directory for chunk files.
     #[arg(long, default_value = "scripts/chunks")]
     pub chunks_output_dir: PathBuf,
+
+    /// Emit JSON as a single envelope object (not NDJSON).
+    #[arg(long)]
+    pub json_envelope: bool,
+
+    /// List all registered rules and exit.
+    #[arg(long)]
+    pub list_rules: bool,
+
+    /// Show details for a specific rule ID and exit.
+    #[arg(long, value_name = "RULE")]
+    pub explain: Option<String>,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum Command {
+    /// Write a starter `slopguard.toml` to the current directory.
+    Init,
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum, Default)]
@@ -123,15 +175,22 @@ impl SeverityArgs {
             FailPolicy::WarningsAsErrors
         }
     }
+
+    /// True iff the user explicitly chose a severity policy on the CLI.
+    pub fn is_explicit(self) -> bool {
+        self.no_fail || self.strict || self.warnings_as_errors
+    }
 }
 
 impl Cli {
     pub fn scan_context(&self, config: Option<crate::engine::SlopguardConfig>) -> ScanContext {
+        let cli_set_fail_policy = self.severity.is_explicit();
         build_scan_context(
             self.only.clone(),
             self.skip.clone(),
             self.severity.fail_policy(),
             config,
+            cli_set_fail_policy,
         )
     }
 

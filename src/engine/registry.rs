@@ -75,6 +75,17 @@ impl Registry {
     pub fn enabled_languages(&self) -> impl Iterator<Item = LanguageId> + '_ {
         self.plugins.iter().map(|p| p.id())
     }
+
+    /// Total number of detectors registered (one detector may implement many
+    /// rules, see `Detector::rule_ids`).
+    pub fn detector_count(&self) -> usize {
+        self.detectors.len()
+    }
+
+    /// All detectors in the registry, in registration order.
+    pub fn detectors(&self) -> &[Box<dyn Detector>] {
+        &self.detectors
+    }
 }
 
 impl Default for Registry {

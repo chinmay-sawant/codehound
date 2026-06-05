@@ -23,15 +23,14 @@ path = "src/main.rs"
 default = ["go", "python"]
 go = ["dep:tree-sitter-go"]
 python = ["dep:tree-sitter-python"]
-# Minimal build: `cargo build --no-default-features --features go`
-all-langs = ["go", "python"]
 
 [dependencies]
 # CLI
-clap = { version = "4.6", features = ["derive", "cargo", "wrap_help"] }
+clap = { version = "4.6", features = ["derive", "cargo", "env", "wrap_help"] }
 
 # Errors
 anyhow = "1.0"
+thiserror = "2.0"
 
 # Serde / config
 serde = { version = "1.0", features = ["derive"] }
@@ -55,10 +54,18 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 walkdir = "2.5"
 ignore = "0.4"
 
+[build-dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
 insta = { version = "1.41", features = ["yaml"] }
 pretty_assertions = "1.4"
+tree-sitter = "0.25"
+tree-sitter-go = "0.25"
+tree-sitter-python = "0.25"
 
 [[bench]]
 name = "scan_throughput"

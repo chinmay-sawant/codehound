@@ -3517,3 +3517,18 @@ required_rules = ["CWE-605"]
 lang = "go"
 path = "tests/fixtures/go/stdlib/CWE-605-safe.txt"
 required_rules = []
+
+[[fixture]]
+# Rust plugin is not yet implemented; this entry exists to keep the orphan
+# fixture (`rust/sample.txt`) registered. required_rules = [] asserts that
+# analyzing the materialized file produces no findings (the analyzer skips
+# unknown languages today).
+lang = "rust"
+path = "tests/fixtures/rust/sample.txt"
+required_rules = []
+
+[[fixture]]
+# Negative case: re.compile appears but never inside a loop body. SLOP101 must NOT fire.
+lang = "python"
+path = "tests/fixtures/python/safe.txt"
+required_rules = []

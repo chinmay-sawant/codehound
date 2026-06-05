@@ -1,5 +1,7 @@
 //! Helpers for building findings on detector hot paths.
 
+use std::borrow::Cow;
+
 use super::{Finding, LineCol, RuleMetadata, Severity};
 
 /// Push a finding using cached rule metadata and a precomputed file path.
@@ -18,7 +20,7 @@ pub fn push_finding(
         LineCol { line, column: col },
         message,
         meta.severity,
-        meta.cwe.to_vec(),
+        Cow::Borrowed(meta.cwe),
     ));
 }
 
@@ -40,7 +42,7 @@ pub fn push_finding_with_snippet(
             LineCol { line, column: col },
             message,
             meta.severity,
-            meta.cwe.to_vec(),
+            Cow::Borrowed(meta.cwe),
         )
         .with_snippet(snippet)
         .with_fix(meta.fix.unwrap_or("")),

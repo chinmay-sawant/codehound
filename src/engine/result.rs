@@ -1,11 +1,67 @@
 //! Analysis output container.
 
+use std::path::PathBuf;
+
+use thiserror::Error;
+
 use crate::rules::Finding;
 
-/// Findings from a scan run.
+/// A non-fatal error encountered while scanning a single file. The scan
+/// continues; this entry is reported so the caller can surface it.
+#[derive(Debug, Clone, Error)]
+#[error("{}: {message}", path.display())]
+pub struct ScanError {
+    pub path: PathBuf,
+    pub kind: ScanErrorKind,
+    pub message: String,
+}
+
+/// Coarse error category — used to map to distinct process exit codes
+/// (config / I-O / parse / engine-internal).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ScanErrorKind {
+    /// Failure reading the file or its parent directory.
+    Io,
+    /// Source bytes were not valid UTF-8.
+    Encoding,
+    /// Tree-sitter failed to produce a tree.
+    Parse,
+    /// A detector raised an error during `run`.
+    Engine,
+}
+
+impl ScanErrorKind {
+    /// Maps to the conventional process exit code for this category.
+    pub fn exit_code(self) -> u8 {
+        match self {
+            ScanErrorKind::Io => 3,
+            ScanErrorKind::Encoding => 3,
+            ScanErrorKind::Parse => 3,
+            ScanErrorKind::Engine => 3,
+        }
+    }
+}
+
+impl std::fmt::Display for ScanErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            ScanErrorKind::Io => "io",
+            ScanErrorKind::Encoding => "encoding",
+            ScanErrorKind::Parse => "parse",
+            ScanErrorKind::Engine => "engine",
+        };
+        f.write_str(s)
+    }
+}
+
+/// Findings (and per-file errors) from a scan run.
 #[derive(Debug, Default, Clone)]
 pub struct AnalysisResult {
     pub findings: Vec<Finding>,
+    /// Non-fatal per-file errors collected during the scan. The scan does
+    /// NOT abort on the first error; instead, the caller decides whether
+    /// `errors` should fail the run.
+    pub errors: Vec<ScanError>,
 }
 
 impl AnalysisResult {

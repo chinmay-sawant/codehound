@@ -14,7 +14,7 @@ heuristics, reusable fact extraction, and machine-readable findings.
 
 - Detect statically visible weakness patterns with reusable fact extraction.
 - Map findings to **CWE** references for compliance workflows.
-- Emit machine-readable output (text, JSON, **SARIF** — planned).
+- Emit machine-readable output (text, JSON, SARIF).
 - Run as a single static binary, no external services.
 
 ## Status
@@ -47,8 +47,21 @@ slopguard .
 # Analyze a single file
 slopguard path/to/file.go
 
-# JSON output (SARIF coming soon)
+# JSON or SARIF output
 slopguard --format json ./...
+slopguard --format sarif ./... > out.sarif
+
+# Limit to specific rules
+slopguard --only CWE-22,CWE-89 .
+
+# Show every registered rule
+slopguard --list-rules
+
+# Show details for a single rule
+slopguard --explain CWE-89
+
+# Write a starter slopguard.toml
+slopguard init
 ```
 
 ## Sample

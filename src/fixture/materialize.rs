@@ -1,16 +1,32 @@
-//! Write materialized sources under `target/slopguard-fixtures/`.
+//! Write materialized sources under `target/slopguard-fixtures/<pid>-<nanos>/`.
 
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result};
 use walkdir::WalkDir;
 
 use super::format::{FIXTURE_EXTENSION, TextFixture, parse_fixture};
 
+fn unique_root() -> PathBuf {
+    let base = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/slopguard-fixtures");
+    let pid = std::process::id();
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    base.join(format!("{pid}-{nanos}"))
+}
+
 /// Root directory for generated sources (gitignored).
-pub fn materialized_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/slopguard-fixtures")
+///
+/// Each process gets its own subdirectory, so parallel test binaries cannot
+/// race on file writes. The path is stable for the lifetime of the process.
+pub fn materialized_root() -> &'static Path {
+    static ROOT: OnceLock<PathBuf> = OnceLock::new();
+    ROOT.get_or_init(unique_root)
 }
 
 /// Read one `.txt` fixture and write `<lang>/<filename>` under the materialized root.
@@ -23,6 +39,7 @@ pub fn materialize_fixture(txt_path: &Path) -> Result<PathBuf> {
 
 /// Materialize every `*.txt` fixture under `fixtures_root`.
 pub fn materialize_tree(fixtures_root: &Path) -> Result<PathBuf> {
+    let root = materialized_root().to_path_buf();
     for entry in WalkDir::new(fixtures_root)
         .into_iter()
         .filter_map(Result::ok)
@@ -30,14 +47,21 @@ pub fn materialize_tree(fixtures_root: &Path) -> Result<PathBuf> {
     {
         let path = entry.path();
         if path.extension().and_then(|s| s.to_str()) == Some(FIXTURE_EXTENSION) {
-            materialize_fixture(path)?;
+            let text = fs::read_to_string(path)
+                .with_context(|| format!("reading fixture {}", path.display()))?;
+            let fixture = parse_fixture(&text, path)?;
+            write_fixture_at(&root, &fixture)?;
         }
     }
-    Ok(materialized_root())
+    Ok(root)
 }
 
 fn write_fixture(fixture: &TextFixture) -> Result<PathBuf> {
-    let out_dir = materialized_root().join(fixture.language.as_str());
+    write_fixture_at(materialized_root(), fixture)
+}
+
+fn write_fixture_at(root: &Path, fixture: &TextFixture) -> Result<PathBuf> {
+    let out_dir = root.join(fixture.language.as_str());
     fs::create_dir_all(&out_dir)?;
     let out_path = out_dir.join(&fixture.filename);
     fs::write(&out_path, &fixture.source)
