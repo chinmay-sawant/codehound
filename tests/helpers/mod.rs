@@ -23,6 +23,17 @@ pub fn assert_fixture_materializes(txt_path: &str) -> std::path::PathBuf {
         .unwrap_or_else(|e| panic!("materialize {txt_path}: {e:#}"))
 }
 
+/// Infer the rule class (`"CWE-"` or `"PERF-"`) from the fixture path so the
+/// `required_rules == []` branch of `assert_fixture_rules` only enforces
+/// silence on the class the test cares about.
+fn infer_rule_class(txt_path: &str) -> &'static str {
+    if txt_path.contains("/perf/") {
+        "PERF-"
+    } else {
+        "CWE-"
+    }
+}
+
 /// Materialize a `.txt` fixture, analyze it, and assert required rules fired.
 pub fn assert_fixture_rules(txt_path: &str, required_rules: &[&str]) {
     assert!(
@@ -43,14 +54,20 @@ pub fn assert_fixture_rules(txt_path: &str, required_rules: &[&str]) {
 
     let ids: Vec<&str> = result.findings.iter().map(|f| f.rule_id).collect();
     if required_rules.is_empty() {
-        let cwe_ids: Vec<&str> = ids
+        // `required_rules` is empty, so the caller is asserting that the
+        // fixture is "clean" w.r.t. whatever rule class it cares about. The
+        // CWE integration tests use this for safe fixtures and only care
+        // that no CWE-* findings fire (PERF findings on a CWE-safe fixture
+        // are valid signals, not test failures).
+        let class = infer_rule_class(txt_path);
+        let matching: Vec<&str> = ids
             .iter()
             .copied()
-            .filter(|id| id.starts_with("CWE-"))
+            .filter(|id| id.starts_with(class))
             .collect();
         assert!(
-            cwe_ids.is_empty(),
-            "fixture {txt_path} → {}: expected no CWE findings, got {ids:?}",
+            matching.is_empty(),
+            "fixture {txt_path} → {}: expected no {class} findings, got {ids:?}",
             source_path.display()
         );
         return;

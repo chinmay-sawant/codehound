@@ -3155,7 +3155,7 @@
     "description": "Compiles a regular expression inside a Go loop body instead of compiling once and reusing the compiled pattern.",
     "original_description": "Detect regexp.MustCompile(...) or regexp.Compile(...) inside a for or range loop body.",
     "weakness_abstraction": "Variant",
-    "status": "Planned",
+    "status": "Implemented",
     "category": "Performance",
     "applicable_to": [
       "golang",
@@ -3173,7 +3173,7 @@
     "description": "Repeatedly grows a string with concatenation inside a loop instead of using a builder, buffer, or batched join.",
     "original_description": "Detect s = s + part or s += part inside a for or range loop body.",
     "weakness_abstraction": "Variant",
-    "status": "Planned",
+    "status": "Implemented",
     "category": "Performance",
     "applicable_to": [
       "golang",
@@ -3191,7 +3191,7 @@
     "description": "Rebuilds a working slice inside a loop in a way that repeatedly discards capacity or recreates the same accumulation buffer.",
     "original_description": "Detect loop-local slice re-creation followed by repeated append in the same loop body.",
     "weakness_abstraction": "Variant",
-    "status": "Planned",
+    "status": "Implemented",
     "category": "Performance",
     "applicable_to": [
       "golang",
@@ -3209,7 +3209,7 @@
     "description": "Allocates a new map inside a loop body where the map could be reused or hoisted to avoid repeated allocation churn.",
     "original_description": "Detect make(map[K]V) inside a for or range loop body.",
     "weakness_abstraction": "Variant",
-    "status": "Planned",
+    "status": "Implemented",
     "category": "Performance",
     "applicable_to": [
       "golang",
@@ -3227,7 +3227,7 @@
     "description": "Performs repeated JSON marshal, unmarshal, encoder, or decoder setup inside an inner loop or row-by-row hot path.",
     "original_description": "Detect json.Marshal, json.Unmarshal, json.NewEncoder, or json.NewDecoder in a tight loop or repeated request-side hot path.",
     "weakness_abstraction": "Variant",
-    "status": "Planned",
+    "status": "Implemented",
     "category": "Performance",
     "applicable_to": [
       "golang",
@@ -3245,7 +3245,7 @@
     "description": "Uses fmt-based string formatting repeatedly inside a loop where direct writes, builders, or cached formatting would be cheaper.",
     "original_description": "Detect fmt.Sprintf or fmt.Fprintf used as repeated string construction in a loop.",
     "weakness_abstraction": "Variant",
-    "status": "Planned",
+    "status": "Implemented",
     "category": "Performance",
     "applicable_to": [
       "golang",
@@ -3263,7 +3263,7 @@
     "description": "Places defer statements inside loops, causing cleanup work to stack until function exit and adding avoidable per-iteration overhead.",
     "original_description": "Detect defer inside a for or range loop body.",
     "weakness_abstraction": "Variant",
-    "status": "Planned",
+    "status": "Implemented",
     "category": "Performance",
     "applicable_to": [
       "golang",
@@ -3281,7 +3281,7 @@
     "description": "Repeatedly parses time values in a loop using a constant layout on a hot path instead of restructuring or caching work.",
     "original_description": "Detect time.Parse or time.ParseInLocation inside loop bodies.",
     "weakness_abstraction": "Variant",
-    "status": "Planned",
+    "status": "Implemented",
     "category": "Performance",
     "applicable_to": [
       "golang",
@@ -3299,7 +3299,7 @@
     "description": "Repeatedly parses URLs inside a tight loop rather than moving parsing or validation to a cheaper boundary.",
     "original_description": "Detect url.Parse or url.ParseRequestURI inside loop bodies.",
     "weakness_abstraction": "Variant",
-    "status": "Planned",
+    "status": "Implemented",
     "category": "Performance",
     "applicable_to": [
       "golang",
@@ -3317,7 +3317,7 @@
     "description": "Parses templates on the request path instead of compiling them once at process start or initialization time.",
     "original_description": "Detect template.New(...).Parse(...), template.ParseFiles(...), or template.Must(template.Parse...) inside handlers or middleware.",
     "weakness_abstraction": "Variant",
-    "status": "Planned",
+    "status": "Implemented",
     "category": "Performance",
     "applicable_to": [
       "golang",
@@ -3335,7 +3335,7 @@
     "description": "Allocates a new http.Client on request-serving paths where a shared client should usually be reused.",
     "original_description": "Detect http.Client construction inside handlers, middleware, or looped call paths.",
     "weakness_abstraction": "Variant",
-    "status": "Planned",
+    "status": "Implemented",
     "category": "Performance",
     "applicable_to": [
       "golang",
@@ -3353,7 +3353,7 @@
     "description": "Creates prepared statements on request-serving paths instead of caching or initializing them once.",
     "original_description": "Detect db.Prepare or db.PrepareContext inside handlers, middleware, or inner loops.",
     "weakness_abstraction": "Variant",
-    "status": "Planned",
+    "status": "Implemented",
     "category": "Performance",
     "applicable_to": [
       "golang",
@@ -3371,7 +3371,7 @@
     "description": "Creates time.After values repeatedly inside long-running loops where reusable timers or tickers would avoid churn.",
     "original_description": "Detect time.After(...) inside worker loops, retry loops, or polling loops.",
     "weakness_abstraction": "Variant",
-    "status": "Planned",
+    "status": "Implemented",
     "category": "Performance",
     "applicable_to": [
       "golang",
@@ -3389,7 +3389,7 @@
     "description": "Performs repeated filesystem directory scans inside loops when the scanned set is stable and could be hoisted or cached.",
     "original_description": "Detect filepath.Glob, os.ReadDir, or similar directory scans inside loop bodies.",
     "weakness_abstraction": "Variant",
-    "status": "Planned",
+    "status": "Implemented",
     "category": "Performance",
     "applicable_to": [
       "golang",
@@ -3407,7 +3407,7 @@
     "description": "Performs repeated numeric-to-string conversion inside loops where buffered writes, cached conversion, or batching would be cheaper.",
     "original_description": "Detect strconv.Itoa, FormatInt, FormatUint, or FormatFloat inside loop bodies.",
     "weakness_abstraction": "Variant",
-    "status": "Planned",
+    "status": "Implemented",
     "category": "Performance",
     "applicable_to": [
       "golang",
@@ -3425,7 +3425,7 @@
     "description": "Allocates a fresh bytes.Buffer inside an inner loop instead of reusing a resettable buffer across iterations.",
     "original_description": "Detect bytes.Buffer{} or new(bytes.Buffer) inside loop bodies when reuse is viable.",
     "weakness_abstraction": "Variant",
-    "status": "Planned",
+    "status": "Implemented",
     "category": "Performance",
     "applicable_to": [
       "golang",
@@ -3443,7 +3443,7 @@
     "description": "Builds a string with the + operator inside a loop, causing repeated allocation and copy churn. Use strings.Builder or a pre-sized buffer.",
     "original_description": "Detect s = s + x or s += x inside a for or range loop body.",
     "weakness_abstraction": "Variant",
-    "status": "Planned",
+    "status": "Implemented",
     "category": "Performance",
     "applicable_to": [
       "golang",
@@ -3461,7 +3461,7 @@
     "description": "Copies a slice header into a function that only needs a sub-range, causing the full backing array to remain live and increase GC pressure.",
     "original_description": "Detect passing a large slice where a sub-slice expression would suffice, or full copy where append-to-self would work.",
     "weakness_abstraction": "Variant",
-    "status": "Planned",
+    "status": "Implemented",
     "category": "Performance",
     "applicable_to": [
       "golang",
@@ -3479,7 +3479,7 @@
     "description": "Iterates over a slice of large structs by value, copying each element. Range by index or pointer to avoid per-iteration copies.",
     "original_description": "Detect for _, v := range largeStructSlice where the element type is a non-trivial struct.",
     "weakness_abstraction": "Variant",
-    "status": "Planned",
+    "status": "Implemented",
     "category": "Performance",
     "applicable_to": [
       "golang",
@@ -3497,7 +3497,7 @@
     "description": "Uses the reflect package on a hot request path. Reflection is significantly slower than typed or codegen-based dispatch.",
     "original_description": "Detect reflect.ValueOf, reflect.TypeOf, reflect.New, or method lookup via reflect on request-serving paths.",
     "weakness_abstraction": "Variant",
-    "status": "Planned",
+    "status": "Implemented",
     "category": "Performance",
     "applicable_to": [
       "golang",
@@ -3515,7 +3515,7 @@
     "description": "Uses io.ReadAll to fully buffer a request body that may be large. This materializes the whole body in memory and can amplify memory pressure.",
     "original_description": "Detect io.ReadAll, ioutil.ReadAll, or io.ReadFull on http.Request.Body in handlers.",
     "weakness_abstraction": "Variant",
-    "status": "Planned",
+    "status": "Implemented",
     "category": "Performance",
     "applicable_to": [
       "golang",
@@ -3533,7 +3533,7 @@
     "description": "Reads an entire file inside a request handler on every call. Large or remote files cause repeated disk I/O on a hot path.",
     "original_description": "Detect os.ReadFile, ioutil.ReadFile, or os.ReadFile in handler or middleware functions.",
     "weakness_abstraction": "Variant",
-    "status": "Planned",
+    "status": "Implemented",
     "category": "Performance",
     "applicable_to": [
       "golang",
@@ -3551,7 +3551,7 @@
     "description": "Allocates a new bytes.Reader or bytes.Buffer for each request when a sync.Pool or reusable buffer would be cheaper.",
     "original_description": "Detect bytes.NewReader, bytes.NewBuffer, or new(bytes.Buffer) on request-serving paths.",
     "weakness_abstraction": "Variant",
-    "status": "Planned",
+    "status": "Implemented",
     "category": "Performance",
     "applicable_to": [
       "golang",
@@ -3569,7 +3569,7 @@
     "description": "Creates a new hash instance (sha256, sha1, md5) inside a tight loop where the hasher could be reset or hoisted.",
     "original_description": "Detect sha256.New, sha1.New, md5.New, or hmac.New inside loop bodies or per-row hot paths.",
     "weakness_abstraction": "Variant",
-    "status": "Planned",
+    "status": "Implemented",
     "category": "Performance",
     "applicable_to": [
       "golang",
@@ -3587,7 +3587,7 @@
     "description": "Generates RSA keys inside request handlers or per-call paths. RSA key generation is expensive and should be cached.",
     "original_description": "Detect rsa.GenerateKey, rsa.GenerateMultiPrimeKey, or ecdsa.GenerateKey in handlers or middleware.",
     "weakness_abstraction": "Variant",
-    "status": "Planned",
+    "status": "Implemented",
     "category": "Performance",
     "applicable_to": [
       "golang",

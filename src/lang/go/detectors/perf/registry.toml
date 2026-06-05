@@ -1,0 +1,127 @@
+# Typed Go PERF detector registry. Source of truth for build.rs code generation.
+# Update this file when adding new PERF detectors; the build script reads it.
+
+[[detector]]
+perf = 1
+domain = "loop_allocations"
+function = "detect_perf_1"
+
+[[detector]]
+perf = 2
+domain = "loop_allocations"
+function = "detect_perf_2"
+
+[[detector]]
+perf = 3
+domain = "loop_allocations"
+function = "detect_perf_3"
+
+[[detector]]
+perf = 4
+domain = "loop_allocations"
+function = "detect_perf_4"
+
+[[detector]]
+perf = 5
+domain = "loop_allocations"
+function = "detect_perf_5"
+
+[[detector]]
+perf = 6
+domain = "loop_allocations"
+function = "detect_perf_6"
+
+[[detector]]
+perf = 7
+domain = "loop_allocations"
+function = "detect_perf_7"
+
+[[detector]]
+perf = 8
+domain = "loop_allocations"
+function = "detect_perf_8"
+
+[[detector]]
+perf = 9
+domain = "parsing_in_loops"
+function = "detect_perf_9"
+
+[[detector]]
+perf = 10
+domain = "parsing_in_loops"
+function = "detect_perf_10"
+
+[[detector]]
+perf = 11
+domain = "parsing_in_loops"
+function = "detect_perf_11"
+
+[[detector]]
+perf = 12
+domain = "parsing_in_loops"
+function = "detect_perf_12"
+
+[[detector]]
+perf = 13
+domain = "parsing_in_loops"
+function = "detect_perf_13"
+
+[[detector]]
+perf = 14
+domain = "parsing_in_loops"
+function = "detect_perf_14"
+
+[[detector]]
+perf = 15
+domain = "parsing_in_loops"
+function = "detect_perf_15"
+
+[[detector]]
+perf = 16
+domain = "parsing_in_loops"
+function = "detect_perf_16"
+
+[[detector]]
+perf = 17
+domain = "request_path"
+function = "detect_perf_17"
+
+[[detector]]
+perf = 18
+domain = "request_path"
+function = "detect_perf_18"
+
+[[detector]]
+perf = 19
+domain = "request_path"
+function = "detect_perf_19"
+
+[[detector]]
+perf = 20
+domain = "request_path"
+function = "detect_perf_20"
+
+[[detector]]
+perf = 21
+domain = "request_path"
+function = "detect_perf_21"
+
+[[detector]]
+perf = 22
+domain = "request_path"
+function = "detect_perf_22"
+
+[[detector]]
+perf = 23
+domain = "request_path"
+function = "detect_perf_23"
+
+[[detector]]
+perf = 24
+domain = "request_path"
+function = "detect_perf_24"
+
+[[detector]]
+perf = 25
+domain = "request_path"
+function = "detect_perf_25"
