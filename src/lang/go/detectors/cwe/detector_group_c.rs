@@ -4,7 +4,7 @@ use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
 pub(super) fn detect_cwe_524(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let process_wide_token_cache = (source.contains("map[string]string{}")
@@ -25,7 +25,7 @@ pub(super) fn detect_cwe_524(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_524,
-        &file,
+        file,
         line,
         col,
         "raw session tokens are cached in shared process memory keyed by caller identifiers",
@@ -34,7 +34,7 @@ pub(super) fn detect_cwe_524(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_538(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let public_secret_export = source.contains("DATABASE_URL")
@@ -56,7 +56,7 @@ pub(super) fn detect_cwe_538(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_538,
-        &file,
+        file,
         line,
         col,
         "database configuration secrets are exported to a public world-readable file path",
@@ -65,7 +65,7 @@ pub(super) fn detect_cwe_538(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_544(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let inconsistent_db_failure_paths = (source.contains("panic(err)")
@@ -87,7 +87,7 @@ pub(super) fn detect_cwe_544(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_544,
-        &file,
+        file,
         line,
         col,
         "database failures are handled through inconsistent panic and logging paths",
@@ -96,7 +96,7 @@ pub(super) fn detect_cwe_544(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_547(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let hardcoded_signing_secret =
@@ -118,7 +118,7 @@ pub(super) fn detect_cwe_547(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_547,
-        &file,
+        file,
         line,
         col,
         "signing material is hard-coded directly in source instead of loaded from runtime secret configuration",
@@ -127,7 +127,7 @@ pub(super) fn detect_cwe_547(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_549(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let password_echo = source.contains(r#""password": pass"#)
@@ -145,7 +145,7 @@ pub(super) fn detect_cwe_549(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_549,
-        &file,
+        file,
         line,
         col,
         "the response body reflects the submitted password back to the caller",
@@ -154,7 +154,7 @@ pub(super) fn detect_cwe_549(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_551(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let raw_path_gate = source.contains("raw := ")
@@ -174,7 +174,7 @@ pub(super) fn detect_cwe_551(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_551,
-        &file,
+        file,
         line,
         col,
         "authorization checks the raw path before percent-unescape canonicalization",
@@ -183,7 +183,7 @@ pub(super) fn detect_cwe_551(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_601(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let caller_redirect = source.contains(r#""next""#)
@@ -202,7 +202,7 @@ pub(super) fn detect_cwe_601(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_601,
-        &file,
+        file,
         line,
         col,
         "the redirect target comes from an unvalidated caller-controlled next parameter",
@@ -211,7 +211,7 @@ pub(super) fn detect_cwe_601(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_603(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let trusts_auth_header = source.contains("X-Authenticated")
@@ -228,7 +228,7 @@ pub(super) fn detect_cwe_603(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_603,
-        &file,
+        file,
         line,
         col,
         "billing mutation trusts a caller-supplied authenticated header",
@@ -237,7 +237,7 @@ pub(super) fn detect_cwe_603(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_605(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     if !source.contains("SO_REUSEADDR") || !source.contains("SetsockoptInt") {
@@ -251,7 +251,7 @@ pub(super) fn detect_cwe_605(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_605,
-        &file,
+        file,
         line,
         col,
         "the listener explicitly enables SO_REUSEADDR on the service socket",
@@ -260,7 +260,7 @@ pub(super) fn detect_cwe_605(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_611(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let unsafe_xml = source.contains("xml.NewDecoder(")
@@ -280,7 +280,7 @@ pub(super) fn detect_cwe_611(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_611,
-        &file,
+        file,
         line,
         col,
         "untrusted XML is parsed with strict mode disabled and no DOCTYPE rejection",
@@ -289,7 +289,7 @@ pub(super) fn detect_cwe_611(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_613(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let non_expiring_cookie = (source.contains("SetCookie(\"sid\", sid, 0,")
@@ -316,7 +316,7 @@ pub(super) fn detect_cwe_613(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_613,
-        &file,
+        file,
         line,
         col,
         "session login issues a non-expiring cookie and logout does not revoke server-side session state",
@@ -325,7 +325,7 @@ pub(super) fn detect_cwe_613(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_618(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let exposes_native_bridge = source.contains("/opt/vendor/activex-bridge")
@@ -343,7 +343,7 @@ pub(super) fn detect_cwe_618(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_618,
-        &file,
+        file,
         line,
         col,
         "the endpoint forwards caller-controlled method names into a privileged native helper",
@@ -352,7 +352,7 @@ pub(super) fn detect_cwe_618(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_619(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let dangling_rows = source.contains("rows, err := db.Query(") && source.contains("rows.Next()");
@@ -367,7 +367,7 @@ pub(super) fn detect_cwe_619(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_619,
-        &file,
+        file,
         line,
         col,
         "a database cursor is opened and can return without being closed",
@@ -376,7 +376,7 @@ pub(super) fn detect_cwe_619(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_620(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let blind_password_update = source.contains("ChangePassword")
@@ -398,7 +398,7 @@ pub(super) fn detect_cwe_620(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_620,
-        &file,
+        file,
         line,
         col,
         "the password change flow updates credentials without verifying the current password",
@@ -407,7 +407,7 @@ pub(super) fn detect_cwe_620(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_639(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let user_controlled_key = source.contains("invoice_id")
@@ -428,7 +428,7 @@ pub(super) fn detect_cwe_639(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_639,
-        &file,
+        file,
         line,
         col,
         "a caller-controlled invoice key is queried without owner scoping",
@@ -437,7 +437,7 @@ pub(super) fn detect_cwe_639(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_640(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let email_only_reset = source.contains("ForgotPassword")
@@ -459,7 +459,7 @@ pub(super) fn detect_cwe_640(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_640,
-        &file,
+        file,
         line,
         col,
         "the recovery flow resets a password from email alone without a reset token",
@@ -468,7 +468,7 @@ pub(super) fn detect_cwe_640(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_645(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let one_strike_lockout =
@@ -484,7 +484,7 @@ pub(super) fn detect_cwe_645(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_645,
-        &file,
+        file,
         line,
         col,
         "the account is locked after a single failed login attempt",
@@ -493,7 +493,7 @@ pub(super) fn detect_cwe_645(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_648(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let privileged_chown = source.contains("os.Chown(")
@@ -515,7 +515,7 @@ pub(super) fn detect_cwe_648(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_648,
-        &file,
+        file,
         line,
         col,
         "the handler passes caller-controlled values into a privileged ownership-change API",
@@ -524,7 +524,7 @@ pub(super) fn detect_cwe_648(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_649(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let obfuscated_role_cookie = source.contains("Cookie(\"profile\")")
@@ -544,7 +544,7 @@ pub(super) fn detect_cwe_649(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_649,
-        &file,
+        file,
         line,
         col,
         "an obfuscated profile cookie is trusted without any integrity verification",
@@ -553,7 +553,7 @@ pub(super) fn detect_cwe_649(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_653(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let shared_privileged_store = (source.contains("sharedDB")
@@ -579,7 +579,7 @@ pub(super) fn detect_cwe_653(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_653,
-        &file,
+        file,
         line,
         col,
         "public and admin paths share the same privileged data store",
@@ -588,7 +588,7 @@ pub(super) fn detect_cwe_653(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_654(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let single_factor_admin = source.contains("X-Api-Key")
@@ -605,7 +605,7 @@ pub(super) fn detect_cwe_654(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_654,
-        &file,
+        file,
         line,
         col,
         "admin export access is granted solely from a static API key header",
@@ -614,7 +614,7 @@ pub(super) fn detect_cwe_654(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_656(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let hidden_path_gate =
@@ -630,7 +630,7 @@ pub(super) fn detect_cwe_656(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_656,
-        &file,
+        file,
         line,
         col,
         "sensitive configuration access relies only on a hidden URL path",
@@ -639,7 +639,7 @@ pub(super) fn detect_cwe_656(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_708(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let caller_chosen_owner = source.contains("owner_uid")
@@ -657,7 +657,7 @@ pub(super) fn detect_cwe_708(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_708,
-        &file,
+        file,
         line,
         col,
         "the caller chooses both the ownership target and uid for a file operation",
@@ -666,7 +666,7 @@ pub(super) fn detect_cwe_708(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_756(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let raw_error_to_client = source.contains("err.Error()")
@@ -685,7 +685,7 @@ pub(super) fn detect_cwe_756(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_756,
-        &file,
+        file,
         line,
         col,
         "raw database error text is returned directly to the client",
@@ -694,7 +694,7 @@ pub(super) fn detect_cwe_756(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_765(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let double_unlock = source.contains("Unlock()")
@@ -711,7 +711,7 @@ pub(super) fn detect_cwe_765(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_765,
-        &file,
+        file,
         line,
         col,
         "the critical-section lock is explicitly released twice on an error path",
@@ -720,7 +720,7 @@ pub(super) fn detect_cwe_765(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_778(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let missing_auth_audit = source.contains("SignIn")
@@ -738,7 +738,7 @@ pub(super) fn detect_cwe_778(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_778,
-        &file,
+        file,
         line,
         col,
         "authentication failures are returned without any audit logging",
@@ -747,7 +747,7 @@ pub(super) fn detect_cwe_778(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_783(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let precedence_bug = source.contains("!authenticated || isAdmin && ownerID == docOwner");
@@ -764,7 +764,7 @@ pub(super) fn detect_cwe_783(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_783,
-        &file,
+        file,
         line,
         col,
         "authorization depends on ambiguous && and || precedence",
@@ -773,7 +773,7 @@ pub(super) fn detect_cwe_783(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_798(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let hardcoded_dsn = source
@@ -791,7 +791,7 @@ pub(super) fn detect_cwe_798(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_798,
-        &file,
+        file,
         line,
         col,
         "database credentials are embedded directly in the source code",
@@ -800,7 +800,7 @@ pub(super) fn detect_cwe_798(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_820(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let unsynchronized_map_write =
@@ -818,7 +818,7 @@ pub(super) fn detect_cwe_820(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_820,
-        &file,
+        file,
         line,
         col,
         "shared visit counters are updated without synchronization",
@@ -827,7 +827,7 @@ pub(super) fn detect_cwe_820(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_821(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let writes_under_rlock =
@@ -843,7 +843,7 @@ pub(super) fn detect_cwe_821(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_821,
-        &file,
+        file,
         line,
         col,
         "shared cache state is mutated while only a read lock is held",
@@ -852,7 +852,7 @@ pub(super) fn detect_cwe_821(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_826(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let premature_release = source.contains("go func()")
@@ -871,7 +871,7 @@ pub(super) fn detect_cwe_826(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_826,
-        &file,
+        file,
         line,
         col,
         "a shared database handle is closed before a background task finishes using it",
@@ -880,7 +880,7 @@ pub(super) fn detect_cwe_826(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_829(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let untrusted_plugin_path = source.contains("plugin.Open(")
@@ -896,7 +896,7 @@ pub(super) fn detect_cwe_829(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_829,
-        &file,
+        file,
         line,
         col,
         "a plugin is loaded from a caller-controlled filesystem path",
@@ -905,7 +905,7 @@ pub(super) fn detect_cwe_829(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_836(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let client_submits_hash =
@@ -925,7 +925,7 @@ pub(super) fn detect_cwe_836(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_836,
-        &file,
+        file,
         line,
         col,
         "authentication accepts a caller-supplied password hash instead of verifying a plaintext password",
@@ -934,7 +934,7 @@ pub(super) fn detect_cwe_836(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_838(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let invalid_utf8 =
@@ -947,7 +947,7 @@ pub(super) fn detect_cwe_838(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_838,
-        &file,
+        file,
         line,
         col,
         "invalid byte sequences are emitted while declaring UTF-8 JSON output",
@@ -956,7 +956,7 @@ pub(super) fn detect_cwe_838(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_841(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let workflow_skip = source.contains("ResetAccount")
@@ -965,7 +965,7 @@ pub(super) fn detect_cwe_841(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     if !workflow_skip {
         return;
     }
-    if source.contains("MFAPassed") && source.contains("if !acct.MFAPassed")
+    if (source.contains("MFAPassed") && source.contains("if !acct.MFAPassed"))
         || source.contains("if !accountMFAPassed[email]")
     {
         return;
@@ -975,7 +975,7 @@ pub(super) fn detect_cwe_841(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_841,
-        &file,
+        file,
         line,
         col,
         "the reset workflow changes credentials without enforcing MFA completion",
@@ -984,7 +984,7 @@ pub(super) fn detect_cwe_841(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_842(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let wrong_default_group =
@@ -1000,7 +1000,7 @@ pub(super) fn detect_cwe_842(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_842,
-        &file,
+        file,
         line,
         col,
         "newly registered users are assigned to an administrator group by default",
@@ -1009,7 +1009,7 @@ pub(super) fn detect_cwe_842(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_909(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let missing_init_guard = (source.contains("appDB.Find(") || source.contains("widgetDB.Query("))
@@ -1027,7 +1027,7 @@ pub(super) fn detect_cwe_909(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_909,
-        &file,
+        file,
         line,
         col,
         "a global database handle is used without checking that initialization completed",
@@ -1036,7 +1036,7 @@ pub(super) fn detect_cwe_909(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_915(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let mass_assignment = source.contains("map[string]interface{}")
@@ -1052,7 +1052,7 @@ pub(super) fn detect_cwe_915(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_915,
-        &file,
+        file,
         line,
         col,
         "a user-controlled attribute map updates privileged object fields directly",
@@ -1061,7 +1061,7 @@ pub(super) fn detect_cwe_915(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_916(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let weak_password_hash = source.contains("md5.Sum(") && source.contains("password");
@@ -1077,7 +1077,7 @@ pub(super) fn detect_cwe_916(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_916,
-        &file,
+        file,
         line,
         col,
         "password storage uses a fast MD5 hash with insufficient computational effort",
@@ -1086,7 +1086,7 @@ pub(super) fn detect_cwe_916(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_917(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let template_injection = source.contains("template.New(\"report\").Parse(src)")
@@ -1103,7 +1103,7 @@ pub(super) fn detect_cwe_917(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_917,
-        &file,
+        file,
         line,
         col,
         "caller-controlled data is concatenated into the template source itself",
@@ -1112,7 +1112,7 @@ pub(super) fn detect_cwe_917(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_918(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let ssrf_fetch = source.contains("http.Get(target)")
@@ -1131,7 +1131,7 @@ pub(super) fn detect_cwe_918(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_918,
-        &file,
+        file,
         line,
         col,
         "an outbound request is sent to a caller-controlled URL without host allowlisting",
@@ -1140,7 +1140,7 @@ pub(super) fn detect_cwe_918(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_921(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let world_readable_secret = source.contains("/tmp/integration.key")
@@ -1157,7 +1157,7 @@ pub(super) fn detect_cwe_921(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_921,
-        &file,
+        file,
         line,
         col,
         "sensitive integration key material is stored in a world-readable temporary file",
@@ -1166,7 +1166,7 @@ pub(super) fn detect_cwe_921(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_924(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let applies_payment_webhook = (source.contains("AcceptWebhook(")
@@ -1194,7 +1194,7 @@ pub(super) fn detect_cwe_924(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_924,
-        &file,
+        file,
         line,
         col,
         "a payment webhook body is applied without validating an integrity signature first",
@@ -1203,7 +1203,7 @@ pub(super) fn detect_cwe_924(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_940(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let oauth_callback = (source.contains("OAuthCallback(")
@@ -1228,7 +1228,7 @@ pub(super) fn detect_cwe_940(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_940,
-        &file,
+        file,
         line,
         col,
         "an OAuth callback accepts caller-supplied authorization data without verifying a bound state token",
@@ -1237,7 +1237,7 @@ pub(super) fn detect_cwe_940(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_941(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let caller_directed_reset = (source.contains("SendResetLink(")
@@ -1262,7 +1262,7 @@ pub(super) fn detect_cwe_941(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_941,
-        &file,
+        file,
         line,
         col,
         "a reset notification is sent to a caller-controlled email address",
@@ -1271,7 +1271,7 @@ pub(super) fn detect_cwe_941(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_1051(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let hard_coded_upstream = (source.contains("ChargeCard(")
@@ -1290,7 +1290,7 @@ pub(super) fn detect_cwe_1051(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_1051,
-        &file,
+        file,
         line,
         col,
         "an outbound billing request is pinned to a hard-coded internal host",
@@ -1299,7 +1299,7 @@ pub(super) fn detect_cwe_1051(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
 }
 
 pub(super) fn detect_cwe_1052(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let hard_coded_dsn = (source.contains("gorm.Open(postgres.Open(dsn)")
@@ -1317,7 +1317,7 @@ pub(super) fn detect_cwe_1052(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_1052,
-        &file,
+        file,
         line,
         col,
         "database initialization embeds a complete DSN with hard-coded credentials",
@@ -1326,7 +1326,7 @@ pub(super) fn detect_cwe_1052(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
 }
 
 pub(super) fn detect_cwe_1067(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let leading_wildcard_scan = (source.contains("fmt.Sprintf(\"%%%s%%\", term)")
@@ -1344,7 +1344,7 @@ pub(super) fn detect_cwe_1067(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_1067,
-        &file,
+        file,
         line,
         col,
         "a search predicate uses a leading wildcard pattern that forces a sequential scan",
@@ -1353,7 +1353,7 @@ pub(super) fn detect_cwe_1067(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
 }
 
 pub(super) fn detect_cwe_1173(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let bypassed_validation = source.contains("var raw map[string]interface{}")
@@ -1373,7 +1373,7 @@ pub(super) fn detect_cwe_1173(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_1173,
-        &file,
+        file,
         line,
         col,
         "request data is decoded into a generic map instead of the validated signup model",
@@ -1382,7 +1382,7 @@ pub(super) fn detect_cwe_1173(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
 }
 
 pub(super) fn detect_cwe_1125(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let wide_surface = (source.contains("MountWideSurface(")
@@ -1402,7 +1402,7 @@ pub(super) fn detect_cwe_1125(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_1125,
-        &file,
+        file,
         line,
         col,
         "public routing exposes debug, admin, and internal maintenance endpoints together",
@@ -1411,7 +1411,7 @@ pub(super) fn detect_cwe_1125(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
 }
 
 pub(super) fn detect_cwe_1204(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let static_iv = source.contains("cipher.NewCBCEncrypter(")
@@ -1428,7 +1428,7 @@ pub(super) fn detect_cwe_1204(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_1204,
-        &file,
+        file,
         line,
         col,
         "CBC encryption uses a fixed IV literal instead of generating one per request",
@@ -1437,7 +1437,7 @@ pub(super) fn detect_cwe_1204(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
 }
 
 pub(super) fn detect_cwe_1220(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let unscoped_invoice_read = (source.contains("GetInvoice(")
@@ -1458,7 +1458,7 @@ pub(super) fn detect_cwe_1220(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_1220,
-        &file,
+        file,
         line,
         col,
         "invoice access is authenticated but not scoped to the requesting owner",
@@ -1467,7 +1467,7 @@ pub(super) fn detect_cwe_1220(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
 }
 
 pub(super) fn detect_cwe_1230(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let metadata_leak = (source.contains("DownloadRedacted(")
@@ -1486,7 +1486,7 @@ pub(super) fn detect_cwe_1230(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_1230,
-        &file,
+        file,
         line,
         col,
         "a redacted download response still exposes sensitive filename and size metadata",
@@ -1495,7 +1495,7 @@ pub(super) fn detect_cwe_1230(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
 }
 
 pub(super) fn detect_cwe_1236(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let raw_csv_export = (source.contains("ExportFeedbackCSV(")
@@ -1517,7 +1517,7 @@ pub(super) fn detect_cwe_1236(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_1236,
-        &file,
+        file,
         line,
         col,
         "CSV export writes user-controlled comment cells without neutralizing spreadsheet formulas",
@@ -1526,7 +1526,7 @@ pub(super) fn detect_cwe_1236(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
 }
 
 pub(super) fn detect_cwe_1240(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let custom_xor_cipher = (source.contains("SealSessionToken(")
@@ -1544,7 +1544,7 @@ pub(super) fn detect_cwe_1240(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_1240,
-        &file,
+        file,
         line,
         col,
         "session sealing uses a homegrown XOR cipher instead of a standard authenticated primitive",
@@ -1553,7 +1553,7 @@ pub(super) fn detect_cwe_1240(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
 }
 
 pub(super) fn detect_cwe_1265(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let nested_lock_reentry = (source.contains("UpdateBalance(")
@@ -1574,7 +1574,7 @@ pub(super) fn detect_cwe_1265(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_1265,
-        &file,
+        file,
         line,
         col,
         "a transfer path re-enters a mutex-protected balance helper while the same mutex is already held",
@@ -1583,7 +1583,7 @@ pub(super) fn detect_cwe_1265(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
 }
 
 pub(super) fn detect_cwe_1286(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let loose_json_config = (source.contains("SaveHookConfig(")
@@ -1605,7 +1605,7 @@ pub(super) fn detect_cwe_1286(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_1286,
-        &file,
+        file,
         line,
         col,
         "webhook configuration JSON is accepted without strict syntax and URL validation",
@@ -1614,7 +1614,7 @@ pub(super) fn detect_cwe_1286(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
 }
 
 pub(super) fn detect_cwe_1289(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let literal_path_block = (source.contains("FetchSharedAsset(")
@@ -1636,7 +1636,7 @@ pub(super) fn detect_cwe_1289(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_1289,
-        &file,
+        file,
         line,
         col,
         "asset access relies on a literal blocked path comparison before canonical normalization",
@@ -1645,7 +1645,7 @@ pub(super) fn detect_cwe_1289(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
 }
 
 pub(super) fn detect_cwe_1322(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let blocking_worker = (source.contains("StartWebhookWorker(")
@@ -1664,7 +1664,7 @@ pub(super) fn detect_cwe_1322(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_1322,
-        &file,
+        file,
         line,
         col,
         "the webhook worker blocks its queue loop with sleep instead of scheduling retries asynchronously",
@@ -1673,7 +1673,7 @@ pub(super) fn detect_cwe_1322(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
 }
 
 pub(super) fn detect_cwe_1327(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let unrestricted_bind = (source.contains("StartPublicAPI(")
@@ -1690,7 +1690,7 @@ pub(super) fn detect_cwe_1327(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_1327,
-        &file,
+        file,
         line,
         col,
         "the service binds to all interfaces instead of a restricted loopback address",
@@ -1699,7 +1699,7 @@ pub(super) fn detect_cwe_1327(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
 }
 
 pub(super) fn detect_cwe_1333(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let redos_pattern = source.contains("^([a-zA-Z]+)*$")
@@ -1716,7 +1716,7 @@ pub(super) fn detect_cwe_1333(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_1333,
-        &file,
+        file,
         line,
         col,
         "tag validation uses a catastrophic-backtracking regex on attacker-controlled input",
@@ -1725,7 +1725,7 @@ pub(super) fn detect_cwe_1333(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
 }
 
 pub(super) fn detect_cwe_1389(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let implicit_radix = (source.contains("ReserveSeats(") || source.contains("ReserveSeatsPure("))
@@ -1741,7 +1741,7 @@ pub(super) fn detect_cwe_1389(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_1389,
-        &file,
+        file,
         line,
         col,
         "seat counts are parsed with base 0 and may accept alternate-radix prefixes unexpectedly",
@@ -1750,7 +1750,7 @@ pub(super) fn detect_cwe_1389(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
 }
 
 pub(super) fn detect_cwe_1392(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let default_admin = (source.contains("BootstrapAdmin(")
@@ -1768,7 +1768,7 @@ pub(super) fn detect_cwe_1392(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_1392,
-        &file,
+        file,
         line,
         col,
         "administrator bootstrap uses a built-in default password literal",
@@ -1777,7 +1777,7 @@ pub(super) fn detect_cwe_1392(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
 }
 
 pub(super) fn detect_cwe_807(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let spoofable_ip_gate = source.contains("blockedIPs")
@@ -1798,7 +1798,7 @@ pub(super) fn detect_cwe_807(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_807,
-        &file,
+        file,
         line,
         col,
         "a security gate trusts the caller-controlled forwarded IP header",

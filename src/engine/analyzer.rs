@@ -65,11 +65,18 @@ impl Analyzer {
     {
         let entries = collect_entries(&self.registry, paths, &self.lang_filter)?;
         let mut findings = Vec::new();
+        let mut errors = Vec::new();
         for chunk in entries.chunks(SCAN_CHUNK_SIZE) {
-            findings.extend(scan_entries_parallel(&self.registry, &self.ctx, chunk)?);
+            let (chunk_findings, chunk_errors) =
+                scan_entries_parallel(&self.registry, &self.ctx, chunk)?;
+            findings.extend(chunk_findings);
+            errors.extend(chunk_errors);
         }
         sort_findings(&mut findings);
-        Ok(AnalysisResult { findings })
+        if !errors.is_empty() {
+            tracing::warn!(error_count = errors.len(), "scan completed with per-file errors");
+        }
+        Ok(AnalysisResult { findings, errors })
     }
 
     pub fn analyze_units(&self, units: &[crate::core::ParsedUnit]) -> Vec<Finding> {

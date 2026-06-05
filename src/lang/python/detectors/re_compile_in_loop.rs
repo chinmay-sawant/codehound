@@ -32,7 +32,7 @@ impl Detector for ReCompileInLoop {
     }
 
     fn run(&self, _ctx: &ScanContext, unit: &ParsedUnit, out: &mut Vec<Finding>) {
-        let file = unit.path.display().to_string();
+        let file = unit.display_path.as_str();
         let src = unit.source.as_ref();
         walk_calls(unit.tree.root_node(), &mut |call| {
             if !is_re_compile_call(call, src.as_bytes()) {
@@ -44,7 +44,7 @@ impl Detector for ReCompileInLoop {
             let (line, col) = unit.line_col(call.start_byte());
             emit::push_finding_with_snippet(
                 &self.metadata(),
-                &file,
+                file,
                 line,
                 col,
                 "re.compile called inside loop body",

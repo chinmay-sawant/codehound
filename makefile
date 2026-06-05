@@ -2,12 +2,6 @@ CARGO ?= cargo
 SCAN_PATH ?= /home/chinmay/ChinmayPersonalProjects/gopdfsuit
 RUN_ARGS ?=
 
-ifeq ($(OS),Windows_NT)
-ifeq ($(shell where cargo 2>NUL),)
-CARGO := C:\\Windows\\Sysnative\\wsl.exe --cd $(WSL_REPO_ROOT) cargo
-endif
-endif
-
 # Build the project
 build:
 	$(CARGO) build
@@ -25,5 +19,16 @@ lint:
 fmt:
 	$(CARGO) fmt
 
+# Run slopguard against a path. Override SCAN_PATH or RUN_ARGS as needed.
 run:
 	@$(CARGO) run --quiet -- $(SCAN_PATH) --no-fail --no-terminal $(RUN_ARGS)
+
+# Run benchmarks. Set SAVE_BASELINE=1 to save a new baseline.
+bench:
+	$(CARGO) bench
+bench-save:
+	$(CARGO) bench -- --save-baseline main
+
+# Generate a CHANGELOG entry stub.
+changelog:
+	@echo "## [unreleased] - $$(date +%Y-%m-%d)" && echo "" && echo "### Added" && echo "" && echo "### Changed" && echo "" && echo "### Fixed" && echo ""

@@ -73,14 +73,15 @@ fn build_finding_block(
         format!("Message: {}", finding.message),
     ];
 
-    if !finding.cwe.is_empty() {
-        let cwes = finding
-            .cwe
-            .iter()
-            .map(|cwe| format!("CWE-{} ({})", cwe.id, cwe.name))
-            .collect::<Vec<_>>()
-            .join(", ");
-        lines.push(format!("CWEs: {cwes}"));
+    if let Some(cwes) = finding.cwe.as_deref() {
+        if !cwes.is_empty() {
+            let list = cwes
+                .iter()
+                .map(|cwe| format!("CWE-{} ({})", cwe.id, cwe.name))
+                .collect::<Vec<_>>()
+                .join(", ");
+            lines.push(format!("CWEs: {list}"));
+        }
     }
 
     if let Some(fix) = &finding.fix {
@@ -241,6 +242,11 @@ mod tests {
         )
         .unwrap();
 
+        let cwe: &'static [CweRef] = Box::leak(Box::new([CweRef::new(
+            89,
+            "Improper Neutralization of Special Elements used in an SQL Command",
+            "https://cwe.mitre.org/data/definitions/89.html",
+        )]));
         let findings = vec![Finding::new(
             "CWE-89",
             "SQL injection via concatenated query",
@@ -248,11 +254,7 @@ mod tests {
             LineCol { line: 4, column: 5 },
             "query string is built from untrusted input",
             Severity::Warning,
-            vec![CweRef::new(
-                89,
-                "Improper Neutralization of Special Elements used in an SQL Command",
-                "https://cwe.mitre.org/data/definitions/89.html",
-            )],
+            std::borrow::Cow::Borrowed(cwe),
         )];
 
         let summary = export_findings(

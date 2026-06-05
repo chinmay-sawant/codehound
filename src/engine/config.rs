@@ -6,15 +6,16 @@ use anyhow::{Context, Result};
 use serde::Deserialize;
 
 use crate::core::{FailPolicy, ScanContext};
-use crate::rules::Severity;
 
 #[derive(Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SlopguardConfig {
     #[serde(default)]
     pub slopguard: SlopguardSection,
 }
 
 #[derive(Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SlopguardSection {
     #[serde(default)]
     pub languages: Vec<String>,
@@ -24,6 +25,10 @@ pub struct SlopguardSection {
     pub skip: Vec<String>,
     #[serde(default)]
     pub only: Vec<String>,
+    #[serde(default)]
+    pub include: Vec<String>,
+    #[serde(default)]
+    pub exclude: Vec<String>,
 }
 
 impl SlopguardConfig {
@@ -37,7 +42,11 @@ impl SlopguardConfig {
         load_discovered_config().ok().flatten()
     }
 
-    pub fn merge_into(self, mut ctx: ScanContext) -> ScanContext {
+    /// Merge this config into a `ScanContext`. CLI-set fields take precedence:
+    /// `skip` and `only` are merged additively (config adds to CLI), but
+    /// `fail_policy` is only applied when the CLI did not pass an explicit
+    /// one (signaled by `cli_set_fail_policy`).
+    pub fn merge_into(self, mut ctx: ScanContext, cli_set_fail_policy: bool) -> ScanContext {
         if !self.slopguard.skip.is_empty() {
             ctx.skip.extend(self.slopguard.skip);
         }
@@ -45,9 +54,19 @@ impl SlopguardConfig {
             ctx.only = Some(self.slopguard.only.into_iter().collect());
         }
         if let Some(fail_on) = self.slopguard.fail_on.as_deref() {
-            ctx.fail_policy = fail_on_to_policy(fail_on);
+            if !cli_set_fail_policy {
+                ctx.fail_policy = fail_on_to_policy(fail_on);
+            }
         }
         ctx
+    }
+
+    pub fn include(&self) -> &[String] {
+        &self.slopguard.include
+    }
+
+    pub fn exclude(&self) -> &[String] {
+        &self.slopguard.exclude
     }
 }
 
@@ -56,6 +75,20 @@ fn fail_on_to_policy(s: &str) -> FailPolicy {
         "none" | "never" => FailPolicy::NoFail,
         "high" | "strict" => FailPolicy::Strict,
         _ => FailPolicy::WarningsAsErrors,
+    }
+}
+
+/// Walk from `start` upward looking for the closest `slopguard.toml`.
+pub fn discover_config(start: &Path) -> Option<std::path::PathBuf> {
+    let mut current = start.to_path_buf();
+    loop {
+        let candidate = current.join("slopguard.toml");
+        if candidate.is_file() {
+            return Some(candidate);
+        }
+        if !current.pop() {
+            return None;
+        }
     }
 }
 
@@ -75,6 +108,7 @@ pub fn build_scan_context(
     skip: Vec<String>,
     fail_policy: FailPolicy,
     config: Option<SlopguardConfig>,
+    cli_set_fail_policy: bool,
 ) -> ScanContext {
     let mut ctx = ScanContext {
         only: if only.is_empty() {
@@ -86,16 +120,112 @@ pub fn build_scan_context(
         fail_policy,
     };
     if let Some(cfg) = config {
-        ctx = cfg.merge_into(ctx);
+        ctx = cfg.merge_into(ctx, cli_set_fail_policy);
     }
     ctx
 }
 
-#[allow(dead_code)]
-pub fn severity_threshold(policy: FailPolicy) -> Severity {
-    match policy {
-        FailPolicy::Strict => Severity::High,
-        FailPolicy::NoFail => Severity::Info,
-        FailPolicy::WarningsAsErrors => Severity::Warning,
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn deny_unknown_fields_at_top_level() {
+        let r = toml::from_str::<SlopguardConfig>(r#"unknown = 1"#);
+        assert!(r.is_err(), "expected error for unknown field, got {r:?}");
+    }
+
+    #[test]
+    fn deny_unknown_fields_in_section() {
+        let r = toml::from_str::<SlopguardConfig>(
+            r#"[slopguard]
+fali_on = "high"
+"#,
+        );
+        assert!(r.is_err(), "expected typo to fail, got {r:?}");
+    }
+
+    #[test]
+    fn allow_known_fields() {
+        let r = toml::from_str::<SlopguardConfig>(
+            r#"[slopguard]
+languages = ["go"]
+skip = ["CWE-15"]
+only = []
+include = []
+exclude = []
+"#,
+        );
+        assert!(r.is_ok(), "expected ok, got {r:?}");
+    }
+
+    #[test]
+    fn fail_on_string_maps_to_policy() {
+        assert!(matches!(fail_on_to_policy("none"), FailPolicy::NoFail));
+        assert!(matches!(fail_on_to_policy("never"), FailPolicy::NoFail));
+        assert!(matches!(fail_on_to_policy("high"), FailPolicy::Strict));
+        assert!(matches!(fail_on_to_policy("strict"), FailPolicy::Strict));
+        assert!(matches!(
+            fail_on_to_policy("warnings"),
+            FailPolicy::WarningsAsErrors
+        ));
+    }
+
+    #[test]
+    fn discover_config_finds_in_cwd() {
+        // tests run from the crate root, where slopguard.toml exists.
+        let path = discover_config(Path::new("."));
+        assert!(path.is_some(), "expected slopguard.toml in cwd");
+        let path = path.unwrap();
+        assert!(path.ends_with("slopguard.toml"));
+    }
+
+    #[test]
+    fn discover_config_finds_in_subdir() {
+        // target/ exists in the workspace; walk upward from there.
+        let target = Path::new("./target");
+        if target.is_dir() {
+            let path = discover_config(target);
+            assert!(path.is_some(), "expected upward walk to find slopguard.toml");
+        }
+    }
+
+    #[test]
+    fn discover_config_returns_none_outside_repo() {
+        let path = discover_config(Path::new("/tmp"));
+        assert!(path.is_none(), "expected None for /tmp, got {path:?}");
+    }
+
+    #[test]
+    fn merge_into_cli_fail_policy_wins_over_config() {
+        let cfg = SlopguardConfig {
+            slopguard: SlopguardSection {
+                fail_on: Some("none".to_string()),
+                ..Default::default()
+            },
+        };
+        let ctx = ScanContext {
+            fail_policy: FailPolicy::Strict,
+            ..Default::default()
+        };
+        let merged = cfg.merge_into(ctx, true);
+        // CLI was explicit → config is ignored.
+        assert_eq!(merged.fail_policy, FailPolicy::Strict);
+    }
+
+    #[test]
+    fn merge_into_config_fail_on_applies_when_cli_didnt_set_it() {
+        let cfg = SlopguardConfig {
+            slopguard: SlopguardSection {
+                fail_on: Some("none".to_string()),
+                ..Default::default()
+            },
+        };
+        let ctx = ScanContext {
+            fail_policy: FailPolicy::WarningsAsErrors,
+            ..Default::default()
+        };
+        let merged = cfg.merge_into(ctx, false);
+        assert_eq!(merged.fail_policy, FailPolicy::NoFail);
     }
 }

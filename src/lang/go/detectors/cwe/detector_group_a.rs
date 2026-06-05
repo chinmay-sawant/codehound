@@ -5,7 +5,7 @@ use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
 pub(super) fn detect_cwe_15(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
 
     for call in &facts.call_facts {
         if !is_configuration_sink(&call.callee) {
@@ -24,7 +24,7 @@ pub(super) fn detect_cwe_15(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
         let (line, col) = unit.line_col(call.start_byte);
         emit::push_finding(
             &META_CWE_15,
-            &file,
+            file,
             line,
             col,
             "request-derived configuration value reaches a database-opening sink",
@@ -34,7 +34,7 @@ pub(super) fn detect_cwe_15(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
 }
 
 pub(super) fn detect_cwe_22(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     for assignment in &facts.assignments {
@@ -67,7 +67,7 @@ pub(super) fn detect_cwe_22(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
         let (line, col) = unit.line_col(assignment.start_byte);
         emit::push_finding(
             &META_CWE_22,
-            &file,
+            file,
             line,
             col,
             "user-controlled path reaches a file-read sink without base-directory confinement",
@@ -77,7 +77,7 @@ pub(super) fn detect_cwe_22(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
 }
 
 pub(super) fn detect_cwe_41(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     for assignment in &facts.assignments {
@@ -116,7 +116,7 @@ pub(super) fn detect_cwe_41(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
         let (line, col) = unit.line_col(assignment.start_byte);
         emit::push_finding(
             &META_CWE_41,
-            &file,
+            file,
             line,
             col,
             "partial traversal filtering still allows equivalent path aliases to reach file access",
@@ -126,7 +126,7 @@ pub(super) fn detect_cwe_41(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
 }
 
 pub(super) fn detect_cwe_59(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     for assignment in &facts.assignments {
@@ -159,7 +159,7 @@ pub(super) fn detect_cwe_59(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
         let (line, col) = unit.line_col(assignment.start_byte);
         emit::push_finding(
             &META_CWE_59,
-            &file,
+            file,
             line,
             col,
             "user-controlled path is opened without a symlink rejection check",
@@ -169,7 +169,7 @@ pub(super) fn detect_cwe_59(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
 }
 
 pub(super) fn detect_cwe_76(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     if source.contains("html.EscapeString(") {
@@ -203,7 +203,7 @@ pub(super) fn detect_cwe_76(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_76,
-        &file,
+        file,
         line,
         col,
         "manual angle-bracket stripping is used for HTML output instead of proper escaping",
@@ -212,7 +212,7 @@ pub(super) fn detect_cwe_76(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
 }
 
 pub(super) fn detect_cwe_78(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
 
     for call in &facts.call_facts {
         if call.callee != "exec.Command" || call.arguments.len() < 3 {
@@ -235,7 +235,7 @@ pub(super) fn detect_cwe_78(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
         let (line, col) = unit.line_col(call.start_byte);
         emit::push_finding(
             &META_CWE_78,
-            &file,
+            file,
             line,
             col,
             "user-controlled input is interpolated into a shell command string",
@@ -245,7 +245,7 @@ pub(super) fn detect_cwe_78(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
 }
 
 pub(super) fn detect_cwe_79(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     if !source.contains("fmt.Sprintf(") || !source.contains("text/html") {
@@ -278,7 +278,7 @@ pub(super) fn detect_cwe_79(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
         let (line, col) = unit.line_col(call.start_byte);
         emit::push_finding(
             &META_CWE_79,
-            &file,
+            file,
             line,
             col,
             "user-controlled input is formatted directly into HTML output",
@@ -288,7 +288,7 @@ pub(super) fn detect_cwe_79(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
 }
 
 pub(super) fn detect_cwe_89(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
 
     for assignment in &facts.assignments {
         if !assignment.expr.contains("fmt.Sprintf(") {
@@ -323,7 +323,7 @@ pub(super) fn detect_cwe_89(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
         let (line, col) = unit.line_col(assignment.start_byte);
         emit::push_finding(
             &META_CWE_89,
-            &file,
+            file,
             line,
             col,
             "user-controlled input is formatted into an SQL query before execution",
@@ -333,7 +333,7 @@ pub(super) fn detect_cwe_89(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
 }
 
 pub(super) fn detect_cwe_90(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
 
     for assignment in &facts.assignments {
         if !assignment.expr.contains("fmt.Sprintf(") {
@@ -367,7 +367,7 @@ pub(super) fn detect_cwe_90(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
         let (line, col) = unit.line_col(assignment.start_byte);
         emit::push_finding(
             &META_CWE_90,
-            &file,
+            file,
             line,
             col,
             "user-controlled input is formatted into an LDAP filter without escaping",
@@ -377,7 +377,7 @@ pub(super) fn detect_cwe_90(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
 }
 
 pub(super) fn detect_cwe_91(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
 
     for assignment in &facts.assignments {
         if !assignment.expr.contains("fmt.Sprintf(") {
@@ -408,7 +408,7 @@ pub(super) fn detect_cwe_91(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
         let (line, col) = unit.line_col(assignment.start_byte);
         emit::push_finding(
             &META_CWE_91,
-            &file,
+            file,
             line,
             col,
             "user-controlled input is formatted directly into XML before parsing",
@@ -418,7 +418,7 @@ pub(super) fn detect_cwe_91(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
 }
 
 pub(super) fn detect_cwe_93(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     for binding in &facts.input_bindings {
@@ -463,7 +463,7 @@ pub(super) fn detect_cwe_93(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
         let (line, col) = unit.line_col(start_byte);
         emit::push_finding(
             &META_CWE_93,
-            &file,
+            file,
             line,
             col,
             "user-controlled input is concatenated into a Location header without CRLF stripping",
@@ -473,7 +473,7 @@ pub(super) fn detect_cwe_93(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
 }
 
 pub(super) fn detect_cwe_112(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let has_xml_unmarshal = facts
@@ -508,7 +508,7 @@ pub(super) fn detect_cwe_112(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_112,
-        &file,
+        file,
         line,
         col,
         "untrusted XML is unmarshaled without subsequent field-level validation",
@@ -517,7 +517,7 @@ pub(super) fn detect_cwe_112(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 }
 
 pub(super) fn detect_cwe_140(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     if !source.contains("text/csv") {
@@ -548,7 +548,7 @@ pub(super) fn detect_cwe_140(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_140,
-        &file,
+        file,
         line,
         col,
         "user-controlled fields are joined into CSV output with literal delimiters",
@@ -557,7 +557,7 @@ pub(super) fn detect_cwe_140(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 }
 
 pub(super) fn detect_cwe_178(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     if source.contains("strings.EqualFold(") {
@@ -595,7 +595,7 @@ pub(super) fn detect_cwe_178(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let (line, col) = unit.line_col(assignment.start_byte);
     emit::push_finding(
         &META_CWE_178,
-        &file,
+        file,
         line,
         col,
         "user-controlled lookup key is lowercased and used directly in resource membership checks",
@@ -604,7 +604,7 @@ pub(super) fn detect_cwe_178(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 }
 
 pub(super) fn detect_cwe_179(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     if source.contains(".MatchString(decoded)") {
@@ -636,7 +636,7 @@ pub(super) fn detect_cwe_179(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         let (line, col) = unit.line_col(start_byte);
         emit::push_finding(
             &META_CWE_179,
-            &file,
+            file,
             line,
             col,
             "encoded input is validated before URL decoding and then used in decoded form",
@@ -647,7 +647,7 @@ pub(super) fn detect_cwe_179(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 }
 
 pub(super) fn detect_cwe_182(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let Some(collapse_assignment) = facts
@@ -678,7 +678,7 @@ pub(super) fn detect_cwe_182(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let (line, col) = unit.line_col(collapse_assignment.start_byte);
     emit::push_finding(
         &META_CWE_182,
-        &file,
+        file,
         line,
         col,
         "input is stripped and collapsed into an authorization-relevant value before membership checks",
@@ -687,7 +687,7 @@ pub(super) fn detect_cwe_182(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 }
 
 pub(super) fn detect_cwe_184(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     if source.contains(".MatchString(") {
@@ -716,7 +716,7 @@ pub(super) fn detect_cwe_184(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let (line, col) = unit.line_col(lower_assignment.start_byte);
     emit::push_finding(
         &META_CWE_184,
-        &file,
+        file,
         line,
         col,
         "user-controlled input is checked against an incomplete deny-list after normalization",
@@ -725,7 +725,7 @@ pub(super) fn detect_cwe_184(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 }
 
 pub(super) fn detect_cwe_186(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     if !source.contains("regexp.MustCompile(`^[a-z]+$`)") {
@@ -742,7 +742,7 @@ pub(super) fn detect_cwe_186(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_186,
-        &file,
+        file,
         line,
         col,
         "host validation uses an overly restrictive regex that only accepts lowercase letters",
@@ -751,7 +751,7 @@ pub(super) fn detect_cwe_186(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 }
 
 pub(super) fn detect_cwe_201(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let has_sensitive_field = source.contains("APIKey") || source.contains("TokenKey");
@@ -781,7 +781,7 @@ pub(super) fn detect_cwe_201(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let (line, col) = unit.line_col(call.start_byte);
     emit::push_finding(
         &META_CWE_201,
-        &file,
+        file,
         line,
         col,
         "a response serializes a record containing sensitive fields directly to the caller",
@@ -790,7 +790,7 @@ pub(super) fn detect_cwe_201(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 }
 
 pub(super) fn detect_cwe_204(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let has_missing_account_branch =
@@ -808,7 +808,7 @@ pub(super) fn detect_cwe_204(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_204,
-        &file,
+        file,
         line,
         col,
         "authentication failures return distinguishable responses for missing accounts and wrong credentials",
@@ -817,7 +817,7 @@ pub(super) fn detect_cwe_204(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_208(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     if source.contains("subtle.ConstantTimeCompare(") {
@@ -833,7 +833,7 @@ pub(super) fn detect_cwe_208(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_208,
-        &file,
+        file,
         line,
         col,
         "secret comparison returns early on mismatched bytes instead of using a constant-time primitive",
@@ -842,7 +842,7 @@ pub(super) fn detect_cwe_208(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_209(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     if !source.contains(r#"fmt.Sprintf("db failure: %v", err)"#) {
@@ -855,7 +855,7 @@ pub(super) fn detect_cwe_209(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_209,
-        &file,
+        file,
         line,
         col,
         "database error details are formatted into a client-facing response",
@@ -864,7 +864,7 @@ pub(super) fn detect_cwe_209(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_212(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let has_sensitive_payment_field = source.contains("Card") || source.contains("PAN");
@@ -885,7 +885,7 @@ pub(super) fn detect_cwe_212(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_212,
-        &file,
+        file,
         line,
         col,
         "records containing sensitive payment fields are marshaled directly for export",
@@ -894,7 +894,7 @@ pub(super) fn detect_cwe_212(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_213(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let has_comp_field = source.contains("Salary") || source.contains("Comp");
@@ -916,7 +916,7 @@ pub(super) fn detect_cwe_213(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let (line, col) = unit.line_col(call.start_byte);
     emit::push_finding(
         &META_CWE_213,
-        &file,
+        file,
         line,
         col,
         "a public response serializes a profile that still contains compensation fields",
@@ -925,7 +925,7 @@ pub(super) fn detect_cwe_213(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 }
 
 pub(super) fn detect_cwe_214(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     for call in &facts.call_facts {
@@ -948,7 +948,7 @@ pub(super) fn detect_cwe_214(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         let (line, col) = unit.line_col(call.start_byte);
         emit::push_finding(
             &META_CWE_214,
-            &file,
+            file,
             line,
             col,
             "a user-supplied token is passed as a visible argv argument to an external process",
@@ -959,7 +959,7 @@ pub(super) fn detect_cwe_214(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 }
 
 pub(super) fn detect_cwe_215(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
 
     for call in &facts.call_facts {
         if call.callee != "log.Printf" {
@@ -978,7 +978,7 @@ pub(super) fn detect_cwe_215(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         let (line, col) = unit.line_col(call.start_byte);
         emit::push_finding(
             &META_CWE_215,
-            &file,
+            file,
             line,
             col,
             "a debug log statement includes request-derived secret material",
@@ -989,7 +989,7 @@ pub(super) fn detect_cwe_215(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 }
 
 pub(super) fn detect_cwe_250(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
 
     for call in &facts.call_facts {
         if call.callee != "os.WriteFile" || call.arguments.len() < 3 {
@@ -1002,7 +1002,7 @@ pub(super) fn detect_cwe_250(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         let (line, col) = unit.line_col(call.start_byte);
         emit::push_finding(
             &META_CWE_250,
-            &file,
+            file,
             line,
             col,
             "runtime file is written with world-accessible permissions",
@@ -1013,7 +1013,7 @@ pub(super) fn detect_cwe_250(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 }
 
 pub(super) fn detect_cwe_252(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     for call in &facts.call_facts {
@@ -1034,7 +1034,7 @@ pub(super) fn detect_cwe_252(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         let (line, col) = unit.line_col(call.start_byte);
         emit::push_finding(
             &META_CWE_252,
-            &file,
+            file,
             line,
             col,
             "os.WriteFile is called without checking its returned error",
@@ -1045,7 +1045,7 @@ pub(super) fn detect_cwe_252(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 }
 
 pub(super) fn detect_cwe_256(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     if source.contains("GenerateFromPassword(")
@@ -1074,7 +1074,7 @@ pub(super) fn detect_cwe_256(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_256,
-        &file,
+        file,
         line,
         col,
         "a plaintext password value is persisted directly instead of a hash or digest",
@@ -1083,7 +1083,7 @@ pub(super) fn detect_cwe_256(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_257(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let uses_reversible_crypto = source.contains("aes.NewCipher(")
@@ -1104,7 +1104,7 @@ pub(super) fn detect_cwe_257(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_257,
-        &file,
+        file,
         line,
         col,
         "a password or login secret is encrypted with a reversible cipher before storage",
@@ -1113,7 +1113,7 @@ pub(super) fn detect_cwe_257(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_260(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let config_type_has_secret_field =
@@ -1137,7 +1137,7 @@ pub(super) fn detect_cwe_260(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_260,
-        &file,
+        file,
         line,
         col,
         "a secret-bearing field is loaded from a configuration file and used directly",
@@ -1146,7 +1146,7 @@ pub(super) fn detect_cwe_260(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_261(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     if !source.contains("base64.StdEncoding.EncodeToString(") {
@@ -1164,7 +1164,7 @@ pub(super) fn detect_cwe_261(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_261,
-        &file,
+        file,
         line,
         col,
         "a password is Base64-encoded and then stored in a recoverable form",
@@ -1173,7 +1173,7 @@ pub(super) fn detect_cwe_261(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_262(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let loads_age_metadata = source.contains("last_seen") || source.contains("changed_at");
@@ -1193,7 +1193,7 @@ pub(super) fn detect_cwe_262(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_262,
-        &file,
+        file,
         line,
         col,
         "credential metadata is loaded but no password-age enforcement is performed",
@@ -1202,7 +1202,7 @@ pub(super) fn detect_cwe_262(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_263(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     if !source.contains("MaxAgeDays: 3650") {
@@ -1213,7 +1213,7 @@ pub(super) fn detect_cwe_263(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
         &META_CWE_263,
-        &file,
+        file,
         line,
         col,
         "password maximum age is configured to an excessively long multi-year period",
@@ -1222,7 +1222,7 @@ pub(super) fn detect_cwe_263(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 }
 
 pub(super) fn detect_cwe_266(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let Some(role_assignment) = facts
@@ -1250,7 +1250,7 @@ pub(super) fn detect_cwe_266(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let (line, col) = unit.line_col(role_assignment.start_byte);
     emit::push_finding(
         &META_CWE_266,
-        &file,
+        file,
         line,
         col,
         "a client-controlled role value is used directly when provisioning access",
@@ -1259,7 +1259,7 @@ pub(super) fn detect_cwe_266(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 }
 
 pub(super) fn detect_cwe_267(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let reviewer_guard =
@@ -1279,7 +1279,7 @@ pub(super) fn detect_cwe_267(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let (line, col) = unit.line_col(remove_call.start_byte);
     emit::push_finding(
         &META_CWE_267,
-        &file,
+        file,
         line,
         col,
         "the reviewer role is allowed to invoke a destructive filesystem removal operation",
@@ -1288,7 +1288,7 @@ pub(super) fn detect_cwe_267(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 }
 
 pub(super) fn detect_cwe_268(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let has_chained_scopes = (source.contains(r#"p == "read""#)
@@ -1315,7 +1315,7 @@ pub(super) fn detect_cwe_268(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let (line, col) = unit.line_col(sensitive_sink.start_byte);
     emit::push_finding(
         &META_CWE_268,
-        &file,
+        file,
         line,
         col,
         "a sensitive export path is authorized by combining weaker read and export scopes",
@@ -1324,7 +1324,7 @@ pub(super) fn detect_cwe_268(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 }
 
 pub(super) fn detect_cwe_270(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let Some(context_switch) = facts.call_facts.iter().find(|call| {
@@ -1343,8 +1343,8 @@ pub(super) fn detect_cwe_270(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     };
 
     let restores_context = source.contains("defer c.Set(\"effective_user\", original)")
-        || source.contains("defer func()")
-            && source.contains("context.WithValue(r.Context(), effectiveUserKey, original)");
+        || (source.contains("defer func()")
+            && source.contains("context.WithValue(r.Context(), effectiveUserKey, original)"));
     if restores_context {
         return;
     }
@@ -1352,7 +1352,7 @@ pub(super) fn detect_cwe_270(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let (line, col) = unit.line_col(context_switch.start_byte);
     emit::push_finding(
         &META_CWE_270,
-        &file,
+        file,
         line,
         col,
         "the handler switches to a privileged execution context without restoring the original caller context",
@@ -1361,7 +1361,7 @@ pub(super) fn detect_cwe_270(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 }
 
 pub(super) fn detect_cwe_272(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
 
     let Some(elevate_call) = facts.call_facts.iter().find(|call| {
         call.callee == "syscall.Setuid" && call.arguments.first().is_some_and(|arg| arg == "0")
@@ -1387,7 +1387,7 @@ pub(super) fn detect_cwe_272(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let (line, col) = unit.line_col(elevate_call.start_byte);
     emit::push_finding(
         &META_CWE_272,
-        &file,
+        file,
         line,
         col,
         "the handler raises uid for a privileged operation and does not drop it afterward",
@@ -1396,7 +1396,7 @@ pub(super) fn detect_cwe_272(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 }
 
 pub(super) fn detect_cwe_273(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     if source.contains("if err := syscall.Setuid(1000); err != nil") {
@@ -1418,7 +1418,7 @@ pub(super) fn detect_cwe_273(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let (line, col) = unit.line_col(drop_call.start_byte);
     emit::push_finding(
         &META_CWE_273,
-        &file,
+        file,
         line,
         col,
         "the handler ignores whether dropping privilege via Setuid actually succeeded",
@@ -1427,7 +1427,7 @@ pub(super) fn detect_cwe_273(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 }
 
 pub(super) fn detect_cwe_274(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let Some(rename_call) = facts
@@ -1449,7 +1449,7 @@ pub(super) fn detect_cwe_274(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let (line, col) = unit.line_col(rename_call.start_byte);
     emit::push_finding(
         &META_CWE_274,
-        &file,
+        file,
         line,
         col,
         "an insufficient-privilege filesystem failure is treated like a successful rotation",
@@ -1458,7 +1458,7 @@ pub(super) fn detect_cwe_274(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 }
 
 pub(super) fn detect_cwe_276(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let Some(write_call) = facts.call_facts.iter().find(|call| {
@@ -1475,7 +1475,7 @@ pub(super) fn detect_cwe_276(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let (line, col) = unit.line_col(write_call.start_byte);
     emit::push_finding(
         &META_CWE_276,
-        &file,
+        file,
         line,
         col,
         "a session artifact is written with a world-readable and world-writable default mode",
@@ -1484,7 +1484,7 @@ pub(super) fn detect_cwe_276(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 }
 
 pub(super) fn detect_cwe_277(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
 
     let clears_umask = facts.call_facts.iter().any(|call| {
         call.callee == "syscall.Umask" && call.arguments.first().is_some_and(|arg| arg == "0")
@@ -1502,7 +1502,7 @@ pub(super) fn detect_cwe_277(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let (line, col) = unit.line_col(mkdir_call.start_byte);
     emit::push_finding(
         &META_CWE_277,
-        &file,
+        file,
         line,
         col,
         "umask is cleared before creating a world-writable directory",
@@ -1511,7 +1511,7 @@ pub(super) fn detect_cwe_277(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 }
 
 pub(super) fn detect_cwe_278(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
 
     let Some(open_call) = facts.call_facts.iter().find(|call| {
         call.callee == "os.OpenFile"
@@ -1524,7 +1524,7 @@ pub(super) fn detect_cwe_278(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let (line, col) = unit.line_col(open_call.start_byte);
     emit::push_finding(
         &META_CWE_278,
-        &file,
+        file,
         line,
         col,
         "archive entry permissions are reapplied directly from untrusted metadata during extraction",
@@ -1533,7 +1533,7 @@ pub(super) fn detect_cwe_278(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 }
 
 pub(super) fn detect_cwe_279(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     if !source.contains("strconv.ParseUint(") {
@@ -1549,7 +1549,7 @@ pub(super) fn detect_cwe_279(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let (line, col) = unit.line_col(write_call.start_byte);
     emit::push_finding(
         &META_CWE_279,
-        &file,
+        file,
         line,
         col,
         "the handler parses a requested mode but still writes the file with a hard-coded world-writable mode",
@@ -1558,7 +1558,7 @@ pub(super) fn detect_cwe_279(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 }
 
 pub(super) fn detect_cwe_280(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let Some(open_call) = facts
@@ -1581,7 +1581,7 @@ pub(super) fn detect_cwe_280(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let (line, col) = unit.line_col(open_call.start_byte);
     emit::push_finding(
         &META_CWE_280,
-        &file,
+        file,
         line,
         col,
         "failure to access a protected resource leads into a privileged deletion path instead of a denial",
@@ -1590,7 +1590,7 @@ pub(super) fn detect_cwe_280(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 }
 
 pub(super) fn detect_cwe_281(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     if source.contains("info.Mode()") {
@@ -1612,7 +1612,7 @@ pub(super) fn detect_cwe_281(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let (line, col) = unit.line_col(create_call.start_byte);
     emit::push_finding(
         &META_CWE_281,
-        &file,
+        file,
         line,
         col,
         "backup recreation uses os.Create and loses the source file's original permission bits",
@@ -1621,7 +1621,7 @@ pub(super) fn detect_cwe_281(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 }
 
 pub(super) fn detect_cwe_283(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.path.display().to_string();
+    let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     if source.contains("info.Sys().(*syscall.Stat_t)") || source.contains("stat.Uid") {
@@ -1646,7 +1646,7 @@ pub(super) fn detect_cwe_283(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let (line, col) = unit.line_col(remove_call.start_byte);
     emit::push_finding(
         &META_CWE_283,
-        &file,
+        file,
         line,
         col,
         "a user-selected file path is removed without verifying that the caller owns the inode",

@@ -3,7 +3,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use ignore::WalkBuilder;
 use rayon::prelude::*;
 
@@ -11,6 +11,7 @@ use crate::core::{LanguageId, ParsedUnit, ScanContext};
 use crate::engine::language_filter::LanguageFilter;
 use crate::engine::parse_pool::ParsePool;
 use crate::engine::registry::Registry;
+use crate::engine::result::{ScanError, ScanErrorKind};
 use crate::rules::Finding;
 
 /// A source file queued for analysis.
@@ -21,6 +22,9 @@ pub struct ScanEntry {
 }
 
 /// Walk paths and collect supported source files (no I/O beyond directory walk).
+///
+/// Honors `.gitignore`/`.ignore` (via `standard_filters(true)`) **and**
+/// `.slopguardignore` if present at any walked root.
 pub fn collect_entries<I, P>(
     registry: &Registry,
     paths: I,
@@ -34,11 +38,11 @@ where
 
     for path in paths {
         let path = path.as_ref();
-        for entry in WalkBuilder::new(path)
+        let mut builder = WalkBuilder::new(path);
+        builder
             .standard_filters(true)
-            .build()
-            .filter_map(Result::ok)
-        {
+            .add_custom_ignore_filename(".slopguardignore");
+        for entry in builder.build().filter_map(Result::ok) {
             if !entry.file_type().is_some_and(|t| t.is_file()) {
                 continue;
             }
@@ -67,22 +71,51 @@ pub fn scan_entry(
     ctx: &ScanContext,
     entry: &ScanEntry,
     pool: &mut ParsePool,
-) -> Result<Vec<Finding>> {
-    let plugin = registry
-        .plugin_for_id(entry.language)
-        .with_context(|| format!("no plugin registered for {:?}", entry.language))?;
+) -> std::result::Result<Vec<Finding>, ScanError> {
+    let plugin = match registry.plugin_for_id(entry.language) {
+        Some(p) => p,
+        None => {
+            return Err(ScanError {
+                path: entry.path.clone(),
+                kind: ScanErrorKind::Engine,
+                message: format!("no plugin registered for {:?}", entry.language),
+            });
+        }
+    };
 
-    let bytes =
-        std::fs::read(&entry.path).with_context(|| format!("reading {}", entry.path.display()))?;
-    let source = Arc::from(
-        String::from_utf8(bytes)
-            .with_context(|| format!("source is not valid UTF-8: {}", entry.path.display()))?,
-    );
+    let bytes = match std::fs::read(&entry.path) {
+        Ok(b) => b,
+        Err(e) => {
+            return Err(ScanError {
+                path: entry.path.clone(),
+                kind: ScanErrorKind::Io,
+                message: format!("reading {}: {e}", entry.path.display()),
+            });
+        }
+    };
+
+    let source = match String::from_utf8(bytes) {
+        Ok(s) => Arc::from(s),
+        Err(e) => {
+            return Err(ScanError {
+                path: entry.path.clone(),
+                kind: ScanErrorKind::Encoding,
+                message: format!("source is not valid UTF-8: {e}"),
+            });
+        }
+    };
 
     let parser = pool.parser_for(plugin);
-    let unit = plugin
-        .parse_with(parser, &entry.path, source)
-        .with_context(|| format!("parsing {}", entry.path.display()))?;
+    let unit = match plugin.parse_with(parser, &entry.path, source) {
+        Ok(u) => u,
+        Err(e) => {
+            return Err(ScanError {
+                path: entry.path.clone(),
+                kind: ScanErrorKind::Parse,
+                message: format!("parsing {}: {e:#}", entry.path.display()),
+            });
+        }
+    };
 
     Ok(analyze_parsed_unit(registry, ctx, &unit))
 }
@@ -104,19 +137,51 @@ pub fn analyze_parsed_unit(
     findings
 }
 
+/// Per-file outcome from a parallel scan: either findings or a structured error.
+#[derive(Debug)]
+pub enum ScanOutcome {
+    Ok(Vec<Finding>),
+    Err(ScanError),
+}
+
 /// Parallel scan: read → parse → detect → drop per file.
 ///
-/// Each Rayon worker keeps one [`ParsePool`] and reuses parsers across files.
+/// Per-file errors are collected and returned alongside findings — the scan
+/// does **not** abort on the first bad file. Fatal configuration errors
+/// (e.g. no plugin for a language) still bubble up as `Err` from this
+/// function only if every single file failed.
 pub fn scan_entries_parallel(
     registry: &Registry,
     ctx: &ScanContext,
     entries: &[ScanEntry],
-) -> Result<Vec<Finding>> {
-    entries
+) -> Result<(Vec<Finding>, Vec<ScanError>)> {
+    let total = entries.len();
+    let outcomes: Vec<ScanOutcome> = entries
         .par_iter()
         .map_init(ParsePool::new, |pool, entry| {
             scan_entry(registry, ctx, entry, pool)
         })
-        .collect::<Result<Vec<_>>>()
-        .map(|chunks| chunks.into_iter().flatten().collect())
+        .map(|res| match res {
+            Ok(findings) => ScanOutcome::Ok(findings),
+            Err(e) => ScanOutcome::Err(e),
+        })
+        .collect();
+
+    let mut findings = Vec::new();
+    let mut errors = Vec::new();
+    for outcome in outcomes {
+        match outcome {
+            ScanOutcome::Ok(mut f) => findings.append(&mut f),
+            ScanOutcome::Err(e) => errors.push(e),
+        }
+    }
+
+    tracing::debug!(
+        findings = findings.len(),
+        errors = errors.len(),
+        total,
+        "scan chunk complete"
+    );
+
+    Ok((findings, errors))
 }

@@ -1,14 +1,29 @@
+use std::collections::HashMap;
+use std::path::Path;
 use std::process::ExitCode;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::Parser;
 use colored::control::ShouldColorize;
 use colored::control::set_override;
-use slopguard::cli::{Cli, OutputFormat};
-use slopguard::engine::{Analyzer, load_discovered_config, resolve_language_filter};
+use slopguard::cli::{Cli, Command, OutputFormat};
+use slopguard::cwe::{RuleDescription, default_ruleset_path, load_rule_descriptions};
+use slopguard::engine::{
+    Analyzer, Registry, SlopguardConfig, discover_config, resolve_language_filter,
+};
 use slopguard::export::export_findings;
 use slopguard::reporting;
 use tracing_subscriber::EnvFilter;
+
+/// Conventional exit codes:
+/// 0 — clean (no failing findings, no errors)
+/// 1 — failing findings (per `FailPolicy`)
+/// 2 — configuration error (unknown flag, invalid `slopguard.toml`, ...)
+/// 3 — internal / I-O / engine error (scan aborted before completion)
+const EXIT_CLEAN: u8 = 0;
+const EXIT_FAILING: u8 = 1;
+const EXIT_CONFIG: u8 = 2;
+const EXIT_INTERNAL: u8 = 3;
 
 fn main() -> ExitCode {
     init_tracing();
@@ -19,14 +34,14 @@ fn main() -> ExitCode {
         Ok(code) => code,
         Err(err) => {
             eprintln!("error: {err:#}");
-            ExitCode::from(2)
+            ExitCode::from(EXIT_CONFIG)
         }
     }
 }
 
 fn init_tracing() {
-    let filter =
-        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("warn,slopguard=info"));
+    let filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new("warn,slopguard=info"));
     tracing_subscriber::fmt()
         .with_env_filter(filter)
         .with_target(false)
@@ -39,8 +54,26 @@ fn run(cli: Cli) -> Result<ExitCode> {
         set_override(false);
     }
 
-    let config = load_discovered_config()?;
-    let registry = slopguard::engine::Registry::default();
+    if let Some(Command::Init) = &cli.command {
+        return Ok(init_subcommand());
+    }
+
+    if cli.quiet {
+        // --quiet implies no terminal output.
+    }
+
+    if cli.list_rules {
+        print_rules();
+        return Ok(ExitCode::from(EXIT_CLEAN));
+    }
+
+    if let Some(rule_id) = &cli.explain {
+        print_rule_explanation(rule_id);
+        return Ok(ExitCode::from(EXIT_CLEAN));
+    }
+
+    let config = load_config(cli.config.as_deref())?;
+    let registry = Registry::default();
     let lang_filter = resolve_language_filter(cli.lang.language_id(), config.as_ref(), &registry)?;
 
     let analyzer = Analyzer::builder()
@@ -48,14 +81,32 @@ fn run(cli: Cli) -> Result<ExitCode> {
         .language_filter(lang_filter)
         .build();
 
-    let result = analyzer.analyze_paths(&cli.paths)?;
+    let result = match analyzer.analyze_paths(&cli.paths) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("internal error during scan: {e:#}");
+            return Ok(ExitCode::from(EXIT_INTERNAL));
+        }
+    };
+
+    if !result.errors.is_empty() {
+        eprintln!("{} file(s) could not be scanned:", result.errors.len());
+        for err in &result.errors {
+            eprintln!("  - [{:?}] {}", err.kind, err);
+        }
+    }
+
     let export_options = cli.export_options();
     let export_summary = export_findings(&result.findings, &export_options)?;
 
-    if !cli.no_terminal {
+    if !cli.no_terminal && !cli.quiet {
         match cli.format {
+            OutputFormat::Text if cli.no_snippet => {
+                reporting::text::print_without_snippet(&result)?
+            }
             OutputFormat::Text => reporting::text::print(&result)?,
             OutputFormat::Json => reporting::json::print(&result)?,
+            OutputFormat::Sarif if cli.no_snippet => reporting::sarif::print_compact(&result)?,
             OutputFormat::Sarif => reporting::sarif::print(&result)?,
         }
     } else {
@@ -80,8 +131,137 @@ fn run(cli: Cli) -> Result<ExitCode> {
     }
 
     Ok(if result.should_fail(analyzer.scan_context().fail_policy) {
-        ExitCode::from(1)
+        ExitCode::from(EXIT_FAILING)
     } else {
-        ExitCode::SUCCESS
+        ExitCode::from(EXIT_CLEAN)
     })
+}
+
+fn load_config(explicit: Option<&Path>) -> Result<Option<SlopguardConfig>> {
+    if let Some(path) = explicit {
+        if !path.is_file() {
+            anyhow::bail!("config file not found: {}", path.display());
+        }
+        Ok(Some(SlopguardConfig::load(path).with_context(|| {
+            format!("loading config {}", path.display())
+        })?))
+    } else if let Some(found) = discover_config(Path::new(".")) {
+        Ok(Some(SlopguardConfig::load(&found).with_context(|| {
+            format!("loading config {}", found.display())
+        })?))
+    } else {
+        Ok(None)
+    }
+}
+
+fn print_rules() {
+    let registry = Registry::default();
+    let descriptions = load_descriptions();
+    println!(
+        "Registered rules ({} detectors, {} rules):",
+        registry.detector_count(),
+        registry
+            .detectors()
+            .iter()
+            .map(|d| d.rule_ids().len())
+            .sum::<usize>(),
+    );
+    for det in registry.detectors() {
+        for id in det.rule_ids() {
+            let title = descriptions
+                .get(*id)
+                .map(|d| d.name.as_str())
+                .unwrap_or_else(|| det.metadata().title);
+            println!("  {id:<12} {title}");
+        }
+    }
+    if descriptions.is_empty() {
+        eprintln!(
+            "(rule descriptions not loaded from {}; install or build with ruleset)",
+            default_ruleset_path().display()
+        );
+    }
+}
+
+fn print_rule_explanation(rule_id: &str) {
+    let registry = Registry::default();
+    for det in registry.detectors() {
+        if det.rule_ids().contains(&rule_id) {
+            let m = det.metadata();
+            println!("{} — {}", m.id, m.title);
+            println!();
+            println!("{}", m.description);
+            if let Some(fix) = m.fix {
+                println!();
+                println!("Fix: {fix}");
+            }
+            // Augment with the rich JSON description if available.
+            let descriptions = load_descriptions();
+            if let Some(rich) = descriptions.get(rule_id) {
+                if rich.description != m.description {
+                    println!();
+                    println!("From the CWE catalog:");
+                    println!("{}", rich.description);
+                }
+                if !rich.detection_notes.is_empty() {
+                    println!();
+                    println!("Detection notes:");
+                    println!("{}", rich.detection_notes);
+                }
+            }
+            return;
+        }
+    }
+    eprintln!("unknown rule: {rule_id}");
+}
+
+fn load_descriptions() -> &'static HashMap<String, RuleDescription> {
+    use std::sync::OnceLock;
+    static CACHE: OnceLock<HashMap<String, RuleDescription>> = OnceLock::new();
+    CACHE.get_or_init(|| {
+        let path = default_ruleset_path();
+        match load_rule_descriptions(&path) {
+            Ok(map) => map,
+            Err(e) => {
+                eprintln!(
+                    "warning: could not load rule descriptions from {}: {e}",
+                    path.display()
+                );
+                HashMap::new()
+            }
+        }
+    })
+}
+
+fn init_subcommand() -> ExitCode {
+    const TEMPLATE: &str = "\
+# SlopGuard configuration. All fields are optional; unknown fields are rejected.
+[slopguard]
+# Limit analysis to specific languages.
+# languages = [\"go\", \"python\"]
+
+# Only run the named rules (comma-separated via --only on the CLI).
+# only = [\"CWE-22\", \"CWE-89\"]
+
+# Skip the named rules.
+# skip = [\"CWE-15\"]
+
+# Exit policy: \"none\" | \"high\" | \"strict\" | anything else = warnings as errors.
+# fail_on = \"high\"
+
+# Optional include/exclude globs (relative to scan root).
+# include = [\"**/*.go\"]
+# exclude = [\"**/vendor/**\", \"**/*_test.go\"]
+";
+    let path = Path::new("slopguard.toml");
+    if path.is_file() {
+        eprintln!("slopguard.toml already exists in this directory");
+        return ExitCode::from(EXIT_CONFIG);
+    }
+    if let Err(e) = std::fs::write(path, TEMPLATE) {
+        eprintln!("failed to write slopguard.toml: {e}");
+        return ExitCode::from(EXIT_INTERNAL);
+    }
+    println!("wrote starter slopguard.toml to {}", path.display());
+    ExitCode::from(EXIT_CLEAN)
 }
