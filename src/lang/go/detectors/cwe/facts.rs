@@ -3,8 +3,13 @@
 //! These types are internal to the Go CWE detector bundle. Library consumers
 //! see only the `Finding` they produce; the IR lives behind `pub(crate)`.
 
+use std::collections::HashMap;
+use std::sync::Arc;
+
 use crate::ast::walk_calls_and_assignments;
 use crate::core::ParsedUnit;
+
+type SharedText = Arc<str>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InputKind {
@@ -14,21 +19,21 @@ pub enum InputKind {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InputBinding {
-    pub name: String,
+    pub name: SharedText,
     pub kind: InputKind,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CallFact {
-    pub callee: String,
-    pub arguments: Vec<String>,
+    pub callee: SharedText,
+    pub arguments: Box<[SharedText]>,
     pub start_byte: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AssignmentFact {
-    pub name: String,
-    pub expr: String,
+    pub name: SharedText,
+    pub expr: SharedText,
     pub start_byte: usize,
 }
 
@@ -43,6 +48,7 @@ pub fn build_go_unit_facts(unit: &ParsedUnit) -> GoUnitFacts {
     let src = unit.source.as_bytes();
     let root = unit.tree.root_node();
     let mut facts = GoUnitFacts::default();
+    let mut interner = SharedTextInterner::default();
 
     walk_calls_and_assignments(root, &mut |node| match node.kind() {
         "call_expression" | "call" => {
@@ -55,11 +61,11 @@ pub fn build_go_unit_facts(unit: &ParsedUnit) -> GoUnitFacts {
 
             let arguments = node
                 .child_by_field_name("arguments")
-                .map(|args| extract_argument_texts(args, src))
+                .map(|args| extract_argument_texts(args, src, &mut interner))
                 .unwrap_or_default();
 
             facts.call_facts.push(CallFact {
-                callee: callee.to_string(),
+                callee: interner.intern(callee),
                 arguments,
                 start_byte: node.start_byte(),
             });
@@ -85,7 +91,7 @@ pub fn build_go_unit_facts(unit: &ParsedUnit) -> GoUnitFacts {
             if let Some(kind) = kind {
                 for name in &names {
                     facts.input_bindings.push(InputBinding {
-                        name: (*name).to_string(),
+                        name: interner.intern(name),
                         kind,
                     });
                 }
@@ -93,8 +99,8 @@ pub fn build_go_unit_facts(unit: &ParsedUnit) -> GoUnitFacts {
 
             for name in names {
                 facts.assignments.push(AssignmentFact {
-                    name: name.to_string(),
-                    expr: rhs.to_string(),
+                    name: interner.intern(name),
+                    expr: interner.intern(rhs),
                     start_byte: node.start_byte(),
                 });
             }
@@ -105,15 +111,36 @@ pub fn build_go_unit_facts(unit: &ParsedUnit) -> GoUnitFacts {
     facts
 }
 
-fn extract_argument_texts(args_node: tree_sitter::Node, src: &[u8]) -> Vec<String> {
+#[derive(Default)]
+struct SharedTextInterner<'a> {
+    values: HashMap<&'a str, SharedText>,
+}
+
+impl<'a> SharedTextInterner<'a> {
+    fn intern(&mut self, text: &'a str) -> SharedText {
+        if let Some(existing) = self.values.get(text) {
+            return Arc::clone(existing);
+        }
+
+        let shared: SharedText = Arc::from(text);
+        self.values.insert(text, Arc::clone(&shared));
+        shared
+    }
+}
+
+fn extract_argument_texts<'a>(
+    args_node: tree_sitter::Node,
+    src: &'a [u8],
+    interner: &mut SharedTextInterner<'a>,
+) -> Box<[SharedText]> {
     let mut out = Vec::new();
     let mut cursor = args_node.walk();
     for child in args_node.named_children(&mut cursor) {
         if let Ok(text) = child.utf8_text(src) {
-            out.push(text.trim().to_string());
+            out.push(interner.intern(text.trim()));
         }
     }
-    out
+    out.into_boxed_slice()
 }
 
 #[doc(hidden)]

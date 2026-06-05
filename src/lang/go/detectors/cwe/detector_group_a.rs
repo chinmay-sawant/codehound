@@ -43,7 +43,7 @@ pub(super) fn detect_cwe_22(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
         }
 
         let uses_user_input = facts.input_bindings.iter().any(|binding| {
-            binding.kind == InputKind::UserControlled && assignment.expr.contains(&binding.name)
+            binding.kind == InputKind::UserControlled && assignment.expr.contains(&*binding.name)
         });
         if !uses_user_input {
             continue;
@@ -86,7 +86,7 @@ pub(super) fn detect_cwe_41(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
         }
 
         let Some(binding) = facts.input_bindings.iter().find(|binding| {
-            binding.kind == InputKind::UserControlled && assignment.expr.contains(&binding.name)
+            binding.kind == InputKind::UserControlled && assignment.expr.contains(&*binding.name)
         }) else {
             continue;
         };
@@ -140,7 +140,7 @@ pub(super) fn detect_cwe_59(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
         }
 
         let uses_user_input = facts.input_bindings.iter().any(|binding| {
-            binding.kind == InputKind::UserControlled && assignment.expr.contains(&binding.name)
+            binding.kind == InputKind::UserControlled && assignment.expr.contains(&*binding.name)
         });
         if !uses_user_input {
             continue;
@@ -188,7 +188,7 @@ pub(super) fn detect_cwe_76(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
     if !facts
         .input_bindings
         .iter()
-        .any(|binding| binding.kind == InputKind::UserControlled && binding.name == "raw")
+        .any(|binding| binding.kind == InputKind::UserControlled && binding.name.as_ref() == "raw")
     {
         return;
     }
@@ -200,7 +200,7 @@ pub(super) fn detect_cwe_76(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
         .assignments
         .iter()
         .find(|assignment| {
-            assignment.name == "safe" && assignment.expr.contains("strings.ReplaceAll")
+            assignment.name.as_ref() == "safe" && assignment.expr.contains("strings.ReplaceAll")
         })
         .map(|assignment| assignment.start_byte)
         .unwrap_or(0);
@@ -220,17 +220,17 @@ pub(super) fn detect_cwe_78(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
     let file = unit.display_path.as_str();
 
     for call in &facts.call_facts {
-        if call.callee != "exec.Command" || call.arguments.len() < 3 {
+        if call.callee.as_ref() != "exec.Command" || call.arguments.len() < 3 {
             continue;
         }
-        if call.arguments[0] != r#""sh""# || call.arguments[1] != r#""-c""# {
+        if call.arguments[0].as_ref() != r#""sh""# || call.arguments[1].as_ref() != r#""-c""# {
             continue;
         }
 
         let payload = &call.arguments[2];
         let uses_user_input = facts.input_bindings.iter().any(|binding| {
             binding.kind == InputKind::UserControlled
-                && payload.contains(&binding.name)
+                && payload.contains(&*binding.name)
                 && payload.contains('+')
         });
         if !uses_user_input {
@@ -261,7 +261,7 @@ pub(super) fn detect_cwe_79(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
     }
 
     for call in &facts.call_facts {
-        if call.callee != "fmt.Sprintf" || call.arguments.is_empty() {
+        if call.callee.as_ref() != "fmt.Sprintf" || call.arguments.is_empty() {
             continue;
         }
         if !call.arguments[0].contains("<html>") {
@@ -308,14 +308,14 @@ pub(super) fn detect_cwe_89(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
         }
 
         let uses_user_input = facts.input_bindings.iter().any(|binding| {
-            binding.kind == InputKind::UserControlled && assignment.expr.contains(&binding.name)
+            binding.kind == InputKind::UserControlled && assignment.expr.contains(&*binding.name)
         });
         if !uses_user_input {
             continue;
         }
 
         let has_sql_sink = facts.call_facts.iter().any(|call| {
-            matches!(call.callee.as_str(), "db.QueryRow" | "db.Query" | "db.Exec")
+            matches!(call.callee.as_ref(), "db.QueryRow" | "db.Query" | "db.Exec")
                 && call
                     .arguments
                     .iter()
@@ -352,14 +352,14 @@ pub(super) fn detect_cwe_90(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
         }
 
         let uses_user_input = facts.input_bindings.iter().any(|binding| {
-            binding.kind == InputKind::UserControlled && assignment.expr.contains(&binding.name)
+            binding.kind == InputKind::UserControlled && assignment.expr.contains(&*binding.name)
         });
         if !uses_user_input {
             continue;
         }
 
         let has_ldap_sink = facts.call_facts.iter().any(|call| {
-            call.callee == "dial"
+            call.callee.as_ref() == "dial"
                 && call
                     .arguments
                     .iter()
@@ -393,18 +393,18 @@ pub(super) fn detect_cwe_91(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
         }
 
         let uses_user_input = facts.input_bindings.iter().any(|binding| {
-            binding.kind == InputKind::UserControlled && assignment.expr.contains(&binding.name)
+            binding.kind == InputKind::UserControlled && assignment.expr.contains(&*binding.name)
         });
         if !uses_user_input {
             continue;
         }
 
         let has_xml_sink = facts.call_facts.iter().any(|call| {
-            call.callee == "xml.Unmarshal"
+            call.callee.as_ref() == "xml.Unmarshal"
                 && call
                     .arguments
                     .iter()
-                    .any(|arg| arg.contains(&assignment.name))
+                    .any(|arg| arg.contains(&*assignment.name))
         });
         if !has_xml_sink {
             continue;
@@ -449,10 +449,10 @@ pub(super) fn detect_cwe_93(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
         }
 
         let has_location_header_sink = facts.call_facts.iter().any(|call| {
-            matches!(call.callee.as_str(), "c.Header" | "w.Header().Set")
+            matches!(call.callee.as_ref(), "c.Header" | "w.Header().Set")
                 && call.arguments.len() >= 2
-                && call.arguments[0] == r#""Location""#
-                && call.arguments[1].contains(&binding.name)
+                && call.arguments[0].as_ref() == r#""Location""#
+                && call.arguments[1].contains(&*binding.name)
         });
         if !has_location_header_sink {
             continue;
@@ -462,10 +462,10 @@ pub(super) fn detect_cwe_93(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
             .call_facts
             .iter()
             .find(|call| {
-                matches!(call.callee.as_str(), "c.Header" | "w.Header().Set")
+                matches!(call.callee.as_ref(), "c.Header" | "w.Header().Set")
                     && call.arguments.len() >= 2
-                    && call.arguments[0] == r#""Location""#
-                    && call.arguments[1].contains(&binding.name)
+                    && call.arguments[0].as_ref() == r#""Location""#
+                    && call.arguments[1].contains(&*binding.name)
             })
             .map(|call| call.start_byte)
             .unwrap_or(0);
@@ -489,7 +489,7 @@ pub(super) fn detect_cwe_112(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let has_xml_unmarshal = facts
         .call_facts
         .iter()
-        .any(|call| call.callee == "xml.Unmarshal")
+        .any(|call| call.callee.as_ref() == "xml.Unmarshal")
         || source.contains("xml.Unmarshal(");
     if !has_xml_unmarshal {
         return;
@@ -511,7 +511,7 @@ pub(super) fn detect_cwe_112(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let start_byte = facts
         .call_facts
         .iter()
-        .find(|call| call.callee == "xml.Unmarshal")
+        .find(|call| call.callee.as_ref() == "xml.Unmarshal")
         .map(|call| call.start_byte)
         .unwrap_or(0);
 
@@ -540,10 +540,9 @@ pub(super) fn detect_cwe_140(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         return;
     }
 
-    let uses_user_input = facts
-        .input_bindings
-        .iter()
-        .any(|binding| binding.kind == InputKind::UserControlled && source.contains(&binding.name));
+    let uses_user_input = facts.input_bindings.iter().any(|binding| {
+        binding.kind == InputKind::UserControlled && source.contains(&*binding.name)
+    });
     if !uses_user_input {
         return;
     }
@@ -551,7 +550,9 @@ pub(super) fn detect_cwe_140(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let start_byte = facts
         .assignments
         .iter()
-        .find(|assignment| assignment.expr.contains("strings.Join(") || assignment.name == "line")
+        .find(|assignment| {
+            assignment.expr.contains("strings.Join(") || assignment.name.as_ref() == "line"
+        })
         .map(|assignment| assignment.start_byte)
         .unwrap_or(0);
 
@@ -590,7 +591,7 @@ pub(super) fn detect_cwe_178(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     }
 
     let uses_user_input = facts.input_bindings.iter().any(|binding| {
-        binding.kind == InputKind::UserControlled && assignment.expr.contains(&binding.name)
+        binding.kind == InputKind::UserControlled && assignment.expr.contains(&*binding.name)
     });
     if !uses_user_input {
         return;
@@ -637,8 +638,11 @@ pub(super) fn detect_cwe_179(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
             .call_facts
             .iter()
             .find(|call| {
-                call.callee == "url.QueryUnescape"
-                    && call.arguments.iter().any(|arg| arg == &binding.name)
+                call.callee.as_ref() == "url.QueryUnescape"
+                    && call
+                        .arguments
+                        .iter()
+                        .any(|arg| arg.as_ref() == binding.name.as_ref())
             })
             .map(|call| call.start_byte)
             .unwrap_or(0);
@@ -713,7 +717,7 @@ pub(super) fn detect_cwe_184(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     };
 
     let uses_user_input = facts.input_bindings.iter().any(|binding| {
-        binding.kind == InputKind::UserControlled && lower_assignment.expr.contains(&binding.name)
+        binding.kind == InputKind::UserControlled && lower_assignment.expr.contains(&*binding.name)
     }) || expression_uses_request_input(&lower_assignment.expr);
     if !uses_user_input {
         return;
@@ -745,7 +749,7 @@ pub(super) fn detect_cwe_186(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let start_byte = facts
         .call_facts
         .iter()
-        .find(|call| call.callee == "regexp.MustCompile")
+        .find(|call| call.callee.as_ref() == "regexp.MustCompile")
         .map(|call| call.start_byte)
         .unwrap_or(0);
 
@@ -781,8 +785,8 @@ pub(super) fn detect_cwe_201(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     };
 
     let direct_json_response = facts.call_facts.iter().find(|call| {
-        (call.callee == "c.JSON" || call.callee == "json.NewEncoder(w).Encode")
-            && call.arguments.iter().any(|arg| arg == record_name)
+        (call.callee.as_ref() == "c.JSON" || call.callee.as_ref() == "json.NewEncoder(w).Encode")
+            && call.arguments.iter().any(|arg| arg.as_ref() == record_name)
     });
     let Some(call) = direct_json_response else {
         return;
@@ -916,8 +920,8 @@ pub(super) fn detect_cwe_213(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     }
 
     let direct_profile_response = facts.call_facts.iter().find(|call| {
-        (call.callee == "c.JSON" || call.callee == "json.NewEncoder(w).Encode")
-            && call.arguments.iter().any(|arg| arg == "profile")
+        (call.callee.as_ref() == "c.JSON" || call.callee.as_ref() == "json.NewEncoder(w).Encode")
+            && call.arguments.iter().any(|arg| arg.as_ref() == "profile")
     });
     let Some(call) = direct_profile_response else {
         return;
@@ -939,7 +943,7 @@ pub(super) fn detect_cwe_214(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let source = unit.source.as_ref();
 
     for call in &facts.call_facts {
-        if call.callee != "exec.Command" {
+        if call.callee.as_ref() != "exec.Command" {
             continue;
         }
         if source.contains("cmd.Stdin = strings.NewReader(") {
@@ -948,8 +952,14 @@ pub(super) fn detect_cwe_214(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 
         let uses_user_secret = facts.input_bindings.iter().any(|binding| {
             binding.kind == InputKind::UserControlled
-                && call.arguments.iter().any(|arg| arg == &binding.name)
-                && call.arguments.iter().any(|arg| arg == r#""--token""#)
+                && call
+                    .arguments
+                    .iter()
+                    .any(|arg| arg.as_ref() == binding.name.as_ref())
+                && call
+                    .arguments
+                    .iter()
+                    .any(|arg| arg.as_ref() == r#""--token""#)
         });
         if !uses_user_secret {
             continue;
@@ -972,14 +982,17 @@ pub(super) fn detect_cwe_215(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
 
     for call in &facts.call_facts {
-        if call.callee != "log.Printf" {
+        if call.callee.as_ref() != "log.Printf" {
             continue;
         }
 
         let logs_secret = facts.input_bindings.iter().any(|binding| {
             binding.kind == InputKind::UserControlled
                 && binding.name.contains("secret")
-                && call.arguments.iter().any(|arg| arg == &binding.name)
+                && call
+                    .arguments
+                    .iter()
+                    .any(|arg| arg.as_ref() == binding.name.as_ref())
         });
         if !logs_secret {
             continue;
@@ -1002,10 +1015,10 @@ pub(super) fn detect_cwe_250(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
 
     for call in &facts.call_facts {
-        if call.callee != "os.WriteFile" || call.arguments.len() < 3 {
+        if call.callee.as_ref() != "os.WriteFile" || call.arguments.len() < 3 {
             continue;
         }
-        if call.arguments[2] != "0o777" {
+        if call.arguments[2].as_ref() != "0o777" {
             continue;
         }
 
@@ -1027,7 +1040,7 @@ pub(super) fn detect_cwe_252(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let source = unit.source.as_ref();
 
     for call in &facts.call_facts {
-        if call.callee != "os.WriteFile" {
+        if call.callee.as_ref() != "os.WriteFile" {
             continue;
         }
         if source.contains("if err := os.WriteFile(") {
@@ -1238,15 +1251,14 @@ pub(super) fn detect_cwe_266(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let Some(role_assignment) = facts
         .assignments
         .iter()
-        .find(|assignment| assignment.name == "role")
+        .find(|assignment| assignment.name.as_ref() == "role")
     else {
         return;
     };
 
-    let role_is_user_controlled = facts
-        .input_bindings
-        .iter()
-        .any(|binding| binding.kind == InputKind::UserControlled && binding.name == "role");
+    let role_is_user_controlled = facts.input_bindings.iter().any(|binding| {
+        binding.kind == InputKind::UserControlled && binding.name.as_ref() == "role"
+    });
     if !role_is_user_controlled {
         return;
     }
@@ -1281,7 +1293,7 @@ pub(super) fn detect_cwe_267(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let Some(remove_call) = facts
         .call_facts
         .iter()
-        .find(|call| call.callee == "os.Remove")
+        .find(|call| call.callee.as_ref() == "os.Remove")
     else {
         return;
     };
@@ -1310,12 +1322,12 @@ pub(super) fn detect_cwe_268(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     }
 
     let Some(sensitive_sink) = facts.call_facts.iter().find(|call| {
-        (call.callee == "db.Queryx"
+        (call.callee.as_ref() == "db.Queryx"
             && call
                 .arguments
                 .first()
                 .is_some_and(|arg| arg.contains("password_hash")))
-            || (call.callee == "json.NewEncoder"
+            || (call.callee.as_ref() == "json.NewEncoder"
                 && source.contains("Encode(userRecords)")
                 && source.contains(r#""hash""#))
     }) else {
@@ -1338,12 +1350,12 @@ pub(super) fn detect_cwe_270(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let source = unit.source.as_ref();
 
     let Some(context_switch) = facts.call_facts.iter().find(|call| {
-        (call.callee == "c.Set"
+        (call.callee.as_ref() == "c.Set"
             && call.arguments.len() >= 2
             && call.arguments[0].contains("effective_user")
             && (call.arguments[1].contains(r#""root""#)
                 || call.arguments[1].contains(r#""maintenance""#)))
-            || (call.callee == "context.WithValue"
+            || (call.callee.as_ref() == "context.WithValue"
                 && call.arguments.len() >= 3
                 && call.arguments[1].contains("effectiveUserKey")
                 && (call.arguments[2].contains(r#""root""#)
@@ -1374,7 +1386,11 @@ pub(super) fn detect_cwe_272(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
 
     let Some(elevate_call) = facts.call_facts.iter().find(|call| {
-        call.callee == "syscall.Setuid" && call.arguments.first().is_some_and(|arg| arg == "0")
+        call.callee.as_ref() == "syscall.Setuid"
+            && call
+                .arguments
+                .first()
+                .is_some_and(|arg| arg.as_ref() == "0")
     }) else {
         return;
     };
@@ -1382,13 +1398,17 @@ pub(super) fn detect_cwe_272(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let performs_privileged_work = facts
         .call_facts
         .iter()
-        .any(|call| call.callee == "os.Chown");
+        .any(|call| call.callee.as_ref() == "os.Chown");
     if !performs_privileged_work {
         return;
     }
 
     let drops_privilege = facts.call_facts.iter().any(|call| {
-        call.callee == "syscall.Setuid" && call.arguments.first().is_some_and(|arg| arg == "1000")
+        call.callee.as_ref() == "syscall.Setuid"
+            && call
+                .arguments
+                .first()
+                .is_some_and(|arg| arg.as_ref() == "1000")
     });
     if drops_privilege {
         return;
@@ -1414,13 +1434,21 @@ pub(super) fn detect_cwe_273(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     }
 
     if facts.call_facts.iter().any(|call| {
-        call.callee == "syscall.Setuid" && call.arguments.first().is_some_and(|arg| arg == "0")
+        call.callee.as_ref() == "syscall.Setuid"
+            && call
+                .arguments
+                .first()
+                .is_some_and(|arg| arg.as_ref() == "0")
     }) {
         return;
     }
 
     let Some(drop_call) = facts.call_facts.iter().find(|call| {
-        call.callee == "syscall.Setuid" && call.arguments.first().is_some_and(|arg| arg == "1000")
+        call.callee.as_ref() == "syscall.Setuid"
+            && call
+                .arguments
+                .first()
+                .is_some_and(|arg| arg.as_ref() == "1000")
     }) else {
         return;
     };
@@ -1443,7 +1471,7 @@ pub(super) fn detect_cwe_274(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let Some(rename_call) = facts
         .call_facts
         .iter()
-        .find(|call| call.callee == "os.Rename")
+        .find(|call| call.callee.as_ref() == "os.Rename")
     else {
         return;
     };
@@ -1472,9 +1500,9 @@ pub(super) fn detect_cwe_276(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let source = unit.source.as_ref();
 
     let Some(write_call) = facts.call_facts.iter().find(|call| {
-        call.callee == "os.WriteFile"
+        call.callee.as_ref() == "os.WriteFile"
             && call.arguments.len() >= 3
-            && call.arguments[2] == "0666"
+            && call.arguments[2].as_ref() == "0666"
             && (call.arguments[0].contains("sessions")
                 || source.contains("session_data")
                 || source.contains("X-Session-Data"))
@@ -1497,14 +1525,20 @@ pub(super) fn detect_cwe_277(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
 
     let clears_umask = facts.call_facts.iter().any(|call| {
-        call.callee == "syscall.Umask" && call.arguments.first().is_some_and(|arg| arg == "0")
+        call.callee.as_ref() == "syscall.Umask"
+            && call
+                .arguments
+                .first()
+                .is_some_and(|arg| arg.as_ref() == "0")
     });
     if !clears_umask {
         return;
     }
 
     let Some(mkdir_call) = facts.call_facts.iter().find(|call| {
-        call.callee == "os.MkdirAll" && call.arguments.len() >= 2 && call.arguments[1] == "0777"
+        call.callee.as_ref() == "os.MkdirAll"
+            && call.arguments.len() >= 2
+            && call.arguments[1].as_ref() == "0777"
     }) else {
         return;
     };
@@ -1524,7 +1558,7 @@ pub(super) fn detect_cwe_278(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
 
     let Some(open_call) = facts.call_facts.iter().find(|call| {
-        call.callee == "os.OpenFile"
+        call.callee.as_ref() == "os.OpenFile"
             && call.arguments.len() >= 3
             && call.arguments[2].contains("os.FileMode(hdr.Mode)")
     }) else {
@@ -1551,7 +1585,9 @@ pub(super) fn detect_cwe_279(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     }
 
     let Some(write_call) = facts.call_facts.iter().find(|call| {
-        call.callee == "os.WriteFile" && call.arguments.len() >= 3 && call.arguments[2] == "0777"
+        call.callee.as_ref() == "os.WriteFile"
+            && call.arguments.len() >= 3
+            && call.arguments[2].as_ref() == "0777"
     }) else {
         return;
     };
@@ -1574,7 +1610,7 @@ pub(super) fn detect_cwe_280(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let Some(open_call) = facts
         .call_facts
         .iter()
-        .find(|call| call.callee == "os.Open")
+        .find(|call| call.callee.as_ref() == "os.Open")
     else {
         return;
     };
@@ -1610,7 +1646,7 @@ pub(super) fn detect_cwe_281(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let Some(create_call) = facts
         .call_facts
         .iter()
-        .find(|call| call.callee == "os.Create")
+        .find(|call| call.callee.as_ref() == "os.Create")
     else {
         return;
     };
@@ -1641,13 +1677,16 @@ pub(super) fn detect_cwe_283(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let Some(remove_call) = facts
         .call_facts
         .iter()
-        .find(|call| call.callee == "os.Remove")
+        .find(|call| call.callee.as_ref() == "os.Remove")
     else {
         return;
     };
     let removes_user_controlled_path = facts.input_bindings.iter().any(|binding| {
         binding.kind == InputKind::UserControlled
-            && remove_call.arguments.iter().any(|arg| arg == &binding.name)
+            && remove_call
+                .arguments
+                .iter()
+                .any(|arg| arg.as_ref() == binding.name.as_ref())
     });
     if !removes_user_controlled_path {
         return;

@@ -176,23 +176,23 @@ Why it is high now:
 
 Why it is not 10:
 
-- Go facts still allocate more owned strings than ideal
 - substring-heavy detector logic still exists
+- detector authoring is still spread across very large source files
 - there is still room for additional shared indexing or more structured rule evidence
 
 ## Remaining High-Value Improvements
 
 ### P1
 
-1. Remove process-global runtime path filters and move them into explicit analyzer state.
-2. Generate Go metadata from `ruleset/golang/golang.json`.
-3. Reduce owned-string pressure inside `GoUnitFacts`.
+1. Replace more repeated source-shape checks with reusable structured facts.
+2. Shrink or further generate the large detector source files.
+3. Expand benchmark coverage so more than one throughput shape is tracked in CI.
 
 ### P2
 
-1. Replace more repeated source-shape checks with reusable structured facts.
-2. Shrink or generate the large detector/metadata files.
-3. Expand benchmark coverage so more than one throughput shape is tracked in CI.
+1. Consider span-based or symbol-indexed facts for the highest-traffic Go patterns.
+2. Add regression guards for generated metadata coverage in CI release flows.
+3. Audit remaining manual rule/fixture conventions for further generation opportunities.
 
 ## Verification
 
@@ -204,7 +204,7 @@ I ran:
 Results:
 
 - full test suite passed
-- benchmark improved from roughly `500 ms` to roughly `21 ms`
+- benchmark improved from roughly `500 ms` to roughly `15.5 ms`
 
 ## Final Verdict
 
@@ -215,7 +215,7 @@ After the changes in this pass, I would rate SlopGuard as a strong Rust codebase
 - strength: the execution model is now fast and coherent
 - weakness: the rule and metadata authoring surface is still more manual than it should be
 
-If you want the next push toward a real 10/10, it is no longer about emergency performance work. It is about making the Go rule layer more generated, more declarative, and less hand-maintained.
+If you want the next push toward a real 10/10, it is no longer about emergency performance work. It is about making the Go rule layer more declarative, more compact, and less text-pattern-heavy.
 
 ## Checklist
 
@@ -231,6 +231,6 @@ If you want the next push toward a real 10/10, it is no longer about emergency p
 - [x] Add drift tests for fixture inventory, registry, and metadata alignment.
 - [x] Re-run full tests.
 - [x] Re-run throughput benchmark.
-- [ ] Remove process-global runtime path filter state from the architecture.
-- [ ] Generate Go metadata from `ruleset/golang/golang.json`.
-- [ ] Reduce owned-string allocation pressure inside `GoUnitFacts`.
+- [x] Remove process-global runtime path filter state from the architecture.
+- [x] Generate Go metadata from `ruleset/golang/golang.json`.
+- [x] Reduce owned-string allocation pressure inside `GoUnitFacts`.

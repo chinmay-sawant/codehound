@@ -73,16 +73,17 @@ fn run(cli: Cli) -> Result<ExitCode> {
     }
 
     let config = load_config(cli.config.as_deref())?;
-    if let Some(cfg) = config.as_ref() {
-        cfg.install_runtime_path_filters();
-    } else {
-        SlopguardConfig::clear_runtime_path_filters();
-    }
     let registry = Registry::default();
     let lang_filter = resolve_language_filter(cli.lang.language_id(), config.as_ref(), &registry)?;
 
     let analyzer = Analyzer::builder()
-        .scan_context(cli.scan_context(config))
+        .scan_context(cli.scan_context(config.clone()))
+        .path_filters(
+            config
+                .as_ref()
+                .map(|cfg| cfg.path_filters())
+                .unwrap_or_default(),
+        )
         .language_filter(lang_filter)
         .build();
 

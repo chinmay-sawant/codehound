@@ -1,16 +1,9 @@
-use std::path::Path;
-use std::sync::{Mutex, OnceLock};
-
 use slopguard::core::{FailPolicy, ScanContext};
 use slopguard::engine::{
-    Analyzer, SlopguardConfig, SlopguardSection, discover_config, fail_on_to_policy,
+    Analyzer, PathFilters, SlopguardConfig, SlopguardSection, discover_config, fail_on_to_policy,
 };
 use slopguard::fixture::{materialize_tree, materialized_root};
-
-fn runtime_filter_test_lock() -> &'static Mutex<()> {
-    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-    LOCK.get_or_init(|| Mutex::new(()))
-}
+use std::path::Path;
 
 #[test]
 fn deny_unknown_fields_at_top_level() {
@@ -134,26 +127,17 @@ fn merge_into_only_is_additive_with_cli_values() {
 
 #[test]
 fn runtime_include_exclude_filters_apply_during_collection() {
-    let _guard = runtime_filter_test_lock()
-        .lock()
-        .expect("lock runtime filter test");
     materialize_tree(Path::new("tests/fixtures")).expect("materialize");
 
-    let config = SlopguardConfig {
-        slopguard: SlopguardSection {
+    let analyzer = Analyzer::builder()
+        .path_filters(PathFilters {
             include: vec!["**/*.go".to_string()],
             exclude: vec!["**/frameworks/**".to_string()],
-            ..Default::default()
-        },
-    };
-    config.install_runtime_path_filters();
-
-    let analyzer = Analyzer::builder().build();
+        })
+        .build();
     let result = analyzer
         .analyze_paths([materialized_root()])
         .expect("analyze with runtime filters");
-
-    SlopguardConfig::clear_runtime_path_filters();
 
     assert!(
         result

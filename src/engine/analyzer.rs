@@ -5,6 +5,7 @@ use std::path::Path;
 use anyhow::Result;
 
 use crate::core::ScanContext;
+use crate::engine::config::PathFilters;
 use crate::engine::language_filter::LanguageFilter;
 use crate::engine::registry::Registry;
 use crate::engine::result::AnalysisResult;
@@ -20,6 +21,7 @@ pub struct AnalyzerBuilder {
     ctx: ScanContext,
     registry: Option<Registry>,
     lang_filter: LanguageFilter,
+    path_filters: PathFilters,
 }
 
 impl AnalyzerBuilder {
@@ -33,11 +35,17 @@ impl AnalyzerBuilder {
         self
     }
 
+    pub fn path_filters(mut self, filters: PathFilters) -> Self {
+        self.path_filters = filters;
+        self
+    }
+
     pub fn build(self) -> Analyzer {
         Analyzer {
             registry: self.registry.unwrap_or_default(),
             ctx: self.ctx,
             lang_filter: self.lang_filter,
+            path_filters: self.path_filters,
         }
     }
 }
@@ -47,6 +55,7 @@ pub struct Analyzer {
     registry: Registry,
     ctx: ScanContext,
     lang_filter: LanguageFilter,
+    path_filters: PathFilters,
 }
 
 impl Analyzer {
@@ -63,7 +72,8 @@ impl Analyzer {
         I: IntoIterator<Item = P>,
         P: AsRef<Path>,
     {
-        let entries = collect_entries(&self.registry, paths, &self.lang_filter)?;
+        let entries =
+            collect_entries(&self.registry, paths, &self.lang_filter, &self.path_filters)?;
         let mut findings = Vec::new();
         let mut errors = Vec::new();
         for chunk in entries.chunks(SCAN_CHUNK_SIZE) {

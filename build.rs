@@ -1,20 +1,135 @@
+use std::collections::BTreeMap;
 use std::env;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 fn main() {
     let json_path = PathBuf::from("ruleset/golang/golang.json");
     println!("cargo:rerun-if-changed={}", json_path.display());
+    println!("cargo:rerun-if-changed=src/lang/go/detectors/cwe/detector_group_a.rs");
+    println!("cargo:rerun-if-changed=src/lang/go/detectors/cwe/detector_group_b.rs");
+    println!("cargo:rerun-if-changed=src/lang/go/detectors/cwe/detector_group_c.rs");
 
-    let json_text =
-        fs::read_to_string(&json_path).expect("Failed to read ruleset/golang/golang.json");
+    let parsed: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(&json_path).expect("Failed to read ruleset/golang/golang.json"),
+    )
+    .expect("Failed to parse ruleset/golang/golang.json as JSON");
 
-    let parsed: serde_json::Value = serde_json::from_str(&json_text)
-        .expect("Failed to parse ruleset/golang/golang.json as JSON");
+    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
+    let catalogue_path = out_dir.join("rule_catalogue.rs");
+    let metadata_path = out_dir.join("go_cwe_metadata.rs");
+    let registry_path = out_dir.join("go_cwe_registry.rs");
 
-    let out_dir = env::var("OUT_DIR").expect("OUT_DIR not set");
-    let dest_path = PathBuf::from(out_dir).join("rule_catalogue.rs");
+    let rules = parse_rules(&parsed);
+    let rule_map = build_cwe_rule_map(&rules);
+    let supported_ids = discover_supported_go_cwe_ids();
 
+    fs::write(&catalogue_path, generate_rule_catalogue_code(&rules))
+        .expect("Failed to write rule_catalogue.rs");
+    fs::write(
+        &metadata_path,
+        generate_go_metadata_code(&rule_map, &supported_ids),
+    )
+    .expect("Failed to write go_cwe_metadata.rs");
+    fs::write(&registry_path, generate_go_registry_code(&supported_ids))
+        .expect("Failed to write go_cwe_registry.rs");
+}
+
+#[derive(Debug, Clone)]
+struct JsonRule {
+    id: String,
+    name: String,
+    description: String,
+    original_description: String,
+    category: String,
+    detection_notes: String,
+}
+
+fn parse_rules(parsed: &serde_json::Value) -> Vec<JsonRule> {
+    let obj = parsed.as_object().expect("JSON root must be an object");
+    let mut rules = Vec::new();
+
+    for (key, value) in obj {
+        let id = value
+            .get("id")
+            .and_then(parse_rule_id)
+            .unwrap_or_else(|| key.to_string());
+        let name = value
+            .get("name")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let description = value
+            .get("description")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let original_description = value
+            .get("original_description")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let category = value
+            .get("category")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let detection_notes = value
+            .get("detection_notes")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+
+        rules.push(JsonRule {
+            id,
+            name,
+            description,
+            original_description,
+            category,
+            detection_notes,
+        });
+    }
+
+    rules.sort_by(|a, b| a.id.cmp(&b.id));
+    rules
+}
+
+fn build_cwe_rule_map(rules: &[JsonRule]) -> BTreeMap<u32, JsonRule> {
+    rules
+        .iter()
+        .filter_map(|rule| parse_cwe_number(&rule.id).map(|id| (id, rule.clone())))
+        .collect()
+}
+
+fn discover_supported_go_cwe_ids() -> Vec<u32> {
+    let files = [
+        Path::new("src/lang/go/detectors/cwe/detector_group_a.rs"),
+        Path::new("src/lang/go/detectors/cwe/detector_group_b.rs"),
+        Path::new("src/lang/go/detectors/cwe/detector_group_c.rs"),
+    ];
+
+    let mut ids = BTreeMap::<u32, ()>::new();
+    for path in files {
+        let text =
+            fs::read_to_string(path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
+        for line in text.lines() {
+            let Some(rest) = line.trim_start().strip_prefix("pub(super) fn detect_cwe_") else {
+                continue;
+            };
+            let digits: String = rest.chars().take_while(|c| c.is_ascii_digit()).collect();
+            if digits.is_empty() {
+                continue;
+            }
+            let id = digits
+                .parse::<u32>()
+                .unwrap_or_else(|e| panic!("parse detect_cwe_ id in {}: {e}", path.display()));
+            ids.insert(id, ());
+        }
+    }
+    ids.into_keys().collect()
+}
+
+fn generate_rule_catalogue_code(rules: &[JsonRule]) -> String {
     let mut code = String::new();
     code.push_str("// This file is auto-generated by build.rs from ruleset/golang/golang.json\n");
     code.push_str("// DO NOT EDIT MANUALLY\n\n");
@@ -24,32 +139,7 @@ fn main() {
     );
     code.push_str("    vec![\n");
 
-    let obj = parsed.as_object().expect("JSON root must be an object");
-
-    for (_key, value) in obj {
-        let id_val = value
-            .get("id")
-            .and_then(|v| {
-                v.as_u64()
-                    .map(|n| n.to_string())
-                    .or_else(|| v.as_str().map(String::from))
-            })
-            .unwrap_or_default();
-        let name = value.get("name").and_then(|v| v.as_str()).unwrap_or("");
-        let description = value
-            .get("description")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
-        let original_description = value
-            .get("original_description")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
-        let category = value.get("category").and_then(|v| v.as_str()).unwrap_or("");
-        let detection_notes = value
-            .get("detection_notes")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
-
+    for rule in rules {
         code.push_str(&format!(
             "        RuleDescription {{\n\
              \x20           id: \"{}\".into(),\n\
@@ -59,12 +149,12 @@ fn main() {
              \x20           category: \"{}\".into(),\n\
              \x20           detection_notes: \"{}\".into(),\n\
              \x20       }},\n",
-            escape_rust_string(&id_val),
-            escape_rust_string(name),
-            escape_rust_string(description),
-            escape_rust_string(original_description),
-            escape_rust_string(category),
-            escape_rust_string(detection_notes),
+            escape_rust_string(&rule.id),
+            escape_rust_string(&rule.name),
+            escape_rust_string(&rule.description),
+            escape_rust_string(&rule.original_description),
+            escape_rust_string(&rule.category),
+            escape_rust_string(&rule.detection_notes),
         ));
     }
 
@@ -75,8 +165,57 @@ fn main() {
     code.push_str("pub fn builtin_rule_catalogue() -> &'static [RuleDescription] {\n");
     code.push_str("    &RULE_CATALOGUE_INNER\n");
     code.push_str("}\n");
+    code
+}
 
-    fs::write(&dest_path, code).expect("Failed to write rule_catalogue.rs");
+fn generate_go_metadata_code(rule_map: &BTreeMap<u32, JsonRule>, supported_ids: &[u32]) -> String {
+    let mut code = String::new();
+    code.push_str("// This file is auto-generated by build.rs from ruleset/golang/golang.json\n");
+    code.push_str("// DO NOT EDIT MANUALLY\n\n");
+
+    code.push_str("#[allow(dead_code)]\n");
+    code.push_str("pub const GO_CWE_RULE_IDS: &[&str] = &[\n");
+    for id in supported_ids {
+        code.push_str(&format!("    \"CWE-{id}\",\n"));
+    }
+    code.push_str("];\n\n");
+
+    for id in supported_ids {
+        let rule = rule_map
+            .get(id)
+            .unwrap_or_else(|| panic!("missing JSON metadata for supported rule CWE-{id}"));
+        code.push_str(&format!(
+            "pub(super) const META_CWE_{id}: RuleMetadata = emit::rule_meta(\n\
+             \x20   \"CWE-{id}\",\n\
+             \x20   \"{}\",\n\
+             \x20   \"{}\",\n\
+             \x20   severity_for({id}),\n\
+             \x20   go_cwe_ref_slice!({id}, \"{}\"),\n\
+             \x20   fix_for({id}),\n\
+             );\n\n",
+            escape_rust_string(&rule.name),
+            escape_rust_string(&rule.description),
+            escape_rust_string(&rule.name),
+        ));
+    }
+
+    code
+}
+
+fn generate_go_registry_code(supported_ids: &[u32]) -> String {
+    let mut code = String::new();
+    code.push_str(
+        "// This file is auto-generated by build.rs from supported Go detector functions\n",
+    );
+    code.push_str("// DO NOT EDIT MANUALLY\n\n");
+    code.push_str("const GO_RULES: &[GoRuleEntry] = &[\n");
+    for id in supported_ids {
+        code.push_str(&format!(
+            "    (\"CWE-{id}\", detect_cwe_{id}, &self::metadata::META_CWE_{id}),\n"
+        ));
+    }
+    code.push_str("];\n");
+    code
 }
 
 fn escape_rust_string(s: &str) -> String {
@@ -92,4 +231,16 @@ fn escape_rust_string(s: &str) -> String {
         }
     }
     out
+}
+
+fn parse_rule_id(value: &serde_json::Value) -> Option<String> {
+    match value {
+        serde_json::Value::Number(n) => Some(n.to_string()),
+        serde_json::Value::String(s) => Some(s.clone()),
+        _ => None,
+    }
+}
+
+fn parse_cwe_number(id: &str) -> Option<u32> {
+    id.strip_prefix("CWE-").unwrap_or(id).parse::<u32>().ok()
 }

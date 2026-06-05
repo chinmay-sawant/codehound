@@ -3,37 +3,55 @@
 #[path = "helpers/go_cwe_cases.rs"]
 mod go_cwe_cases;
 
+use slopguard::core::Detector;
 use slopguard::cwe::builtin_rule_catalogue;
 use slopguard::engine::Analyzer;
 use slopguard::fixture::materialize_fixture;
-
-const GO_CWE_METADATA_RS: &str = include_str!("../src/lang/go/detectors/cwe/metadata.rs");
-const GO_CWE_MOD_RS: &str = include_str!("../src/lang/go/detectors/cwe/mod.rs");
+use slopguard::lang::go::detectors::cwe::GoCweScan;
 
 #[test]
-fn go_cwe_metadata_source_stays_aligned() {
+fn go_cwe_metadata_runtime_stays_aligned() {
     let fixture_ids = go_cwe_cases::discover_go_cwe_cases();
-    let registry_ids = extract_quoted_cwe_ids(go_registry_block());
-    let detector_ids = extract_go_rule_ids(GO_CWE_MOD_RS);
-    let meta_ids = extract_meta_const_ids(GO_CWE_METADATA_RS);
+    let detector = GoCweScan;
+    let detector_ids = detector
+        .rule_ids()
+        .iter()
+        .map(|id| (*id).to_string())
+        .collect::<Vec<_>>();
 
     assert_eq!(
-        registry_ids, fixture_ids,
-        "fixture inventory drifted from GO_CWE_RULE_IDS"
-    );
-    assert_eq!(
         detector_ids, fixture_ids,
-        "detector registrations drifted from fixtures"
+        "detector rule ids drifted from fixtures"
     );
-    assert_eq!(
-        meta_ids, fixture_ids,
-        "metadata constants drifted from fixtures"
-    );
-    assert_eq!(
-        count_occurrences(GO_CWE_METADATA_RS, "go_cwe_ref_slice!("),
-        fixture_ids.len(),
-        "expected every Go metadata entry to carry a structured CWE reference"
-    );
+
+    for rule_id in &fixture_ids {
+        let metadata = detector
+            .metadata_for(rule_id)
+            .unwrap_or_else(|| panic!("missing metadata for {rule_id}"));
+        assert_eq!(metadata.id, rule_id);
+        assert!(
+            !metadata.title.is_empty(),
+            "{rule_id} title should not be empty"
+        );
+        assert!(
+            !metadata.description.is_empty(),
+            "{rule_id} description should not be empty"
+        );
+        assert_eq!(
+            metadata.cwe.len(),
+            1,
+            "{rule_id} should carry exactly one structured CWE ref"
+        );
+        assert_eq!(
+            metadata.cwe[0].id,
+            go_cwe_cases::parse_cwe_number(rule_id),
+            "{rule_id} structured CWE id mismatch"
+        );
+        assert_eq!(
+            metadata.cwe[0].name, metadata.title,
+            "{rule_id} structured CWE title mismatch"
+        );
+    }
 }
 
 #[test]
@@ -76,76 +94,6 @@ fn go_cwe_findings_include_structured_cwe_refs() {
     assert_eq!(cwe[0].id, 22);
     assert_eq!(cwe[0].name, finding.rule_title);
     assert_eq!(cwe[0].url, "https://cwe.mitre.org/data/definitions/22.html");
-}
-
-fn go_registry_block() -> &'static str {
-    let marker = "pub const GO_CWE_RULE_IDS: &[&str] = &[";
-    let start = GO_CWE_METADATA_RS
-        .find(marker)
-        .unwrap_or_else(|| panic!("missing GO_CWE_RULE_IDS in metadata.rs"));
-    let rest = &GO_CWE_METADATA_RS[start + marker.len()..];
-    let end = rest
-        .find("];")
-        .unwrap_or_else(|| panic!("unterminated GO_CWE_RULE_IDS in metadata.rs"));
-    &rest[..end]
-}
-
-fn extract_quoted_cwe_ids(source: &str) -> Vec<String> {
-    let mut ids = Vec::new();
-    let mut rest = source;
-
-    while let Some(start) = rest.find("\"CWE-") {
-        let after = &rest[start + 1..];
-        let end = after
-            .find('"')
-            .unwrap_or_else(|| panic!("unterminated quoted CWE id in source"));
-        ids.push(after[..end].to_string());
-        rest = &after[end + 1..];
-    }
-
-    ids
-}
-
-fn extract_go_rule_ids(source: &str) -> Vec<String> {
-    let mut ids = Vec::new();
-
-    for line in source.lines() {
-        let trimmed = line.trim_start();
-        if !trimmed.starts_with("(\"CWE-") {
-            continue;
-        }
-
-        let first_quote = trimmed
-            .find("\"CWE-")
-            .unwrap_or_else(|| panic!("missing rule id in detector line: {line}"));
-        let after = &trimmed[first_quote + 1..];
-        let end = after
-            .find('"')
-            .unwrap_or_else(|| panic!("unterminated rule id in detector line: {line}"));
-        ids.push(after[..end].to_string());
-    }
-
-    ids
-}
-
-fn extract_meta_const_ids(source: &str) -> Vec<String> {
-    let mut ids = Vec::new();
-
-    for line in source.lines() {
-        let Some(rest) = line.trim_start().strip_prefix("pub(super) const META_CWE_") else {
-            continue;
-        };
-        let end = rest
-            .find(':')
-            .unwrap_or_else(|| panic!("missing ':' in metadata const line: {line}"));
-        ids.push(format!("CWE-{}", &rest[..end]));
-    }
-
-    ids
-}
-
-fn count_occurrences(source: &str, needle: &str) -> usize {
-    source.matches(needle).count()
 }
 
 fn canonicalize_rule_id(id: &str) -> String {

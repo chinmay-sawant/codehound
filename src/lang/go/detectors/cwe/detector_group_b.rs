@@ -30,7 +30,7 @@ pub(super) fn detect_cwe_290(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
 
     let Some(header_call) = facts.call_facts.iter().find(|call| {
-        (call.callee == "c.GetHeader" || call.callee == "r.Header.Get")
+        (call.callee.as_ref() == "c.GetHeader" || call.callee.as_ref() == "r.Header.Get")
             && call
                 .arguments
                 .first()

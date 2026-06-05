@@ -38,20 +38,15 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 
     let facts = build_go_unit_facts(&unit);
 
-    assert!(
-        facts
-            .input_bindings
-            .iter()
-            .any(|binding| { binding.name == "path" && binding.kind == InputKind::UserControlled })
-    );
-    assert!(
-        facts
-            .input_bindings
-            .iter()
-            .any(|binding| { binding.name == "mode" && binding.kind == InputKind::UserControlled })
-    );
+    assert!(facts.input_bindings.iter().any(|binding| {
+        binding.name.as_ref() == "path" && binding.kind == InputKind::UserControlled
+    }));
+    assert!(facts.input_bindings.iter().any(|binding| {
+        binding.name.as_ref() == "mode" && binding.kind == InputKind::UserControlled
+    }));
     assert!(facts.call_facts.iter().any(|call| {
-        call.callee == "http.Get" && call.arguments.iter().any(|arg| arg == "path")
+        call.callee.as_ref() == "http.Get"
+            && call.arguments.iter().any(|arg| arg.as_ref() == "path")
     }));
 }
 
@@ -73,13 +68,13 @@ func Build() string {
     let facts = build_go_unit_facts(&unit);
 
     assert!(facts.input_bindings.iter().any(|binding| {
-        binding.name == "billingAPI" && binding.kind == InputKind::TrustedConfig
+        binding.name.as_ref() == "billingAPI" && binding.kind == InputKind::TrustedConfig
     }));
     assert!(
         facts
             .assignments
             .iter()
-            .any(|assignment| assignment.name == "billingAPI"
+            .any(|assignment| assignment.name.as_ref() == "billingAPI"
                 && assignment.expr.contains("os.Getenv"))
     );
 }

@@ -1,21 +1,20 @@
 //! Optional `slopguard.toml` configuration.
 
 use std::path::Path;
-use std::sync::{Mutex, OnceLock};
 
 use anyhow::{Context, Result};
 use serde::Deserialize;
 
 use crate::core::{FailPolicy, ScanContext};
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SlopguardConfig {
     #[serde(default)]
     pub slopguard: SlopguardSection,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SlopguardSection {
     #[serde(default)]
@@ -33,14 +32,9 @@ pub struct SlopguardSection {
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct RuntimePathFilters {
+pub struct PathFilters {
     pub include: Vec<String>,
     pub exclude: Vec<String>,
-}
-
-fn runtime_path_filters_slot() -> &'static Mutex<RuntimePathFilters> {
-    static SLOT: OnceLock<Mutex<RuntimePathFilters>> = OnceLock::new();
-    SLOT.get_or_init(|| Mutex::new(RuntimePathFilters::default()))
 }
 
 impl SlopguardConfig {
@@ -83,29 +77,12 @@ impl SlopguardConfig {
         &self.slopguard.exclude
     }
 
-    pub fn install_runtime_path_filters(&self) {
-        let mut slot = runtime_path_filters_slot()
-            .lock()
-            .expect("runtime path filters mutex poisoned");
-        *slot = RuntimePathFilters {
+    pub fn path_filters(&self) -> PathFilters {
+        PathFilters {
             include: self.slopguard.include.clone(),
             exclude: self.slopguard.exclude.clone(),
-        };
+        }
     }
-
-    pub fn clear_runtime_path_filters() {
-        let mut slot = runtime_path_filters_slot()
-            .lock()
-            .expect("runtime path filters mutex poisoned");
-        *slot = RuntimePathFilters::default();
-    }
-}
-
-pub(crate) fn current_runtime_path_filters() -> RuntimePathFilters {
-    runtime_path_filters_slot()
-        .lock()
-        .expect("runtime path filters mutex poisoned")
-        .clone()
 }
 
 #[doc(hidden)]

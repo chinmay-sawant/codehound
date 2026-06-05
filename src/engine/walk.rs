@@ -9,7 +9,7 @@ use ignore::gitignore::{Gitignore, GitignoreBuilder};
 use rayon::prelude::*;
 
 use crate::core::{LanguageId, ParsedUnit, ScanContext};
-use crate::engine::config::{RuntimePathFilters, current_runtime_path_filters};
+use crate::engine::config::PathFilters;
 use crate::engine::language_filter::LanguageFilter;
 use crate::engine::parse_pool::ParsePool;
 use crate::engine::registry::Registry;
@@ -31,17 +31,17 @@ pub fn collect_entries<I, P>(
     registry: &Registry,
     paths: I,
     lang_filter: &LanguageFilter,
+    path_filters: &PathFilters,
 ) -> Result<Vec<ScanEntry>>
 where
     I: IntoIterator<Item = P>,
     P: AsRef<Path>,
 {
     let mut entries = Vec::new();
-    let filters = current_runtime_path_filters();
 
     for path in paths {
         let path = path.as_ref();
-        let matcher = RootPathMatcher::new(path, &filters)?;
+        let matcher = RootPathMatcher::new(path, path_filters)?;
         let mut builder = WalkBuilder::new(path);
         builder
             .standard_filters(true)
@@ -77,7 +77,7 @@ struct RootPathMatcher {
 }
 
 impl RootPathMatcher {
-    fn new(root: &Path, filters: &RuntimePathFilters) -> Result<Self> {
+    fn new(root: &Path, filters: &PathFilters) -> Result<Self> {
         let base = if root.is_dir() {
             root
         } else {
