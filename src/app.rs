@@ -50,8 +50,8 @@ pub fn run(cli: Cli) -> Result<ExitCode> {
         .as_ref()
         .map(|cfg| cfg.path_filters())
         .unwrap_or_default();
-    if cli.exclude_tests {
-        path_filters.exclude_tests = true;
+    if cli.include_tests {
+        path_filters.exclude_tests = false;
     }
 
     let analyzer = Analyzer::builder()
@@ -235,8 +235,8 @@ pub fn init_subcommand() -> ExitCode {
 # include = [\"**/*.go\"]
 # exclude = [\"**/vendor/**\", \"**/*_test.go\"]
 
-# Exclude all test files (*_test.*) — simpler than the glob above.
-# exclude_tests = true
+# Test files (*_test.*) are excluded by default; set to false to include them.
+# exclude_tests = false
 ";
     let path = Path::new("slopguard.toml");
     if path.is_file() {

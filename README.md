@@ -51,8 +51,8 @@ slopguard path/to/file.go
 slopguard --format json ./...
 slopguard --format sarif ./... > out.sarif
 
-# Exclude test files (*_test.go, etc.) from analysis
-slopguard --exclude-tests .
+# Test files (*_test.go, etc.) are excluded by default; include them with:
+slopguard --include-tests .
 
 # Limit to specific rules
 slopguard --only CWE-22,CWE-89 .
@@ -89,8 +89,8 @@ All fields are optional. See `slopguard init` for a starter template.
 # include = ["**/*.go"]
 # exclude = ["**/vendor/**", "**/*_test.go"]
 
-# Exclude test files (*_test.*) from analysis (takes precedence over include).
-# exclude_tests = true
+# Test files (*_test.*) are excluded by default; set to false to include them.
+# exclude_tests = false
 ```
 
 ## Sample

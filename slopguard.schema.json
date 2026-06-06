@@ -42,9 +42,9 @@
           "items": { "type": "string" }
         },
         "exclude_tests": {
-          "description": "Exclude test files (*_test.*) from analysis.",
+          "description": "Exclude test files (*_test.*) from analysis (default: true).",
           "type": "boolean",
-          "default": false
+          "default": true
         }
       }
     }

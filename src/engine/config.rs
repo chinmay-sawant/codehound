@@ -33,11 +33,21 @@ pub struct SlopguardSection {
     pub exclude_tests: Option<bool>,
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PathFilters {
     pub include: Vec<String>,
     pub exclude: Vec<String>,
     pub exclude_tests: bool,
+}
+
+impl Default for PathFilters {
+    fn default() -> Self {
+        Self {
+            include: Vec::new(),
+            exclude: Vec::new(),
+            exclude_tests: true,
+        }
+    }
 }
 
 impl SlopguardConfig {
@@ -84,7 +94,7 @@ impl SlopguardConfig {
         PathFilters {
             include: self.slopguard.include.clone(),
             exclude: self.slopguard.exclude.clone(),
-            exclude_tests: self.slopguard.exclude_tests.unwrap_or(false),
+            exclude_tests: self.slopguard.exclude_tests.unwrap_or(true),
         }
     }
 }

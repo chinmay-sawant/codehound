@@ -112,9 +112,9 @@ pub struct Cli {
     #[arg(long)]
     pub list_rules: bool,
 
-    /// Exclude test files (*_test.*) from analysis.
+    /// Include test files (*_test.*) in analysis (excluded by default).
     #[arg(long)]
-    pub exclude_tests: bool,
+    pub include_tests: bool,
 
     /// Show details for a specific rule ID and exit.
     #[arg(long, value_name = "RULE")]
