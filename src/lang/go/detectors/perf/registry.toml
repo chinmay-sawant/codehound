@@ -1,0 +1,502 @@
+# Typed Go PERF detector registry. Source of truth for build.rs code generation.
+# Update this file when adding new PERF detectors; the build script reads it.
+
+[[detector]]
+perf = 1
+domain = "loop_allocations"
+function = "detect_perf_1"
+
+[[detector]]
+perf = 2
+domain = "loop_allocations"
+function = "detect_perf_2"
+
+[[detector]]
+perf = 3
+domain = "loop_allocations"
+function = "detect_perf_3"
+
+[[detector]]
+perf = 4
+domain = "loop_allocations"
+function = "detect_perf_4"
+
+[[detector]]
+perf = 5
+domain = "loop_allocations"
+function = "detect_perf_5"
+
+[[detector]]
+perf = 6
+domain = "loop_allocations"
+function = "detect_perf_6"
+
+[[detector]]
+perf = 7
+domain = "loop_allocations"
+function = "detect_perf_7"
+
+[[detector]]
+perf = 8
+domain = "loop_allocations"
+function = "detect_perf_8"
+
+[[detector]]
+perf = 9
+domain = "parsing_in_loops"
+function = "detect_perf_9"
+
+[[detector]]
+perf = 10
+domain = "parsing_in_loops"
+function = "detect_perf_10"
+
+[[detector]]
+perf = 11
+domain = "parsing_in_loops"
+function = "detect_perf_11"
+
+[[detector]]
+perf = 12
+domain = "parsing_in_loops"
+function = "detect_perf_12"
+
+[[detector]]
+perf = 13
+domain = "parsing_in_loops"
+function = "detect_perf_13"
+
+[[detector]]
+perf = 14
+domain = "parsing_in_loops"
+function = "detect_perf_14"
+
+[[detector]]
+perf = 15
+domain = "parsing_in_loops"
+function = "detect_perf_15"
+
+[[detector]]
+perf = 16
+domain = "parsing_in_loops"
+function = "detect_perf_16"
+
+[[detector]]
+perf = 17
+domain = "request_path"
+function = "detect_perf_17"
+
+[[detector]]
+perf = 18
+domain = "request_path"
+function = "detect_perf_18"
+
+[[detector]]
+perf = 19
+domain = "request_path"
+function = "detect_perf_19"
+
+[[detector]]
+perf = 20
+domain = "request_path"
+function = "detect_perf_20"
+
+[[detector]]
+perf = 21
+domain = "request_path"
+function = "detect_perf_21"
+
+[[detector]]
+perf = 22
+domain = "request_path"
+function = "detect_perf_22"
+
+[[detector]]
+perf = 23
+domain = "request_path"
+function = "detect_perf_23"
+
+[[detector]]
+perf = 24
+domain = "request_path"
+function = "detect_perf_24"
+
+[[detector]]
+perf = 25
+domain = "request_path"
+function = "detect_perf_25"
+[[detector]]
+perf = 26
+domain = "general_perf"
+function = "detect_perf_26"
+
+[[detector]]
+perf = 27
+domain = "general_perf"
+function = "detect_perf_27"
+
+[[detector]]
+perf = 28
+domain = "general_perf"
+function = "detect_perf_28"
+
+[[detector]]
+perf = 29
+domain = "general_perf"
+function = "detect_perf_29"
+
+[[detector]]
+perf = 30
+domain = "general_perf"
+function = "detect_perf_30"
+
+[[detector]]
+perf = 31
+domain = "general_perf"
+function = "detect_perf_31"
+
+[[detector]]
+perf = 32
+domain = "general_perf"
+function = "detect_perf_32"
+
+[[detector]]
+perf = 33
+domain = "general_perf"
+function = "detect_perf_33"
+
+[[detector]]
+perf = 34
+domain = "general_perf"
+function = "detect_perf_34"
+
+[[detector]]
+perf = 35
+domain = "general_perf"
+function = "detect_perf_35"
+
+[[detector]]
+perf = 36
+domain = "general_perf"
+function = "detect_perf_36"
+
+[[detector]]
+perf = 37
+domain = "general_perf"
+function = "detect_perf_37"
+
+[[detector]]
+perf = 38
+domain = "general_perf"
+function = "detect_perf_38"
+
+[[detector]]
+perf = 39
+domain = "general_perf"
+function = "detect_perf_39"
+
+[[detector]]
+perf = 40
+domain = "general_perf"
+function = "detect_perf_40"
+
+[[detector]]
+perf = 41
+domain = "general_perf"
+function = "detect_perf_41"
+
+[[detector]]
+perf = 42
+domain = "general_perf"
+function = "detect_perf_42"
+
+[[detector]]
+perf = 43
+domain = "general_perf"
+function = "detect_perf_43"
+
+[[detector]]
+perf = 44
+domain = "general_perf"
+function = "detect_perf_44"
+
+[[detector]]
+perf = 45
+domain = "general_perf"
+function = "detect_perf_45"
+
+[[detector]]
+perf = 46
+domain = "general_perf"
+function = "detect_perf_46"
+
+[[detector]]
+perf = 47
+domain = "general_perf"
+function = "detect_perf_47"
+
+[[detector]]
+perf = 48
+domain = "general_perf"
+function = "detect_perf_48"
+
+[[detector]]
+perf = 49
+domain = "general_perf"
+function = "detect_perf_49"
+
+[[detector]]
+perf = 50
+domain = "general_perf"
+function = "detect_perf_50"
+
+[[detector]]
+perf = 51
+domain = "gin_framework"
+function = "detect_perf_51"
+
+[[detector]]
+perf = 52
+domain = "gin_framework"
+function = "detect_perf_52"
+
+[[detector]]
+perf = 53
+domain = "gin_framework"
+function = "detect_perf_53"
+
+[[detector]]
+perf = 54
+domain = "gin_framework"
+function = "detect_perf_54"
+
+[[detector]]
+perf = 55
+domain = "gin_framework"
+function = "detect_perf_55"
+
+[[detector]]
+perf = 56
+domain = "gin_framework"
+function = "detect_perf_56"
+
+[[detector]]
+perf = 57
+domain = "gin_framework"
+function = "detect_perf_57"
+
+[[detector]]
+perf = 58
+domain = "gin_framework"
+function = "detect_perf_58"
+
+[[detector]]
+perf = 59
+domain = "gin_framework"
+function = "detect_perf_59"
+
+[[detector]]
+perf = 60
+domain = "gin_framework"
+function = "detect_perf_60"
+
+[[detector]]
+perf = 61
+domain = "gin_framework"
+function = "detect_perf_61"
+
+[[detector]]
+perf = 62
+domain = "gin_framework"
+function = "detect_perf_62"
+
+[[detector]]
+perf = 63
+domain = "gin_framework"
+function = "detect_perf_63"
+
+[[detector]]
+perf = 64
+domain = "gin_framework"
+function = "detect_perf_64"
+
+[[detector]]
+perf = 65
+domain = "gin_framework"
+function = "detect_perf_65"
+
+[[detector]]
+perf = 66
+domain = "gin_framework"
+function = "detect_perf_66"
+
+[[detector]]
+perf = 67
+domain = "gin_framework"
+function = "detect_perf_67"
+
+[[detector]]
+perf = 68
+domain = "gin_framework"
+function = "detect_perf_68"
+
+[[detector]]
+perf = 69
+domain = "gin_framework"
+function = "detect_perf_69"
+
+[[detector]]
+perf = 70
+domain = "gin_framework"
+function = "detect_perf_70"
+
+[[detector]]
+perf = 71
+domain = "data_access"
+function = "detect_perf_71"
+
+[[detector]]
+perf = 72
+domain = "data_access"
+function = "detect_perf_72"
+
+[[detector]]
+perf = 73
+domain = "data_access"
+function = "detect_perf_73"
+
+[[detector]]
+perf = 74
+domain = "data_access"
+function = "detect_perf_74"
+
+[[detector]]
+perf = 75
+domain = "data_access"
+function = "detect_perf_75"
+
+[[detector]]
+perf = 76
+domain = "data_access"
+function = "detect_perf_76"
+
+[[detector]]
+perf = 77
+domain = "data_access"
+function = "detect_perf_77"
+
+[[detector]]
+perf = 78
+domain = "data_access"
+function = "detect_perf_78"
+
+[[detector]]
+perf = 79
+domain = "data_access"
+function = "detect_perf_79"
+
+[[detector]]
+perf = 80
+domain = "data_access"
+function = "detect_perf_80"
+
+[[detector]]
+perf = 81
+domain = "data_access"
+function = "detect_perf_81"
+
+[[detector]]
+perf = 82
+domain = "data_access"
+function = "detect_perf_82"
+
+[[detector]]
+perf = 83
+domain = "data_access"
+function = "detect_perf_83"
+
+[[detector]]
+perf = 84
+domain = "data_access"
+function = "detect_perf_84"
+
+[[detector]]
+perf = 85
+domain = "data_access"
+function = "detect_perf_85"
+
+[[detector]]
+perf = 86
+domain = "data_access"
+function = "detect_perf_86"
+
+[[detector]]
+perf = 87
+domain = "data_access"
+function = "detect_perf_87"
+
+[[detector]]
+perf = 88
+domain = "data_access"
+function = "detect_perf_88"
+
+[[detector]]
+perf = 89
+domain = "data_access"
+function = "detect_perf_89"
+
+[[detector]]
+perf = 90
+domain = "data_access"
+function = "detect_perf_90"
+
+[[detector]]
+perf = 91
+domain = "protocols"
+function = "detect_perf_91"
+
+[[detector]]
+perf = 92
+domain = "protocols"
+function = "detect_perf_92"
+
+[[detector]]
+perf = 93
+domain = "protocols"
+function = "detect_perf_93"
+
+[[detector]]
+perf = 94
+domain = "protocols"
+function = "detect_perf_94"
+
+[[detector]]
+perf = 95
+domain = "protocols"
+function = "detect_perf_95"
+
+[[detector]]
+perf = 96
+domain = "protocols"
+function = "detect_perf_96"
+
+[[detector]]
+perf = 97
+domain = "protocols"
+function = "detect_perf_97"
+
+[[detector]]
+perf = 98
+domain = "protocols"
+function = "detect_perf_98"
+
+[[detector]]
+perf = 99
+domain = "protocols"
+function = "detect_perf_99"
+
+[[detector]]
+perf = 100
+domain = "protocols"
+function = "detect_perf_100"
+

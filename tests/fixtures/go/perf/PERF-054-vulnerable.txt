@@ -1,0 +1,22 @@
+# PERF-054 positive: strings.Builder{} allocated inside a request handler
+lang: go
+file: PERF-054-vulnerable.go
+---
+package sample
+
+import (
+	"net/http"
+	"strings"
+
+	"github.com/gin-gonic/gin"
+)
+
+func BuildPath(c *gin.Context) {
+	var b = strings.Builder{}
+	for _, seg := range []string{"a", "b", "c"} {
+		b.WriteString(seg)
+		b.WriteString("/")
+	}
+	c.JSON(http.StatusOK, gin.H{"path": b.String()})
+	_ = http.StatusOK
+}

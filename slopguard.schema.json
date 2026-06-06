@@ -40,6 +40,11 @@
           "description": "Glob patterns to exclude (relative to scan root).",
           "type": "array",
           "items": { "type": "string" }
+        },
+        "exclude_tests": {
+          "description": "Exclude test files (*_test.*) from analysis (default: true).",
+          "type": "boolean",
+          "default": true
         }
       }
     }

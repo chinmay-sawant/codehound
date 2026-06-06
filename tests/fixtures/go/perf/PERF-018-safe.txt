@@ -1,0 +1,10 @@
+# PERF-018 negative: reslice avoids the copy
+lang: go
+file: PERF-018-safe.go
+---
+package sample
+
+func processItems(items []int) []int {
+	result := items[:0]
+	return result
+}

@@ -1,0 +1,13 @@
+# PERF-032 negative: conversion uses a compile-time literal — no runtime copy
+lang: go
+file: PERF-032-safe.go
+---
+package sample
+
+import "net/http"
+
+import "github.com/gin-gonic/gin"
+
+func Echo(c *gin.Context) {
+	c.Data(http.StatusOK, "text/plain", []byte("ok"))
+}

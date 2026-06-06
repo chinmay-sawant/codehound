@@ -14,7 +14,7 @@ heuristics, reusable fact extraction, and machine-readable findings.
 
 - Detect statically visible weakness patterns with reusable fact extraction.
 - Map findings to **CWE** references for compliance workflows.
-- Emit machine-readable output (text, JSON, SARIF).
+- Emit machine-readable output (text, JSON, SARIF) — see [`docs/output-formats.md`](./docs/output-formats.md).
 - Run as a single static binary, no external services.
 
 ## Status
@@ -51,6 +51,9 @@ slopguard path/to/file.go
 slopguard --format json ./...
 slopguard --format sarif ./... > out.sarif
 
+# Test files (*_test.go, etc.) are excluded by default; include them with:
+slopguard --include-tests .
+
 # Limit to specific rules
 slopguard --only CWE-22,CWE-89 .
 
@@ -62,6 +65,41 @@ slopguard --explain CWE-89
 
 # Write a starter slopguard.toml
 slopguard init
+```
+
+### SARIF output
+
+Detailed SARIF schema reference, field mapping, and `security-severity` scoring
+are documented in [`docs/output-formats.md`](./docs/output-formats.md#sarif-210).
+
+Look for SARIF
+compatibility notes in [`plans/v0.0.1/go/perf-heuristics-and-sarif.md`](./plans/v0.0.1/go/perf-heuristics-and-sarif.md)
+(perf-rule-specific SARIF metadata is in progress).
+
+### Configuration file (`slopguard.toml`)
+
+All fields are optional. See `slopguard init` for a starter template.
+
+```toml
+[slopguard]
+# Only analyze these languages.
+# languages = ["go", "python"]
+
+# Only run specific rules.
+# only = ["CWE-22", "CWE-89"]
+
+# Skip specific rules.
+# skip = ["CWE-15"]
+
+# Exit policy: "none" | "high" | "strict" | anything else = warnings as errors.
+# fail_on = "high"
+
+# Include/exclude gitignore-style globs.
+# include = ["**/*.go"]
+# exclude = ["**/vendor/**", "**/*_test.go"]
+
+# Test files (*_test.*) are excluded by default; set to false to include them.
+# exclude_tests = false
 ```
 
 ## Sample

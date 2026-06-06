@@ -51,6 +51,20 @@ pub struct Finding {
     /// Number of bytes covered by the match, when known.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub byte_length: Option<usize>,
+    /// 0-indexed byte offset of the start of the enclosing function, when
+    /// resolved by the analyzer's function-context pass. Pairs with
+    /// [`Finding::function_end_byte`] to give the full function body.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub function_start_byte: Option<usize>,
+    /// Past-the-end byte offset of the enclosing function.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub function_end_byte: Option<usize>,
+    /// 1-indexed start line of the enclosing function, for display only.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub function_start_line: Option<usize>,
+    /// 1-indexed end line of the enclosing function, for display only.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub function_end_line: Option<usize>,
     /// Source snippet, if available.
     pub snippet: Option<String>,
     /// Free-form message.
@@ -91,6 +105,10 @@ impl Finding {
             end_column: None,
             byte_offset: None,
             byte_length: None,
+            function_start_byte: None,
+            function_end_byte: None,
+            function_start_line: None,
+            function_end_line: None,
             snippet: None,
             message: message.into(),
             severity,
@@ -120,6 +138,23 @@ impl Finding {
     pub fn with_end(mut self, end_line: usize, end_column: usize) -> Self {
         self.end_line = Some(end_line);
         self.end_column = Some(end_column);
+        self
+    }
+
+    /// Attach the enclosing function's byte/line range. The exporter uses
+    /// the byte range to render the whole function body for this finding
+    /// instead of the default "few lines before/after" window.
+    pub fn with_function_range(
+        mut self,
+        start_byte: usize,
+        end_byte: usize,
+        start_line: usize,
+        end_line: usize,
+    ) -> Self {
+        self.function_start_byte = Some(start_byte);
+        self.function_end_byte = Some(end_byte);
+        self.function_start_line = Some(start_line);
+        self.function_end_line = Some(end_line);
         self
     }
 
