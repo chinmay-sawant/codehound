@@ -29,4 +29,8 @@ Then the final summary.
 
 Do not add any extra explanations, suggestions, or context outside this format.
 
+**Source paths to analyze:**
+- scripts/chunks/ (contains chunk files with multiple findings each)
+- scripts/findings/functions/ (contains individual finding files)
+
 Now analyze the following findings:
