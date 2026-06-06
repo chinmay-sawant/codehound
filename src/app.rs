@@ -46,14 +46,17 @@ pub fn run(cli: Cli) -> Result<ExitCode> {
     let registry = Registry::default();
     let lang_filter = resolve_language_filter(cli.lang.language_id(), config.as_ref(), &registry)?;
 
+    let mut path_filters = config
+        .as_ref()
+        .map(|cfg| cfg.path_filters())
+        .unwrap_or_default();
+    if cli.exclude_tests {
+        path_filters.exclude_tests = true;
+    }
+
     let analyzer = Analyzer::builder()
         .scan_context(cli.scan_context(config.clone()))
-        .path_filters(
-            config
-                .as_ref()
-                .map(|cfg| cfg.path_filters())
-                .unwrap_or_default(),
-        )
+        .path_filters(path_filters)
         .language_filter(lang_filter)
         .build();
 
@@ -231,6 +234,9 @@ pub fn init_subcommand() -> ExitCode {
 # Optional include/exclude gitignore-style globs, relative to each scan root.
 # include = [\"**/*.go\"]
 # exclude = [\"**/vendor/**\", \"**/*_test.go\"]
+
+# Exclude all test files (*_test.*) — simpler than the glob above.
+# exclude_tests = true
 ";
     let path = Path::new("slopguard.toml");
     if path.is_file() {

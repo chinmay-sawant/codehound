@@ -75,6 +75,7 @@ where
 struct RootPathMatcher {
     include: Option<Gitignore>,
     exclude: Option<Gitignore>,
+    exclude_tests: bool,
 }
 
 impl RootPathMatcher {
@@ -88,10 +89,18 @@ impl RootPathMatcher {
         Ok(Self {
             include: build_globset(base, &filters.include)?,
             exclude: build_globset(base, &filters.exclude)?,
+            exclude_tests: filters.exclude_tests,
         })
     }
 
     fn allows(&self, path: &Path) -> bool {
+        if self.exclude_tests {
+            if let Some(file_name) = path.file_name().and_then(|n| n.to_str()) {
+                if file_name.contains("_test") {
+                    return false;
+                }
+            }
+        }
         if let Some(include) = &self.include {
             if !include.matched(path, false).is_ignore() {
                 return false;

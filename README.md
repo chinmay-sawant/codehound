@@ -51,6 +51,9 @@ slopguard path/to/file.go
 slopguard --format json ./...
 slopguard --format sarif ./... > out.sarif
 
+# Exclude test files (*_test.go, etc.) from analysis
+slopguard --exclude-tests .
+
 # Limit to specific rules
 slopguard --only CWE-22,CWE-89 .
 
@@ -62,6 +65,32 @@ slopguard --explain CWE-89
 
 # Write a starter slopguard.toml
 slopguard init
+```
+
+### Configuration file (`slopguard.toml`)
+
+All fields are optional. See `slopguard init` for a starter template.
+
+```toml
+[slopguard]
+# Only analyze these languages.
+# languages = ["go", "python"]
+
+# Only run specific rules.
+# only = ["CWE-22", "CWE-89"]
+
+# Skip specific rules.
+# skip = ["CWE-15"]
+
+# Exit policy: "none" | "high" | "strict" | anything else = warnings as errors.
+# fail_on = "high"
+
+# Include/exclude gitignore-style globs.
+# include = ["**/*.go"]
+# exclude = ["**/vendor/**", "**/*_test.go"]
+
+# Exclude test files (*_test.*) from analysis (takes precedence over include).
+# exclude_tests = true
 ```
 
 ## Sample

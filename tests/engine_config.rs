@@ -133,6 +133,7 @@ fn runtime_include_exclude_filters_apply_during_collection() {
         .path_filters(PathFilters {
             include: vec!["**/*.go".to_string()],
             exclude: vec!["**/frameworks/**".to_string()],
+            exclude_tests: false,
         })
         .build();
     let result = analyzer
