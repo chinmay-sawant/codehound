@@ -29,6 +29,9 @@ Then the final summary.
 
 Do not add any extra explanations, suggestions, or context outside this format.
 
+**STRICT - No programming shortcuts:**
+You must NOT use any programming languages (Python, Go, bash scripts, etc.) to automate, generate, or compute the evaluation results. This includes writing scripts to parse files, generate tables, or calculate summaries. All evaluations must be done manually by reading each finding's context and reasoning about the rule match.
+
 **Source paths to analyze:**
 - scripts/chunks/ (contains chunk files with multiple findings each)
 - scripts/findings/functions/ (contains individual finding files)
