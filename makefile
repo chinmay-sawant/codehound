@@ -23,6 +23,9 @@ fmt:
 run:
 	@$(CARGO) run --quiet -- $(SCAN_PATH) --no-fail --no-terminal $(RUN_ARGS)
 
+run-sarif:
+	@$(CARGO) run --quiet -- $(SCAN_PATH) --no-fail --format sarif ./... > out.sarif
+
 # Run benchmarks. Set SAVE_BASELINE=1 to save a new baseline.
 bench:
 	$(CARGO) bench
