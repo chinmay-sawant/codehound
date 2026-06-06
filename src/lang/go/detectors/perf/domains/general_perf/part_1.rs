@@ -10,8 +10,8 @@
 use super::super::super::common::{is_in_loop, is_request_path};
 use super::super::super::facts::{GoPerfFacts, VarKind};
 use super::super::super::metadata::*;
-use crate::ast::walk_nodes;
 use crate::ast::nearest_loop;
+use crate::ast::walk_nodes;
 use crate::core::ParsedUnit;
 use crate::lang::go::loop_kinds::LOOP_NODE_KINDS;
 use crate::rules::{Finding, emit};
@@ -226,9 +226,8 @@ pub(crate) fn detect_perf_31(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
     // Suppress resource-cleanup defer patterns (`defer x.Close()`,
     // `defer cancel()`, `defer x.Stop()`) — those are idiomatic Go and
     // should not trip the hot-path heuristic.
-    let has_resource_defer = source.contains(".Close()")
-        || source.contains("cancel()")
-        || source.contains(".Stop()");
+    let has_resource_defer =
+        source.contains(".Close()") || source.contains("cancel()") || source.contains(".Stop()");
     if has_resource_defer {
         return;
     }
@@ -282,8 +281,8 @@ pub(crate) fn detect_perf_32(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
                     .or_else(|| trimmed.strip_prefix("[]uint8("))
                     .and_then(|s| s.strip_suffix(')'))
                     .unwrap_or("");
-                let is_simple_ident = !inner.is_empty()
-                    && inner.chars().all(|c| c.is_alphanumeric() || c == '_');
+                let is_simple_ident =
+                    !inner.is_empty() && inner.chars().all(|c| c.is_alphanumeric() || c == '_');
                 if is_simple_ident {
                     if let Some(&kind) = facts.var_kinds.get(inner) {
                         if kind == VarKind::Bytes {

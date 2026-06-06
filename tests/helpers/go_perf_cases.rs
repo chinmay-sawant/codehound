@@ -6,8 +6,8 @@ use std::path::Path;
 
 pub fn discover_go_perf_cases() -> Vec<u32> {
     let dir = Path::new("tests/fixtures/go/perf");
-    let vulnerable = collect_cases_with_suffix(&dir, "-vulnerable.txt");
-    let safe = collect_cases_with_suffix(&dir, "-safe.txt");
+    let vulnerable = collect_cases_with_suffix(dir, "-vulnerable.txt");
+    let safe = collect_cases_with_suffix(dir, "-safe.txt");
 
     assert_eq!(
         vulnerable, safe,

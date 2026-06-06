@@ -8,10 +8,10 @@
 use super::super::common::{is_assignment_in_loop, is_in_loop};
 use super::super::facts::{GoPerfFacts, VarKind};
 use super::super::metadata::*;
-use crate::core::ParsedUnit;
-use crate::ast::walk_nodes;
-use crate::lang::go::loop_kinds::LOOP_NODE_KINDS;
 use crate::ast::nearest_loop;
+use crate::ast::walk_nodes;
+use crate::core::ParsedUnit;
+use crate::lang::go::loop_kinds::LOOP_NODE_KINDS;
 use crate::rules::{Finding, emit};
 
 /// PERF-001: regexp.MustCompile / regexp.Compile inside a loop.
@@ -22,7 +22,10 @@ pub(crate) fn detect_perf_1(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Ve
         if !is_in_loop(call) {
             continue;
         }
-        if !matches!(call.callee.as_ref(), "regexp.MustCompile" | "regexp.Compile") {
+        if !matches!(
+            call.callee.as_ref(),
+            "regexp.MustCompile" | "regexp.Compile"
+        ) {
             continue;
         }
 
@@ -48,9 +51,7 @@ pub(crate) fn detect_perf_2(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Ve
         }
         let text = assignment.text.as_ref();
         let expr = assignment.expr.as_ref();
-        let is_concat = text.contains(" += ")
-            || text.contains("= s +")
-            || expr.contains("s = s +");
+        let is_concat = text.contains(" += ") || text.contains("= s +") || expr.contains("s = s +");
         if !is_concat {
             continue;
         }
@@ -71,7 +72,9 @@ pub(crate) fn detect_perf_2(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Ve
         // Suppress when the LHS type is unknown and no string literal
         // appears on the RHS — likely a numeric or time.Duration accumulator
         // rather than a string-concatenation pattern.
-        let is_known_string = facts.var_kinds.get(assignment.name.as_ref())
+        let is_known_string = facts
+            .var_kinds
+            .get(assignment.name.as_ref())
             .map(|k| *k == VarKind::String)
             .unwrap_or(false);
         let has_string_literal = text.contains('"') || text.contains('`');
@@ -212,24 +215,20 @@ pub(crate) fn detect_perf_6(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Ve
 pub(crate) fn detect_perf_7(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
 
-    walk_nodes(
-        unit.tree.root_node(),
-        &["defer_statement"],
-        &mut |node| {
-            if nearest_loop(node, LOOP_NODE_KINDS).is_none() {
-                return;
-            }
-            let (line, col) = unit.line_col(node.start_byte());
-            emit::push_finding(
-                &META_PERF_7,
-                file,
-                line,
-                col,
-                "defer statement is placed inside a loop body",
-                out,
-            );
-        },
-    );
+    walk_nodes(unit.tree.root_node(), &["defer_statement"], &mut |node| {
+        if nearest_loop(node, LOOP_NODE_KINDS).is_none() {
+            return;
+        }
+        let (line, col) = unit.line_col(node.start_byte());
+        emit::push_finding(
+            &META_PERF_7,
+            file,
+            line,
+            col,
+            "defer statement is placed inside a loop body",
+            out,
+        );
+    });
 }
 
 /// PERF-008: time.Parse / time.ParseInLocation inside a loop body.
@@ -240,10 +239,7 @@ pub(crate) fn detect_perf_8(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Ve
         if !is_in_loop(call) {
             continue;
         }
-        if !matches!(
-            call.callee.as_ref(),
-            "time.Parse" | "time.ParseInLocation"
-        ) {
+        if !matches!(call.callee.as_ref(), "time.Parse" | "time.ParseInLocation") {
             continue;
         }
         if call.arguments.is_empty() {

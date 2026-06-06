@@ -7,8 +7,8 @@
 use super::super::super::common::{is_in_loop, is_request_path};
 use super::super::super::facts::GoPerfFacts;
 use super::super::super::metadata::*;
-use crate::ast::walk_nodes;
 use crate::ast::nearest_loop;
+use crate::ast::walk_nodes;
 use crate::core::ParsedUnit;
 use crate::lang::go::loop_kinds::LOOP_NODE_KINDS;
 use crate::rules::{Finding, emit};

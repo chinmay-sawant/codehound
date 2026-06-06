@@ -7,8 +7,8 @@
 use super::super::super::common::{is_in_loop, is_request_path};
 use super::super::super::facts::{CallFact, GoPerfFacts};
 use super::super::super::metadata::*;
-use crate::ast::walk_nodes;
 use crate::ast::nearest_loop;
+use crate::ast::walk_nodes;
 use crate::core::ParsedUnit;
 use crate::lang::go::loop_kinds::LOOP_NODE_KINDS;
 use crate::rules::{Finding, emit};
@@ -277,8 +277,7 @@ pub(crate) fn detect_perf_48(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         ) {
             continue;
         }
-        if source.contains("if len(a) != len(b) { return false }")
-            || source.contains("len(prefix)")
+        if source.contains("if len(a) != len(b) { return false }") || source.contains("len(prefix)")
         {
             return;
         }

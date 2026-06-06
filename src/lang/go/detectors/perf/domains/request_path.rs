@@ -2,7 +2,10 @@
 //! string building, copy / conversion, reflection, body / file reads,
 //! hashing, and key generation.
 
-use super::super::common::{has_echo_handler, has_gin_handler, has_http_handler, is_assignment_in_loop, is_in_loop, is_request_path};
+use super::super::common::{
+    has_echo_handler, has_gin_handler, has_http_handler, is_assignment_in_loop, is_in_loop,
+    is_request_path,
+};
 use super::super::facts::GoPerfFacts;
 use super::super::metadata::*;
 use crate::core::ParsedUnit;
@@ -11,8 +14,8 @@ use crate::rules::{Finding, emit};
 /// Returns true when the source file shows evidence of a request handler
 /// (Gin / Echo / net/http). Used to decide whether a call is on the hot path.
 fn is_request_handler(source: &str) -> bool {
-    is_request_path(source) && (
-        source.contains("gin.HandlerFunc")
+    is_request_path(source)
+        && (source.contains("gin.HandlerFunc")
             || source.contains("echo.HandlerFunc")
             || source.contains("http.HandlerFunc")
             || source.contains("func Handle")
@@ -24,8 +27,7 @@ fn is_request_handler(source: &str) -> bool {
             || source.contains("c.ShouldBind")
             || has_gin_handler(source)
             || has_echo_handler(source)
-            || has_http_handler(source)
-    )
+            || has_http_handler(source))
 }
 
 /// PERF-017: string concatenation per request body parsing.
@@ -106,9 +108,7 @@ pub(crate) fn detect_perf_19(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
         return;
     }
 
-    let start = source
-        .find("for _, record := range records")
-        .unwrap_or(0);
+    let start = source.find("for _, record := range records").unwrap_or(0);
     let (line, col) = unit.line_col(start);
     emit::push_finding(
         &META_PERF_19,
@@ -216,10 +216,7 @@ pub(crate) fn detect_perf_22(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     }
 
     for call in &facts.calls {
-        if !matches!(
-            call.callee.as_ref(),
-            "os.ReadFile" | "ioutil.ReadFile"
-        ) {
+        if !matches!(call.callee.as_ref(), "os.ReadFile" | "ioutil.ReadFile") {
             continue;
         }
         let (line, col) = unit.line_col(call.start_byte);
@@ -315,8 +312,7 @@ pub(crate) fn detect_perf_25(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     if !triggers.iter().any(|t| source.contains(t)) {
         return;
     }
-    if source.contains("var (")
-        && (source.contains("// gen once") || source.contains("sync.Once"))
+    if source.contains("var (") && (source.contains("// gen once") || source.contains("sync.Once"))
     {
         return;
     }
