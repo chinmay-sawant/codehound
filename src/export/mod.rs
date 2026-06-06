@@ -93,6 +93,12 @@ fn format_finding_block(
         }
     }
 
+    if let (Some(start_line), Some(end_line)) =
+        (finding.function_start_line, finding.function_end_line)
+    {
+        lines.push(format!("Enclosing function: lines {start_line}–{end_line}"));
+    }
+
     lines.push("Context:".to_string());
     for line in finding_context_lines(finding, source_cache) {
         lines.push(format!("    {line}"));
@@ -114,6 +120,29 @@ fn finding_context_lines(
             .collect::<Vec<_>>();
         if !snippet_lines.is_empty() {
             return snippet_lines;
+        }
+    }
+
+    if let (Some(start_byte), Some(end_byte)) =
+        (finding.function_start_byte, finding.function_end_byte)
+    {
+        let content = source_cache
+            .entry(finding.file.clone())
+            .or_insert_with(|| fs::read_to_string(&finding.file).ok());
+        if let Some(content) = content {
+            let end_byte = end_byte.min(content.len()).max(start_byte);
+            let start_byte = start_byte.min(content.len());
+            let body = &content[start_byte..end_byte];
+            let first_line_no = finding.function_start_line.unwrap_or(1);
+            let mut out = Vec::new();
+            for (offset, line) in body.lines().enumerate() {
+                let line_no = first_line_no + offset;
+                let marker = if line_no == finding.line { ">" } else { " " };
+                out.push(format!("{marker} {line_no:>5}: {line}"));
+            }
+            if !out.is_empty() {
+                return out;
+            }
         }
     }
 

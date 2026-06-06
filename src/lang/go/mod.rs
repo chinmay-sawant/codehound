@@ -1,6 +1,7 @@
 //! Go language plugin.
 
 pub mod detectors;
+mod function_kinds;
 mod loop_kinds;
 mod parser;
 
@@ -41,5 +42,9 @@ impl LanguagePlugin for GoPlugin {
 
     fn loop_node_kinds(&self) -> &'static [&'static str] {
         loop_kinds::LOOP_NODE_KINDS
+    }
+
+    fn function_node_kinds(&self) -> &'static [&'static str] {
+        function_kinds::FUNCTION_NODE_KINDS
     }
 }

@@ -11,7 +11,7 @@ use crate::engine::registry::Registry;
 use crate::engine::result::AnalysisResult;
 use crate::engine::{
     SCAN_CHUNK_SIZE,
-    walk::{analyze_parsed_unit, collect_entries, scan_entries_parallel},
+    walk::{analyze_parsed_unit_with_context, collect_entries, scan_entries_parallel},
 };
 use crate::rules::Finding;
 
@@ -95,7 +95,11 @@ impl Analyzer {
     pub fn analyze_units(&self, units: &[crate::core::ParsedUnit]) -> Vec<Finding> {
         let mut findings = Vec::new();
         for unit in units {
-            findings.extend(analyze_parsed_unit(&self.registry, &self.ctx, unit));
+            findings.extend(analyze_parsed_unit_with_context(
+                &self.registry,
+                &self.ctx,
+                unit,
+            ));
         }
         sort_findings(&mut findings);
         findings

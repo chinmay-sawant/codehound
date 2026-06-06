@@ -8,7 +8,8 @@ use ignore::WalkBuilder;
 use ignore::gitignore::{Gitignore, GitignoreBuilder};
 use rayon::prelude::*;
 
-use crate::core::{LanguageId, ParsedUnit, ScanContext};
+use crate::ast;
+use crate::core::{LanguageId, LanguagePlugin, ParsedUnit, ScanContext};
 use crate::engine::config::PathFilters;
 use crate::engine::language_filter::LanguageFilter;
 use crate::engine::parse_pool::ParsePool;
@@ -173,7 +174,39 @@ pub fn scan_entry(
         }
     };
 
-    Ok(analyze_parsed_unit(registry, ctx, &unit))
+    let mut findings = analyze_parsed_unit(registry, ctx, &unit);
+    attach_function_context(&mut findings, plugin, &unit);
+    Ok(findings)
+}
+
+/// Walk the unit's tree once to collect every function-like span, then attach
+/// the enclosing function's byte/line range to each finding that falls inside
+/// one. Findings whose line is outside every function (e.g. package-level
+/// declarations, top-level statements) are left unchanged so the exporter
+/// falls back to its snippet / small-window path.
+fn attach_function_context(
+    findings: &mut [Finding],
+    plugin: &dyn LanguagePlugin,
+    unit: &ParsedUnit,
+) {
+    let kinds = plugin.function_node_kinds();
+    if kinds.is_empty() || findings.is_empty() {
+        return;
+    }
+
+    let spans = ast::collect_function_spans(unit.tree.root_node(), kinds);
+    if spans.is_empty() {
+        return;
+    }
+
+    for finding in findings.iter_mut() {
+        if let Some(span) = ast::enclosing_function(&spans, finding.line) {
+            finding.function_start_byte = Some(span.start_byte);
+            finding.function_end_byte = Some(span.end_byte);
+            finding.function_start_line = Some(span.start_line);
+            finding.function_end_line = Some(span.end_line);
+        }
+    }
 }
 
 /// Run enabled detectors on an already-parsed unit.
@@ -189,6 +222,21 @@ pub fn analyze_parsed_unit(
             continue;
         }
         det.run(ctx, unit, &mut findings);
+    }
+    findings
+}
+
+/// Run detectors **and** attach function-context ranges for a single unit.
+/// This is the right entry point when the parsed unit is still alive (no
+/// re-parse needed) — used by [`Analyzer::analyze_units`].
+pub fn analyze_parsed_unit_with_context(
+    registry: &Registry,
+    ctx: &ScanContext,
+    unit: &ParsedUnit,
+) -> Vec<Finding> {
+    let mut findings = analyze_parsed_unit(registry, ctx, unit);
+    if let Some(plugin) = registry.plugin_for_id(unit.language) {
+        attach_function_context(&mut findings, plugin, unit);
     }
     findings
 }

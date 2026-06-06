@@ -174,6 +174,28 @@ fn end_position_appears_in_json() {
 }
 
 #[test]
+fn function_range_appears_in_json() {
+    let f = Finding::new(
+        "X",
+        "t",
+        "f",
+        LineCol {
+            line: 12,
+            column: 5,
+        },
+        "m",
+        Severity::Info,
+        Cow::Borrowed(&[]),
+    )
+    .with_function_range(0, 200, 1, 25);
+    let s = serde_json::to_string(&f).unwrap();
+    assert!(s.contains("\"function_start_byte\":0"), "got: {s}");
+    assert!(s.contains("\"function_end_byte\":200"), "got: {s}");
+    assert!(s.contains("\"function_start_line\":1"), "got: {s}");
+    assert!(s.contains("\"function_end_line\":25"), "got: {s}");
+}
+
+#[test]
 fn fingerprint_is_stable_across_calls() {
     let f = Finding::new(
         "CWE-22",

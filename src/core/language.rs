@@ -60,6 +60,16 @@ pub trait LanguagePlugin: Send + Sync {
     fn detectors(&self) -> Vec<Box<dyn Detector>>;
     fn loop_node_kinds(&self) -> &'static [&'static str];
 
+    /// Node kinds that should be treated as function-like when resolving the
+    /// enclosing scope of a finding (e.g. `function_declaration` and
+    /// `method_declaration` in Go). Plugins that do not override this get an
+    /// empty list, which disables function-context resolution for the
+    /// language — the exporter then falls back to its default "few lines
+    /// before/after" window.
+    fn function_node_kinds(&self) -> &'static [&'static str] {
+        &[]
+    }
+
     /// One-shot parse (tests only); production uses [`parse_with`] + pool.
     fn parse(&self, path: &Path, source: Arc<str>) -> Result<ParsedUnit> {
         let mut parser = tree_sitter::Parser::new();
