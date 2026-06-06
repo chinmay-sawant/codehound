@@ -6,7 +6,7 @@
 //! is present.
 
 use super::super::common::{is_assignment_in_loop, is_in_loop};
-use super::super::facts::GoPerfFacts;
+use super::super::facts::{GoPerfFacts, VarKind};
 use super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::ast::walk_nodes;
@@ -59,6 +59,14 @@ pub(crate) fn detect_perf_2(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Ve
             || text.contains("strings.Join(")
         {
             continue;
+        }
+        // Suppress when the LHS is known to be a numeric accumulator
+        // (e.g. `totalDur := 0.0` + `totalDur += d`). The +=-on-numeric
+        // pattern is idiomatic and not a string-concatenation smell.
+        if let Some(&kind) = facts.var_kinds.get(assignment.name.as_ref()) {
+            if kind == VarKind::Numeric {
+                continue;
+            }
         }
 
         let (line, col) = unit.line_col(assignment.start_byte);
