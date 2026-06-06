@@ -113,6 +113,12 @@ pub(crate) fn detect_perf_57(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
     if !is_request_path(source) || (!source.contains("*gin.Context") && !source.contains("gin.HandlerFunc")) {
         return;
     }
+    // Only fire on actual middleware (functions that call c.Next()),
+    // not on leaf handlers. Leaf handlers may legitimately need to
+    // io.ReadAll or json.Unmarshal the request body.
+    if !source.contains("c.Next()") {
+        return;
+    }
     // Detect io.ReadAll / json.Unmarshal in a Gin handler. Large `make([]byte, ...)`
     // allocations are intentionally not flagged here because they are routinely used
     // for sized buffers (e.g. `scanner.Buffer`) where the cost is bounded and the

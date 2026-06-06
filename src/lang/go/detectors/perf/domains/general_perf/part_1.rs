@@ -8,7 +8,7 @@
 //! one finding per call site.
 
 use super::super::super::common::{is_in_loop, is_request_path};
-use super::super::super::facts::GoPerfFacts;
+use super::super::super::facts::{GoPerfFacts, VarKind};
 use super::super::super::metadata::*;
 use crate::ast::walk_nodes;
 use crate::ast::nearest_loop;
@@ -247,7 +247,7 @@ pub(crate) fn detect_perf_31(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
 }
 
 /// PERF-32: `[]byte(s)` or `string(b)` conversion in a loop or hot path.
-pub(crate) fn detect_perf_32(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_32(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
@@ -273,6 +273,24 @@ pub(crate) fn detect_perf_32(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
             // involve a runtime copy and are not a hot-path concern.
             if is_string_to_bytes && trimmed.contains("[]byte(\"") {
                 return;
+            }
+            // Skip when the argument to []byte() is already a []byte-typed
+            // variable — this is a no-op cast, not a string conversion.
+            if is_string_to_bytes {
+                let inner = trimmed
+                    .strip_prefix("[]byte(")
+                    .or_else(|| trimmed.strip_prefix("[]uint8("))
+                    .and_then(|s| s.strip_suffix(')'))
+                    .unwrap_or("");
+                let is_simple_ident = !inner.is_empty()
+                    && inner.chars().all(|c| c.is_alphanumeric() || c == '_');
+                if is_simple_ident {
+                    if let Some(&kind) = facts.var_kinds.get(inner) {
+                        if kind == VarKind::Bytes {
+                            return;
+                        }
+                    }
+                }
             }
             if !on_hot_path && nearest_loop(node, LOOP_NODE_KINDS).is_none() {
                 return;

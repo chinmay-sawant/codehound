@@ -1,349 +1,322 @@
 Finding,Rule,Correctly Fired?,Reason,Suggested Fix
-1,PERF-41,No,"log.Printf in main() startup, not a request path",Move log call outside env guard or use structured logger
-2,PERF-43,Yes,defer-recover in request path middleware,Move recovery middleware to wrap only specific handlers
-3,PERF-68,No,"Logger only added in DebugMode, not production",Remove debug guard or use structured logger
-4,CWE-497,No,"fmt.Printf to stdout at startup, not diagnostics endpoint",Remove from startup print or use constant
-5,PERF-40,No,Benchmark function intentionally measures timing,Consolidate to single time.Now call
-6,PERF-7,Yes,"Defer inside goroutine, not accumulating on caller stack",Move wg.Add/wg.Done outside loop
-7,PERF-7,Yes,Same as finding 6,Acquire/release semaphore without defer
-8,PERF-42,No,"Benchmark function, not a production hot path",Replace with errors.New for static strings
-9,PERF-61,Yes,Static handler registered without cache headers,Add cache headers to static file serving
-10,PERF-88,No,Rule is Echo-specific but code uses Gin framework,Add Cache-Control and ETag headers
-11,CWE-22,No,Uses filepath.Base() and base directory confinement,Sanitization already correct; no change needed
-12,PERF-22,Yes,os.ReadFile invoked directly in request handler,Use async I/O or cache file contents
-13,PERF-57,No,"This is a POST handler, not Gin middleware",Rule title mismatch; handler is correct usage
-14,PERF-46,Yes,strings.TrimSuffix allocates on request path,Check suffix exists before trimming
-15,PERF-32,Yes,String to []byte conversion in request handler,Use string unsafely or reuse byte buffer
-16,PERF-32,Yes,Same pattern as finding 15,Use string unsafely or reuse byte buffer
-17,PERF-56,Yes,c.JSON called inside a loop body,Marshal once outside loop; stream response
-18,PERF-6,Yes,fmt.Sprintf inside a loop body,Build filename with strconv outside loop
-19,PERF-35,Yes,fmt.Sprintf boxes int through interface{},Use strconv.FormatInt to avoid boxing
-20,PERF-41,Yes,log.Printf used in a request handler,Replace with structured leveled logger
-21,PERF-46,Yes,strings.TrimSpace allocates on request path,Check need before trimming; trim only if space present
-22,PERF-57,No,"HandleRedactPageInfo is a handler, not middleware",Rule title mismatch; handler is correct usage
-23,PERF-32,Yes,String to []byte conversion in request handler,Use json.NewDecoder instead of byte conversion
-24,PERF-32,Yes,Same pattern as finding 23,Use json.NewDecoder instead of byte conversion
-25,PERF-32,Yes,Same pattern as finding 23,Use json.NewDecoder instead of byte conversion
-26,PERF-40,Yes,String to []byte conversion in request handler,Call time.Now once and reuse value
-27,PERF-31,Yes,Same pattern as finding 26,Move Unlock to explicit call instead of defer
-28,PERF-31,Yes,String to []byte conversion in request handler,Use explicit Unlock call instead of defer
-29,PERF-32,Yes,context.Background() detaches from request context,Reuse byte buffer or use unsafe conversion
-30,PERF-32,No,"bgX += cellWidth is float64 addition, not string concat",Reuse byte buffer or use unsafe conversion
-31,PERF-2,No,"currentX += cellWidth is float64 addition, not string concat",Use strings.Builder instead of + concatenation
-32,PERF-6,Yes,strconv.Itoa inside a loop body,Use strconv formatting or strings.Builder
-33,PERF-35,Yes,Same pattern as finding 32,Use strconv.Itoa and manual string building
-34,PERF-1,No,"currentX += cellWidth is float64 addition, not string concat",Compile regex once outside loop as package var
-35,PERF-15,Yes,strconv.Itoa inside a loop body,Use strconv.AppendInt with reused buffer
-36,PERF-15,Yes,Same pattern as finding 35,Pre-size buffer or reuse across iterations
-37,PERF-2,Yes,"fmt.Errorf with static string, should use errors.New",Use strings.Builder instead of + concatenation
-38,PERF-2,Yes,String to []byte conversion,Use strings.Builder instead of + concatenation
-39,PERF-15,Yes,MD5 used for password hashing,Use strconv.AppendInt with pre-allocated buffer
-40,PERF-15,Yes,MD5 with only 50 iterations for password hashing,Use strconv.AppendInt with pre-allocated buffer
-41,PERF-2,Yes,"make([]byte, ...) inside a loop",Use strings.Builder for efficient string building
-42,PERF-2,Yes,Same pattern as finding 41,Use strings.Builder for efficient string building
-43,PERF-2,No,"Uses crypto/rand.Read, not math/rand",Use strings.Builder for efficient string building
-44,PERF-2,Yes,fmt.Sprintf boxes int through interface{},Use strings.Builder for efficient string building
-45,PERF-2,Yes,strconv.Itoa inside a loop body,Use strings.Builder for efficient string building
-46,PERF-2,Yes,strconv.Itoa inside a loop body,Use strings.Builder for efficient string building
-47,PERF-2,Yes,strconv.Itoa inside a loop body,Use strings.Builder for efficient string building
-48,PERF-2,Yes,strconv.Itoa inside nested loop,Use strings.Builder for efficient string building
-49,PERF-2,Yes,strconv.Itoa inside a loop body,Use strings.Builder for efficient string building
-50,PERF-2,Yes,"fmt.Errorf with static string, should use errors.New",Use strings.Builder for efficient string building
-51,PERF-2,Yes,fmt.Errorf boxes string argument through interface{},Use strings.Builder for efficient string building
-52,PERF-2,Yes,fmt.Errorf boxes arguments through interface{},Use strings.Builder for efficient string building
-53,PERF-2,Yes,defer r.mu.Unlock() in potential hot function,Use strings.Builder for efficient string building
-54,PERF-2,Yes,Same pattern as finding 53,Use strings.Builder for efficient string building
-55,PERF-2,Yes,Same pattern as finding 53,Use strings.Builder for efficient string building
-56,PERF-2,Yes,Same pattern as finding 53,Use strings.Builder for efficient string building
-57,PERF-2,Yes,Same pattern as finding 53,Use strings.Builder for efficient string building
-58,PERF-2,Yes,Same pattern as finding 53,Use strings.Builder for efficient string building
-59,PERF-2,Yes,Same pattern as finding 53,Use strings.Builder for efficient string building
-60,PERF-2,Yes,Same pattern as finding 53,Use strings.Builder for efficient string building
-61,PERF-2,Yes,Same pattern as finding 53,Use strings.Builder for efficient string building
-62,PERF-2,Yes,make(map) allocated inside a loop body,Use strings.Builder for efficient string building
-63,PERF-2,Yes,Same pattern as finding 53,Use strings.Builder for efficient string building
-64,PERF-2,Yes,Same pattern as finding 53,Use strings.Builder for efficient string building
-65,PERF-2,Yes,fmt.Sprintf inside a loop body,Use strings.Builder for efficient string building
-66,PERF-2,Yes,Same pattern as finding 53,Use strings.Builder for efficient string building
-67,PERF-2,No,"LoadFontsFromDirectory is startup code, not request path",Use strings.Builder for efficient string building
-68,PERF-2,Yes,Same pattern as finding 53,Use strings.Builder for efficient string building
-69,PERF-2,Yes,Same pattern as finding 53,Use strings.Builder for efficient string building
-70,PERF-2,Yes,fmt.Sprintf inside a loop body,Use strings.Builder for efficient string building
-71,PERF-2,Yes,fmt.Sprintf inside a loop body,Use strings.Builder for efficient string building
-72,PERF-2,Yes,Same pattern as finding 53,Use strings.Builder for efficient string building
-73,PERF-2,Yes,"make([]byte, ...) inside a loop body",Use strings.Builder for efficient string building
-74,PERF-2,Yes,String to []byte conversion inside loop,Use strings.Builder for efficient string building
-75,PERF-2,No,"tableOffset += paddedLen is numeric, not string concat",Use strings.Builder for efficient string building
-76,PERF-6,Yes,Correctly detected pattern matches rule condition,Use strconv with strings.Builder
-77,PERF-6,No,"fmt.Errorf in early return, not on a hot path",Use strconv with strings.Builder
-78,PERF-6,Yes,Correctly detected pattern matches rule condition,Use strconv with strings.Builder
-79,PERF-6,Yes,Correctly detected pattern matches rule condition,Use strconv with strings.Builder
-80,PERF-6,Yes,Correctly detected pattern matches rule condition,Use strconv with strings.Builder
-81,PERF-6,Yes,Correctly detected pattern matches rule condition,Use strconv with strings.Builder
-82,PERF-6,Yes,Correctly detected pattern matches rule condition,Use strconv with strings.Builder
-83,PERF-6,Yes,Correctly detected pattern matches rule condition,Use strconv with strings.Builder
-84,PERF-6,Yes,Correctly detected pattern matches rule condition,Use strconv with strings.Builder
-85,PERF-6,Yes,Correctly detected pattern matches rule condition,Use strconv with strings.Builder
-86,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-87,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-88,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-89,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-90,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-91,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-92,PERF-6,Yes,Correctly detected pattern matches rule condition,Use strconv with strings.Builder
-93,PERF-15,Yes,Correctly detected pattern matches rule condition,Use strconv.AppendInt with reused buffer
-94,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-95,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-96,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-97,PERF-6,Yes,Correctly detected pattern matches rule condition,Use strconv with strings.Builder
-98,PERF-35,Yes,Correctly detected pattern matches rule condition,Use strconv.Itoa to avoid interface boxing
-99,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-100,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-101,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-102,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-103,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-104,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-105,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-106,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-107,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-108,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-109,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-110,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-111,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-112,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-113,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-114,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-115,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-116,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-117,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-118,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-119,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-120,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-121,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-122,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-123,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-124,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-125,PERF-1,Yes,Correctly detected pattern matches rule condition,Compile regex once outside loop as package var
-126,PERF-6,Yes,regexp.MustCompile inside for loop,Use strconv with strings.Builder
-127,PERF-6,Yes,regexp.MustCompile inside for loop,Use strconv with strings.Builder
-128,PERF-35,Yes,strconv.Itoa inside for loop,Use strconv.Itoa to avoid interface boxing
-129,PERF-6,Yes,strconv.Itoa inside for loop,Use strings.Builder WriteString with pre-formatted
-130,PERF-1,No,No loop/hot path visible; bytes.Equal called once,Compile regex once outside loop as package var
-131,PERF-1,No,No loop in 3-line function; not on hot path,Compile regex once outside loop as package var
-132,PERF-1,No,"string->[]byte inside if block, no loop visible",Compile regex once outside loop as package var
-133,PERF-1,No,"fmt.Sprintf inside if block, no loop visible",Compile regex once outside loop as package var
-134,PERF-1,Yes,[]byte(acroFormContent) string-to-byte on hot path,Compile regex once outside loop as package var
-135,PERF-1,No,"append([]byte(nil), buf.Bytes()...) is byte copy, not string conversion",Compile regex once outside loop as package var
-136,PERF-1,Yes,fmt.Sprintf inside image objects loop,Compile regex once outside loop as package var
-137,PERF-1,Yes,fmt.Sprintf inside cellImageObjects loop,Compile regex once outside loop as package var
-138,PERF-1,Yes,fmt.Sprintf inside elemImageObjects loop,Compile regex once outside loop as package var
-139,PERF-1,Yes,time.Now().UnixNano() one of multiple time.Now calls,Compile regex once outside loop as package var
-140,PERF-1,Yes,rand.Read uses math/rand with global mutex contention,Compile regex once outside loop as package var
-141,PERF-1,Yes,"MD5 used for document ID generation, weak hash",Compile regex once outside loop as package var
-142,PERF-1,Yes,fmt.Sprintf inside ParentTree loop,Compile regex once outside loop as package var
-143,PERF-1,Yes,fmt.Sprintf inside nested loop,Compile regex once outside loop as package var
-144,PERF-1,Yes,fmt.Sprintf inside annotation loop,Compile regex once outside loop as package var
-145,PERF-1,Yes,fmt.Sprintf inside recursive struct elem writer,Compile regex once outside loop as package var
-146,PERF-1,Yes,fmt.Sprintf inside for range kids loop,Compile regex once outside loop as package var
-147,PERF-1,Yes,fmt.Sprintf inside same loop,Compile regex once outside loop as package var
-148,PERF-6,Yes,fmt.Sprintf inside for range Elements loop,Use strconv with strings.Builder
-149,PERF-6,Yes,fmt.Sprintf inside same loop,Use strconv with strings.Builder
-150,PERF-6,Yes,fmt.Sprintf inside inner table switch case loop,Use strconv with strings.Builder
-151,PERF-6,Yes,fmt.Sprintf inside for range loop,Use strconv with strings.Builder
-152,PERF-6,Yes,fmt.Sprintf inside for range loop,Use strconv with strings.Builder
-153,PERF-6,Yes,fmt.Sprintf inside for range loop,Use strconv with strings.Builder
-154,PERF-6,Yes,string->byte conversion inside for range loop,Use strconv with strings.Builder
-155,PERF-6,Yes,string->byte conversion inside for range loop,Use strconv with strings.Builder
-156,PERF-6,Yes,string->byte conversion inside for range loop,Use strconv with strings.Builder
-157,PERF-6,Yes,regexp.MustCompile inside for range loop,Use strconv with strings.Builder
-158,PERF-6,Yes,regexp.MustCompile inside nested loop,Use strconv with strings.Builder
-159,PERF-6,Yes,fmt.Sprintf inside nested loop,Use strconv with strings.Builder
-160,PERF-6,Yes,fmt.Sprintf interface boxing inside nested loop,Use strconv with strings.Builder
-161,PERF-6,No,Two different type assertions (NRGBA vs RGBA),Use strconv with strings.Builder
-162,PERF-6,Yes,"fmt.Errorf with static string, use errors.New",Use strconv with strings.Builder
-163,PERF-6,Yes,map allocated with make inside for range loop,Use strconv with strings.Builder
-164,PERF-2,Yes,map allocated with make inside for range loop,Use strings.Builder for efficient string building
-165,PERF-2,Yes,regexp.MustCompile inside for range loop,Use strings.Builder for efficient string building
-166,PERF-2,Yes,regexp.MustCompile inside for range loop,Use strings.Builder for efficient string building
-167,PERF-2,Yes,regexp.MustCompile inside for range loop,Use strings.Builder for efficient string building
-168,PERF-2,Yes,string += concatenation inside for loop,Use strings.Builder for efficient string building
-169,PERF-2,Yes,string += concatenation inside for loop,Use strings.Builder for efficient string building
-170,PERF-2,Yes,fmt.Sprintf inside for loop,Use strings.Builder for efficient string building
-171,PERF-2,Yes,fmt.Sprintf interface boxing inside for loop,Use strings.Builder for efficient string building
-172,PERF-2,Yes,fmt.Sprintf inside for range loop,Use strings.Builder for efficient string building
-173,PERF-2,Yes,regexp.MustCompile inside for range loop,Use strings.Builder for efficient string building
-174,PERF-2,Yes,fmt.Sprintf inside for loop,Use strings.Builder for efficient string building
-175,PERF-2,Yes,string->byte conversion inside for range loop,Use strings.Builder for efficient string building
-176,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-177,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-178,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-179,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-180,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-181,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-182,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-183,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-184,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-185,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-186,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-187,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-188,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-189,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-190,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-191,PERF-2,No,"append([]byte(nil), ...) is byte-to-byte copy, not string conversion",Use strings.Builder for efficient string building
-192,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-193,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-194,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-195,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-196,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-197,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-198,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-199,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-200,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-201,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-202,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-203,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-204,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-205,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-206,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-207,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-208,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-209,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-210,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-211,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-212,PERF-2,Yes,Correctly detected pattern matches rule condition,Use strings.Builder for efficient string building
-213,PERF-6,Yes,Correctly detected pattern matches rule condition,Use strconv with strings.Builder
-214,PERF-6,Yes,Correctly detected pattern matches rule condition,Use strconv with strings.Builder
-215,PERF-6,Yes,Correctly detected pattern matches rule condition,Use strconv with strings.Builder
-216,PERF-6,Yes,bytes.Buffer allocated per request; pool opportunity,Use strconv with strings.Builder
-217,PERF-6,Yes,Correctly detected pattern matches rule condition,Use strconv with strings.Builder
-218,PERF-6,Yes,Correctly detected pattern matches rule condition,Use strconv with strings.Builder
-219,PERF-6,Yes,Correctly detected pattern matches rule condition,Use strconv with strings.Builder
-220,PERF-6,Yes,Correctly detected pattern matches rule condition,Use strconv with strings.Builder
-221,PERF-6,Yes,Correctly detected pattern matches rule condition,Use strconv with strings.Builder
-222,PERF-6,No,"offset += 12 is integer addition, not string concatenation",Use strconv with strings.Builder
-223,PERF-6,Yes,Correctly detected pattern matches rule condition,Use strconv with strings.Builder
-224,PERF-6,No,"offset += 12 is integer addition, not string concatenation",Use strconv with strings.Builder
-225,PERF-6,Yes,"MD5 used for password digest, weak hash",Use strconv with strings.Builder
-226,PERF-32,Yes,MD5 with only 50 iterations for password hashing,Use json.NewDecoder or unsafe conversion
-227,PERF-32,Yes,bytes.Equal without length precheck,Use json.NewDecoder or unsafe conversion
-228,PERF-32,Yes,[]byte(/Encrypt) string-to-byte conversion,Use json.NewDecoder or unsafe conversion
-229,PERF-32,Yes,[]byte(/W[) string-to-byte conversion,Use json.NewDecoder or unsafe conversion
-230,PERF-32,Yes,[]byte(/Index) string-to-byte conversion,Use unsafe conversion or reuse buffer
-231,PERF-32,Yes,regexp.MustCompile inside for loop,Use unsafe conversion or reuse buffer
-232,PERF-32,Yes,regexp.MustCompile inside nested loop,Use unsafe conversion or reuse buffer
-233,PERF-32,Yes,strings.TrimSpace allocates on request path,Use unsafe conversion or reuse buffer
-234,PERF-32,Yes,fmt.Errorf boxes arguments through interface{},Use unsafe conversion or reuse buffer
-235,PERF-32,Yes,fmt.Sprintf inside loop body,Use unsafe conversion or reuse buffer
-236,PERF-32,Yes,strconv.Itoa inside loop body,Use unsafe conversion or reuse buffer
-237,PERF-32,Yes,strconv.Itoa inside loop body,Use unsafe conversion or reuse buffer
-238,PERF-32,Yes,bufio.NewScanner without explicit buffer sizing,Use unsafe conversion or reuse buffer
-239,PERF-32,Yes,strings.Split allocates slice in hot path,Use unsafe conversion or reuse buffer
-240,PERF-32,Yes,bytes.Equal without length precheck,Use json.NewDecoder or unsafe conversion
-241,PERF-32,Yes,fmt.Fprintf inside loop body,Use json.NewDecoder or unsafe conversion
-242,PERF-32,Yes,fmt.Sprintf inside loop body,Use json.NewDecoder or unsafe conversion
-243,PERF-32,Yes,fmt.Sprintf boxes args via interface inside loop,Use json.NewDecoder or unsafe conversion
-244,PERF-32,Yes,fmt.Errorf boxes arguments through interface,Use json.NewDecoder or unsafe conversion
-245,PERF-32,Yes,strings.TrimSpace allocates on request path,Use json.NewDecoder or unsafe conversion
-246,PERF-32,No,"report.MatchedTextCount += len(rects) is int addition, not string concat",Use json.NewDecoder or unsafe conversion
-247,PERF-32,Yes,strings.TrimSpace allocates inside loop,Use json.NewDecoder or unsafe conversion
-248,PERF-32,Yes,lines[li].joined += builds string via concatenation,Use json.NewDecoder or unsafe conversion
-249,PERF-32,Yes,fmt.Sprintf inside loop body,Use json.NewDecoder or unsafe conversion
-250,PERF-32,Yes,fmt.Sprintf boxes args via interface inside loop,Use unsafe conversion or reuse buffer
-251,PERF-48,Yes,fmt.Sprintf inside for range loop,Flag applies to production code only
-252,PERF-48,Yes,make(map[int]bool) inside for range loop,Flag applies to production code only
-253,PERF-35,Yes,regexp.MustCompile inside for range loop,Use errors.New or wrap with %w
-254,PERF-46,Yes,[]byte(fmt.Sprintf(...)) string-to-byte on hot path,Check need before trimming
-255,PERF-2,Yes,strings.TrimSpace inside for range loop,Use strings.Builder for efficient string building
-256,PERF-46,Yes,[]byte(out.String()) string-to-byte on hot path,Check need before trimming
-257,PERF-2,Yes,fmt.Fprintf inside for range redacted loop,Use strings.Builder for efficient string building
-258,PERF-6,Yes,fmt.Fprintf inside same loop,Use strings.Builder with pre-formatted
-259,PERF-35,Yes,fmt.Fprintf inside for range segments loop,Use strconv.Itoa to avoid boxing
-260,PERF-6,Yes,fmt.Fprintf inside for range text loop,Use strings.Builder with pre-formatted
-261,PERF-4,Yes,fmt.Errorf with interface boxing inside loop,Allocate map once outside loop
-262,PERF-1,Yes,fmt.Sprintf inside for range rects loop,Compile regex once outside loop as package var
-263,PERF-32,Yes,fmt.Sprintf inside for range loop,Use unsafe conversion or reuse buffer
-264,PERF-46,Yes,[]byte(streamObj) string-to-byte inside loop,Check need before trimming
-265,PERF-32,Yes,[]byte(certPEM) conversion copies data,Use unsafe conversion or reuse buffer
-266,PERF-6,Yes,[]byte(keyPEM) conversion copies data,Use strings.Builder WriteString
-267,PERF-6,Yes,[]byte(c) conversion inside for range loop,Use strconv with strings.Builder
-268,PERF-6,Yes,[]byte(certPEM) conversion copies data,Use strconv with strings.Builder
-269,PERF-6,Yes,fmt.Errorf with static string; errors.New suffices,Use strconv with strings.Builder
-270,PERF-6,Yes,fmt.Errorf boxes arguments through interface,Use strconv with strings.Builder
-271,PERF-6,Yes,[]byte(keyPEM) string-to-byte conversion,Use strconv with strings.Builder
-272,PERF-6,Yes,[]byte(chainPEM) inside for range loop,Use strconv with strings.Builder
-273,PERF-6,No,"Only one time.Now() call, not repeatedly",Use strconv with strings.Builder
-274,PERF-6,Yes,[]byte(newByteRange) string-to-byte conversion,Use strconv with strings.Builder
-275,PERF-6,Yes,[]byte(sigHex) string-to-byte conversion,Use strconv with strings.Builder
-276,PERF-32,Yes,make(map[string]string) inside for loop,Use hash.Hash.Write instead of conversion
-277,PERF-32,Yes,fmt.Fprintf inside for loop,Use unsafe conversion or reuse buffer
-278,PERF-42,Yes,fmt.Fprintf inside for loop,Replace with errors.New
-279,PERF-35,Yes,fmt.Sprintf inside for loop,Use %w wrapping or errors.New
-280,PERF-32,Yes,fmt.Sprintf boxes float64 through interface,Use unsafe conversion or reuse buffer
-281,PERF-32,Yes,strings.SplitN allocates slice on hot path,Use unsafe conversion or reuse buffer
-282,PERF-40,Yes,fmt.Fprintf inside for range parts loop,Call time.Now once and reuse
-283,PERF-32,Yes,fmt.Fprintf inside same loop,Use unsafe conversion or reuse buffer
-284,PERF-32,Yes,fmt.Fprintf inside same loop,Use unsafe conversion or reuse buffer
-285,PERF-4,Yes,fmt.Fprintf inside same loop,Allocate map once outside loop
-286,PERF-6,Yes,fmt.Fprintf inside for loop,Use pre-formatted strings with WriteString
-287,PERF-6,Yes,fmt.Fprintf inside for loop,Use pre-formatted strings with WriteString
-288,PERF-6,Yes,fmt.Fprintf inside for loop,Use pre-formatted strings with WriteString
-289,PERF-6,Yes,fmt.Fprintf inside for loop,Use pre-formatted strings with WriteString
-290,PERF-6,Yes,fmt.Fprintf inside for loop,Use pre-formatted strings with WriteString
-291,PERF-6,Yes,fmt.Fprintf inside for loop,Use pre-formatted strings with WriteString
-292,PERF-6,Yes,fmt.Fprintf inside for loop,Use pre-formatted strings with WriteString
-293,PERF-6,Yes,fmt.Fprintf inside for loop,Use pre-formatted strings with WriteString
-294,PERF-6,Yes,fmt.Fprintf inside for loop,Use pre-formatted strings with WriteString
-295,PERF-6,Yes,fmt.Fprintf inside for loop,Use pre-formatted strings with WriteString
-296,PERF-6,Yes,fmt.Fprintf inside for loop,Use pre-formatted strings with WriteString
-297,PERF-6,Yes,fmt.Fprintf inside for loop,Use pre-formatted strings with WriteString
-298,PERF-6,No,"end += rs is integer addition, not string concatenation",Use pre-formatted strings with WriteString
-299,PERF-6,Yes,defer wg.Done() lexically inside for loop,Use pre-formatted strings with WriteString
-300,PERF-6,Yes,fmt.Sprintf inside for loop,Use pre-formatted strings with WriteString
-301,PERF-6,Yes,fmt.Sprintf boxes args as interface inside loop,Use pre-formatted strings with WriteString
-302,PERF-6,Yes,fmt.Sprintf called inside for loop body,Use pre-formatted strings with WriteString
-303,PERF-6,No,"runtime.NumCPU used for worker calc, not diagnostics",Use pre-formatted strings with WriteString
-304,PERF-6,Yes,fmt.Sprintf inside for range loop,Use pre-formatted strings with WriteString
-305,PERF-6,Yes,fmt.Sprintf boxes args as interface inside loop,Use pre-formatted strings with WriteString
-306,PERF-6,Yes,time.Now called at lines 138 and 147 in same function,Use pre-formatted strings with WriteString
-307,PERF-2,Yes,defer wg.Done() syntactically inside loop body,Use strings.Builder for efficient string building
-308,PERF-3,Yes,defer func() syntactically inside loop body,Flag applies to production code only
-309,PERF-32,Yes,"fmt.Errorf with static string, no format verbs",Flag applies to production code only
-310,PERF-32,Yes,exposes OS/arch/CPU/GoVersion to callers,Flag applies to production code only
-311,PERF-7,No,loop has no variable to capture (range over numWorkers),Move defer outside go func or use non-deferred pattern
-312,PERF-48,Yes,defer wg.Done() syntactically inside loop body,Flag applies to production code only
-313,PERF-6,Yes,time.Now inside goroutine and at line 104,Flag applies to production code only
-314,PERF-35,No,time.Duration += is not string concatenation,Flag applies to production code only
-315,PERF-6,No,time.Duration += is not string concatenation,Flag applies to production code only
-316,CWE-497,Yes,exposes OS/arch/CPU/GoVersion to callers,Flag applies to production endpoints only
-317,PERF-6,Yes,fmt.Sprintf inside generateTrades for loop,Flag applies to production code only
-318,PERF-35,Yes,fmt.Sprintf boxes args as interface inside loop,Flag applies to production code only
-319,PERF-40,Yes,fmt.Sprintf inside for range loop,Flag applies to production code only
-320,PERF-7,Yes,fmt.Sprintf inside for range loop,Flag applies to production code only
-321,PERF-7,Yes,fmt.Sprintf inside for range loop,Flag applies to production code only
-322,PERF-42,Yes,fmt.Sprintf inside for range loop,Flag applies to production code only
-323,CWE-497,Yes,fmt.Sprintf inside for range loop,Flag applies to production endpoints only
-324,PERF-36,Yes,fmt.Sprintf inside for range loop,Flag applies to production code only
-325,PERF-7,Yes,fmt.Sprintf inside for range loop,Flag applies to production code only
-326,PERF-40,No,loop has no variable to capture (range over numWorkers),Flag applies to production code only
-327,PERF-2,Yes,defer wg.Done() syntactically inside loop body,Flag applies to production code only
-328,PERF-2,Yes,time.Now called at lines 743 and 773 in same function,Flag applies to production code only
-329,CWE-497,No,time.Duration += is not string concatenation,Flag applies to production endpoints only
-330,PERF-6,Yes,"fmt.Errorf with static string, no format verbs",Flag applies to production code only
-331,PERF-35,Yes,"make([]*MathLayout, cols) called inside for loop",Flag applies to production code only
-332,PERF-6,No,float64 += is not string concatenation,Flag applies to production code only
-333,PERF-6,Yes,strings.TrimSpace allocates inside loop body,Flag applies to production code only
-334,PERF-6,No,"snippet shows standalone utility, not on hot path",Flag applies to production code only
-335,PERF-6,No,fmt.Sprintf in sample template builder; not production,Flag applies to production code only
-336,PERF-6,No,fmt.Sprintf in sample template builder; not production,Flag applies to production code only
-337,PERF-6,No,fmt.Sprintf in sample template builder; not production,Flag applies to production code only
-338,PERF-6,No,fmt.Sprintf in sample template builder; not production,Flag applies to production code only
-339,PERF-36,No,goroutine in sample benchmark; not production code,Flag applies to production code only
-340,PERF-7,No,defer in sample benchmark worker; not production,Flag applies to production code only
-341,PERF-40,No,time.Now in sample benchmark worker; not production,Flag applies to production code only
-342,PERF-2,No,sumDuration+=d in sample benchmark; not production,Flag applies to production code only
-343,PERF-42,No,fmt.Errorf in sample benchmark; not production,Flag applies to production code only
-344,PERF-27,No,bytes.Buffer in integration test; not production code,Flag applies to production code only
-345,PERF-3,Yes,make inside loop in math layout hot path,Pre-allocate slice rows outside loop
-346,PERF-2,Yes,x += colWidths + colGap; not string concatenation,False positive for PERF-2; no string concat
-347,PERF-46,Yes,strings.TrimSpace in math node scanning hot path,Check if space present before trimming
-348,PERF-35,Yes,fmt.Sprintf in fmtFloat helper on hot path,Use strconv.FormatFloat to avoid boxing
+1,PERF-41,No,"Startup code in main(), not a request path",Replace with structured leveled logger
+2,PERF-43,Yes,Defer-recover in Gin middleware runs per-request,Move recovery to wrap only specific handlers
+3,PERF-68,Yes,gin.Logger() is present in the code path,Use async logger or disable in production
+4,CWE-497,No,"runtime.NumCPU() used internally, not exposed to callers",Remove system info exposure from endpoint
+5,PERF-40,Yes,time.Now called twice in same benchmark function,Call time.Now once and reuse
+6,PERF-7,Yes,defer is lexically inside a for loop body,Move defer outside loop body
+7,PERF-7,Yes,defer is lexically inside a for loop body,Move defer outside loop body
+8,PERF-42,Yes,"fmt.Errorf with static string, no formatting verbs",Replace with errors.New for static strings
+9,PERF-61,Yes,Static file served without Cache-Control headers,Add cache headers to static file serving
+10,PERF-88,No,"Code uses Gin, not Echo framework",Add cache headers to static route
+11,CWE-22,No,filepath.Base + root join provides path confinement,Validate and normalize path against allowed root
+12,PERF-22,Yes,os.ReadFile called inside an HTTP handler,Use async I/O or cache file contents
+13,PERF-57,No,"Function is a handler, not a middleware",Move heavy work out of middleware
+14,PERF-46,Yes,strings.TrimSuffix allocates on request path,Check need before trimming
+15,PERF-32,Yes,String to []byte conversion in request handler,Reuse byte buffer or use unsafe conversion
+16,PERF-32,Yes,String to []byte conversion in request handler,Reuse byte buffer or use unsafe conversion
+17,PERF-56,Yes,c.JSON called lexically inside a loop body,Marshal once outside loop; stream response
+18,PERF-6,Yes,fmt.Sprintf called inside a for loop,Use strconv or strings.Builder
+19,PERF-35,Yes,fmt.Sprintf boxes arguments through interface{},Use strconv to avoid interface boxing
+20,PERF-41,Yes,log.Printf in a request handler function,Replace with structured leveled logger
+21,PERF-46,Yes,strings.TrimSpace inside a loop allocates,Check need before trimming
+22,PERF-32,Yes,string to []byte conversion via json.Unmarshal,Reuse byte buffer or use unsafe conversion
+23,PERF-32,Yes,string to []byte conversion via json.Unmarshal,Reuse byte buffer or use unsafe conversion
+24,PERF-32,Yes,string to []byte conversion via json.Unmarshal,Reuse byte buffer or use unsafe conversion
+25,PERF-32,Yes,string to []byte conversion via json.Unmarshal,Reuse byte buffer or use unsafe conversion
+26,PERF-32,Yes,string to []byte conversion via json.Unmarshal,Reuse byte buffer or use unsafe conversion
+27,PERF-32,Yes,string to []byte conversion via json.Unmarshal,Reuse byte buffer or use unsafe conversion
+28,PERF-30,Yes,"context.Background() in middleware, not request context",Propagate request context instead of Background
+29,PERF-15,Yes,strconv.Itoa inside nested loop in drawTitleTable,Use strconv.AppendInt with reused buffer
+30,PERF-15,Yes,strconv.Itoa inside nested loop in drawTitleTable,Use strconv.AppendInt with reused buffer
+31,PERF-15,Yes,strconv.Itoa inside nested loop in drawTable,Use strconv.AppendInt with reused buffer
+32,PERF-15,Yes,strconv.Itoa inside nested loop in drawTable,Use strconv.AppendInt with reused buffer
+33,PERF-42,Yes,"fmt.Errorf with static string, no formatting verbs",Replace with errors.New for static strings
+34,PERF-32,Yes,string to []byte conversion in padPassword,Reuse byte buffer or use unsafe conversion
+35,CWE-328,Yes,MD5 used for password digest,Use a strong hash like SHA-256
+36,CWE-916,Yes,Only 50 iterations of MD5 is insufficient,Increase iterations or use bcrypt/argon2
+37,PERF-3,Yes,make([]byte) inside a loop (modifiedKey),Pre-allocate slice outside loop
+38,PERF-3,Yes,make([]byte) inside a loop (modifiedKey),Pre-allocate slice outside loop
+39,PERF-53,No,"rand.Read is from crypto/rand, not math/rand",Use crypto/rand or per-goroutine rand.Source
+40,PERF-35,Yes,fmt.Sprintf boxes arguments through interface{},Use strconv to avoid interface boxing
+41,PERF-15,Yes,strconv.Itoa inside a loop,Use strconv.AppendInt with reused buffer
+42,PERF-15,Yes,strconv.Itoa inside a loop,Use strconv.AppendInt with reused buffer
+43,PERF-15,Yes,strconv.Itoa inside loop,Use strconv.AppendInt with reused buffer
+44,PERF-15,Yes,strconv.Itoa inside nested loop,Use strconv.AppendInt with reused buffer
+45,PERF-15,Yes,strconv.Itoa inside loop,Use strconv.AppendInt with reused buffer
+46,PERF-42,Yes,"fmt.Errorf with static string, no formatting verbs",Replace with errors.New for static strings
+47,PERF-35,Yes,fmt.Errorf boxes arguments through interface{},Use strconv to avoid interface boxing
+48,PERF-35,Yes,fmt.Errorf boxes arguments through interface{},Use strconv to avoid interface boxing
+49,PERF-31,Yes,defer used in RegisterFont function,Use explicit Unlock instead of defer
+50,PERF-31,Yes,defer used in GetFont function,Use explicit Unlock instead of defer
+51,PERF-31,Yes,defer used in HasFont function,Use explicit Unlock instead of defer
+52,PERF-31,Yes,defer used in MarkCharsUsed function,Use explicit Unlock instead of defer
+53,PERF-31,Yes,defer used in GenerateSubsets function,Use explicit Unlock instead of defer
+54,PERF-31,Yes,defer used in GetAllFonts function,Use explicit Unlock instead of defer
+55,PERF-31,Yes,defer used in GetUsedFonts function,Use explicit Unlock instead of defer
+56,PERF-31,Yes,defer used in Clear function,Use explicit Unlock instead of defer
+57,PERF-31,Yes,defer used in ResetUsage function,Use explicit Unlock instead of defer
+58,PERF-4,Yes,make(map) allocation inside a loop body,Allocate map once outside loop
+59,PERF-31,Yes,defer used in CloneForGeneration function,Use explicit Unlock instead of defer
+60,PERF-31,Yes,defer used in AssignObjectIDs function,Use explicit Unlock instead of defer
+61,PERF-6,Yes,fmt.Sprintf called inside a for loop,Use strconv or strings.Builder
+62,PERF-31,Yes,defer used in GetFontReference function,Use explicit Unlock instead of defer
+63,PERF-46,Yes,strings.TrimSuffix allocates in LoadFontsFromDirectory,Check need before trimming
+64,PERF-31,Yes,defer used in GetTextWidth function,Use explicit Unlock instead of defer
+65,PERF-31,Yes,defer used in GeneratePDFFontResources function,Use explicit Unlock instead of defer
+66,PERF-6,Yes,fmt.Sprintf called inside a for loop,Use strconv or strings.Builder
+67,PERF-6,Yes,fmt.Sprintf called inside a for loop,Use strconv or strings.Builder
+68,PERF-31,Yes,defer used in IsCustomFont function,Use explicit Unlock instead of defer
+69,PERF-3,Yes,make([]byte) allocated inside a loop,Pre-allocate slice outside loop
+70,PERF-32,Yes,string to []byte conversion inside a loop,Reuse byte buffer or use unsafe conversion
+71,PERF-3,Yes,make([]byte) allocated inside a loop,Pre-allocate slice outside loop
+72,PERF-35,Yes,fmt.Errorf boxes err through interface{},Use strconv to avoid interface boxing
+73,PERF-32,Yes,string literal to []byte conversion,Reuse byte buffer or use unsafe conversion
+74,PERF-32,Yes,string literal to []byte conversion,Reuse byte buffer or use unsafe conversion
+75,PERF-1,Yes,regexp.MustCompile compiled inside loop body,Compile regex once outside loop as package var
+76,PERF-1,Yes,Pattern matches rule condition correctly,Compile regex once outside loop as package var
+77,PERF-1,Yes,Pattern matches rule condition correctly,Compile regex once outside loop as package var
+78,PERF-1,Yes,Pattern matches rule condition correctly,Compile regex once outside loop as package var
+79,PERF-1,Yes,Pattern matches rule condition correctly,Compile regex once outside loop as package var
+80,PERF-32,Yes,Pattern matches rule condition correctly,Reuse byte buffer or use unsafe conversion
+81,PERF-32,Yes,Pattern matches rule condition correctly,Reuse byte buffer or use unsafe conversion
+82,PERF-32,Yes,Pattern matches rule condition correctly,Reuse byte buffer or use unsafe conversion
+83,PERF-1,Yes,Pattern matches rule condition correctly,Compile regex once outside loop as package var
+84,PERF-1,Yes,Pattern matches rule condition correctly,Compile regex once outside loop as package var
+85,PERF-6,Yes,Pattern matches rule condition correctly,Use strconv or strings.Builder
+86,PERF-35,Yes,Pattern matches rule condition correctly,Use strconv to avoid interface boxing
+87,PERF-1,Yes,Pattern matches rule condition correctly,Compile regex once outside loop as package var
+88,PERF-1,Yes,Pattern matches rule condition correctly,Compile regex once outside loop as package var
+89,PERF-6,Yes,Pattern matches rule condition correctly,Use strconv or strings.Builder
+90,PERF-1,Yes,Pattern matches rule condition correctly,Compile regex once outside loop as package var
+91,PERF-1,Yes,Pattern matches rule condition correctly,Compile regex once outside loop as package var
+92,PERF-1,Yes,Pattern matches rule condition correctly,Compile regex once outside loop as package var
+93,PERF-1,Yes,Pattern matches rule condition correctly,Compile regex once outside loop as package var
+94,PERF-1,Yes,Pattern matches rule condition correctly,Compile regex once outside loop as package var
+95,PERF-1,Yes,Pattern matches rule condition correctly,Compile regex once outside loop as package var
+96,PERF-6,Yes,Pattern matches rule condition correctly,Use strconv or strings.Builder
+97,PERF-1,Yes,Pattern matches rule condition correctly,Compile regex once outside loop as package var
+98,PERF-32,Yes,Pattern matches rule condition correctly,Reuse byte buffer or use unsafe conversion
+99,PERF-6,Yes,Pattern matches rule condition correctly,Use strconv or strings.Builder
+100,PERF-1,Yes,Pattern matches rule condition correctly,Compile regex once outside loop as package var
+101,PERF-1,Yes,Pattern matches rule condition correctly,Compile regex once outside loop as package var
+102,PERF-1,Yes,Pattern matches rule condition correctly,Compile regex once outside loop as package var
+103,PERF-1,Yes,Pattern matches rule condition correctly,Compile regex once outside loop as package var
+104,PERF-1,Yes,Pattern matches rule condition correctly,Compile regex once outside loop as package var
+105,PERF-6,Yes,Pattern matches rule condition correctly,Use strconv or strings.Builder
+106,PERF-32,Yes,Pattern matches rule condition correctly,Reuse byte buffer or use unsafe conversion
+107,PERF-6,Yes,Pattern matches rule condition correctly,Use strconv or strings.Builder
+108,PERF-6,Yes,Pattern matches rule condition correctly,Use strconv or strings.Builder
+109,PERF-6,Yes,Pattern matches rule condition correctly,Use strconv or strings.Builder
+110,PERF-32,Yes,Pattern matches rule condition correctly,Reuse byte buffer or use unsafe conversion
+111,PERF-15,Yes,strconv.Itoa called inside loop body,Use strconv.AppendInt with reused buffer
+112,PERF-6,Yes,Pattern matches rule condition correctly,Use strconv or strings.Builder
+113,PERF-32,Yes,Pattern matches rule condition correctly,Reuse byte buffer or use unsafe conversion
+114,PERF-32,Yes,Pattern matches rule condition correctly,Reuse byte buffer or use unsafe conversion
+115,PERF-6,Yes,Pattern matches rule condition correctly,Use strconv or strings.Builder
+116,PERF-32,Yes,Pattern matches rule condition correctly,Reuse byte buffer or use unsafe conversion
+117,PERF-6,Yes,Pattern matches rule condition correctly,Use strconv or strings.Builder
+118,PERF-1,Yes,Pattern matches rule condition correctly,Compile regex once outside loop as package var
+119,PERF-1,Yes,Pattern matches rule condition correctly,Compile regex once outside loop as package var
+120,PERF-1,Yes,Pattern matches rule condition correctly,Compile regex once outside loop as package var
+121,PERF-1,Yes,Pattern matches rule condition correctly,Compile regex once outside loop as package var
+122,PERF-1,Yes,Pattern matches rule condition correctly,Compile regex once outside loop as package var
+123,PERF-15,Yes,strconv.Itoa called inside loop body,Use strconv.AppendInt with reused buffer
+124,PERF-15,Yes,strconv.Itoa called inside loop body,Use strconv.AppendInt with reused buffer
+125,PERF-48,Yes,bytes.Equal on hot path without length precheck,Add length precheck before bytes.Equal
+126,PERF-32,Yes,[]byte(content) converts string to bytes,Reuse byte buffer or use unsafe conversion
+127,PERF-32,Yes,[]byte converts string to bytes,Reuse byte buffer or use unsafe conversion
+128,PERF-35,Yes,fmt.Sprintf boxes int through interface{},Use strconv to avoid interface boxing
+129,PERF-32,Yes,[]byte(acroFormContent) string to byte conversion,Reuse byte buffer or use unsafe conversion
+130,PERF-32,No,"[]byte(nil) - nil is not a string, no copy occurs",Reuse byte buffer or use unsafe conversion
+131,PERF-6,Yes,fmt.Sprintf inside image processing loop,Use strconv or strings.Builder
+132,PERF-6,Yes,fmt.Sprintf inside image processing loop,Use strconv or strings.Builder
+133,PERF-6,Yes,fmt.Sprintf inside image processing loop,Use strconv or strings.Builder
+134,PERF-40,Yes,time.Now().UnixNano() on PDF generation hot path,Call time.Now once and reuse
+135,PERF-53,Yes,"rand.Read uses math/rand, not crypto/rand",Use crypto/rand or per-goroutine rand.Source
+136,CWE-328,Yes,md5.Sum uses weak MD5 hash,Use a strong hash like SHA-256
+137,PERF-6,Yes,fmt.Sprintf inside loop building parent tree,Use strconv or strings.Builder
+138,PERF-6,Yes,fmt.Sprintf inside same loop,Use strconv or strings.Builder
+139,PERF-6,Yes,fmt.Sprintf inside same loop,Use strconv or strings.Builder
+140,PERF-6,Yes,fmt.Sprintf inside loop building annotation refs,Use strconv or strings.Builder
+141,PERF-6,Yes,fmt.Sprintf inside same loop,Use strconv or strings.Builder
+142,PERF-6,Yes,fmt.Sprintf inside same loop,Use strconv or strings.Builder
+143,PERF-6,Yes,fmt.Sprintf inside range template.Elements loop,Use strconv or strings.Builder
+144,PERF-6,Yes,fmt.Sprintf inside same loop,Use strconv or strings.Builder
+145,PERF-6,Yes,fmt.Sprintf inside same loop,Use strconv or strings.Builder
+146,PERF-6,Yes,fmt.Sprintf inside same loop,Use strconv or strings.Builder
+147,PERF-6,Yes,fmt.Sprintf inside range template.Table loop,Use strconv or strings.Builder
+148,PERF-6,Yes,fmt.Sprintf inside range template.Image loop,Use strconv or strings.Builder
+149,PERF-32,Yes,[]byte(/Encrypt) converts string literal to bytes,Reuse byte buffer or use unsafe conversion
+150,PERF-32,Yes,[]byte(/W[) converts string literal to bytes,Reuse byte buffer or use unsafe conversion
+151,PERF-32,Yes,[]byte(/Index) converts string literal to bytes,Reuse byte buffer or use unsafe conversion
+152,PERF-1,Yes,regexp.MustCompile inside xref parsing loop,Compile regex once outside loop as package var
+153,PERF-1,Yes,regexp.MustCompile inside same loop,Compile regex once outside loop as package var
+154,PERF-6,Yes,fmt.Sprintf inside inner for loop,Use strconv or strings.Builder
+155,PERF-35,Yes,fmt.Sprintf boxes int through interface{},Use strconv to avoid interface boxing
+156,PERF-44,No,"Type assertion appears once, not repeated",Assign repeated type assertion to a variable
+157,PERF-42,Yes,fmt.Errorf with static string; errors.New suffices,Replace with errors.New for static strings
+158,PERF-4,Yes,make(map) without size hint in loop,Allocate map once outside loop
+159,PERF-4,Yes,make(map) without size hint in loop,Allocate map once outside loop
+160,PERF-1,Yes,regexp.MustCompile inside file loop,Compile regex once outside loop as package var
+161,PERF-1,Yes,regexp.MustCompile inside same loop,Compile regex once outside loop as package var
+162,PERF-1,Yes,regexp.MustCompile inside same loop,Compile regex once outside loop as package var
+163,PERF-2,Yes,catalogDict += string concat in loop,Use strings.Builder for efficient string building
+164,PERF-2,Yes,catalogDict += fmt.Sprintf string concat in loop,Use strings.Builder for efficient string building
+165,PERF-6,Yes,fmt.Sprintf inside form fields loop,Use strconv or strings.Builder
+166,PERF-35,Yes,fmt.Sprintf boxes int through interface{},Use strconv to avoid interface boxing
+167,PERF-6,Yes,fmt.Sprintf inside range mergedPages loop,Use strconv or strings.Builder
+168,PERF-1,Yes,regexp.MustCompile inside appended objects loop,Compile regex once outside loop as package var
+169,PERF-6,Yes,fmt.Sprintf inside xref offset loop,Use strconv or strings.Builder
+170,PERF-32,Yes,[]byte(s) converts string to bytes in loop,Reuse byte buffer or use unsafe conversion
+171,PERF-32,Yes,[]byte(fmt.Sprintf) string to byte conversion,Reuse byte buffer or use unsafe conversion
+172,PERF-6,Yes,fmt.Sprintf inside ReplaceAllFunc callback,Use strconv or strings.Builder
+173,PERF-1,Yes,regexp.MustCompile inside range objMap loop,Compile regex once outside loop as package var
+174,PERF-1,Yes,regexp.MustCompile inside same loop,Compile regex once outside loop as package var
+175,PERF-1,Yes,regexp.MustCompile inside ref iteration loop,Compile regex once outside loop as package var
+176,PERF-42,Yes,"fmt.Errorf with static string, no format verbs",Replace with errors.New for static strings
+177,PERF-15,Yes,strconv.FormatInt inside for loop body,Use strconv.AppendInt with reused buffer
+178,PERF-45,Yes,append in for loop without capacity hint,Pre-allocate slice with make and capacity hint
+179,PERF-35,Yes,fmt.Errorf boxes p as interface{},Use strconv to avoid interface boxing
+180,PERF-45,Yes,append in loop without capacity hint,Pre-allocate slice with make and capacity hint
+181,PERF-42,Yes,fmt.Errorf with static string,Replace with errors.New for static strings
+182,PERF-35,Yes,fmt.Sprintf boxes part int as interface{},Use strconv to avoid interface boxing
+183,PERF-46,Yes,strings.TrimSpace allocates a new string,Check need before trimming
+184,PERF-6,Yes,fmt.Sprintf inside for loop over keywords,Use strconv or strings.Builder
+185,PERF-32,Yes,[]byte(xmpContent) string to byte conversion,Reuse byte buffer or use unsafe conversion
+186,PERF-32,No,No string/byte conversion; copying byte slices,Reuse byte buffer or use unsafe conversion
+187,PERF-6,Yes,fmt.Sprintf inside loop over bookmarks,Use strconv or strings.Builder
+188,PERF-35,Yes,fmt.Sprintf boxes len() result as interface{},Use strconv to avoid interface boxing
+189,PERF-32,Yes,[]byte(rootDict.String()) string to byte conversion,Reuse byte buffer or use unsafe conversion
+190,PERF-32,Yes,[]byte(item.Title) string to byte conversion,Reuse byte buffer or use unsafe conversion
+191,PERF-6,Yes,fmt.Sprintf inside loop over outline items,Use strconv or strings.Builder
+192,PERF-6,Yes,fmt.Sprintf inside loop over outline items,Use strconv or strings.Builder
+193,PERF-6,Yes,fmt.Sprintf inside loop over outline items,Use strconv or strings.Builder
+194,PERF-6,Yes,fmt.Sprintf inside loop over outline items,Use strconv or strings.Builder
+195,PERF-6,Yes,fmt.Sprintf inside loop over outline items,Use strconv or strings.Builder
+196,PERF-6,Yes,fmt.Sprintf inside loop over outline items,Use strconv or strings.Builder
+197,PERF-6,Yes,fmt.Sprintf inside loop over outline items,Use strconv or strings.Builder
+198,PERF-6,Yes,fmt.Sprintf inside loop over outline items,Use strconv or strings.Builder
+199,PERF-6,Yes,fmt.Sprintf inside loop over outline items,Use strconv or strings.Builder
+200,PERF-6,Yes,fmt.Sprintf inside loop over outline items,Use strconv or strings.Builder
+201,PERF-32,Yes,[]byte(itemDict.String()) string to byte conversion,Reuse byte buffer or use unsafe conversion
+202,PERF-6,Yes,fmt.Sprintf inside loop over runes,Use strconv or strings.Builder
+203,PERF-6,Yes,fmt.Sprintf inside loop over runes,Use strconv or strings.Builder
+204,PERF-32,Yes,[]byte(name) string to byte conversion,Reuse byte buffer or use unsafe conversion
+205,PERF-6,Yes,fmt.Sprintf inside loop over names,Use strconv or strings.Builder
+206,PERF-6,Yes,fmt.Sprintf inside loop over names,Use strconv or strings.Builder
+207,PERF-6,Yes,fmt.Sprintf inside loop over names,Use strconv or strings.Builder
+208,PERF-6,Yes,fmt.Sprintf inside loop over names,Use strconv or strings.Builder
+209,PERF-32,Yes,[]byte(destsTreeContent) string to byte conversion,Reuse byte buffer or use unsafe conversion
+210,PERF-32,Yes,[]byte(namesContent) string to byte conversion,Reuse byte buffer or use unsafe conversion
+211,PERF-27,Yes,bytes.Buffer allocated freshly in constructor,Pool buffer via sync.Pool
+212,PERF-32,Yes,[]byte(content) string to byte conversion,Reuse byte buffer or use unsafe conversion
+213,PERF-35,Yes,fmt.Sprintf boxes results as interface{},Use strconv to avoid interface boxing
+214,PERF-32,Yes,[]byte(content) string to byte conversion,Reuse byte buffer or use unsafe conversion
+215,PERF-32,Yes,[]byte(content) string to byte conversion,Reuse byte buffer or use unsafe conversion
+216,PERF-32,Yes,[]byte(tag.sig) string to byte conversion,Reuse byte buffer or use unsafe conversion
+217,PERF-32,Yes,[]byte(tag.sig) string to byte conversion,Reuse byte buffer or use unsafe conversion
+218,CWE-328,Yes,MD5 used for password digest,Use a strong hash like SHA-256
+219,CWE-916,Yes,"MD5 with only 50 iterations, insufficient work",Increase iterations or use bcrypt/argon2
+220,PERF-48,Yes,bytes.Equal on hot path without prefix precheck,Add length precheck before bytes.Equal
+221,PERF-32,Yes,[]byte(/Encrypt) string literal to byte conversion,Reuse byte buffer or use unsafe conversion
+222,PERF-32,Yes,[]byte(/W[) string literal to byte conversion,Reuse byte buffer or use unsafe conversion
+223,PERF-32,Yes,[]byte(/Index) string literal to byte conversion,Reuse byte buffer or use unsafe conversion
+224,PERF-1,Yes,regexp.MustCompile inside loop body,Compile regex once outside loop as package var
+225,PERF-1,Yes,regexp.MustCompile inside loop body,Compile regex once outside loop as package var
+226,PERF-46,Yes,strings.TrimSpace allocates on request path,Check need before trimming
+227,PERF-35,Yes,fmt.Errorf boxes arguments through interface{},Use strconv to avoid interface boxing
+228,PERF-6,Yes,fmt.Sprintf inside a for loop body,Use strconv or strings.Builder
+229,PERF-15,Yes,strconv.Itoa inside a for loop body,Use strconv.AppendInt with reused buffer
+230,PERF-15,Yes,strconv.Itoa inside a for loop body,Use strconv.AppendInt with reused buffer
+231,PERF-55,Yes,bufio.NewScanner used without Buffer() sizing,Set explicit Buffer size on bufio.NewScanner
+232,PERF-47,Yes,strings.Split allocates a slice on hot path,Pre-allocate slice if size is known
+233,PERF-48,Yes,bytes.Equal without length precheck on hot path,Add length precheck before bytes.Equal
+234,PERF-6,Yes,fmt.Fprintf inside a for loop body,Use strconv or strings.Builder
+235,PERF-6,Yes,fmt.Sprintf inside a for loop body,Use strconv or strings.Builder
+236,PERF-35,Yes,fmt.Sprintf boxes arguments through interface{},Use strconv to avoid interface boxing
+237,PERF-35,Yes,fmt.Errorf boxes arguments through interface{},Use strconv to avoid interface boxing
+238,PERF-46,Yes,strings.TrimSpace allocates on request path,Check need before trimming
+239,PERF-46,Yes,strings.TrimSpace allocates inside loop,Check need before trimming
+240,PERF-2,Yes,String concatenation += inside loop body,Use strings.Builder for efficient string building
+241,PERF-6,Yes,fmt.Sprintf inside a for loop body,Use strconv or strings.Builder
+242,PERF-35,Yes,fmt.Sprintf boxes arguments through interface{},Use strconv to avoid interface boxing
+243,PERF-6,Yes,fmt.Sprintf inside a for loop body,Use strconv or strings.Builder
+244,PERF-4,Yes,make(map[int]bool) allocated inside a loop,Allocate map once outside loop
+245,PERF-1,Yes,regexp.MustCompile compiled inside loop body,Compile regex once outside loop as package var
+246,PERF-32,Yes,[]byte(fmt.Sprintf) string-to-byte conversion,Reuse byte buffer or use unsafe conversion
+247,PERF-46,Yes,strings.TrimSpace allocates on hot path,Check need before trimming
+248,PERF-32,Yes,[]byte(out.String()) string-to-byte conversion,Reuse byte buffer or use unsafe conversion
+249,PERF-6,Yes,fmt.Fprintf inside a for loop body,Use strconv or strings.Builder
+250,PERF-6,Yes,fmt.Fprintf inside a for loop body,Use strconv or strings.Builder
+251,PERF-6,Yes,fmt.Fprintf inside a for loop body,Use strconv or strings.Builder
+252,PERF-6,Yes,fmt.Fprintf inside a for loop body,Use strconv or strings.Builder
+253,PERF-35,Yes,fmt.Errorf boxes arguments through interface{},Use strconv to avoid interface boxing
+254,PERF-6,Yes,fmt.Sprintf inside a for loop body,Use strconv or strings.Builder
+255,PERF-6,Yes,fmt.Sprintf inside a for loop body,Use strconv or strings.Builder
+256,PERF-32,Yes,[]byte(streamObj) string-to-byte conversion,Reuse byte buffer or use unsafe conversion
+257,PERF-32,Yes,[]byte(certPEM) string-to-byte conversion,Reuse byte buffer or use unsafe conversion
+258,PERF-32,Yes,[]byte(keyPEM) string-to-byte conversion,Reuse byte buffer or use unsafe conversion
+259,PERF-32,Yes,[]byte(c) string-to-byte conversion,Reuse byte buffer or use unsafe conversion
+260,PERF-32,Yes,[]byte(certPEM) string-to-byte conversion,Reuse byte buffer or use unsafe conversion
+261,PERF-42,Yes,"fmt.Errorf with static string, use errors.New",Replace with errors.New for static strings
+262,PERF-35,Yes,fmt.Errorf boxes err through interface{},Use strconv to avoid interface boxing
+263,PERF-32,Yes,[]byte(keyPEM) string-to-byte conversion,Reuse byte buffer or use unsafe conversion
+264,PERF-32,Yes,[]byte(chainPEM) string-to-byte conversion in loop,Reuse byte buffer or use unsafe conversion
+265,PERF-40,No,"Only one time.Now() call, not repeatedly",Call time.Now once and reuse
+266,PERF-32,Yes,[]byte(newByteRange) string-to-byte conversion,Reuse byte buffer or use unsafe conversion
+267,PERF-32,Yes,[]byte(sigHex) string-to-byte conversion,Reuse byte buffer or use unsafe conversion
+268,PERF-4,Yes,make(map[string]string) allocated inside a loop,Allocate map once outside loop
+269,PERF-6,Yes,fmt.Fprintf inside a for loop body,Use strconv or strings.Builder
+270,PERF-6,Yes,fmt.Fprintf inside a for loop body,Use strconv or strings.Builder
+271,PERF-6,Yes,fmt.Sprintf inside a for loop body,Use strconv or strings.Builder
+272,PERF-35,Yes,fmt.Sprintf boxes arguments through interface{},Use strconv to avoid interface boxing
+273,PERF-47,Yes,strings.SplitN allocates a slice on hot path,Pre-allocate slice if size is known
+274,PERF-6,Yes,fmt.Fprintf inside a for loop body,Use strconv or strings.Builder
+275,PERF-6,Yes,fmt.Fprintf inside a for loop body,Use strconv or strings.Builder
+276,PERF-6,Yes,fmt.Fprintf inside for loop,Use strconv or strings.Builder
+277,PERF-6,Yes,fmt.Fprintf inside for loop,Use strconv or strings.Builder
+278,PERF-6,Yes,fmt.Fprintf inside for loop,Use strconv or strings.Builder
+279,PERF-6,Yes,fmt.Fprintf inside for loop,Use strconv or strings.Builder
+280,PERF-6,Yes,fmt.Fprintf inside for loop,Use strconv or strings.Builder
+281,PERF-6,Yes,fmt.Fprintf inside for loop,Use strconv or strings.Builder
+282,PERF-6,Yes,fmt.Fprintf inside for loop,Use strconv or strings.Builder
+283,PERF-6,Yes,fmt.Fprintf inside for loop,Use strconv or strings.Builder
+284,PERF-6,Yes,fmt.Fprintf inside for loop,Use strconv or strings.Builder
+285,PERF-6,Yes,fmt.Fprintf inside for loop,Use strconv or strings.Builder
+286,PERF-6,Yes,fmt.Fprintf inside for loop,Use strconv or strings.Builder
+287,PERF-6,Yes,fmt.Fprintf inside for loop,Use strconv or strings.Builder
+288,PERF-6,Yes,fmt.Fprintf inside for loop,Use strconv or strings.Builder
+289,PERF-6,Yes,fmt.Fprintf inside for loop,Use strconv or strings.Builder
+290,PERF-7,Yes,defer wg.Done() inside for loop body,Move defer outside loop body
+291,PERF-6,Yes,fmt.Sprintf inside for i loop,Use strconv or strings.Builder
+292,PERF-35,Yes,fmt.Sprintf boxes int arg via interface{},Use strconv to avoid interface boxing
+293,PERF-6,Yes,fmt.Sprintf inside for i loop,Use strconv or strings.Builder
+294,CWE-497,No,"runtime.NumCPU used internally, not exposed to callers",Remove system info exposure from endpoint
+295,PERF-6,Yes,fmt.Sprintf inside for range loop,Use strconv or strings.Builder
+296,PERF-35,Yes,fmt.Sprintf boxes int arg via interface{},Use strconv to avoid interface boxing
+297,PERF-40,Yes,Multiple time.Now calls in same function body,Call time.Now once and reuse
+298,PERF-7,Yes,defer wg.Done() inside for loop body,Move defer outside loop body
+299,PERF-7,Yes,defer func() inside for loop body,Move defer outside loop body
+300,PERF-42,Yes,"fmt.Errorf with static string, use errors.New",Replace with errors.New for static strings
+301,CWE-497,Yes,getSystemInfo exposes OS/Arch/CPU/GoVersion,Remove system info exposure from endpoint
+302,PERF-36,No,No loop variable captured; range numWorkers has none,Capture loop variable explicitly
+303,PERF-7,Yes,defer wg.Done() inside for range loop,Move defer outside loop body
+304,PERF-40,Yes,Multiple time.Now calls in same function body,Call time.Now once and reuse
+305,CWE-497,Yes,getSystemInfo exposes OS/Arch/CPU/GoVersion,Remove system info exposure from endpoint
+306,PERF-6,Yes,fmt.Sprintf inside for range loop,Use strconv or strings.Builder
+307,PERF-35,Yes,fmt.Sprintf boxes args via interface{},Use strconv to avoid interface boxing
+308,PERF-6,Yes,fmt.Sprintf inside for range loop,Use strconv or strings.Builder
+309,PERF-6,Yes,fmt.Sprintf inside for range loop,Use strconv or strings.Builder
+310,PERF-6,Yes,fmt.Sprintf inside for range loop,Use strconv or strings.Builder
+311,PERF-6,Yes,fmt.Sprintf inside for range loop,Use strconv or strings.Builder
+312,PERF-6,Yes,fmt.Sprintf inside for range loop,Use strconv or strings.Builder
+313,PERF-6,Yes,fmt.Sprintf inside for range loop,Use strconv or strings.Builder
+314,PERF-6,Yes,fmt.Sprintf inside for range loop,Use strconv or strings.Builder
+315,PERF-36,No,No loop variable captured; range numWorkers has none,Capture loop variable explicitly
+316,PERF-7,Yes,defer wg.Done() inside for range loop,Move defer outside loop body
+317,PERF-40,Yes,Multiple time.Now calls in same function body,Call time.Now once and reuse
+318,PERF-42,Yes,"fmt.Errorf with static string, use errors.New",Replace with errors.New for static strings
+319,PERF-3,Yes,"make([]*MathLayout, cols) inside for loop",Pre-allocate slice outside loop
+320,PERF-46,Yes,strings.TrimSpace allocates inside loop,Check need before trimming
+321,PERF-35,Yes,fmt.Sprintf boxes float arg via interface{},Use strconv to avoid interface boxing

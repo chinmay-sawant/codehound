@@ -68,6 +68,16 @@ pub(crate) fn detect_perf_2(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Ve
                 continue;
             }
         }
+        // Suppress when the LHS type is unknown and no string literal
+        // appears on the RHS — likely a numeric or time.Duration accumulator
+        // rather than a string-concatenation pattern.
+        let is_known_string = facts.var_kinds.get(assignment.name.as_ref())
+            .map(|k| *k == VarKind::String)
+            .unwrap_or(false);
+        let has_string_literal = text.contains('"') || text.contains('`');
+        if !is_known_string && !has_string_literal {
+            continue;
+        }
 
         let (line, col) = unit.line_col(assignment.start_byte);
         emit::push_finding(
