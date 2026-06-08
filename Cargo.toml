@@ -50,6 +50,9 @@ colored = "2.1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 
+# Perfect hashing for sink/source registries
+phf = { version = "0.11", features = ["macros"] }
+
 # Path / file walking
 walkdir = "2.5"
 ignore = "0.4"

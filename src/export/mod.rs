@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use anyhow::Result;
 
@@ -24,20 +25,25 @@ pub struct ExportSummary {
     pub chunk_files_written: usize,
 }
 
-pub fn export_findings(findings: &[Finding], options: &ExportOptions) -> Result<ExportSummary> {
+pub fn export_findings(
+    findings: &[Finding],
+    options: &ExportOptions,
+    source_cache: &HashMap<String, Arc<str>>,
+) -> Result<ExportSummary> {
     if !options.export_context && !options.export_chunks {
         return Ok(ExportSummary::default());
     }
 
     let total = findings.len();
-    let mut source_cache = HashMap::<String, Option<String>>::new();
+    let mut file_cache = HashMap::<String, Option<String>>::new();
     let mut summary = ExportSummary::default();
 
     if options.export_context {
         fs::create_dir_all(&options.context_output_dir)?;
         clean_matching_txt_files(&options.context_output_dir, |name| name.ends_with(".txt"))?;
         for (index, finding) in findings.iter().enumerate() {
-            let text = format_finding_block(finding, index + 1, total, &mut source_cache);
+            let text =
+                format_finding_block(finding, index + 1, total, &mut file_cache, source_cache);
             let output_path = options
                 .context_output_dir
                 .join(format!("{}.txt", index + 1));
@@ -51,7 +57,8 @@ pub fn export_findings(findings: &[Finding], options: &ExportOptions) -> Result<
             findings,
             &options.chunks_output_dir,
             options.chunk_size.max(1),
-            &mut source_cache,
+            &mut file_cache,
+            source_cache,
         )?;
     }
 
@@ -62,7 +69,8 @@ fn format_finding_block(
     finding: &Finding,
     index: usize,
     total: usize,
-    source_cache: &mut HashMap<String, Option<String>>,
+    file_cache: &mut HashMap<String, Option<String>>,
+    source_cache: &HashMap<String, Arc<str>>,
 ) -> String {
     let mut lines = vec![
         format!("Finding {index}/{total}"),
@@ -100,7 +108,7 @@ fn format_finding_block(
     }
 
     lines.push("Context:".to_string());
-    for line in finding_context_lines(finding, source_cache) {
+    for line in finding_context_lines(finding, file_cache, source_cache) {
         lines.push(format!("    {line}"));
     }
 
@@ -109,8 +117,21 @@ fn format_finding_block(
 
 fn finding_context_lines(
     finding: &Finding,
-    source_cache: &mut HashMap<String, Option<String>>,
+    file_cache: &mut HashMap<String, Option<String>>,
+    source_cache: &HashMap<String, Arc<str>>,
 ) -> Vec<String> {
+    let mut get_content = || -> Option<String> {
+        source_cache
+            .get(&finding.file)
+            .map(|s| s.to_string())
+            .or_else(|| {
+                file_cache
+                    .entry(finding.file.clone())
+                    .or_insert_with(|| fs::read_to_string(&finding.file).ok())
+                    .clone()
+            })
+    };
+
     if let Some(snippet) = &finding.snippet {
         let snippet_lines = snippet
             .lines()
@@ -126,9 +147,7 @@ fn finding_context_lines(
     if let (Some(start_byte), Some(end_byte)) =
         (finding.function_start_byte, finding.function_end_byte)
     {
-        let content = source_cache
-            .entry(finding.file.clone())
-            .or_insert_with(|| fs::read_to_string(&finding.file).ok());
+        let content = get_content();
         if let Some(content) = content {
             let end_byte = end_byte.min(content.len()).max(start_byte);
             let start_byte = start_byte.min(content.len());
@@ -146,9 +165,7 @@ fn finding_context_lines(
         }
     }
 
-    let content = source_cache
-        .entry(finding.file.clone())
-        .or_insert_with(|| fs::read_to_string(&finding.file).ok());
+    let content = get_content();
 
     if let Some(content) = content {
         let start = finding.line.saturating_sub(2).max(1);
@@ -177,7 +194,8 @@ fn write_chunk_files_streaming(
     findings: &[Finding],
     output_dir: &Path,
     chunk_size: usize,
-    source_cache: &mut HashMap<String, Option<String>>,
+    file_cache: &mut HashMap<String, Option<String>>,
+    source_cache: &HashMap<String, Arc<str>>,
 ) -> Result<usize> {
     fs::create_dir_all(output_dir)?;
     clean_matching_txt_files(output_dir, |name| {
@@ -207,7 +225,7 @@ fn write_chunk_files_streaming(
                 writeln!(writer)?;
             }
             let one_based = start_index + offset;
-            let block = format_finding_block(finding, one_based, total, source_cache);
+            let block = format_finding_block(finding, one_based, total, file_cache, source_cache);
             write!(writer, "{}", block.trim_end())?;
         }
         writeln!(writer)?;

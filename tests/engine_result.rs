@@ -30,6 +30,7 @@ fn error_kind_maps_to_exit_codes() {
 #[test]
 fn analysis_result_carries_errors_field() {
     let result = AnalysisResult {
+        source_cache: std::collections::HashMap::new(),
         findings: vec![],
         errors: vec![ScanError {
             path: PathBuf::from("a.go"),

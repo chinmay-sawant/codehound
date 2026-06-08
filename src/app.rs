@@ -76,7 +76,7 @@ pub fn run(cli: Cli) -> Result<ExitCode> {
     }
 
     let export_options = cli.export_options();
-    let export_summary = export_findings(&result.findings, &export_options)?;
+    let export_summary = export_findings(&result.findings, &export_options, &result.source_cache)?;
 
     if !cli.no_terminal && !cli.quiet {
         match cli.format {

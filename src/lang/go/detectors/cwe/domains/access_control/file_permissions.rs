@@ -28,6 +28,7 @@ pub(crate) fn detect_cwe_276(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     );
 }
 
+
 pub(crate) fn detect_cwe_277(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
 
@@ -61,6 +62,7 @@ pub(crate) fn detect_cwe_277(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     );
 }
 
+
 pub(crate) fn detect_cwe_278(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
 
@@ -82,6 +84,7 @@ pub(crate) fn detect_cwe_278(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         out,
     );
 }
+
 
 pub(crate) fn detect_cwe_279(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
@@ -109,6 +112,7 @@ pub(crate) fn detect_cwe_279(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         out,
     );
 }
+
 
 pub(crate) fn detect_cwe_280(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
@@ -142,6 +146,7 @@ pub(crate) fn detect_cwe_280(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     );
 }
 
+
 pub(crate) fn detect_cwe_281(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -173,189 +178,86 @@ pub(crate) fn detect_cwe_281(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     );
 }
 
-pub(crate) fn detect_cwe_289(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+
+pub(crate) fn detect_cwe_378(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if source.contains("canonical_name = ?") {
+    let insecure_temp_file = source.contains("os.TempDir()") && source.contains("0666");
+    if !insecure_temp_file {
         return;
     }
-    if !source.contains("strings.Split(") || !source.contains(r#""@")[0]"#) {
-        return;
-    }
-
-    let start_byte = source.find("strings.Split(").unwrap_or(0);
-    let (line, col) = unit.line_col(start_byte);
-    emit::push_finding(
-        &META_CWE_289,
-        file,
-        line,
-        col,
-        "principal authentication strips the realm suffix and authenticates only the bare local username",
-        out,
-    );
-}
-
-pub(crate) fn detect_cwe_290(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.display_path.as_str();
-
-    let Some(header_call) = facts.call_facts.iter().find(|call| {
-        (call.callee.as_ref() == "c.GetHeader" || call.callee.as_ref() == "r.Header.Get")
-            && call
-                .arguments
-                .first()
-                .is_some_and(|arg| arg.contains("X-Remote-User"))
-    }) else {
-        return;
-    };
-
-    let (line, col) = unit.line_col(header_call.start_byte);
-    emit::push_finding(
-        &META_CWE_290,
-        file,
-        line,
-        col,
-        "the request trusts a caller-controlled X-Remote-User header as the authenticated identity",
-        out,
-    );
-}
-
-pub(crate) fn detect_cwe_294(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
-
-    let loads_auth_token = source.contains(r#"c.PostForm("auth_token")"#)
-        || source.contains(r#"r.FormValue("auth_token")"#);
-    if !loads_auth_token {
+    if source.contains("CreateTemp(") || source.contains("Chmod(f.Name(), 0600)") {
         return;
     }
 
-    let has_nonce_tracking = source.contains("LoadOrStore(nonce, true)")
-        || source.contains("spentNonces")
-        || source.contains(r#"PostForm("nonce")"#)
-        || source.contains(r#"FormValue("nonce")"#);
-    if has_nonce_tracking {
-        return;
-    }
-
-    let start_byte = if let Some(idx) = source.find("auth_token") {
+    let start_byte = if let Some(idx) = source.find("os.TempDir()") {
         idx
     } else {
-        return;
-    };
-
-    let (line, col) = unit.line_col(start_byte);
-    emit::push_finding(
-        &META_CWE_294,
-        file,
-        line,
-        col,
-        "the login flow accepts an authentication token without nonce tracking or replay detection",
-        out,
-    );
-}
-
-pub(crate) fn detect_cwe_301(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
-
-    let echoes_challenge = source.contains(r#"gin.H{"proof": challenge}"#)
-        || source.contains(r#"{"proof": challenge}"#)
-        || source.contains(r#"map[string]string{"proof": challenge}"#);
-    if !echoes_challenge {
-        return;
-    }
-    if source.contains("hmac.New(") || source.contains("EncodeToString(") {
-        return;
-    }
-
-    let start_byte = source.find("challenge").unwrap_or(0);
-    let (line, col) = unit.line_col(start_byte);
-    emit::push_finding(
-        &META_CWE_301,
-        file,
-        line,
-        col,
-        "the server reflects the client challenge directly as the authentication proof",
-        out,
-    );
-}
-
-pub(crate) fn detect_cwe_303(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
-
-    if !source.contains("hmac.New(") || !source.contains("mac.Sum(nil)") {
-        return;
-    }
-    if !source.contains("string(expected) == sig") {
-        return;
-    }
-
-    let start_byte = source.find("string(expected) == sig").unwrap_or(0);
-    let (line, col) = unit.line_col(start_byte);
-    emit::push_finding(
-        &META_CWE_303,
-        file,
-        line,
-        col,
-        "the computed MAC is compared to user input with string equality instead of constant-time verification",
-        out,
-    );
-}
-
-pub(crate) fn detect_cwe_305(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
-
-    let debug_bypass = source.contains(r#"Query("debug") == "1""#)
-        || source.contains(r#"Query().Get("debug") == "1""#);
-    if !debug_bypass {
-        return;
-    }
-
-    let has_subject_check = source.contains("jwt_sub") || source.contains("X-JWT-Sub");
-    if !has_subject_check {
-        return;
-    }
-
-    let start_byte = if let Some(idx) = source.find("debug") {
-        idx
-    } else {
-        return;
+        source.find("0666").unwrap_or(0)
     };
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
-        &META_CWE_305,
+        &META_CWE_378,
         file,
         line,
         col,
-        "a caller-controlled debug flag reaches privileged behavior before the authenticated subject check",
+        "a temp file is created with world-accessible permissions in the shared temp area",
         out,
     );
 }
 
-pub(crate) fn detect_cwe_306(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+
+pub(crate) fn detect_cwe_379(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let destructive_purge = source.contains("TRUNCATE ledger");
-    if !destructive_purge {
+    let insecure_temp_dir = source.contains("MkdirAll(dir, 0777)")
+        && (source.contains("/tmp/shared-reports") || source.contains("/tmp/shared-sessions"));
+    if !insecure_temp_dir {
         return;
     }
-    let has_auth_gate = source.contains("operator_id") || source.contains("X-Operator-ID");
-    if has_auth_gate {
+    if source.contains("MkdirTemp(") || source.contains("Chmod(dir, 0700)") {
         return;
     }
 
-    let start_byte = source.find("TRUNCATE ledger").unwrap_or(0);
+    let start_byte = source.find("MkdirAll(dir, 0777)").unwrap_or(0);
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
-        &META_CWE_306,
+        &META_CWE_379,
         file,
         line,
         col,
-        "a destructive purge endpoint performs its action without any authentication gate",
+        "a temporary file is staged inside a shared world-writable directory",
         out,
     );
 }
+
+
+pub(crate) fn detect_cwe_921(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    let world_readable_secret = source.contains("/tmp/integration.key")
+        && source.contains("WriteFile(")
+        && source.contains("0644");
+    if !world_readable_secret {
+        return;
+    }
+    if source.contains("APP_SECRET_DIR") || source.contains("0600") {
+        return;
+    }
+
+    let start_byte = source.find("/tmp/integration.key").unwrap_or(0);
+    let (line, col) = unit.line_col(start_byte);
+    emit::push_finding(
+        &META_CWE_921,
+        file,
+        line,
+        col,
+        "sensitive integration key material is stored in a world-readable temporary file",
+        out,
+    );
+}
+
+

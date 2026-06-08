@@ -2,19 +2,23 @@ use super::facts;
 use super::source_index::SourceIndex;
 
 pub fn is_configuration_sink(callee: &str) -> bool {
-    matches!(callee, "sql.Open" | "factory")
+    crate::engine::sinks::matches_sink(&crate::engine::sinks::CONFIG_SINKS, callee)
+        || callee == "factory"
 }
 
 pub fn is_path_traversal_sink(callee: &str) -> bool {
-    matches!(callee, "os.ReadFile")
+    crate::engine::sinks::matches_sink(&crate::engine::sinks::PATH_TRAVERSAL_SINKS, callee)
 }
 
 pub fn is_link_resolution_sink(callee: &str) -> bool {
-    matches!(callee, "os.Open" | "os.OpenFile")
+    crate::engine::sinks::matches_sink(&crate::engine::sinks::LINK_RESOLUTION_SINKS, callee)
 }
 
 pub fn argument_uses_identifier(argument: &str, ident: &str) -> bool {
     argument == ident
+        || argument
+            .split(|c: char| !c.is_alphanumeric() && c != '_')
+            .any(|tok| tok == ident)
 }
 
 pub fn expression_uses_request_input(expr: &str) -> bool {

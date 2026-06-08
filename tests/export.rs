@@ -43,6 +43,7 @@ fn exports_context_and_chunk_files() {
             context_output_dir: root.join("findings/functions"),
             chunks_output_dir: root.join("chunks"),
         },
+        &std::collections::HashMap::new(),
     )
     .unwrap();
 

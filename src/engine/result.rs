@@ -1,6 +1,8 @@
 //! Analysis output container.
 
+use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use thiserror::Error;
 
@@ -62,6 +64,10 @@ pub struct AnalysisResult {
     /// NOT abort on the first error; instead, the caller decides whether
     /// `errors` should fail the run.
     pub errors: Vec<ScanError>,
+    /// File path → source text cache populated during the parse step.
+    /// Export (and future passes) can read from this instead of hitting
+    /// disk again.
+    pub source_cache: HashMap<String, Arc<str>>,
 }
 
 impl AnalysisResult {

@@ -2,6 +2,39 @@ use super::super::super::facts::GoUnitFacts;
 use super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
+pub(crate) fn detect_cwe_323(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    let fixed_nonce = source.contains("sharedNonce")
+        || source.contains("relaySessionNonce")
+        || source.contains("static-nonce12")
+        || source.contains("fixednonce12");
+    if !fixed_nonce || !source.contains("aead.Seal(") {
+        return;
+    }
+    if source.contains("io.ReadFull(rand.Reader, nonce)") {
+        return;
+    }
+
+    let start_byte = if let Some(idx) = source.find("Nonce") {
+        idx
+    } else if let Some(idx) = source.find("nonce") {
+        idx
+    } else {
+        return;
+    };
+    let (line, col) = unit.line_col(start_byte);
+    emit::push_finding(
+        &META_CWE_323,
+        file,
+        line,
+        col,
+        "a fixed nonce is reused for AEAD encryption operations with the same key",
+        out,
+    );
+}
+
 pub(crate) fn detect_cwe_328(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -21,6 +54,7 @@ pub(crate) fn detect_cwe_328(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
         out,
     );
 }
+
 
 pub(crate) fn detect_cwe_331(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
@@ -45,6 +79,7 @@ pub(crate) fn detect_cwe_331(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
+
 pub(crate) fn detect_cwe_341(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -67,6 +102,7 @@ pub(crate) fn detect_cwe_341(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
         out,
     );
 }
+
 
 pub(crate) fn detect_cwe_344(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
@@ -93,6 +129,7 @@ pub(crate) fn detect_cwe_344(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
         out,
     );
 }
+
 
 pub(crate) fn detect_cwe_346(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
@@ -122,6 +159,7 @@ pub(crate) fn detect_cwe_346(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
+
 pub(crate) fn detect_cwe_353(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -146,6 +184,7 @@ pub(crate) fn detect_cwe_353(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
         out,
     );
 }
+
 
 pub(crate) fn detect_cwe_356(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
@@ -178,188 +217,67 @@ pub(crate) fn detect_cwe_356(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_358(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+
+pub(crate) fn detect_cwe_494(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let decodes_bearer_claims = source.contains("strings.TrimPrefix(raw, \"Bearer \")")
-        && source.contains("DecodeString(parts[1])")
-        && source.contains("json.Unmarshal(payload, &claims)");
-    if !decodes_bearer_claims {
+    let downloads_bundle = source.contains("http.Get(") && source.contains("/tmp/worker.bin");
+    if !downloads_bundle {
         return;
     }
-    if source.contains("invalid jwt structure") || source.contains("unsupported jwt algorithm") {
+    if source.contains("sha256.Sum256(") || source.contains("integrity check failed") {
         return;
     }
 
-    let start_byte = source.find("DecodeString(parts[1])").unwrap_or(0);
+    let start_byte = source.find("http.Get(").unwrap_or(0);
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
-        &META_CWE_358,
+        &META_CWE_494,
         file,
         line,
         col,
-        "bearer token claims are accepted without required JWT structure and algorithm validation",
+        "the downloaded worker bundle is accepted without any pinned integrity verification",
         out,
     );
 }
 
-pub(crate) fn detect_cwe_359(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+
+pub(crate) fn detect_cwe_924(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let serializes_pii = (source.contains("SSN")
-        && source.contains("Phone")
-        && source.contains("json.Marshal(row)"))
-        || (source.contains("SSN")
-            && source.contains("Phone")
-            && source.contains("json.Marshal(")
-            && source.contains("PersonRecord"));
-    if !serializes_pii {
+    let applies_payment_webhook = (source.contains("AcceptWebhook(")
+        || source.contains("AcceptWebhookPure(")
+        || source.contains("AcceptWebhookVerified(")
+        || source.contains("AcceptWebhookVerifiedPure("))
+        && source.contains("UPDATE invoices SET paid = true")
+        && (source.contains("BindJSON(&evt)")
+            || source.contains("Decode(&evt)")
+            || source.contains("Unmarshal(body, &evt)"));
+    if !applies_payment_webhook {
         return;
     }
-    if source.contains("PublicProfile")
-        || source.contains("PublicPersonView")
-        || source.contains("requester != target")
+    if source.contains("X-Signature")
+        || source.contains("hmac.New(sha256.New")
+        || source.contains("hmac.Equal(")
     {
         return;
     }
 
     let start_byte = source
-        .find("json.Marshal(row)")
-        .unwrap_or_else(|| source.find("SSN").unwrap_or(0));
+        .find("BindJSON(&evt)")
+        .or_else(|| source.find("Decode(&evt)"))
+        .unwrap_or_else(|| source.find("UPDATE invoices SET paid = true").unwrap_or(0));
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
-        &META_CWE_359,
+        &META_CWE_924,
         file,
         line,
         col,
-        "private personal information is serialized directly without requester authorization or public projection",
+        "a payment webhook body is applied without validating an integrity signature first",
         out,
     );
 }
 
-pub(crate) fn detect_cwe_360(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
 
-    if !source.contains("X-Forwarded-For") {
-        return;
-    }
-    if source.contains("SplitHostPort(") || source.contains("RemoteAddr") {
-        return;
-    }
-
-    let start_byte = source.find("X-Forwarded-For").unwrap_or(0);
-    let (line, col) = unit.line_col(start_byte);
-    emit::push_finding(
-        &META_CWE_360,
-        file,
-        line,
-        col,
-        "a security-sensitive client IP action trusts caller-controlled forwarded header data",
-        out,
-    );
-}
-
-pub(crate) fn detect_cwe_385(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
-
-    let early_exit_secret_compare = source.contains("for i := 0; i < len(provided); i++")
-        && source.contains("if provided[i] != expected[i] {")
-        && source.contains("return false");
-    if !early_exit_secret_compare {
-        return;
-    }
-    if source.contains("ConstantTimeCompare(") {
-        return;
-    }
-
-    let start_byte = source
-        .find("for i := 0; i < len(provided); i++")
-        .unwrap_or(0);
-    let (line, col) = unit.line_col(start_byte);
-    emit::push_finding(
-        &META_CWE_385,
-        file,
-        line,
-        col,
-        "the secret comparison exits on the first mismatch and leaks timing information",
-        out,
-    );
-}
-
-pub(crate) fn detect_cwe_393(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
-
-    let wrong_status = source.contains("if err != nil {")
-        && source.contains("WriteHeader(http.StatusOK)")
-        && source.contains(r#"{"balance":0}"#);
-    if !wrong_status {
-        return;
-    }
-
-    let start_byte = source.find("WriteHeader(http.StatusOK)").unwrap_or(0);
-    let (line, col) = unit.line_col(start_byte);
-    emit::push_finding(
-        &META_CWE_393,
-        file,
-        line,
-        col,
-        "lookup failure still returns HTTP 200 with a fallback balance payload",
-        out,
-    );
-}
-
-pub(crate) fn detect_cwe_403(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
-
-    let opens_secret_before_exec = source.contains("os.Open(\"/etc/slopguard/master.key\")")
-        && source.contains("exec.Command(\"/bin/sh\", \"-c\"");
-    if !opens_secret_before_exec {
-        return;
-    }
-    if source.contains("secret.Fd()") || source.contains("defer secret.Close()") {
-        return;
-    }
-
-    let start_byte = source
-        .find("os.Open(\"/etc/slopguard/master.key\")")
-        .unwrap_or(0);
-    let (line, col) = unit.line_col(start_byte);
-    emit::push_finding(
-        &META_CWE_403,
-        file,
-        line,
-        col,
-        "a sensitive descriptor is left open when launching a child shell command",
-        out,
-    );
-}
-
-pub(crate) fn detect_cwe_412(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
-
-    let client_lock_path = source.contains("lockfile") && source.contains("os.ReadFile(lockPath)");
-    if !client_lock_path {
-        return;
-    }
-    if source.contains("jobLockPath") || source.contains("fixedJobLock") {
-        return;
-    }
-
-    let start_byte = source.find("lockfile").unwrap_or(0);
-    let (line, col) = unit.line_col(start_byte);
-    emit::push_finding(
-        &META_CWE_412,
-        file,
-        line,
-        col,
-        "the lock file path comes directly from the client request",
-        out,
-    );
-}

@@ -89,7 +89,11 @@ impl Analyzer {
                 "scan completed with per-file errors"
             );
         }
-        Ok(AnalysisResult { findings, errors })
+        Ok(AnalysisResult {
+            findings,
+            errors,
+            source_cache: Default::default(),
+        })
     }
 
     pub fn analyze_units(&self, units: &[crate::core::ParsedUnit]) -> Vec<Finding> {

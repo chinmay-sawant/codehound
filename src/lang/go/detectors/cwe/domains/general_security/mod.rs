@@ -1,16 +1,15 @@
-//! General-security CWE detectors (split for line-budget conventions).
+//! General-security CWE detectors grouped by thematic cluster.
 
-mod part_1;
-pub(crate) use part_1::*;
-mod part_2;
-pub(crate) use part_2::*;
-mod part_3;
-pub(crate) use part_3::*;
-mod part_4;
-pub(crate) use part_4::*;
-mod part_5;
-pub(crate) use part_5::*;
-mod part_6;
-pub(crate) use part_6::*;
-mod part_7;
-pub(crate) use part_7::*;
+mod auth_and_identity;
+mod crypto_and_integrity;
+mod exposure_and_lifecycle;
+mod input_and_parsing;
+mod path_and_file;
+mod permissions_and_ownership;
+
+pub(crate) use auth_and_identity::*;
+pub(crate) use crypto_and_integrity::*;
+pub(crate) use exposure_and_lifecycle::*;
+pub(crate) use input_and_parsing::*;
+pub(crate) use path_and_file::*;
+pub(crate) use permissions_and_ownership::*;

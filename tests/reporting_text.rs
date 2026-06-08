@@ -13,6 +13,7 @@ fn empty_result_renders_summary() {
 #[test]
 fn finding_with_cwe_renders() {
     let r = AnalysisResult {
+        source_cache: std::collections::HashMap::new(),
         findings: vec![Finding::new(
             "CWE-89",
             "SQL injection",

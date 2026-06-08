@@ -6,6 +6,7 @@ mod language_filter;
 mod parse_pool;
 mod registry;
 mod result;
+pub mod sinks;
 mod walk;
 
 pub use analyzer::{Analyzer, AnalyzerBuilder};

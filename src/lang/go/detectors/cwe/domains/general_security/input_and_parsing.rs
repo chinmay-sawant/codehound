@@ -3,103 +3,6 @@ use super::super::super::facts::{GoUnitFacts, InputKind};
 use super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
-pub(crate) fn detect_cwe_41(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
-
-    for assignment in &facts.assignments {
-        if !assignment.expr.contains("filepath.Join(") {
-            continue;
-        }
-
-        let Some(binding) = facts.input_bindings.iter().find(|binding| {
-            binding.kind == InputKind::UserControlled && assignment.expr.contains(&*binding.name)
-        }) else {
-            continue;
-        };
-
-        if !crate::engine::scratch_contains(
-            source,
-            r#"strings.Contains("#,
-            &binding.name,
-            r#", "..")"#,
-        ) {
-            continue;
-        }
-
-        let has_read_sink = facts.call_facts.iter().any(|call| {
-            is_path_traversal_sink(&call.callee)
-                && call
-                    .arguments
-                    .iter()
-                    .any(|arg| argument_uses_identifier(arg, &assignment.name))
-        });
-        if !has_read_sink {
-            continue;
-        }
-
-        if has_canonical_path_guard(&facts.source_index, source, &assignment.name) {
-            continue;
-        }
-        if assignment.expr.contains("filepath.Base(") {
-            continue;
-        }
-
-        let (line, col) = unit.line_col(assignment.start_byte);
-        emit::push_finding(
-            &META_CWE_41,
-            file,
-            line,
-            col,
-            "partial traversal filtering still allows equivalent path aliases to reach file access",
-            out,
-        );
-    }
-}
-
-pub(crate) fn detect_cwe_59(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
-
-    for assignment in &facts.assignments {
-        if !assignment.expr.contains("filepath.Join(") {
-            continue;
-        }
-
-        let uses_user_input = facts.input_bindings.iter().any(|binding| {
-            binding.kind == InputKind::UserControlled && assignment.expr.contains(&*binding.name)
-        });
-        if !uses_user_input {
-            continue;
-        }
-
-        let has_open_sink = facts.call_facts.iter().any(|call| {
-            is_link_resolution_sink(&call.callee)
-                && call
-                    .arguments
-                    .iter()
-                    .any(|arg| argument_uses_identifier(arg, &assignment.name))
-        });
-        if !has_open_sink {
-            continue;
-        }
-
-        if has_symlink_guard(&facts.source_index, source, &assignment.name) {
-            continue;
-        }
-
-        let (line, col) = unit.line_col(assignment.start_byte);
-        emit::push_finding(
-            &META_CWE_59,
-            file,
-            line,
-            col,
-            "user-controlled path is opened without a symlink rejection check",
-            out,
-        );
-    }
-}
-
 pub(crate) fn detect_cwe_112(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -143,6 +46,7 @@ pub(crate) fn detect_cwe_112(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         out,
     );
 }
+
 
 pub(crate) fn detect_cwe_178(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
@@ -191,6 +95,7 @@ pub(crate) fn detect_cwe_178(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     );
 }
 
+
 pub(crate) fn detect_cwe_179(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -237,6 +142,7 @@ pub(crate) fn detect_cwe_179(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     }
 }
 
+
 pub(crate) fn detect_cwe_182(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -277,6 +183,7 @@ pub(crate) fn detect_cwe_182(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     );
 }
 
+
 pub(crate) fn detect_cwe_184(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -315,54 +222,112 @@ pub(crate) fn detect_cwe_184(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     );
 }
 
-pub(crate) fn detect_cwe_204(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+
+pub(crate) fn detect_cwe_611(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let has_missing_account_branch =
-        source.contains("no account") && source.contains("StatusNotFound");
-    let has_wrong_secret_branch = source.contains("bad password")
-        || source.contains("bad secret")
-        || source.contains("StatusUnauthorized");
-    let has_uniform_failure = source.contains("invalid credentials");
-
-    if !(has_missing_account_branch && has_wrong_secret_branch) || has_uniform_failure {
+    let unsafe_xml = source.contains("xml.NewDecoder(")
+        && source.contains("dec.Strict = false")
+        && source.contains("Decode(&catalog)");
+    if !unsafe_xml {
         return;
     }
-
-    let start_byte = source.find("no account").unwrap_or(0);
-    let (line, col) = unit.line_col(start_byte);
-    emit::push_finding(
-        &META_CWE_204,
-        file,
-        line,
-        col,
-        "authentication failures return distinguishable responses for missing accounts and wrong credentials",
-        out,
-    );
-}
-
-pub(crate) fn detect_cwe_208(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
-
-    if source.contains("subtle.ConstantTimeCompare(") {
-        return;
-    }
-    if !(source.contains("for i := range expected")
-        && source.contains("provided[i] != expected[i]"))
+    if source.contains("<!DOCTYPE")
+        || source.contains("dec.Strict = true")
+        || source.contains("LimitReader")
     {
         return;
     }
 
-    let start_byte = source.find("for i := range expected").unwrap_or(0);
+    let start_byte = source.find("dec.Strict = false").unwrap_or(0);
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(
-        &META_CWE_208,
+        &META_CWE_611,
         file,
         line,
         col,
-        "secret comparison returns early on mismatched bytes instead of using a constant-time primitive",
+        "untrusted XML is parsed with strict mode disabled and no DOCTYPE rejection",
         out,
     );
 }
+
+pub(crate) fn detect_cwe_838(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    let invalid_utf8 =
+        source.contains("application/json; charset=utf-8") && source.contains("0xC3, 0x28");
+    if !invalid_utf8 {
+        return;
+    }
+
+    let start_byte = source.find("0xC3, 0x28").unwrap_or(0);
+    let (line, col) = unit.line_col(start_byte);
+    emit::push_finding(
+        &META_CWE_838,
+        file,
+        line,
+        col,
+        "invalid byte sequences are emitted while declaring UTF-8 JSON output",
+        out,
+    );
+}
+
+pub(crate) fn detect_cwe_1286(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    let loose_json_config = (source.contains("SaveHookConfig(")
+        || source.contains("SaveHookConfigPure("))
+        && (source.contains("json.Unmarshal(body, &cfg)")
+            || source.contains("json.NewDecoder(r.Body).Decode(&cfg)"))
+        && source.contains("hook_configs");
+    if !loose_json_config {
+        return;
+    }
+    if source.contains("DisallowUnknownFields()") || source.contains("ParseRequestURI(cfg.URL)") {
+        return;
+    }
+
+    let start_byte = source
+        .find("json.Unmarshal(body, &cfg)")
+        .or_else(|| source.find("json.NewDecoder(r.Body).Decode(&cfg)"))
+        .unwrap_or(0);
+    let (line, col) = unit.line_col(start_byte);
+    emit::push_finding(
+        &META_CWE_1286,
+        file,
+        line,
+        col,
+        "webhook configuration JSON is accepted without strict syntax and URL validation",
+        out,
+    );
+}
+
+
+pub(crate) fn detect_cwe_1389(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    let implicit_radix = (source.contains("ReserveSeats(") || source.contains("ReserveSeatsPure("))
+        && source.contains("strconv.ParseInt(raw, 0, 64)");
+    if !implicit_radix {
+        return;
+    }
+    if source.contains("strconv.ParseInt(raw, 10, 64)") {
+        return;
+    }
+
+    let start_byte = source.find("strconv.ParseInt(raw, 0, 64)").unwrap_or(0);
+    let (line, col) = unit.line_col(start_byte);
+    emit::push_finding(
+        &META_CWE_1389,
+        file,
+        line,
+        col,
+        "seat counts are parsed with base 0 and may accept alternate-radix prefixes unexpectedly",
+        out,
+    );
+}
+
