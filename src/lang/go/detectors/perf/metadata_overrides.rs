@@ -1,10 +1,10 @@
 /// Default severity for Go performance rules.
 ///
-/// PERF rules are warnings by default: they do not block compilation or
+/// PERF rules are medium severity by default: they do not block compilation or
 /// deployment, they signal a likely hot-path improvement. Individual rule ids
 /// can override this in [`fix_for`] / [`severity_for`] pairs.
 pub const fn severity_for(_id: u32) -> crate::rules::Severity {
-    crate::rules::Severity::Warning
+    crate::rules::Severity::Medium
 }
 
 pub const fn fix_for(id: u32) -> Option<&'static str> {

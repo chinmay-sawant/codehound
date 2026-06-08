@@ -6,7 +6,7 @@ use slopguard::engine::{AnalysisResult, ScanError, ScanErrorKind};
 #[test]
 fn should_fail_returns_false_when_no_findings() {
     let result = AnalysisResult::default();
-    assert!(!result.should_fail(FailPolicy::WarningsAsErrors));
+    assert!(!result.should_fail(FailPolicy::MediumAsErrors));
 }
 
 #[test]

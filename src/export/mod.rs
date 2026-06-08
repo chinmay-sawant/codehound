@@ -236,7 +236,7 @@ fn write_chunk_files_streaming(
     Ok(chunk_count)
 }
 
-fn clean_matching_txt_files(output_dir: &Path, keep_if: impl Fn(&str) -> bool) -> Result<()> {
+fn clean_matching_txt_files(output_dir: &Path, should_remove: impl Fn(&str) -> bool) -> Result<()> {
     for entry in fs::read_dir(output_dir)? {
         let entry = entry?;
         if !entry.file_type()?.is_file() {
@@ -245,7 +245,7 @@ fn clean_matching_txt_files(output_dir: &Path, keep_if: impl Fn(&str) -> bool) -
         let Some(name) = entry.file_name().to_str().map(ToOwned::to_owned) else {
             continue;
         };
-        if keep_if(&name) {
+        if should_remove(&name) {
             fs::remove_file(entry.path())?;
         }
     }

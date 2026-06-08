@@ -151,7 +151,7 @@ pub(crate) fn detect_cwe_91(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
                 && call
                     .arguments
                     .iter()
-                    .any(|arg| arg.contains(&*assignment.name))
+                    .any(|arg| argument_uses_identifier(arg, &assignment.name))
         });
         if !has_xml_sink {
             continue;
@@ -199,7 +199,7 @@ pub(crate) fn detect_cwe_93(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
             matches!(call.callee.as_ref(), "c.Header" | "w.Header().Set")
                 && call.arguments.len() >= 2
                 && call.arguments[0].as_ref() == r#""Location""#
-                && call.arguments[1].contains(&*binding.name)
+                && argument_uses_identifier(&call.arguments[1], &binding.name)
         });
         if !has_location_header_sink {
             continue;
@@ -212,7 +212,7 @@ pub(crate) fn detect_cwe_93(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
                 matches!(call.callee.as_ref(), "c.Header" | "w.Header().Set")
                     && call.arguments.len() >= 2
                     && call.arguments[0].as_ref() == r#""Location""#
-                    && call.arguments[1].contains(&*binding.name)
+                    && argument_uses_identifier(&call.arguments[1], &binding.name)
             })
             .map(|call| call.start_byte)
             .unwrap_or(0);

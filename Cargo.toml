@@ -20,9 +20,10 @@ path = "src/main.rs"
 
 [features]
 # Default: all shipped languages — mixed Go + Python repos work out of the box.
-default = ["go", "python"]
+default = ["go", "python", "terminal-output"]
 go = ["dep:tree-sitter-go"]
 python = ["dep:tree-sitter-python"]
+terminal-output = ["dep:colored"]
 
 [dependencies]
 # CLI
@@ -46,9 +47,12 @@ tree-sitter-python = { version = "0.25", optional = true }
 rayon = "1.10"
 
 # Logging / output
-colored = "2.1"
+colored = { version = "2.1", optional = true }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+# Date/time (ISO 8601)
+jiff = "0.2"
 
 # Perfect hashing for sink/source registries
 phf = { version = "0.11", features = ["macros"] }
@@ -73,6 +77,9 @@ tree-sitter-python = "0.25"
 [[bench]]
 name = "scan_throughput"
 harness = false
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("go", "python", "terminal-output"))'] }
 
 [profile.release]
 opt-level = 3

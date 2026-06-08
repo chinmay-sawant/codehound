@@ -19,6 +19,7 @@ fn parsed(source: &str) -> ParsedUnit {
         source: Arc::from(source),
         tree: parser.parse(source, None).expect("parse"),
         line_starts: compute_line_starts(source),
+        function_spans: Vec::new(),
     }
 }
 

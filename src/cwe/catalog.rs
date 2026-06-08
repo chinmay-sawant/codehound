@@ -100,6 +100,11 @@ pub fn load_rule_descriptions(path: &Path) -> anyhow::Result<HashMap<String, Rul
 }
 
 /// Default location of the Go ruleset, relative to the workspace root.
+///
+/// In development this resolves via `CARGO_MANIFEST_DIR` (obtained at compile
+/// time from `env!`). At install time — when the ruleset JSON file is not
+/// shipped alongside the binary — callers such as `--explain` fall back to
+/// the compiled-in catalogue produced by `build.rs`.
 pub fn default_ruleset_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ruleset/golang/golang.json")
 }

@@ -311,6 +311,7 @@ pub(crate) fn detect_perf_16(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
         return;
     }
 
+    // TODO: move to facts
     walk_nodes(
         unit.tree.root_node(),
         &["composite_literal", "unary_expression"],

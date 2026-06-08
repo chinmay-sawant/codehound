@@ -1,6 +1,7 @@
 //! Go detectors: bundled CWE heuristics and PERF performance heuristics.
 
 pub mod cwe;
+pub mod facts;
 pub mod perf;
 
 pub fn all() -> Vec<Box<dyn crate::core::Detector>> {

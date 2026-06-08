@@ -24,8 +24,11 @@ pub const EXIT_CONFIG: u8 = 2;
 pub const EXIT_INTERNAL: u8 = 3;
 
 pub fn run(cli: Cli) -> Result<ExitCode> {
-    if cli.no_color || !colored::control::ShouldColorize::from_env().should_colorize() {
-        colored::control::set_override(false);
+    #[cfg(feature = "terminal-output")]
+    {
+        if cli.no_color || !colored::control::ShouldColorize::from_env().should_colorize() {
+            colored::control::set_override(false);
+        }
     }
 
     if let Some(Command::Init) = &cli.command {

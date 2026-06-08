@@ -7,43 +7,9 @@
 use super::super::super::common::is_request_path;
 use super::super::super::facts::GoPerfFacts;
 use super::super::super::metadata::*;
+use super::common::*;
 use crate::core::ParsedUnit;
-use crate::rules::{Finding, emit};
-
-/// First byte offset containing any of `needles`, or 0 if none match.
-fn first_pos(source: &str, needles: &[&str]) -> usize {
-    needles
-        .iter()
-        .filter_map(|n| source.find(n))
-        .min()
-        .unwrap_or(0)
-}
-
-/// Count top-level (depth-0) commas in `s`. Used to size `.Use(...)` arg lists.
-fn top_commas(s: &str) -> usize {
-    let (mut depth, mut count) = (0i32, 0usize);
-    for c in s.chars() {
-        match c {
-            '(' => depth += 1,
-            ')' => depth -= 1,
-            ',' if depth == 0 => count += 1,
-            _ => {}
-        }
-    }
-    count
-}
-
-/// Emit a single PERF finding anchored at `pos` in `unit.source`.
-fn emit_at(
-    unit: &ParsedUnit,
-    meta: &'static crate::rules::RuleMetadata,
-    pos: usize,
-    msg: &str,
-    out: &mut Vec<Finding>,
-) {
-    let (line, col) = unit.line_col(pos);
-    emit::push_finding(meta, unit.display_path.as_str(), line, col, msg, out);
-}
+use crate::rules::Finding;
 
 /// PERF-51: `unsafe.Pointer` in a request handler without benchmark justification.
 pub(crate) fn detect_perf_51(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
@@ -73,16 +39,9 @@ pub(crate) fn detect_perf_57(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
     {
         return;
     }
-    // Only fire on actual middleware (functions that call c.Next()),
-    // not on leaf handlers. Leaf handlers may legitimately need to
-    // io.ReadAll or json.Unmarshal the request body.
     if !source.contains("c.Next()") {
         return;
     }
-    // Detect io.ReadAll / json.Unmarshal in a Gin handler. Large `make([]byte, ...)`
-    // allocations are intentionally not flagged here because they are routinely used
-    // for sized buffers (e.g. `scanner.Buffer`) where the cost is bounded and the
-    // allocation is reused.
     let trig = ["io.ReadAll(", "json.Unmarshal("];
     if !trig.iter().any(|t| source.contains(t)) {
         return;
@@ -191,7 +150,6 @@ pub(crate) fn detect_perf_66(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
     while let Some(rel) = source[search_from..].find(".Use(") {
         let start = search_from + rel;
         let after = start + ".Use(".len();
-        // Find the matching close paren of `.Use(`, not just the first `)`.
         let mut depth: i32 = 1;
         let mut close_off: Option<usize> = None;
         for (i, c) in source[after..].char_indices() {

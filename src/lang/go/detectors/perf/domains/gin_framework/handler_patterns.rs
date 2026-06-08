@@ -7,44 +7,9 @@
 use super::super::super::common::{is_in_loop, is_request_path};
 use super::super::super::facts::GoPerfFacts;
 use super::super::super::metadata::*;
+use super::common::*;
 use crate::core::ParsedUnit;
-use crate::rules::{Finding, emit};
-
-/// First byte offset containing any of `needles`, or 0 if none match.
-fn first_pos(source: &str, needles: &[&str]) -> usize {
-    needles
-        .iter()
-        .filter_map(|n| source.find(n))
-        .min()
-        .unwrap_or(0)
-}
-
-/// Count top-level (depth-0) commas in `s`. Used to size `.Use(...)` arg lists.
-#[allow(dead_code)]
-fn top_commas(s: &str) -> usize {
-    let (mut depth, mut count) = (0i32, 0usize);
-    for c in s.chars() {
-        match c {
-            '(' => depth += 1,
-            ')' => depth -= 1,
-            ',' if depth == 0 => count += 1,
-            _ => {}
-        }
-    }
-    count
-}
-
-/// Emit a single PERF finding anchored at `pos` in `unit.source`.
-fn emit_at(
-    unit: &ParsedUnit,
-    meta: &'static crate::rules::RuleMetadata,
-    pos: usize,
-    msg: &str,
-    out: &mut Vec<Finding>,
-) {
-    let (line, col) = unit.line_col(pos);
-    emit::push_finding(meta, unit.display_path.as_str(), line, col, msg, out);
-}
+use crate::rules::Finding;
 
 /// PERF-51: `unsafe.Pointer` in a request handler without benchmark justification.
 pub(crate) fn detect_perf_52(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
@@ -142,11 +107,6 @@ pub(crate) fn detect_perf_58(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
     if !is_request_path(source) {
         return;
     }
-    // We flag the buffered-read anti-pattern (io.ReadAll / ioutil.ReadAll / direct
-    // body Read) which definitely drains the connection. Streaming readers such as
-    // `json.NewDecoder(c.Request.Body).Decode` are intentionally not flagged here
-    // because the decoder does not buffer the entire body and the connection
-    // management is handled differently.
     let buffered = [
         "io.ReadAll(c.Request.Body)",
         "ioutil.ReadAll(c.Request.Body)",
@@ -195,9 +155,6 @@ pub(crate) fn detect_perf_60(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
     if !is_request_path(source) {
         return;
     }
-    // `render.JSON{...}` / `render.HTML{...}` / `render.IndentedJSON{...}` are the
-    // composite-literal form of allocating a renderer per request. Function-call
-    // forms like `render.JSON.Render(w)` are not allocated.
     let trig = [
         "render.JSON{",
         "render.HTML{",
@@ -227,9 +184,6 @@ pub(crate) fn detect_perf_64(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
     }
     let go_pos = source.find("go func()").unwrap_or(0);
     let rest = &source[go_pos..];
-    // Find the body of the goroutine (`{ ... }` of the func literal) so we only
-    // fire on a context method that is *inside* the goroutine, not one that
-    // appears later in the handler.
     let Some(brace_start) = rest.find('{') else {
         return;
     };
@@ -258,8 +212,6 @@ pub(crate) fn detect_perf_64(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
     );
 }
 
-/// Given a slice that starts at `{`, return the byte offset of the matching `}`
-/// (relative to the start of the slice). Returns `None` if braces are unbalanced.
 fn match_gorc_body_end(from_brace: &str) -> Option<usize> {
     let mut depth: i32 = 0;
     for (i, c) in from_brace.char_indices() {

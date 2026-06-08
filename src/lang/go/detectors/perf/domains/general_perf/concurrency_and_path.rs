@@ -1,13 +1,10 @@
 use super::super::super::common::is_request_path;
 use super::super::super::facts::GoPerfFacts;
 use super::super::super::metadata::*;
-use crate::ast::nearest_loop;
-use crate::ast::walk_nodes;
 use crate::core::ParsedUnit;
-use crate::lang::go::loop_kinds::LOOP_NODE_KINDS;
 use crate::rules::{Finding, emit};
 
-pub(crate) fn detect_perf_29(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_29(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
@@ -29,24 +26,20 @@ pub(crate) fn detect_perf_29(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
         return;
     }
 
-    walk_nodes(unit.tree.root_node(), &["go_statement"], &mut |node| {
-        let text = match node.utf8_text(source.as_bytes()) {
-            Ok(t) => t,
-            Err(_) => return,
-        };
+    for &(start_byte, end_byte) in &facts.go_starts {
+        let text = &source[start_byte..end_byte];
         if !text.contains("go func") {
-            return;
+            continue;
         }
-        // The semaphore-safe pattern has `sem <- struct{}{}` before the
-        // `go func()` and `<-sem` inside it. We allow the goroutine spawn
-        // to fire only when no such guard is in scope; the whole-file
-        // suppression above is the primary gate.
-        let in_loop = nearest_loop(node, LOOP_NODE_KINDS).is_some();
+        let in_loop = facts
+            .for_ranges
+            .iter()
+            .any(|&(s, e)| s <= start_byte && start_byte <= e);
         let on_request_path = is_request_path(source);
         if !in_loop && !on_request_path {
-            return;
+            continue;
         }
-        let (line, col) = unit.line_col(node.start_byte());
+        let (line, col) = unit.line_col(start_byte);
         emit::push_finding(
             &META_PERF_29,
             file,
@@ -55,7 +48,7 @@ pub(crate) fn detect_perf_29(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
             "goroutine is spawned without a bounded worker pool or semaphore",
             out,
         );
-    });
+    }
 }
 
 /// PERF-30: `context.Background()` / `context.TODO()` in a goroutine launched
@@ -87,7 +80,7 @@ pub(crate) fn detect_perf_30(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 }
 
 /// PERF-31: `defer` inside a request handler or hot function.
-pub(crate) fn detect_perf_31(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_31(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
@@ -103,8 +96,8 @@ pub(crate) fn detect_perf_31(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
         return;
     }
 
-    walk_nodes(unit.tree.root_node(), &["defer_statement"], &mut |node| {
-        let (line, col) = unit.line_col(node.start_byte());
+    for &(start_byte, _end_byte) in &facts.defer_starts {
+        let (line, col) = unit.line_col(start_byte);
         emit::push_finding(
             &META_PERF_31,
             file,
@@ -113,7 +106,7 @@ pub(crate) fn detect_perf_31(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
             "defer is used in a hot handler function; consider explicit cleanup",
             out,
         );
-    });
+    }
 }
 
 /// PERF-32: `[]byte(s)` or `string(b)` conversion in a loop or hot path.
@@ -177,7 +170,7 @@ pub(crate) fn detect_perf_38(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
 }
 
 /// PERF-39: `for { select { ...; default: ... } }` busy-wait pattern.
-pub(crate) fn detect_perf_39(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_39(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
@@ -194,21 +187,18 @@ pub(crate) fn detect_perf_39(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
         return;
     }
 
-    walk_nodes(unit.tree.root_node(), &["for_statement"], &mut |node| {
-        let text = match node.utf8_text(source.as_bytes()) {
-            Ok(t) => t,
-            Err(_) => return,
-        };
+    for &(start_byte, end_byte) in &facts.for_ranges {
+        let text = &source[start_byte..end_byte];
         if !text.contains("select") || !text.contains("default:") {
-            return;
+            continue;
         }
         // Only flag infinite `for { ... }` loops. Bounded `for i := 0; ...`
         // or range loops are not the busy-wait pattern this rule targets.
         let header = text.lines().next().unwrap_or("").trim_start();
         if !header.starts_with("for {") {
-            return;
+            continue;
         }
-        let (line, col) = unit.line_col(node.start_byte());
+        let (line, col) = unit.line_col(start_byte);
         emit::push_finding(
             &META_PERF_39,
             file,
@@ -217,7 +207,7 @@ pub(crate) fn detect_perf_39(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
             "select with default branch inside a for-loop is a busy-wait; add a backoff or use channels",
             out,
         );
-    });
+    }
 }
 
 /// PERF-40: `time.Now()` called multiple times in the same function body.
@@ -289,7 +279,7 @@ pub(crate) fn detect_perf_41(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     let _ = source;
 }
 
-pub(crate) fn detect_perf_43(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_43(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
@@ -297,18 +287,21 @@ pub(crate) fn detect_perf_43(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
         return;
     }
 
-    walk_nodes(unit.tree.root_node(), &["defer_statement"], &mut |node| {
-        let text = match node.utf8_text(source.as_bytes()) {
-            Ok(t) => t,
-            Err(_) => return,
-        };
+    for &(start_byte, end_byte) in &facts.defer_starts {
+        let text = &source[start_byte..end_byte];
         if !text.contains("recover()") {
-            return;
+            continue;
         }
-        if !is_request_path(source) && nearest_loop(node, LOOP_NODE_KINDS).is_none() {
-            return;
+        if !is_request_path(source) {
+            let in_loop = facts
+                .for_ranges
+                .iter()
+                .any(|&(s, e)| s <= start_byte && start_byte <= e);
+            if !in_loop {
+                continue;
+            }
         }
-        let (line, col) = unit.line_col(node.start_byte());
+        let (line, col) = unit.line_col(start_byte);
         emit::push_finding(
             &META_PERF_43,
             file,
@@ -317,11 +310,11 @@ pub(crate) fn detect_perf_43(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
             "defer-recover runs in a hot path; add the recover at a higher boundary",
             out,
         );
-    });
+    }
 }
 
 /// PERF-44: type assertion on the same value repeated inside a function.
-pub(crate) fn detect_perf_44(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_44(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
@@ -330,22 +323,13 @@ pub(crate) fn detect_perf_44(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
     }
 
     let mut assertions: Vec<(usize, String)> = Vec::new();
-    walk_nodes(
-        unit.tree.root_node(),
-        &["type_assertion_expression"],
-        &mut |node| {
-            let text = match node.utf8_text(source.as_bytes()) {
-                Ok(t) => t,
-                Err(_) => return,
-            };
-            // text is e.g. "v.(intVal)". We want the LHS variable name to
-            // spot duplicates on the same source value.
-            let lhs = text.split_once(".(").map(|(lhs, _)| lhs.trim().to_string());
-            if let Some(lhs) = lhs {
-                assertions.push((node.start_byte(), lhs));
-            }
-        },
-    );
+    for &(start_byte, end_byte) in &facts.type_assertions {
+        let text = &source[start_byte..end_byte];
+        let lhs = text.split_once(".(").map(|(lhs, _)| lhs.trim().to_string());
+        if let Some(lhs) = lhs {
+            assertions.push((start_byte, lhs));
+        }
+    }
 
     // Sort by start byte and look for two assertions on the same LHS in
     // the same function (the entire file is one function in our fixtures).

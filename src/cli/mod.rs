@@ -57,10 +57,6 @@ pub struct Cli {
     #[command(flatten)]
     pub severity: SeverityArgs,
 
-    /// Verbosity: 0 = default, 1 = info, 2 = debug.
-    #[arg(long, value_name = "LEVEL", default_value_t = 0, global = true)]
-    pub verbose: u8,
-
     /// Suppress all output except errors.
     #[arg(long, global = true)]
     pub quiet: bool,
@@ -176,7 +172,7 @@ impl SeverityArgs {
         } else if self.strict {
             FailPolicy::Strict
         } else {
-            FailPolicy::WarningsAsErrors
+            FailPolicy::MediumAsErrors
         }
     }
 

@@ -1,23 +1,9 @@
 //! Function-context detection.
 //!
-//! Mirrors [`crate::ast::nearest_loop`] but for function-like nodes
-//! (`function_declaration`, `method_declaration` in Go;
-//! `function_definition` in Python, etc.). The set of kinds that should be
-//! considered "function-like" is supplied by the language plugin via
-//! [`crate::core::LanguagePlugin::function_node_kinds`].
+//! The set of kinds that should be considered "function-like" is supplied
+//! by the language plugin via [`crate::core::LanguagePlugin::function_node_kinds`].
 
 use tree_sitter::Node;
-
-/// Returns the nearest ancestor whose kind is in `function_kinds`.
-pub fn nearest_function<'a>(mut node: Node<'a>, function_kinds: &[&str]) -> Option<Node<'a>> {
-    while let Some(parent) = node.parent() {
-        if function_kinds.contains(&parent.kind()) {
-            return Some(parent);
-        }
-        node = parent;
-    }
-    None
-}
 
 /// Byte/line range of a function-like node plus its nesting depth.
 ///

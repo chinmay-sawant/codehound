@@ -1,3 +1,4 @@
+mod common;
 mod gorm_queries;
 mod sqlx_and_echo;
 

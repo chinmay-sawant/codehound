@@ -19,22 +19,12 @@ pub static COMMAND_INJECTION_SINKS: phf::Set<&'static str> = phf_set! {
     "exec.CommandContext",
 };
 
-pub static FILE_WRITE_SINKS: phf::Set<&'static str> = phf_set! {
-    "os.WriteFile",
-    "os.Create",
-    "ioutil.WriteFile",
-};
-
 pub static CONFIG_SINKS: phf::Set<&'static str> = phf_set! {
     "sql.Open",
+    "factory",
 };
 
 pub static LINK_RESOLUTION_SINKS: phf::Set<&'static str> = phf_set! {
-    "os.Open",
-    "os.OpenFile",
-};
-
-pub static FILE_OPEN_SINKS: phf::Set<&'static str> = phf_set! {
     "os.Open",
     "os.OpenFile",
 };

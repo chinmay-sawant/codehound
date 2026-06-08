@@ -100,13 +100,14 @@ jobs:
       - name: Check perf budget
         run: |
           THRESHOLD=65000000
-          if grep -q "scan_materialized_fixtures" bench_output.txt; then
-            bench_time=$(grep "scan_materialized_fixtures" bench_output.txt | awk -F',' '{print $NF}' | head -1)
-            if [ -n "$bench_time" ] && [ "$bench_time" -gt "$THRESHOLD" ]; then
-              echo "ERROR: scan_materialized_fixtures time ${bench_time} ns exceeds budget ${THRESHOLD} ns"
+          BENCH_OUT=$(cat bench_output.txt)
+          TIME=$(echo "$BENCH_OUT" | grep 'scan_materialized_fixtures' | sed -n 's/.*bench:\s*\([0-9]*\)\s*ns\/iter.*/\1/p')
+          if [ -n "$TIME" ]; then
+            if [ "$TIME" -gt "$THRESHOLD" ]; then
+              echo "ERROR: scan_materialized_fixtures time ${TIME} ns exceeds budget ${THRESHOLD} ns"
               exit 1
             fi
-            echo "scan_materialized_fixtures: ${bench_time} ns (budget: ${THRESHOLD} ns)"
+            echo "scan_materialized_fixtures: ${TIME} ns (budget: ${THRESHOLD} ns)"
           else
             echo "WARNING: scan_materialized_fixtures not found in bench output"
           fi

@@ -51,7 +51,7 @@ pub enum VarKind {
     Unknown,
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct GoPerfFacts {
     pub calls: Vec<CallFact>,
     pub assignments: Vec<AssignmentFact>,
@@ -62,6 +62,10 @@ pub struct GoPerfFacts {
     /// would otherwise misfire on numeric accumulators (e.g. PERF-2 firing
     /// on `totalDur := 0.0` + `totalDur += d`).
     pub var_kinds: HashMap<SharedText, VarKind>,
+    pub defer_starts: Vec<(usize, usize)>,
+    pub go_starts: Vec<(usize, usize)>,
+    pub for_ranges: Vec<(usize, usize)>,
+    pub type_assertions: Vec<(usize, usize)>,
 }
 
 pub fn build_go_perf_facts(unit: &ParsedUnit) -> GoPerfFacts {
@@ -72,52 +76,13 @@ pub fn build_go_perf_facts(unit: &ParsedUnit) -> GoPerfFacts {
 
     walk_calls_and_assignments(root, &mut |node| match node.kind() {
         "call_expression" | "call" => {
-            let Some(func) = node.child_by_field_name("function") else {
-                return;
-            };
-            let Ok(callee) = func.utf8_text(src) else {
-                return;
-            };
-
-            let arguments = node
-                .child_by_field_name("arguments")
-                .map(|args| extract_argument_texts(args, src, &mut interner))
-                .unwrap_or_default();
-
-            facts.calls.push(CallFact {
-                callee: interner.intern(callee),
-                arguments,
-                start_byte: node.start_byte(),
-                enclosing_loop: enclosing_loop_start(node),
-            });
+            record_call_fact(node, &mut facts, src, &mut interner);
         }
         "assignment_statement" | "short_var_declaration" => {
-            let Ok(text) = node.utf8_text(src) else {
-                return;
-            };
-            let Some((lhs, rhs)) = split_assignment(text) else {
-                return;
-            };
-            // Only short-var decls (`x := ...`) introduce a brand new binding
-            // whose type is the RHS; plain `=` reuses the existing binding.
-            let is_short = text.contains(":=");
-            for name in extract_identifiers(lhs) {
-                if name.is_empty() {
-                    continue;
-                }
-                facts.assignments.push(AssignmentFact {
-                    name: interner.intern(name),
-                    expr: interner.intern(rhs),
-                    text: interner.intern(text),
-                    start_byte: node.start_byte(),
-                    enclosing_loop: enclosing_loop_start(node),
-                });
-                if is_short && !facts.var_kinds.contains_key(name) {
-                    if let Some(kind) = classify_init_only(rhs) {
-                        facts.var_kinds.insert(interner.intern(name), kind);
-                    }
-                }
-            }
+            record_assignment_fact(node, &mut facts, src, &mut interner);
+        }
+        "defer_statement" | "go_statement" | "for_statement" | "type_assertion_expression" => {
+            record_perf_node(node, &mut facts);
         }
         _ => {}
     });
@@ -134,8 +99,88 @@ pub fn build_go_perf_facts(unit: &ParsedUnit) -> GoPerfFacts {
     facts
 }
 
+pub(crate) fn record_call_fact<'a>(
+    node: Node,
+    facts: &mut GoPerfFacts,
+    src: &'a [u8],
+    interner: &mut SharedTextInterner<'a>,
+) {
+    let Some(func) = node.child_by_field_name("function") else {
+        return;
+    };
+    let Ok(callee) = func.utf8_text(src) else {
+        return;
+    };
+
+    let arguments = node
+        .child_by_field_name("arguments")
+        .map(|args| extract_argument_texts(args, src, interner))
+        .unwrap_or_default();
+
+    facts.calls.push(CallFact {
+        callee: interner.intern(callee),
+        arguments,
+        start_byte: node.start_byte(),
+        enclosing_loop: enclosing_loop_start(node),
+    });
+}
+
+pub(crate) fn record_assignment_fact<'a>(
+    node: Node,
+    facts: &mut GoPerfFacts,
+    src: &'a [u8],
+    interner: &mut SharedTextInterner<'a>,
+) {
+    let Ok(text) = node.utf8_text(src) else {
+        return;
+    };
+    let Some((lhs, rhs)) = split_assignment(text) else {
+        return;
+    };
+    let is_short = text.contains(":=");
+    for name in extract_identifiers(lhs) {
+        if name.is_empty() {
+            continue;
+        }
+        facts.assignments.push(AssignmentFact {
+            name: interner.intern(name),
+            expr: interner.intern(rhs),
+            text: interner.intern(text),
+            start_byte: node.start_byte(),
+            enclosing_loop: enclosing_loop_start(node),
+        });
+        if is_short && !facts.var_kinds.contains_key(name) {
+            if let Some(kind) = classify_init_only(rhs) {
+                facts.var_kinds.insert(interner.intern(name), kind);
+            }
+        }
+    }
+}
+
+pub(crate) fn record_perf_node(node: Node, facts: &mut GoPerfFacts) {
+    match node.kind() {
+        "defer_statement" => {
+            facts
+                .defer_starts
+                .push((node.start_byte(), node.end_byte()));
+        }
+        "go_statement" => {
+            facts.go_starts.push((node.start_byte(), node.end_byte()));
+        }
+        "for_statement" => {
+            facts.for_ranges.push((node.start_byte(), node.end_byte()));
+        }
+        "type_assertion_expression" => {
+            facts
+                .type_assertions
+                .push((node.start_byte(), node.end_byte()));
+        }
+        _ => {}
+    }
+}
+
 /// Returns the start byte of the nearest enclosing `for_statement`, if any.
-fn enclosing_loop_start(node: Node) -> Option<usize> {
+pub(crate) fn enclosing_loop_start(node: Node) -> Option<usize> {
     let mut current = node;
     while let Some(parent) = current.parent() {
         if parent.kind() == "for_statement" {
@@ -147,12 +192,12 @@ fn enclosing_loop_start(node: Node) -> Option<usize> {
 }
 
 #[derive(Default)]
-struct SharedTextInterner<'a> {
-    values: HashMap<&'a str, SharedText>,
+pub(crate) struct SharedTextInterner<'a> {
+    pub(crate) values: HashMap<&'a str, SharedText>,
 }
 
 impl<'a> SharedTextInterner<'a> {
-    fn intern(&mut self, text: &'a str) -> SharedText {
+    pub(crate) fn intern(&mut self, text: &'a str) -> SharedText {
         if let Some(existing) = self.values.get(text) {
             return Arc::clone(existing);
         }
@@ -163,7 +208,7 @@ impl<'a> SharedTextInterner<'a> {
     }
 }
 
-fn extract_argument_texts<'a>(
+pub(crate) fn extract_argument_texts<'a>(
     args_node: tree_sitter::Node,
     src: &'a [u8],
     interner: &mut SharedTextInterner<'a>,
@@ -211,7 +256,7 @@ pub fn extract_identifiers(lhs: &str) -> Vec<&str> {
 /// in `kinds`. Existing entries are kept (first declaration wins) so that an
 /// initializer-based classification from an earlier `:=` isn't overwritten by
 /// a later `=` reassignment.
-fn collect_var_spec_kinds<'a>(
+pub(crate) fn collect_var_spec_kinds<'a>(
     spec: Node,
     src: &'a [u8],
     kinds: &mut HashMap<SharedText, VarKind>,

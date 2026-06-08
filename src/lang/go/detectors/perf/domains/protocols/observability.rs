@@ -202,6 +202,7 @@ pub(crate) fn detect_perf_100(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut
     // First pass: count distinct flag-registration call sites.
     let mut flag_count = 0usize;
     let mut first_start: Option<usize> = None;
+    // TODO: move to facts
     walk_nodes(unit.tree.root_node(), &["call_expression"], &mut |node| {
         let text = match node.utf8_text(source.as_bytes()) {
             Ok(t) => t,

@@ -3,7 +3,6 @@ use super::source_index::SourceIndex;
 
 pub fn is_configuration_sink(callee: &str) -> bool {
     crate::engine::sinks::matches_sink(&crate::engine::sinks::CONFIG_SINKS, callee)
-        || callee == "factory"
 }
 
 pub fn is_path_traversal_sink(callee: &str) -> bool {

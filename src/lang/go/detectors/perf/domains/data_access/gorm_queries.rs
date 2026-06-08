@@ -3,22 +3,9 @@
 use super::super::super::common::is_request_path;
 use super::super::super::facts::GoPerfFacts;
 use super::super::super::metadata::*;
+use super::common::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
-
-fn call_in_loop_with(facts: &GoPerfFacts, needles: &[&str]) -> Option<usize> {
-    facts.calls.iter().find_map(|c| {
-        if c.enclosing_loop.is_some() && needles.iter().any(|n| c.callee.contains(n)) {
-            Some(c.start_byte)
-        } else {
-            None
-        }
-    })
-}
-
-fn has_any(source: &str, needles: &[&str]) -> bool {
-    needles.iter().any(|n| source.contains(n))
-}
 pub(crate) fn detect_perf_71(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();

@@ -77,14 +77,6 @@ pub struct SarifResult<'a> {
     #[serde(rename = "partialFingerprints")]
     pub partial_fingerprints: BTreeMap<&'static str, String>,
     pub properties: SarifProperties,
-    #[serde(skip)]
-    pub end_line: Option<usize>,
-    #[serde(skip)]
-    pub end_column: Option<usize>,
-    #[serde(skip)]
-    pub byte_offset: Option<usize>,
-    #[serde(skip)]
-    pub byte_length: Option<usize>,
 }
 
 #[derive(Serialize)]
@@ -184,14 +176,16 @@ fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
         .map(|f| {
             let level = match f.severity {
                 crate::rules::Severity::Info => "note",
-                crate::rules::Severity::Warning => "warning",
+                crate::rules::Severity::Low => "warning",
+                crate::rules::Severity::Medium => "warning",
                 crate::rules::Severity::High | crate::rules::Severity::Critical => "error",
             };
             let severity_score = match f.severity {
                 crate::rules::Severity::Info => "0.0",
-                crate::rules::Severity::Warning => "4.0",
-                crate::rules::Severity::High => "7.0",
-                crate::rules::Severity::Critical => "9.0",
+                crate::rules::Severity::Low => "2.0",
+                crate::rules::Severity::Medium => "5.0",
+                crate::rules::Severity::High => "7.5",
+                crate::rules::Severity::Critical => "9.5",
             };
             let mut tags: Vec<String> = vec!["security".to_string()];
             if f.rule_id.starts_with("CWE-") {
@@ -242,10 +236,6 @@ fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
                     tags,
                     security_severity: severity_score,
                 },
-                end_line: f.end_line,
-                end_column: f.end_column,
-                byte_offset: f.byte_offset,
-                byte_length: f.byte_length,
             }
         })
         .collect();

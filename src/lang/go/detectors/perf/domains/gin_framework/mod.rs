@@ -1,3 +1,4 @@
+mod common;
 mod handler_patterns;
 mod middleware_and_routing;
 

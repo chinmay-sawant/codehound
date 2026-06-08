@@ -1,3 +1,4 @@
+//! Information exposure CWE detectors.
 mod response_leaks;
 mod secrets_and_transport;
 

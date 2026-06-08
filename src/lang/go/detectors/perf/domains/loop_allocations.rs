@@ -8,10 +8,7 @@
 use super::super::common::{is_assignment_in_loop, is_in_loop};
 use super::super::facts::{GoPerfFacts, VarKind};
 use super::super::metadata::*;
-use crate::ast::nearest_loop;
-use crate::ast::walk_nodes;
 use crate::core::ParsedUnit;
-use crate::lang::go::loop_kinds::LOOP_NODE_KINDS;
 use crate::rules::{Finding, emit};
 
 /// PERF-001: regexp.MustCompile / regexp.Compile inside a loop.
@@ -212,14 +209,18 @@ pub(crate) fn detect_perf_6(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Ve
 }
 
 /// PERF-007: defer inside a loop body.
-pub(crate) fn detect_perf_7(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_7(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
 
-    walk_nodes(unit.tree.root_node(), &["defer_statement"], &mut |node| {
-        if nearest_loop(node, LOOP_NODE_KINDS).is_none() {
-            return;
+    for &(start_byte, _end_byte) in &facts.defer_starts {
+        let in_loop = facts
+            .for_ranges
+            .iter()
+            .any(|&(s, e)| s <= start_byte && start_byte <= e);
+        if !in_loop {
+            continue;
         }
-        let (line, col) = unit.line_col(node.start_byte());
+        let (line, col) = unit.line_col(start_byte);
         emit::push_finding(
             &META_PERF_7,
             file,
@@ -228,7 +229,7 @@ pub(crate) fn detect_perf_7(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut V
             "defer statement is placed inside a loop body",
             out,
         );
-    });
+    }
 }
 
 /// PERF-008: time.Parse / time.ParseInLocation inside a loop body.
