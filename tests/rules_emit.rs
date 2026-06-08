@@ -45,7 +45,7 @@ fn push_finding_with_snippet_attaches_snippet_and_fix() {
     assert_eq!(out.len(), 1);
     let f = &out[0];
     assert_eq!(f.snippet.as_deref(), Some("select * from users"));
-    assert_eq!(f.fix.as_deref(), Some(""));
+    assert!(f.fix.is_none());
 }
 
 #[test]

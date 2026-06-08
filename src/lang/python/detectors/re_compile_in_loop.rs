@@ -15,7 +15,7 @@ impl Rule for ReCompileInLoop {
             "SLOP101",
             "re.compile called inside loop",
             "Compiling a regex on every iteration is wasteful; compile once outside the loop.",
-            Severity::Warning,
+            Severity::Medium,
             CWE_REFS_400_1336,
             Some("Hoist `re.compile(...)` before the loop or use a module-level pattern."),
         )

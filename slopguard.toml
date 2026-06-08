@@ -2,6 +2,6 @@
 # CLI flags override these when both are set for skip/only.
 
 [slopguard]
-# fail_on = "warning"   # warning | high | none
+# fail_on = "medium"   # medium | high | none | strict
 # skip = ["CWE-89"]
 # only = ["CWE-22"]

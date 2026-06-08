@@ -1,8 +1,9 @@
-//! access_control CWE detectors (split for line-budget conventions).
+//! access_control CWE detectors grouped by thematic cluster.
 
-mod part_1;
-pub(crate) use part_1::*;
-mod part_2;
-pub(crate) use part_2::*;
-mod part_3;
-pub(crate) use part_3::*;
+mod auth_and_validation;
+mod authorization_and_scoping;
+mod file_permissions;
+
+pub(crate) use auth_and_validation::*;
+pub(crate) use authorization_and_scoping::*;
+pub(crate) use file_permissions::*;

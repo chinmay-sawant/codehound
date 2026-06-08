@@ -30,7 +30,7 @@ fn exports_context_and_chunk_files() {
         source_path.to_string_lossy().to_string(),
         LineCol { line: 4, column: 5 },
         "query string is built from untrusted input",
-        Severity::Warning,
+        Severity::Medium,
         std::borrow::Cow::Borrowed(cwe),
     )];
 
@@ -43,6 +43,7 @@ fn exports_context_and_chunk_files() {
             context_output_dir: root.join("findings/functions"),
             chunks_output_dir: root.join("chunks"),
         },
+        &std::collections::HashMap::new(),
     )
     .unwrap();
 

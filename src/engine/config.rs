@@ -104,7 +104,8 @@ pub fn fail_on_to_policy(s: &str) -> FailPolicy {
     match s.to_lowercase().as_str() {
         "none" | "never" => FailPolicy::NoFail,
         "high" | "strict" => FailPolicy::Strict,
-        _ => FailPolicy::WarningsAsErrors,
+        "medium" | "warning" => FailPolicy::MediumAsErrors,
+        _ => FailPolicy::MediumAsErrors,
     }
 }
 

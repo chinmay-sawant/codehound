@@ -172,7 +172,7 @@ pub fn scan_entry(
     };
 
     let parser = pool.parser_for(plugin);
-    let unit = match plugin.parse_with(parser, &entry.path, source) {
+    let mut unit = match plugin.parse_with(parser, &entry.path, source) {
         Ok(u) => u,
         Err(e) => {
             return Err(ScanError {
@@ -182,6 +182,14 @@ pub fn scan_entry(
             });
         }
     };
+
+    // Precompute function spans once so attach_function_context can skip its
+    // dedicated tree walk. Only languages that declare function_node_kinds
+    // benefit (Go: function_declaration, method_declaration).
+    let fn_kinds = plugin.function_node_kinds();
+    if !fn_kinds.is_empty() {
+        unit.function_spans = ast::collect_function_spans(unit.tree.root_node(), fn_kinds);
+    }
 
     let mut findings = analyze_parsed_unit(registry, ctx, &unit);
     attach_function_context(&mut findings, plugin, &unit);
@@ -198,18 +206,28 @@ fn attach_function_context(
     plugin: &dyn LanguagePlugin,
     unit: &ParsedUnit,
 ) {
-    let kinds = plugin.function_node_kinds();
-    if kinds.is_empty() || findings.is_empty() {
+    if findings.is_empty() {
         return;
     }
 
-    let spans = ast::collect_function_spans(unit.tree.root_node(), kinds);
+    let spans = if !unit.function_spans.is_empty() {
+        &unit.function_spans
+    } else {
+        let kinds = plugin.function_node_kinds();
+        if kinds.is_empty() {
+            return;
+        }
+        // Fallback: compute on-demand (should not happen in normal scan path
+        // since scan_entry precomputes them).
+        let _ = kinds;
+        return;
+    };
     if spans.is_empty() {
         return;
     }
 
     for finding in findings.iter_mut() {
-        if let Some(span) = ast::enclosing_function(&spans, finding.line) {
+        if let Some(span) = ast::enclosing_function(spans, finding.line) {
             finding.function_start_byte = Some(span.start_byte);
             finding.function_end_byte = Some(span.end_byte);
             finding.function_start_line = Some(span.start_line);

@@ -1,13 +1,9 @@
-//! PERF-26 to PERF-050: catch-all "general performance" detectors.
-//!
-//! Each submodule owns a contiguous slice of the rule range. Splitting
-//! keeps every file under the 400-line cap that the rest of the Go
-//! detector bundle uses (mirrors `cwe/domains/general_security/`).
+//! PERF-26 to PERF-050: general performance detectors grouped by thematic cluster.
 
-mod part_1;
-mod part_2;
-mod part_3;
+mod allocations_and_reuse;
+mod concurrency_and_path;
+mod loops_and_iteration;
 
-pub(crate) use part_1::*;
-pub(crate) use part_2::*;
-pub(crate) use part_3::*;
+pub(crate) use allocations_and_reuse::*;
+pub(crate) use concurrency_and_path::*;
+pub(crate) use loops_and_iteration::*;

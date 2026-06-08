@@ -24,8 +24,11 @@ pub const EXIT_CONFIG: u8 = 2;
 pub const EXIT_INTERNAL: u8 = 3;
 
 pub fn run(cli: Cli) -> Result<ExitCode> {
-    if cli.no_color || !colored::control::ShouldColorize::from_env().should_colorize() {
-        colored::control::set_override(false);
+    #[cfg(feature = "terminal-output")]
+    {
+        if cli.no_color || !colored::control::ShouldColorize::from_env().should_colorize() {
+            colored::control::set_override(false);
+        }
     }
 
     if let Some(Command::Init) = &cli.command {
@@ -76,7 +79,7 @@ pub fn run(cli: Cli) -> Result<ExitCode> {
     }
 
     let export_options = cli.export_options();
-    let export_summary = export_findings(&result.findings, &export_options)?;
+    let export_summary = export_findings(&result.findings, &export_options, &result.source_cache)?;
 
     if !cli.no_terminal && !cli.quiet {
         match cli.format {

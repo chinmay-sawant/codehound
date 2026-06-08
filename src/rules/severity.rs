@@ -7,23 +7,22 @@ use std::fmt;
 #[serde(rename_all = "lowercase")]
 pub enum Severity {
     Info,
-    Warning,
+    Low,
+    Medium,
     High,
     Critical,
 }
 
 impl Severity {
     pub fn is_failure(self) -> bool {
-        matches!(
-            self,
-            Severity::Warning | Severity::High | Severity::Critical
-        )
+        matches!(self, Severity::Medium | Severity::High | Severity::Critical)
     }
 
     pub fn as_str(self) -> &'static str {
         match self {
             Severity::Info => "info",
-            Severity::Warning => "warning",
+            Severity::Low => "low",
+            Severity::Medium => "medium",
             Severity::High => "high",
             Severity::Critical => "critical",
         }

@@ -27,5 +27,6 @@ pub fn parse_with(parser: &mut Parser, path: &Path, source: Arc<str>) -> Result<
         source,
         tree,
         line_starts,
+        function_spans: Vec::new(),
     })
 }

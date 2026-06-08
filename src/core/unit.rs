@@ -6,7 +6,7 @@ use std::sync::Arc;
 use tree_sitter::Tree;
 
 use super::LanguageId;
-use crate::ast;
+use crate::ast::{self, FunctionSpan};
 
 /// A single source file parsed for analysis.
 #[derive(Debug)]
@@ -22,6 +22,9 @@ pub struct ParsedUnit {
     /// binary search). Built once at parse time so `line_col` is O(log N)
     /// instead of `O(tree depth)` per call.
     pub line_starts: Vec<usize>,
+    /// Precomputed function spans, populated by a single tree walk at parse
+    /// time. When non-empty, `attach_function_context` skips its own walk.
+    pub function_spans: Vec<FunctionSpan>,
 }
 
 impl ParsedUnit {

@@ -132,6 +132,7 @@ fn build_facts_survives_random_input() {
                 source: Arc::from(source),
                 tree,
                 line_starts: compute_line_starts_for(source),
+                function_spans: Vec::new(),
             };
             let _ = build_go_unit_facts(&unit);
         }

@@ -1,0 +1,20 @@
+# SlopGuard configuration. All fields are optional; unknown fields are rejected.
+[slopguard]
+# Limit analysis to specific languages.
+# languages = ["go", "python"]
+
+# Only run the union of these rule IDs and any passed via --only.
+# only = ["CWE-22", "CWE-89"]
+
+# Skip the union of these rule IDs and any passed via --skip.
+# skip = ["CWE-15"]
+
+# Exit policy: "none" | "high" | "strict" | anything else = mediums as errors.
+# fail_on = "high"
+
+# Optional include/exclude gitignore-style globs, relative to each scan root.
+# include = ["**/*.go"]
+# exclude = ["**/vendor/**", "**/*_test.go"]
+
+# Test files (*_test.*) are excluded by default; set to false to include them.
+# exclude_tests = false

@@ -7,9 +7,9 @@ use crate::rules::Severity;
 /// When the CLI should exit non-zero based on finding severity.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum FailPolicy {
-    /// Fail on warning, high, or critical (default).
+    /// Fail on medium, high, or critical (default).
     #[default]
-    WarningsAsErrors,
+    MediumAsErrors,
     /// Fail only on high or critical.
     Strict,
     /// Always exit 0 for findings.
@@ -21,7 +21,7 @@ impl FailPolicy {
         match self {
             Self::NoFail => false,
             Self::Strict => matches!(severity, Severity::High | Severity::Critical),
-            Self::WarningsAsErrors => severity.is_failure(),
+            Self::MediumAsErrors => severity.is_failure(),
         }
     }
 }

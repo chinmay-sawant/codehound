@@ -7,6 +7,7 @@ use slopguard::rules::{Finding, LineCol, Severity};
 
 fn sample() -> AnalysisResult {
     AnalysisResult {
+        source_cache: std::collections::HashMap::new(),
         findings: vec![Finding::new(
             "CWE-89",
             "SQL injection",
@@ -30,6 +31,7 @@ fn sample_with_cwe() -> AnalysisResult {
         "https://cwe.mitre.org/data/definitions/89.html",
     )]));
     AnalysisResult {
+        source_cache: std::collections::HashMap::new(),
         findings: vec![Finding::new(
             "CWE-89",
             "SQL injection",
@@ -76,6 +78,7 @@ fn cwe_id_serialized_as_cwe_n_string() {
 #[test]
 fn ndjson_emits_one_finding_per_line() {
     let result = AnalysisResult {
+        source_cache: std::collections::HashMap::new(),
         findings: vec![
             Finding::new(
                 "CWE-1",

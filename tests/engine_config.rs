@@ -42,8 +42,12 @@ fn fail_on_string_maps_to_policy() {
     assert!(matches!(fail_on_to_policy("high"), FailPolicy::Strict));
     assert!(matches!(fail_on_to_policy("strict"), FailPolicy::Strict));
     assert!(matches!(
-        fail_on_to_policy("warnings"),
-        FailPolicy::WarningsAsErrors
+        fail_on_to_policy("medium"),
+        FailPolicy::MediumAsErrors
+    ));
+    assert!(matches!(
+        fail_on_to_policy("warning"),
+        FailPolicy::MediumAsErrors
     ));
 }
 
@@ -98,7 +102,7 @@ fn merge_into_config_fail_on_applies_when_cli_didnt_set_it() {
         },
     };
     let ctx = ScanContext {
-        fail_policy: FailPolicy::WarningsAsErrors,
+        fail_policy: FailPolicy::MediumAsErrors,
         ..Default::default()
     };
     let merged = cfg.merge_into(ctx, false);

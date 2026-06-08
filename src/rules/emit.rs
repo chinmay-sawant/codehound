@@ -34,19 +34,20 @@ pub fn push_finding_with_snippet(
     snippet: impl Into<String>,
     out: &mut Vec<Finding>,
 ) {
-    out.push(
-        Finding::new(
-            meta.id,
-            meta.title,
-            file,
-            LineCol { line, column: col },
-            message,
-            meta.severity,
-            Cow::Borrowed(meta.cwe),
-        )
-        .with_snippet(snippet)
-        .with_fix(meta.fix.unwrap_or("")),
-    );
+    let mut finding = Finding::new(
+        meta.id,
+        meta.title,
+        file,
+        LineCol { line, column: col },
+        message,
+        meta.severity,
+        Cow::Borrowed(meta.cwe),
+    )
+    .with_snippet(snippet);
+    if let Some(fix) = meta.fix {
+        finding = finding.with_fix(fix);
+    }
+    out.push(finding);
 }
 
 /// Static rule metadata used by multiple detectors in one language bundle.

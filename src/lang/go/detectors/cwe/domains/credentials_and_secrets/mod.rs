@@ -1,6 +1,7 @@
-//! credentials_and_secrets CWE detectors (split for line-budget conventions).
+//! credentials_and_secrets CWE detectors grouped by thematic cluster.
 
-mod part_1;
-pub(crate) use part_1::*;
-mod part_2;
-pub(crate) use part_2::*;
+mod credential_lifecycle;
+mod password_storage;
+
+pub(crate) use credential_lifecycle::*;
+pub(crate) use password_storage::*;

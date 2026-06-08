@@ -6,6 +6,7 @@ use slopguard::rules::{Finding, LineCol, Severity};
 
 fn sample_result() -> AnalysisResult {
     AnalysisResult {
+        source_cache: std::collections::HashMap::new(),
         findings: vec![
             Finding::new(
                 "CWE-22",

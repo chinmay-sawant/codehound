@@ -56,58 +56,10 @@ pub fn build_go_unit_facts(unit: &ParsedUnit) -> GoUnitFacts {
 
     walk_calls_and_assignments(root, &mut |node| match node.kind() {
         "call_expression" | "call" => {
-            let Some(func) = node.child_by_field_name("function") else {
-                return;
-            };
-            let Ok(callee) = func.utf8_text(src) else {
-                return;
-            };
-
-            let arguments = node
-                .child_by_field_name("arguments")
-                .map(|args| extract_argument_texts(args, src, &mut interner))
-                .unwrap_or_default();
-
-            facts.call_facts.push(CallFact {
-                callee: interner.intern(callee),
-                arguments,
-                start_byte: node.start_byte(),
-            });
+            record_call_fact(node, &mut facts, src, &mut interner);
         }
         "assignment_statement" | "short_var_declaration" => {
-            let Ok(text) = node.utf8_text(src) else {
-                return;
-            };
-            let Some((lhs, rhs)) = split_assignment(text) else {
-                return;
-            };
-            let names = extract_identifiers(lhs);
-            if names.is_empty() {
-                return;
-            }
-            let kind = if is_user_input_expr(rhs) {
-                Some(InputKind::UserControlled)
-            } else if is_trusted_config_expr(rhs) {
-                Some(InputKind::TrustedConfig)
-            } else {
-                None
-            };
-            if let Some(kind) = kind {
-                for name in &names {
-                    facts.input_bindings.push(InputBinding {
-                        name: interner.intern(name),
-                        kind,
-                    });
-                }
-            }
-
-            for name in names {
-                facts.assignments.push(AssignmentFact {
-                    name: interner.intern(name),
-                    expr: interner.intern(rhs),
-                    start_byte: node.start_byte(),
-                });
-            }
+            record_assignment_fact(node, &mut facts, src, &mut interner);
         }
         _ => {}
     });
@@ -117,12 +69,12 @@ pub fn build_go_unit_facts(unit: &ParsedUnit) -> GoUnitFacts {
 }
 
 #[derive(Default)]
-struct SharedTextInterner<'a> {
-    values: HashMap<&'a str, SharedText>,
+pub(crate) struct SharedTextInterner<'a> {
+    pub(crate) values: HashMap<&'a str, SharedText>,
 }
 
 impl<'a> SharedTextInterner<'a> {
-    fn intern(&mut self, text: &'a str) -> SharedText {
+    pub(crate) fn intern(&mut self, text: &'a str) -> SharedText {
         if let Some(existing) = self.values.get(text) {
             return Arc::clone(existing);
         }
@@ -133,7 +85,7 @@ impl<'a> SharedTextInterner<'a> {
     }
 }
 
-fn extract_argument_texts<'a>(
+pub(crate) fn extract_argument_texts<'a>(
     args_node: tree_sitter::Node,
     src: &'a [u8],
     interner: &mut SharedTextInterner<'a>,
@@ -146,6 +98,72 @@ fn extract_argument_texts<'a>(
         }
     }
     out.into_boxed_slice()
+}
+
+pub(crate) fn record_call_fact<'a>(
+    node: tree_sitter::Node,
+    facts: &mut GoUnitFacts,
+    src: &'a [u8],
+    interner: &mut SharedTextInterner<'a>,
+) {
+    let Some(func) = node.child_by_field_name("function") else {
+        return;
+    };
+    let Ok(callee) = func.utf8_text(src) else {
+        return;
+    };
+
+    let arguments = node
+        .child_by_field_name("arguments")
+        .map(|args| extract_argument_texts(args, src, interner))
+        .unwrap_or_default();
+
+    facts.call_facts.push(CallFact {
+        callee: interner.intern(callee),
+        arguments,
+        start_byte: node.start_byte(),
+    });
+}
+
+pub(crate) fn record_assignment_fact<'a>(
+    node: tree_sitter::Node,
+    facts: &mut GoUnitFacts,
+    src: &'a [u8],
+    interner: &mut SharedTextInterner<'a>,
+) {
+    let Ok(text) = node.utf8_text(src) else {
+        return;
+    };
+    let Some((lhs, rhs)) = split_assignment(text) else {
+        return;
+    };
+    let names = extract_identifiers(lhs);
+    if names.is_empty() {
+        return;
+    }
+    let kind = if is_user_input_expr(rhs) {
+        Some(InputKind::UserControlled)
+    } else if is_trusted_config_expr(rhs) {
+        Some(InputKind::TrustedConfig)
+    } else {
+        None
+    };
+    if let Some(kind) = kind {
+        for name in &names {
+            facts.input_bindings.push(InputBinding {
+                name: interner.intern(name),
+                kind,
+            });
+        }
+    }
+
+    for name in names {
+        facts.assignments.push(AssignmentFact {
+            name: interner.intern(name),
+            expr: interner.intern(rhs),
+            start_byte: node.start_byte(),
+        });
+    }
 }
 
 #[doc(hidden)]

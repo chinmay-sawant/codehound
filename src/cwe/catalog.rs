@@ -29,6 +29,7 @@ pub const CWE_400: CweRef = CweRef::new(
     "https://cwe.mitre.org/data/definitions/400.html",
 );
 
+#[allow(dead_code)]
 pub const CWE_405: CweRef = CweRef::new(
     405,
     "Asymmetric Resource Consumption (Amplification)",
@@ -53,14 +54,18 @@ pub const CWE_1336: CweRef = CweRef::new(
     "https://cwe.mitre.org/data/definitions/1336.html",
 );
 
+#[allow(dead_code)]
 pub const CWE_1041: CweRef = CweRef::new(
     1041,
     "Use of Redundant Code",
     "https://cwe.mitre.org/data/definitions/1041.html",
 );
 
+// -- auto-generated entries from golang.json follow --
+include!(concat!(env!("OUT_DIR"), "/cwe_catalog_generated.rs"));
+
 /// Curated CWE entries referenced by SlopGuard rules.
-pub static CWE_CATALOG: &[CweRef] = &[CWE_400, CWE_405, CWE_407, CWE_770, CWE_1336, CWE_1041];
+pub static CWE_CATALOG: &[CweRef] = CWE_CATALOG_GENERATED;
 
 /// Precomposed slices for rule metadata (no runtime allocation).
 pub static CWE_REFS_400_1336: &[CweRef] = &[CWE_400, CWE_1336];
@@ -95,6 +100,11 @@ pub fn load_rule_descriptions(path: &Path) -> anyhow::Result<HashMap<String, Rul
 }
 
 /// Default location of the Go ruleset, relative to the workspace root.
+///
+/// In development this resolves via `CARGO_MANIFEST_DIR` (obtained at compile
+/// time from `env!`). At install time — when the ruleset JSON file is not
+/// shipped alongside the binary — callers such as `--explain` fall back to
+/// the compiled-in catalogue produced by `build.rs`.
 pub fn default_ruleset_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ruleset/golang/golang.json")
 }

@@ -2,12 +2,15 @@ use super::super::common::*;
 use super::super::facts::{GoUnitFacts, InputKind};
 use super::super::metadata::*;
 use crate::core::ParsedUnit;
+use crate::engine::sinks;
 use crate::rules::{Finding, emit};
 pub(crate) fn detect_cwe_78(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
 
     for call in &facts.call_facts {
-        if call.callee.as_ref() != "exec.Command" || call.arguments.len() < 3 {
+        if !sinks::matches_sink(&sinks::COMMAND_INJECTION_SINKS, &call.callee)
+            || call.arguments.len() < 3
+        {
             continue;
         }
         if call.arguments[0].as_ref() != r#""sh""# || call.arguments[1].as_ref() != r#""-c""# {
@@ -59,7 +62,7 @@ pub(crate) fn detect_cwe_89(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
         }
 
         let has_sql_sink = facts.call_facts.iter().any(|call| {
-            matches!(call.callee.as_ref(), "db.QueryRow" | "db.Query" | "db.Exec")
+            sinks::matches_sink(&sinks::SQL_SINKS, &call.callee)
                 && call
                     .arguments
                     .iter()
@@ -148,7 +151,7 @@ pub(crate) fn detect_cwe_91(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
                 && call
                     .arguments
                     .iter()
-                    .any(|arg| arg.contains(&*assignment.name))
+                    .any(|arg| argument_uses_identifier(arg, &assignment.name))
         });
         if !has_xml_sink {
             continue;
@@ -196,7 +199,7 @@ pub(crate) fn detect_cwe_93(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
             matches!(call.callee.as_ref(), "c.Header" | "w.Header().Set")
                 && call.arguments.len() >= 2
                 && call.arguments[0].as_ref() == r#""Location""#
-                && call.arguments[1].contains(&*binding.name)
+                && argument_uses_identifier(&call.arguments[1], &binding.name)
         });
         if !has_location_header_sink {
             continue;
@@ -209,7 +212,7 @@ pub(crate) fn detect_cwe_93(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
                 matches!(call.callee.as_ref(), "c.Header" | "w.Header().Set")
                     && call.arguments.len() >= 2
                     && call.arguments[0].as_ref() == r#""Location""#
-                    && call.arguments[1].contains(&*binding.name)
+                    && argument_uses_identifier(&call.arguments[1], &binding.name)
             })
             .map(|call| call.start_byte)
             .unwrap_or(0);

@@ -7,6 +7,10 @@ SlopGuard is a fast, opinionated analyzer focused on **statically detectable
 weaknesses** with the current Go implementation centered on bundled CWE
 heuristics and fixture-backed regression coverage.
 
+The CWE catalog has 175+ entries auto-generated from a central sink registry,
+providing comprehensive coverage of known weakness patterns across file I/O,
+SQL, command injection, link resolution, and configuration sinks.
+
 It is designed to **complement** existing language tooling with repository-local
 heuristics, reusable fact extraction, and machine-readable findings.
 
@@ -66,6 +70,16 @@ slopguard --explain CWE-89
 # Write a starter slopguard.toml
 slopguard init
 ```
+
+### Severity Levels
+
+| Level    | Description                        | Exit Code |
+|----------|------------------------------------|-----------|
+| Info     | Advisory, no action needed         | 0         |
+| Low      | Minor concern, review recommended  | 0         |
+| Medium   | Should be fixed (default fail threshold) | 1    |
+| High     | Likely a real issue                | 1         |
+| Critical | Must fix immediately               | 1         |
 
 ### SARIF output
 
