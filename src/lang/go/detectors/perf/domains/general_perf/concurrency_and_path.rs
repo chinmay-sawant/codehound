@@ -60,7 +60,6 @@ pub(crate) fn detect_perf_29(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
 
 /// PERF-30: `context.Background()` / `context.TODO()` in a goroutine launched
 /// from a request handler.
-
 pub(crate) fn detect_perf_30(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -88,7 +87,6 @@ pub(crate) fn detect_perf_30(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 }
 
 /// PERF-31: `defer` inside a request handler or hot function.
-
 pub(crate) fn detect_perf_31(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -119,7 +117,6 @@ pub(crate) fn detect_perf_31(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
 }
 
 /// PERF-32: `[]byte(s)` or `string(b)` conversion in a loop or hot path.
-
 pub(crate) fn detect_perf_33(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -180,7 +177,6 @@ pub(crate) fn detect_perf_38(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
 }
 
 /// PERF-39: `for { select { ...; default: ... } }` busy-wait pattern.
-
 pub(crate) fn detect_perf_39(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -225,7 +221,6 @@ pub(crate) fn detect_perf_39(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
 }
 
 /// PERF-40: `time.Now()` called multiple times in the same function body.
-
 pub(crate) fn detect_perf_40(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -265,7 +260,6 @@ pub(crate) fn detect_perf_40(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 
 /// PERF-41: standard library `log` package used inside a request handler or
 /// hot loop.
-
 pub(crate) fn detect_perf_41(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -327,7 +321,6 @@ pub(crate) fn detect_perf_43(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
 }
 
 /// PERF-44: type assertion on the same value repeated inside a function.
-
 pub(crate) fn detect_perf_44(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -373,7 +366,6 @@ pub(crate) fn detect_perf_44(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
 }
 
 /// PERF-45: `append` in a `for` loop without a `make([]T, 0, hint)`.
-
 pub(crate) fn detect_perf_48(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -407,7 +399,6 @@ pub(crate) fn detect_perf_48(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 }
 
 /// PERF-49: `copy(dst, src)` with mismatched or unchecked length.
-
 pub(crate) fn detect_perf_49(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();

@@ -7,7 +7,11 @@ use slopguard::cwe::{
 fn catalog_has_expected_entries() {
     let ids: Vec<u32> = CWE_CATALOG.iter().map(|c| c.id).collect();
     // Catalog is now generated from golang.json — contains all CWE entries
-    assert!(ids.len() > 100, "expected >100 CWE entries, got {}", ids.len());
+    assert!(
+        ids.len() > 100,
+        "expected >100 CWE entries, got {}",
+        ids.len()
+    );
     // Verify key CWE entries exist (order not guaranteed)
     assert!(ids.contains(&15));
     assert!(ids.contains(&22));

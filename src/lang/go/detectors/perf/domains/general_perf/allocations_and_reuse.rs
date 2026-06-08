@@ -44,7 +44,6 @@ pub(crate) fn detect_perf_27(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 }
 
 /// PERF-28: `sync.Mutex` / `sync.RWMutex` declared per request or per record.
-
 pub(crate) fn detect_perf_28(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -92,7 +91,6 @@ pub(crate) fn detect_perf_28(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
 }
 
 /// PERF-29: unbounded `go func(){}` spawn inside a loop or request handler.
-
 pub(crate) fn detect_perf_32(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -156,7 +154,6 @@ pub(crate) fn detect_perf_32(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 
 /// PERF-33: range over a large slice in a request handler / batch processor
 /// where indexed scan would be more efficient.
-
 pub(crate) fn detect_perf_35(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -193,7 +190,6 @@ pub(crate) fn detect_perf_35(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 }
 
 /// PERF-36: `go func(){ use(v) }()` capturing a loop variable.
-
 pub(crate) fn detect_perf_37(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -236,7 +232,6 @@ pub(crate) fn detect_perf_37(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 }
 
 /// PERF-38: unbuffered channel in a producer / consumer pipeline.
-
 pub(crate) fn detect_perf_42(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -279,7 +274,6 @@ fn is_in_loop_present(calls: &[CallFact]) -> bool {
 }
 
 /// PERF-43: `defer func(){ recover() }()` in a hot loop or per-request path.
-
 pub(crate) fn detect_perf_46(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();

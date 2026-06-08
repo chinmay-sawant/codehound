@@ -29,7 +29,6 @@ pub(crate) fn detect_cwe_204(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-
 pub(crate) fn detect_cwe_208(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -91,7 +90,6 @@ pub(crate) fn detect_cwe_266(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     );
 }
 
-
 pub(crate) fn detect_cwe_267(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -120,7 +118,6 @@ pub(crate) fn detect_cwe_267(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         out,
     );
 }
-
 
 pub(crate) fn detect_cwe_268(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
@@ -158,7 +155,6 @@ pub(crate) fn detect_cwe_268(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     );
 }
 
-
 pub(crate) fn detect_cwe_270(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -195,7 +191,6 @@ pub(crate) fn detect_cwe_270(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         out,
     );
 }
-
 
 pub(crate) fn detect_cwe_272(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
@@ -240,7 +235,6 @@ pub(crate) fn detect_cwe_272(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     );
 }
 
-
 pub(crate) fn detect_cwe_273(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -280,7 +274,6 @@ pub(crate) fn detect_cwe_273(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     );
 }
 
-
 pub(crate) fn detect_cwe_274(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -312,7 +305,6 @@ pub(crate) fn detect_cwe_274(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     );
 }
 
-
 pub(crate) fn detect_cwe_358(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -338,7 +330,6 @@ pub(crate) fn detect_cwe_358(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
         out,
     );
 }
-
 
 pub(crate) fn detect_cwe_385(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
@@ -368,7 +359,6 @@ pub(crate) fn detect_cwe_385(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-
 pub(crate) fn detect_cwe_454(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -391,7 +381,6 @@ pub(crate) fn detect_cwe_454(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
         out,
     );
 }
-
 
 pub(crate) fn detect_cwe_488(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
@@ -421,7 +410,6 @@ pub(crate) fn detect_cwe_488(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-
 pub(crate) fn detect_cwe_565(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -449,7 +437,6 @@ pub(crate) fn detect_cwe_565(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-
 pub(crate) fn detect_cwe_645(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -474,7 +461,6 @@ pub(crate) fn detect_cwe_645(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
         out,
     );
 }
-
 
 pub(crate) fn detect_cwe_649(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
@@ -505,7 +491,6 @@ pub(crate) fn detect_cwe_649(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-
 pub(crate) fn detect_cwe_654(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -532,7 +517,6 @@ pub(crate) fn detect_cwe_654(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-
 pub(crate) fn detect_cwe_656(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -557,7 +541,6 @@ pub(crate) fn detect_cwe_656(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
         out,
     );
 }
-
 
 pub(crate) fn detect_cwe_783(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
@@ -584,7 +567,6 @@ pub(crate) fn detect_cwe_783(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
         out,
     );
 }
-
 
 pub(crate) fn detect_cwe_807(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
@@ -644,7 +626,6 @@ pub(crate) fn detect_cwe_841(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-
 pub(crate) fn detect_cwe_842(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -669,7 +650,6 @@ pub(crate) fn detect_cwe_842(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
         out,
     );
 }
-
 
 pub(crate) fn detect_cwe_909(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
@@ -698,7 +678,6 @@ pub(crate) fn detect_cwe_909(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-
 pub(crate) fn detect_cwe_915(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -723,7 +702,6 @@ pub(crate) fn detect_cwe_915(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
         out,
     );
 }
-
 
 pub(crate) fn detect_cwe_940(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
@@ -759,7 +737,6 @@ pub(crate) fn detect_cwe_940(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-
 pub(crate) fn detect_cwe_941(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -794,7 +771,6 @@ pub(crate) fn detect_cwe_941(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-
 pub(crate) fn detect_cwe_1265(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -824,5 +800,3 @@ pub(crate) fn detect_cwe_1265(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
         out,
     );
 }
-
-

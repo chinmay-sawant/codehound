@@ -20,6 +20,7 @@ fn first_pos(source: &str, needles: &[&str]) -> usize {
 }
 
 /// Count top-level (depth-0) commas in `s`. Used to size `.Use(...)` arg lists.
+#[allow(dead_code)]
 fn top_commas(s: &str) -> usize {
     let (mut depth, mut count) = (0i32, 0usize);
     for c in s.chars() {

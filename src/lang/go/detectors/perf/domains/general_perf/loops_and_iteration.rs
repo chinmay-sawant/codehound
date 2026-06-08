@@ -42,7 +42,6 @@ pub(crate) fn detect_perf_26(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 
 /// PERF-27: short-lived buffer / struct allocations on hot paths that should
 /// be wrapped in a `sync.Pool`.
-
 pub(crate) fn detect_perf_34(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -83,7 +82,6 @@ pub(crate) fn detect_perf_34(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 
 /// PERF-35: interface boxing on a hot path (`fmt.Sprintf` with non-string
 /// arguments, or interface{}-typed function parameters in a hot call).
-
 pub(crate) fn detect_perf_36(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -122,7 +120,6 @@ pub(crate) fn detect_perf_36(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
 }
 
 /// PERF-37: `append` in a hot grow pattern with no `make` preallocation.
-
 pub(crate) fn detect_perf_45(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -156,7 +153,6 @@ pub(crate) fn detect_perf_45(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 
 /// PERF-46: `strings.TrimSpace` / `Trim` / `TrimPrefix` / `TrimSuffix` in a
 /// request path.
-
 pub(crate) fn detect_perf_47(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
 
@@ -218,7 +214,6 @@ fn is_range_iterable(start_byte: usize, unit: &ParsedUnit) -> bool {
 
 /// PERF-48: `bytes.Equal` / `strings.EqualFold` on long inputs without an
 /// early length / prefix check.
-
 pub(crate) fn detect_perf_50(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
 

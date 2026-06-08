@@ -8,7 +8,9 @@ pub(crate) fn detect_cwe_78(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
     let file = unit.display_path.as_str();
 
     for call in &facts.call_facts {
-        if !sinks::matches_sink(&sinks::COMMAND_INJECTION_SINKS, &call.callee) || call.arguments.len() < 3 {
+        if !sinks::matches_sink(&sinks::COMMAND_INJECTION_SINKS, &call.callee)
+            || call.arguments.len() < 3
+        {
             continue;
         }
         if call.arguments[0].as_ref() != r#""sh""# || call.arguments[1].as_ref() != r#""-c""# {

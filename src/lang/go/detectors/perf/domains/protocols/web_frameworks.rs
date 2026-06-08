@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! PERF-091 through PERF-100 detectors (protocols).
 //!
 //! Framework-specific performance rules: Fiber / fasthttp, gRPC / protobuf,

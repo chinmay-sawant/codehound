@@ -103,11 +103,8 @@ fn main() {
         generate_go_registry_code(&cwe_registry.detector),
     )
     .expect("Failed to write go_cwe_registry.rs");
-    fs::write(
-        &cwe_catalog_out,
-        generate_cwe_catalog_code(&cwe_rule_map),
-    )
-    .expect("Failed to write cwe_catalog_generated.rs");
+    fs::write(&cwe_catalog_out, generate_cwe_catalog_code(&cwe_rule_map))
+        .expect("Failed to write cwe_catalog_generated.rs");
     fs::write(
         &perf_metadata_path,
         generate_go_perf_metadata_code(&perf_rule_map, &perf_ids),

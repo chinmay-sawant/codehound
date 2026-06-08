@@ -29,6 +29,7 @@ pub const CWE_400: CweRef = CweRef::new(
     "https://cwe.mitre.org/data/definitions/400.html",
 );
 
+#[allow(dead_code)]
 pub const CWE_405: CweRef = CweRef::new(
     405,
     "Asymmetric Resource Consumption (Amplification)",
@@ -53,6 +54,7 @@ pub const CWE_1336: CweRef = CweRef::new(
     "https://cwe.mitre.org/data/definitions/1336.html",
 );
 
+#[allow(dead_code)]
 pub const CWE_1041: CweRef = CweRef::new(
     1041,
     "Use of Redundant Code",
