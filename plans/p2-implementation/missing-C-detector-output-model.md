@@ -1,0 +1,307 @@
+# Missing C — Detector Output Model Evolution Beyond Message String
+
+> **Parent:** `plans/p2.md` — Missing Item C
+> **Status:** Findings are optimized for reporting, not for richer post-processing workflows. No structured payload for detector evidence, sink/source classification, confidence, or suppression metadata.
+> **Estimated effort:** 1-2 weeks.
+
+---
+
+## Overview
+
+The `Finding` struct currently carries only a plain-text `message` plus metadata inherited from the rule. Before taint tracking or baseline features land, the architecture should support a richer structured payload that separates human-readable messages from machine-consumable evidence.
+
+---
+
+## Phase 1: Audit Current `Finding` Usage
+
+### 1.1 Catalog all Finding fields and their producers
+
+- [ ] Map every field on `Finding` (`src/rules/finding.rs:31-80`) to where it is set:
+  - [ ] `rule_id` — set by `emit::push_finding()` from `RuleMetadata`
+  - [ ] `rule_title` — set by `emit::push_finding()` from `RuleMetadata`
+  - [ ] `file` — set by caller (path of the scanned file)
+  - [ ] `line`, `column` — computed from `unit.line_col(byte_offset)`
+  - [ ] `end_line`, `end_column` — set by `with_end()` builder
+  - [ ] `byte_offset`, `byte_length` — set by `with_byte_range()` builder
+  - [ ] `function_start_byte`, `function_end_byte` — set by `attach_function_context()`
+  - [ ] `function_start_line`, `function_end_line` — display helpers
+  - [ ] `snippet` — set by `with_snippet()` or `attach_function_context()`
+  - [ ] `message` — set by detector: hand-written string
+  - [ ] `severity` — inherited from rule metadata
+  - [ ] `cwe` — inherited from rule metadata
+  - [ ] `fix` — set by `with_fix()` or inherited from rule metadata
+- [ ] Identify which fields are "human-facing" vs "machine-facing"
+- [ ] Identify which fields are set once vs mutated after creation
+
+### 1.2 Catalog all Finding consumers
+
+- [ ] Map every place that reads `Finding`:
+  - [ ] `src/reporting/text.rs` — human-readable terminal output
+  - [ ] `src/reporting/json.rs` — machine-readable JSON output
+  - [ ] `src/reporting/sarif.rs` — SARIF output
+  - [ ] `src/export/mod.rs` — context/chunk file generation
+  - [ ] `src/engine/result.rs` — `should_fail()`, sorting, filtering
+  - [ ] Future: baseline matching, cache serialization, CI diffing
+- [ ] Document which fields each consumer depends on
+
+---
+
+## Phase 2: Design Structured Evidence Model
+
+### 2.1 Define `DetectorEvidence` enum
+
+- [ ] Create `src/rules/evidence.rs`
+- [ ] Define the structured evidence types:
+  ```rust
+  #[derive(Debug, Clone, Serialize, Deserialize)]
+  #[serde(tag = "kind")]
+  pub enum DetectorEvidence {
+      /// Simple pattern match on source text
+      PatternMatch {
+          pattern: String,
+          match_location: LineCol,
+      },
+      /// A call expression to a known dangerous function
+      DangerousCall {
+          function: String,
+          argument_index: Option<usize>,  // which argument is problematic
+      },
+      /// User input source → dangerous sink without sanitization
+      TaintFlow {
+          source: TaintSourceInfo,
+          sink: TaintSinkInfo,
+          hops: usize,
+          sanitized: bool,
+      },
+      /// Configuration issue (missing field, wrong value)
+      MissingConfig {
+          struct_name: String,
+          field: String,
+      },
+      /// Anti-pattern in control flow (e.g., loop body allocation)
+      ControlFlowIssue {
+          kind: ControlFlowKind,
+          location: LineCol,
+      },
+      /// General structured data (extensible)
+      Other {
+          data: serde_json::Value,
+      },
+  }
+  ```
+- [ ] Define supporting types:
+  ```rust
+  #[derive(Debug, Clone, Serialize, Deserialize)]
+  pub struct TaintSourceInfo {
+      pub kind: String,        // "UserInput", "FileRead", "EnvVar", etc.
+      pub function: String,    // e.g., "(*http.Request).FormValue"
+      pub variable: String,    // e.g., "userID"
+  }
+
+  #[derive(Debug, Clone, Serialize, Deserialize)]
+  pub struct TaintSinkInfo {
+      pub kind: String,        // "CommandExec", "SQLQuery", etc.
+      pub function: String,    // e.g., "(*sql.DB).Query"
+  }
+
+  #[derive(Debug, Clone, Serialize, Deserialize)]
+  pub enum ControlFlowKind {
+      LoopBodyAllocation,
+      DeferInLoop,
+      MissingErrorCheck,
+  }
+  ```
+
+### 2.2 Add structured fields to `Finding`
+
+- [ ] Add new fields to `Finding` struct in `src/rules/finding.rs`:
+  ```rust
+  pub struct Finding {
+      // ... existing fields ...
+
+      /// Machine-readable structured evidence (for downstream processing)
+      #[serde(skip_serializing_if = "Option::is_none")]
+      pub evidence: Option<DetectorEvidence>,
+
+      /// Confidence score 0.0-1.0 (1.0 = high confidence)
+      #[serde(skip_serializing_if = "Option::is_none")]
+      pub confidence: Option<f32>,
+
+      /// Tags for filtering/grouping (e.g., "false-positive-risk", "needs-review")
+      #[serde(skip_serializing_if = "Option::is_none")]
+      pub tags: Option<Vec<String>>,
+
+      /// Whether this finding is suppressed (by baseline or inline ignore)
+      #[serde(skip_serializing_if = "std::ops::Not::not")]
+      pub suppressed: bool,
+
+      /// Human-readable remediation guidance (separate from fix suggestion)
+      #[serde(skip_serializing_if = "Option::is_none")]
+      pub remediation: Option<String>,
+
+      /// Finding identity fingerprint (canonical, computed once)
+      #[serde(skip_serializing_if = "Option::is_none")]
+      pub fingerprint_str: Option<String>,
+  }
+  ```
+- [ ] Review: do NOT remove existing fields — this is additive
+- [ ] All new fields use `#[serde(skip_serializing_if = "...")]` for backward compatibility
+- [ ] JSON output will include new fields when present; absent when not set (backward-compatible for existing consumers)
+
+### 2.3 Builder methods for new fields
+
+- [ ] Add `with_evidence(mut self, evidence: DetectorEvidence) -> Self`
+- [ ] Add `with_confidence(mut self, confidence: f32) -> Self`
+- [ ] Add `with_tags(mut self, tags: Vec<String>) -> Self`
+- [ ] Add `with_remediation(mut self, remediation: String) -> Self`
+- [ ] Ensure builder chain works: `Finding::new(...).with_evidence(...).with_confidence(0.8)...`
+
+---
+
+## Phase 3: Separate Message from Evidence
+
+### 3.1 Define message construction pattern
+
+- [ ] `message` field: stays as the human-readable summary (one sentence)
+  - [ ] Example: "User-controlled input reaches SQL query without sanitization"
+- [ ] `evidence` field: machine-readable structured payload
+  - [ ] Example: `TaintFlow { source: ..., sink: ..., hops: 2 }`
+- [ ] `remediation` field: actionable fix guidance (separate from one-line `fix` suggestion)
+  - [ ] Example: "Use parameterized queries (`db.Prepare()`) instead of string formatting. See https://go.dev/doc/database/sql-injection"
+- [ ] Rule: Every finding MUST have a `message`. `evidence` and `remediation` are optional but encouraged.
+
+### 3.2 Update `emit::push_finding()` helpers
+
+- [ ] Add new `push_finding` overloads in `src/rules/emit.rs`:
+  ```rust
+  pub fn push_finding_with_evidence(
+      meta: &RuleMetadata,
+      file: &str,
+      line: usize,
+      col: usize,
+      message: &str,
+      evidence: DetectorEvidence,
+      out: &mut Vec<Finding>,
+  ) { ... }
+  ```
+- [ ] Keep existing `push_finding()` as a convenience for simple pattern matches (sets `evidence: None`)
+
+### 3.3 Update detector functions to use new API
+
+- [ ] For Category A detectors (simple pattern match):
+  - [ ] Optionally add `PatternMatch` evidence
+  - [ ] Continue using existing `push_finding()` if no structured evidence needed
+- [ ] For Category B/C detectors (context-aware):
+  - [ ] Add structured evidence for the specific pattern
+  - [ ] Set `confidence` if heuristic
+  - [ ] Set `tags` for known false-positive risks
+- [ ] Start with a few detectors as exemplars, document the pattern, then expand
+
+---
+
+## Phase 4: Update Reporting/Export for New Fields
+
+### 4.1 JSON output
+
+- [ ] New fields are auto-serialized by serde (already `#[derive(Serialize)]`)
+- [ ] Verify new fields appear in JSON output when set
+- [ ] Verify new fields are absent when not set
+- [ ] Add test: JSON output with evidence field round-trips
+- [ ] Add test: JSON output without evidence field is identical to current output (backward-compat)
+
+### 4.2 SARIF output
+
+- [ ] Map `DetectorEvidence` variants to SARIF fields:
+  - [ ] `DangerousCall` → add to `result.locations` with logical locations
+  - [ ] `TaintFlow` → map to SARIF `graphTraversal` or `codeFlow` sections
+  - [ ] `PatternMatch` → add to `result.message` or `result.properties`
+  - [ ] `MissingConfig` → add to `result.properties`
+  - [ ] `ControlFlowIssue` → add to `result.properties`
+  - [ ] `Other` → serialize as JSON in `result.properties.slopguardEvidence`
+- [ ] Map `confidence` to SARIF result `rank` (0.0-1.0 maps to 0.0-100.0)
+- [ ] Map `tags` to SARIF `result.properties.tags`
+- [ ] Map `suppressed` to SARIF `result.suppressions` array
+- [ ] Map `remediation` to SARIF `result.rule.messageStrings.remediation`
+
+### 4.3 Text/terminal output
+
+- [ ] Show `confidence` if < 1.0 (e.g., "(confidence: 0.7)")
+- [ ] Show `tags` if present (comma-separated)
+- [ ] Show `suppressed` status with visual indicator
+- [ ] Do NOT show raw evidence in default text output (it's for machines)
+- [ ] Under `--verbose`, show structured evidence summary
+
+### 4.4 Export layer
+
+- [ ] Include evidence summary in context `.txt` files:
+  - [ ] `Evidence: { "kind": "DangerousCall", "function": "exec.Command", ... }`
+- [ ] Include confidence and tags
+- [ ] Include remediation guidance
+
+---
+
+## Phase 5: Migration & Backward Compatibility
+
+### 5.1 JSON backward compatibility
+
+- [ ] Old consumers (CI scripts, dashboards) that parse JSON output:
+  - [ ] New fields are additive (`#[serde(skip_serializing_if)]`)
+  - [ ] Old consumers can ignore new fields — no breakage
+  - [ ] Document new fields in `docs/output-formats.md` or similar
+- [ ] Test: current JSON consumers can still parse new JSON output
+
+### 5.2 SARIF backward compatibility
+
+- [ ] SARIF spec allows additional `properties` — new fields go there by default
+- [ ] Existing SARIF consumers should handle gracefully
+- [ ] Test: SARIF output is valid against SARIF 2.1.0 schema
+
+### 5.3 Text output backward compatibility
+
+- [ ] Default text output unchanged for existing users
+- [ ] New fields only visible with `--verbose`
+- [ ] Test: text output without `--verbose` is identical to current
+
+---
+
+## Phase 6: Testing
+
+### 6.1 Unit tests for evidence types
+
+- [ ] Create `tests/rules_evidence.rs`
+- [ ] Test: `DetectorEvidence::DangerousCall` serialization/deserialization
+- [ ] Test: `DetectorEvidence::TaintFlow` serialization/deserialization
+- [ ] Test: `DetectorEvidence::MissingConfig` serialization/deserialization
+- [ ] Test: `Finding` with evidence → JSON → parse → evidence preserved
+- [ ] Test: `Finding` without evidence → JSON → parse → evidence is None
+
+### 6.2 Integration tests for detector updates
+
+- [ ] Select 3-5 detectors to update with structured evidence:
+  - [ ] CWE-78 (command injection) → `DangerousCall` evidence
+  - [ ] CWE-22 (path traversal) → `DangerousCall` evidence
+  - [ ] CWE-89 (SQL injection) → `DangerousCall` evidence
+  - [ ] PERF-1 (loop allocation) → `ControlFlowIssue` evidence
+  - [ ] A complePatternMatch → `PatternMatch` evidence
+- [ ] Verify test fixtures still pass after evidence addition
+- [ ] Verify JSON output includes `evidence` field
+
+### 6.3 Serialization round-trip tests
+
+- [ ] For each reporter (JSON, SARIF):
+  - [ ] Create a Finding with all optional fields populated
+  - [ ] Serialize to output
+  - [ ] Deserialize/parse the output
+  - [ ] Verify all fields round-trip correctly
+
+---
+
+## Dependencies
+
+- `src/rules/finding.rs` — `Finding` struct (adds fields)
+- `src/rules/emit.rs` — `push_finding()` helpers (adds overloads)
+- `src/reporting/json.rs` — JSON serialization (auto-handled by serde)
+- `src/reporting/sarif.rs` — SARIF mapping (needs manual mapping for evidence)
+- `src/reporting/text.rs` — Terminal output (conditional display of new fields)
+- `src/export/mod.rs` — Export files (include new fields)
+- `serde` + `serde_json` (already in Cargo.toml)
