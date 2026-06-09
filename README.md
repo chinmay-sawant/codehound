@@ -33,8 +33,7 @@ See [`plans/`](./plans) for the detailed plan.
 | Phase | Theme | Status |
 |------:|-------|--------|
 | **p1** | Go CWE heuristic coverage | Implemented |
-| **p2** | Broader language and rule coverage | Planned |
-| **p3** | CVE (Common Vulnerabilities and Exposures) coverage | Planned |
+| **p2** | Broader language and rule coverage | In Progress |
 
 ## Installation
 
