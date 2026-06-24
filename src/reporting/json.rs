@@ -12,6 +12,7 @@ use serde::Serialize;
 
 use crate::cwe::CweRef;
 use crate::engine::AnalysisResult;
+use crate::rules::DetectorEvidence;
 
 pub fn print(result: &AnalysisResult) -> Result<()> {
     print_ndjson(result)
@@ -95,6 +96,20 @@ pub struct FindingJson<'a> {
     pub cwe: Vec<DisplayCweRef<'a>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fix: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub evidence: Option<&'a DetectorEvidence>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<&'a [String]>,
+    #[serde(skip_serializing_if = "is_false")]
+    pub suppressed: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub remediation: Option<&'a str>,
+}
+
+fn is_false(value: &bool) -> bool {
+    !*value
 }
 
 /// `CweRef` with `id` rendered as `"CWE-N"`.
@@ -139,6 +154,11 @@ impl<'a> From<&'a crate::rules::Finding> for FindingJson<'a> {
             severity: f.severity,
             cwe,
             fix: f.fix.as_deref(),
+            evidence: f.evidence.as_ref(),
+            confidence: f.confidence,
+            tags: f.tags.as_deref(),
+            suppressed: f.suppressed,
+            remediation: f.remediation.as_deref(),
         }
     }
 }

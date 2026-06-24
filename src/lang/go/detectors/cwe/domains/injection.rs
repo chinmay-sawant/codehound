@@ -3,7 +3,7 @@ use super::super::facts::{GoUnitFacts, InputKind};
 use super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::engine::sinks;
-use crate::rules::{Finding, emit};
+use crate::rules::{DetectorEvidence, Finding, emit};
 pub(crate) fn detect_cwe_78(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
 
@@ -28,12 +28,16 @@ pub(crate) fn detect_cwe_78(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
         }
 
         let (line, col) = unit.line_col(call.start_byte);
-        emit::push_finding(
+        emit::push_finding_with_evidence(
             &META_CWE_78,
             file,
             line,
             col,
             "user-controlled input is interpolated into a shell command string",
+            DetectorEvidence::DangerousCall {
+                function: call.callee.to_string(),
+                argument_index: Some(2),
+            },
             out,
         );
     }

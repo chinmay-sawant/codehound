@@ -78,6 +78,7 @@ pub fn apply_inline_ignores(
         suppressed += 1;
         if show_ignored {
             finding.severity = Severity::Info;
+            finding.suppressed = true;
             if !finding.message.ends_with(" (suppressed)") {
                 finding.message.push_str(" (suppressed)");
             }

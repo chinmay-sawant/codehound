@@ -92,6 +92,10 @@ pub struct Cli {
     #[arg(long)]
     pub show_fingerprint: bool,
 
+    /// Show extra detector details in text output.
+    #[arg(long)]
+    pub verbose: bool,
+
     /// Number of findings per chunk file.
     #[arg(long, default_value_t = 25)]
     pub chunk_size: usize,

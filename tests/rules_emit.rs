@@ -1,5 +1,6 @@
 use slopguard::rules::{
-    RuleMetadata, Severity, push_finding, push_finding_with_snippet, rule_meta,
+    DetectorEvidence, RuleMetadata, Severity, push_finding, push_finding_with_evidence,
+    push_finding_with_snippet, rule_meta,
 };
 
 fn meta_with_cwe() -> RuleMetadata {
@@ -46,6 +47,32 @@ fn push_finding_with_snippet_attaches_snippet_and_fix() {
     let f = &out[0];
     assert_eq!(f.snippet.as_deref(), Some("select * from users"));
     assert!(f.fix.is_none());
+}
+
+#[test]
+fn push_finding_with_evidence_attaches_structured_payload() {
+    let mut out = Vec::new();
+    push_finding_with_evidence(
+        &meta_with_cwe(),
+        "a.go",
+        1,
+        1,
+        "msg",
+        DetectorEvidence::DangerousCall {
+            function: "exec.Command".to_string(),
+            argument_index: Some(2),
+        },
+        &mut out,
+    );
+
+    assert_eq!(out.len(), 1);
+    assert!(matches!(
+        out[0].evidence,
+        Some(DetectorEvidence::DangerousCall {
+            ref function,
+            argument_index: Some(2),
+        }) if function == "exec.Command"
+    ));
 }
 
 #[test]

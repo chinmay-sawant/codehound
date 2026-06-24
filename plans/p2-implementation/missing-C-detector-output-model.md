@@ -50,8 +50,8 @@ The `Finding` struct currently carries only a plain-text `message` plus metadata
 
 ### 2.1 Define `DetectorEvidence` enum
 
-- [ ] Create `src/rules/evidence.rs`
-- [ ] Define the structured evidence types:
+- [x] Create `src/rules/evidence.rs`
+- [x] Define the structured evidence types:
   ```rust
   #[derive(Debug, Clone, Serialize, Deserialize)]
   #[serde(tag = "kind")]
@@ -78,18 +78,18 @@ The `Finding` struct currently carries only a plain-text `message` plus metadata
           struct_name: String,
           field: String,
       },
-      /// Anti-pattern in control flow (e.g., loop body allocation)
-      ControlFlowIssue {
-          kind: ControlFlowKind,
-          location: LineCol,
-      },
+	      /// Anti-pattern in control flow (e.g., loop body allocation)
+	      ControlFlowIssue {
+	          control_flow_kind: ControlFlowKind,
+	          location: LineCol,
+	      },
       /// General structured data (extensible)
       Other {
           data: serde_json::Value,
       },
   }
   ```
-- [ ] Define supporting types:
+- [x] Define supporting types:
   ```rust
   #[derive(Debug, Clone, Serialize, Deserialize)]
   pub struct TaintSourceInfo {
@@ -141,20 +141,22 @@ The `Finding` struct currently carries only a plain-text `message` plus metadata
 
       /// Finding identity fingerprint (canonical, computed once)
       #[serde(skip_serializing_if = "Option::is_none")]
-      pub fingerprint_str: Option<String>,
+      pub fingerprint_str: Option<String>, // still open; current code computes fingerprint on demand
   }
   ```
-- [ ] Review: do NOT remove existing fields — this is additive
-- [ ] All new fields use `#[serde(skip_serializing_if = "...")]` for backward compatibility
-- [ ] JSON output will include new fields when present; absent when not set (backward-compatible for existing consumers)
+  - [x] Added `evidence`, `confidence`, `tags`, `suppressed`, and `remediation`
+  - [ ] Add cached `fingerprint_str` if profiling shows repeated fingerprint computation matters
+- [x] Review: do NOT remove existing fields — this is additive
+- [x] All new fields use `#[serde(skip_serializing_if = "...")]` for backward compatibility
+- [x] JSON output will include new fields when present; absent when not set (backward-compatible for existing consumers)
 
 ### 2.3 Builder methods for new fields
 
-- [ ] Add `with_evidence(mut self, evidence: DetectorEvidence) -> Self`
-- [ ] Add `with_confidence(mut self, confidence: f32) -> Self`
-- [ ] Add `with_tags(mut self, tags: Vec<String>) -> Self`
-- [ ] Add `with_remediation(mut self, remediation: String) -> Self`
-- [ ] Ensure builder chain works: `Finding::new(...).with_evidence(...).with_confidence(0.8)...`
+- [x] Add `with_evidence(mut self, evidence: DetectorEvidence) -> Self`
+- [x] Add `with_confidence(mut self, confidence: f32) -> Self`
+- [x] Add `with_tags(mut self, tags: Vec<String>) -> Self`
+- [x] Add `with_remediation(mut self, remediation: String) -> Self`
+- [x] Ensure builder chain works: `Finding::new(...).with_evidence(...).with_confidence(0.8)...`
 
 ---
 
@@ -172,7 +174,7 @@ The `Finding` struct currently carries only a plain-text `message` plus metadata
 
 ### 3.2 Update `emit::push_finding()` helpers
 
-- [ ] Add new `push_finding` overloads in `src/rules/emit.rs`:
+- [x] Add new `push_finding` overloads in `src/rules/emit.rs`:
   ```rust
   pub fn push_finding_with_evidence(
       meta: &RuleMetadata,
@@ -184,7 +186,7 @@ The `Finding` struct currently carries only a plain-text `message` plus metadata
       out: &mut Vec<Finding>,
   ) { ... }
   ```
-- [ ] Keep existing `push_finding()` as a convenience for simple pattern matches (sets `evidence: None`)
+- [x] Keep existing `push_finding()` as a convenience for simple pattern matches (sets `evidence: None`)
 
 ### 3.3 Update detector functions to use new API
 
@@ -192,10 +194,12 @@ The `Finding` struct currently carries only a plain-text `message` plus metadata
   - [ ] Optionally add `PatternMatch` evidence
   - [ ] Continue using existing `push_finding()` if no structured evidence needed
 - [ ] For Category B/C detectors (context-aware):
-  - [ ] Add structured evidence for the specific pattern
+  - [x] Add structured evidence for the specific pattern
+    - [x] CWE-78 emits `DangerousCall { function: "exec.Command", argument_index: Some(2) }`
   - [ ] Set `confidence` if heuristic
   - [ ] Set `tags` for known false-positive risks
-- [ ] Start with a few detectors as exemplars, document the pattern, then expand
+- [x] Start with a few detectors as exemplars, document the pattern, then expand
+  - [x] First exemplar: CWE-78 command injection
 
 ---
 
@@ -203,11 +207,11 @@ The `Finding` struct currently carries only a plain-text `message` plus metadata
 
 ### 4.1 JSON output
 
-- [ ] New fields are auto-serialized by serde (already `#[derive(Serialize)]`)
-- [ ] Verify new fields appear in JSON output when set
-- [ ] Verify new fields are absent when not set
-- [ ] Add test: JSON output with evidence field round-trips
-- [ ] Add test: JSON output without evidence field is identical to current output (backward-compat)
+- [x] New fields are auto-serialized by serde (already `#[derive(Serialize)]`)
+- [x] Verify new fields appear in JSON output when set
+- [x] Verify new fields are absent when not set
+- [x] Add test: JSON output with evidence field round-trips
+- [x] Add test: JSON output without evidence field is identical to current output (backward-compat)
 
 ### 4.2 SARIF output
 
@@ -225,18 +229,18 @@ The `Finding` struct currently carries only a plain-text `message` plus metadata
 
 ### 4.3 Text/terminal output
 
-- [ ] Show `confidence` if < 1.0 (e.g., "(confidence: 0.7)")
-- [ ] Show `tags` if present (comma-separated)
-- [ ] Show `suppressed` status with visual indicator
-- [ ] Do NOT show raw evidence in default text output (it's for machines)
-- [ ] Under `--verbose`, show structured evidence summary
+- [x] Show `confidence` if < 1.0 (e.g., "(confidence: 0.7)")
+- [x] Show `tags` if present (comma-separated)
+- [x] Show `suppressed` status with visual indicator
+- [x] Do NOT show raw evidence in default text output (it's for machines)
+- [x] Under `--verbose`, show structured evidence summary
 
 ### 4.4 Export layer
 
-- [ ] Include evidence summary in context `.txt` files:
-  - [ ] `Evidence: { "kind": "DangerousCall", "function": "exec.Command", ... }`
-- [ ] Include confidence and tags
-- [ ] Include remediation guidance
+- [x] Include evidence summary in context `.txt` files:
+  - [x] `Evidence: { "kind": "DangerousCall", "function": "exec.Command", ... }`
+- [x] Include confidence and tags
+- [x] Include remediation guidance
 
 ---
 
@@ -244,11 +248,11 @@ The `Finding` struct currently carries only a plain-text `message` plus metadata
 
 ### 5.1 JSON backward compatibility
 
-- [ ] Old consumers (CI scripts, dashboards) that parse JSON output:
-  - [ ] New fields are additive (`#[serde(skip_serializing_if)]`)
-  - [ ] Old consumers can ignore new fields — no breakage
-  - [ ] Document new fields in `docs/output-formats.md` or similar
-- [ ] Test: current JSON consumers can still parse new JSON output
+- [x] Old consumers (CI scripts, dashboards) that parse JSON output:
+  - [x] New fields are additive (`#[serde(skip_serializing_if)]`)
+  - [x] Old consumers can ignore new fields — no breakage
+  - [x] Document new fields in `docs/output-formats.md` or similar
+- [x] Test: current JSON consumers can still parse new JSON output
 
 ### 5.2 SARIF backward compatibility
 
@@ -268,17 +272,17 @@ The `Finding` struct currently carries only a plain-text `message` plus metadata
 
 ### 6.1 Unit tests for evidence types
 
-- [ ] Create `tests/rules_evidence.rs`
-- [ ] Test: `DetectorEvidence::DangerousCall` serialization/deserialization
-- [ ] Test: `DetectorEvidence::TaintFlow` serialization/deserialization
-- [ ] Test: `DetectorEvidence::MissingConfig` serialization/deserialization
-- [ ] Test: `Finding` with evidence → JSON → parse → evidence preserved
-- [ ] Test: `Finding` without evidence → JSON → parse → evidence is None
+- [x] Create `tests/rules_evidence.rs`
+- [x] Test: `DetectorEvidence::DangerousCall` serialization/deserialization
+- [x] Test: `DetectorEvidence::TaintFlow` serialization/deserialization
+- [x] Test: `DetectorEvidence::MissingConfig` serialization/deserialization
+- [x] Test: `Finding` with evidence → JSON → parse → evidence preserved
+- [x] Test: `Finding` without evidence → JSON → parse → evidence is None
 
 ### 6.2 Integration tests for detector updates
 
 - [ ] Select 3-5 detectors to update with structured evidence:
-  - [ ] CWE-78 (command injection) → `DangerousCall` evidence
+  - [x] CWE-78 (command injection) → `DangerousCall` evidence
   - [ ] CWE-22 (path traversal) → `DangerousCall` evidence
   - [ ] CWE-89 (SQL injection) → `DangerousCall` evidence
   - [ ] PERF-1 (loop allocation) → `ControlFlowIssue` evidence

@@ -2,14 +2,15 @@
 
 use std::borrow::Cow;
 
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Serialize, Serializer};
 
 use super::Severity;
+use super::evidence::DetectorEvidence;
 use super::fingerprint::Fingerprint;
 use crate::cwe::CweRef;
 
 /// 1-indexed line and column in a source file.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LineCol {
     pub line: usize,
     pub column: usize,
@@ -78,6 +79,25 @@ pub struct Finding {
     pub cwe: Option<Box<[CweRef]>>,
     /// Optional suggestion.
     pub fix: Option<String>,
+    /// Machine-readable structured evidence for downstream processing.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub evidence: Option<DetectorEvidence>,
+    /// Confidence score from 0.0 to 1.0.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<f32>,
+    /// Tags for filtering or grouping.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Vec<String>>,
+    /// Whether the finding is suppressed but still included in output.
+    #[serde(skip_serializing_if = "is_false")]
+    pub suppressed: bool,
+    /// Human-readable remediation guidance beyond the short fix suggestion.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub remediation: Option<String>,
+}
+
+fn is_false(value: &bool) -> bool {
+    !*value
 }
 
 impl Finding {
@@ -115,6 +135,11 @@ impl Finding {
             severity,
             cwe,
             fix: None,
+            evidence: None,
+            confidence: None,
+            tags: None,
+            suppressed: false,
+            remediation: None,
         }
     }
 
@@ -125,6 +150,31 @@ impl Finding {
 
     pub fn with_fix(mut self, fix: impl Into<String>) -> Self {
         self.fix = Some(fix.into());
+        self
+    }
+
+    pub fn with_evidence(mut self, evidence: DetectorEvidence) -> Self {
+        self.evidence = Some(evidence);
+        self
+    }
+
+    pub fn with_confidence(mut self, confidence: f32) -> Self {
+        self.confidence = Some(confidence);
+        self
+    }
+
+    pub fn with_tags(mut self, tags: Vec<String>) -> Self {
+        self.tags = Some(tags);
+        self
+    }
+
+    pub fn with_remediation(mut self, remediation: impl Into<String>) -> Self {
+        self.remediation = Some(remediation.into());
+        self
+    }
+
+    pub fn mark_suppressed(mut self) -> Self {
+        self.suppressed = true;
         self
     }
 

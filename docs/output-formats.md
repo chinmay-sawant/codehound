@@ -34,6 +34,20 @@ critical  CWE-89  src/db.go:9:18  user-controlled input is concatenated into a S
 - `cwe` is always an array (`[]` when no CWE references).
 - One JSON object per line; suitable for `jq` pipelines.
 - `severity` is one of `"info"`, `"warning"`, `"high"`, `"critical"`.
+- `fingerprint` is always present and is stable across text, JSON, SARIF,
+  baseline matching, and CI diffing.
+- Structured detector fields are additive and omitted when unset, so older
+  consumers can keep parsing the core finding shape.
+
+Optional structured fields:
+
+| Field         | Meaning |
+|---------------|---------|
+| `evidence`    | Machine-readable detector evidence such as `DangerousCall`, `TaintFlow`, `PatternMatch`, `MissingConfig`, or `ControlFlowIssue`. |
+| `confidence`  | Detector confidence from `0.0` to `1.0` when a heuristic rule can quantify certainty. |
+| `tags`        | Machine-readable labels for workflow hints, false-positive risk, framework context, or detector category. |
+| `suppressed`  | Present only when the finding is emitted in ignored/suppressed mode. |
+| `remediation` | Longer actionable remediation guidance, separate from the shorter `fix` hint. |
 
 ## SARIF 2.1.0
 

@@ -2,7 +2,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use slopguard::cwe::CweRef;
 use slopguard::export::{ExportOptions, export_findings};
-use slopguard::rules::{Finding, LineCol, Severity};
+use slopguard::rules::{DetectorEvidence, Finding, LineCol, Severity};
 
 #[test]
 fn exports_context_and_chunk_files() {
@@ -24,15 +24,24 @@ fn exports_context_and_chunk_files() {
         "Improper Neutralization of Special Elements used in an SQL Command",
         "https://cwe.mitre.org/data/definitions/89.html",
     )]));
-    let findings = vec![Finding::new(
-        "CWE-89",
-        "SQL injection via concatenated query",
-        source_path.to_string_lossy().to_string(),
-        LineCol { line: 4, column: 5 },
-        "query string is built from untrusted input",
-        Severity::Medium,
-        std::borrow::Cow::Borrowed(cwe),
-    )];
+    let findings = vec![
+        Finding::new(
+            "CWE-89",
+            "SQL injection via concatenated query",
+            source_path.to_string_lossy().to_string(),
+            LineCol { line: 4, column: 5 },
+            "query string is built from untrusted input",
+            Severity::Medium,
+            std::borrow::Cow::Borrowed(cwe),
+        )
+        .with_evidence(DetectorEvidence::DangerousCall {
+            function: "database/sql.Query".to_string(),
+            argument_index: Some(0),
+        })
+        .with_confidence(0.7)
+        .with_tags(vec!["heuristic".to_string(), "review-query".to_string()])
+        .with_remediation("Use parameterized queries."),
+    ];
 
     let summary = export_findings(
         &findings,
@@ -61,6 +70,23 @@ fn exports_context_and_chunk_files() {
         chunk.contains("Fingerprint: slopguard:1:CWE-89:"),
         "got: {chunk}"
     );
+    for output in [&context, &chunk] {
+        assert!(
+            output.contains(
+                "Evidence: {\"kind\":\"DangerousCall\",\"function\":\"database/sql.Query\",\"argument_index\":0}"
+            ),
+            "got: {output}"
+        );
+        assert!(output.contains("Confidence: 0.7"), "got: {output}");
+        assert!(
+            output.contains("Tags: heuristic, review-query"),
+            "got: {output}"
+        );
+        assert!(
+            output.contains("Remediation: Use parameterized queries."),
+            "got: {output}"
+        );
+    }
 
     std::fs::remove_dir_all(root).unwrap();
 }

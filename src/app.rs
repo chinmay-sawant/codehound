@@ -160,6 +160,7 @@ pub fn run(cli: Cli) -> Result<ExitCode> {
                 reporting::text::TextOptions {
                     suppress_snippet: cli.no_snippet,
                     show_fingerprint: cli.show_fingerprint,
+                    verbose: cli.verbose,
                 },
             )?,
             OutputFormat::Json if cli.json_envelope => reporting::json::print_envelope(&result)?,

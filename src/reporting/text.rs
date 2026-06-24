@@ -6,6 +6,7 @@ use std::io::{self, Write};
 use anyhow::Result;
 
 use crate::engine::AnalysisResult;
+use crate::rules::DetectorEvidence;
 
 #[cfg(feature = "terminal-output")]
 mod style {
@@ -77,6 +78,7 @@ pub fn print_without_snippet(result: &AnalysisResult) -> Result<()> {
 pub struct TextOptions {
     pub suppress_snippet: bool,
     pub show_fingerprint: bool,
+    pub verbose: bool,
 }
 
 pub fn print_with_options(result: &AnalysisResult, options: TextOptions) -> Result<()> {
@@ -111,6 +113,20 @@ pub fn write_with_options(
         if options.show_fingerprint {
             writeln!(out, "  fingerprint: {}", f.fingerprint_string())?;
         }
+        if let Some(confidence) = f.confidence.filter(|confidence| *confidence < 1.0) {
+            writeln!(out, "  confidence: {confidence}")?;
+        }
+        if let Some(tags) = f.tags.as_deref().filter(|tags| !tags.is_empty()) {
+            writeln!(out, "  tags: {}", tags.join(", "))?;
+        }
+        if f.suppressed {
+            writeln!(out, "  status: suppressed")?;
+        }
+        if options.verbose {
+            if let Some(evidence) = &f.evidence {
+                writeln!(out, "  evidence: {}", evidence_summary(evidence))?;
+            }
+        }
         if !options.suppress_snippet {
             if let Some(snip) = &f.snippet {
                 for line in snip.lines() {
@@ -140,6 +156,54 @@ pub fn write_with_options(
 
     write_summary(out, result)?;
     Ok(())
+}
+
+fn evidence_summary(evidence: &DetectorEvidence) -> String {
+    match evidence {
+        DetectorEvidence::PatternMatch {
+            pattern,
+            match_location,
+        } => format!(
+            "pattern `{pattern}` at {}:{}",
+            match_location.line, match_location.column
+        ),
+        DetectorEvidence::DangerousCall {
+            function,
+            argument_index,
+        } => match argument_index {
+            Some(index) => format!("dangerous call `{function}` argument {index}"),
+            None => format!("dangerous call `{function}`"),
+        },
+        DetectorEvidence::TaintFlow {
+            source,
+            sink,
+            hops,
+            sanitized,
+        } => format!(
+            "taint flow {}.{} -> {}.{} across {hops} hop{}{}",
+            source.kind,
+            source.function,
+            sink.kind,
+            sink.function,
+            if *hops == 1 { "" } else { "s" },
+            if *sanitized {
+                " with sanitizer evidence"
+            } else {
+                ""
+            }
+        ),
+        DetectorEvidence::MissingConfig { struct_name, field } => {
+            format!("missing config `{struct_name}.{field}`")
+        }
+        DetectorEvidence::ControlFlowIssue {
+            control_flow_kind,
+            location,
+        } => format!(
+            "control-flow issue {control_flow_kind:?} at {}:{}",
+            location.line, location.column
+        ),
+        DetectorEvidence::Other { .. } => "custom detector evidence".to_string(),
+    }
 }
 
 fn write_summary(out: &mut impl Write, result: &AnalysisResult) -> Result<()> {
