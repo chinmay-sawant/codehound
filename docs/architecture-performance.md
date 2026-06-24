@@ -27,6 +27,8 @@ Each file is read, parsed, analyzed, and dropped independently so peak memory st
 | Source load | `String::from_utf8(bytes)` into `Arc<str>` |
 | Source cache | Successful UTF-8 files are retained in `AnalysisResult.source_cache` as `Arc<str>` so export and downstream consumers avoid second disk reads |
 | Export | Stream context files and chunk files (no upfront `Vec` of all blocks) |
+| Timing / stats | Collection enabled by `--debug-timing` or `--diagnostics`; zero-cost `TimingCollector` no-ops when disabled; `ScanStats` merged from per-file `TimingSpan` values |
+| Diagnostics | Optional `--diagnostics <FILE>` writes a JSON document with phase timing, detector timing, scan params, and file-level stats |
 
 ## Codebase conventions (enforced)
 
@@ -46,6 +48,7 @@ Run `wc -l src/lang/go/detectors/cwe/domains/*.rs` in CI or locally to catch mod
 - `fail_on` from config applies only when the CLI did not explicitly set `--strict`, `--no-fail`, or `--warnings-as-errors`.
 - `include` and `exclude` are gitignore-style path globs applied during file collection.
 - `.slopguardignore`, `.gitignore`, and `.ignore` remain active alongside config-backed include/exclude filtering.
+- `--debug-timing` and `--diagnostics` are CLI-only flags (no config-file equivalent); they enable per-detector timing and phase-level instrumentation.
 
 ## Complexity (typical repo)
 

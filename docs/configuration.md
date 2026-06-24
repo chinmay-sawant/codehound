@@ -58,7 +58,7 @@ Override discovery with `--config <PATH>` or `SLOPGUARD_CONFIG=<PATH>`.
 
 ## Precedence (highest to lowest)
 
-1. CLI flags (`--only`, `--skip`, `--strict`, `--no-fail`, `--warnings-as-errors`, `--baseline`, `--no-baseline`, `--baseline-file`)
+1. CLI flags (`--only`, `--skip`, `--strict`, `--no-fail`, `--warnings-as-errors`, `--debug-timing`, `--diagnostics`, `--baseline`, `--no-baseline`, `--baseline-file`)
 2. `slopguard.toml` values
 3. Built-in defaults (no filtering, `fail_on = warnings`)
 

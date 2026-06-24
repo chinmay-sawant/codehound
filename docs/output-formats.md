@@ -21,8 +21,11 @@ critical  CWE-89  src/db.go:9:18  user-controlled input is concatenated into a S
   `red` (high), `red+bold` (critical). Disable with `--no-color` or
   `NO_COLOR=1`.
 - Use `--no-snippet` to suppress the source snippet block.
+- Use `--verbose` to show structured evidence summaries, confidence, tags, and suppression status.
+- Use `--debug-timing` to print a per-detector timing breakdown after findings.
 - CWE list is sorted by id for deterministic output.
 - A summary footer lists totals by severity and the top 5 rules by count.
+- When stats collection is enabled (`--debug-timing` or `--diagnostics`), the footer also shows files scanned, lines scanned, and total wall time.
 
 ## JSON (NDJSON, one finding per line)
 
@@ -38,6 +41,9 @@ critical  CWE-89  src/db.go:9:18  user-controlled input is concatenated into a S
   baseline matching, and CI diffing.
 - Structured detector fields are additive and omitted when unset, so older
   consumers can keep parsing the core finding shape.
+- `--json-envelope` wraps findings in a single object that also includes
+  `findingCount`, `errorCount`, `suppressedCount`, and an optional `stats`
+  object when timing/stats collection is enabled.
 
 Optional structured fields:
 

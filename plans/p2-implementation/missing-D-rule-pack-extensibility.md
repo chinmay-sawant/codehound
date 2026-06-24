@@ -1,8 +1,8 @@
 # Missing D — Rule-Pack Extensibility Beyond Compile-Time
 
 > **Parent:** `plans/p2.md` -- "Missing From This P2 Plan" -- Item D
-> **Status:** Current architecture is clean for bundled rules, but adding new rule families requires shipping them in-tree and rebuilding the binary. No external rule-pack loading.
-> **Estimated effort:** This plan covers scoping and design only (~3-5 days). Implementation will be a separate follow-up plan.
+> **Status:** Scoping and architecture design complete. Implementation of external rule-pack loading has not started and will be a separate follow-up plan.
+> **Estimated effort:** Design ~3-5 days (done); implementation TBD.
 
 ---
 
@@ -98,59 +98,59 @@ SlopGuard has a strong plugin-like internal structure (detectors implement a tra
   paths = ["./my-rules", "/usr/local/share/slopguard/rules/my-pack"]
   enabled = true
   ```
-- [x] Add fields to `SlopguardConfig` struct in `src/engine/config.rs`
-- [x] Update `slopguard.schema.json`
+- [ ] Add fields to `SlopguardConfig` struct in `src/engine/config.rs`
+- [ ] Update `slopguard.schema.json`
 
 ### 2.3 Implement pack discovery and loading
 
-- [x] Create `src/engine/pack.rs`
-- [x] `PackLoader` struct:
-  - [x] `pack_paths: Vec<PathBuf>`
-  - [x] `loaded_packs: Vec<RulePack>`
-- [x] `RulePack` struct:
-  - [x] `manifest: PackManifest`
-  - [x] `rules: Vec<ExternalRule>`
-  - [x] `registry: Vec<ExternalRegistryEntry>`
-- [x] `ExternalRule` struct:
-  - [x] `rule_id: String`
-  - [x] `description: RuleDescription` (reuse from `cwe::catalog`)
-- [x] `ExternalRegistryEntry` struct:
-  - [x] `rule_id: String`
-  - [x] `pattern: DetectionPattern`
-- [x] `DetectionPattern` struct:
-  - [x] `import_path: Option<String>`: e.g., "database/sql"
-  - [x] `function_selector: Option<String>`: e.g., "(*sql.DB).Query"
-  - [x] `argument_constraints: Vec<ArgConstraint>`
-  - [x] `message_template: String`
-  - [x] `severity: Severity`
-- [x] `ArgConstraint` enum:
-  - [x] `ContainsPlus` -- argument contains string concatenation
-  - [x] `ContainsFormat` -- argument contains `fmt.Sprintf`
-  - [x] `IsUserInput` -- argument comes from user input source
-  - [x] `IsVariable` -- argument is a non-literal variable
-- [x] `PackLoader::load_all() -> Result<Vec<RulePack>>`
-  - [x] Read `pack.toml` from each path
-  - [x] Validate version compatibility
-  - [x] Parse `rules.json`, validate against schema
-  - [x] Parse `registry.toml`, validate patterns
-- [x] Register `pack.rs` in `src/engine/mod.rs`
+- [ ] Create `src/engine/pack.rs`
+- [ ] `PackLoader` struct:
+  - [ ] `pack_paths: Vec<PathBuf>`
+  - [ ] `loaded_packs: Vec<RulePack>`
+- [ ] `RulePack` struct:
+  - [ ] `manifest: PackManifest`
+  - [ ] `rules: Vec<ExternalRule>`
+  - [ ] `registry: Vec<ExternalRegistryEntry>`
+- [ ] `ExternalRule` struct:
+  - [ ] `rule_id: String`
+  - [ ] `description: RuleDescription` (reuse from `cwe::catalog`)
+- [ ] `ExternalRegistryEntry` struct:
+  - [ ] `rule_id: String`
+  - [ ] `pattern: DetectionPattern`
+- [ ] `DetectionPattern` struct:
+  - [ ] `import_path: Option<String>`: e.g., "database/sql"
+  - [ ] `function_selector: Option<String>`: e.g., "(*sql.DB).Query"
+  - [ ] `argument_constraints: Vec<ArgConstraint>`
+  - [ ] `message_template: String`
+  - [ ] `severity: Severity`
+- [ ] `ArgConstraint` enum:
+  - [ ] `ContainsPlus` -- argument contains string concatenation
+  - [ ] `ContainsFormat` -- argument contains `fmt.Sprintf`
+  - [ ] `IsUserInput` -- argument comes from user input source
+  - [ ] `IsVariable` -- argument is a non-literal variable
+- [ ] `PackLoader::load_all() -> Result<Vec<RulePack>>`
+  - [ ] Read `pack.toml` from each path
+  - [ ] Validate version compatibility
+  - [ ] Parse `rules.json`, validate against schema
+  - [ ] Parse `registry.toml`, validate patterns
+- [ ] Register `pack.rs` in `src/engine/mod.rs`
 
 ### 2.4 Integrate into scan pipeline
 
-- [x] In `app.rs::run()`:
-  - [x] Load external packs after config loading
-  - [x] Merge external rules into rule catalogue at runtime
-  - [x] Register external detector entries with the generic pattern matcher
-- [x] Create `GenericPatternDetector` in `src/lang/go/detectors/`:
-  - [x] Implements `Detector` trait
-  - [x] `rule_ids()` returns dynamically registered rule IDs
-  - [x] `run()` iterates patterns, checks each, emits findings
-- [x] Generic pattern check logic:
-  1. [x] Check import exists (if specified): source contains `"<import_path>"`
-  2. [x] Find call expressions matching `function_selector`
-  3. [x] For each argument with constraints, validate constraints
-  4. [x] If all match, emit finding with `message_template` populated
-- [x] Wire into Go plugin: add `GenericPatternDetector` to `src/lang/go/detectors/mod.rs::all()`
+- [ ] In `app.rs::run()`:
+  - [ ] Load external packs after config loading
+  - [ ] Merge external rules into rule catalogue at runtime
+  - [ ] Register external detector entries with the generic pattern matcher
+- [ ] Create `GenericPatternDetector` in `src/lang/go/detectors/`:
+  - [ ] Implements `Detector` trait
+  - [ ] `rule_ids()` returns dynamically registered rule IDs
+  - [ ] `run()` iterates patterns, checks each, emits findings
+- [ ] Generic pattern check logic:
+  1. [ ] Check import exists (if specified): source contains `"<import_path>"`
+  2. [ ] Find call expressions matching `function_selector`
+  3. [ ] For each argument with constraints, validate constraints
+  4. [ ] If all match, emit finding with `message_template` populated
+- [ ] Wire into Go plugin: add `GenericPatternDetector` to `src/lang/go/detectors/mod.rs::all()`
 
 ### 2.5 Limitations (MVP -- document clearly)
 
@@ -242,24 +242,26 @@ SlopGuard has a strong plugin-like internal structure (detectors implement a tra
 
 ## Phase 6: CLI & Configuration
 
-### 6.1 CLI Integration
+### 6.1 CLI Integration (design complete, implementation pending)
 
-- [x] Add `--rule-pack-path` CLI flag:
+- [x] Design `--rule-pack-path` CLI flag:
   ```rust
   #[arg(long = "rule-pack-path", help = "Path to an external rule pack directory (can be repeated)")]
   pub rule_pack_path: Vec<PathBuf>,
   ```
-- [x] Add `--no-rule-packs` CLI flag:
+- [x] Design `--no-rule-packs` CLI flag:
   ```rust
   #[arg(long = "no-rule-packs", help = "Disable external rule pack loading")]
   pub no_rule_packs: bool,
   ```
 - [x] Config precedence: CLI paths add to config paths (union), `--no-rule-packs` disables all
+- [ ] Implement flags in `src/cli/mod.rs`
 
-### 6.2 Configuration schema
+### 6.2 Configuration schema (design complete, implementation pending)
 
-- [x] Update `slopguard.schema.json` with `rule_packs` properties
-- [x] Update `templates/slopguard.toml` with commented-out example
+- [x] Design `slopguard.schema.json` updates with `rule_packs` properties
+- [x] Design `templates/slopguard.toml` commented-out example
+- [ ] Apply schema and template updates
 
 ---
 
