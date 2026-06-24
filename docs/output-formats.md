@@ -87,6 +87,12 @@ and includes:
 | `runs[0].results[].partialFingerprints["slopguard/v1"]` | stable fingerprint (`slopguard:1:<rule>:<file>:<line>:<col>`) |
 | `runs[0].results[].properties.tags`                | `["security", "cwe", "cwe-22", ...]` |
 | `runs[0].results[].properties.security-severity`   | `0.0`/`4.0`/`7.0`/`9.0` |
+| `runs[0].results[].rank`                           | confidence × 100 (only when `confidence` is set) |
+| `runs[0].results[].suppressions[].kind`            | `"external"` when the finding is suppressed |
+| `runs[0].results[].properties.slopguardEvidence`   | full structured detector evidence as JSON |
+| `runs[0].results[].properties.remediation`         | longer remediation guidance when set |
+
+New properties are additive and use SARIF's standard `properties` bag, so existing SARIF consumers should ignore unknown fields gracefully.
 
 The `security-severity` mapping follows the
 [GitHub Code Scoring scale](https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/about-code-scanning-alerts#about-severity-levels):

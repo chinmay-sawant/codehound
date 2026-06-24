@@ -9,7 +9,7 @@ use super::super::common::{is_assignment_in_loop, is_in_loop};
 use super::super::facts::{GoPerfFacts, VarKind};
 use super::super::metadata::*;
 use crate::core::ParsedUnit;
-use crate::rules::{Finding, emit};
+use crate::rules::{ControlFlowKind, DetectorEvidence, Finding, LineCol, emit};
 
 /// PERF-001: regexp.MustCompile / regexp.Compile inside a loop.
 pub(crate) fn detect_perf_1(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
@@ -27,12 +27,16 @@ pub(crate) fn detect_perf_1(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Ve
         }
 
         let (line, col) = unit.line_col(call.start_byte);
-        emit::push_finding(
+        emit::push_finding_with_evidence(
             &META_PERF_1,
             file,
             line,
             col,
             "regular expression compiled inside loop body",
+            DetectorEvidence::ControlFlowIssue {
+                control_flow_kind: ControlFlowKind::LoopBodyAllocation,
+                location: LineCol { line, column: col },
+            },
             out,
         );
     }

@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use slopguard::engine::AnalysisResult;
 use slopguard::reporting::sarif::render_to_string;
-use slopguard::rules::{Finding, LineCol, Severity};
+use slopguard::rules::{DetectorEvidence, Finding, LineCol, Severity};
 
 fn sample_result() -> AnalysisResult {
     AnalysisResult {
@@ -137,4 +137,79 @@ fn region_end_fields_absent_when_unset() {
 fn iso8601_format_is_correct() {
     let s = iso8601_from_secs(1_704_067_200);
     assert_eq!(s, "2024-01-01T00:00:00Z");
+}
+
+#[test]
+fn rank_is_absent_when_confidence_unset() {
+    let log = render_to_string(&sample_result());
+    assert!(!log.contains("\"rank\""), "got: {log}");
+}
+
+#[test]
+fn rank_maps_confidence_to_sarif_scale() {
+    let mut r = sample_result();
+    r.findings[0].confidence = Some(0.75);
+
+    let log = render_to_string(&r);
+    assert!(log.contains("\"rank\": 75"), "got: {log}");
+}
+
+#[test]
+fn suppressions_are_absent_when_not_suppressed() {
+    let log = render_to_string(&sample_result());
+    assert!(!log.contains("\"suppressions\""), "got: {log}");
+}
+
+#[test]
+fn suppressions_present_when_finding_suppressed() {
+    let mut r = sample_result();
+    r.findings[0].suppressed = true;
+
+    let log = render_to_string(&r);
+    assert!(log.contains("\"suppressions\""), "got: {log}");
+    assert!(log.contains("\"kind\": \"external\""), "got: {log}");
+}
+
+#[test]
+fn evidence_maps_to_slopguard_evidence_property() {
+    let mut r = sample_result();
+    r.findings[0].evidence = Some(DetectorEvidence::DangerousCall {
+        function: "exec.Command".to_string(),
+        argument_index: Some(2),
+    });
+
+    let log = render_to_string(&r);
+    assert!(log.contains("\"slopguardEvidence\""), "got: {log}");
+    assert!(log.contains("\"kind\": \"DangerousCall\""), "got: {log}");
+    assert!(log.contains("\"function\": \"exec.Command\""), "got: {log}");
+}
+
+#[test]
+fn remediation_maps_to_properties_remediation() {
+    let mut r = sample_result();
+    r.findings[0].remediation = Some("Use parameterized queries.".to_string());
+
+    let log = render_to_string(&r);
+    assert!(
+        log.contains("\"remediation\": \"Use parameterized queries.\""),
+        "got: {log}"
+    );
+}
+
+#[test]
+fn finding_tags_are_included_in_properties_tags() {
+    let mut r = sample_result();
+    r.findings[0].tags = Some(vec![
+        "needs-review".to_string(),
+        "false-positive-risk".to_string(),
+    ]);
+
+    let log = render_to_string(&r);
+    let tags_start = log.find("\"tags\"").expect("tags property");
+    let tags_section = &log[tags_start..tags_start + 200];
+    assert!(tags_section.contains("\"needs-review\""), "got: {log}");
+    assert!(
+        tags_section.contains("\"false-positive-risk\""),
+        "got: {log}"
+    );
 }

@@ -2,7 +2,7 @@ use super::super::common::*;
 use super::super::facts::{GoUnitFacts, InputKind};
 use super::super::metadata::*;
 use crate::core::ParsedUnit;
-use crate::rules::{Finding, emit};
+use crate::rules::{DetectorEvidence, Finding, emit};
 pub(crate) fn detect_cwe_22(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -19,28 +19,35 @@ pub(crate) fn detect_cwe_22(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
             continue;
         }
 
-        let has_read_sink = facts.call_facts.iter().any(|call| {
+        let Some(sink_call) = facts.call_facts.iter().find(|call| {
             is_path_traversal_sink(&call.callee)
                 && call
                     .arguments
                     .iter()
                     .any(|arg| argument_uses_identifier(arg, &assignment.name))
-        });
-        if !has_read_sink {
+        }) else {
             continue;
-        }
+        };
 
         if is_path_confined(&facts.source_index, source, assignment) {
             continue;
         }
 
         let (line, col) = unit.line_col(assignment.start_byte);
-        emit::push_finding(
+        let argument_index = sink_call
+            .arguments
+            .iter()
+            .position(|arg| argument_uses_identifier(arg, &assignment.name));
+        emit::push_finding_with_evidence(
             &META_CWE_22,
             file,
             line,
             col,
             "user-controlled path reaches a file-read sink without base-directory confinement",
+            DetectorEvidence::DangerousCall {
+                function: sink_call.callee.to_string(),
+                argument_index,
+            },
             out,
         );
     }

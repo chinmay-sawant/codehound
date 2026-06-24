@@ -6,6 +6,7 @@ use std::time::SystemTime;
 
 use anyhow::Result;
 use serde::Serialize;
+use serde_json::Value;
 
 use crate::engine::AnalysisResult;
 
@@ -76,7 +77,18 @@ pub struct SarifResult<'a> {
     pub locations: Vec<SarifLocation<'a>>,
     #[serde(rename = "partialFingerprints")]
     pub partial_fingerprints: BTreeMap<&'static str, String>,
+    /// SARIF `rank` is 0.0-100.0; our `confidence` is 0.0-1.0.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rank: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub suppressions: Option<Vec<SarifSuppression>>,
     pub properties: SarifProperties,
+}
+
+#[derive(Serialize)]
+#[doc(hidden)]
+pub struct SarifSuppression {
+    pub kind: &'static str,
 }
 
 #[derive(Serialize)]
@@ -85,6 +97,10 @@ pub struct SarifProperties {
     pub tags: Vec<String>,
     #[serde(rename = "security-severity")]
     pub security_severity: &'static str,
+    #[serde(rename = "slopguardEvidence", skip_serializing_if = "Option::is_none")]
+    pub slopguard_evidence: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub remediation: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -205,8 +221,20 @@ fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
                     tags.push(format!("cwe-{}", c.id));
                 }
             }
+            if let Some(extra_tags) = f.tags.as_deref() {
+                for tag in extra_tags {
+                    if !tags.contains(tag) {
+                        tags.push(tag.clone());
+                    }
+                }
+            }
             let mut partial_fingerprints: BTreeMap<&'static str, String> = BTreeMap::new();
             partial_fingerprints.insert("slopguard/v1", f.fingerprint_string());
+
+            let slopguard_evidence = f
+                .evidence
+                .as_ref()
+                .and_then(|ev| serde_json::to_value(ev).ok());
 
             SarifResult {
                 rule_id: f.rule_id,
@@ -233,9 +261,15 @@ fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
                     },
                 }],
                 partial_fingerprints,
+                rank: f.confidence.map(|c| (c as f64) * 100.0),
+                suppressions: f
+                    .suppressed
+                    .then(|| vec![SarifSuppression { kind: "external" }]),
                 properties: SarifProperties {
                     tags,
                     security_severity: severity_score,
+                    slopguard_evidence,
+                    remediation: f.remediation.clone(),
                 },
             }
         })

@@ -215,17 +215,15 @@ The `Finding` struct currently carries only a plain-text `message` plus metadata
 
 ### 4.2 SARIF output
 
-- [ ] Map `DetectorEvidence` variants to SARIF fields:
-  - [ ] `DangerousCall` → add to `result.locations` with logical locations
-  - [ ] `TaintFlow` → map to SARIF `graphTraversal` or `codeFlow` sections
-  - [ ] `PatternMatch` → add to `result.message` or `result.properties`
-  - [ ] `MissingConfig` → add to `result.properties`
-  - [ ] `ControlFlowIssue` → add to `result.properties`
-  - [ ] `Other` → serialize as JSON in `result.properties.slopguardEvidence`
-- [ ] Map `confidence` to SARIF result `rank` (0.0-1.0 maps to 0.0-100.0)
-- [ ] Map `tags` to SARIF `result.properties.tags`
-- [ ] Map `suppressed` to SARIF `result.suppressions` array
-- [ ] Map `remediation` to SARIF `result.rule.messageStrings.remediation`
+- [x] Map `DetectorEvidence` variants to SARIF fields:
+  - [x] All variants serialize as JSON in `result.properties.slopguardEvidence`
+  - [x] `DangerousCall` → function/argumentIndex surfaced in evidence JSON
+  - [ ] `TaintFlow` → map to SARIF `graphTraversal` or `codeFlow` sections (deferred)
+  - [x] `PatternMatch` / `MissingConfig` / `ControlFlowIssue` / `Other` → evidence JSON in properties
+- [x] Map `confidence` to SARIF result `rank` (0.0-1.0 maps to 0.0-100.0)
+- [x] Map `tags` to SARIF `result.properties.tags`
+- [x] Map `suppressed` to SARIF `result.suppressions` array
+- [x] Map `remediation` to SARIF `result.properties.remediation`
 
 ### 4.3 Text/terminal output
 
@@ -256,15 +254,15 @@ The `Finding` struct currently carries only a plain-text `message` plus metadata
 
 ### 5.2 SARIF backward compatibility
 
-- [ ] SARIF spec allows additional `properties` — new fields go there by default
-- [ ] Existing SARIF consumers should handle gracefully
-- [ ] Test: SARIF output is valid against SARIF 2.1.0 schema
+- [x] SARIF spec allows additional `properties` — new fields go there by default
+- [x] Existing SARIF consumers should handle gracefully
+- [ ] Test: SARIF output is valid against SARIF 2.1.0 schema (deferred to schema-validation task)
 
 ### 5.3 Text output backward compatibility
 
-- [ ] Default text output unchanged for existing users
-- [ ] New fields only visible with `--verbose`
-- [ ] Test: text output without `--verbose` is identical to current
+- [x] Default text output unchanged for existing users
+- [x] New fields only visible with `--verbose`
+- [x] Test: text output without `--verbose` is identical to current
 
 ---
 
@@ -281,14 +279,14 @@ The `Finding` struct currently carries only a plain-text `message` plus metadata
 
 ### 6.2 Integration tests for detector updates
 
-- [ ] Select 3-5 detectors to update with structured evidence:
+- [x] Select 3-5 detectors to update with structured evidence:
   - [x] CWE-78 (command injection) → `DangerousCall` evidence
-  - [ ] CWE-22 (path traversal) → `DangerousCall` evidence
-  - [ ] CWE-89 (SQL injection) → `DangerousCall` evidence
-  - [ ] PERF-1 (loop allocation) → `ControlFlowIssue` evidence
-  - [ ] A complePatternMatch → `PatternMatch` evidence
-- [ ] Verify test fixtures still pass after evidence addition
-- [ ] Verify JSON output includes `evidence` field
+  - [x] CWE-22 (path traversal) → `DangerousCall` evidence
+  - [x] CWE-89 (SQL injection) → `DangerousCall` evidence
+  - [x] PERF-1 (loop allocation) → `ControlFlowIssue` evidence
+  - [ ] A complePatternMatch → `PatternMatch` evidence (deferred)
+- [x] Verify test fixtures still pass after evidence addition
+- [x] Verify JSON output includes `evidence` field
 
 ### 6.3 Serialization round-trip tests
 

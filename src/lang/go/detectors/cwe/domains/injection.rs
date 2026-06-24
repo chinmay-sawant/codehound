@@ -65,24 +65,31 @@ pub(crate) fn detect_cwe_89(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
             continue;
         }
 
-        let has_sql_sink = facts.call_facts.iter().any(|call| {
+        let Some(sink_call) = facts.call_facts.iter().find(|call| {
             sinks::matches_sink(&sinks::SQL_SINKS, &call.callee)
                 && call
                     .arguments
                     .iter()
                     .any(|arg| argument_uses_identifier(arg, &assignment.name))
-        });
-        if !has_sql_sink {
+        }) else {
             continue;
-        }
+        };
 
         let (line, col) = unit.line_col(assignment.start_byte);
-        emit::push_finding(
+        let argument_index = sink_call
+            .arguments
+            .iter()
+            .position(|arg| argument_uses_identifier(arg, &assignment.name));
+        emit::push_finding_with_evidence(
             &META_CWE_89,
             file,
             line,
             col,
             "user-controlled input is formatted into an SQL query before execution",
+            DetectorEvidence::DangerousCall {
+                function: sink_call.callee.to_string(),
+                argument_index,
+            },
             out,
         );
     }
