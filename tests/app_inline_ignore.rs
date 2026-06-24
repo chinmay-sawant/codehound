@@ -1,6 +1,9 @@
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[path = "helpers/mod.rs"]
+mod helpers;
+
 fn unique_temp_root(test_name: &str) -> std::path::PathBuf {
     let unique = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -66,6 +69,7 @@ func TraceRoute(w http.ResponseWriter, r *http.Request) {{
 
 #[test]
 fn inline_ignore_suppresses_matching_finding() {
+    let source_path = helpers::assert_fixture_materializes("tests/fixtures/go/baseline/suppressed_inline.txt");
     let output = Command::new(env!("CARGO_BIN_EXE_slopguard"))
         .arg("--format")
         .arg("json")
@@ -74,7 +78,7 @@ fn inline_ignore_suppresses_matching_finding() {
         .arg("--no-cache")
         .arg("--lang")
         .arg("go")
-        .arg("tests/fixtures/go/baseline/suppressed_inline.go")
+        .arg(&source_path)
         .output()
         .unwrap();
 

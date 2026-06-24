@@ -299,15 +299,19 @@ Enable adoption on legacy codebases: first-run baseline captures all current fin
 
 ### 6.4 Integration tests for inline suppression
 
-- [x] Create fixture `tests/fixtures/go/baseline/suppressed_inline.go`:
-  ```go
+- [x] Create fixture `tests/fixtures/go/baseline/suppressed_inline.txt` (materialized to `.go` at test time):
+  ```text
+  # suppressed inline-ignore fixture
+  lang: go
+  file: suppressed_inline.go
+  ---
   package main
-  
+
   import (
       "os/exec"
       "net/http"
   )
-  
+
   func handler(w http.ResponseWriter, r *http.Request) {
       cmd := r.URL.Query().Get("cmd")
       // slopguard-ignore: CWE-78

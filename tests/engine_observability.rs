@@ -6,6 +6,9 @@ use slopguard::core::ScanContext;
 use slopguard::engine::{Analyzer, Diagnostics, ScanStats, TimingCollector};
 use slopguard::rules::{Finding, LineCol, Severity};
 
+#[path = "helpers/mod.rs"]
+mod helpers;
+
 fn sample_result_with_stats() -> slopguard::engine::AnalysisResult {
     slopguard::engine::AnalysisResult {
         source_cache: std::collections::HashMap::new(),
@@ -50,7 +53,10 @@ fn analyzer_collects_stats_when_enabled() {
         .collect_stats(true)
         .build();
 
-    let result = analyzer.analyze_paths(["tests/fixtures"], None).unwrap();
+    // Materialize the baseline fixture so we have an actual source file to scan.
+    let source_path = helpers::assert_fixture_materializes("tests/fixtures/go/baseline/suppressed_inline.txt");
+    let scan_root = source_path.parent().unwrap();
+    let result = analyzer.analyze_paths([scan_root], None).unwrap();
 
     assert!(
         result.stats.is_some(),
@@ -165,6 +171,8 @@ fn diagnostics_flag_writes_valid_json_file() {
     let diagnostics_path = temp_dir.join("diag.json");
     std::fs::create_dir_all(&temp_dir).unwrap();
 
+    let source_path = helpers::assert_fixture_materializes("tests/fixtures/go/baseline/suppressed_inline.txt");
+
     let output = std::process::Command::new("cargo")
         .args([
             "run",
@@ -172,7 +180,7 @@ fn diagnostics_flag_writes_valid_json_file() {
             "--",
             "--diagnostics",
             diagnostics_path.to_str().unwrap(),
-            "tests/fixtures/go/baseline/suppressed_inline.go",
+            source_path.to_str().unwrap(),
         ])
         .current_dir(env!("CARGO_MANIFEST_DIR"))
         .output()

@@ -4635,3 +4635,8 @@ required_rules = ["PERF-127"]
 lang = "go"
 path = "tests/fixtures/go/perf/PERF-127-safe.txt"
 required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/baseline/suppressed_inline.txt"
+required_rules = []

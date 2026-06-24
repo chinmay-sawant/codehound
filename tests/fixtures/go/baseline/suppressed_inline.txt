@@ -1,3 +1,7 @@
+# suppressed inline-ignore fixture
+lang: go
+file: suppressed_inline.go
+---
 package main
 
 import (
