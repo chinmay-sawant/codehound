@@ -4563,6 +4563,16 @@ required_rules = ["PERF-107"]
 lang = "go"
 path = "tests/fixtures/go/perf/PERF-107-safe.txt"
 required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-101-vulnerable.txt"
+required_rules = ["PERF-101"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-101-safe.txt"
+required_rules = []
 [[fixture]]
 lang = "go"
 path = "tests/fixtures/go/perf/PERF-111-vulnerable.txt"
@@ -4580,6 +4590,16 @@ required_rules = ["PERF-112"]
 [[fixture]]
 lang = "go"
 path = "tests/fixtures/go/perf/PERF-112-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-113-vulnerable.txt"
+required_rules = ["PERF-113"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-113-safe.txt"
 required_rules = []
 [[fixture]]
 lang = "go"
@@ -4670,6 +4690,56 @@ required_rules = ["PERF-127"]
 [[fixture]]
 lang = "go"
 path = "tests/fixtures/go/perf/PERF-127-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-146-vulnerable.txt"
+required_rules = ["PERF-146"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-146-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-147-vulnerable.txt"
+required_rules = ["PERF-147"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-147-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-157-vulnerable.txt"
+required_rules = ["PERF-157"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-157-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-190-vulnerable.txt"
+required_rules = ["PERF-190"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-190-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-198-vulnerable.txt"
+required_rules = ["PERF-198"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-198-safe.txt"
 required_rules = []
 
 [[fixture]]

@@ -14,6 +14,35 @@ use super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
+/// PERF-101: `http.Server{}` without any configured server timeout.
+pub(crate) fn detect_perf_101(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+    let mut search_from = 0;
+    while let Some(rel) = source[search_from..].find("http.Server{") {
+        let start = search_from + rel;
+        let window = &source[start..(start + 256).min(source.len())];
+        if window.contains("ReadTimeout:")
+            || window.contains("ReadHeaderTimeout:")
+            || window.contains("WriteTimeout:")
+            || window.contains("IdleTimeout:")
+        {
+            search_from = start + "http.Server{".len();
+            continue;
+        }
+        let (line, col) = unit.line_col(start);
+        emit::push_finding(
+            &META_PERF_101,
+            file,
+            line,
+            col,
+            "http.Server is missing ReadTimeout, WriteTimeout, and IdleTimeout settings",
+            out,
+        );
+        search_from = start + "http.Server{".len();
+    }
+}
+
 /// PERF-103: `client.Do`, `client.Get`, `http.Get`, or `http.Post`
 /// returns an `*http.Response` whose Body must be `Close()`d. The
 /// detector flags a call when the surrounding context does NOT
@@ -148,6 +177,102 @@ pub(crate) fn detect_perf_112(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
             "case conversion before comparison allocates; use strings.EqualFold",
             out,
         );
+    }
+}
+
+/// PERF-113: `select` with one case is more expensive and less clear
+/// than a direct channel operation.
+pub(crate) fn detect_perf_113(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+    let mut search_from = 0;
+    while let Some(rel) = source[search_from..].find("select {") {
+        let start = search_from + rel;
+        let end = source[start..]
+            .find('}')
+            .map(|off| start + off)
+            .unwrap_or(source.len());
+        let block = &source[start..end];
+        if block.matches("case ").count() == 1 && !block.contains("default:") {
+            let (line, col) = unit.line_col(start);
+            emit::push_finding(
+                &META_PERF_113,
+                file,
+                line,
+                col,
+                "single-case select should be a direct channel send or receive",
+                out,
+            );
+        }
+        search_from = end.saturating_add(1);
+    }
+}
+
+/// PERF-146: `fmt.Sprintf("%s", value)` is just string conversion.
+pub(crate) fn detect_perf_146(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    for call in &facts.calls {
+        if call.callee.as_ref() != "fmt.Sprintf" {
+            continue;
+        }
+        if call.arguments.len() == 2 && call.arguments[0].as_ref() == "\"%s\"" {
+            let (line, col) = unit.line_col(call.start_byte);
+            emit::push_finding(
+                &META_PERF_146,
+                file,
+                line,
+                col,
+                "fmt.Sprintf(\"%s\", s) is redundant for a single string value",
+                out,
+            );
+        }
+    }
+}
+
+/// PERF-147: duplicate of the ReplaceAll shape tracked separately in
+/// the expanded PERF catalog.
+pub(crate) fn detect_perf_147(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    for call in &facts.calls {
+        if call.callee.as_ref() != "strings.Replace" {
+            continue;
+        }
+        if call.arguments.last().map(|arg| arg.as_ref()) != Some("-1") {
+            continue;
+        }
+        let (line, col) = unit.line_col(call.start_byte);
+        emit::push_finding(
+            &META_PERF_147,
+            file,
+            line,
+            col,
+            "strings.Replace with -1 should be strings.ReplaceAll",
+            out,
+        );
+    }
+}
+
+/// PERF-157: `fmt.Sprint` / `fmt.Sprintln` with one string literal is redundant.
+pub(crate) fn detect_perf_157(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    for call in &facts.calls {
+        if !matches!(call.callee.as_ref(), "fmt.Sprint" | "fmt.Sprintln") {
+            continue;
+        }
+        let Some(arg) = call.arguments.first().map(|arg| arg.as_ref()) else {
+            continue;
+        };
+        if call.arguments.len() == 1 && arg.starts_with('"') && arg.ends_with('"') {
+            let (line, col) = unit.line_col(call.start_byte);
+            emit::push_finding(
+                &META_PERF_157,
+                file,
+                line,
+                col,
+                "fmt.Sprint with a single string literal is redundant",
+                out,
+            );
+        }
     }
 }
 
@@ -425,6 +550,61 @@ pub(crate) fn detect_perf_127(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
                 out,
             );
         }
+    }
+}
+
+/// PERF-190: `http.Client{}` without `Timeout`.
+pub(crate) fn detect_perf_190(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+    let mut search_from = 0;
+    while let Some(rel) = source[search_from..].find("http.Client{") {
+        let start = search_from + rel;
+        let line_start = source[..start].rfind('\n').map(|idx| idx + 1).unwrap_or(0);
+        let line_prefix = source[line_start..start].trim_start();
+        if line_prefix.starts_with("var ") {
+            search_from = start + "http.Client{".len();
+            continue;
+        }
+        let window = &source[start..(start + 192).min(source.len())];
+        if window.contains("Timeout:") {
+            search_from = start + "http.Client{".len();
+            continue;
+        }
+        let (line, col) = unit.line_col(start);
+        emit::push_finding(
+            &META_PERF_190,
+            file,
+            line,
+            col,
+            "http.Client is missing Timeout; requests can hang indefinitely",
+            out,
+        );
+        search_from = start + "http.Client{".len();
+    }
+}
+
+/// PERF-198: `strings.Contains` on Content-Type is imprecise and slower
+/// than parsing or exact media-type comparison.
+pub(crate) fn detect_perf_198(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    for call in &facts.calls {
+        if call.callee.as_ref() != "strings.Contains" {
+            continue;
+        }
+        let first = call.arguments.first().map(|arg| arg.as_ref()).unwrap_or("");
+        if !first.contains("Content-Type") && !first.contains("contentType") {
+            continue;
+        }
+        let (line, col) = unit.line_col(call.start_byte);
+        emit::push_finding(
+            &META_PERF_198,
+            file,
+            line,
+            col,
+            "Content-Type checks should parse or compare the media type instead of using strings.Contains",
+            out,
+        );
     }
 }
 

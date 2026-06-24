@@ -65,7 +65,7 @@
 
 ---
 
-## B. P2.4 — PERF Detector Implementation (212 rules, 15 shipped)
+## B. P2.4 — PERF Detector Implementation (212 rules, 22 shipped)
 
 ### B.1 Plan items still unchecked in `04-perf-detector-implementation.md`
 
@@ -78,7 +78,7 @@
 - [x] **Phase 1.3 — Create `concurrency` / `memory_gc` / `stdlib_optimization` / `string_bytes` domain modules if needed**
   - [x] Placeholder domain modules created under `src/lang/go/detectors/perf/domains/`.
 - [ ] **Phase 2.1 — Add registry entries for PERF-101..212**
-  - Partially done: 15 of 112 entries (103, 105, 107, 111, 112, 115, 116, 117, 118, 120, 122, 123, 124, 126, 127). The remaining 97 entries need to be added before the rest of the detectors can land.
+  - Partially done: 22 of 112 entries (101, 103, 105, 107, 111, 112, 113, 115, 116, 117, 118, 120, 122, 123, 124, 126, 127, 146, 147, 157, 190, 198). The remaining 90 entries need to be added before the rest of the detectors can land.
 - [x] **Phase 2.2 — Verify `build.rs` reads `perf/registry.toml` and generates metadata + dispatch**
   - [x] `tests/go_perf_registry_generation.rs` compares generated runtime PERF rule IDs against `registry.toml`.
 - [ ] **Phase 3.2 — Category B (~40 context-aware rules)**
@@ -87,11 +87,12 @@
   - Not started. Examples: `http.Client` without timeout across package boundaries, `database/sql` connection pool exhaustion. These overlap with P2.1 taint tracking.
 - [ ] **Phase 4 — Test fixtures (`vulnerable_perf_N.txt` + `safe_perf_N.txt`) for PERF-101..212**
   - [x] First batch (PERF-103/105/107/111/112/115-118/120/122/123/124/126-127) fixtures created and registered (15 detectors).
+  - [x] Second registry/fixture batch (PERF-101/113/146/147/157/190/198) created and registered (7 detectors).
   - [ ] Remaining PERF-101..212 fixtures — **deferred**.
 - [ ] **Phase 5 — Performance verification**
   - Lightweight `cargo bench --bench incremental_scan -- --sample-size 10 --measurement-time 1` was run. Criterion completed with exit code 0 but reported regressions versus the saved local baseline for cold, warm, partial, and in-memory warm paths, so this remains open.
 
-### B.2 The 15 detectors shipped (PERF-103, 105, 107, 111, 112, 115, 116, 117, 118, 120, 122, 123, 124, 126, 127)
+### B.2 The 22 detectors shipped (PERF-101, 103, 105, 107, 111, 112, 113, 115, 116, 117, 118, 120, 122, 123, 124, 126, 127, 146, 147, 157, 190, 198)
 
 - [x] **Add `.txt` fixtures in `tests/fixtures/go/perf/` for each of the 15 detectors**
   - [x] Created fixtures and manifest entries for all 15.
@@ -99,6 +100,7 @@
   - [x] (a) Loosen the contiguity test in `tests/go_perf_detector_integration.rs:68` to require a *contiguous range* from min to max, allowing gaps. This is the correct fix. — Done.
   - [ ] (b) Create stub fixtures for missing PERF IDs. This is bookkeeping. — Not needed.
 - [x] **4 detectors added in second batch (PERF-105, 111, 112, 123)** — all have fixtures, registry entries, and implemented detectors in `stdlib_misuse.rs`.
+- [x] **7 detectors added in PERF-101+ registry/fixture batch (PERF-101, 113, 146, 147, 157, 190, 198)** — all have fixtures, registry entries, and implemented detectors in `stdlib_misuse.rs`.
 - [ ] **No real-project smoke test that proves firing** — a no-export gopdfsuit scan was run for the 15 shipped PERF-101..127 rules and completed cleanly, but it produced no matching findings. Still need a real-project positive smoke fixture or target that proves at least one shipped detector fires on non-synthetic code.
 - [x] **PERF-126's `is_canonical_header` list** is hardcoded; should be verified against `net/http`'s `textproto.CanonicalMIMEHeaderKey` behavior, especially for less-common headers. Verified with unit coverage for canonical spellings including `Etag`, `Www-Authenticate`, `X-Csrf-Token`, and fixed exact-case matching so non-canonical spellings like `ETag` are not flagged as redundant.
 - [x] **PERF-122 / PERF-127 substring heuristics** are coarse; a real implementation would parse the source window properly. ~~Document the trade-off or implement a tighter check.~~ Trade-off documented in `detection_notes` and detector comments.
@@ -111,11 +113,11 @@
 
 ---
 
-## C. P2.5 — Bad Practices (MVP shipped: BP-1, BP-3, BP-11; remaining deferred)
+## C. P2.5 — Bad Practices (MVP shipped: BP-1..BP-11, BP-13, BP-15; remaining deferred)
 
 The scope doc at `plans/bad-practices-scope.md` is a roadmap. MVP module is implemented in `src/lang/go/detectors/bad_practices/`.
 
-**Current active slice:** P2.5-A MVP rules and P2.4 planning/build verification — completed in this pass; next phase is remaining PERF registry/detector batches and benchmark regression investigation.
+**Current active slice:** P2.5-A MVP rules and P2.4 planning/build verification — completed; current phase is remaining PERF registry/detector batches and benchmark regression investigation.
 
 ### C.1 Implementation (P2.5-A: MVP, 2 weeks)
 
@@ -231,8 +233,8 @@ See **§ P2.1** above for detailed status: Phase A (Foundation) and Phase B (Int
 | Plan | Items in this checklist | Effort to clear (rough) |
 |---|---|---|
 | P2.3 (A + E.6 + E.1 partial) | ~16 items | 2-4 days |
-| P2.4 (B) | ~13 items (incl. ~97 detectors + fixtures) | 4-6 weeks |
-| P2.5 (C) | ~22 items (BP-2..BP-15 + config + CLI + reporting + tests + 3 follow-up phases) | 6 weeks |
+| P2.4 (B) | ~13 items (incl. ~90 detectors + fixtures) | 4-6 weeks |
+| P2.5 (C) | ~22 items (metadata + reporting + tests + 3 follow-up phases) | 6 weeks |
 | P2.1 (D) | ~4 items (Phases C–F) | 4-6 weeks |
 | Cross-cutting (E) | ~20 items | 1-2 days |
 
