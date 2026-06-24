@@ -96,6 +96,31 @@ fn results_have_security_severity_in_properties() {
 }
 
 #[test]
+fn bad_practice_results_have_category_and_medium_security_severity() {
+    let result = AnalysisResult {
+        source_cache: std::collections::HashMap::new(),
+        findings: vec![Finding::new(
+            "BP-1",
+            "Discarded Error Return",
+            "bad.go",
+            LineCol { line: 3, column: 2 },
+            "discarded error",
+            Severity::Low,
+            Cow::Borrowed(&[]),
+        )],
+        errors: vec![],
+        suppressed_count: 0,
+        stats: None,
+    };
+
+    let log = render_to_string(&result);
+
+    assert!(log.contains("\"category\": \"bad_practice\""), "got: {log}");
+    assert!(log.contains("\"security-severity\": \"5.0\""), "got: {log}");
+    assert!(log.contains("\"bad_practice\""), "got: {log}");
+}
+
+#[test]
 fn invocations_block_present() {
     let log = render_to_string(&sample_result());
     assert!(log.contains("\"invocations\""), "got: {log}");

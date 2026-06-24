@@ -5,6 +5,8 @@ use std::collections::HashSet;
 use std::path::Path;
 
 use serde::Deserialize;
+use slopguard::core::ScanContext;
+use slopguard::engine::Analyzer;
 use walkdir::WalkDir;
 
 #[path = "helpers/mod.rs"]
@@ -23,6 +25,8 @@ struct FixtureEntry {
     lang: String,
     path: String,
     required_rules: Vec<String>,
+    #[serde(default)]
+    taint: bool,
 }
 
 fn load_manifest() -> Manifest {
@@ -53,7 +57,16 @@ fn manifest_entries_exist_and_fire() {
             entry.lang
         );
         let rules: Vec<&str> = entry.required_rules.iter().map(String::as_str).collect();
-        helpers::assert_fixture_rules(&entry.path, &rules);
+        if entry.taint {
+            let ctx = ScanContext {
+                taint_enabled: true,
+                ..ScanContext::default()
+            };
+            let analyzer = Analyzer::builder().scan_context(ctx).build();
+            helpers::assert_fixture_rules_with_context(&entry.path, &rules, &analyzer);
+        } else {
+            helpers::assert_fixture_rules(&entry.path, &rules);
+        }
     }
 }
 

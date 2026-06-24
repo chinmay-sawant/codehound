@@ -9,6 +9,7 @@ use slopguard::rules::{DetectorEvidence, Finding, LineCol, Severity};
 struct LegacyFindingJson {
     rule_id: String,
     rule_title: String,
+    category: String,
     file: String,
     line: usize,
     column: usize,
@@ -163,6 +164,7 @@ fn legacy_json_consumers_ignore_structured_fields() {
 
     assert_eq!(legacy.rule_id, "CWE-78");
     assert_eq!(legacy.rule_title, "Command injection");
+    assert_eq!(legacy.category, "security");
     assert_eq!(legacy.file, "cmd.go");
     assert_eq!(legacy.line, 10);
     assert_eq!(legacy.column, 3);
@@ -171,6 +173,22 @@ fn legacy_json_consumers_ignore_structured_fields() {
     assert_eq!(legacy.severity, "high");
     assert!(legacy.cwe.is_empty());
     assert_eq!(legacy.fix, None);
+}
+
+#[test]
+fn json_finding_includes_bad_practice_category() {
+    let finding = Finding::new(
+        "BP-1",
+        "Discarded Error Return",
+        "bad.go",
+        LineCol { line: 3, column: 2 },
+        "discarded error",
+        Severity::Low,
+        Cow::Borrowed(&[]),
+    );
+    let value = serde_json::to_value(FindingJson::from(&finding)).unwrap();
+
+    assert_eq!(value["category"], "bad_practice");
 }
 
 #[test]

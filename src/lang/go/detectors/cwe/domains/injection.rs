@@ -1,10 +1,16 @@
 use super::super::common::*;
 use super::super::facts::{GoUnitFacts, InputKind};
 use super::super::metadata::*;
+use super::super::taint::detect_cwe_78_taint;
+use super::super::taint::detect_cwe_89_taint;
 use crate::core::ParsedUnit;
 use crate::engine::sinks;
 use crate::rules::{DetectorEvidence, Finding, emit};
 pub(crate) fn detect_cwe_78(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+    if facts.taint_graph.is_some() {
+        detect_cwe_78_taint(unit, facts, out);
+        return;
+    }
     let file = unit.display_path.as_str();
 
     for call in &facts.call_facts {
@@ -44,6 +50,10 @@ pub(crate) fn detect_cwe_78(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
 }
 
 pub(crate) fn detect_cwe_89(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+    if facts.taint_graph.is_some() {
+        detect_cwe_89_taint(unit, facts, out);
+        return;
+    }
     let file = unit.display_path.as_str();
 
     for assignment in &facts.assignments {

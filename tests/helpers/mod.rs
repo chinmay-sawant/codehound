@@ -84,6 +84,51 @@ pub fn assert_fixture_rules(txt_path: &str, required_rules: &[&str]) {
     }
 }
 
+/// Like `assert_fixture_rules` but uses a custom `ScanContext`.
+pub fn assert_fixture_rules_with_context(
+    txt_path: &str,
+    required_rules: &[&str],
+    analyzer: &Analyzer,
+) {
+    assert!(
+        Path::new(txt_path).is_file(),
+        "fixture missing (mandatory .txt): {txt_path}"
+    );
+    assert!(
+        txt_path.ends_with(".txt"),
+        "fixtures must use .txt text format, not source extensions: {txt_path}"
+    );
+
+    let source_path = assert_fixture_materializes(txt_path);
+    let result = analyzer
+        .analyze_paths([&source_path], None)
+        .unwrap_or_else(|e| panic!("analyze {}: {e:#}", source_path.display()));
+
+    let ids: Vec<&str> = result.findings.iter().map(|f| f.rule_id).collect();
+    if required_rules.is_empty() {
+        let class = infer_rule_class(txt_path);
+        let matching: Vec<&str> = ids
+            .iter()
+            .copied()
+            .filter(|id| id.starts_with(class))
+            .collect();
+        assert!(
+            matching.is_empty(),
+            "fixture {txt_path} → {}: expected no {class} findings, got {ids:?}",
+            source_path.display()
+        );
+        return;
+    }
+
+    for rule in required_rules {
+        assert!(
+            ids.contains(rule),
+            "fixture {txt_path} → {}: expected rule {rule}, got {ids:?}",
+            source_path.display()
+        );
+    }
+}
+
 /// Materialize all `*.{FIXTURE_EXTENSION}` under `fixtures_root`, then scan the generated tree.
 pub fn assert_mixed_txt_fixtures(fixtures_root: &str, go_rules: &[&str], python_rules: &[&str]) {
     materialize_tree(Path::new(fixtures_root))

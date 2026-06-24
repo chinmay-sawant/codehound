@@ -4,13 +4,14 @@ pub mod common;
 pub mod domains;
 pub mod facts;
 pub mod source_index;
+pub mod taint;
 
 mod metadata;
 
 use crate::core::{Detector, LanguageId, ParsedUnit, ScanContext};
 use crate::rules::{Finding, Rule, RuleMetadata};
 use domains::*;
-use facts::{GoUnitFacts, build_go_unit_facts};
+use facts::{GoUnitFacts, build_go_unit_facts, build_taint_graph_for_facts};
 
 type GoRuleFn = fn(&ParsedUnit, &GoUnitFacts, &mut Vec<Finding>);
 type GoRuleEntry = (&'static str, GoRuleFn, &'static RuleMetadata);
@@ -48,7 +49,10 @@ impl Detector for GoCweScan {
         if !self.rule_ids().iter().any(|id| ctx.allows(id)) {
             return;
         }
-        let facts = build_go_unit_facts(unit);
+        let mut facts = build_go_unit_facts(unit);
+        if ctx.taint_enabled {
+            build_taint_graph_for_facts(&mut facts);
+        }
         for (rule_id, detector, _) in GO_RULES {
             if ctx.allows(rule_id) {
                 detector(unit, &facts, out);

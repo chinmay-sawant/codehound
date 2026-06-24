@@ -54,7 +54,8 @@ fn analyzer_collects_stats_when_enabled() {
         .build();
 
     // Materialize the baseline fixture so we have an actual source file to scan.
-    let source_path = helpers::assert_fixture_materializes("tests/fixtures/go/baseline/suppressed_inline.txt");
+    let source_path =
+        helpers::assert_fixture_materializes("tests/fixtures/go/baseline/suppressed_inline.txt");
     let scan_root = source_path.parent().unwrap();
     let result = analyzer.analyze_paths([scan_root], None).unwrap();
 
@@ -171,7 +172,8 @@ fn diagnostics_flag_writes_valid_json_file() {
     let diagnostics_path = temp_dir.join("diag.json");
     std::fs::create_dir_all(&temp_dir).unwrap();
 
-    let source_path = helpers::assert_fixture_materializes("tests/fixtures/go/baseline/suppressed_inline.txt");
+    let source_path =
+        helpers::assert_fixture_materializes("tests/fixtures/go/baseline/suppressed_inline.txt");
 
     let output = std::process::Command::new("cargo")
         .args([

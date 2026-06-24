@@ -1,9 +1,15 @@
 use super::super::common::*;
 use super::super::facts::{GoUnitFacts, InputKind};
 use super::super::metadata::*;
+use super::super::taint::detect_cwe_22_taint;
 use crate::core::ParsedUnit;
 use crate::rules::{DetectorEvidence, Finding, emit};
+
 pub(crate) fn detect_cwe_22(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+    if facts.taint_graph.is_some() {
+        detect_cwe_22_taint(unit, facts, out);
+        return;
+    }
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 

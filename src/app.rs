@@ -90,12 +90,8 @@ pub fn run(cli: Cli) -> Result<ExitCode> {
     }
 
     if cli.prune_cache {
-        let (entries, _skipped) = collect_entries(
-            &registry,
-            &cli.paths,
-            &lang_filter,
-            &path_filters,
-        )?;
+        let (entries, _skipped) =
+            collect_entries(&registry, &cli.paths, &lang_filter, &path_filters)?;
         let scanned_files: std::collections::HashSet<String> = entries
             .iter()
             .map(|e| e.path.display().to_string())
@@ -411,7 +407,8 @@ fn open_cache_store(cli: &Cli, config: Option<&SlopguardConfig>) -> Option<Cache
         }
     }
     let dir = cache_directory(cli, config)?;
-    match CacheStore::open(dir) {
+    let max_size_mb = config.map(|c| c.slopguard.cache.max_size_mb).unwrap_or(500);
+    match CacheStore::open_with_capacity(dir, max_size_mb) {
         Ok(s) => Some(s),
         Err(e) => {
             if !cli.quiet {
@@ -474,6 +471,11 @@ pub fn init_subcommand() -> ExitCode {
 # [slopguard.baseline]
 # enabled = true
 # path = \".slopguard-baseline.json\"
+
+# Bad-practice rules (BP-*) are enabled by default.
+# [slopguard.bad_practices]
+# enabled = true
+# severity = \"low\"
 
 # Incremental analysis cache is enabled by default. SlopGuard stores per-file
 # results in `.slopguard-cache/` next to the project root and reuses them on

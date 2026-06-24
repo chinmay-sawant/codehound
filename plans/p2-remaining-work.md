@@ -6,6 +6,29 @@
 
 ---
 
+## P2.1 — Taint Tracking (intra-procedural foundation shipped; inter-procedural deferred)
+
+- [x] **Phase A — Foundation**
+  - [x] `TaintNode` / `TaintEdge` / `TaintGraph` data model in `src/lang/go/detectors/cwe/taint/mod.rs`
+  - [x] `SourceKind` / `SinkKind` / `SanitizerKind` enums
+  - [x] `extract_taint_facts` single-pass tree-sitter walk with scope-stack tracking
+  - [x] `TaintAnnotations` attached to `GoUnitFacts`; taint graph built on demand
+- [x] **Phase B — Intra-procedural graph + detector rewrites**
+  - [x] Worklist-based forward taint propagation with sanitizer-aware path search
+  - [x] Rewrote CWE-78/89/22/79 to use taint paths when `[taint] enabled = true`
+  - [x] Legacy substring detectors remain as fallback when taint is disabled
+  - [x] Added 8 taint fixtures (`tests/fixtures/go/taint/CWE-{78,89,22,79}-{vulnerable,safe}.txt`)
+  - [x] Added `taint` flag to `tests/fixtures/manifest.toml` and `fixture_manifest_integration.rs`
+- [x] **Configuration**
+  - [x] `[taint]` section in `slopguard.toml` with `enabled` (default false) and `show_paths`
+  - [x] `taint_enabled` / `taint_show_paths` fields in `ScanContext`
+- [ ] **Phase C — Remove substring fallback for CWE-78/89/22/79** (deferred until taint is default-on)
+- [ ] **Phase D — Extended sanitizer coverage** (`strconv.Atoi`, `utf8.ValidString`, `validator.v10`, etc.)
+- [ ] **Phase E — CLI `--show-taint` + documentation**
+- [ ] **Phase F — Inter-procedural taint** (deferred, separate plan)
+
+---
+
 ## A. P2.3 — Incremental Analysis
 
 ### A.1 Plan items still unchecked in `03-incremental-analysis.md`
@@ -16,13 +39,13 @@
   - We cascade-invalidate when the file's *content hash* changes. We do not detect the case where the source bytes are the same but a new import was added to the same line (impossible in practice for the hash to stay identical, but the plan called for explicit diffing). ~~Acceptable as-is; mark as deferred.~~ **Deferred.**
 - [x] **Phase 6.1 — Remove orphaned `files/<key>.json` files (keys not in manifest)**
   - [x] `CacheStore::clean_orphans()` implemented. Called by `--prune-cache`.
-- [ ] **Phase 6.2 — `cache.max_size_mb` config field + size-based LRU pruning**
+- [x] **Phase 6.2 — `cache.max_size_mb` config field + size-based LRU pruning**
   - [x] `cache.max_size_mb` config field added to `CacheConfig` (default: 500 MiB). Schema and TOML template updated.
-  - [ ] LRU eviction logic is **not yet implemented** — the field is wired but the pruning on `flush()` is TBD.
+  - [x] LRU eviction logic implemented in `CacheStore::flush()`; removes oldest entries by `cached_at` until cache is below 90% of the limit.
 - [x] **Phase 6.2 — `CacheStore::total_size() -> u64`**
   - [x] Implemented. Sums `files/*.json` sizes.
-- [ ] **Phase 6.2 — Prune oldest entries by `cached_at` timestamp when over limit**
-  - See above — LRU eviction logic TBD.
+- [x] **Phase 6.2 — Prune oldest entries by `cached_at` timestamp when over limit**
+  - [x] Implemented via `CacheStore::evict_to_size()`.
 - [ ] **Phase 8.2 — Integration test: change imported dependency → both files re-parsed**
   - Requires Phase 3.2 dependency extraction to be wired in (it is), so this test can be added. Note: today's `discover_project_root` looks for `.git` or `go.mod`; tests must work in a temp dir that has `go.mod`.
 - [x] **Phase 8.2 — Integration test: cache hit with rule filtering — `--skip` on cached file still works**
@@ -33,7 +56,7 @@
 ### A.2 Configuration / CLI / Schema (mostly done — minor follow-ups)
 
 - [x] **Add `--prune-cache` CLI flag** to force a cache cleanup without scanning. ~~Today the only way to "prune" is `--rebuild-cache` (purges everything) or deleting `.slopguard-cache/` by hand. A `--prune-cache` would run `cache.prune(&scanned_files)` and flush without scanning.~~
-- [x] **Add `cache.max_size_mb` config field** to `[slopguard.cache]` in `slopguard.toml` and the schema. (Repeated under B.1.) — Config field wired; LRU eviction logic TBD.
+- [x] **Add `cache.max_size_mb` config field** to `[slopguard.cache]` in `slopguard.toml` and the schema. — Config field wired and LRU eviction implemented.
 - [x] **Update `docs/architecture-performance.md`** to reflect the P2.3 phases that shipped (cache, dependency extraction, transitive invalidation). ~~The current doc was written before P2.3 started.~~
 
 ### A.3 Known test-suite flake
@@ -42,7 +65,7 @@
 
 ---
 
-## B. P2.4 — PERF Detector Implementation (212 rules, 11 shipped)
+## B. P2.4 — PERF Detector Implementation (212 rules, 15 shipped)
 
 ### B.1 Plan items still unchecked in `04-perf-detector-implementation.md`
 
@@ -53,9 +76,9 @@
 - [ ] **Phase 1.3 — Map rules to domain modules; create `plans/perf-category-breakdown.md`**
   - Not done.
 - [ ] **Phase 1.3 — Create `concurrency` / `memory_gc` / `stdlib_optimization` / `string_bytes` domain modules if needed**
-  - Not done. The 11 added detectors all landed in `general_perf/stdlib_misuse.rs`. The other domain modules are placeholders.
+  - Not done. The 15 added detectors all landed in `general_perf/stdlib_misuse.rs`. The other domain modules are placeholders.
 - [ ] **Phase 2.1 — Add registry entries for PERF-101..212**
-  - Partially done: 11 of 112 entries. The remaining 101 entries need to be added before the rest of the detectors can land.
+  - Partially done: 15 of 112 entries (103, 105, 107, 111, 112, 115, 116, 117, 118, 120, 122, 123, 124, 126, 127). The remaining 97 entries need to be added before the rest of the detectors can land.
 - [ ] **Phase 2.2 — Verify `build.rs` reads `perf/registry.toml` and generates metadata + dispatch**
   - Implicitly works (cargo build succeeds), but no dedicated unit test that asserts "add an entry to `registry.toml`, run `cargo build`, see the new function pointer in the generated dispatch table".
 - [ ] **Phase 3.2 — Category B (~40 context-aware rules)**
@@ -63,24 +86,20 @@
 - [ ] **Phase 3.3 — Category C (~32 multi-file / semantic rules)**
   - Not started. Examples: `http.Client` without timeout across package boundaries, `database/sql` connection pool exhaustion. These overlap with P2.1 taint tracking.
 - [ ] **Phase 4 — Test fixtures (`vulnerable_perf_N.txt` + `safe_perf_N.txt`) for PERF-101..212**
-  - **Not done.** This is the biggest gap from this session. The 11 added detectors have no `.txt` fixtures in `tests/fixtures/go/perf/` and are not registered in `tests/fixtures/manifest.toml`.
+  - [x] First batch (PERF-103/105/107/111/112/115-118/120/122/123/124/126-127) fixtures created and registered (15 detectors).
+  - [ ] Remaining PERF-101..212 fixtures — **deferred**.
 - [ ] **Phase 5 — Performance verification**
   - Not done. After Category B/C land, run the full `benches/scan_throughput` and `benches/incremental_scan` on gopdfsuit to confirm no regression.
 
-### B.2 The 11 detectors shipped in this session (PERF-103, 107, 115, 116, 117, 118, 120, 122, 124, 126, 127)
+### B.2 The 15 detectors shipped (PERF-103, 105, 107, 111, 112, 115, 116, 117, 118, 120, 122, 123, 124, 126, 127)
 
-- [x] **Add `.txt` fixtures in `tests/fixtures/go/perf/` for each of the 11 detectors**
-  - [x] Created `PERF-103/107/115/116/117/118/120/122/124/126/127-vulnerable.txt` + `-safe.txt` and manifest entries.
-- [x] **Resolve the PERF-1..100 contiguity invariant** so the 11 new detectors can be registered in `tests/fixtures/manifest.toml` and run through `assert_fixture_rules`. Two options:
+- [x] **Add `.txt` fixtures in `tests/fixtures/go/perf/` for each of the 15 detectors**
+  - [x] Created fixtures and manifest entries for all 15.
+- [x] **Resolve the PERF-1..100 contiguity invariant** so the 15 new detectors can be registered in `tests/fixtures/manifest.toml` and run through `assert_fixture_rules`. Two options:
   - [x] (a) Loosen the contiguity test in `tests/go_perf_detector_integration.rs:68` to require a *contiguous range* from min to max, allowing gaps. This is the correct fix. — Done.
-  - [ ] (b) Create stub fixtures for PERF-101, 102, 104..114, 118, 119, 121, 122, 123 (the missing 18 IDs). This is bookkeeping. — Not needed.
-- [x] **5 detectors have no test coverage** in the current inline-string test file:
-  - [x] **PERF-107** — added `perf_107_detects_binary_read_write_in_loop`
-  - [x] **PERF-118** — added `perf_118_detects_unnecessary_new_request`
-  - [x] **PERF-122** — added `perf_122_detects_has_prefix_slice` (also fixed `]:` → `:]` substring bug in detector)
-  - [x] **PERF-126** — added `perf_126_detects_canonical_header_on_canonical_input`
-  - [x] **PERF-127** — added `perf_127_detects_static_sprintf_in_log`
-- [ ] **No real-project smoke test** — never ran the binary against gopdfsuit to confirm the new detectors actually fire. The 11 detectors might pass unit tests on synthetic snippets but still have edge cases in real Go code (e.g. PERF-103's `.Body.Close()` substring check matches inside long comments or string literals).
+  - [ ] (b) Create stub fixtures for missing PERF IDs. This is bookkeeping. — Not needed.
+- [x] **4 detectors added in second batch (PERF-105, 111, 112, 123)** — all have fixtures, registry entries, and implemented detectors in `stdlib_misuse.rs`.
+- [ ] **No real-project smoke test** — never ran the binary against gopdfsuit to confirm the new detectors actually fire. The 15 detectors might pass unit tests on synthetic snippets but still have edge cases in real Go code (e.g. PERF-103's `.Body.Close()` substring check matches inside long comments or string literals).
 - [ ] **PERF-126's `is_canonical_header` list** is hardcoded; should be verified against `net/http`'s `textproto.CanonicalMIMEHeaderKey` behavior, especially for less-common headers. Currently a curated list of 40 common headers.
 - [x] **PERF-122 / PERF-127 substring heuristics** are coarse; a real implementation would parse the source window properly. ~~Document the trade-off or implement a tighter check.~~ Trade-off documented in `detection_notes` and detector comments.
 
@@ -92,19 +111,21 @@
 
 ---
 
-## C. P2.5 — Bad Practices (scope doc only, zero code)
+## C. P2.5 — Bad Practices (MVP shipped: BP-1, BP-3, BP-11; remaining deferred)
 
-The scope doc at `plans/bad-practices-scope.md` is a roadmap. Everything below is referenced as if it exists; it does not.
+The scope doc at `plans/bad-practices-scope.md` is a roadmap. MVP module is implemented in `src/lang/go/detectors/bad_practices/`.
+
+**Current active slice:** C.2 Configuration & CLI — completed in this pass; next phase is remaining BP detector coverage or list-rules category filtering.
 
 ### C.1 Implementation (P2.5-A: MVP, 2 weeks)
 
-- [ ] **`GoBadPracticeScan` detector** with the seven domain submodules (`errors`, `concurrency`, `testing`, `api_design`, `code_org`, `prod_hardening`, `deps`) in `src/lang/go/detectors/bad_practices/`
-- [ ] **`BadPracticeRuleMetadata` struct + `BadPracticeCategory` enum** in `src/rules/`
-- [ ] **`META_BP_N` constants** auto-generated from `ruleset/golang/bad-practices.json` (new file)
-- [ ] **MVP detectors BP-1..BP-13** (skipping BP-12, BP-14 as reserved):
-  - [ ] BP-1: discarded error (`_ = doSomething()`)
+- [x] **`GoBadPracticeScan` detector** with manual `Detector` implementation in `src/lang/go/detectors/bad_practices/` (mod.rs + rules.rs)
+- [ ] **`BadPracticeRuleMetadata` struct + `BadPracticeCategory` enum** in `src/rules/` — deferred until registry-driven pattern is adopted
+- [ ] **`META_BP_N` constants** auto-generated from `ruleset/golang/bad-practices.json` (new file) — deferred
+- [x] **MVP detectors BP-1, BP-3, BP-11** shipped:
+  - [x] BP-1: discarded error (`_ = doSomething()`)
   - [ ] BP-2: naked `return err` without context
-  - [ ] BP-3: `panic` outside `main` / test files
+  - [x] BP-3: `panic` outside `main` / test files
   - [ ] BP-4: `recover()` without error logging
   - [ ] BP-5: ignored `Close()` on `*os.File` / `*http.Response.Body` / `*sql.Rows`
   - [ ] BP-6: `sync.WaitGroup.Add` inside a goroutine
@@ -112,33 +133,34 @@ The scope doc at `plans/bad-practices-scope.md` is a roadmap. Everything below i
   - [ ] BP-8: `defer mu.Unlock()` on a copy of a `sync.Mutex`
   - [ ] BP-9: `select {}` with no `default` and no timeout
   - [ ] BP-10: `time.After` in a loop
-  - [ ] BP-11: `defer` inside a `for`/`range`
+  - [x] BP-11: `defer` inside a `for`/`range`
   - [ ] BP-13: `context.Background()` in a non-`main` function
   - [ ] BP-15: `sync.Once.Do` with a recursive closure
 
 ### C.2 Configuration & CLI
 
-- [ ] **`[bad_practices]` config block** in `SlopguardConfig` (mirror of `[cache]` and `[baseline]`) with `enabled` and `severity`
-- [ ] **`slopguard.toml` template** — add the new block
-- [ ] **`slopguard.schema.json`** — add the new section
-- [ ] **`--bp-only` CLI flag** — shorthand for `--only "BP-*"`
-- [ ] **`--no-bp` CLI flag** — disable the whole category
-- [ ] **`init` subcommand template** — add a commented-out example
-- [ ] **Default behavior** — BP rules enabled unless user opts out (per scope doc §7)
+- [x] **`[bad_practices]` config block** in `SlopguardConfig` (mirror of `[cache]` and `[baseline]`) with `enabled` and `severity`
+- [x] **`slopguard.toml` template** — add the new block
+- [x] **`slopguard.schema.json`** — add the new section
+- [x] **`--bp-only` CLI flag** — shorthand for `--only "BP-*"`
+- [x] **`--no-bp` CLI flag** — disable the whole category
+- [x] **`init` subcommand template** — add a commented-out example
+- [x] **Default behavior** — BP rules enabled unless user opts out (per scope doc §7)
 
 ### C.3 Reporting
 
-- [ ] **Text reporter** — add a `BP-` prefix color band (different from CWE/PERF)
-- [ ] **JSON reporter** — add `"category": "bad_practice"` field to finding object
-- [ ] **SARIF reporter** — map BP findings to `security-severity: 5.0` and tag `properties.category = "bad_practice"`
+- [x] **Text reporter** — add a `BP-` prefix color band (different from CWE/PERF)
+- [x] **JSON reporter** — add `"category": "bad_practice"` field to finding object
+- [x] **SARIF reporter** — map BP findings to `security-severity: 5.0` and tag `properties.category = "bad_practice"`
 - [ ] **`--list-rules`** — show BP rules (with category filter)
-- [ ] **`--explain`** — support `BP-*` rule IDs
+- [x] **`--explain`** — support `BP-*` rule IDs via BP detector metadata
 
 ### C.4 Testing
 
-- [ ] **Test fixtures** (`tests/fixtures/go/bp/BP-N-vulnerable.txt` + `-safe.txt`) for the 13 MVP rules
-- [ ] **Manifest entries** in `tests/fixtures/manifest.toml` for each new fixture
-- [ ] **Unit tests** for the detector functions
+- [x] **Test fixtures** (`tests/fixtures/go/bad_practices/BP-{1,3,11}-{vulnerable,safe}.txt`) for BP-1, BP-3, BP-11
+- [x] **Manifest entries** in `tests/fixtures/manifest.toml` for BP-1, BP-3, BP-11 fixtures
+- [x] **Unit tests** for the detector functions (via `assert_fixture_rules`)
+- [ ] **Test fixtures for remaining BP-2, BP-4..BP-10, BP-13, BP-15** — deferred
 
 ### C.5 Phased rollout (P2.5-B, -C, -D — each 1-2 weeks)
 
@@ -149,51 +171,11 @@ The scope doc at `plans/bad-practices-scope.md` is a roadmap. Everything below i
 
 ---
 
-## D. P2.1 — Taint Tracking (architecture doc only, zero code)
+## D. P2.1 — Taint Tracking (intra-procedural foundation shipped; inter-procedural deferred)
 
-The architecture doc at `plans/taint-tracking-architecture.md` is a 5-week implementation roadmap. No code yet.
+*(Duplicate of § P2.1 at top of this document — retained as alias for cross-referencing.)*
 
-### D.1 Phase 1: Foundation (week 1) — `P2.1-A`
-
-- [ ] **`TaintNode` / `TaintEdge` / `TaintGraph` types** in a new `src/lang/go/taint/` module
-- [ ] **`SourceKind` / `SinkKind` / `SanitizerKind` enums** with the full catalog from arch doc §3
-- [ ] **`TaintAnnotations` struct** attached to `GoUnitFacts`
-- [ ] **`extract_taint_facts` function** in `src/lang/go/detectors/cwe/facts.rs`
-- [ ] **`ScopeInfo` builder** with parent-stack scope tracking
-- [ ] **Test: taint fact walk runs on gopdfsuit with <10% overhead**
-
-### D.2 Phase 2: Intra-procedural graph (week 2) — `P2.1-B`
-
-- [ ] **Worklist-based forward flow analysis** that builds the taint graph
-- [ ] **CWE-78 rewrite** — Source → CommandExec without Sanitizer
-- [ ] **CWE-89 rewrite** — Source → SQLQuery without Prepare
-- [ ] **CWE-22 rewrite** — Source → FileOpen without Path.Clean
-- [ ] **CWE-79 rewrite** — Source → Template without HTMLEscaper
-- [ ] **`experimental.taint = true` config flag** to gate the rewrites during rollout
-- [ ] **Test fixtures + false-positive corpus** for each rewritten CWE
-
-### D.3 Phase 3: Replace substring detectors (week 3) — `P2.1-C`
-
-- [ ] **Remove the parallel substring detectors** for CWE-22/78/89/79
-- [ ] **Keep them as fallback** behind `legacy.substring = true` for one release
-
-### D.4 Phase 4: Sanitizer coverage (week 4) — `P2.1-D`
-
-- [ ] **`strconv.Atoi` as sanitizer** for numeric inputs
-- [ ] **`unicode/utf8.ValidString` as sanitizer**
-- [ ] **`validator.v10` auto-detect** via import statement
-- [ ] **Test: per-CWE false-positive rate on corpus ≤ 0.5%**
-
-### D.5 Phase 5: Documentation + CLI (week 5) — `P2.1-E`
-
-- [ ] **`--show-taint` flag** to print a finding's taint path
-- [ ] **JSON output** renders the taint path when `taint.show_paths = true`
-- [ ] **SARIF output** renders the taint path as a `codeFlow`
-- [ ] **Rule deprecation notice** for the substring-detector removal
-
-### D.6 Inter-procedural (8-12 weeks) — `P2.1-F`
-
-- [ ] **Cross-function taint via call-graph resolution** — separate plan, gated on stable intra-procedural core
+See **§ P2.1** above for detailed status: Phase A (Foundation) and Phase B (Intra-procedural graph + rewrites) shipped; Phases C–F deferred.
 
 ---
 
@@ -223,7 +205,7 @@ The architecture doc at `plans/taint-tracking-architecture.md` is a 5-week imple
 ### E.4 Test-suite hygiene
 
 - [x] **Make `large_baseline_loads_and_filters_under_target` deterministic** (see A.3).
-- [x] **Move the new PERF-103..127 inline-string tests** (`tests/go_perf_101_127.rs`) to use the project's `assert_fixture_rules` + `materialize_fixture` infrastructure, once the contiguity invariant in `tests/go_perf_detector_integration.rs:68` is loosened. — `.txt` fixtures created for all 11 rules and exercised by `go_perf_fixtures_fire_vulnerable_and_silence_safe`; inline tests retained as unit-level coverage.
+- [x] **Move the new PERF-103..127 inline-string tests** (`tests/go_perf_101_127.rs`) to use the project's `assert_fixture_rules` + `materialize_fixture` infrastructure, once the contiguity invariant in `tests/go_perf_detector_integration.rs:68` is loosened. — `tests/go_perf_101_127.rs` deleted; `.txt` fixtures now cover all 11 rules via `go_perf_fixtures_fire_vulnerable_and_silence_safe`.
 - [ ] **Add an integration test** that the new PERF detectors fire on at least one real Go file (a small fixture in `tests/fixtures/go/perf_real_world/`).
 - [ ] **Verify the new PERF detectors do not false-positive** on a clean Go file (gopdfsuit's `main.go` is empty, so it doesn't exercise the detectors; pick a non-trivial Go file).
 - [x] **`tests/go_perf_detector_integration.rs:68` — relax the contiguity invariant** to require sortedness only (gaps allowed). ~~This unblocks registering PERF-101+ fixtures.~~
@@ -248,10 +230,10 @@ The architecture doc at `plans/taint-tracking-architecture.md` is a 5-week imple
 
 | Plan | Items in this checklist | Effort to clear (rough) |
 |---|---|---|
-| P2.3 (A + E.6 + E.1 partial) | ~18 items | 3-5 days |
-| P2.4 (B) | ~14 items (incl. ~90 detectors + 22 fixtures) | 4-6 weeks |
-| P2.5 (C) | ~25 items (BP-1..BP-13 + config + CLI + reporting + tests + 3 follow-up phases) | 7 weeks |
-| P2.1 (D) | ~30 items (5 weeks intra + 8-12 weeks inter) | 13-17 weeks |
-| Cross-cutting (E) | ~22 items | 1-2 days |
+| P2.3 (A + E.6 + E.1 partial) | ~16 items | 2-4 days |
+| P2.4 (B) | ~13 items (incl. ~97 detectors + fixtures) | 4-6 weeks |
+| P2.5 (C) | ~22 items (BP-2..BP-15 + config + CLI + reporting + tests + 3 follow-up phases) | 6 weeks |
+| P2.1 (D) | ~4 items (Phases C–F) | 4-6 weeks |
+| Cross-cutting (E) | ~20 items | 1-2 days |
 
-**Total remaining effort:** ~25-30 weeks. P2.4 and P2.5 are the high-leverage next steps; P2.1 is the biggest correctness gap.
+**Total remaining effort:** ~18-22 weeks. P2.4 and P2.5 are the high-leverage next steps; P2.1 is the biggest correctness gap.

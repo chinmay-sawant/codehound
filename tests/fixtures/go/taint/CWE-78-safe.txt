@@ -1,0 +1,18 @@
+# CWE-78 negative: taint-tracked command injection with filepath sanitizer
+lang: go
+file: CWE-78-taint-safe.go
+variant: taint
+---
+package sample
+
+import (
+	"net/http"
+	"os/exec"
+	"path/filepath"
+)
+
+func RunCommand(w http.ResponseWriter, r *http.Request) {
+	cmdName := r.URL.Query().Get("cmd")
+	safe := filepath.Clean(cmdName)
+	_ = exec.Command("sh", "-c", safe)
+}

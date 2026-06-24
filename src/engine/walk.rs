@@ -713,7 +713,14 @@ fn filter_cached_findings(ctx: &ScanContext, findings: Vec<Finding>) -> Vec<Find
     }
     findings
         .into_iter()
-        .filter(|f| ctx.allows(f.rule_id))
+        .filter_map(|mut f| {
+            if ctx.allows(f.rule_id) {
+                ctx.apply_finding_overrides(&mut f);
+                Some(f)
+            } else {
+                None
+            }
+        })
         .collect()
 }
 

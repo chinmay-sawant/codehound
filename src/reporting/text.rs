@@ -24,8 +24,14 @@ mod style {
         }
     }
 
-    pub fn bold(s: &str) -> colored::ColoredString {
-        s.bold()
+    pub fn rule_id(s: &str) -> colored::ColoredString {
+        if s.starts_with("BP-") {
+            s.magenta().bold()
+        } else if s.starts_with("PERF-") {
+            s.cyan().bold()
+        } else {
+            s.bold()
+        }
     }
     pub fn dimmed(s: &str) -> colored::ColoredString {
         s.dimmed()
@@ -45,7 +51,7 @@ mod style {
     pub fn severity(s: Severity) -> &'static str {
         s.as_str()
     }
-    pub fn bold(s: &str) -> &str {
+    pub fn rule_id(s: &str) -> &str {
         s
     }
     pub fn dimmed(s: &str) -> &str {
@@ -104,7 +110,7 @@ pub fn write_with_options(
         let head = format!(
             "{}  {}  {}:{}:{}",
             sev_colored,
-            style::bold(f.rule_id),
+            style::rule_id(f.rule_id),
             f.file,
             f.line,
             f.column

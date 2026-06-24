@@ -30,3 +30,11 @@ pub fn parse_with(parser: &mut Parser, path: &Path, source: Arc<str>) -> Result<
         function_spans: Vec::new(),
     })
 }
+
+/// Convenience helper for unit tests.
+#[allow(dead_code)]
+pub fn parse_go(source: &str) -> Result<ParsedUnit> {
+    let mut parser = Parser::new();
+    configure(&mut parser);
+    parse_with(&mut parser, Path::new("sample.go"), Arc::from(source))
+}

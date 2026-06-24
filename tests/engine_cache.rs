@@ -259,6 +259,59 @@ fn prune_removes_orphaned_entries() {
     std::fs::remove_dir_all(root).unwrap();
 }
 
+#[test]
+fn flush_evicts_oldest_entries_when_over_max_size() {
+    let root = unique_temp_root("lru-evict");
+    let mut store = CacheStore::open_with_capacity(root.clone(), 1).unwrap();
+
+    // Build enough entries with bulky findings to exceed the 1 MiB limit.
+    // Each entry is roughly 12 KiB, so 150 entries ~ 1.8 MiB.
+    let bulky_message = "x".repeat(8_000);
+    for i in 0..150 {
+        let name = format!("file{i:03}.go");
+        // Unique minute-stamps so sort order is deterministic and oldest first.
+        let stamp = format!("2026-06-10T00:{i:02}:00Z");
+        let mut finding = finding("CWE-78", &name, 1, 1);
+        finding.message = bulky_message.clone();
+        let entry = CacheEntry {
+            schema_version: slopguard::engine::CACHE_VERSION,
+            file: name.clone(),
+            content_hash: content_hash(&name),
+            mtime_secs: 0,
+            mtime_nanos: 0,
+            language: "go".to_string(),
+            findings: vec![finding],
+            dependencies: Vec::new(),
+            cached_at: stamp,
+        };
+        store.put(entry).unwrap();
+    }
+
+    store.flush().unwrap();
+
+    let total = store.total_size();
+    assert!(
+        total <= 1024 * 1024,
+        "cache size {total} should not exceed 1 MiB limit after eviction"
+    );
+
+    // The oldest entries should be gone; the newest should survive.
+    assert!(
+        store.get("file000.go").is_none(),
+        "oldest cache entry should be evicted"
+    );
+    assert!(
+        store.get("file001.go").is_none(),
+        "second-oldest cache entry should be evicted"
+    );
+    assert!(
+        store.get("file149.go").is_some(),
+        "newest cache entry should survive eviction"
+    );
+
+    std::fs::remove_dir_all(root).unwrap();
+}
+
 // ---- End-to-end scan integration tests --------------------------------
 
 fn scan_with_cache(root: &std::path::Path, cache: Option<&mut CacheStore>) -> Vec<String> {
@@ -466,7 +519,6 @@ mod dep_helpers {
         let (unit, module) = parse_go(project, rel);
         extract_dependencies(&unit, project, module.as_deref())
     }
-
 }
 
 #[test]

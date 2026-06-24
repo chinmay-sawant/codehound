@@ -13,7 +13,7 @@ use serde::Serialize;
 use crate::cwe::CweRef;
 use crate::engine::AnalysisResult;
 use crate::engine::ScanStats;
-use crate::rules::DetectorEvidence;
+use crate::rules::{DetectorEvidence, category_for_rule_id};
 
 pub fn print(result: &AnalysisResult) -> Result<()> {
     print_ndjson(result)
@@ -81,6 +81,7 @@ impl<'a> From<&'a AnalysisResult> for Envelope<'a> {
 pub struct FindingJson<'a> {
     pub rule_id: &'a str,
     pub rule_title: &'a str,
+    pub category: &'static str,
     pub file: &'a str,
     pub line: usize,
     pub column: usize,
@@ -145,6 +146,7 @@ impl<'a> From<&'a crate::rules::Finding> for FindingJson<'a> {
         Self {
             rule_id: f.rule_id,
             rule_title: f.rule_title,
+            category: category_for_rule_id(f.rule_id),
             file: f.file.as_str(),
             line: f.line,
             column: f.column,

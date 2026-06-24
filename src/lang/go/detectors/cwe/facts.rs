@@ -10,6 +10,7 @@ use crate::ast::walk_calls_and_assignments;
 use crate::core::ParsedUnit;
 
 use super::source_index::SourceIndex;
+use super::taint::{TaintAnnotations, TaintGraph, build_taint_graph, extract_taint_facts};
 
 type SharedText = Arc<str>;
 
@@ -46,6 +47,10 @@ pub struct GoUnitFacts {
     pub assignments: Vec<AssignmentFact>,
     /// Single-pass substring flags for hot detector guards.
     pub source_index: SourceIndex,
+    /// Taint annotations extracted in a single additional tree-sitter pass.
+    pub taint: TaintAnnotations,
+    /// Built only when `[taint] enabled = true`.
+    pub taint_graph: Option<TaintGraph>,
 }
 
 pub fn build_go_unit_facts(unit: &ParsedUnit) -> GoUnitFacts {
@@ -65,7 +70,14 @@ pub fn build_go_unit_facts(unit: &ParsedUnit) -> GoUnitFacts {
     });
 
     facts.source_index = SourceIndex::build(unit.source.as_ref());
+    facts.taint = extract_taint_facts(unit);
     facts
+}
+
+/// Build the intra-procedural taint graph from already-extracted facts.
+/// Callers should only do this when `[taint] enabled = true`.
+pub fn build_taint_graph_for_facts(facts: &mut GoUnitFacts) {
+    facts.taint_graph = Some(build_taint_graph(&facts.taint));
 }
 
 #[derive(Default)]

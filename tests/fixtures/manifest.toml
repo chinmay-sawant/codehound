@@ -4535,7 +4535,7 @@ path = "tests/fixtures/go/perf/PERF-100-safe.txt"
 required_rules = []
 
 
-# Go PERF detector fixtures (PERF-103, 107, 115-118, 120, 122, 124, 126-127)
+# Go PERF detector fixtures (PERF-103, 105, 107, 111-112, 115-118, 120, 122-124, 126-127)
 [[fixture]]
 lang = "go"
 path = "tests/fixtures/go/perf/PERF-103-vulnerable.txt"
@@ -4547,12 +4547,39 @@ path = "tests/fixtures/go/perf/PERF-103-safe.txt"
 required_rules = []
 [[fixture]]
 lang = "go"
+path = "tests/fixtures/go/perf/PERF-105-vulnerable.txt"
+required_rules = ["PERF-105"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-105-safe.txt"
+required_rules = []
+[[fixture]]
+lang = "go"
 path = "tests/fixtures/go/perf/PERF-107-vulnerable.txt"
 required_rules = ["PERF-107"]
 
 [[fixture]]
 lang = "go"
 path = "tests/fixtures/go/perf/PERF-107-safe.txt"
+required_rules = []
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-111-vulnerable.txt"
+required_rules = ["PERF-111"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-111-safe.txt"
+required_rules = []
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-112-vulnerable.txt"
+required_rules = ["PERF-112"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-112-safe.txt"
 required_rules = []
 [[fixture]]
 lang = "go"
@@ -4610,6 +4637,15 @@ path = "tests/fixtures/go/perf/PERF-122-safe.txt"
 required_rules = []
 [[fixture]]
 lang = "go"
+path = "tests/fixtures/go/perf/PERF-123-vulnerable.txt"
+required_rules = ["PERF-123"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-123-safe.txt"
+required_rules = []
+[[fixture]]
+lang = "go"
 path = "tests/fixtures/go/perf/PERF-124-vulnerable.txt"
 required_rules = ["PERF-124"]
 
@@ -4640,3 +4676,82 @@ required_rules = []
 lang = "go"
 path = "tests/fixtures/go/baseline/suppressed_inline.txt"
 required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/CWE-78-vulnerable.txt"
+required_rules = ["CWE-78"]
+taint = true
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/CWE-78-safe.txt"
+required_rules = []
+taint = true
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/CWE-89-vulnerable.txt"
+required_rules = ["CWE-89"]
+taint = true
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/CWE-89-safe.txt"
+required_rules = []
+taint = true
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/CWE-22-vulnerable.txt"
+required_rules = ["CWE-22"]
+taint = true
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/CWE-22-safe.txt"
+required_rules = []
+taint = true
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/CWE-79-vulnerable.txt"
+required_rules = ["CWE-79"]
+taint = true
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/CWE-79-safe.txt"
+required_rules = []
+
+# Go Bad Practice detector fixtures (BP-1, BP-3, BP-11)
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-1-vulnerable.txt"
+required_rules = ["BP-1"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-1-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-3-vulnerable.txt"
+required_rules = ["BP-3"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-3-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-11-vulnerable.txt"
+required_rules = ["BP-11"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-11-safe.txt"
+required_rules = []
+taint = true

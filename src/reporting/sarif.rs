@@ -9,6 +9,7 @@ use serde::Serialize;
 use serde_json::Value;
 
 use crate::engine::AnalysisResult;
+use crate::rules::category_for_rule_id;
 
 const SCHEMA_URL: &str = "https://json.schemastore.org/sarif-2.1.0.json";
 const SARIF_VERSION: &str = "2.1.0";
@@ -106,6 +107,7 @@ pub struct SarifSuppression {
 #[doc(hidden)]
 pub struct SarifProperties {
     pub tags: Vec<String>,
+    pub category: &'static str,
     #[serde(rename = "security-severity")]
     pub security_severity: &'static str,
     #[serde(rename = "slopguardEvidence", skip_serializing_if = "Option::is_none")]
@@ -216,16 +218,25 @@ fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
                 crate::rules::Severity::Medium => "warning",
                 crate::rules::Severity::High | crate::rules::Severity::Critical => "error",
             };
-            let severity_score = match f.severity {
-                crate::rules::Severity::Info => "0.0",
-                crate::rules::Severity::Low => "2.0",
-                crate::rules::Severity::Medium => "5.0",
-                crate::rules::Severity::High => "7.5",
-                crate::rules::Severity::Critical => "9.5",
+            let category = category_for_rule_id(f.rule_id);
+            let severity_score = if category == "bad_practice" {
+                "5.0"
+            } else {
+                match f.severity {
+                    crate::rules::Severity::Info => "0.0",
+                    crate::rules::Severity::Low => "2.0",
+                    crate::rules::Severity::Medium => "5.0",
+                    crate::rules::Severity::High => "7.5",
+                    crate::rules::Severity::Critical => "9.5",
+                }
             };
             let mut tags: Vec<String> = vec!["security".to_string()];
             if f.rule_id.starts_with("CWE-") {
                 tags.push("cwe".to_string());
+            } else if f.rule_id.starts_with("PERF-") {
+                tags.push("performance".to_string());
+            } else if f.rule_id.starts_with("BP-") {
+                tags.push("bad_practice".to_string());
             }
             if let Some(cwes) = f.cwe.as_deref() {
                 for c in cwes {
@@ -278,6 +289,7 @@ fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
                     .then(|| vec![SarifSuppression { kind: "external" }]),
                 properties: SarifProperties {
                     tags,
+                    category,
                     security_severity: severity_score,
                     slopguard_evidence,
                     remediation: f.remediation.clone(),

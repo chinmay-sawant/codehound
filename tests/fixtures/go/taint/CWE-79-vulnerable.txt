@@ -1,0 +1,17 @@
+# CWE-79 positive: taint-tracked XSS (identifier flow)
+lang: go
+file: CWE-79-taint-vulnerable.go
+variant: taint
+---
+package sample
+
+import (
+	"html/template"
+	"net/http"
+)
+
+func RenderPage(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+	t := template.Must(template.New("x").Parse("<html>{{.}}</html>"))
+	_ = t.Execute(w, name)
+}

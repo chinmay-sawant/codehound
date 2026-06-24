@@ -59,7 +59,7 @@ func TraceRoute(w http.ResponseWriter, r *http.Request) {{
 		http.Error(w, string(out), http.StatusBadRequest)
 		return
 	}}
-	_, _ = w.Write(out)
+	w.Write(out)
 }}
 "#
         ),
@@ -69,7 +69,8 @@ func TraceRoute(w http.ResponseWriter, r *http.Request) {{
 
 #[test]
 fn inline_ignore_suppresses_matching_finding() {
-    let source_path = helpers::assert_fixture_materializes("tests/fixtures/go/baseline/suppressed_inline.txt");
+    let source_path =
+        helpers::assert_fixture_materializes("tests/fixtures/go/baseline/suppressed_inline.txt");
     let output = Command::new(env!("CARGO_BIN_EXE_slopguard"))
         .arg("--format")
         .arg("json")

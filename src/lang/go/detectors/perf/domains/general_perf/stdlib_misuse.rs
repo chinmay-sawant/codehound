@@ -80,6 +80,110 @@ pub(crate) fn detect_perf_107(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     }
 }
 
+/// PERF-105: `runtime.SetFinalizer` on frequently-created objects adds
+/// finalizer overhead and delays collection by an extra GC cycle.
+pub(crate) fn detect_perf_105(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    for call in &facts.calls {
+        if call.callee.as_ref() != "runtime.SetFinalizer" {
+            continue;
+        }
+        let (line, col) = unit.line_col(call.start_byte);
+        emit::push_finding(
+            &META_PERF_105,
+            file,
+            line,
+            col,
+            "runtime.SetFinalizer adds GC overhead; prefer explicit Close/Release methods",
+            out,
+        );
+    }
+}
+
+/// PERF-111: ranging over `[]rune(s)` allocates a rune slice; range
+/// over the string directly to decode UTF-8 lazily.
+pub(crate) fn detect_perf_111(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+    for (start, end) in &facts.for_ranges {
+        let range_text = &source[*start..*end];
+        if !range_text.contains("range []rune(") {
+            continue;
+        }
+        let (line, col) = unit.line_col(*start);
+        emit::push_finding(
+            &META_PERF_111,
+            file,
+            line,
+            col,
+            "range over []rune(s) allocates a rune slice; range over the string directly",
+            out,
+        );
+    }
+}
+
+/// PERF-112: `strings.ToLower(a) == strings.ToLower(b)` allocates two
+/// intermediate strings; use `strings.EqualFold` for allocation-free
+/// case-insensitive comparison.
+pub(crate) fn detect_perf_112(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+    for call in &facts.calls {
+        let callee = call.callee.as_ref();
+        if !matches!(callee, "strings.ToLower" | "strings.ToUpper") {
+            continue;
+        }
+        // Require a comparison operator in the same statement window.
+        let window =
+            &source[call.start_byte.saturating_sub(8)..(call.start_byte + 96).min(source.len())];
+        if !window.contains("==") && !window.contains("!=") {
+            continue;
+        }
+        let (line, col) = unit.line_col(call.start_byte);
+        emit::push_finding(
+            &META_PERF_112,
+            file,
+            line,
+            col,
+            "case conversion before comparison allocates; use strings.EqualFold",
+            out,
+        );
+    }
+}
+
+/// PERF-123: `make(T, 0)` or `make(T, 0, 0)` where the zero length is
+/// redundant. Pre-allocated buffers like `make([]byte, 0, cap)` are
+/// intentionally allowed.
+pub(crate) fn detect_perf_123(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    for call in &facts.calls {
+        if call.callee.as_ref() != "make" {
+            continue;
+        }
+        // make(T) has no length arg; make(T, N) has one; make(T, N, M) has two.
+        let args = &call.arguments;
+        if args.len() < 2 {
+            continue;
+        }
+        if args[1].as_ref() != "0" {
+            continue;
+        }
+        // Allow make(T, 0, cap) where cap > 0.
+        if args.len() == 3 && args[2].as_ref() != "0" {
+            continue;
+        }
+        let (line, col) = unit.line_col(call.start_byte);
+        emit::push_finding(
+            &META_PERF_123,
+            file,
+            line,
+            col,
+            "make with explicit zero length/capacity is redundant; omit the zero argument",
+            out,
+        );
+    }
+}
+
 /// PERF-115: `strings.Compare(a, b) == 0` should be `a == b`. The
 /// helper is a leftover from `bytes.Compare`-style usage and the
 /// direct comparison compiles to the same code.

@@ -7,6 +7,7 @@ use serde::Deserialize;
 
 use crate::core::{FailPolicy, ScanContext};
 use crate::engine::DEFAULT_CACHE_DIR;
+use crate::rules::Severity;
 
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -36,6 +37,10 @@ pub struct SlopguardSection {
     pub baseline: BaselineConfig,
     #[serde(default)]
     pub cache: CacheConfig,
+    #[serde(default)]
+    pub taint: TaintConfig,
+    #[serde(default)]
+    pub bad_practices: BadPracticesConfig,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -86,6 +91,40 @@ impl Default for CacheConfig {
     }
 }
 
+/// Experimental taint-tracking configuration.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct TaintConfig {
+    pub enabled: bool,
+    pub show_paths: bool,
+}
+
+impl Default for TaintConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            show_paths: false,
+        }
+    }
+}
+
+/// Go bad-practice rule configuration.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct BadPracticesConfig {
+    pub enabled: bool,
+    pub severity: Option<Severity>,
+}
+
+impl Default for BadPracticesConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            severity: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PathFilters {
     pub include: Vec<String>,
@@ -132,6 +171,10 @@ impl SlopguardConfig {
                 ctx.fail_policy = fail_on_to_policy(fail_on);
             }
         }
+        ctx.taint_enabled = self.slopguard.taint.enabled;
+        ctx.taint_show_paths = self.slopguard.taint.show_paths;
+        ctx.bad_practices_enabled = self.slopguard.bad_practices.enabled;
+        ctx.bad_practice_severity = self.slopguard.bad_practices.severity;
         ctx
     }
 
@@ -169,6 +212,26 @@ impl SlopguardConfig {
     /// responsible for auto-discovery (or the CLI-provided override).
     pub fn cache_path(&self) -> Option<PathBuf> {
         self.slopguard.cache.path.clone()
+    }
+
+    /// True when experimental taint tracking is enabled.
+    pub fn taint_enabled(&self) -> bool {
+        self.slopguard.taint.enabled
+    }
+
+    /// True when taint paths should be emitted in evidence.
+    pub fn taint_show_paths(&self) -> bool {
+        self.slopguard.taint.show_paths
+    }
+
+    /// True when bad-practice rules are enabled.
+    pub fn bad_practices_enabled(&self) -> bool {
+        self.slopguard.bad_practices.enabled
+    }
+
+    /// Optional severity override for bad-practice rules.
+    pub fn bad_practice_severity(&self) -> Option<Severity> {
+        self.slopguard.bad_practices.severity
     }
 }
 
@@ -251,6 +314,10 @@ pub fn build_scan_context(
         show_ignored: false,
         debug_timing,
         diagnostics,
+        taint_enabled: false,
+        taint_show_paths: false,
+        bad_practices_enabled: true,
+        bad_practice_severity: None,
     };
     if let Some(cfg) = config {
         ctx = cfg.merge_into(ctx, cli_set_fail_policy);

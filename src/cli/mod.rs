@@ -53,6 +53,14 @@ pub struct Cli {
     #[arg(long, value_delimiter = ',', env = "SLOPGUARD_SKIP")]
     pub skip: Vec<String>,
 
+    /// Only run bad-practice rules (`BP-*`).
+    #[arg(long)]
+    pub bp_only: bool,
+
+    /// Disable all bad-practice rules (`BP-*`).
+    #[arg(long)]
+    pub no_bp: bool,
+
     /// Exit policy for findings.
     #[command(flatten)]
     pub severity: SeverityArgs,
@@ -248,6 +256,13 @@ impl Cli {
             self.debug_timing,
             self.diagnostics.is_some(),
         );
+        if self.bp_only {
+            ctx.only = Some(["BP-*".to_string()].into_iter().collect());
+            ctx.bad_practices_enabled = true;
+        }
+        if self.no_bp {
+            ctx.bad_practices_enabled = false;
+        }
         ctx.show_ignored = self.show_ignored;
         ctx
     }

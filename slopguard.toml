@@ -10,3 +10,8 @@
 # [slopguard.baseline]
 # enabled = true
 # path = ".slopguard-baseline.json"
+
+# Bad-practice rules (BP-*) are enabled by default.
+# [slopguard.bad_practices]
+# enabled = true
+# severity = "low" # info | low | medium | high | critical

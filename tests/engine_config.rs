@@ -1,8 +1,11 @@
+use clap::Parser;
+use slopguard::cli::Cli;
 use slopguard::core::{FailPolicy, ScanContext};
 use slopguard::engine::{
     Analyzer, PathFilters, SlopguardConfig, SlopguardSection, discover_config, fail_on_to_policy,
 };
 use slopguard::fixture::{materialize_tree, materialized_root};
+use slopguard::rules::Severity;
 use std::path::Path;
 
 #[test]
@@ -33,9 +36,35 @@ exclude = []
 [slopguard.baseline]
 enabled = true
 path = ".slopguard-baseline.json"
+[slopguard.bad_practices]
+enabled = true
+severity = "medium"
 "#,
     );
     assert!(r.is_ok(), "expected ok, got {r:?}");
+}
+
+#[test]
+fn bad_practices_config_defaults_enabled() {
+    let cfg = toml::from_str::<SlopguardConfig>("[slopguard]\n").unwrap();
+
+    assert!(cfg.bad_practices_enabled());
+    assert_eq!(cfg.bad_practice_severity(), None);
+}
+
+#[test]
+fn bad_practices_config_accepts_enabled_and_severity() {
+    let cfg = toml::from_str::<SlopguardConfig>(
+        r#"[slopguard]
+[slopguard.bad_practices]
+enabled = false
+severity = "high"
+"#,
+    )
+    .unwrap();
+
+    assert!(!cfg.bad_practices_enabled());
+    assert_eq!(cfg.bad_practice_severity(), Some(Severity::High));
 }
 
 #[test]
@@ -159,6 +188,62 @@ fn merge_into_only_is_additive_with_cli_values() {
 }
 
 #[test]
+fn scan_context_supports_rule_prefix_filters() {
+    let ctx = ScanContext {
+        only: Some(["BP-*".to_string()].into_iter().collect()),
+        ..Default::default()
+    };
+
+    assert!(ctx.allows("BP-1"));
+    assert!(!ctx.allows("CWE-89"));
+}
+
+#[test]
+fn scan_context_can_disable_bad_practice_category() {
+    let ctx = ScanContext {
+        bad_practices_enabled: false,
+        ..Default::default()
+    };
+
+    assert!(!ctx.allows("BP-1"));
+    assert!(ctx.allows("CWE-89"));
+}
+
+#[test]
+fn cli_bp_only_sets_bp_prefix_filter() {
+    let cli = Cli::try_parse_from(["slopguard", "--bp-only"]).unwrap();
+    let ctx = cli.scan_context(None);
+
+    assert!(ctx.allows("BP-1"));
+    assert!(!ctx.allows("PERF-1"));
+}
+
+#[test]
+fn cli_bp_only_overrides_config_disabled_bp() {
+    let cli = Cli::try_parse_from(["slopguard", "--bp-only"]).unwrap();
+    let cfg = toml::from_str::<SlopguardConfig>(
+        r#"[slopguard]
+[slopguard.bad_practices]
+enabled = false
+"#,
+    )
+    .unwrap();
+    let ctx = cli.scan_context(Some(cfg));
+
+    assert!(ctx.allows("BP-1"));
+    assert!(!ctx.allows("CWE-89"));
+}
+
+#[test]
+fn cli_no_bp_disables_bad_practice_category() {
+    let cli = Cli::try_parse_from(["slopguard", "--no-bp"]).unwrap();
+    let ctx = cli.scan_context(None);
+
+    assert!(!ctx.allows("BP-1"));
+    assert!(ctx.allows("PERF-1"));
+}
+
+#[test]
 fn runtime_include_exclude_filters_apply_during_collection() {
     materialize_tree(Path::new("tests/fixtures")).expect("materialize");
 
@@ -217,6 +302,9 @@ fn schema_file_is_valid_json_and_covers_known_fields() {
         "include",
         "exclude",
         "baseline",
+        "cache",
+        "taint",
+        "bad_practices",
     ] {
         assert!(
             props.get(field).is_some(),

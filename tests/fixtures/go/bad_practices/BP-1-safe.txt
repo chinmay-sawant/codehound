@@ -1,0 +1,12 @@
+# BP-1 negative: error is handled
+lang: go
+file: BP-1-safe.go
+variant: stdlib
+---
+package sample
+
+import "os"
+
+func WriteFile(path string, data []byte) error {
+	return os.WriteFile(path, data, 0644)
+}

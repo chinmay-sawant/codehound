@@ -500,16 +500,30 @@ perf = 100
 domain = "protocols"
 function = "detect_perf_100"
 
-
 [[detector]]
 perf = 103
 domain = "general_perf"
 function = "detect_perf_103"
 
 [[detector]]
+perf = 105
+domain = "general_perf"
+function = "detect_perf_105"
+
+[[detector]]
 perf = 107
 domain = "general_perf"
 function = "detect_perf_107"
+
+[[detector]]
+perf = 111
+domain = "general_perf"
+function = "detect_perf_111"
+
+[[detector]]
+perf = 112
+domain = "general_perf"
+function = "detect_perf_112"
 
 [[detector]]
 perf = 115
@@ -540,6 +554,11 @@ function = "detect_perf_120"
 perf = 122
 domain = "general_perf"
 function = "detect_perf_122"
+
+[[detector]]
+perf = 123
+domain = "general_perf"
+function = "detect_perf_123"
 
 [[detector]]
 perf = 124

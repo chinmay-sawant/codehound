@@ -83,6 +83,40 @@
               "default": 500
             }
           }
+        },
+        "taint": {
+          "description": "Experimental taint-tracking configuration for supported Go CWE rules.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Use the taint-tracking engine for supported CWE rules.",
+              "type": "boolean",
+              "default": false
+            },
+            "show_paths": {
+              "description": "Emit taint-path evidence where available.",
+              "type": "boolean",
+              "default": false
+            }
+          }
+        },
+        "bad_practices": {
+          "description": "Go bad-practice rule configuration for BP-* rules.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Run BP-* bad-practice rules by default.",
+              "type": "boolean",
+              "default": true
+            },
+            "severity": {
+              "description": "Optional severity override for BP-* findings.",
+              "type": "string",
+              "enum": ["info", "low", "medium", "high", "critical"]
+            }
+          }
         }
       }
     }

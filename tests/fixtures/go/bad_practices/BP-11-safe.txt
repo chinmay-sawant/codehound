@@ -1,0 +1,19 @@
+# BP-11 negative: defer outside loop
+lang: go
+file: BP-11-safe.go
+variant: stdlib
+---
+package sample
+
+import "os"
+
+func OpenMany(paths []string) {
+	var files []*os.File
+	for _, p := range paths {
+		f, _ := os.Open(p)
+		files = append(files, f)
+	}
+	for _, f := range files {
+		defer f.Close()
+	}
+}

@@ -9,7 +9,9 @@ Root: `plans/p2.md`
 
 | # | Plan | File | Status | Effort |
 |---|------|------|--------|--------|
-| P2.1 | Taint Tracking / Data Flow Analysis | [`01-taint-tracking.md`](./01-taint-tracking.md) | ⬜ Not started | 8-12 weeks |
+| P2.1 | Taint Tracking / Data Flow Analysis | [`01-taint-tracking.md`](./01-taint-tracking.md) | ✅ Phase A/B shipped (intra-procedural, opt-in) | 4 weeks |
+
+> **P2.1 status:** Intra-procedural taint analysis is implemented behind `[taint] enabled = true`. CWE-78/89/22/79 use taint paths when enabled and fall back to substring detectors when disabled. Inter-procedural analysis is deferred.
 | P2.2 | Baseline / Ignore-Once Mechanism | [`02-baseline-ignore.md`](./02-baseline-ignore.md) | ✅ Complete | 1-2 weeks |
 | P2.3 | Incremental Analysis | [`03-incremental-analysis.md`](./03-incremental-analysis.md) | ✅ Phase 1+2+3+4.1+4.2+4.3+5+6.1 complete | 2-3 weeks |
 | P2.4 | PERF Ruleset Detector Implementation | [`04-perf-detector-implementation.md`](./04-perf-detector-implementation.md) | 🚧 11 of 112 detectors shipped (PERF-103..127 Category A batch) | 6-8 weeks |

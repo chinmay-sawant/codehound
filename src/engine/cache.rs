@@ -146,13 +146,21 @@ pub struct CacheStore {
     files_dir: PathBuf,
     manifest: CacheManifest,
     dirty: bool,
+    /// Maximum total size of `files/` in bytes. `0` disables the limit.
+    max_size_bytes: u64,
 }
 
 impl CacheStore {
     /// Open the cache at `cache_dir`, creating the directory layout if
     /// it does not exist. Reads an existing manifest if present;
-    /// otherwise starts with an empty manifest.
+    /// otherwise starts with an empty manifest. No size limit is enforced.
     pub fn open(cache_dir: PathBuf) -> Result<Self> {
+        Self::open_with_capacity(cache_dir, 0)
+    }
+
+    /// Open the cache with a maximum on-disk size in MiB. `0` disables
+    /// the size limit.
+    pub fn open_with_capacity(cache_dir: PathBuf, max_size_mb: u64) -> Result<Self> {
         let files_dir = cache_dir.join(FILES_SUBDIR);
         fs::create_dir_all(&files_dir)
             .with_context(|| format!("creating cache directory {}", files_dir.display()))?;
@@ -202,6 +210,7 @@ impl CacheStore {
             files_dir,
             manifest,
             dirty: false,
+            max_size_bytes: max_size_mb.saturating_mul(1024 * 1024),
         })
     }
 
@@ -431,6 +440,67 @@ impl CacheStore {
         let metadata_path = self.cache_dir.join(METADATA_NAME);
         write_atomic(&metadata_path, &metadata)?;
         self.dirty = false;
+
+        if self.max_size_bytes > 0 {
+            self.evict_to_size()?;
+        }
+        Ok(())
+    }
+
+    /// Remove the oldest cache entries until the total on-disk size is
+    /// below `max_size_bytes`. The target is 90% of the limit to avoid
+    /// repeated eviction on every small write.
+    fn evict_to_size(&mut self) -> Result<()> {
+        let target = (self.max_size_bytes * 9) / 10;
+        let mut current = self.total_size();
+        if current <= target {
+            return Ok(());
+        }
+
+        // Collect entries with their cached_at timestamp and on-disk size.
+        let mut entries: Vec<(String, String, u64)> = Vec::new();
+        for (file, meta) in &self.manifest.files {
+            let path = self.files_dir.join(format!("{}.json", meta.cache_key));
+            let size = if let Ok(m) = fs::metadata(&path) {
+                m.len()
+            } else {
+                0
+            };
+            if size == 0 {
+                continue;
+            }
+            // Read cached_at from the entry file; fall back to manifest mtime.
+            let cached_at = self
+                .read_entry(&meta.cache_key)
+                .map(|e| e.cached_at)
+                .unwrap_or_else(|| iso8601_from_mtime(meta.mtime_secs));
+            entries.push((file.clone(), cached_at, size));
+        }
+
+        // Sort oldest first. ISO8601 UTC timestamps sort lexicographically.
+        entries.sort_by(|a, b| a.1.cmp(&b.1));
+
+        for (file, _, size) in entries {
+            if current <= target {
+                break;
+            }
+            self.remove(&file)?;
+            current = current.saturating_sub(size);
+        }
+
+        // Re-write the manifest if we evicted anything.
+        if self.dirty {
+            let manifest_path = self.cache_dir.join(MANIFEST_NAME);
+            write_atomic(&manifest_path, &self.manifest)?;
+            let metadata = CacheMetadata {
+                tool_version: env!("CARGO_PKG_VERSION").to_string(),
+                last_scan: iso8601_utc_now(),
+                entry_count: self.manifest.files.len(),
+            };
+            let metadata_path = self.cache_dir.join(METADATA_NAME);
+            write_atomic(&metadata_path, &metadata)?;
+            self.dirty = false;
+        }
         Ok(())
     }
 
@@ -556,6 +626,14 @@ fn iso8601_utc_now() -> String {
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap_or_default();
     let secs = dur.as_secs();
+    iso8601_from_secs(secs)
+}
+
+fn iso8601_from_mtime(mtime_secs: u64) -> String {
+    iso8601_from_secs(mtime_secs)
+}
+
+fn iso8601_from_secs(secs: u64) -> String {
     let (year, month, day, hour, minute, second) = unix_epoch_to_ymdhms(secs);
     format!("{year:04}-{month:02}-{day:02}T{hour:02}:{minute:02}:{second:02}Z")
 }
