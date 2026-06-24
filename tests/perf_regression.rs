@@ -10,12 +10,14 @@ use slopguard::fixture::{materialize_tree, materialized_root};
 /// Observed full-fixture scan is ~100–200ms on a typical dev machine; allow 3× for CI.
 /// Bumped from 600ms to cover the analyzer's function-context post-pass
 /// (one extra tree walk per file) added for enclosing-function resolution.
-const MAX_FULL_SCAN: Duration = Duration::from_millis(900);
+/// Bumped again to 1.1s to cover the eight new PERF detectors (PERF-114,
+/// 119, 125, 129, 156, 177, 192) that each do an additional source scan.
+const MAX_FULL_SCAN: Duration = Duration::from_millis(1100);
 
 /// Collect + scan should stay well under the full-scan ceiling. Bumped from
 /// 500ms to cover the function-context post-pass added for enclosing-function
-/// resolution.
-const MAX_COLLECT_AND_SCAN: Duration = Duration::from_millis(800);
+/// resolution. Bumped again to 1s to cover the new PERF detectors.
+const MAX_COLLECT_AND_SCAN: Duration = Duration::from_millis(1000);
 
 #[test]
 fn materialized_fixture_scan_within_smoke_budget() {

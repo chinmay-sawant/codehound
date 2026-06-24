@@ -78,7 +78,7 @@
 - [x] **Phase 1.3 — Create `concurrency` / `memory_gc` / `stdlib_optimization` / `string_bytes` domain modules if needed**
   - [x] Placeholder domain modules created under `src/lang/go/detectors/perf/domains/`.
 - [ ] **Phase 2.1 — Add registry entries for PERF-101..212**
-  - Partially done: 22 of 112 entries (101, 103, 105, 107, 111, 112, 113, 115, 116, 117, 118, 120, 122, 123, 124, 126, 127, 146, 147, 157, 190, 198). The remaining 90 entries need to be added before the rest of the detectors can land.
+  - Partially done: 30 of 112 entries (101, 103, 105, 107, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 122, 123, 124, 125, 126, 127, 129, 146, 147, 156, 157, 177, 190, 192, 198). The remaining 82 entries need to be added before the rest of the detectors can land.
 - [x] **Phase 2.2 — Verify `build.rs` reads `perf/registry.toml` and generates metadata + dispatch**
   - [x] `tests/go_perf_registry_generation.rs` compares generated runtime PERF rule IDs against `registry.toml`.
 - [ ] **Phase 3.2 — Category B (~40 context-aware rules)**
@@ -88,11 +88,12 @@
 - [ ] **Phase 4 — Test fixtures (`vulnerable_perf_N.txt` + `safe_perf_N.txt`) for PERF-101..212**
   - [x] First batch (PERF-103/105/107/111/112/115-118/120/122/123/124/126-127) fixtures created and registered (15 detectors).
   - [x] Second registry/fixture batch (PERF-101/113/146/147/157/190/198) created and registered (7 detectors).
+  - [x] Third registry/fixture batch (PERF-114/119/125/129/156/177/192) created and registered (7 Category-A detectors).
   - [ ] Remaining PERF-101..212 fixtures — **deferred**.
 - [ ] **Phase 5 — Performance verification**
   - Lightweight `cargo bench --bench incremental_scan -- --sample-size 10 --measurement-time 1` was run. Criterion completed with exit code 0 but reported regressions versus the saved local baseline for cold, warm, partial, and in-memory warm paths, so this remains open.
 
-### B.2 The 22 detectors shipped (PERF-101, 103, 105, 107, 111, 112, 113, 115, 116, 117, 118, 120, 122, 123, 124, 126, 127, 146, 147, 157, 190, 198)
+### B.2 The 30 detectors shipped (PERF-101, 103, 105, 107, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 122, 123, 124, 125, 126, 127, 129, 146, 147, 156, 157, 177, 190, 192, 198)
 
 - [x] **Add `.txt` fixtures in `tests/fixtures/go/perf/` for each of the 15 detectors**
   - [x] Created fixtures and manifest entries for all 15.

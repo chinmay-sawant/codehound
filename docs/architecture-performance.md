@@ -18,6 +18,7 @@ Each file is read, parsed, analyzed, and dropped independently so peak memory st
 - **Pruning**: After each scan, entries for files no longer on disk are removed. `--prune-cache` prunes without scanning. `--rebuild-cache` purges the entire cache directory.
 - **CLI flags**: `--no-cache`, `--cache-dir <DIR>`, `--rebuild-cache`, `--prune-cache`.
 - **Configuration**: `[slopguard.cache]` block with `enabled`, `path`, and `max_size_mb` (default 500 MiB).
+- **Size-based LRU pruning**: on `flush()`, if `total_size() > max_size_mb`, oldest entries (by `cached_at`) are evicted until the cache is at or below 90% of the limit.
 - **Fair warning in `--diagnostics`**: The document includes total cache size via `CacheStore::total_size()`.
 
 ## Multi-language default
@@ -77,6 +78,6 @@ Run `wc -l src/lang/go/detectors/cwe/domains/*.rs` in CI or locally to catch mod
 
 ## Future optimizations
 
-- Size-based LRU pruning when cache exceeds `max_size_mb` (config field wired; eviction logic TBD)
 - Tree-sitter Query captures for hot rules
 - Callee-indexed rule scheduling to skip rules when sinks are absent
+- Per-detector rule-pack disabling (e.g. turn off `BP-*` or `PERF-1xx` via config)

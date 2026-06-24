@@ -109,6 +109,13 @@ pub const fn fix_for(id: u32) -> Option<&'static str> {
         98 => Some("Wrap the redis calls in rdb.Pipeline().Exec(ctx) or rdb.Pipelined(ctx, ...) to batch the round trips."),
         99 => Some("Replace high-cardinality labels (user_id, uuid, path) with low-cardinality aggregates (status, method, route)."),
         100 => Some("Move heavy RunE work into a function and reuse flag registration via a pre-built flag.FlagSet."),
+        114 => Some("Replace the manual for-range copy with the copy() builtin; copy() uses memmove and handles memory overlap."),
+        119 => Some("Merge the consecutive append calls into a single variadic append, e.g. s = append(s, a, b, c)."),
+        125 => Some("Drop the `if s != nil` guard; append handles a nil slice by allocating a new backing array."),
+        129 => Some("Use `for i := range xs` to skip copying the value when the loop body only needs the index."),
+        156 => Some("Use `for i := range s` to skip UTF-8 decoding; the rune binding is only useful when the value is read."),
+        177 => Some("Call os.ReadDir(name) to get []os.DirEntry; switch to os.ReadDir for new code."),
+        192 => Some("Pass the expected size: make(map[K]V, len(src)) before the population loop to avoid map growth."),
         _ => None,
     }
 }
