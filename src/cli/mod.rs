@@ -157,6 +157,11 @@ pub struct Cli {
     #[arg(long)]
     pub rebuild_cache: bool,
 
+    /// Remove stale cache entries for files that no longer exist,
+    /// then exit without scanning.
+    #[arg(long)]
+    pub prune_cache: bool,
+
     /// Show details for a specific rule ID and exit.
     #[arg(long, value_name = "RULE")]
     pub explain: Option<String>,

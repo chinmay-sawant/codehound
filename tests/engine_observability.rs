@@ -26,6 +26,8 @@ fn sample_result_with_stats() -> slopguard::engine::AnalysisResult {
             files_errored: 0,
             bytes_scanned: 1234,
             lines_scanned: 42,
+            cache_hits: 0,
+            cache_misses: 0,
             findings_total: 1,
             findings_by_severity: [("high".to_string(), 1)].into_iter().collect(),
             findings_by_rule: vec![("CWE-89".to_string(), 1)],

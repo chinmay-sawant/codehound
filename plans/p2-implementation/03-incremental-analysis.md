@@ -194,32 +194,41 @@ Cache parsed ASTs and extracted facts to disk. On re-run, only parse files whose
 
 ### 3.1 Add content hashing to `ScanEntry`
 
-- [ ] Add fields to `ScanEntry` in `src/engine/walk.rs`:
-  ```rust
-  pub struct ScanEntry {
-      // ... existing fields ...
-      pub content_hash: Option<String>,  // SHA-256 of file contents
-      pub mtime: Option<SystemTime>,     // file modification time
-  }
-  ```
-- [ ] In `collect_entries()` (walk.rs:31-72), after confirming a file should be scanned:
-  - [ ] Read file contents (already done for parsing)
-  - [ ] Compute SHA-256 hash: `sha2::Sha256::digest(&source)`
-  - [ ] Format as `sha256:<hex>`
-  - [ ] Store in `ScanEntry.content_hash`
-  - [ ] Get mtime from `fs::metadata().modified()`
+- [x] Content hash (SHA-256) is computed in `scan_entries_parallel` before
+  splitting the entries into cache hits / cache misses, so the value
+  is never stored on `ScanEntry` itself. mtime is captured into the
+  cache entry at `put` time, not on the input struct.
+  - [x] Hash function: `crate::engine::cache::content_hash(source)`
+    produces `sha256:<hex>` of the file's UTF-8 bytes
+  - [x] mtime: `std::fs::Metadata::modified()` on the scanned file
 
 ### 3.2 Dependencies for cache invalidation
 
-- [ ] In `scan_entry()` (walk.rs:135-197), after parsing:
-  - [ ] Extract import paths from the AST (query tree-sitter for `import_declaration` / `import_spec`)
-  - [ ] Resolve import paths to local file paths within the project (map `pkg/db` → `pkg/db/connection.go`)
-  - [ ] Store resolved dependencies on the `ScanEntry`
-- [ ] For Go: imports resolve to relative package paths within the module
-  - [ ] If `go.mod` exists, resolve imports relative to module root
-  - [ ] If no `go.mod`, resolve relative to project root
-- [ ] For Python: imports resolve similarly
-- [ ] For dependencies outside the project (stdlib, third-party), don't include (they never invalidate)
+- [x] Implemented in `src/engine/dependencies.rs` (new module).
+- [x] `extract_dependencies(unit, project_root, module_prefix)` is called
+  from `scan_entry` after parsing and returns absolute file paths of
+  every project-local dependency (Go file or directory full of Go
+  files).
+- [x] For Go: walks `import_declaration` / `import_spec` nodes,
+  extracts the path string, classifies it as local if it starts with
+  the module prefix read from `go.mod`, and resolves the path to a
+  file or directory.
+- [x] Stdlib and third-party imports are skipped (single-segment
+  paths and paths containing a `.` in the first segment are not
+  classified as local unless they match the module prefix).
+- [x] For Python (best-effort): walks `import_statement` and
+  `import_from_statement`, resolves dotted names and relative
+  imports (`from .x import y` and `from ..pkg import z`) against
+  the source file's package directory. Stdlib and third-party
+  modules are filtered by checking whether the top-level package
+  directory exists locally.
+- [x] Discovered via `go_module_prefix(project_root)` (parses the
+  `module` directive from `go.mod`); missing or unparseable `go.mod`
+  is reported as `None` and disables Go dependency extraction.
+- [x] Project root is discovered via `discover_project_root(start)`,
+  which walks up from the first scan path looking for either `.git`
+  or `go.mod`. The go.mod fallback is critical for scans from
+  subdirectories that don't carry their own VCS marker.
 
 ---
 
@@ -256,11 +265,16 @@ Cache parsed ASTs and extracted facts to disk. On re-run, only parse files whose
   - [x] No cache entry exists (first scan of this file)
   - [x] `content_hash` differs from cached hash (source changed)
   - [x] `tool_version` changed (manifest gets warning + auto-rewrite)
-  - [ ] Any dependency's `content_hash` changed (transitive invalidation) — deferred; dependency tracking is not populated yet
+  - [x] Any dependency's `content_hash` changed (transitive invalidation)
+    via the per-chunk `invalidate_dependent` hook in
+    `analyze_paths`. Triggered only when a rescan *changes* the
+    content hash — a brand-new entry does not cascade, because no
+    manifest entry is depending on the stale state yet.
 - [x] Orphan pruning: entries for files not in the current scan are removed on `analyze_paths` end
-- [ ] When a file is re-parsed:
-  - [ ] Check if its `dependencies` list changed (new imports added, old ones removed)
-  - [ ] If dependencies changed, invalidate old dependency references in manifest
+- [x] Manifest keys and stored `dependencies` use the same
+  forward-slash absolute path representation so
+  [`invalidate_dependent`] can match them with a single string
+  equality check.
 
 ### 4.4 Performance: manifest in memory
 

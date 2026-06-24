@@ -64,10 +64,8 @@ fn go_perf_fixture_inventory_is_sorted_and_contiguous() {
 
     assert!(!cases.is_empty(), "expected at least one Go PERF fixture");
 
-    let expected: Vec<u32> = (cases[0]..=*cases.last().unwrap()).collect();
-    assert_eq!(
-        cases, expected,
-        "Go PERF fixture ids must be contiguous starting at {}",
-        cases[0]
+    assert!(
+        cases.windows(2).all(|w| w[0] < w[1]),
+        "Go PERF fixture ids must be sorted and deduplicated"
     );
 }

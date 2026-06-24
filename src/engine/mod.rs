@@ -4,6 +4,7 @@ mod analyzer;
 mod baseline;
 mod cache;
 mod config;
+mod dependencies;
 mod diagnostics;
 mod ignore;
 mod language_filter;
@@ -28,6 +29,7 @@ pub use config::{
     build_scan_context, discover_cache_dir, discover_config, fail_on_to_policy,
     load_discovered_config,
 };
+pub use dependencies::{discover_project_root, extract_dependencies, go_module_prefix};
 pub use diagnostics::Diagnostics;
 pub use ignore::{
     IgnoreDirective, apply_file_ignore, apply_inline_ignores, parse_file_ignore,

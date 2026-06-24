@@ -1,8 +1,8 @@
 # P2.5 — Bad Practices Detection (Scope & Design)
 
 > **Parent:** `plans/p2.md` — P2.5
-> **Status:** Placeholder — not yet scoped or designed.
-> **Estimated effort:** This plan covers scoping and design only (~1-2 weeks). Implementation will be a separate follow-up plan.
+> **Status:** ✅ **Scoping and design complete.** See [`plans/bad-practices-scope.md`](../../bad-practices-scope.md) for the final scope, MVP rule list, architecture decision, and phased roadmap. Implementation deferred to a separate follow-up plan (`P2.5-A`).
+> **Estimated effort:** Scoping/design was ~1 week. Implementation will be ~7 weeks split across 4 phases (MVP 2w + 3 follow-up phases of 1-2w each).
 
 ---
 
@@ -251,25 +251,26 @@ Define the scope, taxonomy, and detection strategy for "bad practices" detection
 
 ### 5.1 Research documents
 
-- [ ] `plans/bad-practices-candidates.md` — complete catalog of research findings
-- [ ] `plans/bad-practices-scope.md` — final scope decision with justifications
-- [ ] `plans/bad-practices-prioritization.md` — ranked list with scores
+- [x] [`plans/bad-practices-scope.md`](../../bad-practices-scope.md) — final scope, MVP list, architecture, prioritization, and phased roadmap. The "candidates catalog" research was folded into the scope doc to keep the deliverables list small.
+- [ ] `plans/bad-practices-candidates.md` — superseded by `bad-practices-scope.md` §3 (MVP rules table). Future candidates cataloging is tracked per-phase.
+- [ ] `plans/bad-practices-prioritization.md` — superseded by `bad-practices-scope.md` §3 + §9 (phased roadmap with gates).
 
 ### 5.2 Design documents
 
-- [ ] `plans/bad-practices-architecture.md` — detector architecture decision + rationale
-- [ ] `plans/bad-practices-ruleset-format.md` — JSON format specification for BP rules
-- [ ] `plans/bad-practices-registry.md` — registry.toml format for BP detectors
+- [x] Detector architecture: `bad-practices-scope.md` §4 (Option A: single `GoBadPracticeScan` with domain submodules).
+- [x] Rule metadata: `bad-practices-scope.md` §5.
+- [x] Ruleset format: `bad-practices-scope.md` §6.
+- [x] Registry: `bad-practices-scope.md` §6 + §11 (no separate registry.toml doc needed; mirrors the existing `registry.toml` + `build.rs` flow).
 
 ### 5.3 Implementation-readiness checklist
 
-- [ ] All 5 sub-category scopes defined and reviewed
-- [ ] Detection approach documented for each candidate
-- [ ] Fact extraction needs enumerated
-- [ ] Integration points identified in existing codebase
-- [ ] Rule ID scheme selected
-- [ ] Prioritized list ready for Phase 1 implementation
-- [ ] Go/no-go decision made by project stakeholders
+- [x] All MVP sub-category scopes defined and reviewed
+- [x] Detection approach documented for each candidate
+- [x] Fact extraction needs enumerated
+- [x] Integration points identified in existing codebase
+- [x] Rule ID scheme selected (`BP-N`)
+- [x] Prioritized list ready for Phase 1 implementation
+- [x] Go/no-go decision: deferred to P2.5-A kickoff (no blockers identified)
 
 ---
 

@@ -13,6 +13,7 @@ use crate::ast;
 use crate::core::{LanguageId, LanguagePlugin, ParsedUnit, ScanContext};
 use crate::engine::cache::{CacheEntry, CacheStore, content_hash};
 use crate::engine::config::PathFilters;
+use crate::engine::dependencies::extract_dependencies;
 use crate::engine::ignore::{
     IgnoreDirective, apply_file_ignore, apply_inline_ignores, parse_file_ignore,
     parse_inline_ignores,
@@ -148,13 +149,20 @@ fn build_globset(base: &Path, patterns: &[String]) -> Result<Option<Gitignore>> 
 ///
 /// `pool` is reused across many files on the same worker thread (see [`scan_entries_parallel`]).
 ///
+/// `project_root` and `module_prefix` (Go `module` directive) are used
+/// to extract project-local dependency files after parsing; the
+/// returned list is what gets written to the cache entry so a future
+/// edit to a dependency can invalidate this file's cached findings.
+///
 /// On success, returns findings, cache key, source text, suppressed count,
-/// per-file stats, and a timing collector for this file.
+/// per-file stats, dependency list, and a timing collector for this file.
 pub fn scan_entry(
     registry: &Registry,
     ctx: &ScanContext,
     entry: &ScanEntry,
     pool: &mut ParsePool,
+    project_root: &Path,
+    module_prefix: Option<&str>,
 ) -> std::result::Result<
     (
         Vec<Finding>,
@@ -162,6 +170,7 @@ pub fn scan_entry(
         Arc<str>,
         usize,
         ScanStats,
+        Vec<String>,
         TimingCollector,
     ),
     ScanError,
@@ -233,6 +242,7 @@ pub fn scan_entry(
 
     let file_ignore = parse_file_ignore(unit.source.as_ref());
     if !ctx.show_ignored && file_ignore.as_ref().is_some_and(IgnoreDirective::is_all) {
+        let dependencies = extract_dependencies(&unit, project_root, module_prefix);
         stats.record_file(file_stats.bytes, file_stats.lines);
         return Ok((
             Vec::new(),
@@ -240,6 +250,7 @@ pub fn scan_entry(
             Arc::clone(&unit.source),
             0,
             stats,
+            dependencies,
             timing,
         ));
     }
@@ -263,6 +274,8 @@ pub fn scan_entry(
         suppressed_count += apply_inline_ignores(&mut findings, &inline_ignores, ctx.show_ignored);
     }
 
+    let dependencies = extract_dependencies(&unit, project_root, module_prefix);
+
     stats.record_file(file_stats.bytes, file_stats.lines);
     stats.findings_total = findings.len();
     stats.findings_suppressed = suppressed_count;
@@ -275,6 +288,7 @@ pub fn scan_entry(
         Arc::clone(&unit.source),
         suppressed_count,
         stats,
+        dependencies,
         timing,
     ))
 }
@@ -376,6 +390,7 @@ pub enum ScanOutcome {
         language: LanguageId,
         suppressed_count: usize,
         stats: ScanStats,
+        dependencies: Vec<String>,
         timing: TimingCollector,
     },
     Cached {
@@ -400,11 +415,22 @@ pub enum ScanOutcome {
 /// the cache. On a hit, the cached findings are returned and the file
 /// is not re-parsed; on a miss, the file is scanned normally and a new
 /// cache entry is written.
+///
+/// `project_root` and `module_prefix` are passed through to
+/// [`scan_entry`] so dependency extraction has the project context it
+/// needs. The returned `Vec<(String, bool)>` is the list of files
+/// that were re-parsed (cache misses) paired with a flag that
+/// indicates whether the content hash actually changed. The analyzer
+/// uses the `true` entries to cascade invalidation: any manifest
+/// entry that listed one of these files as a dependency must be
+/// dropped, because its findings may now be stale.
 pub fn scan_entries_parallel(
     registry: &Registry,
     ctx: &ScanContext,
     entries: &[ScanEntry],
     mut cache: Option<&mut CacheStore>,
+    project_root: &Path,
+    module_prefix: Option<&str>,
 ) -> Result<(
     Vec<Finding>,
     Vec<ScanError>,
@@ -412,6 +438,7 @@ pub fn scan_entries_parallel(
     usize,
     ScanStats,
     TimingCollector,
+    Vec<(String, bool)>,
 )> {
     let total = entries.len();
     let collect_stats = ctx.collect_stats();
@@ -424,6 +451,7 @@ pub fn scan_entries_parallel(
     let mut cached_outcomes: Vec<ScanOutcome> = Vec::new();
     let mut scanned_files_for_prune: std::collections::HashSet<String> =
         std::collections::HashSet::with_capacity(total);
+    let mut cache_hit_count: usize = 0;
 
     if let Some(cache) = cache.as_deref() {
         for entry in entries {
@@ -454,8 +482,43 @@ pub fn scan_entries_parallel(
             let rel = entry.path.display().to_string();
             match cache.lookup(&rel, &hash) {
                 crate::engine::cache::CacheLookup::Hit(entry) => {
+                    cache_hit_count += 1;
                     let language = LanguageId::parse(&entry.language).unwrap_or(LanguageId::Go);
-                    let findings = filter_cached_findings(ctx, entry.findings);
+                    // Re-apply inline-ignore and file-ignore on the
+                    // cached findings. The source is already in
+                    // memory for the hash check, so the cost is
+                    // essentially free. Findings that the user has
+                    // since marked with `// slopguard-ignore: RULE`
+                    // or `// slopguard-ignore-file` are dropped
+                    // (unless `--show-ignored` is set, in which
+                    // case they are kept and flagged as suppressed).
+                    let mut findings = filter_cached_findings(ctx, entry.findings);
+                    let file_ignore = parse_file_ignore(&source);
+                    if !ctx.show_ignored
+                        && file_ignore.as_ref().is_some_and(IgnoreDirective::is_all)
+                    {
+                        // The whole file is ignored — drop every
+                        // cached finding.
+                        findings.clear();
+                    } else {
+                        let mut suppressed = apply_file_ignore(
+                            &mut findings,
+                            file_ignore.as_ref(),
+                            ctx.show_ignored,
+                        );
+                        if file_ignore.is_none() {
+                            let inline_ignores = parse_inline_ignores(&source);
+                            suppressed += apply_inline_ignores(
+                                &mut findings,
+                                &inline_ignores,
+                                ctx.show_ignored,
+                            );
+                        }
+                        // `suppressed` is a per-file count; the
+                        // cache stores zero for hits, so we don't
+                        // surface it to the caller here.
+                        let _ = suppressed;
+                    }
                     let mut file_stats = ScanStats::default();
                     let bytes_len = source.len() as u64;
                     let lines = bytecount_lines(&source) as u64;
@@ -490,21 +553,28 @@ pub fn scan_entries_parallel(
             // process with code 101. We surface it as a ScanError instead
             // so the run completes and the user can see which file failed.
             let unwind = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                scan_entry(registry, ctx, entry, pool)
+                scan_entry(registry, ctx, entry, pool, project_root, module_prefix)
             }));
             match unwind {
                 Ok(res) => match res {
-                    Ok((findings, cache_key, source, suppressed_count, stats, timing)) => {
-                        ScanOutcome::Ok {
-                            findings,
-                            cache_key,
-                            source,
-                            language: entry.language,
-                            suppressed_count,
-                            stats,
-                            timing,
-                        }
-                    }
+                    Ok((
+                        findings,
+                        cache_key,
+                        source,
+                        suppressed_count,
+                        stats,
+                        dependencies,
+                        timing,
+                    )) => ScanOutcome::Ok {
+                        findings,
+                        cache_key,
+                        source,
+                        language: entry.language,
+                        suppressed_count,
+                        stats,
+                        dependencies,
+                        timing,
+                    },
                     Err(e) => ScanOutcome::Err(e),
                 },
                 Err(payload) => {
@@ -527,6 +597,7 @@ pub fn scan_entries_parallel(
     let mut suppressed_count = 0;
     let mut stats = ScanStats::default();
     let mut timing = TimingCollector::new(collect_stats);
+    let mut rescan_files: Vec<(String, bool)> = Vec::new();
 
     for outcome in scan_outcomes {
         match outcome {
@@ -537,11 +608,26 @@ pub fn scan_entries_parallel(
                 language,
                 suppressed_count: ignored,
                 stats: file_stats,
+                dependencies,
                 timing: file_timing,
             } => {
                 if let Some(cache) = cache.as_deref_mut() {
                     let hash = content_hash(&source);
                     let mtime = mtime_of(&cache_key);
+                    // Capture whether this entry already existed
+                    // before we overwrite it. A "true" rescan with a
+                    // changed content hash triggers cascade
+                    // invalidation; a brand-new entry does not
+                    // (nothing was depending on the stale state).
+                    let prior_hash = cache
+                        .manifest()
+                        .files
+                        .get(&cache_key)
+                        .map(|m| m.content_hash.clone());
+                    let hash_changed = prior_hash
+                        .as_deref()
+                        .map(|old| old != hash.as_str())
+                        .unwrap_or(false);
                     let entry = CacheEntry {
                         schema_version: crate::engine::cache::CACHE_VERSION,
                         file: cache_key.clone(),
@@ -550,11 +636,14 @@ pub fn scan_entries_parallel(
                         mtime_nanos: mtime.1,
                         language: language.as_str().to_string(),
                         findings: f.clone(),
-                        dependencies: Vec::new(),
+                        dependencies: dependencies.clone(),
                         cached_at: crate::engine::cache::iso8601_now(),
                     };
                     if let Err(e) = cache.put(entry) {
                         tracing::warn!(file = %cache_key, error = %e, "failed to write cache entry");
+                    }
+                    if hash_changed {
+                        rescan_files.push((cache_key.clone(), true));
                     }
                 }
                 findings.append(&mut f);
@@ -602,6 +691,9 @@ pub fn scan_entries_parallel(
         "scan chunk complete"
     );
 
+    stats.cache_hits = cache_hit_count;
+    stats.cache_misses = stats.files_scanned.saturating_sub(cache_hit_count);
+
     Ok((
         findings,
         errors,
@@ -609,6 +701,7 @@ pub fn scan_entries_parallel(
         suppressed_count,
         stats,
         timing,
+        rescan_files,
     ))
 }
 

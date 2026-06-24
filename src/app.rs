@@ -9,8 +9,8 @@ use slopguard::cli::{Cli, Command, OutputFormat};
 use slopguard::cwe::{RuleDescription, default_ruleset_path, load_rule_descriptions};
 use slopguard::engine::{
     Analyzer, BASELINE_FILE_NAME, Baseline, CacheStore, DEFAULT_CACHE_DIR, Diagnostics, Registry,
-    SlopguardConfig, TimingCollector, discover_baseline, discover_cache_dir, discover_config,
-    resolve_language_filter,
+    SlopguardConfig, TimingCollector, collect_entries, discover_baseline, discover_cache_dir,
+    discover_config, resolve_language_filter,
 };
 use slopguard::export::export_findings;
 use slopguard::reporting;
@@ -66,8 +66,8 @@ pub fn run(cli: Cli) -> Result<ExitCode> {
     let collect_stats = scan_context.collect_stats();
     let analyzer = Analyzer::builder()
         .scan_context(scan_context)
-        .path_filters(path_filters)
-        .language_filter(lang_filter)
+        .path_filters(path_filters.clone())
+        .language_filter(lang_filter.clone())
         .collect_stats(collect_stats)
         .build();
 
@@ -87,6 +87,42 @@ pub fn run(cli: Cli) -> Result<ExitCode> {
             // fresh cache instead of running with the store closed.
             cache_store = open_cache_store(&cli, config.as_ref());
         }
+    }
+
+    if cli.prune_cache {
+        let (entries, _skipped) = collect_entries(
+            &registry,
+            &cli.paths,
+            &lang_filter,
+            &path_filters,
+        )?;
+        let scanned_files: std::collections::HashSet<String> = entries
+            .iter()
+            .map(|e| e.path.display().to_string())
+            .collect();
+        if let Some(cache) = cache_store.as_mut() {
+            let pruned = cache.prune(&scanned_files)?;
+            let orphaned = cache.clean_orphans()?;
+            cache.flush()?;
+            if !cli.quiet {
+                if pruned > 0 || orphaned > 0 {
+                    eprintln!(
+                        "Pruned {} stale manifest {} and removed {} orphaned cache {} from {}",
+                        pruned,
+                        if pruned == 1 { "entry" } else { "entries" },
+                        orphaned,
+                        if orphaned == 1 { "file" } else { "files" },
+                        cache.cache_dir().display()
+                    );
+                } else {
+                    eprintln!(
+                        "Cache at {} is clean (0 stale entries, 0 orphans)",
+                        cache.cache_dir().display()
+                    );
+                }
+            }
+        }
+        return Ok(ExitCode::from(EXIT_CLEAN));
     }
 
     let mut result = match analyzer.analyze_paths(&cli.paths, cache_store.as_mut()) {

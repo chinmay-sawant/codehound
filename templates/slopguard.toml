@@ -33,3 +33,4 @@
 # [slopguard.cache]
 # enabled = true
 # path = ".slopguard-cache"
+# max_size_mb = 500  # evict oldest entries when the cache exceeds this size

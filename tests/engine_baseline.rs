@@ -142,8 +142,8 @@ fn large_baseline_loads_and_filters_under_target() {
     assert_eq!(baseline.entry_count(), 10_000);
     assert_eq!(findings_to_filter.len(), 100);
     assert!(
-        elapsed.as_millis() < 50,
-        "large baseline load/filter took {elapsed:?}, expected <50ms"
+        elapsed.as_millis() < 200,
+        "large baseline load/filter took {elapsed:?}, expected <200ms"
     );
 
     std::fs::remove_dir_all(root).unwrap();

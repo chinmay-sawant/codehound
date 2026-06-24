@@ -1,7 +1,7 @@
 //! Scan orchestrator.
 
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -9,6 +9,7 @@ use anyhow::Result;
 use crate::core::ScanContext;
 use crate::engine::cache::CacheStore;
 use crate::engine::config::PathFilters;
+use crate::engine::dependencies::{discover_project_root, go_module_prefix};
 use crate::engine::language_filter::LanguageFilter;
 use crate::engine::registry::Registry;
 use crate::engine::result::AnalysisResult;
@@ -52,12 +53,16 @@ impl AnalyzerBuilder {
     }
 
     pub fn build(self) -> Analyzer {
+        let project_root = discover_project_root(Path::new("."));
+        let module_prefix = go_module_prefix(&project_root);
         Analyzer {
             registry: self.registry.unwrap_or_default(),
             ctx: self.ctx,
             lang_filter: self.lang_filter,
             path_filters: self.path_filters,
             collect_stats: self.collect_stats,
+            project_root,
+            module_prefix,
         }
     }
 }
@@ -69,6 +74,13 @@ pub struct Analyzer {
     lang_filter: LanguageFilter,
     path_filters: PathFilters,
     collect_stats: bool,
+    /// Resolved at build time. Falls back to the cwd when the scan
+    /// path has no enclosing `.git`.
+    project_root: PathBuf,
+    /// `module` directive from the project root's `go.mod`, when
+    /// present. Used to distinguish local Go imports from
+    /// stdlib / third-party.
+    module_prefix: Option<String>,
 }
 
 impl Analyzer {
@@ -95,8 +107,27 @@ impl Analyzer {
     {
         let mut timing = TimingCollector::new(self.collect_stats);
 
+        // Resolve project_root / module_prefix from the first scan
+        // path. `Analyzer::build` provides sensible defaults from
+        // the cwd, but a user scanning an external project gets the
+        // wrong go.mod otherwise.
+        let paths: Vec<std::path::PathBuf> = paths
+            .into_iter()
+            .map(|p| p.as_ref().to_path_buf())
+            .collect();
+        let project_root = paths
+            .first()
+            .map(|p| discover_project_root(p))
+            .unwrap_or_else(|| self.project_root.clone());
+        let module_prefix = go_module_prefix(&project_root).or_else(|| self.module_prefix.clone());
+
         let (entries, files_skipped) = timing.measure("file_walk", || {
-            collect_entries(&self.registry, paths, &self.lang_filter, &self.path_filters)
+            collect_entries(
+                &self.registry,
+                paths.iter().map(|p| p.as_path()),
+                &self.lang_filter,
+                &self.path_filters,
+            )
         })?;
 
         let mut findings = Vec::new();
@@ -119,13 +150,44 @@ impl Analyzer {
                 chunk_suppressed_count,
                 chunk_stats,
                 chunk_timing,
-            ) = scan_entries_parallel(&self.registry, &self.ctx, chunk, cache.as_deref_mut())?;
+                chunk_rescan_files,
+            ) = scan_entries_parallel(
+                &self.registry,
+                &self.ctx,
+                chunk,
+                cache.as_deref_mut(),
+                &project_root,
+                module_prefix.as_deref(),
+            )?;
             findings.extend(chunk_findings);
             errors.extend(chunk_errors);
             source_cache.extend(chunk_source_cache);
             suppressed_count += chunk_suppressed_count;
             stats.merge(&chunk_stats);
             timing.merge(&chunk_timing);
+
+            // Transitive invalidation: every file whose content
+            // hash changed is, by definition, a dependency of any
+            // cache entry that still lists it. Walk the manifest and
+            // drop those dependents so the next scan (or a
+            // re-lookup) re-parses them. Brand-new entries (no
+            // previous hash) are NOT cascaded — there is nothing to
+            // invalidate yet.
+            if let Some(cache) = cache.as_deref_mut() {
+                for (rescanned_file, hash_changed) in chunk_rescan_files {
+                    if !hash_changed {
+                        continue;
+                    }
+                    let removed = cache.invalidate_dependent(&rescanned_file);
+                    if removed > 0 {
+                        tracing::debug!(
+                            file = %rescanned_file,
+                            removed,
+                            "cascade-invalidated dependents"
+                        );
+                    }
+                }
+            }
         }
 
         // Prune orphan cache entries (files that were deleted since

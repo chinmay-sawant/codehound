@@ -326,6 +326,58 @@ impl CacheStore {
         Ok(count)
     }
 
+    /// Remove on-disk `files/<key>.json` entries whose keys are not
+    /// present in the manifest. These orphans appear when the
+    /// manifest is torn (e.g. concurrent writes). Returns the number
+    /// of files removed.
+    pub fn clean_orphans(&self) -> Result<usize> {
+        if !self.files_dir.is_dir() {
+            return Ok(0);
+        }
+        let active_keys: std::collections::HashSet<&str> = self
+            .manifest
+            .files
+            .values()
+            .map(|m| m.cache_key.as_str())
+            .collect();
+        let mut removed = 0;
+        for entry in std::fs::read_dir(&self.files_dir)? {
+            let entry = entry?;
+            let fname = entry.file_name();
+            let name = fname.to_string_lossy();
+            let Some(key) = name.strip_suffix(".json") else {
+                continue;
+            };
+            if active_keys.contains(key) {
+                continue;
+            }
+            if entry.file_type().is_ok_and(|t| t.is_file()) {
+                std::fs::remove_file(entry.path())?;
+                removed += 1;
+            }
+        }
+        Ok(removed)
+    }
+
+    /// Sum the sizes of all `files/<key>.json` entries in bytes.
+    /// Useful for capacity checks and `--diagnostics`.
+    pub fn total_size(&self) -> u64 {
+        if !self.files_dir.is_dir() {
+            return 0;
+        }
+        let mut total = 0u64;
+        if let Ok(entries) = std::fs::read_dir(&self.files_dir) {
+            for entry in entries.flatten() {
+                if entry.file_type().is_ok_and(|t| t.is_file()) {
+                    if let Ok(meta) = entry.metadata() {
+                        total += meta.len();
+                    }
+                }
+            }
+        }
+        total
+    }
+
     /// Lazily invalidate the entry for `file`. Equivalent to
     /// [`remove`](Self::remove) but kept as a separate name for use by
     /// callers that invalidate without deleting the on-disk entry
@@ -338,12 +390,21 @@ impl CacheStore {
 
     /// Invalidate every entry whose `dependencies` list contains
     /// `changed_file`. Returns the number of entries invalidated.
+    ///
+    /// Both the manifest keys and the stored dependency lists use
+    /// absolute paths (the canonical form), so matching is a
+    /// straightforward string equality check.
     pub fn invalidate_dependent(&mut self, changed_file: &str) -> usize {
+        let changed_norm = changed_file.replace('\\', "/");
         let dependents: Vec<String> = self
             .manifest
             .files
             .iter()
-            .filter(|(_, m)| m.dependencies.iter().any(|d| d == changed_file))
+            .filter(|(_, m)| {
+                m.dependencies
+                    .iter()
+                    .any(|d| d.replace('\\', "/") == changed_norm)
+            })
             .map(|(k, _)| k.clone())
             .collect();
         let count = dependents.len();

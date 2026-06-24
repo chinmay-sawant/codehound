@@ -16,6 +16,9 @@ pub struct ScanStats {
     pub bytes_scanned: u64,
     pub lines_scanned: u64,
 
+    pub cache_hits: usize,
+    pub cache_misses: usize,
+
     pub findings_total: usize,
     pub findings_by_severity: HashMap<String, usize>,
     pub findings_by_rule: Vec<(String, usize)>,
@@ -50,6 +53,8 @@ impl ScanStats {
             files_errored: result.errors.len(),
             bytes_scanned: 0,
             lines_scanned: 0,
+            cache_hits: 0,
+            cache_misses: 0,
             findings_total: result.findings.len(),
             findings_by_severity,
             findings_by_rule,
@@ -68,6 +73,8 @@ impl ScanStats {
         self.files_errored += other.files_errored;
         self.bytes_scanned += other.bytes_scanned;
         self.lines_scanned += other.lines_scanned;
+        self.cache_hits += other.cache_hits;
+        self.cache_misses += other.cache_misses;
         self.findings_total += other.findings_total;
         self.findings_suppressed += other.findings_suppressed;
 
@@ -109,6 +116,14 @@ impl ScanStats {
     /// Record that a file produced an error.
     pub fn record_errored(&mut self) {
         self.files_errored += 1;
+    }
+
+    pub fn record_cache_hit(&mut self) {
+        self.cache_hits += 1;
+    }
+
+    pub fn record_cache_miss(&mut self) {
+        self.cache_misses += 1;
     }
 }
 

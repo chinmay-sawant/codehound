@@ -81,6 +81,10 @@ tree-sitter-python = "0.25"
 name = "scan_throughput"
 harness = false
 
+[[bench]]
+name = "incremental_scan"
+harness = false
+
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("go", "python", "terminal-output"))'] }
 

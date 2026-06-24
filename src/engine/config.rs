@@ -63,6 +63,17 @@ impl Default for BaselineConfig {
 pub struct CacheConfig {
     pub enabled: bool,
     pub path: Option<PathBuf>,
+
+    /// Maximum on-disk size of the cache directory in MiB.
+    /// When exceeded, the oldest entries (by `cached_at` timestamp)
+    /// are evicted during `flush()`. Default: 500 MiB.
+    /// Set to `0` to disable the size limit.
+    #[serde(default = "default_max_size_mb")]
+    pub max_size_mb: u64,
+}
+
+fn default_max_size_mb() -> u64 {
+    500
 }
 
 impl Default for CacheConfig {
@@ -70,6 +81,7 @@ impl Default for CacheConfig {
         Self {
             enabled: true,
             path: None,
+            max_size_mb: default_max_size_mb(),
         }
     }
 }

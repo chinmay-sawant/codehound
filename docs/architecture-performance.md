@@ -3,10 +3,22 @@
 ## Pipeline (language-agnostic)
 
 ```
-CLI/config merge → Analyzer → collect_entries (walk + include/exclude filtering) → scan_entries_parallel (read + parse + detect per file) → reporting
+CLI/config merge → Analyzer → collect_entries (walk + include/exclude filtering) → scan_entries_parallel (read → cache lookup | parse + detect per file) → cache flush + prune → reporting
 ```
 
 Each file is read, parsed, analyzed, and dropped independently so peak memory stays bounded on large repos.
+
+## Incremental cache (P2.3)
+
+- **Directory**: `.slopguard-cache/` at the project root (auto-discovered near `.git` or `go.mod`).
+- **Manifest**: `manifest.json` tracks per-file content hash, mtime, and dependency list; kept in memory during the scan.
+- **Per-file entries**: `files/<sha256>.json` stores serialized findings, content hash, and dependency list.
+- **Cache hit flow**: File is read for hash computation → hash matches manifest → findings served from cache → inline-ignore directives re-applied from the (already in-memory) source → `ctx.allows()` filters rules skipped via `--skip` / `--only`.
+- **Transitive invalidation**: When a file's content hash changes, every cache entry that lists it as a dependency is invalidated. Dependency extraction walks Go `import` statements and Python `import` statements to build the dependency graph. Only project-local imports (matching the `go.mod` module prefix) are tracked; stdlib and third-party imports are excluded.
+- **Pruning**: After each scan, entries for files no longer on disk are removed. `--prune-cache` prunes without scanning. `--rebuild-cache` purges the entire cache directory.
+- **CLI flags**: `--no-cache`, `--cache-dir <DIR>`, `--rebuild-cache`, `--prune-cache`.
+- **Configuration**: `[slopguard.cache]` block with `enabled`, `path`, and `max_size_mb` (default 500 MiB).
+- **Fair warning in `--diagnostics`**: The document includes total cache size via `CacheStore::total_size()`.
 
 ## Multi-language default
 
@@ -23,7 +35,7 @@ Each file is read, parsed, analyzed, and dropped independently so peak memory st
 | Go AST | One `build_go_unit_facts` pass + `SourceIndex` substring flags per file |
 | Go rules | Typed `registry.toml` drives `build.rs` (no source scraping) |
 | CWE metadata | Static `CWE_REFS_*` slices in `cwe/catalog.rs` |
-| File pipeline | Parallel read → parse → detect → drop per file (`rayon`) |
+| File pipeline | Parallel read → parse → detect → drop per file (`rayon`). Cache hits skip parse+detect entirely. |
 | Source load | `String::from_utf8(bytes)` into `Arc<str>` |
 | Source cache | Successful UTF-8 files are retained in `AnalysisResult.source_cache` as `Arc<str>` so export and downstream consumers avoid second disk reads |
 | Export | Stream context files and chunk files (no upfront `Vec` of all blocks) |
@@ -65,6 +77,6 @@ Run `wc -l src/lang/go/detectors/cwe/domains/*.rs` in CI or locally to catch mod
 
 ## Future optimizations
 
-- Incremental tree-sitter parse when caching file hashes
+- Size-based LRU pruning when cache exceeds `max_size_mb` (config field wired; eviction logic TBD)
 - Tree-sitter Query captures for hot rules
 - Callee-indexed rule scheduling to skip rules when sinks are absent

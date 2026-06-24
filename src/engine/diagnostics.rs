@@ -37,7 +37,8 @@ impl Diagnostics {
                 files_scanned: stats.files_scanned,
                 files_skipped: stats.files_skipped,
                 files_errored: stats.files_errored,
-                files_cached: None,
+                files_cached: Some(stats.cache_hits),
+                files_fresh: Some(stats.cache_misses),
                 bytes_scanned: stats.bytes_scanned,
                 lines_scanned: stats.lines_scanned,
                 duration_ms,
@@ -98,6 +99,8 @@ pub struct ScanDiagnostics {
     pub files_errored: usize,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub files_cached: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub files_fresh: Option<usize>,
     pub bytes_scanned: u64,
     pub lines_scanned: u64,
     pub duration_ms: f64,
