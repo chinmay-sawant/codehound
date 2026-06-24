@@ -79,6 +79,7 @@ fn format_finding_block(
             finding.file, finding.line, finding.column
         ),
         format!("Rule: {}", finding.rule_id),
+        format!("Fingerprint: {}", finding.fingerprint_string()),
         format!("Rule title: {}", finding.rule_title),
         format!("Severity: {}", finding.severity),
         format!("Message: {}", finding.message),

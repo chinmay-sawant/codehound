@@ -21,6 +21,7 @@ fn sample() -> AnalysisResult {
             Cow::Borrowed(&[]),
         )],
         errors: vec![],
+        suppressed_count: 0,
     }
 }
 
@@ -42,6 +43,7 @@ fn sample_with_cwe() -> AnalysisResult {
             Cow::Borrowed(cwes),
         )],
         errors: vec![],
+        suppressed_count: 0,
     }
 }
 
@@ -62,7 +64,7 @@ fn envelope_serializes_finding_fingerprint() {
     let env = Envelope::from(&r);
     let s = serde_json::to_string_pretty(&env).unwrap();
     assert!(
-        s.contains("\"fingerprint\": \"CWE-89:a.go:12:5\""),
+        s.contains("\"fingerprint\": \"slopguard:1:CWE-89:a.go:12:5\""),
         "got: {s}"
     );
 }
@@ -100,6 +102,7 @@ fn ndjson_emits_one_finding_per_line() {
             ),
         ],
         errors: vec![],
+        suppressed_count: 0,
     };
     let mut buf = Vec::new();
     for f in &result.findings {
@@ -111,6 +114,11 @@ fn ndjson_emits_one_finding_per_line() {
     assert_eq!(lines.len(), 2, "expected 2 NDJSON lines, got: {s}");
     assert!(
         lines[0].contains("\"rule_id\":\"CWE-1\""),
+        "got: {}",
+        lines[0]
+    );
+    assert!(
+        lines[0].contains("\"fingerprint\":\"slopguard:1:CWE-1:a.go:1:1\""),
         "got: {}",
         lines[0]
     );
@@ -135,4 +143,15 @@ fn envelope_with_errors_includes_error_count() {
     let env = Envelope::from(&r);
     let s = serde_json::to_string_pretty(&env).unwrap();
     assert!(s.contains("\"errorCount\": 1"), "got: {s}");
+}
+
+#[test]
+fn envelope_includes_suppressed_count() {
+    let mut r = sample();
+    r.suppressed_count = 3;
+
+    let env = Envelope::from(&r);
+    let s = serde_json::to_string_pretty(&env).unwrap();
+
+    assert!(s.contains("\"suppressedCount\": 3"), "got: {s}");
 }

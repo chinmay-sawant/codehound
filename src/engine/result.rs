@@ -68,6 +68,8 @@ pub struct AnalysisResult {
     /// Export (and future passes) can read from this instead of hitting
     /// disk again.
     pub source_cache: HashMap<String, Arc<str>>,
+    /// Findings suppressed by baseline filtering.
+    pub suppressed_count: usize,
 }
 
 impl AnalysisResult {

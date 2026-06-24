@@ -28,6 +28,7 @@ fn sample_result() -> AnalysisResult {
             ),
         ],
         errors: vec![],
+        suppressed_count: 0,
     }
 }
 
@@ -80,6 +81,10 @@ fn results_have_partial_fingerprints() {
         log.contains("\"partialFingerprints\""),
         "missing partialFingerprints, got: {log}"
     );
+    assert!(
+        log.contains("\"slopguard/v1\": \"slopguard:1:CWE-22:a.go:1:1\""),
+        "missing canonical fingerprint, got: {log}"
+    );
 }
 
 #[test]
@@ -94,6 +99,16 @@ fn invocations_block_present() {
     let log = render_to_string(&sample_result());
     assert!(log.contains("\"invocations\""), "got: {log}");
     assert!(log.contains("\"endTimeUtc\""), "got: {log}");
+}
+
+#[test]
+fn invocation_includes_suppressed_count_when_present() {
+    let mut result = sample_result();
+    result.suppressed_count = 2;
+
+    let log = render_to_string(&result);
+
+    assert!(log.contains("\"suppressedFindings\": 2"), "got: {log}");
 }
 
 #[test]

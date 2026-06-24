@@ -1,5 +1,6 @@
 //! Collect source paths and scan files (parallel parse + detect).
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -11,6 +12,9 @@ use rayon::prelude::*;
 use crate::ast;
 use crate::core::{LanguageId, LanguagePlugin, ParsedUnit, ScanContext};
 use crate::engine::config::PathFilters;
+use crate::engine::ignore::{
+    apply_file_ignore, apply_inline_ignores, parse_file_ignore, parse_inline_ignores,
+};
 use crate::engine::language_filter::LanguageFilter;
 use crate::engine::parse_pool::ParsePool;
 use crate::engine::registry::Registry;
@@ -137,7 +141,7 @@ pub fn scan_entry(
     ctx: &ScanContext,
     entry: &ScanEntry,
     pool: &mut ParsePool,
-) -> std::result::Result<Vec<Finding>, ScanError> {
+) -> std::result::Result<(Vec<Finding>, String, Arc<str>, usize), ScanError> {
     let plugin = match registry.plugin_for_id(entry.language) {
         Some(p) => p,
         None => {
@@ -193,7 +197,19 @@ pub fn scan_entry(
 
     let mut findings = analyze_parsed_unit(registry, ctx, &unit);
     attach_function_context(&mut findings, plugin, &unit);
-    Ok(findings)
+    let file_ignore = parse_file_ignore(unit.source.as_ref());
+    let mut suppressed_count =
+        apply_file_ignore(&mut findings, file_ignore.as_ref(), ctx.show_ignored);
+    if file_ignore.is_none() {
+        let inline_ignores = parse_inline_ignores(unit.source.as_ref());
+        suppressed_count += apply_inline_ignores(&mut findings, &inline_ignores, ctx.show_ignored);
+    }
+    Ok((
+        findings,
+        unit.display_path.clone(),
+        Arc::clone(&unit.source),
+        suppressed_count,
+    ))
 }
 
 /// Walk the unit's tree once to collect every function-like span, then attach
@@ -271,7 +287,12 @@ pub fn analyze_parsed_unit_with_context(
 /// Per-file outcome from a parallel scan: either findings or a structured error.
 #[derive(Debug)]
 pub enum ScanOutcome {
-    Ok(Vec<Finding>),
+    Ok {
+        findings: Vec<Finding>,
+        cache_key: String,
+        source: Arc<str>,
+        suppressed_count: usize,
+    },
     Err(ScanError),
 }
 
@@ -285,7 +306,12 @@ pub fn scan_entries_parallel(
     registry: &Registry,
     ctx: &ScanContext,
     entries: &[ScanEntry],
-) -> Result<(Vec<Finding>, Vec<ScanError>)> {
+) -> Result<(
+    Vec<Finding>,
+    Vec<ScanError>,
+    HashMap<String, Arc<str>>,
+    usize,
+)> {
     let total = entries.len();
     let outcomes: Vec<ScanOutcome> = entries
         .par_iter()
@@ -299,7 +325,12 @@ pub fn scan_entries_parallel(
             }));
             match unwind {
                 Ok(res) => match res {
-                    Ok(findings) => ScanOutcome::Ok(findings),
+                    Ok((findings, cache_key, source, suppressed_count)) => ScanOutcome::Ok {
+                        findings,
+                        cache_key,
+                        source,
+                        suppressed_count,
+                    },
                     Err(e) => ScanOutcome::Err(e),
                 },
                 Err(payload) => {
@@ -317,9 +348,20 @@ pub fn scan_entries_parallel(
 
     let mut findings = Vec::new();
     let mut errors = Vec::new();
+    let mut source_cache = HashMap::with_capacity(total);
+    let mut suppressed_count = 0;
     for outcome in outcomes {
         match outcome {
-            ScanOutcome::Ok(mut f) => findings.append(&mut f),
+            ScanOutcome::Ok {
+                findings: mut f,
+                cache_key,
+                source,
+                suppressed_count: ignored,
+            } => {
+                findings.append(&mut f);
+                source_cache.insert(cache_key, source);
+                suppressed_count += ignored;
+            }
             ScanOutcome::Err(e) => errors.push(e),
         }
     }
@@ -331,7 +373,7 @@ pub fn scan_entries_parallel(
         "scan chunk complete"
     );
 
-    Ok((findings, errors))
+    Ok((findings, errors, source_cache, suppressed_count))
 }
 
 /// Best-effort message extraction from a `catch_unwind` payload. The payload

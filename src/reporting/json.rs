@@ -49,6 +49,8 @@ pub struct Envelope<'a> {
     pub finding_count: usize,
     #[serde(rename = "errorCount")]
     pub error_count: usize,
+    #[serde(rename = "suppressedCount")]
+    pub suppressed_count: usize,
     pub findings: Vec<FindingJson<'a>>,
 }
 
@@ -60,6 +62,7 @@ impl<'a> From<&'a AnalysisResult> for Envelope<'a> {
             schema: "https://json.schemastore.org/slopguard/v1",
             finding_count: r.findings.len(),
             error_count: r.errors.len(),
+            suppressed_count: r.suppressed_count,
             findings: r.findings.iter().map(FindingJson::from).collect(),
         }
     }
@@ -130,7 +133,7 @@ impl<'a> From<&'a crate::rules::Finding> for FindingJson<'a> {
             end_column: f.end_column,
             byte_offset: f.byte_offset,
             byte_length: f.byte_length,
-            fingerprint: f.fingerprint(),
+            fingerprint: f.fingerprint_string(),
             snippet: f.snippet.as_deref(),
             message: f.message.as_str(),
             severity: f.severity,

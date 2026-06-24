@@ -24,6 +24,7 @@ fn finding_with_cwe_renders() {
             Cow::Borrowed(&[]),
         )],
         errors: vec![],
+        suppressed_count: 0,
     };
     assert!(print(&r).is_ok());
 }

@@ -130,6 +130,15 @@ pub struct SarifInvocation<'a> {
     pub end_time_utc: String,
     #[serde(rename = "workingDirectory")]
     pub working_directory: SarifArtifactLocation<'a>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub properties: Option<SarifInvocationProperties>,
+}
+
+#[derive(Serialize)]
+#[doc(hidden)]
+pub struct SarifInvocationProperties {
+    #[serde(rename = "suppressedFindings")]
+    pub suppressed_findings: usize,
 }
 
 pub fn print(result: &AnalysisResult) -> Result<()> {
@@ -197,15 +206,7 @@ fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
                 }
             }
             let mut partial_fingerprints: BTreeMap<&'static str, String> = BTreeMap::new();
-            let fingerprint = format!(
-                "{}:{}:{}:{}:{}",
-                env!("CARGO_PKG_VERSION"),
-                f.rule_id,
-                f.file,
-                f.line,
-                f.column,
-            );
-            partial_fingerprints.insert("slopguard/v1", fingerprint);
+            partial_fingerprints.insert("slopguard/v1", f.fingerprint_string());
 
             SarifResult {
                 rule_id: f.rule_id,
@@ -244,6 +245,9 @@ fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
         execution_successful: result.errors.is_empty(),
         end_time_utc: iso8601_utc_now(),
         working_directory: SarifArtifactLocation { uri: "." },
+        properties: (result.suppressed_count > 0).then_some(SarifInvocationProperties {
+            suppressed_findings: result.suppressed_count,
+        }),
     };
 
     SarifLog {

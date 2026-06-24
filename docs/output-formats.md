@@ -70,7 +70,7 @@ and includes:
 | `runs[0].results[].message.text`                   | detector message |
 | `runs[0].results[].locations[].physicalLocation.artifactLocation.uri` | file path |
 | `runs[0].results[].locations[].physicalLocation.region.startLine`/`startColumn` | 1-indexed |
-| `runs[0].results[].partialFingerprints["slopguard/v1"]` | stable fingerprint (`<ver>:<rule>:<file>:<line>:<col>`) |
+| `runs[0].results[].partialFingerprints["slopguard/v1"]` | stable fingerprint (`slopguard:1:<rule>:<file>:<line>:<col>`) |
 | `runs[0].results[].properties.tags`                | `["security", "cwe", "cwe-22", ...]` |
 | `runs[0].results[].properties.security-severity`   | `0.0`/`4.0`/`7.0`/`9.0` |
 

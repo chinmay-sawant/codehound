@@ -5,6 +5,7 @@ use std::borrow::Cow;
 use serde::{Serialize, Serializer};
 
 use super::Severity;
+use super::fingerprint::Fingerprint;
 use crate::cwe::CweRef;
 
 /// 1-indexed line and column in a source file.
@@ -158,12 +159,13 @@ impl Finding {
         self
     }
 
-    /// Compute a stable cross-run fingerprint (`<rule>:<file>:<line>:<col>`).
-    /// Consumers can use this to deduplicate findings across CI runs.
-    pub fn fingerprint(&self) -> String {
-        format!(
-            "{}:{}:{}:{}",
-            self.rule_id, self.file, self.line, self.column
-        )
+    /// Compute a stable cross-run fingerprint.
+    pub fn fingerprint(&self) -> Fingerprint {
+        Fingerprint::from_finding(self)
+    }
+
+    /// Convenience string form for wire output.
+    pub fn fingerprint_string(&self) -> String {
+        self.fingerprint().to_string()
     }
 }

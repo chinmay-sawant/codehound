@@ -45,6 +45,22 @@
           "description": "Exclude test files (*_test.*) from analysis (default: true).",
           "type": "boolean",
           "default": true
+        },
+        "baseline": {
+          "description": "Baseline suppression configuration.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Load and apply baseline files by default.",
+              "type": "boolean",
+              "default": true
+            },
+            "path": {
+              "description": "Custom path to a .slopguard-baseline.json file.",
+              "type": "string"
+            }
+          }
         }
       }
     }

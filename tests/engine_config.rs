@@ -30,9 +30,38 @@ skip = ["CWE-15"]
 only = []
 include = []
 exclude = []
+[slopguard.baseline]
+enabled = true
+path = ".slopguard-baseline.json"
 "#,
     );
     assert!(r.is_ok(), "expected ok, got {r:?}");
+}
+
+#[test]
+fn baseline_config_defaults_enabled() {
+    let cfg = toml::from_str::<SlopguardConfig>("[slopguard]\n").unwrap();
+
+    assert!(cfg.baseline_enabled());
+    assert_eq!(cfg.baseline_path(), None);
+}
+
+#[test]
+fn baseline_config_accepts_enabled_and_path() {
+    let cfg = toml::from_str::<SlopguardConfig>(
+        r#"[slopguard]
+[slopguard.baseline]
+enabled = false
+path = "custom-baseline.json"
+"#,
+    )
+    .unwrap();
+
+    assert!(!cfg.baseline_enabled());
+    assert_eq!(
+        cfg.baseline_path().as_deref(),
+        Some(Path::new("custom-baseline.json"))
+    );
 }
 
 #[test]
@@ -180,7 +209,15 @@ fn schema_file_is_valid_json_and_covers_known_fields() {
     let props = v
         .pointer("/properties/slopguard/properties")
         .expect("schema.properties.slopguard.properties");
-    for field in ["languages", "fail_on", "skip", "only", "include", "exclude"] {
+    for field in [
+        "languages",
+        "fail_on",
+        "skip",
+        "only",
+        "include",
+        "exclude",
+        "baseline",
+    ] {
         assert!(
             props.get(field).is_some(),
             "schema must describe `{field}`; got keys: {:?}",
@@ -189,6 +226,10 @@ fn schema_file_is_valid_json_and_covers_known_fields() {
     }
     assert_eq!(
         v.pointer("/properties/slopguard/additionalProperties"),
+        Some(&serde_json::Value::Bool(false))
+    );
+    assert_eq!(
+        v.pointer("/properties/slopguard/properties/baseline/additionalProperties"),
         Some(&serde_json::Value::Bool(false))
     );
 }

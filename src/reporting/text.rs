@@ -125,6 +125,13 @@ fn print_summary(result: &AnalysisResult) {
         *by_rule.entry(f.rule_id).or_insert(0) += 1;
     }
 
+    if result.suppressed_count > 0 {
+        println!("  suppressed findings: {}", result.suppressed_count);
+    }
+    if !result.errors.is_empty() {
+        println!("  scan errors: {}", result.errors.len());
+    }
+
     if n == 0 {
         return;
     }
@@ -144,8 +151,5 @@ fn print_summary(result: &AnalysisResult) {
         .collect();
     if !top.is_empty() {
         println!("  top rules: {}", top.join(", "));
-    }
-    if !result.errors.is_empty() {
-        println!("  scan errors: {}", result.errors.len());
     }
 }

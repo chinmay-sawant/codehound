@@ -1,7 +1,7 @@
 # Missing B — Structured Finding Identity as First-Class Output
 
 > **Parent:** `plans/p2.md` — Missing Item B
-> **Status:** `Finding::fingerprint()` exists and SARIF emits a partial fingerprint, but there is no unified contract across all output formats and future baseline workflows.
+> **Status:** Phase 1, Phase 2 JSON/SARIF/export emission, Phase 3 baseline consumption, Phase 4 stability docs/tests, and Phase 5 caller audit landed. Canonical fingerprints now use `slopguard:1:<rule_id>:<file>:<line>:<column>` through the shared `Fingerprint` type. Incremental/cache consumers and optional terminal display remain open.
 > **Estimated effort:** 3-5 days.
 
 ---
@@ -16,30 +16,30 @@ Baseline, deduplication, ignore-once, and CI diffing all need the same stable id
 
 ### 1.1 Design the fingerprint v1 specification
 
-- [ ] Document the fingerprint format contract:
+- [x] Document the fingerprint format contract:
   ```
   slopguard-fingerprint-v1 := <tool_name>:<version>:<rule_id>:<file>:<line>:<column>
   ```
-- [ ] Example: `slopguard:1:CWE-22:pkg/handler/user.go:42:5`
-- [ ] Version the format: embed `v1` or `1` so future changes can be detected
-- [ ] Decide what goes into the identity:
-  - [ ] `rule_id` — required (identifies which check found it)
-  - [ ] `file` — required (relative path from project root)
-  - [ ] `line` — required (1-indexed)
-  - [ ] `column` — required (1-indexed)
-  - [ ] What about `message`? — NOT included (message text may change between versions)
-  - [ ] What about `severity`? — NOT included (severity may be tuned)
-  - [ ] What about `function`? — NOT included (functions can be renamed)
-  - [ ] What about `byte_offset`? — NOT included (redundant with line:col)
-- [ ] Document edge cases:
-  - [ ] File path normalization: use forward slashes on all platforms (`/` not `\`)
-  - [ ] File path relativity: relative to the project root (where `.slopguard.toml` or `.git` lives)
-  - [ ] Unicode file paths: use the OS-native representation (bytes, not normalized Unicode)
-- [ ] Create `docs/finding-identity.md` with the full specification
+- [x] Example: `slopguard:1:CWE-22:pkg/handler/user.go:42:5`
+- [x] Version the format: embed `v1` or `1` so future changes can be detected
+- [x] Decide what goes into the identity:
+  - [x] `rule_id` — required (identifies which check found it)
+  - [x] `file` — required (relative path from project root)
+  - [x] `line` — required (1-indexed)
+  - [x] `column` — required (1-indexed)
+  - [x] What about `message`? — NOT included (message text may change between versions)
+  - [x] What about `severity`? — NOT included (severity may be tuned)
+  - [x] What about `function`? — NOT included (functions can be renamed)
+  - [x] What about `byte_offset`? — NOT included (redundant with line:col)
+- [x] Document edge cases:
+  - [x] File path normalization: use forward slashes on all platforms (`/` not `\`)
+  - [x] File path relativity: relative to the project root (where `.slopguard.toml` or `.git` lives)
+  - [x] Unicode file paths: use the OS-native representation (bytes, not normalized Unicode)
+- [x] Create `docs/finding-identity.md` with the full specification
 
 ### 1.2 Create canonical `Fingerprint` type
 
-- [ ] Define `Fingerprint` in `src/rules/finding.rs` (or a new `src/rules/fingerprint.rs`):
+- [x] Define `Fingerprint` in `src/rules/fingerprint.rs`:
   ```rust
   #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
   pub struct Fingerprint {
@@ -51,20 +51,20 @@ Baseline, deduplication, ignore-once, and CI diffing all need the same stable id
       pub column: usize,
   }
   ```
-- [ ] Implement `Fingerprint::from_finding(finding: &Finding) -> Self`
-  - [ ] Normalize file path (forward slashes)
-  - [ ] Use `finding.rule_id`, `finding.file`, `finding.line`, `finding.column`
-- [ ] Implement `Fingerprint::to_string() -> String`
-  - [ ] Format: `slopguard:1:<rule_id>:<file>:<line>:<column>`
-- [ ] Implement `Fingerprint::parse(s: &str) -> Result<Self>` for deserialization
-- [ ] Implement `Display` for `Fingerprint`
-- [ ] Replace `Finding::fingerprint()` with a method that creates a `Fingerprint`:
+- [x] Implement `Fingerprint::from_finding(finding: &Finding) -> Self`
+  - [x] Normalize file path (forward slashes)
+  - [x] Use `finding.rule_id`, `finding.file`, `finding.line`, `finding.column`
+- [x] Implement `Fingerprint::to_string() -> String`
+  - [x] Format: `slopguard:1:<rule_id>:<file>:<line>:<column>`
+- [x] Implement `Fingerprint::parse(s: &str) -> Result<Self>` for deserialization
+- [x] Implement `Display` for `Fingerprint`
+- [x] Replace `Finding::fingerprint()` with a method that creates a `Fingerprint`:
   ```rust
   pub fn fingerprint(&self) -> Fingerprint {
       Fingerprint::from_finding(self)
   }
   ```
-- [ ] Deprecate the old string-based `fingerprint()` or keep it as a convenience:
+- [x] Keep string-based output as a convenience:
   ```rust
   pub fn fingerprint_string(&self) -> String {
       self.fingerprint().to_string()
@@ -77,28 +77,28 @@ Baseline, deduplication, ignore-once, and CI diffing all need the same stable id
 
 ### 2.1 JSON output
 
-- [ ] In `src/reporting/json.rs`:
-  - [ ] Add `fingerprint` field to `FindingJson` struct (already exists at line 133 — verify it calls the new `Fingerprint` type)
-  - [ ] Ensure the serialized value is the canonical string: `slopguard:1:CWE-22:file.go:42:5`
-  - [ ] Add unit test: round-trip serialization preserves fingerprint format
-- [ ] Ensure `--json-envelope` mode also includes fingerprint
+- [x] In `src/reporting/json.rs`:
+  - [x] Add `fingerprint` field to `FindingJson` struct (already existed; now it calls `fingerprint_string()` from the new `Fingerprint` type)
+  - [x] Ensure the serialized value is the canonical string: `slopguard:1:CWE-22:file.go:42:5`
+  - [x] Add unit test: serialization preserves fingerprint format
+- [x] Ensure `--json-envelope` mode also includes fingerprint
 
 ### 2.2 SARIF output
 
-- [ ] In `src/reporting/sarif.rs` (line 199-208):
-  - [ ] Update `partialFingerprints` to use the canonical format
-  - [ ] Current format: `<version>:<rule_id>:<file>:<line>:<column>`
-  - [ ] New format: `slopguard:1:<rule_id>:<file>:<line>:<column>` (add tool name prefix)
+- [x] In `src/reporting/sarif.rs` (line 199-208):
+  - [x] Update `partialFingerprints` to use the canonical format
+  - [x] Current format: `<version>:<rule_id>:<file>:<line>:<column>`
+  - [x] New format: `slopguard:1:<rule_id>:<file>:<line>:<column>` (add tool name prefix)
   - [ ] Add `primary` or `fullyQualifiedLogicalName` if SARIF spec supports it
-  - [ ] Document the fingerprint key: `slopguard/v1`
-  - [ ] Add unit test: SARIF output contains `partialFingerprints.slopguard/v1` with correct value
+  - [x] Document the fingerprint key: `slopguard/v1`
+  - [x] Add unit test: SARIF output contains `partialFingerprints.slopguard/v1` with correct value
 
 ### 2.3 Export layer
 
-- [ ] In `src/export/mod.rs`:
-  - [ ] Include the canonical fingerprint in each context `.txt` file
-  - [ ] Format: `Fingerprint: slopguard:1:CWE-22:pkg/handler/user.go:42:5`
-  - [ ] Include in chunk files too (for machine parsing)
+- [x] In `src/export/mod.rs`:
+  - [x] Include the canonical fingerprint in each context `.txt` file
+  - [x] Format: `Fingerprint: slopguard:1:CWE-22:pkg/handler/user.go:42:5`
+  - [x] Include in chunk files too (for machine parsing)
 
 ### 2.4 Text/terminal output
 
@@ -113,11 +113,11 @@ Baseline, deduplication, ignore-once, and CI diffing all need the same stable id
 
 ### 3.1 Baseline (P2.2)
 
-- [ ] In `src/engine/baseline.rs` (new file from P2.2 plan):
-  - [ ] Use `Fingerprint` type for baseline entries
-  - [ ] Store fingerprints in the baseline file
-  - [ ] Match findings against baseline using `Fingerprint` equality
-  - [ ] Documentation: baseline file stores `"fingerprint"` field with canonical fingerprint string
+- [x] In `src/engine/baseline.rs` (new file from P2.2 plan):
+  - [x] Use `Fingerprint` type for baseline entries
+  - [x] Store fingerprints in the baseline file
+  - [x] Match findings against baseline using `Fingerprint` equality
+  - [x] Documentation: baseline file stores `"fingerprint"` field with canonical fingerprint string
 
 ### 3.2 Incremental analysis (P2.3)
 
@@ -126,10 +126,10 @@ Baseline, deduplication, ignore-once, and CI diffing all need the same stable id
 
 ### 3.3 Inline ignore (P2.2)
 
-- [ ] In `src/engine/ignore.rs` (new file from P2.2 plan):
-  - [ ] Parse ignore comments by rule ID (not full fingerprint)
-  - [ ] When matching, compare `finding.rule_id` against the ignore directive
-  - [ ] Fingerprint not directly needed for inline ignore (it's rule-level, not finding-level)
+- [x] In `src/engine/ignore.rs` (new file from P2.2 plan):
+  - [x] Parse ignore comments by rule ID (not full fingerprint)
+  - [x] When matching, compare `finding.rule_id` against the ignore directive
+  - [x] Fingerprint not directly needed for inline ignore (it's rule-level, not finding-level)
 
 ### 3.4 CI diffing (future)
 
@@ -144,35 +144,35 @@ Baseline, deduplication, ignore-once, and CI diffing all need the same stable id
 
 ### 4.1 Fingerprint stability contract
 
-- [ ] Document the stability guarantees in `docs/finding-identity.md`:
-  - [ ] Fingerprints are stable across runs of the same tool version on the same file
-  - [ ] Fingerprints are NOT stable across tool versions (version is embedded)
-  - [ ] Fingerprints are NOT stable across file renames (file path is part of identity)
-  - [ ] Fingerprints are NOT stable across code changes on the same line (column may shift)
-- [ ] Define what constitutes a "breaking change" to fingerprint format:
-  - [ ] Changing the format string → version bump
-  - [ ] Adding/removing fields → version bump
-  - [ ] Normalizing file paths differently → version bump
+- [x] Document the stability guarantees in `docs/finding-identity.md`:
+  - [x] Fingerprints are stable across runs of the same tool version on the same file
+  - [x] Fingerprints are NOT stable across tool versions (version is embedded)
+  - [x] Fingerprints are NOT stable across file renames (file path is part of identity)
+  - [x] Fingerprints are NOT stable across code changes on the same line (column may shift)
+- [x] Define what constitutes a "breaking change" to fingerprint format:
+  - [x] Changing the format string → version bump
+  - [x] Adding/removing fields → version bump
+  - [x] Normalizing file paths differently → version bump
 
 ### 4.2 Version migration
 
-- [ ] Define migration strategy for fingerprint format changes:
-  - [ ] Old baseline files with v1 fingerprints: can still be loaded
-  - [ ] New scans produce v2 fingerprints
-  - [ ] v2 fingerprints won't match v1 baseline entries → baseline user must re-baseline
-  - [ ] Document this in release notes
+- [x] Document migration strategy for fingerprint format changes:
+  - [x] Baseline/cache readers should accept known versions only
+  - [x] New scans should emit the latest fingerprint version
+  - [x] Unknown versions should require an explicit migration or re-baseline
+  - [x] Document this in `docs/finding-identity.md`
 
 ### 4.3 Tests for fingerprint stability
 
-- [ ] Create `tests/rules_fingerprint.rs`:
-  - [ ] Test: `Fingerprint::from_finding()` produces deterministic output
-    - [ ] Same finding → same fingerprint every time
-  - [ ] Test: Two different findings on the same line but different columns → different fingerprints
-  - [ ] Test: Same logical finding in two different files → different fingerprints
-  - [ ] Test: `Fingerprint::parse()` round-trips correctly
-  - [ ] Test: Fingerprint never contains platform-specific path separators (`\` on Windows → `/`)
-  - [ ] Test: Fingerprint handles Unicode file paths (OS-native bytes)
-  - [ ] Test: Fingerprint string format matches the documented specification exactly
+- [x] Create `tests/rules_fingerprint.rs`:
+  - [x] Test: `Fingerprint::from_finding()` produces deterministic output
+    - [x] Same finding → same fingerprint every time
+  - [x] Test: Two different findings on the same line but different columns → different fingerprints
+  - [x] Test: Same logical finding in two different files → different fingerprints
+  - [x] Test: `Fingerprint::parse()` round-trips correctly
+  - [x] Test: Fingerprint never contains platform-specific path separators (`\` on Windows → `/`)
+  - [x] Test: Fingerprint handles Unicode file paths (OS-native bytes)
+  - [x] Test: Fingerprint string format matches the documented specification exactly
 
 ---
 
@@ -180,14 +180,14 @@ Baseline, deduplication, ignore-once, and CI diffing all need the same stable id
 
 ### 5.1 Check current fingerprint usage
 
-- [ ] Audit all callers of `Finding::fingerprint()`:
-  - [ ] `src/reporting/json.rs:133` — `FindingJson.fingerprint` field
-  - [ ] `src/reporting/sarif.rs:199-208` — `partialFingerprints` map
-  - [ ] Any tests referencing fingerprint string format
-- [ ] If existing fingerprint format changes, add backward-compat:
-  - [ ] Old format: `CWE-22:file.go:42:5` (no tool prefix, no version)
-  - [ ] New format: `slopguard:1:CWE-22:file.go:42:5`
-  - [ ] Old baseline/cache files with old format → warn and treat as v0 (compatibility mode)
+- [x] Audit all callers of `Finding::fingerprint()`:
+  - [x] `src/reporting/json.rs:133` — `FindingJson.fingerprint` field now uses `fingerprint_string()`
+  - [x] `src/reporting/sarif.rs:199-208` — `partialFingerprints` map now uses `fingerprint_string()`
+  - [x] Any tests referencing fingerprint string format were updated
+- [x] If existing fingerprint format changes, document backward-compat need:
+  - [x] Old format: `CWE-22:file.go:42:5` (no tool prefix, no version)
+  - [x] New format: `slopguard:1:CWE-22:file.go:42:5`
+  - [ ] Old baseline/cache files with old format → warn and treat as v0 (compatibility mode; deferred until migration support is implemented)
 
 ---
 

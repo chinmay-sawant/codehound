@@ -209,6 +209,6 @@ fn fingerprint_is_stable_across_calls() {
         Severity::Info,
         Cow::Borrowed(&[]),
     );
-    assert_eq!(f.fingerprint(), "CWE-22:a.go:12:5");
-    assert_eq!(f.fingerprint(), "CWE-22:a.go:12:5");
+    assert_eq!(f.fingerprint_string(), "slopguard:1:CWE-22:a.go:12:5");
+    assert_eq!(f.fingerprint_string(), "slopguard:1:CWE-22:a.go:12:5");
 }

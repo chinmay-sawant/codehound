@@ -51,6 +51,16 @@ fn exports_context_and_chunk_files() {
     assert_eq!(summary.chunk_files_written, 1);
     assert!(root.join("findings/functions/1.txt").exists());
     assert!(root.join("chunks/Chunk_1_1.txt").exists());
+    let context = std::fs::read_to_string(root.join("findings/functions/1.txt")).unwrap();
+    let chunk = std::fs::read_to_string(root.join("chunks/Chunk_1_1.txt")).unwrap();
+    assert!(
+        context.contains("Fingerprint: slopguard:1:CWE-89:"),
+        "got: {context}"
+    );
+    assert!(
+        chunk.contains("Fingerprint: slopguard:1:CWE-89:"),
+        "got: {chunk}"
+    );
 
     std::fs::remove_dir_all(root).unwrap();
 }

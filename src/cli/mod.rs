@@ -104,6 +104,22 @@ pub struct Cli {
     #[arg(long)]
     pub json_envelope: bool,
 
+    /// Save current findings as the baseline and exit.
+    #[arg(long)]
+    pub baseline: bool,
+
+    /// Ignore any existing `.slopguard-baseline.json` file.
+    #[arg(long)]
+    pub no_baseline: bool,
+
+    /// Report findings suppressed by slopguard-ignore comments.
+    #[arg(long)]
+    pub show_ignored: bool,
+
+    /// Path to a custom baseline file.
+    #[arg(long, value_name = "PATH")]
+    pub baseline_file: Option<PathBuf>,
+
     /// List all registered rules and exit.
     #[arg(long)]
     pub list_rules: bool,
@@ -183,15 +199,21 @@ impl SeverityArgs {
 }
 
 impl Cli {
+    pub fn generate_baseline(&self) -> bool {
+        self.baseline
+    }
+
     pub fn scan_context(&self, config: Option<crate::engine::SlopguardConfig>) -> ScanContext {
         let cli_set_fail_policy = self.severity.is_explicit();
-        build_scan_context(
+        let mut ctx = build_scan_context(
             self.only.clone(),
             self.skip.clone(),
             self.severity.fail_policy(),
             config,
             cli_set_fail_policy,
-        )
+        );
+        ctx.show_ignored = self.show_ignored;
+        ctx
     }
 
     pub fn export_options(&self) -> ExportOptions {

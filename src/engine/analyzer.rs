@@ -1,5 +1,6 @@
 //! Scan orchestrator.
 
+use std::collections::HashMap;
 use std::path::Path;
 
 use anyhow::Result;
@@ -76,11 +77,15 @@ impl Analyzer {
             collect_entries(&self.registry, paths, &self.lang_filter, &self.path_filters)?;
         let mut findings = Vec::new();
         let mut errors = Vec::new();
+        let mut source_cache = HashMap::new();
+        let mut suppressed_count = 0;
         for chunk in entries.chunks(SCAN_CHUNK_SIZE) {
-            let (chunk_findings, chunk_errors) =
+            let (chunk_findings, chunk_errors, chunk_source_cache, chunk_suppressed_count) =
                 scan_entries_parallel(&self.registry, &self.ctx, chunk)?;
             findings.extend(chunk_findings);
             errors.extend(chunk_errors);
+            source_cache.extend(chunk_source_cache);
+            suppressed_count += chunk_suppressed_count;
         }
         sort_findings(&mut findings);
         if !errors.is_empty() {
@@ -92,7 +97,8 @@ impl Analyzer {
         Ok(AnalysisResult {
             findings,
             errors,
-            source_cache: Default::default(),
+            source_cache,
+            suppressed_count,
         })
     }
 

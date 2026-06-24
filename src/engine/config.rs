@@ -1,6 +1,6 @@
 //! Optional `slopguard.toml` configuration.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 use serde::Deserialize;
@@ -31,6 +31,24 @@ pub struct SlopguardSection {
     pub exclude: Vec<String>,
     #[serde(default)]
     pub exclude_tests: Option<bool>,
+    #[serde(default)]
+    pub baseline: BaselineConfig,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct BaselineConfig {
+    pub enabled: bool,
+    pub path: Option<PathBuf>,
+}
+
+impl Default for BaselineConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            path: None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -97,6 +115,14 @@ impl SlopguardConfig {
             exclude_tests: self.slopguard.exclude_tests.unwrap_or(true),
         }
     }
+
+    pub fn baseline_enabled(&self) -> bool {
+        self.slopguard.baseline.enabled
+    }
+
+    pub fn baseline_path(&self) -> Option<PathBuf> {
+        self.slopguard.baseline.path.clone()
+    }
 }
 
 #[doc(hidden)]
@@ -149,6 +175,7 @@ pub fn build_scan_context(
         },
         skip: skip.into_iter().collect(),
         fail_policy,
+        show_ignored: false,
     };
     if let Some(cfg) = config {
         ctx = cfg.merge_into(ctx, cli_set_fail_policy);

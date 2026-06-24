@@ -32,6 +32,7 @@ pub struct ScanContext {
     pub only: Option<HashSet<String>>,
     pub skip: HashSet<String>,
     pub fail_policy: FailPolicy,
+    pub show_ignored: bool,
 }
 
 impl ScanContext {

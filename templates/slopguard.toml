@@ -18,3 +18,10 @@
 
 # Test files (*_test.*) are excluded by default; set to false to include them.
 # exclude_tests = false
+
+# Baselines are enabled by default. SlopGuard discovers `.slopguard-baseline.json`
+# upward from the current directory unless a custom path is configured or passed
+# with `--baseline-file`.
+# [slopguard.baseline]
+# enabled = true
+# path = ".slopguard-baseline.json"

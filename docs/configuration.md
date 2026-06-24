@@ -48,16 +48,25 @@ Override discovery with `--config <PATH>` or `SLOPGUARD_CONFIG=<PATH>`.
 
 # Glob patterns to exclude. Applied after include.
 # exclude = ["**/vendor/**", "**/*_test.go"]
+
+# Baselines are enabled by default and auto-discovered upward from the current
+# directory. Configure a custom file path or disable config-driven loading here.
+# [slopguard.baseline]
+# enabled = true
+# path = ".slopguard-baseline.json"
 ```
 
 ## Precedence (highest to lowest)
 
-1. CLI flags (`--only`, `--skip`, `--strict`, `--no-fail`, `--warnings-as-errors`)
+1. CLI flags (`--only`, `--skip`, `--strict`, `--no-fail`, `--warnings-as-errors`, `--baseline`, `--no-baseline`, `--baseline-file`)
 2. `slopguard.toml` values
 3. Built-in defaults (no filtering, `fail_on = warnings`)
 
 Note: `--only` and `--skip` are *merged* (additive) — the CLI list extends the
 config list. `--fail-on` replaces the config value when the CLI flag is set.
+For baselines, `--baseline` save mode ignores config loading, `--no-baseline`
+disables all baseline loading, and `--baseline-file` overrides
+`[slopguard.baseline].path`.
 
 ## `.slopguardignore`
 

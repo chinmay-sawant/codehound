@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": ".slopguard-baseline.json",
+  "description": "Baseline file for SlopGuard finding suppression.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "generated_at", "tool_version", "entries"],
+  "properties": {
+    "version": {
+      "description": "Baseline file format version.",
+      "type": "string"
+    },
+    "generated_at": {
+      "description": "UTC timestamp when the baseline was generated.",
+      "type": "string"
+    },
+    "tool_version": {
+      "description": "SlopGuard package version that generated the baseline.",
+      "type": "string"
+    },
+    "entries": {
+      "description": "Findings grouped by rule id.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["file", "line", "column", "fingerprint"],
+          "properties": {
+            "file": {
+              "type": "string"
+            },
+            "line": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "column": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "fingerprint": {
+              "type": "string",
+              "pattern": "^slopguard:1:"
+            }
+          }
+        }
+      }
+    }
+  }
+}
