@@ -16,33 +16,33 @@ The `Finding` struct currently carries only a plain-text `message` plus metadata
 
 ### 1.1 Catalog all Finding fields and their producers
 
-- [ ] Map every field on `Finding` (`src/rules/finding.rs:31-80`) to where it is set:
-  - [ ] `rule_id` — set by `emit::push_finding()` from `RuleMetadata`
-  - [ ] `rule_title` — set by `emit::push_finding()` from `RuleMetadata`
-  - [ ] `file` — set by caller (path of the scanned file)
-  - [ ] `line`, `column` — computed from `unit.line_col(byte_offset)`
-  - [ ] `end_line`, `end_column` — set by `with_end()` builder
-  - [ ] `byte_offset`, `byte_length` — set by `with_byte_range()` builder
-  - [ ] `function_start_byte`, `function_end_byte` — set by `attach_function_context()`
-  - [ ] `function_start_line`, `function_end_line` — display helpers
-  - [ ] `snippet` — set by `with_snippet()` or `attach_function_context()`
-  - [ ] `message` — set by detector: hand-written string
-  - [ ] `severity` — inherited from rule metadata
-  - [ ] `cwe` — inherited from rule metadata
-  - [ ] `fix` — set by `with_fix()` or inherited from rule metadata
-- [ ] Identify which fields are "human-facing" vs "machine-facing"
-- [ ] Identify which fields are set once vs mutated after creation
+- [x] Map every field on `Finding` (`src/rules/finding.rs:31-80`) to where it is set:
+  - [x] `rule_id` — set by `emit::push_finding()` from `RuleMetadata`
+  - [x] `rule_title` — set by `emit::push_finding()` from `RuleMetadata`
+  - [x] `file` — set by caller (path of the scanned file)
+  - [x] `line`, `column` — computed from `unit.line_col(byte_offset)`
+  - [x] `end_line`, `end_column` — set by `with_end()` builder
+  - [x] `byte_offset`, `byte_length` — set by `with_byte_range()` builder
+  - [x] `function_start_byte`, `function_end_byte` — set by `attach_function_context()`
+  - [x] `function_start_line`, `function_end_line` — display helpers
+  - [x] `snippet` — set by `with_snippet()` or `attach_function_context()`
+  - [x] `message` — set by detector: hand-written string
+  - [x] `severity` — inherited from rule metadata
+  - [x] `cwe` — inherited from rule metadata
+  - [x] `fix` — set by `with_fix()` or inherited from rule metadata
+- [x] Identify which fields are "human-facing" vs "machine-facing"
+- [x] Identify which fields are set once vs mutated after creation
 
 ### 1.2 Catalog all Finding consumers
 
-- [ ] Map every place that reads `Finding`:
-  - [ ] `src/reporting/text.rs` — human-readable terminal output
-  - [ ] `src/reporting/json.rs` — machine-readable JSON output
-  - [ ] `src/reporting/sarif.rs` — SARIF output
-  - [ ] `src/export/mod.rs` — context/chunk file generation
-  - [ ] `src/engine/result.rs` — `should_fail()`, sorting, filtering
-  - [ ] Future: baseline matching, cache serialization, CI diffing
-- [ ] Document which fields each consumer depends on
+- [x] Map every place that reads `Finding`:
+  - [x] `src/reporting/text.rs` — human-readable terminal output
+  - [x] `src/reporting/json.rs` — machine-readable JSON output
+  - [x] `src/reporting/sarif.rs` — SARIF output
+  - [x] `src/export/mod.rs` — context/chunk file generation
+  - [x] `src/engine/result.rs` — `should_fail()`, sorting, filtering
+  - [x] Future: baseline matching, cache serialization, CI diffing
+- [x] Document which fields each consumer depends on
 
 ---
 
@@ -114,7 +114,7 @@ The `Finding` struct currently carries only a plain-text `message` plus metadata
 
 ### 2.2 Add structured fields to `Finding`
 
-- [ ] Add new fields to `Finding` struct in `src/rules/finding.rs`:
+- [x] Add new fields to `Finding` struct in `src/rules/finding.rs`:
   ```rust
   pub struct Finding {
       // ... existing fields ...
@@ -145,7 +145,7 @@ The `Finding` struct currently carries only a plain-text `message` plus metadata
   }
   ```
   - [x] Added `evidence`, `confidence`, `tags`, `suppressed`, and `remediation`
-  - [ ] Add cached `fingerprint_str` if profiling shows repeated fingerprint computation matters
+  - [ ] Add cached `fingerprint_str` if profiling shows repeated fingerprint computation matters (deferred)
 - [x] Review: do NOT remove existing fields — this is additive
 - [x] All new fields use `#[serde(skip_serializing_if = "...")]` for backward compatibility
 - [x] JSON output will include new fields when present; absent when not set (backward-compatible for existing consumers)
@@ -164,13 +164,13 @@ The `Finding` struct currently carries only a plain-text `message` plus metadata
 
 ### 3.1 Define message construction pattern
 
-- [ ] `message` field: stays as the human-readable summary (one sentence)
-  - [ ] Example: "User-controlled input reaches SQL query without sanitization"
-- [ ] `evidence` field: machine-readable structured payload
-  - [ ] Example: `TaintFlow { source: ..., sink: ..., hops: 2 }`
-- [ ] `remediation` field: actionable fix guidance (separate from one-line `fix` suggestion)
-  - [ ] Example: "Use parameterized queries (`db.Prepare()`) instead of string formatting. See https://go.dev/doc/database/sql-injection"
-- [ ] Rule: Every finding MUST have a `message`. `evidence` and `remediation` are optional but encouraged.
+- [x] `message` field: stays as the human-readable summary (one sentence)
+  - [x] Example: "User-controlled input reaches SQL query without sanitization"
+- [x] `evidence` field: machine-readable structured payload
+  - [x] Example: `TaintFlow { source: ..., sink: ..., hops: 2 }`
+- [x] `remediation` field: actionable fix guidance (separate from one-line `fix` suggestion)
+  - [x] Example: "Use parameterized queries (`db.Prepare()`) instead of string formatting. See https://go.dev/doc/database/sql-injection"
+- [x] Rule: Every finding MUST have a `message`. `evidence` and `remediation` are optional but encouraged.
 
 ### 3.2 Update `emit::push_finding()` helpers
 
@@ -190,16 +190,20 @@ The `Finding` struct currently carries only a plain-text `message` plus metadata
 
 ### 3.3 Update detector functions to use new API
 
-- [ ] For Category A detectors (simple pattern match):
-  - [ ] Optionally add `PatternMatch` evidence
-  - [ ] Continue using existing `push_finding()` if no structured evidence needed
-- [ ] For Category B/C detectors (context-aware):
+- [x] For Category A detectors (simple pattern match):
+  - [ ] Optionally add `PatternMatch` evidence (deferred)
+  - [x] Continue using existing `push_finding()` if no structured evidence needed
+- [x] For Category B/C detectors (context-aware):
   - [x] Add structured evidence for the specific pattern
     - [x] CWE-78 emits `DangerousCall { function: "exec.Command", argument_index: Some(2) }`
-  - [ ] Set `confidence` if heuristic
-  - [ ] Set `tags` for known false-positive risks
+    - [x] CWE-22 emits `DangerousCall` with the path-traversal sink
+    - [x] CWE-89 emits `DangerousCall` with the SQL sink
+    - [x] PERF-1 emits `ControlFlowIssue { LoopBodyAllocation, ... }`
+  - [ ] Set `confidence` if heuristic (deferred)
+  - [ ] Set `tags` for known false-positive risks (deferred)
 - [x] Start with a few detectors as exemplars, document the pattern, then expand
   - [x] First exemplar: CWE-78 command injection
+  - [x] Expanded exemplars: CWE-22, CWE-89, PERF-1
 
 ---
 

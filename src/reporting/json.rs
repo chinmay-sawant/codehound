@@ -12,6 +12,7 @@ use serde::Serialize;
 
 use crate::cwe::CweRef;
 use crate::engine::AnalysisResult;
+use crate::engine::ScanStats;
 use crate::rules::DetectorEvidence;
 
 pub fn print(result: &AnalysisResult) -> Result<()> {
@@ -52,6 +53,8 @@ pub struct Envelope<'a> {
     pub error_count: usize,
     #[serde(rename = "suppressedCount")]
     pub suppressed_count: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stats: Option<&'a ScanStats>,
     pub findings: Vec<FindingJson<'a>>,
 }
 
@@ -64,6 +67,7 @@ impl<'a> From<&'a AnalysisResult> for Envelope<'a> {
             finding_count: r.findings.len(),
             error_count: r.errors.len(),
             suppressed_count: r.suppressed_count,
+            stats: r.stats.as_ref(),
             findings: r.findings.iter().map(FindingJson::from).collect(),
         }
     }

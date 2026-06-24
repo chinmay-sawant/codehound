@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use thiserror::Error;
 
+use crate::engine::ScanStats;
 use crate::rules::Finding;
 
 /// A non-fatal error encountered while scanning a single file. The scan
@@ -70,6 +71,9 @@ pub struct AnalysisResult {
     pub source_cache: HashMap<String, Arc<str>>,
     /// Findings suppressed by baseline filtering.
     pub suppressed_count: usize,
+    /// Optional operational scan statistics. Populated when timing/stats
+    /// collection is enabled (via `--debug-timing` or `--diagnostics`).
+    pub stats: Option<ScanStats>,
 }
 
 impl AnalysisResult {

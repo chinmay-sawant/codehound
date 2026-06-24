@@ -79,6 +79,7 @@ pub struct TextOptions {
     pub suppress_snippet: bool,
     pub show_fingerprint: bool,
     pub verbose: bool,
+    pub debug_timing: bool,
 }
 
 pub fn print_with_options(result: &AnalysisResult, options: TextOptions) -> Result<()> {
@@ -94,7 +95,7 @@ pub fn write_with_options(
 ) -> Result<()> {
     if result.findings.is_empty() {
         writeln!(out, "{}", style::green_bold("no slop detected"))?;
-        write_summary(out, result)?;
+        write_summary(out, result, options)?;
         return Ok(());
     }
 
@@ -154,7 +155,16 @@ pub fn write_with_options(
         writeln!(out)?;
     }
 
-    write_summary(out, result)?;
+    write_summary(out, result, options)?;
+
+    if options.debug_timing {
+        if let Some(stats) = result.stats.as_ref() {
+            if let Some(timing) = stats.timing.as_ref() {
+                write_detector_timing(out, timing)?;
+            }
+        }
+    }
+
     Ok(())
 }
 
@@ -206,7 +216,11 @@ fn evidence_summary(evidence: &DetectorEvidence) -> String {
     }
 }
 
-fn write_summary(out: &mut impl Write, result: &AnalysisResult) -> Result<()> {
+fn write_summary(
+    out: &mut impl Write,
+    result: &AnalysisResult,
+    options: TextOptions,
+) -> Result<()> {
     let n = result.findings.len();
     let mut by_sev: BTreeMap<&'static str, usize> = BTreeMap::new();
     let mut by_rule: BTreeMap<&'static str, usize> = BTreeMap::new();
@@ -220,6 +234,33 @@ fn write_summary(out: &mut impl Write, result: &AnalysisResult) -> Result<()> {
     }
     if !result.errors.is_empty() {
         writeln!(out, "  scan errors: {}", result.errors.len())?;
+    }
+
+    if let Some(stats) = result.stats.as_ref() {
+        writeln!(
+            out,
+            "scanned {} file{} ({} line{}) in {:.2}s",
+            stats.files_scanned,
+            if stats.files_scanned == 1 { "" } else { "s" },
+            stats.lines_scanned,
+            if stats.lines_scanned == 1 { "" } else { "s" },
+            stats
+                .timing
+                .as_ref()
+                .map(|t| t.total_wall_time.as_secs_f64())
+                .unwrap_or(0.0)
+        )?;
+        if stats.files_skipped > 0 {
+            writeln!(
+                out,
+                "  skipped {} file{}",
+                stats.files_skipped,
+                if stats.files_skipped == 1 { "" } else { "s" }
+            )?;
+        }
+        if options.verbose && stats.bytes_scanned > 0 {
+            writeln!(out, "  bytes scanned: {}", stats.bytes_scanned)?;
+        }
     }
 
     if n == 0 {
@@ -242,5 +283,53 @@ fn write_summary(out: &mut impl Write, result: &AnalysisResult) -> Result<()> {
     if !top.is_empty() {
         writeln!(out, "  top rules: {}", top.join(", "))?;
     }
+
+    if options.verbose {
+        if let Some(stats) = result.stats.as_ref() {
+            if let Some(timing) = stats.timing.as_ref() {
+                writeln!(out, "timing:")?;
+                for phase in &timing.phases {
+                    writeln!(
+                        out,
+                        "  {:24} {:>8.2}ms  ({:>5.1}%)",
+                        phase.name,
+                        phase.duration.as_secs_f64() * 1000.0,
+                        phase.percentage
+                    )?;
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn write_detector_timing(
+    out: &mut impl Write,
+    timing: &crate::engine::TimingSummary,
+) -> Result<()> {
+    writeln!(out, "--- Detector Timing (top 10) ---")?;
+    let mut phases: Vec<_> = timing.phases.iter().collect();
+    phases.sort_by(|a, b| b.duration.cmp(&a.duration));
+    let total: std::time::Duration = phases.iter().map(|p| p.duration).sum();
+    for phase in phases.iter().take(10) {
+        writeln!(
+            out,
+            "{:<24} {:>8.2}ms  ({:>5.1}%)",
+            phase.name,
+            phase.duration.as_secs_f64() * 1000.0,
+            if total.is_zero() {
+                0.0
+            } else {
+                phase.duration.as_secs_f64() / total.as_secs_f64() * 100.0
+            }
+        )?;
+    }
+    writeln!(
+        out,
+        "Total detector time: {:.2}ms across {} phases",
+        total.as_secs_f64() * 1000.0,
+        phases.len()
+    )?;
     Ok(())
 }

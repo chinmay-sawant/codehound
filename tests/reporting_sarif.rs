@@ -29,6 +29,7 @@ fn sample_result() -> AnalysisResult {
         ],
         errors: vec![],
         suppressed_count: 0,
+        stats: None,
     }
 }
 

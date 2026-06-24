@@ -96,6 +96,14 @@ pub struct Cli {
     #[arg(long)]
     pub verbose: bool,
 
+    /// Print per-detector timing after findings.
+    #[arg(long)]
+    pub debug_timing: bool,
+
+    /// Write machine-readable scan diagnostics to FILE.
+    #[arg(long, value_name = "FILE")]
+    pub diagnostics: Option<PathBuf>,
+
     /// Number of findings per chunk file.
     #[arg(long, default_value_t = 25)]
     pub chunk_size: usize,
@@ -219,6 +227,8 @@ impl Cli {
             self.severity.fail_policy(),
             config,
             cli_set_fail_policy,
+            self.debug_timing,
+            self.diagnostics.is_some(),
         );
         ctx.show_ignored = self.show_ignored;
         ctx

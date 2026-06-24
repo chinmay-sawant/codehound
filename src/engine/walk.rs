@@ -20,6 +20,8 @@ use crate::engine::language_filter::LanguageFilter;
 use crate::engine::parse_pool::ParsePool;
 use crate::engine::registry::Registry;
 use crate::engine::result::{ScanError, ScanErrorKind};
+use crate::engine::stats::{FileStats, ScanStats};
+use crate::engine::timing::TimingCollector;
 use crate::rules::Finding;
 
 /// A source file queued for analysis.
@@ -33,17 +35,21 @@ pub struct ScanEntry {
 ///
 /// Honors `.gitignore`/`.ignore` (via `standard_filters(true)`) **and**
 /// `.slopguardignore` if present at any walked root.
+///
+/// Returns the collected entries and the number of files skipped by
+/// ignore/language/path filters.
 pub fn collect_entries<I, P>(
     registry: &Registry,
     paths: I,
     lang_filter: &LanguageFilter,
     path_filters: &PathFilters,
-) -> Result<Vec<ScanEntry>>
+) -> Result<(Vec<ScanEntry>, usize)>
 where
     I: IntoIterator<Item = P>,
     P: AsRef<Path>,
 {
     let mut entries = Vec::new();
+    let mut skipped = 0usize;
 
     for path in paths {
         let path = path.as_ref();
@@ -57,13 +63,16 @@ where
                 continue;
             }
             if !matcher.allows(entry.path()) {
+                skipped += 1;
                 continue;
             }
             let Some(plugin) = registry.plugin_for_path(entry.path()) else {
+                skipped += 1;
                 continue;
             };
             let language = plugin.id();
             if !lang_filter.allows(language) {
+                skipped += 1;
                 continue;
             }
             entries.push(ScanEntry {
@@ -73,7 +82,7 @@ where
         }
     }
 
-    Ok(entries)
+    Ok((entries, skipped))
 }
 
 #[derive(Debug)]
@@ -137,15 +146,33 @@ fn build_globset(base: &Path, patterns: &[String]) -> Result<Option<Gitignore>> 
 /// Read, parse, and analyze a single file. Drops the parse tree before returning.
 ///
 /// `pool` is reused across many files on the same worker thread (see [`scan_entries_parallel`]).
+///
+/// On success, returns findings, cache key, source text, suppressed count,
+/// per-file stats, and a timing collector for this file.
 pub fn scan_entry(
     registry: &Registry,
     ctx: &ScanContext,
     entry: &ScanEntry,
     pool: &mut ParsePool,
-) -> std::result::Result<(Vec<Finding>, String, Arc<str>, usize), ScanError> {
+) -> std::result::Result<
+    (
+        Vec<Finding>,
+        String,
+        Arc<str>,
+        usize,
+        ScanStats,
+        TimingCollector,
+    ),
+    ScanError,
+> {
+    let collect_stats = ctx.collect_stats();
+    let mut timing = TimingCollector::new(collect_stats);
+    let mut stats = ScanStats::default();
+
     let plugin = match registry.plugin_for_id(entry.language) {
         Some(p) => p,
         None => {
+            stats.record_errored();
             return Err(ScanError {
                 path: entry.path.clone(),
                 kind: ScanErrorKind::Engine,
@@ -154,20 +181,27 @@ pub fn scan_entry(
         }
     };
 
-    let bytes = match std::fs::read(&entry.path) {
-        Ok(b) => b,
-        Err(e) => {
-            return Err(ScanError {
-                path: entry.path.clone(),
-                kind: ScanErrorKind::Io,
-                message: format!("reading {}: {e}", entry.path.display()),
-            });
+    let bytes = {
+        let idx = timing.start("file_read");
+        let result = std::fs::read(&entry.path);
+        timing.stop(idx);
+        match result {
+            Ok(b) => b,
+            Err(e) => {
+                stats.record_errored();
+                return Err(ScanError {
+                    path: entry.path.clone(),
+                    kind: ScanErrorKind::Io,
+                    message: format!("reading {}: {e}", entry.path.display()),
+                });
+            }
         }
     };
 
     let source = match String::from_utf8(bytes) {
         Ok(s) => Arc::from(s),
         Err(e) => {
+            stats.record_errored();
             return Err(ScanError {
                 path: entry.path.clone(),
                 kind: ScanErrorKind::Encoding,
@@ -176,25 +210,36 @@ pub fn scan_entry(
         }
     };
 
+    let file_stats = FileStats::from_source(&source);
+
     let parser = pool.parser_for(plugin);
-    let mut unit = match plugin.parse_with(parser, &entry.path, source) {
-        Ok(u) => u,
-        Err(e) => {
-            return Err(ScanError {
-                path: entry.path.clone(),
-                kind: ScanErrorKind::Parse,
-                message: format!("parsing {}: {e:#}", entry.path.display()),
-            });
+    let mut unit = {
+        let idx = timing.start("tree_sitter_parse");
+        let result = plugin.parse_with(parser, &entry.path, Arc::clone(&source));
+        timing.stop(idx);
+        match result {
+            Ok(u) => u,
+            Err(e) => {
+                stats.record_errored();
+                return Err(ScanError {
+                    path: entry.path.clone(),
+                    kind: ScanErrorKind::Parse,
+                    message: format!("parsing {}: {e:#}", entry.path.display()),
+                });
+            }
         }
     };
 
     let file_ignore = parse_file_ignore(unit.source.as_ref());
     if !ctx.show_ignored && file_ignore.as_ref().is_some_and(IgnoreDirective::is_all) {
+        stats.record_file(file_stats.bytes, file_stats.lines);
         return Ok((
             Vec::new(),
             unit.display_path.clone(),
             Arc::clone(&unit.source),
             0,
+            stats,
+            timing,
         ));
     }
 
@@ -206,7 +251,9 @@ pub fn scan_entry(
         unit.function_spans = ast::collect_function_spans(unit.tree.root_node(), fn_kinds);
     }
 
-    let mut findings = analyze_parsed_unit(registry, ctx, &unit);
+    let det_idx = timing.start("detector_execution");
+    let (mut findings, rules_executed) = analyze_parsed_unit(registry, ctx, &unit, &mut timing);
+    timing.stop(det_idx);
     attach_function_context(&mut findings, plugin, &unit);
     let mut suppressed_count =
         apply_file_ignore(&mut findings, file_ignore.as_ref(), ctx.show_ignored);
@@ -214,11 +261,20 @@ pub fn scan_entry(
         let inline_ignores = parse_inline_ignores(unit.source.as_ref());
         suppressed_count += apply_inline_ignores(&mut findings, &inline_ignores, ctx.show_ignored);
     }
+
+    stats.record_file(file_stats.bytes, file_stats.lines);
+    stats.findings_total = findings.len();
+    stats.findings_suppressed = suppressed_count;
+    stats.rules_executed = rules_executed;
+    stats.detectors_loaded = registry.detector_count();
+
     Ok((
         findings,
         unit.display_path.clone(),
         Arc::clone(&unit.source),
         suppressed_count,
+        stats,
+        timing,
     ))
 }
 
@@ -263,20 +319,34 @@ fn attach_function_context(
 }
 
 /// Run enabled detectors on an already-parsed unit.
+///
+/// Returns the findings and the number of detector invocations that actually
+/// executed (used for scan statistics).
 pub fn analyze_parsed_unit(
     registry: &Registry,
     ctx: &ScanContext,
     unit: &ParsedUnit,
-) -> Vec<Finding> {
+    timing: &mut TimingCollector,
+) -> (Vec<Finding>, usize) {
     let mut findings = Vec::new();
+    let mut rules_executed = 0;
+    let collect_detector_timing = ctx.collect_detector_timing();
     for &idx in registry.detector_indices(unit.language) {
         let det = registry.detector(idx);
         if !det.rule_ids().iter().any(|id| ctx.allows(id)) {
             continue;
         }
-        det.run(ctx, unit, &mut findings);
+        rules_executed += 1;
+        if collect_detector_timing {
+            let name = det.rule_ids().first().copied().unwrap_or("detector");
+            let span = timing.start(name);
+            det.run(ctx, unit, &mut findings);
+            timing.stop(span);
+        } else {
+            det.run(ctx, unit, &mut findings);
+        }
     }
-    findings
+    (findings, rules_executed)
 }
 
 /// Run detectors **and** attach function-context ranges for a single unit.
@@ -287,7 +357,8 @@ pub fn analyze_parsed_unit_with_context(
     ctx: &ScanContext,
     unit: &ParsedUnit,
 ) -> Vec<Finding> {
-    let mut findings = analyze_parsed_unit(registry, ctx, unit);
+    let mut timing = TimingCollector::new(false);
+    let (mut findings, _rules) = analyze_parsed_unit(registry, ctx, unit, &mut timing);
     if let Some(plugin) = registry.plugin_for_id(unit.language) {
         attach_function_context(&mut findings, plugin, unit);
     }
@@ -302,6 +373,8 @@ pub enum ScanOutcome {
         cache_key: String,
         source: Arc<str>,
         suppressed_count: usize,
+        stats: ScanStats,
+        timing: TimingCollector,
     },
     Err(ScanError),
 }
@@ -321,8 +394,11 @@ pub fn scan_entries_parallel(
     Vec<ScanError>,
     HashMap<String, Arc<str>>,
     usize,
+    ScanStats,
+    TimingCollector,
 )> {
     let total = entries.len();
+    let collect_stats = ctx.collect_stats();
     let outcomes: Vec<ScanOutcome> = entries
         .par_iter()
         .map_init(ParsePool::new, |pool, entry| {
@@ -335,12 +411,16 @@ pub fn scan_entries_parallel(
             }));
             match unwind {
                 Ok(res) => match res {
-                    Ok((findings, cache_key, source, suppressed_count)) => ScanOutcome::Ok {
-                        findings,
-                        cache_key,
-                        source,
-                        suppressed_count,
-                    },
+                    Ok((findings, cache_key, source, suppressed_count, stats, timing)) => {
+                        ScanOutcome::Ok {
+                            findings,
+                            cache_key,
+                            source,
+                            suppressed_count,
+                            stats,
+                            timing,
+                        }
+                    }
                     Err(e) => ScanOutcome::Err(e),
                 },
                 Err(payload) => {
@@ -360,6 +440,8 @@ pub fn scan_entries_parallel(
     let mut errors = Vec::new();
     let mut source_cache = HashMap::with_capacity(total);
     let mut suppressed_count = 0;
+    let mut stats = ScanStats::default();
+    let mut timing = TimingCollector::new(collect_stats);
     for outcome in outcomes {
         match outcome {
             ScanOutcome::Ok {
@@ -367,12 +449,19 @@ pub fn scan_entries_parallel(
                 cache_key,
                 source,
                 suppressed_count: ignored,
+                stats: file_stats,
+                timing: file_timing,
             } => {
                 findings.append(&mut f);
                 source_cache.insert(cache_key, source);
                 suppressed_count += ignored;
+                stats.merge(&file_stats);
+                timing.merge(&file_timing);
             }
-            ScanOutcome::Err(e) => errors.push(e),
+            ScanOutcome::Err(e) => {
+                errors.push(e);
+                stats.record_errored();
+            }
         }
     }
 
@@ -383,7 +472,14 @@ pub fn scan_entries_parallel(
         "scan chunk complete"
     );
 
-    Ok((findings, errors, source_cache, suppressed_count))
+    Ok((
+        findings,
+        errors,
+        source_cache,
+        suppressed_count,
+        stats,
+        timing,
+    ))
 }
 
 /// Best-effort message extraction from a `catch_unwind` payload. The payload

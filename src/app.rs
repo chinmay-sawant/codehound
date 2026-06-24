@@ -8,8 +8,8 @@ use anyhow::{Context, Result};
 use slopguard::cli::{Cli, Command, OutputFormat};
 use slopguard::cwe::{RuleDescription, default_ruleset_path, load_rule_descriptions};
 use slopguard::engine::{
-    Analyzer, BASELINE_FILE_NAME, Baseline, Registry, SlopguardConfig, discover_baseline,
-    discover_config, resolve_language_filter,
+    Analyzer, BASELINE_FILE_NAME, Baseline, Diagnostics, Registry, SlopguardConfig,
+    TimingCollector, discover_baseline, discover_config, resolve_language_filter,
 };
 use slopguard::export::export_findings;
 use slopguard::reporting;
@@ -46,7 +46,10 @@ pub fn run(cli: Cli) -> Result<ExitCode> {
         return Ok(ExitCode::from(EXIT_CLEAN));
     }
 
-    let config = load_config(cli.config.as_deref())?;
+    let collect_stats = cli.debug_timing || cli.diagnostics.is_some();
+    let mut app_timing = TimingCollector::new(collect_stats);
+
+    let config = app_timing.measure("config_load", || load_config(cli.config.as_deref()))?;
     let registry = Registry::default();
     let lang_filter = resolve_language_filter(cli.lang.language_id(), config.as_ref(), &registry)?;
 
@@ -58,10 +61,13 @@ pub fn run(cli: Cli) -> Result<ExitCode> {
         path_filters.exclude_tests = false;
     }
 
+    let scan_context = cli.scan_context(config.clone());
+    let collect_stats = scan_context.collect_stats();
     let analyzer = Analyzer::builder()
-        .scan_context(cli.scan_context(config.clone()))
+        .scan_context(scan_context)
         .path_filters(path_filters)
         .language_filter(lang_filter)
+        .collect_stats(collect_stats)
         .build();
 
     let mut result = match analyzer.analyze_paths(&cli.paths) {
@@ -151,23 +157,26 @@ pub fn run(cli: Cli) -> Result<ExitCode> {
     }
 
     let export_options = cli.export_options();
-    let export_summary = export_findings(&result.findings, &export_options, &result.source_cache)?;
+    let export_summary = app_timing.measure("export", || {
+        export_findings(&result.findings, &export_options, &result.source_cache)
+    })?;
 
     if !cli.no_terminal && !cli.quiet {
-        match cli.format {
+        app_timing.measure("reporting", || match cli.format {
             OutputFormat::Text => reporting::text::print_with_options(
                 &result,
                 reporting::text::TextOptions {
                     suppress_snippet: cli.no_snippet,
                     show_fingerprint: cli.show_fingerprint,
                     verbose: cli.verbose,
+                    debug_timing: cli.debug_timing,
                 },
-            )?,
-            OutputFormat::Json if cli.json_envelope => reporting::json::print_envelope(&result)?,
-            OutputFormat::Json => reporting::json::print(&result)?,
-            OutputFormat::Sarif if cli.no_snippet => reporting::sarif::print_compact(&result)?,
-            OutputFormat::Sarif => reporting::sarif::print(&result)?,
-        }
+            ),
+            OutputFormat::Json if cli.json_envelope => reporting::json::print_envelope(&result),
+            OutputFormat::Json => reporting::json::print(&result),
+            OutputFormat::Sarif if cli.no_snippet => reporting::sarif::print_compact(&result),
+            OutputFormat::Sarif => reporting::sarif::print(&result),
+        })?;
     } else {
         let mut parts = Vec::new();
         if export_options.export_context {
@@ -186,6 +195,29 @@ pub fn run(cli: Cli) -> Result<ExitCode> {
         }
         if !parts.is_empty() {
             println!("{}", parts.join(" and "));
+        }
+    }
+
+    if collect_stats {
+        if let Some(stats) = result.stats.as_mut() {
+            let app_summary = app_timing.to_summary();
+            if let Some(scan_timing) = stats.timing.as_mut() {
+                scan_timing.merge(&app_summary);
+            } else {
+                stats.timing = Some(app_summary);
+            }
+        }
+    }
+
+    if let Some(diagnostics_path) = cli.diagnostics.as_ref() {
+        if let Some(stats) = result.stats.as_ref() {
+            let diagnostics = Diagnostics::from_stats(stats);
+            let file = std::fs::File::create(diagnostics_path).with_context(|| {
+                format!("creating diagnostics file {}", diagnostics_path.display())
+            })?;
+            serde_json::to_writer_pretty(file, &diagnostics).with_context(|| {
+                format!("writing diagnostics file {}", diagnostics_path.display())
+            })?;
         }
     }
 

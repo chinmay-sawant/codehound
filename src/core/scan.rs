@@ -33,6 +33,11 @@ pub struct ScanContext {
     pub skip: HashSet<String>,
     pub fail_policy: FailPolicy,
     pub show_ignored: bool,
+    /// When true, detectors collect per-rule timing. Also implies stats collection.
+    pub debug_timing: bool,
+    /// When true, the run produces a machine-readable diagnostics file.
+    /// Also implies stats and phase timing collection.
+    pub diagnostics: bool,
 }
 
 impl ScanContext {
@@ -44,5 +49,15 @@ impl ScanContext {
             return only.contains(rule_id);
         }
         true
+    }
+
+    /// True if the run should collect scan statistics and phase timings.
+    pub fn collect_stats(&self) -> bool {
+        self.debug_timing || self.diagnostics
+    }
+
+    /// True if the run should collect per-detector timings.
+    pub fn collect_detector_timing(&self) -> bool {
+        self.debug_timing || self.diagnostics
     }
 }

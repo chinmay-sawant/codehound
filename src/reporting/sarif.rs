@@ -31,6 +31,17 @@ pub struct SarifRun<'a> {
     pub tool: SarifTool<'a>,
     pub invocations: Vec<SarifInvocation<'a>>,
     pub results: Vec<SarifResult<'a>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub properties: Option<SarifRunProperties<'a>>,
+}
+
+#[derive(Serialize)]
+#[doc(hidden)]
+pub struct SarifRunProperties<'a> {
+    #[serde(rename = "slopguardScanStats", skip_serializing_if = "Option::is_none")]
+    pub scan_stats: Option<&'a crate::engine::ScanStats>,
+    #[serde(rename = "slopguardTiming", skip_serializing_if = "Option::is_none")]
+    pub timing: Option<&'a crate::engine::TimingSummary>,
 }
 
 #[derive(Serialize)]
@@ -284,6 +295,11 @@ fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
         }),
     };
 
+    let run_properties = result.stats.as_ref().map(|stats| SarifRunProperties {
+        scan_stats: Some(stats),
+        timing: stats.timing.as_ref(),
+    });
+
     SarifLog {
         schema: SCHEMA_URL,
         version: SARIF_VERSION,
@@ -299,6 +315,7 @@ fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
             },
             invocations: vec![invocation],
             results,
+            properties: run_properties,
         }],
     }
 }

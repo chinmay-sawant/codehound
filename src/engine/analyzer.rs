@@ -10,6 +10,8 @@ use crate::engine::config::PathFilters;
 use crate::engine::language_filter::LanguageFilter;
 use crate::engine::registry::Registry;
 use crate::engine::result::AnalysisResult;
+use crate::engine::stats::ScanStats;
+use crate::engine::timing::TimingCollector;
 use crate::engine::{
     SCAN_CHUNK_SIZE,
     walk::{analyze_parsed_unit_with_context, collect_entries, scan_entries_parallel},
@@ -23,6 +25,7 @@ pub struct AnalyzerBuilder {
     registry: Option<Registry>,
     lang_filter: LanguageFilter,
     path_filters: PathFilters,
+    collect_stats: bool,
 }
 
 impl AnalyzerBuilder {
@@ -41,12 +44,18 @@ impl AnalyzerBuilder {
         self
     }
 
+    pub fn collect_stats(mut self, collect: bool) -> Self {
+        self.collect_stats = collect;
+        self
+    }
+
     pub fn build(self) -> Analyzer {
         Analyzer {
             registry: self.registry.unwrap_or_default(),
             ctx: self.ctx,
             lang_filter: self.lang_filter,
             path_filters: self.path_filters,
+            collect_stats: self.collect_stats,
         }
     }
 }
@@ -57,6 +66,7 @@ pub struct Analyzer {
     ctx: ScanContext,
     lang_filter: LanguageFilter,
     path_filters: PathFilters,
+    collect_stats: bool,
 }
 
 impl Analyzer {
@@ -73,33 +83,67 @@ impl Analyzer {
         I: IntoIterator<Item = P>,
         P: AsRef<Path>,
     {
-        let entries =
-            collect_entries(&self.registry, paths, &self.lang_filter, &self.path_filters)?;
+        let mut timing = TimingCollector::new(self.collect_stats);
+
+        let (entries, files_skipped) = timing.measure("file_walk", || {
+            collect_entries(&self.registry, paths, &self.lang_filter, &self.path_filters)
+        })?;
+
         let mut findings = Vec::new();
         let mut errors = Vec::new();
         let mut source_cache = HashMap::new();
         let mut suppressed_count = 0;
+        let mut stats = ScanStats::default();
+        stats.files_skipped = files_skipped;
+
         for chunk in entries.chunks(SCAN_CHUNK_SIZE) {
-            let (chunk_findings, chunk_errors, chunk_source_cache, chunk_suppressed_count) =
-                scan_entries_parallel(&self.registry, &self.ctx, chunk)?;
+            let (
+                chunk_findings,
+                chunk_errors,
+                chunk_source_cache,
+                chunk_suppressed_count,
+                chunk_stats,
+                chunk_timing,
+            ) = scan_entries_parallel(&self.registry, &self.ctx, chunk)?;
             findings.extend(chunk_findings);
             errors.extend(chunk_errors);
             source_cache.extend(chunk_source_cache);
             suppressed_count += chunk_suppressed_count;
+            stats.merge(&chunk_stats);
+            timing.merge(&chunk_timing);
         }
-        sort_findings(&mut findings);
+
+        timing.measure("sort_results", || sort_findings(&mut findings));
+
         if !errors.is_empty() {
             tracing::warn!(
                 error_count = errors.len(),
                 "scan completed with per-file errors"
             );
         }
-        Ok(AnalysisResult {
+
+        let mut result = AnalysisResult {
             findings,
             errors,
             source_cache,
             suppressed_count,
-        })
+            stats: None,
+        };
+
+        if self.collect_stats {
+            let mut scan_stats = ScanStats::from_result(&result);
+            scan_stats.files_scanned = stats.files_scanned;
+            scan_stats.files_skipped = stats.files_skipped;
+            scan_stats.files_errored = stats.files_errored;
+            scan_stats.bytes_scanned = stats.bytes_scanned;
+            scan_stats.lines_scanned = stats.lines_scanned;
+            scan_stats.rules_executed = stats.rules_executed;
+            scan_stats.detectors_loaded = self.registry.detector_count();
+            scan_stats.timing = Some(timing.to_summary());
+            result.stats = Some(scan_stats);
+        }
+
+        Ok(result)
     }
 
     pub fn analyze_units(&self, units: &[crate::core::ParsedUnit]) -> Vec<Finding> {

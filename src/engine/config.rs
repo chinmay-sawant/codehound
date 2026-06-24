@@ -166,6 +166,8 @@ pub fn build_scan_context(
     fail_policy: FailPolicy,
     config: Option<SlopguardConfig>,
     cli_set_fail_policy: bool,
+    debug_timing: bool,
+    diagnostics: bool,
 ) -> ScanContext {
     let mut ctx = ScanContext {
         only: if only.is_empty() {
@@ -176,6 +178,8 @@ pub fn build_scan_context(
         skip: skip.into_iter().collect(),
         fail_policy,
         show_ignored: false,
+        debug_timing,
+        diagnostics,
     };
     if let Some(cfg) = config {
         ctx = cfg.merge_into(ctx, cli_set_fail_policy);

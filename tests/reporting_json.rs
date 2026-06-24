@@ -44,6 +44,7 @@ fn sample() -> AnalysisResult {
         )],
         errors: vec![],
         suppressed_count: 0,
+        stats: None,
     }
 }
 
@@ -66,6 +67,7 @@ fn sample_with_cwe() -> AnalysisResult {
         )],
         errors: vec![],
         suppressed_count: 0,
+        stats: None,
     }
 }
 
@@ -205,6 +207,7 @@ fn ndjson_emits_one_finding_per_line() {
         ],
         errors: vec![],
         suppressed_count: 0,
+        stats: None,
     };
     let mut buf = Vec::new();
     for f in &result.findings {

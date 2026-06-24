@@ -128,6 +128,7 @@ fn one_finding_result() -> AnalysisResult {
         )],
         errors: vec![],
         suppressed_count: 0,
+        stats: None,
     }
 }
 
@@ -157,5 +158,6 @@ fn one_structured_finding_result() -> AnalysisResult {
         findings: vec![finding],
         errors: vec![],
         suppressed_count: 1,
+        stats: None,
     }
 }

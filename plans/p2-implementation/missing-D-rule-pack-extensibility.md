@@ -16,38 +16,38 @@ SlopGuard has a strong plugin-like internal structure (detectors implement a tra
 
 ### 1.1 Categorize rule-pack content types
 
-- [ ] **Type 1: Metadata-only packs**
-  - [ ] Pack contains rule descriptions (JSON) + registry (TOML) + test fixtures
-  - [ ] Detector logic still compiled in-tree (function pointers in registry)
-  - [ ] Use case: Adding rule descriptions for a new framework without writing Rust code
-  - [ ] Feasibility: Easy -- metadata is data, not code
-- [ ] **Type 2: Pattern-based detector packs**
-  - [ ] Pack contains detection patterns expressed in a DSL (not raw Rust code)
-  - [ ] DSL can express: find calls to `sql.DB.Query` where first argument contains `%` or `+`
-  - [ ] Use case: Adding simple pattern-match detectors without Rust knowledge
-  - [ ] Feasibility: Medium -- requires designing a detector DSL
-- [ ] **Type 3: Compiled detector packs (WASM or dynamic libs)**
-  - [ ] Pack contains compiled WebAssembly modules implementing the Detector trait
-  - [ ] Use case: Full-power custom detectors from third parties
-  - [ ] Feasibility: Hard -- requires WASM runtime integration, trait compatibility across binary boundaries
-- [ ] **Type 4: Script-based detector packs (Lua/Rhai/Starlark)**
-  - [ ] Pack contains scripts in a sandboxed scripting language
-  - [ ] Scripts receive parsed unit facts and can emit findings
-  - [ ] Use case: Quick prototyping, one-off checks
-  - [ ] Feasibility: Medium -- requires embedding a scripting runtime
+- [x] **Type 1: Metadata-only packs**
+  - [x] Pack contains rule descriptions (JSON) + registry (TOML) + test fixtures
+  - [x] Detector logic still compiled in-tree (function pointers in registry)
+  - [x] Use case: Adding rule descriptions for a new framework without writing Rust code
+  - [x] Feasibility: Easy -- metadata is data, not code
+- [x] **Type 2: Pattern-based detector packs**
+  - [x] Pack contains detection patterns expressed in a DSL (not raw Rust code)
+  - [x] DSL can express: find calls to `sql.DB.Query` where first argument contains `%` or `+`
+  - [x] Use case: Adding simple pattern-match detectors without Rust knowledge
+  - [x] Feasibility: Medium -- requires designing a detector DSL
+- [x] **Type 3: Compiled detector packs (WASM or dynamic libs)**
+  - [x] Pack contains compiled WebAssembly modules implementing the Detector trait
+  - [x] Use case: Full-power custom detectors from third parties
+  - [x] Feasibility: Hard -- requires WASM runtime integration, trait compatibility across binary boundaries
+- [x] **Type 4: Script-based detector packs (Lua/Rhai/Starlark)**
+  - [x] Pack contains scripts in a sandboxed scripting language
+  - [x] Scripts receive parsed unit facts and can emit findings
+  - [x] Use case: Quick prototyping, one-off checks
+  - [x] Feasibility: Medium -- requires embedding a scripting runtime
 
 ### 1.2 Decision: what is in scope?
 
-- [ ] **Recommendation**: Start with Type 1 (metadata-only packs) as MVP
-  - [ ] No code execution boundary to manage
-  - [ ] Same safety guarantees as bundled rules
-  - [ ] Enables community-contributed rule descriptions without a PR to slopguard
-- [ ] **Future**: Type 2 (pattern DSL) for v2 -- highest value-to-effort ratio
-- [ ] **Defer**: Type 3 (WASM) and Type 4 (scripting) -- significant complexity, evaluate demand first
+- [x] **Recommendation**: Start with Type 1 (metadata-only packs) as MVP
+  - [x] No code execution boundary to manage
+  - [x] Same safety guarantees as bundled rules
+  - [x] Enables community-contributed rule descriptions without a PR to slopguard
+- [x] **Future**: Type 2 (pattern DSL) for v2 -- highest value-to-effort ratio
+- [x] **Defer**: Type 3 (WASM) and Type 4 (scripting) -- significant complexity, evaluate demand first
 
 ### 1.3 Define rule pack format
 
-- [ ] A rule pack is a directory containing:
+- [x] A rule pack is a directory containing:
   ```
   my-rule-pack/
   ├── pack.toml              # Pack manifest
@@ -57,7 +57,7 @@ SlopGuard has a strong plugin-like internal structure (detectors implement a tra
       ├── vulnerable_XXX.txt
       └── safe_XXX.txt
   ```
-- [ ] `pack.toml` format:
+- [x] `pack.toml` format:
   ```toml
   [pack]
   name = "my-custom-rules"
@@ -79,87 +79,87 @@ SlopGuard has a strong plugin-like internal structure (detectors implement a tra
 
 ### 2.1 Design the loading mechanism
 
-- [ ] External packs extend the in-tree ruleset at runtime:
-  - [ ] Load external `rules.json` entries and merge with in-tree `golang.json`
-  - [ ] Load external `registry.toml` entries and merge with in-tree dispatch table
-  - [ ] Detector functions for external rules must already exist in-tree (generic pattern-match detectors)
-- [ ] Create a "generic pattern matcher" detector:
-  - [ ] `GenericPatternDetector` -- takes a list of patterns and rule IDs
-  - [ ] Each pattern specifies: import path, function call, argument constraints, message template
-  - [ ] Registered dynamically from external pack's registry.toml
-- [ ] Limitation (MVP): External packs can only use patterns the generic detector supports
-  - [ ] If external rule needs complex AST analysis -- still needs compiled-in Rust code
+- [x] External packs extend the in-tree ruleset at runtime:
+  - [x] Load external `rules.json` entries and merge with in-tree `golang.json`
+  - [x] Load external `registry.toml` entries and merge with in-tree dispatch table
+  - [x] Detector functions for external rules must already exist in-tree (generic pattern-match detectors)
+- [x] Create a "generic pattern matcher" detector:
+  - [x] `GenericPatternDetector` -- takes a list of patterns and rule IDs
+  - [x] Each pattern specifies: import path, function call, argument constraints, message template
+  - [x] Registered dynamically from external pack's registry.toml
+- [x] Limitation (MVP): External packs can only use patterns the generic detector supports
+  - [x] If external rule needs complex AST analysis -- still needs compiled-in Rust code
 
 ### 2.2 Update `SlopguardConfig`
 
-- [ ] Add `rule_packs` section to `SlopguardConfig`:
+- [x] Add `rule_packs` section to `SlopguardConfig`:
   ```toml
   [rule_packs]
   paths = ["./my-rules", "/usr/local/share/slopguard/rules/my-pack"]
   enabled = true
   ```
-- [ ] Add fields to `SlopguardConfig` struct in `src/engine/config.rs`
-- [ ] Update `slopguard.schema.json`
+- [x] Add fields to `SlopguardConfig` struct in `src/engine/config.rs`
+- [x] Update `slopguard.schema.json`
 
 ### 2.3 Implement pack discovery and loading
 
-- [ ] Create `src/engine/pack.rs`
-- [ ] `PackLoader` struct:
-  - [ ] `pack_paths: Vec<PathBuf>`
-  - [ ] `loaded_packs: Vec<RulePack>`
-- [ ] `RulePack` struct:
-  - [ ] `manifest: PackManifest`
-  - [ ] `rules: Vec<ExternalRule>`
-  - [ ] `registry: Vec<ExternalRegistryEntry>`
-- [ ] `ExternalRule` struct:
-  - [ ] `rule_id: String`
-  - [ ] `description: RuleDescription` (reuse from `cwe::catalog`)
-- [ ] `ExternalRegistryEntry` struct:
-  - [ ] `rule_id: String`
-  - [ ] `pattern: DetectionPattern`
-- [ ] `DetectionPattern` struct:
-  - [ ] `import_path: Option<String>`: e.g., "database/sql"
-  - [ ] `function_selector: Option<String>`: e.g., "(*sql.DB).Query"
-  - [ ] `argument_constraints: Vec<ArgConstraint>`
-  - [ ] `message_template: String`
-  - [ ] `severity: Severity`
-- [ ] `ArgConstraint` enum:
-  - [ ] `ContainsPlus` -- argument contains string concatenation
-  - [ ] `ContainsFormat` -- argument contains `fmt.Sprintf`
-  - [ ] `IsUserInput` -- argument comes from user input source
-  - [ ] `IsVariable` -- argument is a non-literal variable
-- [ ] `PackLoader::load_all() -> Result<Vec<RulePack>>`
-  - [ ] Read `pack.toml` from each path
-  - [ ] Validate version compatibility
-  - [ ] Parse `rules.json`, validate against schema
-  - [ ] Parse `registry.toml`, validate patterns
-- [ ] Register `pack.rs` in `src/engine/mod.rs`
+- [x] Create `src/engine/pack.rs`
+- [x] `PackLoader` struct:
+  - [x] `pack_paths: Vec<PathBuf>`
+  - [x] `loaded_packs: Vec<RulePack>`
+- [x] `RulePack` struct:
+  - [x] `manifest: PackManifest`
+  - [x] `rules: Vec<ExternalRule>`
+  - [x] `registry: Vec<ExternalRegistryEntry>`
+- [x] `ExternalRule` struct:
+  - [x] `rule_id: String`
+  - [x] `description: RuleDescription` (reuse from `cwe::catalog`)
+- [x] `ExternalRegistryEntry` struct:
+  - [x] `rule_id: String`
+  - [x] `pattern: DetectionPattern`
+- [x] `DetectionPattern` struct:
+  - [x] `import_path: Option<String>`: e.g., "database/sql"
+  - [x] `function_selector: Option<String>`: e.g., "(*sql.DB).Query"
+  - [x] `argument_constraints: Vec<ArgConstraint>`
+  - [x] `message_template: String`
+  - [x] `severity: Severity`
+- [x] `ArgConstraint` enum:
+  - [x] `ContainsPlus` -- argument contains string concatenation
+  - [x] `ContainsFormat` -- argument contains `fmt.Sprintf`
+  - [x] `IsUserInput` -- argument comes from user input source
+  - [x] `IsVariable` -- argument is a non-literal variable
+- [x] `PackLoader::load_all() -> Result<Vec<RulePack>>`
+  - [x] Read `pack.toml` from each path
+  - [x] Validate version compatibility
+  - [x] Parse `rules.json`, validate against schema
+  - [x] Parse `registry.toml`, validate patterns
+- [x] Register `pack.rs` in `src/engine/mod.rs`
 
 ### 2.4 Integrate into scan pipeline
 
-- [ ] In `app.rs::run()`:
-  - [ ] Load external packs after config loading
-  - [ ] Merge external rules into rule catalogue at runtime
-  - [ ] Register external detector entries with the generic pattern matcher
-- [ ] Create `GenericPatternDetector` in `src/lang/go/detectors/`:
-  - [ ] Implements `Detector` trait
-  - [ ] `rule_ids()` returns dynamically registered rule IDs
-  - [ ] `run()` iterates patterns, checks each, emits findings
-- [ ] Generic pattern check logic:
-  1. Check import exists (if specified): source contains `"<import_path>"`
-  2. Find call expressions matching `function_selector`
-  3. For each argument with constraints, validate constraints
-  4. If all match, emit finding with `message_template` populated
-- [ ] Wire into Go plugin: add `GenericPatternDetector` to `src/lang/go/detectors/mod.rs::all()`
+- [x] In `app.rs::run()`:
+  - [x] Load external packs after config loading
+  - [x] Merge external rules into rule catalogue at runtime
+  - [x] Register external detector entries with the generic pattern matcher
+- [x] Create `GenericPatternDetector` in `src/lang/go/detectors/`:
+  - [x] Implements `Detector` trait
+  - [x] `rule_ids()` returns dynamically registered rule IDs
+  - [x] `run()` iterates patterns, checks each, emits findings
+- [x] Generic pattern check logic:
+  1. [x] Check import exists (if specified): source contains `"<import_path>"`
+  2. [x] Find call expressions matching `function_selector`
+  3. [x] For each argument with constraints, validate constraints
+  4. [x] If all match, emit finding with `message_template` populated
+- [x] Wire into Go plugin: add `GenericPatternDetector` to `src/lang/go/detectors/mod.rs::all()`
 
 ### 2.5 Limitations (MVP -- document clearly)
 
-- [ ] Only Go language supported initially
-- [ ] Only pattern-matching (no AST context beyond import + call expression)
-- [ ] No custom detector logic (WASM/script not supported)
-- [ ] No performance optimization for many external rules (all evaluated per file)
-- [ ] Error handling: invalid pack -- warn, skip, continue
-- [ ] Rule ID collisions: external rules must not use CWE-*, PERF-*, SLOP-* prefixes (reserved)
+- [x] Only Go language supported initially
+- [x] Only pattern-matching (no AST context beyond import + call expression)
+- [x] No custom detector logic (WASM/script not supported)
+- [x] No performance optimization for many external rules (all evaluated per file)
+- [x] Error handling: invalid pack -- warn, skip, continue
+- [x] Rule ID collisions: external rules must not use CWE-*, PERF-*, SLOP-* prefixes (reserved)
 
 ---
 
@@ -192,24 +192,24 @@ SlopGuard has a strong plugin-like internal structure (detectors implement a tra
 
 ### 4.1 Preserve compile-time maintainability
 
-- [ ] Rule: In-tree rules always use the Rust `Detector` trait directly (no DSL overhead)
-- [ ] Rule: External packs use the generic detector infrastructure only
-- [ ] Rule: Build-time code generation (`build.rs` from registry.toml) remains the canonical path for bundled rules
-- [ ] Rule: Never mix compiled-in and external rule IDs in a way that makes debugging harder
+- [x] Rule: In-tree rules always use the Rust `Detector` trait directly (no DSL overhead)
+- [x] Rule: External packs use the generic detector infrastructure only
+- [x] Rule: Build-time code generation (`build.rs` from registry.toml) remains the canonical path for bundled rules
+- [x] Rule: Never mix compiled-in and external rule IDs in a way that makes debugging harder
 
 ### 4.2 Avoid weakening startup time
 
-- [ ] Load external packs lazily on first scan (not at binary startup)
-- [ ] Validate pack schema at load time with clear error messages
-- [ ] Cache parsed packs in memory for the process lifetime
-- [ ] Do not re-parse packs on each scan invocation (unless mtime changed)
+- [x] Load external packs lazily on first scan (not at binary startup)
+- [x] Validate pack schema at load time with clear error messages
+- [x] Cache parsed packs in memory for the process lifetime
+- [x] Do not re-parse packs on each scan invocation (unless mtime changed)
 
 ### 4.3 Avoid weakening rule determinism
 
-- [ ] External packs must declare their minimum slopguard version
-- [ ] Version mismatch: warn but attempt to load (or refuse if major incompatibility)
-- [ ] External rules with same ID as builtin: error at load time
-- [ ] Snapshot the rule set at scan start -- no hot-reload during scan
+- [x] External packs must declare their minimum slopguard version
+- [x] Version mismatch: warn but attempt to load (or refuse if major incompatibility)
+- [x] External rules with same ID as builtin: error at load time
+- [x] Snapshot the rule set at scan start -- no hot-reload during scan
 
 ---
 
@@ -244,22 +244,22 @@ SlopGuard has a strong plugin-like internal structure (detectors implement a tra
 
 ### 6.1 CLI Integration
 
-- [ ] Add `--rule-pack-path` CLI flag:
+- [x] Add `--rule-pack-path` CLI flag:
   ```rust
   #[arg(long = "rule-pack-path", help = "Path to an external rule pack directory (can be repeated)")]
   pub rule_pack_path: Vec<PathBuf>,
   ```
-- [ ] Add `--no-rule-packs` CLI flag:
+- [x] Add `--no-rule-packs` CLI flag:
   ```rust
   #[arg(long = "no-rule-packs", help = "Disable external rule pack loading")]
   pub no_rule_packs: bool,
   ```
-- [ ] Config precedence: CLI paths add to config paths (union), `--no-rule-packs` disables all
+- [x] Config precedence: CLI paths add to config paths (union), `--no-rule-packs` disables all
 
 ### 6.2 Configuration schema
 
-- [ ] Update `slopguard.schema.json` with `rule_packs` properties
-- [ ] Update `templates/slopguard.toml` with commented-out example
+- [x] Update `slopguard.schema.json` with `rule_packs` properties
+- [x] Update `templates/slopguard.toml` with commented-out example
 
 ---
 

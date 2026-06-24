@@ -39,6 +39,7 @@ fn analysis_result_carries_errors_field() {
             message: "not utf-8".to_string(),
         }],
         suppressed_count: 0,
+        stats: None,
     };
     assert_eq!(result.errors.len(), 1);
     assert_eq!(result.errors[0].kind, ScanErrorKind::Encoding);
