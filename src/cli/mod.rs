@@ -88,6 +88,10 @@ pub struct Cli {
     #[arg(long)]
     pub no_snippet: bool,
 
+    /// Show canonical finding fingerprints in text output.
+    #[arg(long)]
+    pub show_fingerprint: bool,
+
     /// Number of findings per chunk file.
     #[arg(long, default_value_t = 25)]
     pub chunk_size: usize,

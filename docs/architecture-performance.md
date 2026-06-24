@@ -25,6 +25,7 @@ Each file is read, parsed, analyzed, and dropped independently so peak memory st
 | CWE metadata | Static `CWE_REFS_*` slices in `cwe/catalog.rs` |
 | File pipeline | Parallel read → parse → detect → drop per file (`rayon`) |
 | Source load | `String::from_utf8(bytes)` into `Arc<str>` |
+| Source cache | Successful UTF-8 files are retained in `AnalysisResult.source_cache` as `Arc<str>` so export and downstream consumers avoid second disk reads |
 | Export | Stream context files and chunk files (no upfront `Vec` of all blocks) |
 
 ## Codebase conventions (enforced)
@@ -52,6 +53,7 @@ Run `wc -l src/lang/go/detectors/cwe/domains/*.rs` in CI or locally to catch mod
 - Parse + detect: O(files / cores) wall time with rayon
 - Per Go file: one tree-sitter parse + one fused AST walk + one `SourceIndex` build
 - Detect: O(enabled_rules × facts); `--only` skips disabled rule bodies early
+- Source cache memory: O(total UTF-8 bytes scanned successfully). The cache holds one shared `Arc<str>` per successful file; a 10 MiB file therefore keeps about 10 MiB of source text alive until the `AnalysisResult` is dropped. Files that cannot be read or decoded as UTF-8 are reported as `ScanError` and omitted from the cache. Use `AnalysisResult::source_cache_bytes()` to report the retained source-text byte count for a scan.
 
 ## Benchmarks & regression tests
 

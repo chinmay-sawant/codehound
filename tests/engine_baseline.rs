@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use slopguard::engine::{BASELINE_FILE_NAME, Baseline, discover_baseline};
 use slopguard::rules::{Finding, LineCol, Severity};
@@ -114,4 +114,37 @@ fn baseline_schema_file_is_valid_json_and_covers_known_fields() {
         v.pointer("/properties/entries/additionalProperties/items/properties/fingerprint/pattern"),
         Some(&serde_json::Value::String("^slopguard:1:".to_string()))
     );
+}
+
+#[test]
+fn large_baseline_loads_and_filters_under_target() {
+    let root = unique_temp_root("baseline-large");
+    std::fs::create_dir_all(&root).unwrap();
+    let path = root.join(BASELINE_FILE_NAME);
+
+    let baseline_findings: Vec<Finding> = (0..10_000)
+        .map(|i| finding("CWE-78", &format!("pkg/file_{i}.go"), i + 1, 7))
+        .collect();
+    Baseline::from_findings(&baseline_findings)
+        .to_file(&path)
+        .unwrap();
+
+    let mut findings_to_filter: Vec<Finding> = (0..10_000)
+        .map(|i| finding("CWE-78", &format!("pkg/file_{i}.go"), i + 1, 7))
+        .chain((0..100).map(|i| finding("CWE-78", &format!("pkg/new_{i}.go"), i + 1, 7)))
+        .collect();
+
+    let started = Instant::now();
+    let baseline = Baseline::from_file(&path).unwrap();
+    findings_to_filter.retain(|finding| !baseline.contains_finding(finding));
+    let elapsed = started.elapsed();
+
+    assert_eq!(baseline.entry_count(), 10_000);
+    assert_eq!(findings_to_filter.len(), 100);
+    assert!(
+        elapsed.as_millis() < 50,
+        "large baseline load/filter took {elapsed:?}, expected <50ms"
+    );
+
+    std::fs::remove_dir_all(root).unwrap();
 }

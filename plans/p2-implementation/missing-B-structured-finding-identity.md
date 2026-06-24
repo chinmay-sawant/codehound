@@ -102,10 +102,10 @@ Baseline, deduplication, ignore-once, and CI diffing all need the same stable id
 
 ### 2.4 Text/terminal output
 
-- [ ] In `src/reporting/text.rs`:
-  - [ ] Optionally show fingerprint in verbose mode: `--verbose` or `--show-fingerprint`
-  - [ ] Default: don't show (text output is for humans)
-  - [ ] Add CLI flag: `--show-fingerprint`
+- [x] In `src/reporting/text.rs`:
+  - [x] Optionally show fingerprint in verbose mode: `--show-fingerprint`
+  - [x] Default: don't show (text output is for humans)
+  - [x] Add CLI flag: `--show-fingerprint`
 
 ---
 

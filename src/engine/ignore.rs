@@ -27,6 +27,10 @@ impl IgnoreDirective {
             .as_ref()
             .is_none_or(|ids| ids.iter().any(|id| id == rule_id))
     }
+
+    pub fn is_all(&self) -> bool {
+        self.rule_ids.is_none()
+    }
 }
 
 pub fn parse_inline_ignores(source: &str) -> HashMap<usize, IgnoreDirective> {

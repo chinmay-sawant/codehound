@@ -127,22 +127,24 @@ Assuming **Option D** is selected:
   - [x] Delete original source files after scan but before export
   - [x] Assert export succeeds (using only in-memory cache)
   - [x] This is the "regression test proving export does not depend on a second file read" from the plan
-- [ ] Test: `source_cache` works with mixed language scans (Go + Python)
-- [ ] Test: `source_cache` handles Unicode/non-UTF8 files gracefully
+- [x] Test: `source_cache` works with mixed language scans (Go + Python)
+- [x] Test: `source_cache` handles Unicode/non-UTF8 files gracefully
 - [x] Test: `source_cache` for files with zero findings — still cached
 
 ### 4.2 Performance check
 
 - [ ] Measure total scan time with and without source_cache population
+  - [ ] Current in-tree code only has the populated-cache path; run a branch-to-branch benchmark or feature flag if exact before/after timing is required.
 - [ ] Memory usage: track peak memory for a large codebase
-- [ ] `Arc<str>` avoids deep copies — verify no clone overhead in hot path
+  - [x] Added `AnalysisResult::source_cache_bytes()` to report retained source-text bytes for a scan.
+- [x] `Arc<str>` avoids deep copies — verify no clone overhead in hot path
 
 ### 4.3 Edge cases
 
-- [ ] Binary files or files that fail to read: still include in cache? Or omit?
-  - [ ] Decision: Omit files that can't be read (they produce `ScanError`, not `ParsedUnit`)
-- [ ] Very large files (10MB+ source): `Arc<str>` keeps entire file in memory
-  - [ ] Is this acceptable? Document memory budget.
+- [x] Binary files or files that fail to read: still include in cache? Or omit?
+  - [x] Decision: Omit files that can't be read or decoded as UTF-8 (they produce `ScanError`, not `ParsedUnit`)
+- [x] Very large files (10MB+ source): `Arc<str>` keeps entire file in memory
+  - [x] Is this acceptable? Document memory budget.
   - [ ] Future: add a size threshold above which source is not cached
 - [x] Empty files: empty string in cache
 

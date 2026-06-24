@@ -200,6 +200,8 @@ Enable adoption on legacy codebases: first-run baseline captures all current fin
 - [x] Parse `// slopguard-ignore-file: CWE-22, CWE-78` for file-level rule-specific suppression
 - [x] Parse `// slopguard-ignore-file: all` for all-rule file suppression
 - [ ] In `scan_entry()`, skip analysis for suppressed rules entirely (performance win)
+  - [x] Fast-path `// slopguard-ignore-file` / `// slopguard-ignore-file: all` when `--show-ignored` is off, returning before detector execution (does not compute per-finding suppressed count)
+  - [ ] Rule-specific detector masking while preserving suppressed-count and `--show-ignored` semantics
 - [x] Store `file_ignores` in `ScanContext` or a per-run map — not needed; file-level directives are parsed per source file in `scan_entry()` and applied immediately.
 
 ### 4.5 Reporting suppressed-by-comment findings
@@ -270,10 +272,10 @@ Enable adoption on legacy codebases: first-run baseline captures all current fin
 
 ### 6.3 Integration tests for baseline workflow
 
-- [ ] Create test helper in `tests/helpers/baseline.rs`:
-  - [ ] `setup_temp_project(fixtures: &[&str]) -> TempDir` — creates project with known fixtures
-  - [ ] `run_slopguard(args: &[&str], cwd: &Path) -> output` — runs the binary with args
-  - [ ] `parse_findings(output: &str) -> Vec<FindingStub>` — parses JSON output
+- [x] Create test helper in `tests/helpers/baseline.rs`:
+  - [x] `setup_temp_project(fixtures: &[&str]) -> TempProject` — creates project with known fixtures using an in-repo RAII temp helper
+  - [x] `run_slopguard(args: &[&str], cwd: &Path) -> output` — runs the binary with args
+  - [x] `parse_findings(output: &str) -> Vec<FindingStub>` — parses JSON output
 - [x] Test scenario: Initial baseline save
   - [x] Run scan on project with known findings
   - [x] Run with `--baseline`
@@ -297,7 +299,7 @@ Enable adoption on legacy codebases: first-run baseline captures all current fin
 
 ### 6.4 Integration tests for inline suppression
 
-- [ ] Create fixture `tests/fixtures/go/baseline/suppressed_inline.go`:
+- [x] Create fixture `tests/fixtures/go/baseline/suppressed_inline.go`:
   ```go
   package main
   
@@ -322,7 +324,7 @@ Enable adoption on legacy codebases: first-run baseline captures all current fin
 - [x] Baseline file for project with zero findings → works fine
 - [x] Baseline file from different project (no matching files) → all findings reported, no crash
 - [x] Corrupted baseline file (invalid JSON) → graceful error, scan proceeds unfiltered
-- [ ] Very large baseline (10k+ entries) → performance stays acceptable (<50ms to load/filter)
+- [x] Very large baseline (10k+ entries) → performance stays acceptable (<50ms to load/filter)
 
 ---
 

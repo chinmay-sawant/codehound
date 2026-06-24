@@ -1,6 +1,7 @@
 //! Plain-text reporter.
 
 use std::collections::BTreeMap;
+use std::io::{self, Write};
 
 use anyhow::Result;
 
@@ -58,18 +59,40 @@ mod style {
 }
 
 pub fn print(result: &AnalysisResult) -> Result<()> {
-    print_with(result, false)
+    print_with_options(result, TextOptions::default())
 }
 
 /// Like [`print`] but suppresses the source snippet block.
 pub fn print_without_snippet(result: &AnalysisResult) -> Result<()> {
-    print_with(result, true)
+    print_with_options(
+        result,
+        TextOptions {
+            suppress_snippet: true,
+            ..TextOptions::default()
+        },
+    )
 }
 
-fn print_with(result: &AnalysisResult, suppress_snippet: bool) -> Result<()> {
+#[derive(Debug, Clone, Copy, Default)]
+pub struct TextOptions {
+    pub suppress_snippet: bool,
+    pub show_fingerprint: bool,
+}
+
+pub fn print_with_options(result: &AnalysisResult, options: TextOptions) -> Result<()> {
+    let stdout = io::stdout();
+    let mut out = stdout.lock();
+    write_with_options(&mut out, result, options)
+}
+
+pub fn write_with_options(
+    out: &mut impl Write,
+    result: &AnalysisResult,
+    options: TextOptions,
+) -> Result<()> {
     if result.findings.is_empty() {
-        println!("{}", style::green_bold("no slop detected"));
-        print_summary(result);
+        writeln!(out, "{}", style::green_bold("no slop detected"))?;
+        write_summary(out, result)?;
         return Ok(());
     }
 
@@ -83,12 +106,15 @@ fn print_with(result: &AnalysisResult, suppress_snippet: bool) -> Result<()> {
             f.line,
             f.column
         );
-        println!("{head}");
-        println!("  {}", f.message);
-        if !suppress_snippet {
+        writeln!(out, "{head}")?;
+        writeln!(out, "  {}", f.message)?;
+        if options.show_fingerprint {
+            writeln!(out, "  fingerprint: {}", f.fingerprint_string())?;
+        }
+        if !options.suppress_snippet {
             if let Some(snip) = &f.snippet {
                 for line in snip.lines() {
-                    println!("    {}", style::dimmed(line));
+                    writeln!(out, "    {}", style::dimmed(line))?;
                 }
             }
         }
@@ -101,22 +127,22 @@ fn print_with(result: &AnalysisResult, suppress_snippet: bool) -> Result<()> {
                     .map(|c| format!("CWE-{} ({})", c.id, c.name))
                     .collect::<Vec<_>>()
                     .join(", ");
-                println!("  ↳ {}", style::dimmed(&list));
+                writeln!(out, "  ↳ {}", style::dimmed(&list))?;
             }
         }
         if let Some(fix) = &f.fix {
             if !fix.is_empty() {
-                println!("  fix: {}", style::cyan(fix));
+                writeln!(out, "  fix: {}", style::cyan(fix))?;
             }
         }
-        println!();
+        writeln!(out)?;
     }
 
-    print_summary(result);
+    write_summary(out, result)?;
     Ok(())
 }
 
-fn print_summary(result: &AnalysisResult) {
+fn write_summary(out: &mut impl Write, result: &AnalysisResult) -> Result<()> {
     let n = result.findings.len();
     let mut by_sev: BTreeMap<&'static str, usize> = BTreeMap::new();
     let mut by_rule: BTreeMap<&'static str, usize> = BTreeMap::new();
@@ -126,22 +152,22 @@ fn print_summary(result: &AnalysisResult) {
     }
 
     if result.suppressed_count > 0 {
-        println!("  suppressed findings: {}", result.suppressed_count);
+        writeln!(out, "  suppressed findings: {}", result.suppressed_count)?;
     }
     if !result.errors.is_empty() {
-        println!("  scan errors: {}", result.errors.len());
+        writeln!(out, "  scan errors: {}", result.errors.len())?;
     }
 
     if n == 0 {
-        return;
+        return Ok(());
     }
 
-    println!("{} finding{}", n, if n == 1 { "" } else { "s" });
+    writeln!(out, "{} finding{}", n, if n == 1 { "" } else { "s" })?;
     let sev_summary: Vec<String> = by_sev
         .iter()
         .map(|(sev, count)| format!("{count} {sev}"))
         .collect();
-    println!("  severity: {}", sev_summary.join(", "));
+    writeln!(out, "  severity: {}", sev_summary.join(", "))?;
     let mut top_rules: Vec<_> = by_rule.iter().collect();
     top_rules.sort_by_key(|(_, count)| std::cmp::Reverse(*count));
     let top: Vec<String> = top_rules
@@ -150,6 +176,7 @@ fn print_summary(result: &AnalysisResult) {
         .map(|(rule, count)| format!("{rule} ×{count}"))
         .collect();
     if !top.is_empty() {
-        println!("  top rules: {}", top.join(", "));
+        writeln!(out, "  top rules: {}", top.join(", "))?;
     }
+    Ok(())
 }

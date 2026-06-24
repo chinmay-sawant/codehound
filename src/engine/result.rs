@@ -76,4 +76,8 @@ impl AnalysisResult {
     pub fn should_fail(&self, policy: crate::core::FailPolicy) -> bool {
         self.findings.iter().any(|f| policy.should_fail(f.severity))
     }
+
+    pub fn source_cache_bytes(&self) -> usize {
+        self.source_cache.values().map(|source| source.len()).sum()
+    }
 }

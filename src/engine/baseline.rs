@@ -21,6 +21,14 @@ pub struct BaselineEntry {
     pub fingerprint: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct BaselineLocationKey {
+    rule_id: String,
+    file: String,
+    line: usize,
+    column: usize,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Baseline {
     pub version: String,
@@ -29,6 +37,8 @@ pub struct Baseline {
     pub entries: HashMap<String, Vec<BaselineEntry>>,
     #[serde(skip)]
     fingerprint_index: HashSet<String>,
+    #[serde(skip)]
+    location_index: HashSet<BaselineLocationKey>,
 }
 
 impl Baseline {
@@ -52,15 +62,16 @@ impl Baseline {
             tool_version: env!("CARGO_PKG_VERSION").to_string(),
             entries,
             fingerprint_index: HashSet::new(),
+            location_index: HashSet::new(),
         };
         baseline.rebuild_index();
         baseline
     }
 
     pub fn from_file(path: &Path) -> Result<Self> {
-        let text = fs::read_to_string(path)
-            .with_context(|| format!("reading baseline {}", path.display()))?;
-        let mut baseline: Self = serde_json::from_str(&text)
+        let bytes =
+            fs::read(path).with_context(|| format!("reading baseline {}", path.display()))?;
+        let mut baseline: Self = serde_json::from_slice(&bytes)
             .with_context(|| format!("parsing baseline {}", path.display()))?;
         baseline.rebuild_index();
         Ok(baseline)
@@ -88,17 +99,23 @@ impl Baseline {
         .to_string();
 
         self.fingerprint_index.contains(&fingerprint)
-            || self.entries.get(rule_id).is_some_and(|entries| {
-                entries
-                    .iter()
-                    .any(|entry| entry.file == file && entry.line == line && entry.column == column)
+            || self.location_index.contains(&BaselineLocationKey {
+                rule_id: rule_id.to_string(),
+                file: file.to_string(),
+                line,
+                column,
             })
     }
 
     pub fn contains_finding(&self, finding: &Finding) -> bool {
-        self.fingerprint_index
+        self.location_index.contains(&BaselineLocationKey {
+            rule_id: finding.rule_id.to_string(),
+            file: finding.file.clone(),
+            line: finding.line,
+            column: finding.column,
+        }) || self
+            .fingerprint_index
             .contains(&finding.fingerprint_string())
-            || self.contains(finding.rule_id, &finding.file, finding.line, finding.column)
     }
 
     pub fn entry_count(&self) -> usize {
@@ -107,9 +124,19 @@ impl Baseline {
 
     fn rebuild_index(&mut self) {
         self.fingerprint_index.clear();
-        for entries in self.entries.values() {
+        self.location_index.clear();
+        let entry_count = self.entry_count();
+        self.fingerprint_index.reserve(entry_count);
+        self.location_index.reserve(entry_count);
+        for (rule_id, entries) in &self.entries {
             for entry in entries {
                 self.fingerprint_index.insert(entry.fingerprint.clone());
+                self.location_index.insert(BaselineLocationKey {
+                    rule_id: rule_id.clone(),
+                    file: entry.file.clone(),
+                    line: entry.line,
+                    column: entry.column,
+                });
             }
         }
     }

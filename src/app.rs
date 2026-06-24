@@ -155,10 +155,13 @@ pub fn run(cli: Cli) -> Result<ExitCode> {
 
     if !cli.no_terminal && !cli.quiet {
         match cli.format {
-            OutputFormat::Text if cli.no_snippet => {
-                reporting::text::print_without_snippet(&result)?
-            }
-            OutputFormat::Text => reporting::text::print(&result)?,
+            OutputFormat::Text => reporting::text::print_with_options(
+                &result,
+                reporting::text::TextOptions {
+                    suppress_snippet: cli.no_snippet,
+                    show_fingerprint: cli.show_fingerprint,
+                },
+            )?,
             OutputFormat::Json if cli.json_envelope => reporting::json::print_envelope(&result)?,
             OutputFormat::Json => reporting::json::print(&result)?,
             OutputFormat::Sarif if cli.no_snippet => reporting::sarif::print_compact(&result)?,

@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use slopguard::core::FailPolicy;
 use slopguard::engine::{AnalysisResult, ScanError, ScanErrorKind};
@@ -41,4 +42,13 @@ fn analysis_result_carries_errors_field() {
     };
     assert_eq!(result.errors.len(), 1);
     assert_eq!(result.errors[0].kind, ScanErrorKind::Encoding);
+}
+
+#[test]
+fn source_cache_bytes_tracks_cached_source_memory() {
+    let mut result = AnalysisResult::default();
+    result.source_cache.insert("a.go".into(), Arc::from("abc"));
+    result.source_cache.insert("b.go".into(), Arc::from("नमस्ते"));
+
+    assert_eq!(result.source_cache_bytes(), "abc".len() + "नमस्ते".len());
 }

@@ -66,11 +66,6 @@ func TraceRoute(w http.ResponseWriter, r *http.Request) {{
 
 #[test]
 fn inline_ignore_suppresses_matching_finding() {
-    let root = unique_temp_root("inline-ignore");
-    std::fs::create_dir_all(&root).unwrap();
-    let source_path = root.join("sample.go");
-    write_vulnerable_go(&source_path, "// slopguard-ignore: CWE-78");
-
     let output = Command::new(env!("CARGO_BIN_EXE_slopguard"))
         .arg("--format")
         .arg("json")
@@ -78,7 +73,7 @@ fn inline_ignore_suppresses_matching_finding() {
         .arg("--no-chunks")
         .arg("--lang")
         .arg("go")
-        .arg(&source_path)
+        .arg("tests/fixtures/go/baseline/suppressed_inline.go")
         .output()
         .unwrap();
 
@@ -89,8 +84,6 @@ fn inline_ignore_suppresses_matching_finding() {
         String::from_utf8_lossy(&output.stderr)
     );
     assert_eq!(String::from_utf8_lossy(&output.stdout), "");
-
-    std::fs::remove_dir_all(root).unwrap();
 }
 
 #[test]

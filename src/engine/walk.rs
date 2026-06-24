@@ -13,7 +13,8 @@ use crate::ast;
 use crate::core::{LanguageId, LanguagePlugin, ParsedUnit, ScanContext};
 use crate::engine::config::PathFilters;
 use crate::engine::ignore::{
-    apply_file_ignore, apply_inline_ignores, parse_file_ignore, parse_inline_ignores,
+    IgnoreDirective, apply_file_ignore, apply_inline_ignores, parse_file_ignore,
+    parse_inline_ignores,
 };
 use crate::engine::language_filter::LanguageFilter;
 use crate::engine::parse_pool::ParsePool;
@@ -187,6 +188,16 @@ pub fn scan_entry(
         }
     };
 
+    let file_ignore = parse_file_ignore(unit.source.as_ref());
+    if !ctx.show_ignored && file_ignore.as_ref().is_some_and(IgnoreDirective::is_all) {
+        return Ok((
+            Vec::new(),
+            unit.display_path.clone(),
+            Arc::clone(&unit.source),
+            0,
+        ));
+    }
+
     // Precompute function spans once so attach_function_context can skip its
     // dedicated tree walk. Only languages that declare function_node_kinds
     // benefit (Go: function_declaration, method_declaration).
@@ -197,7 +208,6 @@ pub fn scan_entry(
 
     let mut findings = analyze_parsed_unit(registry, ctx, &unit);
     attach_function_context(&mut findings, plugin, &unit);
-    let file_ignore = parse_file_ignore(unit.source.as_ref());
     let mut suppressed_count =
         apply_file_ignore(&mut findings, file_ignore.as_ref(), ctx.show_ignored);
     if file_ignore.is_none() {

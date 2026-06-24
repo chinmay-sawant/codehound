@@ -8,6 +8,7 @@ fn baseline_flags_parse() {
         "--baseline",
         "--no-baseline",
         "--show-ignored",
+        "--show-fingerprint",
         "--baseline-file",
         "custom-baseline.json",
         ".",
@@ -16,6 +17,7 @@ fn baseline_flags_parse() {
     assert!(cli.generate_baseline());
     assert!(cli.no_baseline);
     assert!(cli.show_ignored);
+    assert!(cli.show_fingerprint);
     assert_eq!(
         cli.baseline_file.as_deref(),
         Some(std::path::Path::new("custom-baseline.json"))
