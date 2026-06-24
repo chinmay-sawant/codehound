@@ -1,12 +1,16 @@
 //! Domain-grouped Go PERF detector implementations.
 
+mod concurrency;
 mod data_access;
 mod general_perf;
 mod gin_framework;
 mod loop_allocations;
+mod memory_gc;
 mod parsing_in_loops;
 mod protocols;
 mod request_path;
+mod stdlib_optimization;
+mod string_bytes;
 
 pub(crate) use data_access::*;
 pub(crate) use general_perf::*;

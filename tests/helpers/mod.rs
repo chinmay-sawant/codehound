@@ -31,6 +31,8 @@ pub fn assert_fixture_materializes(txt_path: &str) -> std::path::PathBuf {
 fn infer_rule_class(txt_path: &str) -> &'static str {
     if txt_path.contains("/perf/") {
         "PERF-"
+    } else if txt_path.contains("/bad_practices/") {
+        "BP-"
     } else {
         "CWE-"
     }

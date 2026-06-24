@@ -1,5 +1,5 @@
 use clap::Parser;
-use slopguard::cli::Cli;
+use slopguard::cli::{Cli, RuleCategory};
 use slopguard::core::{FailPolicy, ScanContext};
 use slopguard::engine::{
     Analyzer, PathFilters, SlopguardConfig, SlopguardSection, discover_config, fail_on_to_policy,
@@ -241,6 +241,20 @@ fn cli_no_bp_disables_bad_practice_category() {
 
     assert!(!ctx.allows("BP-1"));
     assert!(ctx.allows("PERF-1"));
+}
+
+#[test]
+fn cli_list_rules_accepts_bad_practice_category_filter() {
+    let cli = Cli::try_parse_from([
+        "slopguard",
+        "--list-rules",
+        "--rule-category",
+        "bad-practice",
+    ])
+    .unwrap();
+
+    assert!(cli.list_rules);
+    assert_eq!(cli.rule_category, Some(RuleCategory::BadPractice));
 }
 
 #[test]

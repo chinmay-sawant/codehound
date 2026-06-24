@@ -5,7 +5,7 @@ use std::path::Path;
 use std::process::ExitCode;
 
 use anyhow::{Context, Result};
-use slopguard::cli::{Cli, Command, OutputFormat};
+use slopguard::cli::{Cli, Command, OutputFormat, RuleCategory};
 use slopguard::cwe::{RuleDescription, default_ruleset_path, load_rule_descriptions};
 use slopguard::engine::{
     Analyzer, BASELINE_FILE_NAME, Baseline, CacheStore, DEFAULT_CACHE_DIR, Diagnostics, Registry,
@@ -14,6 +14,7 @@ use slopguard::engine::{
 };
 use slopguard::export::export_findings;
 use slopguard::reporting;
+use slopguard::rules::category_for_rule_id;
 
 /// Conventional exit codes:
 /// 0 — clean (no failing findings, no errors)
@@ -38,7 +39,7 @@ pub fn run(cli: Cli) -> Result<ExitCode> {
     }
 
     if cli.list_rules {
-        print_rules();
+        print_rules(cli.rule_category);
         return Ok(ExitCode::from(EXIT_CLEAN));
     }
 
@@ -312,20 +313,28 @@ pub fn load_config(explicit: Option<&Path>) -> Result<Option<SlopguardConfig>> {
     }
 }
 
-pub fn print_rules() {
+pub fn print_rules(category: Option<RuleCategory>) {
     let registry = Registry::default();
     let descriptions = load_descriptions();
+    let matching_rule_count: usize = registry
+        .detectors()
+        .iter()
+        .flat_map(|d| d.rule_ids().iter())
+        .filter(|id| category.is_none_or(|cat| category_for_rule_id(id) == cat.as_category()))
+        .count();
     println!(
-        "Registered rules ({} detectors, {} rules):",
+        "Registered rules ({} detectors, {} rules{}):",
         registry.detector_count(),
-        registry
-            .detectors()
-            .iter()
-            .map(|d| d.rule_ids().len())
-            .sum::<usize>(),
+        matching_rule_count,
+        category
+            .map(|cat| format!(", category: {}", cat.as_category()))
+            .unwrap_or_default(),
     );
     for det in registry.detectors() {
         for id in det.rule_ids() {
+            if category.is_some_and(|cat| category_for_rule_id(id) != cat.as_category()) {
+                continue;
+            }
             let title = descriptions
                 .get(*id)
                 .map(|d| d.name.as_str())

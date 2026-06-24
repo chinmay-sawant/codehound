@@ -69,18 +69,18 @@
 
 ### B.1 Plan items still unchecked in `04-perf-detector-implementation.md`
 
-- [ ] **Phase 1.1 — Audit `ruleset/golang/golang.json` for PERF-101..212**
-  - Not done formally. Verified by the build (the metadata generator iterates all PERF entries and would panic on missing fields). Replace the implicit guarantee with an explicit assertion in a unit test.
-- [ ] **Phase 1.2 — Categorize new rules by detection difficulty (A/B/C)**
-  - Not done. The categorization exists in my head and in a comment in `stdlib_misuse.rs`, but no `plans/perf-category-breakdown.md` was produced.
-- [ ] **Phase 1.3 — Map rules to domain modules; create `plans/perf-category-breakdown.md`**
-  - Not done.
-- [ ] **Phase 1.3 — Create `concurrency` / `memory_gc` / `stdlib_optimization` / `string_bytes` domain modules if needed**
-  - Not done. The 15 added detectors all landed in `general_perf/stdlib_misuse.rs`. The other domain modules are placeholders.
+- [x] **Phase 1.1 — Audit `ruleset/golang/golang.json` for PERF-101..212**
+  - [x] `tests/go_perf_ruleset_audit.rs` asserts all `PERF-101` through `PERF-212` entries exist.
+- [x] **Phase 1.2 — Categorize new rules by detection difficulty (A/B/C)**
+  - [x] Category breakdown saved in `plans/perf-category-breakdown.md`.
+- [x] **Phase 1.3 — Map rules to domain modules; create `plans/perf-category-breakdown.md`**
+  - [x] Domain mapping saved in `plans/perf-category-breakdown.md`.
+- [x] **Phase 1.3 — Create `concurrency` / `memory_gc` / `stdlib_optimization` / `string_bytes` domain modules if needed**
+  - [x] Placeholder domain modules created under `src/lang/go/detectors/perf/domains/`.
 - [ ] **Phase 2.1 — Add registry entries for PERF-101..212**
   - Partially done: 15 of 112 entries (103, 105, 107, 111, 112, 115, 116, 117, 118, 120, 122, 123, 124, 126, 127). The remaining 97 entries need to be added before the rest of the detectors can land.
-- [ ] **Phase 2.2 — Verify `build.rs` reads `perf/registry.toml` and generates metadata + dispatch**
-  - Implicitly works (cargo build succeeds), but no dedicated unit test that asserts "add an entry to `registry.toml`, run `cargo build`, see the new function pointer in the generated dispatch table".
+- [x] **Phase 2.2 — Verify `build.rs` reads `perf/registry.toml` and generates metadata + dispatch**
+  - [x] `tests/go_perf_registry_generation.rs` compares generated runtime PERF rule IDs against `registry.toml`.
 - [ ] **Phase 3.2 — Category B (~40 context-aware rules)**
   - Not started. Examples: `sync.Mutex` in struct vs local, `ioutil.ReadAll` ignored error, `strings.Builder` pre-allocation.
 - [ ] **Phase 3.3 — Category C (~32 multi-file / semantic rules)**
@@ -89,7 +89,7 @@
   - [x] First batch (PERF-103/105/107/111/112/115-118/120/122/123/124/126-127) fixtures created and registered (15 detectors).
   - [ ] Remaining PERF-101..212 fixtures — **deferred**.
 - [ ] **Phase 5 — Performance verification**
-  - Not done. After Category B/C land, run the full `benches/scan_throughput` and `benches/incremental_scan` on gopdfsuit to confirm no regression.
+  - Lightweight `cargo bench --bench incremental_scan -- --sample-size 10 --measurement-time 1` was run. Criterion completed with exit code 0 but reported regressions versus the saved local baseline for cold, warm, partial, and in-memory warm paths, so this remains open.
 
 ### B.2 The 15 detectors shipped (PERF-103, 105, 107, 111, 112, 115, 116, 117, 118, 120, 122, 123, 124, 126, 127)
 
@@ -99,8 +99,8 @@
   - [x] (a) Loosen the contiguity test in `tests/go_perf_detector_integration.rs:68` to require a *contiguous range* from min to max, allowing gaps. This is the correct fix. — Done.
   - [ ] (b) Create stub fixtures for missing PERF IDs. This is bookkeeping. — Not needed.
 - [x] **4 detectors added in second batch (PERF-105, 111, 112, 123)** — all have fixtures, registry entries, and implemented detectors in `stdlib_misuse.rs`.
-- [ ] **No real-project smoke test** — never ran the binary against gopdfsuit to confirm the new detectors actually fire. The 15 detectors might pass unit tests on synthetic snippets but still have edge cases in real Go code (e.g. PERF-103's `.Body.Close()` substring check matches inside long comments or string literals).
-- [ ] **PERF-126's `is_canonical_header` list** is hardcoded; should be verified against `net/http`'s `textproto.CanonicalMIMEHeaderKey` behavior, especially for less-common headers. Currently a curated list of 40 common headers.
+- [ ] **No real-project smoke test that proves firing** — a no-export gopdfsuit scan was run for the 15 shipped PERF-101..127 rules and completed cleanly, but it produced no matching findings. Still need a real-project positive smoke fixture or target that proves at least one shipped detector fires on non-synthetic code.
+- [x] **PERF-126's `is_canonical_header` list** is hardcoded; should be verified against `net/http`'s `textproto.CanonicalMIMEHeaderKey` behavior, especially for less-common headers. Verified with unit coverage for canonical spellings including `Etag`, `Www-Authenticate`, `X-Csrf-Token`, and fixed exact-case matching so non-canonical spellings like `ETag` are not flagged as redundant.
 - [x] **PERF-122 / PERF-127 substring heuristics** are coarse; a real implementation would parse the source window properly. ~~Document the trade-off or implement a tighter check.~~ Trade-off documented in `detection_notes` and detector comments.
 
 ### B.3 Documentation
@@ -115,7 +115,7 @@
 
 The scope doc at `plans/bad-practices-scope.md` is a roadmap. MVP module is implemented in `src/lang/go/detectors/bad_practices/`.
 
-**Current active slice:** C.2 Configuration & CLI — completed in this pass; next phase is remaining BP detector coverage or list-rules category filtering.
+**Current active slice:** P2.5-A MVP rules and P2.4 planning/build verification — completed in this pass; next phase is remaining PERF registry/detector batches and benchmark regression investigation.
 
 ### C.1 Implementation (P2.5-A: MVP, 2 weeks)
 
@@ -124,18 +124,18 @@ The scope doc at `plans/bad-practices-scope.md` is a roadmap. MVP module is impl
 - [ ] **`META_BP_N` constants** auto-generated from `ruleset/golang/bad-practices.json` (new file) — deferred
 - [x] **MVP detectors BP-1, BP-3, BP-11** shipped:
   - [x] BP-1: discarded error (`_ = doSomething()`)
-  - [ ] BP-2: naked `return err` without context
+  - [x] BP-2: naked `return err` without context
   - [x] BP-3: `panic` outside `main` / test files
-  - [ ] BP-4: `recover()` without error logging
-  - [ ] BP-5: ignored `Close()` on `*os.File` / `*http.Response.Body` / `*sql.Rows`
-  - [ ] BP-6: `sync.WaitGroup.Add` inside a goroutine
-  - [ ] BP-7: `sync.Mutex` passed by value
-  - [ ] BP-8: `defer mu.Unlock()` on a copy of a `sync.Mutex`
-  - [ ] BP-9: `select {}` with no `default` and no timeout
-  - [ ] BP-10: `time.After` in a loop
+  - [x] BP-4: `recover()` without error logging
+  - [x] BP-5: ignored `Close()` on `*os.File` / `*http.Response.Body` / `*sql.Rows`
+  - [x] BP-6: `sync.WaitGroup.Add` inside a goroutine
+  - [x] BP-7: `sync.Mutex` passed by value
+  - [x] BP-8: `defer mu.Unlock()` on a copy of a `sync.Mutex`
+  - [x] BP-9: `select {}` with no `default` and no timeout
+  - [x] BP-10: `time.After` in a loop
   - [x] BP-11: `defer` inside a `for`/`range`
-  - [ ] BP-13: `context.Background()` in a non-`main` function
-  - [ ] BP-15: `sync.Once.Do` with a recursive closure
+  - [x] BP-13: `context.Background()` in a non-`main` function
+  - [x] BP-15: `sync.Once.Do` with a recursive closure
 
 ### C.2 Configuration & CLI
 
@@ -152,7 +152,7 @@ The scope doc at `plans/bad-practices-scope.md` is a roadmap. MVP module is impl
 - [x] **Text reporter** — add a `BP-` prefix color band (different from CWE/PERF)
 - [x] **JSON reporter** — add `"category": "bad_practice"` field to finding object
 - [x] **SARIF reporter** — map BP findings to `security-severity: 5.0` and tag `properties.category = "bad_practice"`
-- [ ] **`--list-rules`** — show BP rules (with category filter)
+- [x] **`--list-rules`** — show BP rules (with category filter)
 - [x] **`--explain`** — support `BP-*` rule IDs via BP detector metadata
 
 ### C.4 Testing
@@ -160,7 +160,7 @@ The scope doc at `plans/bad-practices-scope.md` is a roadmap. MVP module is impl
 - [x] **Test fixtures** (`tests/fixtures/go/bad_practices/BP-{1,3,11}-{vulnerable,safe}.txt`) for BP-1, BP-3, BP-11
 - [x] **Manifest entries** in `tests/fixtures/manifest.toml` for BP-1, BP-3, BP-11 fixtures
 - [x] **Unit tests** for the detector functions (via `assert_fixture_rules`)
-- [ ] **Test fixtures for remaining BP-2, BP-4..BP-10, BP-13, BP-15** — deferred
+- [x] **Test fixtures for remaining BP-2, BP-4..BP-10, BP-13, BP-15**
 
 ### C.5 Phased rollout (P2.5-B, -C, -D — each 1-2 weeks)
 

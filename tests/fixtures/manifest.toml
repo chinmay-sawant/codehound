@@ -4724,7 +4724,7 @@ lang = "go"
 path = "tests/fixtures/go/taint/CWE-79-safe.txt"
 required_rules = []
 
-# Go Bad Practice detector fixtures (BP-1, BP-3, BP-11)
+# Go Bad Practice detector fixtures (P2.5-A MVP)
 [[fixture]]
 lang = "go"
 path = "tests/fixtures/go/bad_practices/BP-1-vulnerable.txt"
@@ -4733,6 +4733,16 @@ required_rules = ["BP-1"]
 [[fixture]]
 lang = "go"
 path = "tests/fixtures/go/bad_practices/BP-1-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-2-vulnerable.txt"
+required_rules = ["BP-2"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-2-safe.txt"
 required_rules = []
 
 [[fixture]]
@@ -4747,11 +4757,101 @@ required_rules = []
 
 [[fixture]]
 lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-4-vulnerable.txt"
+required_rules = ["BP-4"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-4-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-5-vulnerable.txt"
+required_rules = ["BP-5"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-5-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-6-vulnerable.txt"
+required_rules = ["BP-6"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-6-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-7-vulnerable.txt"
+required_rules = ["BP-7"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-7-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-8-vulnerable.txt"
+required_rules = ["BP-8"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-8-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-9-vulnerable.txt"
+required_rules = ["BP-9"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-9-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-10-vulnerable.txt"
+required_rules = ["BP-10"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-10-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
 path = "tests/fixtures/go/bad_practices/BP-11-vulnerable.txt"
 required_rules = ["BP-11"]
 
 [[fixture]]
 lang = "go"
 path = "tests/fixtures/go/bad_practices/BP-11-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-13-vulnerable.txt"
+required_rules = ["BP-13"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-13-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-15-vulnerable.txt"
+required_rules = ["BP-15"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-15-safe.txt"
 required_rules = []
 taint = true

@@ -500,9 +500,9 @@ fn fmt_contains_verb(s: &str) -> bool {
 
 fn is_canonical_header(s: &str) -> bool {
     // A short, vetted list of common headers that are already
-    // canonical. The Go stdlib's `http.CanonicalHeaderKey` is a
-    // case-insensitive match: every header below is what
-    // CanonicalHeaderKey would return.
+    // canonical. This is intentionally exact-case: `CanonicalHeaderKey`
+    // would change inputs such as `ETag` to `Etag`, so those are not
+    // redundant no-ops.
     const CANONICAL: &[&str] = &[
         "Accept",
         "Accept-Charset",
@@ -546,5 +546,31 @@ fn is_canonical_header(s: &str) -> bool {
         "X-Request-Id",
         "X-Csrf-Token",
     ];
-    CANONICAL.iter().any(|h| h.eq_ignore_ascii_case(s))
+    CANONICAL.contains(&s)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_canonical_header;
+
+    #[test]
+    fn canonical_header_allowlist_matches_known_textproto_outputs() {
+        for header in [
+            "Content-Type",
+            "Etag",
+            "Www-Authenticate",
+            "X-Csrf-Token",
+            "X-Forwarded-For",
+            "User-Agent",
+        ] {
+            assert!(is_canonical_header(header), "{header}");
+        }
+    }
+
+    #[test]
+    fn canonical_header_allowlist_rejects_uncurated_headers() {
+        for header in ["ETag", "X-CSRF-Token", "x-request-id", "Custom-Header"] {
+            assert!(!is_canonical_header(header), "{header}");
+        }
+    }
 }

@@ -148,6 +148,10 @@ pub struct Cli {
     #[arg(long)]
     pub list_rules: bool,
 
+    /// Filter --list-rules output by rule category.
+    #[arg(long, value_enum)]
+    pub rule_category: Option<RuleCategory>,
+
     /// Include test files (*_test.*) in analysis (excluded by default).
     #[arg(long)]
     pub include_tests: bool,
@@ -205,6 +209,25 @@ pub enum OutputFormat {
     Text,
     Json,
     Sarif,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum, PartialEq, Eq)]
+pub enum RuleCategory {
+    Security,
+    Performance,
+    BadPractice,
+    General,
+}
+
+impl RuleCategory {
+    pub fn as_category(self) -> &'static str {
+        match self {
+            Self::Security => "security",
+            Self::Performance => "performance",
+            Self::BadPractice => "bad_practice",
+            Self::General => "general",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Args)]

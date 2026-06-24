@@ -1,0 +1,17 @@
+# BP-4 negative: recovered panic is logged
+lang: go
+file: BP-4-safe.go
+variant: stdlib
+---
+package sample
+
+import "log"
+
+func Guard(fn func()) {
+	defer func() {
+		if value := recover(); value != nil {
+			log.Printf("recovered panic: %v", value)
+		}
+	}()
+	fn()
+}

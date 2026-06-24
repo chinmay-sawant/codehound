@@ -5,15 +5,24 @@ variant: stdlib
 ---
 package sample
 
-import "os"
+import (
+	"fmt"
+	"os"
+)
 
-func OpenMany(paths []string) {
+func OpenMany(paths []string) error {
 	var files []*os.File
 	for _, p := range paths {
-		f, _ := os.Open(p)
+		f, err := os.Open(p)
+		if err != nil {
+			return fmt.Errorf("open %s: %w", p, err)
+		}
 		files = append(files, f)
 	}
 	for _, f := range files {
-		defer f.Close()
+		if err := f.Close(); err != nil {
+			return fmt.Errorf("close file: %w", err)
+		}
 	}
+	return nil
 }

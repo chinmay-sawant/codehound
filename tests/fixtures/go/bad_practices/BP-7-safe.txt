@@ -1,0 +1,13 @@
+# BP-7 negative: sync.Mutex passed by pointer
+lang: go
+file: BP-7-safe.go
+variant: stdlib
+---
+package sample
+
+import "sync"
+
+func LockOriginal(mu *sync.Mutex) {
+	mu.Lock()
+	defer mu.Unlock()
+}
