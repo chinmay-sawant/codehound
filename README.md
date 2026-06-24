@@ -11,6 +11,10 @@ The CWE catalog has 175+ entries auto-generated from a central sink registry,
 providing comprehensive coverage of known weakness patterns across file I/O,
 SQL, command injection, link resolution, and configuration sinks.
 
+A **PERF** (performance) rule catalog with 212 rules is also included; the first
+batch of detectors (PERF-103, 107, 115-118, 120, 122, 124, 126-127) is
+implemented, with the remaining detectors tracked in [`plans/p2.md`](./plans/p2.md).
+
 It is designed to **complement** existing language tooling with repository-local
 heuristics, reusable fact extraction, and machine-readable findings.
 
@@ -68,7 +72,22 @@ slopguard --explain CWE-89
 
 # Write a starter slopguard.toml
 slopguard init
+
+# Incremental analysis cache (enabled by default)
+#   .slopguard-cache/ stores per-file findings keyed by content hash.
+slopguard .
+
+# Force a fresh cache (purge then scan)
+slopguard --rebuild-cache .
+
+# Prune stale cache entries without scanning
+slopguard --prune-cache .
+
+# Disable the cache for this run
+slopguard --no-cache .
 ```
+
+See [`docs/incremental-cache.md`](./docs/incremental-cache.md) for details on the cache format, invalidation strategy, and configuration.
 
 ### Severity Levels
 

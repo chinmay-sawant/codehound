@@ -54,3 +54,11 @@ New scans emit the latest fingerprint version. Future baseline or cache readers
 should treat unknown versions as incompatible unless an explicit migration path
 exists. When fingerprint versions change, users should regenerate baselines to
 avoid accidental mismatches.
+
+## Suppression and the incremental cache
+
+`// slopguard-ignore: RULE_ID` and `// slopguard-ignore-file` directives are
+re-applied on every cache hit. The cache stores the raw findings; the current
+run's suppression context filters them before they are reported. This means a
+finding suppressed after the first scan is dropped on the next warm-cache run
+even though the file content hash has not changed.

@@ -4534,3 +4534,104 @@ lang = "go"
 path = "tests/fixtures/go/perf/PERF-100-safe.txt"
 required_rules = []
 
+
+# Go PERF detector fixtures (PERF-103, 107, 115-118, 120, 122, 124, 126-127)
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-103-vulnerable.txt"
+required_rules = ["PERF-103"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-103-safe.txt"
+required_rules = []
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-107-vulnerable.txt"
+required_rules = ["PERF-107"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-107-safe.txt"
+required_rules = []
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-115-vulnerable.txt"
+required_rules = ["PERF-115"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-115-safe.txt"
+required_rules = []
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-116-vulnerable.txt"
+required_rules = ["PERF-116"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-116-safe.txt"
+required_rules = []
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-117-vulnerable.txt"
+required_rules = ["PERF-117"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-117-safe.txt"
+required_rules = []
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-118-vulnerable.txt"
+required_rules = ["PERF-118"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-118-safe.txt"
+required_rules = []
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-120-vulnerable.txt"
+required_rules = ["PERF-120"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-120-safe.txt"
+required_rules = []
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-122-vulnerable.txt"
+required_rules = ["PERF-122"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-122-safe.txt"
+required_rules = []
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-124-vulnerable.txt"
+required_rules = ["PERF-124"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-124-safe.txt"
+required_rules = []
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-126-vulnerable.txt"
+required_rules = ["PERF-126"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-126-safe.txt"
+required_rules = []
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-127-vulnerable.txt"
+required_rules = ["PERF-127"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-127-safe.txt"
+required_rules = []

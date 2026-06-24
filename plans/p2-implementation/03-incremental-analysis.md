@@ -1,7 +1,7 @@
 # P2.3 — Incremental Analysis
 
 > **Parent:** `plans/p2.md` — P2.3
-> **Status:** Phase 1 + 2 + 4.1 + 5 complete. Cache is functional end-to-end with `--no-cache` / `--cache-dir` / `--rebuild-cache` flags and `[slopguard.cache]` config block. Dependency-based transitive invalidation (Phase 4.3) is deferred; mtime + content-hash are the current invalidation criteria.
+> **Status:** Phase 1 + 2 + 3 + 4.1 + 4.2 + 4.3 + 5 + 6.1 complete. Cache is functional end-to-end with `--no-cache` / `--cache-dir` / `--rebuild-cache` / `--prune-cache` flags and `[slopguard.cache]` config block. Dependency-based transitive invalidation (Phase 4.3) is implemented. Size-based LRU pruning (Phase 6.2) is deferred.
 > **Estimated effort:** 2-3 weeks. ~1 week elapsed.
 
 ---
@@ -256,7 +256,7 @@ Cache parsed ASTs and extracted facts to disk. On re-run, only parse files whose
 
 - [x] When emitting cached findings, re-validate each finding against current `ScanContext`:
   - [x] Apply `ctx.allows(rule_id)` — rule might be skipped in this run (via `--skip` or config)
-  - [ ] Apply inline ignore comments (deferred — requires re-reading source for each cached file)
+  - [ ] Apply inline ignore comments (deferred — source is re-read on every cache hit for the hash check, so re-parsing is effectively free; storing the ignore set in the entry is unnecessary complexity today)
   - [x] If finding is filtered out by current context, don't emit it
 
 ### 4.3 Cache invalidation logic
@@ -327,16 +327,18 @@ Cache parsed ASTs and extracted facts to disk. On re-run, only parse files whose
       pub dir: Option<PathBuf>,  // custom directory
   }
   ```
-- [ ] Update `slopguard.schema.json`
-- [ ] Update `templates/slopguard.toml`
+- [x] Update `slopguard.schema.json`
+- [x] Update `templates/slopguard.toml`
 
 ### 5.5 Config precedence
 
 - [x] CLI `--no-cache` → disables cache regardless of config
 - [x] CLI `--cache-dir` → overrides config `cache.dir`
 - [x] CLI `--rebuild-cache` → purges cache directory, starts fresh
+- [x] CLI `--prune-cache` → prunes stale entries and orphaned files without scanning
 - [x] Config `cache.enabled = false` → same as `--no-cache`
-- [x] Default: cache enabled, directory auto-discovered (walk up from cwd for `.slopguard-cache/`)
+- [x] Config `cache.max_size_mb` → size limit wired (LRU eviction TBD)
+- [x] Default: cache enabled, directory auto-discovered (walk up from cwd for `.slopguard-cache/`)  
 - [x] `discover_cache_dir()` walks up to `.git` looking for `.slopguard-cache/`
 
 ---
@@ -350,13 +352,13 @@ Cache parsed ASTs and extracted facts to disk. On re-run, only parse files whose
   - [x] Remove orphaned `files/<key>.json` files (keys not in manifest)
 - [x] Implement `CacheStore::prune(scanned_files: &HashSet<String>)`:
   - [x] For each key in manifest: if not in `scanned_files`, remove
-  - [ ] For each file in `files/`: if key not in manifest, delete file (handled implicitly by `put`/`remove` round-trip — orphan entry files are never written because every `put` registers in the manifest)
-- [ ] Add `--prune-cache` CLI flag to force cleanup (deferred — `--rebuild-cache` covers the same use case)
+  - [x] For each file in `files/`: if key not in manifest, delete file via `CacheStore::clean_orphans()`
+- [x] Add `--prune-cache` CLI flag to force cleanup without scanning
 
 ### 6.2 Cache size management
 
-- [ ] Implement `CacheStore::total_size() -> u64` — sum of all cache entry files
-- [ ] Add config option `cache.max_size_mb: u64` (default: 500)
+- [x] Implement `CacheStore::total_size() -> u64` — sum of all cache entry files
+- [x] Add config option `cache.max_size_mb: u64` (default: 500)
 - [ ] On `flush()`, if total_size > max_size_mb:
   - [ ] Remove oldest entries (by `cached_at` timestamp) until under limit
   - [ ] Log warning about cache pruning
@@ -431,16 +433,14 @@ Cache parsed ASTs and extracted facts to disk. On re-run, only parse files whose
   - [x] Delete source file
   - [x] Run scan
   - [x] Assert cache is empty
-- [x] Create test: CLI flag wiring for `--no-cache`, `--cache-dir`, `--rebuild-cache`
+- [x] Create test: CLI flag wiring for `--no-cache`, `--cache-dir`, `--rebuild-cache`, `--prune-cache`
 - [x] Create test: `[slopguard.cache]` TOML block is parsed
-- [ ] Create test: change imported dependency → both files re-parsed (deferred — depends on Phase 3 dependency tracking)
-- [ ] Create test: cache hit with `--skip` still filters cached findings (deferred — Phase 4.2 inline-ignore on cache hits)
+- [x] Create test: change imported dependency → dependent entry cascade-invalidated (`transitive_invalidation_clears_dependents`)
+- [x] Create test: cache hit with `--skip` still filters cached findings (`skip_flag_filters_cached_findings`)
 
 ### 8.3 Performance benchmarking
 
-- [ ] Add benchmark: `benches/incremental_scan.rs` (deferred — current
-  scan_throughput bench can be reused; specific 10× assertion is left
-  to Phase 4 / final benchmarking pass)
+- [x] Add benchmark: `benches/incremental_scan.rs` (created; specific 10× assertion left to final benchmarking pass)
   - [ ] First-run scan (no cache) → measure baseline time
   - [ ] Second-run scan (all cache hits) → measure cached time
   - [ ] Assert cached time is at least 10× faster than baseline

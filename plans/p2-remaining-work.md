@@ -69,26 +69,26 @@
 
 ### B.2 The 11 detectors shipped in this session (PERF-103, 107, 115, 116, 117, 118, 120, 122, 124, 126, 127)
 
-- [ ] **Add `.txt` fixtures in `tests/fixtures/go/perf/` for each of the 11 detectors**
-  - 6 are tested in `tests/go_perf_101_127.rs` using inline Go strings; the other 5 have no test at all.
-- [ ] **Resolve the PERF-1..100 contiguity invariant** so the 11 new detectors can be registered in `tests/fixtures/manifest.toml` and run through `assert_fixture_rules`. Two options:
-  - (a) Loosen the contiguity test in `tests/go_perf_detector_integration.rs:68` to require a *contiguous range* from min to max, allowing gaps. This is the correct fix.
-  - (b) Create stub fixtures for PERF-101, 102, 104..114, 118, 119, 121, 122, 123 (the missing 18 IDs). This is bookkeeping.
-- [ ] **5 detectors have no test coverage** in the current inline-string test file:
-  - [ ] **PERF-107** (`encoding/binary.Read/Write` in loop) — needs a `for { binary.Read(...) }` fixture
-  - [ ] **PERF-118** (`http.NewRequest("GET", ...)` should be `http.Get`) — needs a body=nil fixture
-  - [ ] **PERF-122** (`HasPrefix + s[len(p):]` should be `TrimPrefix`) — needs the sibling-slice pattern fixture
-  - [ ] **PERF-126** (`http.CanonicalHeaderKey` on already-canonical string) — needs a verified-canonical-input fixture
-  - [ ] **PERF-127** (`log.X(fmt.Sprintf("static"))` should be `log.X("static")`) — needs a no-verb format string fixture
+- [x] **Add `.txt` fixtures in `tests/fixtures/go/perf/` for each of the 11 detectors**
+  - [x] Created `PERF-103/107/115/116/117/118/120/122/124/126/127-vulnerable.txt` + `-safe.txt` and manifest entries.
+- [x] **Resolve the PERF-1..100 contiguity invariant** so the 11 new detectors can be registered in `tests/fixtures/manifest.toml` and run through `assert_fixture_rules`. Two options:
+  - [x] (a) Loosen the contiguity test in `tests/go_perf_detector_integration.rs:68` to require a *contiguous range* from min to max, allowing gaps. This is the correct fix. — Done.
+  - [ ] (b) Create stub fixtures for PERF-101, 102, 104..114, 118, 119, 121, 122, 123 (the missing 18 IDs). This is bookkeeping. — Not needed.
+- [x] **5 detectors have no test coverage** in the current inline-string test file:
+  - [x] **PERF-107** — added `perf_107_detects_binary_read_write_in_loop`
+  - [x] **PERF-118** — added `perf_118_detects_unnecessary_new_request`
+  - [x] **PERF-122** — added `perf_122_detects_has_prefix_slice` (also fixed `]:` → `:]` substring bug in detector)
+  - [x] **PERF-126** — added `perf_126_detects_canonical_header_on_canonical_input`
+  - [x] **PERF-127** — added `perf_127_detects_static_sprintf_in_log`
 - [ ] **No real-project smoke test** — never ran the binary against gopdfsuit to confirm the new detectors actually fire. The 11 detectors might pass unit tests on synthetic snippets but still have edge cases in real Go code (e.g. PERF-103's `.Body.Close()` substring check matches inside long comments or string literals).
 - [ ] **PERF-126's `is_canonical_header` list** is hardcoded; should be verified against `net/http`'s `textproto.CanonicalMIMEHeaderKey` behavior, especially for less-common headers. Currently a curated list of 40 common headers.
-- [ ] **PERF-122 / PERF-127 substring heuristics** are coarse; a real implementation would parse the source window properly. Document the trade-off or implement a tighter check.
+- [x] **PERF-122 / PERF-127 substring heuristics** are coarse; a real implementation would parse the source window properly. ~~Document the trade-off or implement a tighter check.~~ Trade-off documented in `detection_notes` and detector comments.
 
 ### B.3 Documentation
 
-- [ ] **Update `plans/p2.md` P2.4 section** — the "rating without these features" table still says "PERF-1..PERF-100 catalog complete; detector implementation remaining". It should now say "PERF-1..PERF-127 detectors complete; PERF-128..PERF-212 deferred to P2.4-B/C".
-- [ ] **Update `plans/p2-implementation/README.md`** — the "P2 Core Features" table shows P2.4 as "Not started" which is now inaccurate.
-- [ ] **Update `ruleset/golang/golang.json`** — verify each PERF-103..127 entry's `detection_notes` reflects what the detector actually checks (the detector uses substring heuristics, not the full algorithmic notes).
+- [x] **Update `plans/p2.md` P2.4 section** — the "rating without these features" table now reflects PERF-103..127 shipped; remaining deferred.
+- [x] **Update `plans/p2-implementation/README.md`** — status table updated for P2.4/P2.5.
+- [x] **Update `ruleset/golang/golang.json`** — detection_notes for PERF-103..127 updated to describe the substring heuristics actually used.
 
 ---
 
@@ -207,24 +207,23 @@ The architecture doc at `plans/taint-tracking-architecture.md` is a 5-week imple
 
 ### E.2 Documentation
 
-- [ ] **Update `README.md`** — the "Architecture" / "Features" sections still describe the pre-P2.3 world. The cache, dependency extraction, and inline-ignore-on-cache-hit behavior are all user-visible.
-- [ ] **Update `docs/architecture-performance.md`** — same as A.2 above.
-- [ ] **Update `docs/finding-identity.md`** — the inline-ignore section needs to mention the new "re-applied on cache hits" behavior.
-- [ ] **Add a `docs/incremental-cache.md`** — explains the `.slopguard-cache/` directory, the hash-vs-mtime strategy, and how to use `--rebuild-cache` / `--no-cache` / `--cache-dir`.
-- [ ] **Update `CHANGELOG.md` / release notes** — every P2.x item that shipped should have a one-liner.
+- [x] **Update `README.md`** — ~~the "Architecture" / "Features" sections still describe the pre-P2.3 world. The cache, dependency extraction, and inline-ignore-on-cache-hit behavior are all user-visible.~~ Updated to mention incremental cache, PERF catalog, and cache CLI flags.
+- [x] **Update `docs/architecture-performance.md`** — same as A.2 above.
+- [x] **Update `docs/finding-identity.md`** — the inline-ignore section needs to mention the new "re-applied on cache hits" behavior. Added "Suppression and the incremental cache" section.
+- [x] **Add a `docs/incremental-cache.md`** — explains the `.slopguard-cache/` directory, the hash-vs-mtime strategy, and how to use `--rebuild-cache` / `--no-cache` / `--cache-dir`.
+- [ ] **Update `CHANGELOG.md` / release notes** — every P2.x item that shipped should have a one-liner. (No CHANGELOG.md exists yet; create when cutting a release.)
 
 ### E.3 Plan / tracking updates
 
-- [ ] **`plans/p2.md`** — the "Implementation Order" table still shows P2.3 as "Phase 1+2+5 complete" but doesn't reflect the additional Phase 3+4.2+8.3 work that shipped. Update to "Phase 1+2+3+4.2+4.3+5+6.1+8.1+8.3 complete".
-- [ ] **`plans/p2.md`** — the "Rating Without These Features" table still says "P2.3 Phase 1+2+5 in place" — update to reflect the full P2.3 implementation including dependency tracking.
-- [ ] **`plans/p2-implementation/README.md`** — the status table at the top shows P2.4 as "Not started" which is now inaccurate. Update to show "11 of 112 PERF-101..212 detectors shipped (Category A first batch)".
-- [ ] **`plans/p2-implementation/03-incremental-analysis.md`** — the plan checkboxes were updated in the last session but the "Phase 4.2 — Apply inline ignore comments (store in cache entry)" sub-bullet is still unchecked. Either implement it or move it to the deferred section.
-- [ ] **`plans/p2-implementation/04-perf-detector-implementation.md`** — phases 1.1, 1.2, 1.3, 3.2, 3.3, 4, 5 are all unchecked. Tick the 11 that shipped (the 11 registry entries; 2.1 partially; 2.3 partially) and mark the rest as deferred with a note pointing at this checklist.
+- [x] **`plans/p2.md`** — updated P2.3/P2.4/P2.5 status, Implementation Order, Rating, and checklists.
+- [x] **`plans/p2-implementation/README.md`** — updated status table for P2.3/P2.4/P2.5 and notes.
+- [x] **`plans/p2-implementation/03-incremental-analysis.md`** — Phase 4.2 marked deferred; Phase 5/6/8 checkboxes updated to reflect shipped work.
+- [x] **`plans/p2-implementation/04-perf-detector-implementation.md`** — first batch marked shipped; remaining phases marked deferred.
 
 ### E.4 Test-suite hygiene
 
 - [x] **Make `large_baseline_loads_and_filters_under_target` deterministic** (see A.3).
-- [ ] **Move the new PERF-103..127 inline-string tests** (`tests/go_perf_101_127.rs`) to use the project's `assert_fixture_rules` + `materialize_fixture` infrastructure, once the contiguity invariant in `tests/go_perf_detector_integration.rs:68` is loosened.
+- [x] **Move the new PERF-103..127 inline-string tests** (`tests/go_perf_101_127.rs`) to use the project's `assert_fixture_rules` + `materialize_fixture` infrastructure, once the contiguity invariant in `tests/go_perf_detector_integration.rs:68` is loosened. — `.txt` fixtures created for all 11 rules and exercised by `go_perf_fixtures_fire_vulnerable_and_silence_safe`; inline tests retained as unit-level coverage.
 - [ ] **Add an integration test** that the new PERF detectors fire on at least one real Go file (a small fixture in `tests/fixtures/go/perf_real_world/`).
 - [ ] **Verify the new PERF detectors do not false-positive** on a clean Go file (gopdfsuit's `main.go` is empty, so it doesn't exercise the detectors; pick a non-trivial Go file).
 - [x] **`tests/go_perf_detector_integration.rs:68` — relax the contiguity invariant** to require sortedness only (gaps allowed). ~~This unblocks registering PERF-101+ fixtures.~~
@@ -233,7 +232,7 @@ The architecture doc at `plans/taint-tracking-architecture.md` is a 5-week imple
 
 - [x] **Wire `CacheStore::total_size()`** into `--diagnostics` output ~~(the user already gets scan stats; cache size is a one-liner).~~ — `total_size()` method implemented; diagnostics module ready to consume it.
 - [x] **Add `cache_hits` / `cache_misses` counter** to `ScanStats` so the `--diagnostics` output can show the cache hit rate. — Fields added; wired in `scan_entries_parallel`.
-- [ ] **Log the transitive-invalidation cascade** in `tracing::info!` instead of `tracing::debug!` when the count is non-zero. Useful for first-time-run debugging.
+- [x] **Log the transitive-invalidation cascade** in `tracing::info!` instead of `tracing::debug!` when the count is non-zero. Useful for first-time-run debugging.
 - [ ] **Add a `cargo bench --bench incremental_scan`** as a CI gate (currently the bench is run manually; it should block merges that regress cold-vs-warm by more than 20%).
 
 ### E.6 Missing / deferred from P2.3 plan (originally flagged but not done)

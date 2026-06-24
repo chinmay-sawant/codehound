@@ -155,3 +155,121 @@ func R(s, old, new string) string { return strings.ReplaceAll(s, old, new) }
     let ids = run_on_source(safe);
     assert!(!ids.contains(&"PERF-124".to_string()), "got {ids:?}");
 }
+
+#[test]
+fn perf_107_detects_binary_read_write_in_loop() {
+    let src = r#"
+package x
+import (
+    "bytes"
+    "encoding/binary"
+)
+func Loop(r *bytes.Reader) {
+    for {
+        var v int32
+        binary.Read(r, binary.LittleEndian, &v)
+    }
+}
+"#;
+    let ids = run_on_source(src);
+    assert!(ids.contains(&"PERF-107".to_string()), "got {ids:?}");
+
+    let safe = r#"
+package x
+import (
+    "bytes"
+    "encoding/binary"
+)
+func Once(r *bytes.Reader) {
+    var v int32
+    binary.Read(r, binary.LittleEndian, &v)
+}
+"#;
+    let ids = run_on_source(safe);
+    assert!(!ids.contains(&"PERF-107".to_string()), "got {ids:?}");
+}
+
+#[test]
+fn perf_118_detects_unnecessary_new_request() {
+    let src = r#"
+package x
+import "net/http"
+func Trivial() {
+    http.NewRequest("GET", "http://x", nil)
+}
+"#;
+    let ids = run_on_source(src);
+    assert!(ids.contains(&"PERF-118".to_string()), "got {ids:?}");
+
+    let safe = r#"
+package x
+import "net/http"
+func Trivial() {
+    http.Get("http://x")
+}
+"#;
+    let ids = run_on_source(safe);
+    assert!(!ids.contains(&"PERF-118".to_string()), "got {ids:?}");
+}
+
+#[test]
+fn perf_122_detects_has_prefix_slice() {
+    let src = r#"
+package x
+import "strings"
+func Trim(s, p string) string {
+    if strings.HasPrefix(s, p) { return s[len(p):] }
+    return s
+}
+"#;
+    let ids = run_on_source(src);
+    assert!(ids.contains(&"PERF-122".to_string()), "got {ids:?}");
+
+    let safe = r#"
+package x
+import "strings"
+func Trim(s, p string) string { return strings.TrimPrefix(s, p) }
+"#;
+    let ids = run_on_source(safe);
+    assert!(!ids.contains(&"PERF-122".to_string()), "got {ids:?}");
+}
+
+#[test]
+fn perf_126_detects_canonical_header_on_canonical_input() {
+    let src = r#"
+package x
+import "net/http"
+func H() string { return http.CanonicalHeaderKey("Content-Type") }
+"#;
+    let ids = run_on_source(src);
+    assert!(ids.contains(&"PERF-126".to_string()), "got {ids:?}");
+
+    let safe = r#"
+package x
+func H() string { return "Content-Type" }
+"#;
+    let ids = run_on_source(safe);
+    assert!(!ids.contains(&"PERF-126".to_string()), "got {ids:?}");
+}
+
+#[test]
+fn perf_127_detects_static_sprintf_in_log() {
+    let src = r#"
+package x
+import (
+    "fmt"
+    "log"
+)
+func L() { log.Printf(fmt.Sprintf("hello")) }
+"#;
+    let ids = run_on_source(src);
+    assert!(ids.contains(&"PERF-127".to_string()), "got {ids:?}");
+
+    let safe = r#"
+package x
+import "log"
+func L() { log.Printf("hello") }
+"#;
+    let ids = run_on_source(safe);
+    assert!(!ids.contains(&"PERF-127".to_string()), "got {ids:?}");
+}

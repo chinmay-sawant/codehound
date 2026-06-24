@@ -180,7 +180,7 @@ impl Analyzer {
                     }
                     let removed = cache.invalidate_dependent(&rescanned_file);
                     if removed > 0 {
-                        tracing::debug!(
+                        tracing::info!(
                             file = %rescanned_file,
                             removed,
                             "cascade-invalidated dependents"

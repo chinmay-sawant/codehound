@@ -5530,7 +5530,7 @@
     "PERF-146": {
       "id": 146,
       "name": "fmt.Sprintf With Single String And No Verbs",
-      "description": "Uses fmt.Sprintf(\"%s\", s) where s is already a string. This parses the format string, builds an argument list, and copies s to a new string — but s is already a string. The fmt overhead is 20-50x more expensive than using s directly.",
+      "description": "Uses fmt.Sprintf(\"%s\", s) where s is already a string. This parses the format string, builds an argument list, and copies s to a new string \u2014 but s is already a string. The fmt overhead is 20-50x more expensive than using s directly.",
       "original_description": "Detect fmt.Sprintf with literal format containing only \"%s\" and a single string argument",
       "weakness_abstraction": "Base",
       "status": "Draft",
@@ -6593,7 +6593,7 @@
       "go-web"
     ],
     "go_relevance": "High",
-    "detection_notes": "Find calls to client.Do, client.Get, http.Get, http.Post where the response Body is not followed by defer resp.Body.Close() or explicit Body.Close() in the same function scope."
+    "detection_notes": "Heuristic: find calls to client.Do, client.Get, http.Get, http.Post, http.PostForm, client.Post, or client.Post and flag when the source after the call does not contain '.Body.Close('. A precise control-flow check would be ideal; this substring scan trades a small false-negative rate for Category-A simplicity."
   },
   "PERF-104": {
     "id": 104,
@@ -6652,7 +6652,7 @@
       "golang"
     ],
     "go_relevance": "Medium",
-    "detection_notes": "Match binary.Read or binary.Write call expressions inside for/range loop bodies where the data parameter is a fixed-size basic type."
+    "detection_notes": "Heuristic: find binary.Read or binary.Write call sites where is_in_loop reports true. The detector does not inspect the data type; it flags any encoding/binary call inside a loop body."
   },
   "PERF-108": {
     "id": 108,
@@ -6764,7 +6764,7 @@
       "golang"
     ],
     "go_relevance": "Medium",
-    "detection_notes": "Match strings.Compare calls where the return value is compared to 0 with == or !=."
+    "detection_notes": "Heuristic: find strings.Compare call sites whose surrounding line contains '== 0' or '!= 0'."
   },
   "PERF-116": {
     "id": 116,
@@ -6778,7 +6778,7 @@
       "golang"
     ],
     "go_relevance": "Low",
-    "detection_notes": "Match strings.Index calls where the return value is compared to -1."
+    "detection_notes": "Heuristic: find strings.Index call sites whose surrounding line contains '!= -1' or '== -1'."
   },
   "PERF-117": {
     "id": 117,
@@ -6792,7 +6792,7 @@
       "golang"
     ],
     "go_relevance": "Medium",
-    "detection_notes": "Match bytes.Compare calls where the return value is compared to 0 with == or !=."
+    "detection_notes": "Heuristic: find bytes.Compare call sites whose surrounding line contains '== 0' or '!= 0'."
   },
   "PERF-118": {
     "id": 118,
@@ -6807,7 +6807,7 @@
       "go-web"
     ],
     "go_relevance": "Low",
-    "detection_notes": "Match http.NewRequest with method GET, HEAD, or POST without custom headers or non-standard body handling."
+    "detection_notes": "Heuristic: find http.NewRequest calls whose first argument is the string literal 'GET', 'HEAD', or 'POST'. The detector does not inspect headers or body handling."
   },
   "PERF-119": {
     "id": 119,
@@ -6835,7 +6835,7 @@
       "golang"
     ],
     "go_relevance": "Low",
-    "detection_notes": "Match time.Now().Sub called where time.Since provides identical behavior with clearer intent."
+    "detection_notes": "Heuristic: find time.Now() calls followed within 32 bytes by '.Sub('. Does not parse the receiver of Sub()."
   },
   "PERF-121": {
     "id": 121,
@@ -6863,7 +6863,7 @@
       "golang"
     ],
     "go_relevance": "Low",
-    "detection_notes": "Match strings.HasPrefix followed by s[len(prefix):] slice expression in the same block."
+    "detection_notes": "Heuristic: find strings.HasPrefix calls whose surrounding 320-byte window contains both 'len(' and ']:'. Does not verify that the slice uses the same prefix length."
   },
   "PERF-123": {
     "id": 123,
@@ -6891,7 +6891,7 @@
       "golang"
     ],
     "go_relevance": "Low",
-    "detection_notes": "Match strings.Replace calls where the fourth argument is the integer literal -1."
+    "detection_notes": "Heuristic: find strings.Replace calls where any argument is the integer literal -1."
   },
   "PERF-125": {
     "id": 125,
@@ -6920,7 +6920,7 @@
       "go-web"
     ],
     "go_relevance": "Low",
-    "detection_notes": "Match http.CanonicalHeaderKey applied to string literals already in canonical form or values already passed through http.Header methods."
+    "detection_notes": "Heuristic: find http.CanonicalHeaderKey calls whose argument is a string literal matching a curated allowlist of common canonical headers (Accept, Content-Type, etc.). Less-common headers may be missed."
   },
   "PERF-127": {
     "id": 127,
@@ -6934,7 +6934,7 @@
       "golang"
     ],
     "go_relevance": "Medium",
-    "detection_notes": "Match log.*(fmt.Sprintf(\"static string without format verbs\")) patterns."
+    "detection_notes": "Heuristic: find log.* calls whose first argument text contains 'fmt.Sprintf' and whose first quoted format string contains no format verb (coarse '%' scan, not a full fmt parser)."
   },
   "PERF-128": {
     "id": 128,

@@ -225,7 +225,7 @@ pub(crate) fn detect_perf_122(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         let start = call.start_byte.saturating_sub(64);
         let end = (call.start_byte + 256).min(source.len());
         let window = &source[start..end];
-        if !window.contains("len(") || !window.contains("]:") {
+        if !window.contains("len(") || !window.contains(":]") {
             continue;
         }
         let (line, col) = unit.line_col(call.start_byte);
