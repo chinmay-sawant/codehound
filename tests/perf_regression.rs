@@ -28,7 +28,7 @@ fn materialized_fixture_scan_within_smoke_budget() {
 
     let start = Instant::now();
     let result = analyzer
-        .analyze_paths([&root])
+        .analyze_paths([&root], None)
         .expect("scan materialized fixtures");
     let elapsed = start.elapsed();
 
@@ -57,7 +57,7 @@ fn materialized_fixture_scan_repeat_within_budget() {
     for _ in 0..3 {
         let start = Instant::now();
         let result = analyzer
-            .analyze_paths([&root])
+            .analyze_paths([&root], None)
             .expect("repeat scan materialized fixtures");
         assert!(!result.findings.is_empty());
         worst = worst.max(start.elapsed());

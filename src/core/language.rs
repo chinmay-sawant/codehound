@@ -42,6 +42,26 @@ impl LanguageId {
             Self::TypeScript => &["typescript", "ts"],
         }
     }
+
+    /// Canonical lowercase id used by the cache (`"go"`, `"python"`,
+    /// `"typescript"`).
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Go => "go",
+            Self::Python => "python",
+            Self::TypeScript => "typescript",
+        }
+    }
+
+    /// Inverse of [`as_str`](Self::as_str) for cache hydration.
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "go" => Some(Self::Go),
+            "python" => Some(Self::Python),
+            "typescript" | "ts" => Some(Self::TypeScript),
+            _ => None,
+        }
+    }
 }
 
 /// Per-language backend: parse sources and supply detectors.

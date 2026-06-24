@@ -6,6 +6,7 @@ use anyhow::{Context, Result};
 use serde::Deserialize;
 
 use crate::core::{FailPolicy, ScanContext};
+use crate::engine::DEFAULT_CACHE_DIR;
 
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -33,6 +34,8 @@ pub struct SlopguardSection {
     pub exclude_tests: Option<bool>,
     #[serde(default)]
     pub baseline: BaselineConfig,
+    #[serde(default)]
+    pub cache: CacheConfig,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -43,6 +46,26 @@ pub struct BaselineConfig {
 }
 
 impl Default for BaselineConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            path: None,
+        }
+    }
+}
+
+/// Incremental-analysis cache configuration. Mirrors the `--no-cache` /
+/// `--cache-dir` CLI flags. When `enabled = false` the cache is not
+/// opened or written; when `path` is `Some`, that directory is used
+/// instead of the auto-discovered `<project>/.slopguard-cache/`.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct CacheConfig {
+    pub enabled: bool,
+    pub path: Option<PathBuf>,
+}
+
+impl Default for CacheConfig {
     fn default() -> Self {
         Self {
             enabled: true,
@@ -122,6 +145,42 @@ impl SlopguardConfig {
 
     pub fn baseline_path(&self) -> Option<PathBuf> {
         self.slopguard.baseline.path.clone()
+    }
+
+    /// `false` only when the user explicitly disabled the cache in
+    /// `slopguard.toml`. Default is `true` (cache on).
+    pub fn cache_enabled(&self) -> bool {
+        self.slopguard.cache.enabled
+    }
+
+    /// Custom cache directory, if any. When `None`, the caller is
+    /// responsible for auto-discovery (or the CLI-provided override).
+    pub fn cache_path(&self) -> Option<PathBuf> {
+        self.slopguard.cache.path.clone()
+    }
+}
+
+/// Walk from `start` upward looking for the closest `.slopguard-cache/`
+/// directory. Returns `None` if none is found in the chain. Used when
+/// the user did not set `cache.path` in `slopguard.toml` and did not
+/// pass `--cache-dir`.
+pub fn discover_cache_dir(start: &Path) -> Option<PathBuf> {
+    let mut current = if start.is_file() {
+        start.parent()?.to_path_buf()
+    } else {
+        start.to_path_buf()
+    };
+    loop {
+        let candidate = current.join(DEFAULT_CACHE_DIR);
+        if candidate.is_dir() {
+            return Some(candidate);
+        }
+        if current.join(".git").is_dir() {
+            return None;
+        }
+        if !current.pop() {
+            return None;
+        }
     }
 }
 

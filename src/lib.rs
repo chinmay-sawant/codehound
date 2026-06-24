@@ -21,7 +21,7 @@
 //!     .language_filter(filter)
 //!     .build();
 //!
-//! let result = analyzer.analyze_paths(["."]).unwrap();
+//! let result = analyzer.analyze_paths(["."], None).unwrap();
 //! println!("{} findings", result.findings.len());
 //! ```
 //!

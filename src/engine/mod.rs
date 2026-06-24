@@ -2,6 +2,7 @@
 
 mod analyzer;
 mod baseline;
+mod cache;
 mod config;
 mod diagnostics;
 mod ignore;
@@ -18,9 +19,14 @@ pub use analyzer::{Analyzer, AnalyzerBuilder};
 pub use baseline::{
     BASELINE_FILE_NAME, BASELINE_VERSION, Baseline, BaselineEntry, discover_baseline,
 };
+pub use cache::{
+    CACHE_VERSION, CacheEntry, CacheError, CacheLookup, CacheManifest, CacheMetadata, CacheStore,
+    DEFAULT_CACHE_DIR, FileCacheMeta, cache_key_for_path, content_hash,
+};
 pub use config::{
-    BaselineConfig, PathFilters, SlopguardConfig, SlopguardSection, build_scan_context,
-    discover_config, fail_on_to_policy, load_discovered_config,
+    BaselineConfig, CacheConfig, PathFilters, SlopguardConfig, SlopguardSection,
+    build_scan_context, discover_cache_dir, discover_config, fail_on_to_policy,
+    load_discovered_config,
 };
 pub use diagnostics::Diagnostics;
 pub use ignore::{

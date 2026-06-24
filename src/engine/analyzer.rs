@@ -2,10 +2,12 @@
 
 use std::collections::HashMap;
 use std::path::Path;
+use std::sync::Arc;
 
 use anyhow::Result;
 
 use crate::core::ScanContext;
+use crate::engine::cache::CacheStore;
 use crate::engine::config::PathFilters;
 use crate::engine::language_filter::LanguageFilter;
 use crate::engine::registry::Registry;
@@ -78,7 +80,15 @@ impl Analyzer {
         &self.ctx
     }
 
-    pub fn analyze_paths<I, P>(&self, paths: I) -> Result<AnalysisResult>
+    /// Run the scan. When `cache` is `Some`, the scan consults the
+    /// cache for files whose content hash has not changed, and writes
+    /// back new entries for files it scans. The cache is flushed
+    /// before this method returns.
+    pub fn analyze_paths<I, P>(
+        &self,
+        paths: I,
+        mut cache: Option<&mut CacheStore>,
+    ) -> Result<AnalysisResult>
     where
         I: IntoIterator<Item = P>,
         P: AsRef<Path>,
@@ -91,10 +101,15 @@ impl Analyzer {
 
         let mut findings = Vec::new();
         let mut errors = Vec::new();
-        let mut source_cache = HashMap::new();
+        let mut source_cache: HashMap<String, Arc<str>> = HashMap::new();
         let mut suppressed_count = 0;
         let mut stats = ScanStats::default();
         stats.files_skipped = files_skipped;
+        let mut scanned_files: std::collections::HashSet<String> =
+            std::collections::HashSet::with_capacity(entries.len());
+        for entry in &entries {
+            scanned_files.insert(entry.path.display().to_string());
+        }
 
         for chunk in entries.chunks(SCAN_CHUNK_SIZE) {
             let (
@@ -104,13 +119,24 @@ impl Analyzer {
                 chunk_suppressed_count,
                 chunk_stats,
                 chunk_timing,
-            ) = scan_entries_parallel(&self.registry, &self.ctx, chunk)?;
+            ) = scan_entries_parallel(&self.registry, &self.ctx, chunk, cache.as_deref_mut())?;
             findings.extend(chunk_findings);
             errors.extend(chunk_errors);
             source_cache.extend(chunk_source_cache);
             suppressed_count += chunk_suppressed_count;
             stats.merge(&chunk_stats);
             timing.merge(&chunk_timing);
+        }
+
+        // Prune orphan cache entries (files that were deleted since
+        // the last scan). Done at the analyzer level so it still runs
+        // when `entries` is empty.
+        if let Some(cache) = cache.as_deref_mut() {
+            if let Ok(removed) = cache.prune(&scanned_files) {
+                if removed > 0 {
+                    tracing::debug!(removed, "pruned stale cache entries");
+                }
+            }
         }
 
         timing.measure("sort_results", || sort_findings(&mut findings));
@@ -141,6 +167,12 @@ impl Analyzer {
             scan_stats.detectors_loaded = self.registry.detector_count();
             scan_stats.timing = Some(timing.to_summary());
             result.stats = Some(scan_stats);
+        }
+
+        if let Some(cache) = cache {
+            if let Err(e) = cache.flush() {
+                tracing::warn!(error = %e, "failed to flush incremental cache");
+            }
         }
 
         Ok(result)

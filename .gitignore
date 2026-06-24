@@ -6,3 +6,4 @@ target/slopguard-fixtures/
 scripts/chunks
 scripts/findings
 scripts/gopdfsuit
+.slopguard-cache

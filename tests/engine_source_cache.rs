@@ -24,7 +24,7 @@ fn analyze_paths_populates_source_cache_for_scanned_files() {
     let analyzer = Analyzer::builder()
         .scan_context(ScanContext::default())
         .build();
-    let result = analyzer.analyze_paths([&root]).unwrap();
+    let result = analyzer.analyze_paths([&root], None).unwrap();
     let key = source_path.display().to_string();
 
     assert_eq!(result.source_cache.len(), 1);
@@ -50,7 +50,7 @@ fn analyze_paths_populates_source_cache_for_files_with_zero_findings() {
     let analyzer = Analyzer::builder()
         .scan_context(ScanContext::default())
         .build();
-    let result = analyzer.analyze_paths([&root]).unwrap();
+    let result = analyzer.analyze_paths([&root], None).unwrap();
     let key = source_path.display().to_string();
 
     assert!(result.findings.is_empty());
@@ -73,7 +73,7 @@ fn analyze_paths_populates_source_cache_for_empty_files() {
     let analyzer = Analyzer::builder()
         .scan_context(ScanContext::default())
         .build();
-    let result = analyzer.analyze_paths([&root]).unwrap();
+    let result = analyzer.analyze_paths([&root], None).unwrap();
     let key = source_path.display().to_string();
 
     assert!(result.findings.is_empty());
@@ -102,7 +102,7 @@ func add(a int, b int) int {
     let analyzer = Analyzer::builder()
         .scan_context(ScanContext::default())
         .build();
-    let result = analyzer.analyze_paths([&root]).unwrap();
+    let result = analyzer.analyze_paths([&root], None).unwrap();
 
     assert!(result.errors.is_empty(), "errors: {:?}", result.errors);
     assert_eq!(result.source_cache.len(), 2);
@@ -143,7 +143,7 @@ fn analyze_paths_handles_unicode_and_omits_non_utf8_source_cache_entries() {
     let analyzer = Analyzer::builder()
         .scan_context(ScanContext::default())
         .build();
-    let result = analyzer.analyze_paths([&root]).unwrap();
+    let result = analyzer.analyze_paths([&root], None).unwrap();
 
     assert!(result.findings.is_empty());
     assert_eq!(result.errors.len(), 1);
@@ -179,7 +179,7 @@ fn analyze_paths_caches_large_utf8_sources() {
     let analyzer = Analyzer::builder()
         .scan_context(ScanContext::default())
         .build();
-    let result = analyzer.analyze_paths([&root]).unwrap();
+    let result = analyzer.analyze_paths([&root], None).unwrap();
     let key = source_path.display().to_string();
 
     assert!(result.errors.is_empty(), "errors: {:?}", result.errors);
@@ -208,7 +208,7 @@ fn source_cache_arc_clone_shares_source_allocation() {
     let analyzer = Analyzer::builder()
         .scan_context(ScanContext::default())
         .build();
-    let result = analyzer.analyze_paths([&root]).unwrap();
+    let result = analyzer.analyze_paths([&root], None).unwrap();
     let key = source_path.display().to_string();
 
     let cached = result.source_cache.get(&key).unwrap();
@@ -231,7 +231,7 @@ fn export_uses_source_cache_after_source_file_is_removed() {
     let analyzer = Analyzer::builder()
         .scan_context(ScanContext::default())
         .build();
-    let result = analyzer.analyze_paths([&root]).unwrap();
+    let result = analyzer.analyze_paths([&root], None).unwrap();
     assert_eq!(result.findings.len(), 1);
     assert!(
         result

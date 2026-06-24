@@ -61,6 +61,22 @@
               "type": "string"
             }
           }
+        },
+        "cache": {
+          "description": "Incremental analysis cache configuration.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Write and read the incremental analysis cache (default: true).",
+              "type": "boolean",
+              "default": true
+            },
+            "path": {
+              "description": "Custom directory for the incremental analysis cache. Overrides auto-discovery of .slopguard-cache/.",
+              "type": "string"
+            }
+          }
         }
       }
     }

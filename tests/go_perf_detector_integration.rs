@@ -41,7 +41,7 @@ fn perf_1_finding_includes_control_flow_issue_evidence() {
     let source_path =
         helpers::assert_fixture_materializes("tests/fixtures/go/perf/PERF-001-vulnerable.txt");
     let analyzer = Analyzer::builder().build();
-    let result = analyzer.analyze_paths([&source_path]).unwrap();
+    let result = analyzer.analyze_paths([&source_path], None).unwrap();
 
     let finding = result
         .findings

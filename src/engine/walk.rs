@@ -11,6 +11,7 @@ use rayon::prelude::*;
 
 use crate::ast;
 use crate::core::{LanguageId, LanguagePlugin, ParsedUnit, ScanContext};
+use crate::engine::cache::{CacheEntry, CacheStore, content_hash};
 use crate::engine::config::PathFilters;
 use crate::engine::ignore::{
     IgnoreDirective, apply_file_ignore, apply_inline_ignores, parse_file_ignore,
@@ -372,9 +373,18 @@ pub enum ScanOutcome {
         findings: Vec<Finding>,
         cache_key: String,
         source: Arc<str>,
+        language: LanguageId,
         suppressed_count: usize,
         stats: ScanStats,
         timing: TimingCollector,
+    },
+    Cached {
+        findings: Vec<Finding>,
+        cache_key: String,
+        source: Arc<str>,
+        #[allow(dead_code)]
+        language: LanguageId,
+        stats: ScanStats,
     },
     Err(ScanError),
 }
@@ -385,10 +395,16 @@ pub enum ScanOutcome {
 /// does **not** abort on the first bad file. Worker panics are caught and
 /// surfaced as `ScanError::Engine` rather than tearing down the rayon
 /// driver.
+///
+/// When `cache` is `Some`, each entry is first hashed and looked up in
+/// the cache. On a hit, the cached findings are returned and the file
+/// is not re-parsed; on a miss, the file is scanned normally and a new
+/// cache entry is written.
 pub fn scan_entries_parallel(
     registry: &Registry,
     ctx: &ScanContext,
     entries: &[ScanEntry],
+    mut cache: Option<&mut CacheStore>,
 ) -> Result<(
     Vec<Finding>,
     Vec<ScanError>,
@@ -399,7 +415,74 @@ pub fn scan_entries_parallel(
 )> {
     let total = entries.len();
     let collect_stats = ctx.collect_stats();
-    let outcomes: Vec<ScanOutcome> = entries
+
+    // Split the entries into a "scan" pool (cache misses + no cache)
+    // and a "cache hit" pool. Cache hits are processed in parallel
+    // without touching the cache (read-only), so we don't need to
+    // serialize them through the cache mutex.
+    let mut to_scan: Vec<ScanEntry> = Vec::with_capacity(total);
+    let mut cached_outcomes: Vec<ScanOutcome> = Vec::new();
+    let mut scanned_files_for_prune: std::collections::HashSet<String> =
+        std::collections::HashSet::with_capacity(total);
+
+    if let Some(cache) = cache.as_deref() {
+        for entry in entries {
+            scanned_files_for_prune.insert(entry.path.display().to_string());
+            let bytes = match std::fs::read(&entry.path) {
+                Ok(b) => b,
+                Err(e) => {
+                    cached_outcomes.push(ScanOutcome::Err(ScanError {
+                        path: entry.path.clone(),
+                        kind: ScanErrorKind::Io,
+                        message: format!("reading {}: {e}", entry.path.display()),
+                    }));
+                    continue;
+                }
+            };
+            let source = match String::from_utf8(bytes.clone()) {
+                Ok(s) => Arc::from(s),
+                Err(e) => {
+                    cached_outcomes.push(ScanOutcome::Err(ScanError {
+                        path: entry.path.clone(),
+                        kind: ScanErrorKind::Encoding,
+                        message: format!("source is not valid UTF-8: {e}"),
+                    }));
+                    continue;
+                }
+            };
+            let hash = content_hash(&source);
+            let rel = entry.path.display().to_string();
+            match cache.lookup(&rel, &hash) {
+                crate::engine::cache::CacheLookup::Hit(entry) => {
+                    let language = LanguageId::parse(&entry.language).unwrap_or(LanguageId::Go);
+                    let findings = filter_cached_findings(ctx, entry.findings);
+                    let mut file_stats = ScanStats::default();
+                    let bytes_len = source.len() as u64;
+                    let lines = bytecount_lines(&source) as u64;
+                    file_stats.record_file(bytes_len, lines);
+                    cached_outcomes.push(ScanOutcome::Cached {
+                        findings,
+                        cache_key: rel.clone(),
+                        source,
+                        language,
+                        stats: file_stats,
+                    });
+                }
+                _ => {
+                    to_scan.push(entry.clone());
+                }
+            }
+        }
+    } else {
+        to_scan = entries.to_vec();
+        for entry in entries {
+            scanned_files_for_prune.insert(entry.path.display().to_string());
+        }
+    }
+
+    // Drop the immutable borrow of `cache` before mutating it inside
+    // the parallel scan.
+    let scan_outcomes: Vec<ScanOutcome> = to_scan
         .par_iter()
         .map_init(ParsePool::new, |pool, entry| {
             // `catch_unwind` so a panic in one worker (e.g. a tree-sitter
@@ -416,6 +499,7 @@ pub fn scan_entries_parallel(
                             findings,
                             cache_key,
                             source,
+                            language: entry.language,
                             suppressed_count,
                             stats,
                             timing,
@@ -436,32 +520,78 @@ pub fn scan_entries_parallel(
         })
         .collect();
 
+    // Merge results, write cache entries for misses.
     let mut findings = Vec::new();
     let mut errors = Vec::new();
-    let mut source_cache = HashMap::with_capacity(total);
+    let mut source_cache: HashMap<String, Arc<str>> = HashMap::with_capacity(total);
     let mut suppressed_count = 0;
     let mut stats = ScanStats::default();
     let mut timing = TimingCollector::new(collect_stats);
-    for outcome in outcomes {
+
+    for outcome in scan_outcomes {
         match outcome {
             ScanOutcome::Ok {
                 findings: mut f,
                 cache_key,
                 source,
+                language,
                 suppressed_count: ignored,
                 stats: file_stats,
                 timing: file_timing,
             } => {
+                if let Some(cache) = cache.as_deref_mut() {
+                    let hash = content_hash(&source);
+                    let mtime = mtime_of(&cache_key);
+                    let entry = CacheEntry {
+                        schema_version: crate::engine::cache::CACHE_VERSION,
+                        file: cache_key.clone(),
+                        content_hash: hash,
+                        mtime_secs: mtime.0,
+                        mtime_nanos: mtime.1,
+                        language: language.as_str().to_string(),
+                        findings: f.clone(),
+                        dependencies: Vec::new(),
+                        cached_at: crate::engine::cache::iso8601_now(),
+                    };
+                    if let Err(e) = cache.put(entry) {
+                        tracing::warn!(file = %cache_key, error = %e, "failed to write cache entry");
+                    }
+                }
                 findings.append(&mut f);
                 source_cache.insert(cache_key, source);
                 suppressed_count += ignored;
                 stats.merge(&file_stats);
                 timing.merge(&file_timing);
             }
+            ScanOutcome::Cached { .. } => {
+                // Cached outcomes were drained in the previous loop.
+            }
             ScanOutcome::Err(e) => {
                 errors.push(e);
                 stats.record_errored();
             }
+        }
+    }
+
+    // Now drain the cached outcomes.
+    for outcome in cached_outcomes {
+        match outcome {
+            ScanOutcome::Cached {
+                findings: mut f,
+                cache_key,
+                source,
+                stats: file_stats,
+                ..
+            } => {
+                findings.append(&mut f);
+                source_cache.insert(cache_key, source);
+                stats.merge(&file_stats);
+            }
+            ScanOutcome::Err(e) => {
+                errors.push(e);
+                stats.record_errored();
+            }
+            _ => {}
         }
     }
 
@@ -480,6 +610,41 @@ pub fn scan_entries_parallel(
         stats,
         timing,
     ))
+}
+
+/// Apply the current `ScanContext` to a list of cached findings. Drops
+/// findings whose rule is filtered out (e.g. via `--skip`).
+fn filter_cached_findings(ctx: &ScanContext, findings: Vec<Finding>) -> Vec<Finding> {
+    if findings.is_empty() {
+        return findings;
+    }
+    findings
+        .into_iter()
+        .filter(|f| ctx.allows(f.rule_id))
+        .collect()
+}
+
+/// Cheap mtime lookup by relative path. Returns `(0, 0)` when the file
+/// is missing — the cache entry will be written but the mtime check
+/// will be skipped on the next hit.
+fn mtime_of(rel: &str) -> (u64, u32) {
+    match std::fs::metadata(rel) {
+        Ok(m) => match m.modified() {
+            Ok(t) => match t.duration_since(std::time::SystemTime::UNIX_EPOCH) {
+                Ok(d) => (d.as_secs(), d.subsec_nanos()),
+                Err(_) => (0, 0),
+            },
+            Err(_) => (0, 0),
+        },
+        Err(_) => (0, 0),
+    }
+}
+
+fn bytecount_lines(s: &str) -> usize {
+    if s.is_empty() {
+        return 0;
+    }
+    s.bytes().filter(|b| *b == b'\n').count() + 1
 }
 
 /// Best-effort message extraction from a `catch_unwind` payload. The payload

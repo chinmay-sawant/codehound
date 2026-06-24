@@ -19,7 +19,7 @@ fn bench_scan_materialized_fixtures(c: &mut Criterion) {
     c.bench_function("scan_materialized_fixtures", |b| {
         b.iter(|| {
             analyzer
-                .analyze_paths([&root])
+                .analyze_paths([&root], None)
                 .expect("scan should succeed");
         });
     });
@@ -59,7 +59,7 @@ fn bench_scan_go_only_subset(c: &mut Criterion) {
     c.bench_function("scan_go_only_two_rules", |b| {
         b.iter(|| {
             analyzer
-                .analyze_paths([&root])
+                .analyze_paths([&root], None)
                 .expect("scan should succeed");
         });
     });

@@ -8,8 +8,9 @@ use anyhow::{Context, Result};
 use slopguard::cli::{Cli, Command, OutputFormat};
 use slopguard::cwe::{RuleDescription, default_ruleset_path, load_rule_descriptions};
 use slopguard::engine::{
-    Analyzer, BASELINE_FILE_NAME, Baseline, Diagnostics, Registry, SlopguardConfig,
-    TimingCollector, discover_baseline, discover_config, resolve_language_filter,
+    Analyzer, BASELINE_FILE_NAME, Baseline, CacheStore, DEFAULT_CACHE_DIR, Diagnostics, Registry,
+    SlopguardConfig, TimingCollector, discover_baseline, discover_cache_dir, discover_config,
+    resolve_language_filter,
 };
 use slopguard::export::export_findings;
 use slopguard::reporting;
@@ -70,7 +71,25 @@ pub fn run(cli: Cli) -> Result<ExitCode> {
         .collect_stats(collect_stats)
         .build();
 
-    let mut result = match analyzer.analyze_paths(&cli.paths) {
+    let mut cache_store = open_cache_store(&cli, config.as_ref());
+    if cli.rebuild_cache {
+        if let Some(dir) = cache_rebuild_dir(&cli, config.as_ref()) {
+            if dir.is_dir() {
+                if let Err(e) = std::fs::remove_dir_all(&dir) {
+                    if !cli.quiet {
+                        eprintln!("warning: could not purge cache at {}: {e}", dir.display());
+                    }
+                } else if !cli.quiet {
+                    eprintln!("Purged cache at {}", dir.display());
+                }
+            }
+            // Re-open (or open for the first time) so the scan writes a
+            // fresh cache instead of running with the store closed.
+            cache_store = open_cache_store(&cli, config.as_ref());
+        }
+    }
+
+    let mut result = match analyzer.analyze_paths(&cli.paths, cache_store.as_mut()) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("internal error during scan: {e:#}");
@@ -342,6 +361,56 @@ fn load_descriptions() -> &'static HashMap<String, RuleDescription> {
     })
 }
 
+/// Resolve and open the incremental-analysis cache when enabled by
+/// CLI flags + `slopguard.toml`. Returns `None` when the cache is
+/// disabled (`--no-cache` or `cache.enabled = false`) or when the
+/// directory cannot be opened.
+fn open_cache_store(cli: &Cli, config: Option<&SlopguardConfig>) -> Option<CacheStore> {
+    if cli.no_cache {
+        return None;
+    }
+    if let Some(cfg) = config {
+        if !cfg.cache_enabled() {
+            return None;
+        }
+    }
+    let dir = cache_directory(cli, config)?;
+    match CacheStore::open(dir) {
+        Ok(s) => Some(s),
+        Err(e) => {
+            if !cli.quiet {
+                eprintln!("warning: could not open incremental cache: {e:#}");
+            }
+            None
+        }
+    }
+}
+
+/// Resolve the cache directory following CLI > config > auto-discovery
+/// precedence. Returns `None` when none of the sources apply.
+fn cache_directory(cli: &Cli, config: Option<&SlopguardConfig>) -> Option<std::path::PathBuf> {
+    if let Some(dir) = cli.cache_dir.clone() {
+        return Some(dir);
+    }
+    if let Some(cfg) = config {
+        if let Some(p) = cfg.cache_path() {
+            return Some(p);
+        }
+    }
+    if let Some(found) = discover_cache_dir(Path::new(".")) {
+        return Some(found);
+    }
+    // No existing cache: lazily create one in the cwd so the next run
+    // can read it back.
+    Some(Path::new(DEFAULT_CACHE_DIR).to_path_buf())
+}
+
+/// Directory that would be purged by `--rebuild-cache`. Mirrors
+/// [`cache_directory`].
+fn cache_rebuild_dir(cli: &Cli, config: Option<&SlopguardConfig>) -> Option<std::path::PathBuf> {
+    cache_directory(cli, config)
+}
+
 pub fn init_subcommand() -> ExitCode {
     const TEMPLATE: &str = "\
 # SlopGuard configuration. All fields are optional; unknown fields are rejected.
@@ -369,6 +438,13 @@ pub fn init_subcommand() -> ExitCode {
 # [slopguard.baseline]
 # enabled = true
 # path = \".slopguard-baseline.json\"
+
+# Incremental analysis cache is enabled by default. SlopGuard stores per-file
+# results in `.slopguard-cache/` next to the project root and reuses them on
+# subsequent runs when the file's content hash has not changed.
+# [slopguard.cache]
+# enabled = true
+# path = \".slopguard-cache\"
 ";
     let path = Path::new("slopguard.toml");
     if path.is_file() {

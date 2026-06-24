@@ -170,7 +170,7 @@ fn runtime_include_exclude_filters_apply_during_collection() {
         })
         .build();
     let result = analyzer
-        .analyze_paths([materialized_root()])
+        .analyze_paths([materialized_root()], None)
         .expect("analyze with runtime filters");
 
     assert!(

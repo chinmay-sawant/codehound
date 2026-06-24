@@ -51,7 +51,7 @@ pub fn assert_fixture_rules(txt_path: &str, required_rules: &[&str]) {
 
     let analyzer = Analyzer::builder().build();
     let result = analyzer
-        .analyze_paths([&source_path])
+        .analyze_paths([&source_path], None)
         .unwrap_or_else(|e| panic!("analyze {}: {e:#}", source_path.display()));
 
     let ids: Vec<&str> = result.findings.iter().map(|f| f.rule_id).collect();
@@ -91,7 +91,7 @@ pub fn assert_mixed_txt_fixtures(fixtures_root: &str, go_rules: &[&str], python_
 
     let analyzer = Analyzer::builder().build();
     let result = analyzer
-        .analyze_paths([materialized_root()])
+        .analyze_paths([materialized_root()], None)
         .unwrap_or_else(|e| panic!("analyze materialized fixtures: {e:#}"));
 
     let ids: Vec<&str> = result.findings.iter().map(|f| f.rule_id).collect();

@@ -144,6 +144,19 @@ pub struct Cli {
     #[arg(long)]
     pub include_tests: bool,
 
+    /// Disable the incremental analysis cache for this run.
+    #[arg(long)]
+    pub no_cache: bool,
+
+    /// Custom directory for the incremental analysis cache
+    /// (overrides `cache.path` in `slopguard.toml`).
+    #[arg(long, value_name = "DIR")]
+    pub cache_dir: Option<PathBuf>,
+
+    /// Purge the existing incremental cache and start fresh.
+    #[arg(long)]
+    pub rebuild_cache: bool,
+
     /// Show details for a specific rule ID and exit.
     #[arg(long, value_name = "RULE")]
     pub explain: Option<String>,
