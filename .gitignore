@@ -5,3 +5,4 @@ target/slopguard-fixtures/
 # chunks and findings 
 scripts/chunks
 scripts/findings
+scripts/gopdfsuit
