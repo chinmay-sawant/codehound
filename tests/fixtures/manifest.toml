@@ -4561,6 +4561,25 @@ required_rules = ["PERF-107"]
 
 [[fixture]]
 lang = "go"
+path = "tests/fixtures/go/perf/PERF-106-vulnerable.txt"
+required_rules = ["PERF-106"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-106-safe.txt"
+required_rules = []
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-110-vulnerable.txt"
+required_rules = ["PERF-110"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-110-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
 path = "tests/fixtures/go/perf/PERF-107-safe.txt"
 required_rules = []
 
@@ -4671,6 +4690,25 @@ required_rules = ["PERF-122"]
 
 [[fixture]]
 lang = "go"
+path = "tests/fixtures/go/perf/PERF-128-vulnerable.txt"
+required_rules = ["PERF-128"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-128-safe.txt"
+required_rules = []
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-130-vulnerable.txt"
+required_rules = ["PERF-130"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-130-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
 path = "tests/fixtures/go/perf/PERF-122-safe.txt"
 required_rules = []
 [[fixture]]
@@ -4717,6 +4755,24 @@ required_rules = ["PERF-127"]
 [[fixture]]
 lang = "go"
 path = "tests/fixtures/go/perf/PERF-127-safe.txt"
+required_rules = []
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-135-vulnerable.txt"
+required_rules = ["PERF-135"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-135-safe.txt"
+required_rules = []
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-140-vulnerable.txt"
+required_rules = ["PERF-140"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-140-safe.txt"
 required_rules = []
 
 [[fixture]]
@@ -4768,6 +4824,24 @@ required_rules = ["PERF-157"]
 lang = "go"
 path = "tests/fixtures/go/perf/PERF-157-safe.txt"
 required_rules = []
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-158-vulnerable.txt"
+required_rules = ["PERF-158"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-158-safe.txt"
+required_rules = []
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-171-vulnerable.txt"
+required_rules = ["PERF-171"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-171-safe.txt"
+required_rules = []
 
 [[fixture]]
 lang = "go"
@@ -4777,6 +4851,24 @@ required_rules = ["PERF-177"]
 [[fixture]]
 lang = "go"
 path = "tests/fixtures/go/perf/PERF-177-safe.txt"
+required_rules = []
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-181-vulnerable.txt"
+required_rules = ["PERF-181"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-181-safe.txt"
+required_rules = []
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-182-vulnerable.txt"
+required_rules = ["PERF-182"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-182-safe.txt"
 required_rules = []
 
 [[fixture]]

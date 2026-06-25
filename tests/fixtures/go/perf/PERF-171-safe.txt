@@ -1,0 +1,17 @@
+# PERF-171 negative: sync.Mutex for acquire/release
+lang: go
+file: PERF-171-safe.go
+variant: stdlib
+---
+package sample
+
+import "sync"
+
+var counterMu sync.Mutex
+var counterN int
+
+func Inc() {
+	counterMu.Lock()
+	counterN++
+	counterMu.Unlock()
+}

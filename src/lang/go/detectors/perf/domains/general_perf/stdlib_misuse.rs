@@ -1118,6 +1118,671 @@ pub(crate) fn detect_perf_192(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     let _ = facts;
 }
 
+/// PERF-110: `sync.Pool` whose `New` function returns a value type
+/// instead of a pointer. Each `Put` boxes the value into an `eface`
+/// on the pool's internal queue, and each `Get` unboxes it; returning
+/// `*T` from `New` avoids the round trip.
+pub(crate) fn detect_perf_110(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    use crate::ast::walk_nodes;
+    use tree_sitter::Node;
+
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    if !source.contains("sync.Pool") {
+        return;
+    }
+
+    // Walk composite-literal nodes whose text starts with `sync.Pool{`.
+    // We need the literal's full text to inspect the `New:` field.
+    walk_nodes(
+        unit.tree.root_node(),
+        &["composite_literal"],
+        &mut |node: Node| {
+            let text = match node.utf8_text(source.as_bytes()) {
+                Ok(t) => t,
+                Err(_) => return,
+            };
+            if !text.starts_with("sync.Pool{") {
+                return;
+            }
+            // Find the New: ... } body. We bound the search to the
+            // literal's text; `New:` is the only field we care about.
+            let Some(new_idx) = text.find("New:") else {
+                return;
+            };
+            let after = &text[new_idx..];
+            // The New field is a function literal; we don't try to
+            // walk it as AST (the value is a `func_literal` inside a
+            // keyed_element). Just inspect the function literal text.
+            // Detect: `func() *T {` (good) vs `func() T {` (bad) or
+            // `func() interface{} { return &T{} }` (good).
+            if let Some(open) = after.find("func()") {
+                let sig = &after[open..];
+                // The signature ends at the next `{`.
+                let sig_end = sig.find('{').unwrap_or(sig.len());
+                let signature = &sig[..sig_end];
+                // Reject when the signature itself returns a pointer
+                // (e.g. `func() *Foo { ... }`).
+                if signature.contains('*') {
+                    return;
+                }
+                // The return type is the trailing identifier in
+                // `func() T`. Reject if it starts with `*`.
+                let return_type = signature
+                    .trim_start_matches("func()")
+                    .trim()
+                    .trim_start_matches('*')
+                    .trim();
+                if return_type.is_empty() || return_type == "_" {
+                    return;
+                }
+                // If the body actually returns a pointer (`return &T{...}`
+                // or `return new(T)`), the function is fine.
+                if let Some(ret_idx) = after.find("return") {
+                    let after_ret = &after[ret_idx + "return".len()..];
+                    if after_ret.trim_start().starts_with('&')
+                        || after_ret.trim_start().starts_with("new(")
+                    {
+                        return;
+                    }
+                }
+                // The return type looks like a value type and the
+                // return value is not a pointer — flag.
+                let (line, col) = unit.line_col(node.start_byte());
+                emit::push_finding(
+                    &META_PERF_110,
+                    file,
+                    line,
+                    col,
+                    "sync.Pool New returns a value type; return a pointer (e.g. *Foo) to avoid boxing on Put",
+                    out,
+                );
+            }
+        },
+    );
+}
+
+/// PERF-128: three or more consecutive `append` calls to the same
+/// slice without intervening reads. This is the stricter version of
+/// PERF-119 (which catches 2+); three independent growths is a
+/// stronger signal of accidental reallocation.
+pub(crate) fn detect_perf_128(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+
+    let mut appends: Vec<&CallFact> = facts
+        .calls
+        .iter()
+        .filter(|c| c.callee.as_ref() == "append")
+        .collect();
+    if appends.len() < 3 {
+        return;
+    }
+    appends.sort_by_key(|c| c.start_byte);
+
+    for triple in appends.windows(3) {
+        let a = triple[0];
+        let b = triple[1];
+        let c = triple[2];
+        if a.arguments.is_empty() || b.arguments.is_empty() || c.arguments.is_empty() {
+            continue;
+        }
+        let target = a.arguments[0].as_ref();
+        if b.arguments[0].as_ref() != target || c.arguments[0].as_ref() != target {
+            continue;
+        }
+        // No intervening reads between the first and last call.
+        if intervening_read(&unit.source[intermediate(a, b)..b.start_byte], target) {
+            continue;
+        }
+        if intervening_read(&unit.source[intermediate(b, c)..c.start_byte], target) {
+            continue;
+        }
+        let (line, col) = unit.line_col(a.start_byte);
+        emit::push_finding(
+            &META_PERF_128,
+            file,
+            line,
+            col,
+            "three or more independent append calls can be combined into one variadic append",
+            out,
+        );
+        return;
+    }
+}
+
+/// PERF-130: an immediately-invoked function literal whose body is a
+/// single call expression. The wrapper adds an allocation and a
+/// function call without providing any closure capture; inline the
+/// call directly.
+pub(crate) fn detect_perf_130(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    if !source.contains("func()") {
+        return;
+    }
+
+    let mut search_from = 0;
+    while let Some(rel) = source[search_from..].find("func()") {
+        let start = search_from + rel;
+        // Exclude `go func()` (goroutine) and any other keyword
+        // that takes a function literal. We look at the character
+        // immediately before the `func()` token.
+        if start > 0 {
+            let prev = source[..start]
+                .chars()
+                .rev()
+                .find(|c| !c.is_whitespace())
+                .unwrap_or(' ');
+            // Reject: `o` (end of `go`), `f` (end of `for`),
+            // `,` / `(` (argument-list position — the IIFE is being
+            // passed somewhere and may have a purpose).
+            if matches!(prev, 'o' | 'f' | ',' | '(') {
+                search_from = start + "func()".len();
+                continue;
+            }
+        }
+        // Look for the `(` invocation that turns this into an IIFE.
+        let window_end = (start + 96).min(source.len());
+        let window = &source[start..window_end];
+        let Some(close) = window.find('}') else {
+            search_from = start + "func()".len();
+            continue;
+        };
+        let after_close = &window[close + 1..];
+        if !after_close.trim_start().starts_with('(') {
+            search_from = start + "func()".len();
+            continue;
+        }
+        let body_start = window.find('{');
+        let Some(body_start) = body_start else {
+            search_from = start + "func()".len();
+            continue;
+        };
+        let body = &window[body_start + 1..close];
+        let body_trim = body.trim();
+        if !is_single_call_expression(body_trim) {
+            search_from = start + "func()".len();
+            continue;
+        }
+        let (line, col) = unit.line_col(start);
+        emit::push_finding(
+            &META_PERF_130,
+            file,
+            line,
+            col,
+            "unnecessary func() { f(args) }() wrapper; inline the call",
+            out,
+        );
+        search_from = start + "func()".len();
+    }
+}
+
+fn is_single_call_expression(body: &str) -> bool {
+    let body = body.trim();
+    if body.is_empty() {
+        return false;
+    }
+    // Must end with `)` (or `;` + `return f();` is also OK).
+    let last = body.chars().last().unwrap_or(' ');
+    if last != ')' && last != '}' {
+        // Allow trailing newline.
+    }
+    // Reject obvious control flow.
+    if body.contains("if ")
+        || body.contains("for ")
+        || body.contains("switch ")
+        || body.contains("select ")
+        || body.contains("var ")
+        || body.contains("return ")
+        || body.contains(";")
+    {
+        // A `;` allows `f(); g();` which is two calls; reject. But
+        // a single statement followed by a `}` is fine; we already
+        // trimmed the `}` above.
+        if body.contains(';') {
+            return false;
+        }
+        if body.contains("return ") {
+            return false;
+        }
+        if body.contains("if ")
+            || body.contains("for ")
+            || body.contains("switch ")
+            || body.contains("select ")
+            || body.contains("var ")
+        {
+            return false;
+        }
+    }
+    // Must look like `<ident>(...)` or `<ident>.<method>(...)`.
+    let open = body.find('(');
+    let Some(open) = open else {
+        return false;
+    };
+    let prefix = body[..open].trim();
+    if prefix.is_empty() {
+        return false;
+    }
+    // The body can be a chained call. Walk the prefix to verify it
+    // resolves to a single receiver + method chain.
+    let mut depth = 0;
+    let mut chars = prefix.chars().peekable();
+    let mut last_was_dot = false;
+    while let Some(c) = chars.next() {
+        if c == '(' {
+            depth += 1;
+        } else if c == ')' {
+            depth -= 1;
+        } else if c == '.' && depth == 0 {
+            last_was_dot = true;
+        } else if c.is_whitespace() && depth == 0 {
+            return false;
+        }
+    }
+    if depth != 0 {
+        return false;
+    }
+    // Must not end with `.` (partial chain).
+    !prefix.ends_with('.')
+        && (last_was_dot
+            || prefix
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '.'))
+}
+
+/// PERF-135: `gob.NewEncoder` / `gob.NewDecoder` constructed inside a
+/// loop. The constructor reflects on the destination type, which is
+/// expensive; create the encoder once outside the loop.
+pub(crate) fn detect_perf_135(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+
+    for call in &facts.calls {
+        let callee = call.callee.as_ref();
+        if !matches!(callee, "gob.NewEncoder" | "gob.NewDecoder") {
+            continue;
+        }
+        if !is_in_loop(call) {
+            continue;
+        }
+        let (line, col) = unit.line_col(call.start_byte);
+        emit::push_finding(
+            &META_PERF_135,
+            file,
+            line,
+            col,
+            "gob.NewEncoder/Decoder inside a loop reflects on the type; hoist the constructor outside the loop",
+            out,
+        );
+    }
+}
+
+/// PERF-140: `debug.SetGCPercent(-1)` disables the GC assist entirely
+/// (the GC only runs when the heap grows past `GOMEMLIMIT` or the
+/// runtime is out of memory). `debug.SetGCPercent(<50)` aggressively
+/// trims the heap in production. Both warrant a code review.
+pub(crate) fn detect_perf_140(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    if !source.contains("debug.SetGCPercent") {
+        return;
+    }
+
+    for call in &facts.calls {
+        if call.callee.as_ref() != "debug.SetGCPercent" {
+            continue;
+        }
+        let Some(arg) = call.arguments.first() else {
+            continue;
+        };
+        let raw = arg.as_ref();
+        // The argument is the literal text of the expression; the
+        // common cases are `-1`, `0`, or `int` / `int32` identifiers
+        // we can't resolve. We only flag literal numeric values.
+        let n = raw.trim().parse::<i64>().ok();
+        let Some(n) = n else {
+            continue;
+        };
+        let bad = n == -1 || (n > 0 && n < 50);
+        if !bad {
+            continue;
+        }
+        let (line, col) = unit.line_col(call.start_byte);
+        emit::push_finding(
+            &META_PERF_140,
+            file,
+            line,
+            col,
+            "debug.SetGCPercent in production is rarely what you want; remove the call or document the tuning",
+            out,
+        );
+    }
+    let _ = facts;
+}
+
+/// PERF-158: `sort.Slice` on a slice of basic types (`[]int`,
+/// `[]string`, `[]float64`) with a comparator that is a single `<` /
+/// `>` comparison. The dedicated `slices.Sort` / `slices.SortFunc` is
+/// allocation-free and faster.
+pub(crate) fn detect_perf_158(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    if !source.contains("sort.Slice") {
+        return;
+    }
+
+    for call in &facts.calls {
+        if call.callee.as_ref() != "sort.Slice" {
+            continue;
+        }
+        let Some(first) = call.arguments.first().map(|a| a.as_ref()) else {
+            continue;
+        };
+        // The first argument is the slice expression. We accept
+        // `[]int`, `[]string`, `[]float64` as well as identifiers
+        // that match a typed declaration or function parameter.
+        if !is_basic_slice_type(first) && !is_basic_typed_identifier(source, first) {
+            continue;
+        }
+        // The body of the comparator function literal should be a
+        // single `if` with `<` / `>`. We inspect a window of the
+        // comparator (the 2nd + 3rd args combined; we don't have
+        // them, so use a substring scan around the call).
+        let window_start = call.start_byte.saturating_sub(8);
+        let window_end = (call.start_byte + 384).min(source.len());
+        let window = &source[window_start..window_end];
+        if !window.contains("func(") {
+            continue;
+        }
+        let body_start = window
+            .find("func(")
+            .map(|i| window[i..].find('{').map(|j| i + j).unwrap_or(window.len()));
+        let Some(body_start) = body_start else {
+            continue;
+        };
+        let body_end = window[body_start..]
+            .find('}')
+            .map(|j| body_start + j)
+            .unwrap_or(window.len());
+        let body = &window[body_start + 1..body_end];
+        if !body.contains('<') {
+            continue;
+        }
+        if body.contains("len(") || body.contains("strings.") {
+            continue;
+        }
+        let (line, col) = unit.line_col(call.start_byte);
+        emit::push_finding(
+            &META_PERF_158,
+            file,
+            line,
+            col,
+            "sort.Slice on []int/[]string/[]float64; use slices.Sort or slices.SortFunc to avoid the comparator closure allocation",
+            out,
+        );
+    }
+    let _ = facts;
+}
+
+fn is_basic_slice_type(expr: &str) -> bool {
+    matches!(
+        expr.trim(),
+        "[]int"
+            | "[]int8"
+            | "[]int16"
+            | "[]int32"
+            | "[]int64"
+            | "[]uint"
+            | "[]uint8"
+            | "[]uint16"
+            | "[]uint32"
+            | "[]uint64"
+            | "[]float32"
+            | "[]float64"
+            | "[]string"
+            | "[]byte"
+            | "[]rune"
+    )
+}
+
+fn is_basic_typed_identifier(source: &str, ident: &str) -> bool {
+    if !is_simple_ident(ident) {
+        return false;
+    }
+    // We accept identifiers bound to any of the basic slice types:
+    //   var xs []int
+    //   xs := make([]int, ...)
+    //   func F(xs []int)   (parameter)
+    //   func F(xs []int, ...) (parameter with more args)
+    //   (xs []int)   (anonymous func parameter)
+    let decls = [
+        format!("var {ident} []int"),
+        format!("var {ident} []string"),
+        format!("var {ident} []float"),
+        format!("{ident} := make([]int"),
+        format!("{ident} := make([]string"),
+        format!("{ident} := make([]float"),
+        format!("{ident} []int"),
+        format!("{ident} []string"),
+        format!("{ident} []float"),
+    ];
+    decls.iter().any(|p| source.contains(p.as_str()))
+}
+
+/// PERF-171: a buffered channel of size 1 (`make(chan struct{}, 1)`
+/// or `make(chan bool, 1)`) used purely for acquire / release. Use a
+/// `sync.Mutex` instead; the channel adds an extra scheduling hop.
+pub(crate) fn detect_perf_171(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+
+    for call in &facts.calls {
+        if call.callee.as_ref() != "make" {
+            continue;
+        }
+        if call.arguments.len() < 2 {
+            continue;
+        }
+        let chan_type = call.arguments[0].as_ref();
+        // Match `chan struct{}` or `chan bool`, optionally with `<-`
+        // direction markers. The exact text from the AST is the type
+        // expression as written.
+        let chan_type_trim = chan_type.trim();
+        let is_mutex_shape = chan_type_trim == "chan struct{}"
+            || chan_type_trim == "chan bool"
+            || chan_type_trim == "chan struct{ }"
+            || chan_type_trim.starts_with("chan struct{},")
+            || chan_type_trim.starts_with("chan bool,")
+            || chan_type_trim.contains("chan struct{},")
+            || chan_type_trim.contains("chan bool,");
+        if !is_mutex_shape {
+            continue;
+        }
+        let size = call.arguments[1].as_ref().trim();
+        if size != "1" {
+            continue;
+        }
+        let (line, col) = unit.line_col(call.start_byte);
+        emit::push_finding(
+            &META_PERF_171,
+            file,
+            line,
+            col,
+            "make(chan T, 1) used as a mutex; use sync.Mutex instead of a channel",
+            out,
+        );
+    }
+    let _ = facts;
+}
+
+/// PERF-181: `json.NewDecoder(...)` without a subsequent `.UseNumber()`
+/// call. When the target struct has `int` / `int64` fields and the
+/// input contains numbers larger than 2^53, the default `float64`
+/// decoding silently loses precision.
+pub(crate) fn detect_perf_181(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    if !source.contains("json.NewDecoder") {
+        return;
+    }
+
+    for call in &facts.calls {
+        if call.callee.as_ref() != "json.NewDecoder" {
+            continue;
+        }
+        // Look for a `.UseNumber()` call within a small window after
+        // the decoder is created. We allow up to 256 bytes (a few
+        // chained calls).
+        let after = (call.start_byte + 256).min(source.len());
+        let window = &source[call.start_byte..after];
+        if window.contains(".UseNumber()") {
+            continue;
+        }
+        // Suppress when the file doesn't have any int/int64 targets.
+        if !source.contains("int") && !source.contains("int64") && !source.contains("int32") {
+            continue;
+        }
+        let (line, col) = unit.line_col(call.start_byte);
+        emit::push_finding(
+            &META_PERF_181,
+            file,
+            line,
+            col,
+            "json.NewDecoder without .UseNumber() silently loses precision for large integers",
+            out,
+        );
+    }
+    let _ = facts;
+}
+
+/// PERF-182: `bufio.NewWriter(w)` (single-arg) followed by a `Write`
+/// call that passes a large `[]byte` literal. The default 4 KiB
+/// buffer thrashes on big writes; pass an explicit size.
+pub(crate) fn detect_perf_182(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    if !source.contains("bufio.NewWriter") {
+        return;
+    }
+
+    for call in &facts.calls {
+        if call.callee.as_ref() != "bufio.NewWriter" {
+            continue;
+        }
+        if call.arguments.len() != 1 {
+            continue;
+        }
+        // Look ahead 512 bytes for a `Write(` or `WriteString(` call
+        // passing a literal of > 64 bytes (string or []byte).
+        let after_start = call.start_byte;
+        let after_end = (call.start_byte + 512).min(source.len());
+        let window = &source[after_start..after_end];
+        if !window.contains(".Write(") && !window.contains(".WriteString(") {
+            continue;
+        }
+        if !has_large_string_literal(window) {
+            continue;
+        }
+        let (line, col) = unit.line_col(call.start_byte);
+        emit::push_finding(
+            &META_PERF_182,
+            file,
+            line,
+            col,
+            "bufio.NewWriter without an explicit buffer size; the default 4 KiB buffer thrashes on large writes",
+            out,
+        );
+    }
+    let _ = facts;
+}
+
+fn has_large_string_literal(window: &str) -> bool {
+    // Walk quoted strings and check length. Cheap heuristic that
+    // also catches byte slice literals.
+    let bytes = window.as_bytes();
+    let mut in_string = false;
+    let mut start = 0;
+    let mut total = 0;
+    for (i, &b) in bytes.iter().enumerate() {
+        if b == b'"' && (i == 0 || bytes[i - 1] != b'\\') {
+            if in_string {
+                let len = i - start - 1;
+                if len > 64 {
+                    return true;
+                }
+                total += len;
+                if total > 64 {
+                    return true;
+                }
+            } else {
+                start = i;
+            }
+            in_string = !in_string;
+        }
+    }
+    false
+}
+
+/// PERF-106: `sync.Map` used in a write-heavy workload. We count
+/// `Store` and `LoadAndDelete` calls vs `Load` calls in the file and
+/// flag when writes strictly outnumber reads.
+pub(crate) fn detect_perf_106(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    if !source.contains("sync.Map") {
+        return;
+    }
+
+    let mut writes = 0usize;
+    let mut reads = 0usize;
+    for call in &facts.calls {
+        let method = method_name(call.callee.as_ref());
+        match method {
+            "Store" | "Swap" | "LoadAndDelete" | "Delete" | "CompareAndSwap"
+            | "CompareAndDelete" => {
+                writes += 1;
+            }
+            "Load" | "LoadOrStore" | "Range" => {
+                reads += 1;
+            }
+            _ => {}
+        }
+    }
+    // Need at least one read for the count to be meaningful and
+    // writes must strictly outnumber reads.
+    if reads == 0 || writes <= reads {
+        return;
+    }
+    let (line, col) = sync_map_location(source, unit);
+    emit::push_finding(
+        &META_PERF_106,
+        file,
+        line,
+        col,
+        "sync.Map is write-heavy; use a plain map guarded by sync.Mutex instead",
+        out,
+    );
+}
+
+fn sync_map_location(source: &str, unit: &ParsedUnit) -> (usize, usize) {
+    // The finding should point at the `sync.Map` declaration, not
+    // at any call site.
+    let byte = source.find("sync.Map").unwrap_or(0);
+    unit.line_col(byte)
+}
+
+/// Returns the method name of a call fact's callee expression.
+/// For `m.Store` returns `Store`; for `runtime.SetFinalizer` returns
+/// `SetFinalizer`; for a bare identifier it returns the same name.
+fn method_name(callee: &str) -> &str {
+    callee.rsplit('.').next().unwrap_or(callee)
+}
+
 fn is_canonical_header(s: &str) -> bool {
     // A short, vetted list of common headers that are already
     // canonical. This is intentionally exact-case: `CanonicalHeaderKey`

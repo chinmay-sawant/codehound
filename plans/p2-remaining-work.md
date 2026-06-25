@@ -3,7 +3,7 @@
 > **Scope:** Consolidated list of every unimplemented item across P2.1, P2.3, P2.4, and P2.5 — including items deferred during this session, items still unchecked in the individual plan files, and items that shipped in design-only form.
 > **Format:** Plain checklist. Each item is small enough to be a single PR.
 > **Source:** Cross-referenced from `plans/p2-implementation/{01,03,04,05}-*.md` and the parent `plans/p2.md`.
-> **Last updated:** after P2.4 batch 3 commit (`196c625`). 30 / 112 PERF detectors shipped; 14 / ~15 BP rules shipped; taint Phases A+B done; cache Phases 1-6 done with LRU eviction.
+> **Last updated:** after P2.4 batch 4. 40 / 112 PERF detectors shipped; 14 / ~15 BP rules shipped; taint Phases A+B done; cache Phases 1-6 done with LRU eviction.
 
 ---
 
@@ -70,7 +70,7 @@
 - [x] **Phase 1.3 — Create `concurrency` / `memory_gc` / `stdlib_optimization` / `string_bytes` domain modules if needed**
   - [x] Placeholder domain modules created under `src/lang/go/detectors/perf/domains/`.
 - [ ] **Phase 2.1 — Add registry entries for PERF-101..212**
-  - Partially done: **30 of 112 entries** (101, 103, 105, 107, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 122, 123, 124, 125, 126, 127, 129, 146, 147, 156, 157, 177, 190, 192, 198). The remaining 82 entries (PERF-102, 104, 106, 108-110, 121, 128, 130-145, 148-155, 158-176, 178-189, 191, 193-212) need stub entries (function, domain) before further detectors can land.
+  - Partially done: **40 of 112 entries** (101, 103, 105, 106, 107, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 122, 123, 124, 125, 126, 127, 128, 129, 130, 135, 140, 146, 147, 156, 157, 158, 171, 177, 181, 182, 190, 192, 198). The remaining 72 entries (PERF-102, 104, 108-109, 121, 131-134, 136-139, 141-145, 148-155, 159-170, 172-176, 178-180, 183-189, 191, 193-212) need stub entries (function, domain) before further detectors can land.
 - [x] **Phase 2.2 — Verify `build.rs` reads `perf/registry.toml` and generates metadata + dispatch**
   - [x] `tests/go_perf_registry_generation.rs` compares generated runtime PERF rule IDs against `registry.toml`.
 - [ ] **Phase 3.2 — Category B (~40 context-aware rules)** — not started. Examples: `sync.Mutex` in struct vs local, `ioutil.ReadAll` ignored error, `strings.Builder` pre-allocation. Order of attack: PERF-102, 104, 108, 109, 141-144, 160-164, 189, 205, 207, 212 (HTTP/database rules with function-scope helpers).
@@ -79,12 +79,13 @@
   - [x] First batch (PERF-103/105/107/111/112/115-118/120/122/123/124/126-127) fixtures created and registered (15 detectors).
   - [x] Second registry/fixture batch (PERF-101/113/146/147/157/190/198) created and registered (7 detectors).
   - [x] Third registry/fixture batch (PERF-114/119/125/129/156/177/192) created and registered (7 Category-A detectors).
-  - [ ] **Phase 4 next batch — fill in the remaining Category-A gaps** — PERF-106, 110, 121, 128, 130-132, 140, 145, 158, 165-166, 168, 171, 173, 181-182, 204, 208-209, 211 (≈ 22 detectors, all simple enough for the existing detector pattern).
+  - [x] **Fourth registry/fixture batch (PERF-106/110/128/130/135/140/158/171/181/182) created and registered (10 Category-A detectors)** — see `plans/perf-batch-4.md` for the per-rule scope.
+  - [ ] **Phase 4 next batch — fill in the remaining Category-A gaps** — PERF-121, 131-132, 145, 165-166, 168, 173, 204, 208-209, 211 (≈ 12 detectors, including some that need function-scope walking).
   - [ ] **Phase 4 final batch — full PERF-101..212 fixtures** — *deferred*; only lands when the corresponding detectors ship.
 - [ ] **Phase 5 — Performance verification**
   - Lightweight `cargo bench --bench incremental_scan -- --sample-size 10 --measurement-time 1` was run. Criterion completed with exit code 0 but reported regressions versus the saved local baseline for cold, warm, partial, and in-memory warm paths. The P2.4 batch 3 work bumped the regression-test budget to 1.1s / 1.0s in `tests/perf_regression.rs`; the criterion bench itself still needs investigation.
 
-### B.2 The 30 detectors shipped (PERF-101, 103, 105, 107, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 122, 123, 124, 125, 126, 127, 129, 146, 147, 156, 157, 177, 190, 192, 198)
+### B.2 The 40 detectors shipped (PERF-101, 103, 105, 106, 107, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 122, 123, 124, 125, 126, 127, 128, 129, 130, 135, 140, 146, 147, 156, 157, 158, 171, 177, 181, 182, 190, 192, 198)
 
 - [x] **Add `.txt` fixtures in `tests/fixtures/go/perf/` for each of the 15 detectors**
   - [x] Created fixtures and manifest entries for all 15.
@@ -94,6 +95,7 @@
 - [x] **4 detectors added in second batch (PERF-105, 111, 112, 123)** — all have fixtures, registry entries, and implemented detectors in `stdlib_misuse.rs`.
 - [x] **7 detectors added in PERF-101+ registry/fixture batch (PERF-101, 113, 146, 147, 157, 190, 198)** — all have fixtures, registry entries, and implemented detectors in `stdlib_misuse.rs`.
 - [x] **7 detectors added in third batch (PERF-114, 119, 125, 129, 156, 177, 192)** — all have fixtures, registry entries, and implemented detectors in `stdlib_misuse.rs`.
+- [x] **10 detectors added in fourth batch (PERF-106, 110, 128, 130, 135, 140, 158, 171, 181, 182)** — all have fixtures, registry entries, and implemented detectors in `stdlib_misuse.rs`. See `plans/perf-batch-4.md` for the per-rule scope.
 - [ ] **Real-project positive smoke fixture** — *deferred* to a dedicated test file. Need a small Go file in `tests/fixtures/go/perf_real_world/` (HTTP server, request handler, etc.) that fires at least one shipped detector on non-synthetic code, plus a clean companion file. Crosses into E.4.
 - [x] **PERF-126's `is_canonical_header` list** is hardcoded; should be verified against `net/http`'s `textproto.CanonicalMIMEHeaderKey` behavior, especially for less-common headers. Verified with unit coverage for canonical spellings including `Etag`, `Www-Authenticate`, `X-Csrf-Token`, and fixed exact-case matching so non-canonical spellings like `ETag` are not flagged as redundant.
 - [x] **PERF-122 / PERF-127 substring heuristics** are coarse; a real implementation would parse the source window properly. Trade-off documented in `detection_notes` and detector comments.
@@ -244,6 +246,7 @@ See **§ P2.1** above for detailed status: Phase A (Foundation) and Phase B (Int
 **Total remaining effort:** ~14-18 weeks. P2.4 and P2.5 are the high-leverage next steps; P2.1 is the biggest correctness gap. The cross-cutting items are cheap (1-2 PRs of small docs/bench/real-fixture work) and worth landing before the next big batch.
 
 **P2.4 sub-progress:**
-- Shipped: 30 / 112 detectors (27%).
+- Shipped: 40 / 112 detectors (36%).
 - Registry scaffolding: in place; new entries can be added one batch at a time without touching `build.rs`.
-- Fixture coverage: 30 / 30 shipped detectors have vulnerable + safe `.txt` pairs.
+- Fixture coverage: 40 / 40 shipped detectors have vulnerable + safe `.txt` pairs.
+- Batches so far: 4 (`31f395c`, `4e5da2b`-area, `196c625`, and the present commit).

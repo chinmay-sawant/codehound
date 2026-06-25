@@ -506,6 +506,11 @@ domain = "general_perf"
 function = "detect_perf_101"
 
 [[detector]]
+perf = 106
+domain = "general_perf"
+function = "detect_perf_106"
+
+[[detector]]
 perf = 103
 domain = "general_perf"
 function = "detect_perf_103"
@@ -519,6 +524,11 @@ function = "detect_perf_105"
 perf = 107
 domain = "general_perf"
 function = "detect_perf_107"
+
+[[detector]]
+perf = 110
+domain = "general_perf"
+function = "detect_perf_110"
 
 [[detector]]
 perf = 111
@@ -586,6 +596,11 @@ domain = "general_perf"
 function = "detect_perf_124"
 
 [[detector]]
+perf = 128
+domain = "general_perf"
+function = "detect_perf_128"
+
+[[detector]]
 perf = 125
 domain = "general_perf"
 function = "detect_perf_125"
@@ -606,6 +621,21 @@ domain = "general_perf"
 function = "detect_perf_129"
 
 [[detector]]
+perf = 130
+domain = "general_perf"
+function = "detect_perf_130"
+
+[[detector]]
+perf = 135
+domain = "general_perf"
+function = "detect_perf_135"
+
+[[detector]]
+perf = 140
+domain = "general_perf"
+function = "detect_perf_140"
+
+[[detector]]
 perf = 146
 domain = "general_perf"
 function = "detect_perf_146"
@@ -621,14 +651,34 @@ domain = "general_perf"
 function = "detect_perf_156"
 
 [[detector]]
+perf = 158
+domain = "general_perf"
+function = "detect_perf_158"
+
+[[detector]]
 perf = 157
 domain = "general_perf"
 function = "detect_perf_157"
 
 [[detector]]
+perf = 171
+domain = "general_perf"
+function = "detect_perf_171"
+
+[[detector]]
 perf = 177
 domain = "general_perf"
 function = "detect_perf_177"
+
+[[detector]]
+perf = 181
+domain = "general_perf"
+function = "detect_perf_181"
+
+[[detector]]
+perf = 182
+domain = "general_perf"
+function = "detect_perf_182"
 
 [[detector]]
 perf = 190
