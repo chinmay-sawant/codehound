@@ -136,6 +136,17 @@ pub const fn fix_for(id: u32) -> Option<&'static str> {
         204 => Some("Add a .Select(\"col1\", \"col2\") call before db.Updates(map) so GORM only writes the columns you intend."),
         209 => Some("Move shared initialization out of PersistentPreRunE into a sync.Once in the parent command, or into a setup function called once at startup."),
         211 => Some("Replace db.Not() / NOT IN with an explicit positive list (WHERE id IN (?)) so the query planner can use the index."),
+        102 => Some("WriteHeader can only be called once per response; set the status via WriteHeader(status) before the first Write."),
+        108 => Some("Hoist sort.Search out of the loop; if the search space changes per iteration, cache the index instead."),
+        133 => Some("Hoist sort.Slice out of the loop, or use sort.Sort with a sort.Interface type that doesn't allocate a closure per call."),
+        137 => Some("Avoid runtime.Caller on the hot path; pass a stack index as a constant or use a faster source-location API."),
+        141 => Some("Cache r.URL.Query() in a local variable at the top of the handler; subsequent calls re-parse the query string."),
+        149 => Some("Set a deadline before conn.Read / conn.Write with conn.SetReadDeadline / SetWriteDeadline to avoid hanging the request."),
+        161 => Some("Call rows.Err() after the rows.Next() loop to distinguish 'no more rows' from a real error."),
+        163 => Some("Use db.QueryRow for single-row queries; it handles rows.Close() for you."),
+        170 => Some("Hoist sync.Once out of hot paths; use a sync/atomic.Bool or a plain package-level var for cheap one-time init."),
+        176 => Some("Use io.CopyBuffer with a pooled *[]byte; io.Copy allocates a 32 KiB buffer per call."),
+        195 => Some("Return the error from the goroutine instead of calling log.Fatal; the caller decides whether to terminate the process."),
         _ => None,
     }
 }

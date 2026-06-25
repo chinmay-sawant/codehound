@@ -3,7 +3,7 @@
 > **Scope:** Consolidated list of every unimplemented item across P2.1, P2.3, P2.4, and P2.5 — including items deferred during this session, items still unchecked in the individual plan files, and items that shipped in design-only form.
 > **Format:** Plain checklist. Each item is small enough to be a single PR.
 > **Source:** Cross-referenced from `plans/p2-implementation/{01,03,04,05}-*.md` and the parent `plans/p2.md`.
-> **Last updated:** after P2.4 batch 4. 40 / 112 PERF detectors shipped; 14 / ~15 BP rules shipped; taint Phases A+B done; cache Phases 1-6 done with LRU eviction.
+> **Last updated:** after P2.4 batch 6. 61 / 112 PERF detectors shipped; 14 / ~15 BP rules shipped; taint Phases A+B done; cache Phases 1-6 done with LRU eviction.
 
 ---
 
@@ -70,7 +70,7 @@
 - [x] **Phase 1.3 — Create `concurrency` / `memory_gc` / `stdlib_optimization` / `string_bytes` domain modules if needed**
   - [x] Placeholder domain modules created under `src/lang/go/detectors/perf/domains/`.
 - [ ] **Phase 2.1 — Add registry entries for PERF-101..212**
-  - Partially done: **40 of 112 entries** (101, 103, 105, 106, 107, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 122, 123, 124, 125, 126, 127, 128, 129, 130, 135, 140, 146, 147, 156, 157, 158, 171, 177, 181, 182, 190, 192, 198). The remaining 72 entries (PERF-102, 104, 108-109, 121, 131-134, 136-139, 141-145, 148-155, 159-170, 172-176, 178-180, 183-189, 191, 193-212) need stub entries (function, domain) before further detectors can land.
+  - Partially done: **61 of 112 entries** (101, 102, 103, 105, 106, 107, 108, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 135, 137, 140, 141, 145, 146, 147, 149, 156, 157, 158, 161, 163, 165, 166, 168, 170, 171, 176, 177, 181, 182, 190, 192, 195, 198, 204, 209, 211). The remaining 51 entries (PERF-104, 109, 134, 136, 138-139, 142-144, 148, 150-155, 159-160, 162, 164, 167, 169, 172-175, 178-180, 183-189, 191, 193-194, 196-197, 199-203, 205-208, 210, 212) need stub entries (function, domain) before further detectors can land. Note: PERF-136 was dropped from batch 6 (cannot reliably detect loop-invariant first arg without type inference); PERF-208 was dropped from batch 5 (overlaps with PERF-99).
 - [x] **Phase 2.2 — Verify `build.rs` reads `perf/registry.toml` and generates metadata + dispatch**
   - [x] `tests/go_perf_registry_generation.rs` compares generated runtime PERF rule IDs against `registry.toml`.
 - [ ] **Phase 3.2 — Category B (~40 context-aware rules)** — not started. Examples: `sync.Mutex` in struct vs local, `ioutil.ReadAll` ignored error, `strings.Builder` pre-allocation. Order of attack: PERF-102, 104, 108, 109, 141-144, 160-164, 189, 205, 207, 212 (HTTP/database rules with function-scope helpers).
@@ -80,12 +80,13 @@
   - [x] Second registry/fixture batch (PERF-101/113/146/147/157/190/198) created and registered (7 detectors).
   - [x] Third registry/fixture batch (PERF-114/119/125/129/156/177/192) created and registered (7 Category-A detectors).
   - [x] **Fourth registry/fixture batch (PERF-106/110/128/130/135/140/158/171/181/182) created and registered (10 Category-A detectors)** — see `plans/perf-batch-4.md` for the per-rule scope.
-  - [ ] **Phase 4 next batch — fill in the remaining Category-A gaps** — PERF-121, 131-132, 145, 165-166, 168, 173, 204, 208-209, 211 (≈ 12 detectors, including some that need function-scope walking).
+  - [x] **Sixth registry/fixture batch (PERF-102/108/133/137/141/149/161/163/170/176/195) created and registered (11 Category-B detectors)** — see `plans/perf-batch-6.md` for the per-rule scope. PERF-136 was dropped (cannot reliably detect loop-invariant first arg without type inference).
+  - [ ] **Phase 4 next batch — fill in the remaining Category-B / Category-C gaps** — PERF-104, 109, 134, 138-139, 142-144, 148, 150-155, 159-160, 162, 164, 167, 169, 172-175, 178-180, 183-189, 191, 193-194, 196-197, 199-203, 205-207, 210, 212 (≈ 40 detectors, mostly need function-scope walking, control-flow analysis, or domain-specific type inference).
   - [ ] **Phase 4 final batch — full PERF-101..212 fixtures** — *deferred*; only lands when the corresponding detectors ship.
 - [ ] **Phase 5 — Performance verification**
   - Lightweight `cargo bench --bench incremental_scan -- --sample-size 10 --measurement-time 1` was run. Criterion completed with exit code 0 but reported regressions versus the saved local baseline for cold, warm, partial, and in-memory warm paths. The P2.4 batch 3 work bumped the regression-test budget to 1.1s / 1.0s in `tests/perf_regression.rs`; the criterion bench itself still needs investigation.
 
-### B.2 The 40 detectors shipped (PERF-101, 103, 105, 106, 107, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 122, 123, 124, 125, 126, 127, 128, 129, 130, 135, 140, 146, 147, 156, 157, 158, 171, 177, 181, 182, 190, 192, 198)
+### B.2 The 61 detectors shipped (PERF-101, 102, 103, 105, 106, 107, 108, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 135, 137, 140, 141, 145, 146, 147, 149, 156, 157, 158, 161, 163, 165, 166, 168, 170, 171, 176, 177, 181, 182, 190, 192, 195, 198, 204, 209, 211)
 
 - [x] **Add `.txt` fixtures in `tests/fixtures/go/perf/` for each of the 15 detectors**
   - [x] Created fixtures and manifest entries for all 15.
@@ -96,6 +97,8 @@
 - [x] **7 detectors added in PERF-101+ registry/fixture batch (PERF-101, 113, 146, 147, 157, 190, 198)** — all have fixtures, registry entries, and implemented detectors in `stdlib_misuse.rs`.
 - [x] **7 detectors added in third batch (PERF-114, 119, 125, 129, 156, 177, 192)** — all have fixtures, registry entries, and implemented detectors in `stdlib_misuse.rs`.
 - [x] **10 detectors added in fourth batch (PERF-106, 110, 128, 130, 135, 140, 158, 171, 181, 182)** — all have fixtures, registry entries, and implemented detectors in `stdlib_misuse.rs`. See `plans/perf-batch-4.md` for the per-rule scope.
+- [x] **10 detectors added in fifth batch (PERF-121, 131, 132, 145, 165, 166, 168, 204, 209, 211)** — all have fixtures, registry entries, and implemented detectors in `stdlib_misuse.rs`. See `plans/perf-batch-5.md` for the per-rule scope. PERF-208 was considered and dropped (overlaps with PERF-99).
+- [x] **11 detectors added in sixth batch (PERF-102, 108, 133, 137, 141, 149, 161, 163, 170, 176, 195)** — all have fixtures, registry entries, and implemented detectors in `stdlib_misuse.rs`. See `plans/perf-batch-6.md` for the per-rule scope. PERF-136 was dropped (cannot reliably detect loop-invariant first arg without type inference).
 - [ ] **Real-project positive smoke fixture** — *deferred* to a dedicated test file. Need a small Go file in `tests/fixtures/go/perf_real_world/` (HTTP server, request handler, etc.) that fires at least one shipped detector on non-synthetic code, plus a clean companion file. Crosses into E.4.
 - [x] **PERF-126's `is_canonical_header` list** is hardcoded; should be verified against `net/http`'s `textproto.CanonicalMIMEHeaderKey` behavior, especially for less-common headers. Verified with unit coverage for canonical spellings including `Etag`, `Www-Authenticate`, `X-Csrf-Token`, and fixed exact-case matching so non-canonical spellings like `ETag` are not flagged as redundant.
 - [x] **PERF-122 / PERF-127 substring heuristics** are coarse; a real implementation would parse the source window properly. Trade-off documented in `detection_notes` and detector comments.
@@ -246,8 +249,9 @@ See **§ P2.1** above for detailed status: Phase A (Foundation) and Phase B (Int
 **Total remaining effort:** ~14-18 weeks. P2.4 and P2.5 are the high-leverage next steps; P2.1 is the biggest correctness gap. The cross-cutting items are cheap (1-2 PRs of small docs/bench/real-fixture work) and worth landing before the next big batch.
 
 **P2.4 sub-progress:**
-- Shipped: 50 / 112 detectors (45%).
+- Shipped: 61 / 112 detectors (54%).
 - Registry scaffolding: in place; new entries can be added one batch at a time without touching `build.rs`.
-- Fixture coverage: 50 / 50 shipped detectors have vulnerable + safe `.txt` pairs.
-- Batches so far: 5 (`31f395c`, `4e5da2b`-area, `196c625`, `e7f2cfd`, and the present commit).
+- Fixture coverage: 61 / 61 shipped detectors have vulnerable + safe `.txt` pairs.
+- Batches so far: 6 (`31f395c`, `4e5da2b`-area, `196c625`, `e7f2cfd`, `0f38a44`, and the present commit).
 - Dropped in batch 5: PERF-208 (overlaps with existing PERF-99).
+- Dropped in batch 6: PERF-136 (cannot reliably detect loop-invariant first arg without type inference).

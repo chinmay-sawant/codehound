@@ -37,28 +37,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   loop (BP-11), `context.Background` outside `main` (BP-13), and recursive
   `sync.Once.Do` (BP-15). CLI: `--bp-only`, `--no-bp`. Config:
   `[slopguard.bad_practices]`.
-- **PERF detector catalog (P2.4, first slice).** 50 detectors shipped
+- **PERF detector catalog (P2.4, first slice).** 61 detectors shipped
   covering missing `http.Server` timeouts (PERF-101), 50/100
   common-net/http idioms (PERF-103, PERF-105, PERF-107, PERF-111, PERF-112,
   PERF-113, PERF-114, PERF-115, PERF-116, PERF-117, PERF-118, PERF-119,
   PERF-120, PERF-122, PERF-123, PERF-124, PERF-125, PERF-126, PERF-127,
-  PERF-128, PERF-129, PERF-130, PERF-131, PERF-132, PERF-135, PERF-140,
-  PERF-145, PERF-146, PERF-147, PERF-156, PERF-157, PERF-158, PERF-165,
-  PERF-166, PERF-168, PERF-171, PERF-177, PERF-181, PERF-182, PERF-190,
-  PERF-192, PERF-198, plus the function-scope and database rules
-  (PERF-121, PERF-145, PERF-204, PERF-209, PERF-211). The fifth batch
-  adds 10 more rules: a same-shape struct literal that should be a
-  conversion (PERF-121), `sync.Mutex` wrapping a simple counter
-  (PERF-131), `go func()` without context propagation (PERF-132),
-  `r.WithContext` in middleware (PERF-145), `rows.Scan` into a primitive
-  followed by manual conversion (PERF-165), `rows.Scan` into a pointer
-  with nil-check (PERF-166), large struct sent by value over a channel
-  (PERF-168), GORM `db.Updates(map)` without `.Select` (PERF-204),
-  Cobra `PersistentPreRunE` (PERF-209), and GORM `db.Not()` / `NOT IN` /
-  `NOT LIKE` (PERF-211). PERF-208 was considered and dropped because
-  PERF-99 already covers the high-cardinality Prometheus labels. The
-  remaining PERF-101..212 entries are deferred to a follow-up release;
-  the registry scaffolding, build.rs wiring, and `golang.json` entries
+  PERF-128, PERF-129, PERF-130, PERF-131, PERF-132, PERF-133, PERF-135,
+  PERF-137, PERF-140, PERF-141, PERF-145, PERF-146, PERF-147, PERF-149,
+  PERF-156, PERF-157, PERF-158, PERF-161, PERF-163, PERF-165, PERF-166,
+  PERF-168, PERF-170, PERF-171, PERF-176, PERF-177, PERF-181, PERF-182,
+  PERF-190, PERF-192, PERF-195, PERF-198, plus the function-scope and
+  database rules (PERF-102, PERF-108, PERF-121, PERF-145, PERF-176,
+  PERF-195, PERF-204, PERF-209, PERF-211). The sixth batch adds 11
+  more Category-B rules: `w.WriteHeader` called multiple times
+  (PERF-102), `sort.Search` in a loop (PERF-108), `sort.Slice` in a
+  loop (PERF-133), `runtime.Caller` in a request handler (PERF-137),
+  `r.URL.Query()` called repeatedly (PERF-141), `conn.Read`/`Write`
+  without a deadline (PERF-149), `rows.Err` not checked (PERF-161),
+  `db.Query` instead of `QueryRow` for a single row (PERF-163),
+  `sync.Once.Do` in a request handler (PERF-170), `io.Copy` in a loop
+  (PERF-176), and `log.Fatal` in a goroutine (PERF-195). PERF-136
+  was considered and dropped during implementation — the detector
+  cannot reliably distinguish a loop-invariant first arg from a
+  per-iteration value without full type inference. The remaining
+  PERF-101..212 entries are deferred to a follow-up release; the
+  registry scaffolding, build.rs wiring, and `golang.json` entries
   are in place.
 - **Multi-language default.** `go` + `python` features are on by default;
   mixed monorepos parse in one pass. `--lang auto` selects plugins by
