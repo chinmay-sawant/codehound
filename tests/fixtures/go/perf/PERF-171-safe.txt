@@ -8,10 +8,12 @@ package sample
 import "sync"
 
 var counterMu sync.Mutex
-var counterN int
+var counterMap = map[string]int{}
 
-func Inc() {
+func Inc(key string) {
 	counterMu.Lock()
-	counterN++
+	// Map mutation: not a simple counter, so a mutex is
+	// justified (PERF-131 would not fire here).
+	counterMap[key]++
 	counterMu.Unlock()
 }

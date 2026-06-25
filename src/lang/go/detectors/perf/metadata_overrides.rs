@@ -126,6 +126,16 @@ pub const fn fix_for(id: u32) -> Option<&'static str> {
         181 => Some("Call decoder.UseNumber() before Decode when the target struct has int/int64 fields, to avoid silent float64 precision loss for big numbers."),
         182 => Some("Pass an explicit buffer size to bufio.NewWriter(w, size) when the downstream Write calls are larger than the default 4 KiB buffer."),
         192 => Some("Pass the expected size: make(map[K]V, len(src)) before the population loop to avoid map growth."),
+        121 => Some("Use a direct type conversion (T(x)) when the source and target structs have identical field types."),
+        131 => Some("Replace the mutex with sync/atomic for simple counter-style mutations; atomics compile to a single instruction."),
+        132 => Some("Pass the request context into the goroutine: go func() { db.QueryContext(ctx, ...) }() so the request lifetime cancels the work."),
+        145 => Some("Hoist the request context to a long-lived middleware boundary; r.WithContext allocates a new *http.Request per call."),
+        165 => Some("Implement sql.Scanner on the custom type so rows.Scan can decode directly without manual extraction."),
+        166 => Some("Use sql.NullString / sql.NullInt64 in the scan target; the database/sql package exposes typed null wrappers."),
+        168 => Some("Send a pointer to the struct over the channel: ch <- &Large{...} to avoid copying every field."),
+        204 => Some("Add a .Select(\"col1\", \"col2\") call before db.Updates(map) so GORM only writes the columns you intend."),
+        209 => Some("Move shared initialization out of PersistentPreRunE into a sync.Once in the parent command, or into a setup function called once at startup."),
+        211 => Some("Replace db.Not() / NOT IN with an explicit positive list (WHERE id IN (?)) so the query planner can use the index."),
         _ => None,
     }
 }

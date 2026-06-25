@@ -1,7 +1,7 @@
-# PERF-77 negative: db.Updates with explicit .Select so only the
-# intended columns are written
+# PERF-204 negative: db.Updates with .Select to project only the intended columns
 lang: go
-file: PERF-077-safe.go
+file: PERF-204-safe.go
+variant: stdlib
 ---
 package sample
 

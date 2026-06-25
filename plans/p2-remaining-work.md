@@ -246,7 +246,8 @@ See **§ P2.1** above for detailed status: Phase A (Foundation) and Phase B (Int
 **Total remaining effort:** ~14-18 weeks. P2.4 and P2.5 are the high-leverage next steps; P2.1 is the biggest correctness gap. The cross-cutting items are cheap (1-2 PRs of small docs/bench/real-fixture work) and worth landing before the next big batch.
 
 **P2.4 sub-progress:**
-- Shipped: 40 / 112 detectors (36%).
+- Shipped: 50 / 112 detectors (45%).
 - Registry scaffolding: in place; new entries can be added one batch at a time without touching `build.rs`.
-- Fixture coverage: 40 / 40 shipped detectors have vulnerable + safe `.txt` pairs.
-- Batches so far: 4 (`31f395c`, `4e5da2b`-area, `196c625`, and the present commit).
+- Fixture coverage: 50 / 50 shipped detectors have vulnerable + safe `.txt` pairs.
+- Batches so far: 5 (`31f395c`, `4e5da2b`-area, `196c625`, `e7f2cfd`, and the present commit).
+- Dropped in batch 5: PERF-208 (overlaps with existing PERF-99).

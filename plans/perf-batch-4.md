@@ -39,52 +39,54 @@ The following Category-A detectors are explicitly **not** in this batch; they we
 
 ### 1. Detector functions in `src/lang/go/detectors/perf/domains/general_perf/stdlib_misuse.rs`
 
-- [ ] `detect_perf_110` — flag `sync.Pool` `New` that returns a value type (look for `New: func() <Type> { ... return <Type>{...} }` patterns)
-- [ ] `detect_perf_128` — extend the PERF-119 logic to require 3+ consecutive appends to the same slice
-- [ ] `detect_perf_130` — flag `func() { someFunc(args) }()` IIFEs (the body is a single call expression)
-- [ ] `detect_perf_135` — flag `gob.NewEncoder` / `gob.NewDecoder` inside a loop (`is_in_loop`)
-- [ ] `detect_perf_140` — flag `debug.SetGCPercent(<literal>)` where the literal is `-1` or `< 50`
-- [ ] `detect_perf_158` — flag `sort.Slice` calls whose argument is `[]int`, `[]string`, or `[]float64` and whose body is a single `if` with `<` / `>`
-- [ ] `detect_perf_171` — flag `make(chan struct{}, 1)` / `make(chan bool{}, 1)` whose only send / receive sites are bare `struct{}` / `bool` (no data transferred)
-- [ ] `detect_perf_181` — flag `json.NewDecoder(...)` when a subsequent `.UseNumber()` call is not in the same file scope
-- [ ] `detect_perf_182` — flag `bufio.NewWriter(w)` (single-arg) when a follow-up `Write` passes a large `[]byte` literal
-- [ ] `detect_perf_106` — count `sync.Map.Store` / `LoadAndDelete` vs `Load` calls in the file; flag if writes > reads
+- [x] `detect_perf_110` — flag `sync.Pool` `New` that returns a value type
+- [x] `detect_perf_128` — extend the PERF-119 logic to require 3+ consecutive appends to the same slice
+- [x] `detect_perf_130` — flag `func() { someFunc(args) }()` IIFEs (the body is a single call expression)
+- [x] `detect_perf_135` — flag `gob.NewEncoder` / `gob.NewDecoder` inside a loop (`is_in_loop`)
+- [x] `detect_perf_140` — flag `debug.SetGCPercent(<literal>)` where the literal is `-1` or `< 50`
+- [x] `detect_perf_158` — flag `sort.Slice` calls whose argument is `[]int`, `[]string`, or `[]float64` and whose body is a single `if` with `<` / `>`
+- [x] `detect_perf_171` — flag `make(chan struct{}, 1)` / `make(chan bool{}, 1)` used as a mutex
+- [x] `detect_perf_181` — flag `json.NewDecoder(...)` when a subsequent `.UseNumber()` call is not in the same file scope
+- [x] `detect_perf_182` — flag `bufio.NewWriter(w)` (single-arg) when a follow-up `Write` or `WriteString` passes a large string literal
+- [x] `detect_perf_106` — count `sync.Map.Store` / `LoadAndDelete` vs `Load` calls in the file; flag if writes > reads
 
 ### 2. Registry + metadata
 
-- [ ] Add 10 `[[detector]]` entries to `src/lang/go/detectors/perf/registry.toml`
-- [ ] Add 10 `fix_for` arms to `src/lang/go/detectors/perf/metadata_overrides.rs`
+- [x] Add 10 `[[detector]]` entries to `src/lang/go/detectors/perf/registry.toml`
+- [x] Add 10 `fix_for` arms to `src/lang/go/detectors/perf/metadata_overrides.rs`
 
 ### 3. Fixtures + manifest
 
 For each rule, two `.txt` files and two manifest entries:
 
-- [ ] `PERF-106-vulnerable.txt` / `PERF-106-safe.txt`
-- [ ] `PERF-110-vulnerable.txt` / `PERF-110-safe.txt`
-- [ ] `PERF-128-vulnerable.txt` / `PERF-128-safe.txt`
-- [ ] `PERF-130-vulnerable.txt` / `PERF-130-safe.txt`
-- [ ] `PERF-135-vulnerable.txt` / `PERF-135-safe.txt`
-- [ ] `PERF-140-vulnerable.txt` / `PERF-140-safe.txt`
-- [ ] `PERF-158-vulnerable.txt` / `PERF-158-safe.txt`
-- [ ] `PERF-171-vulnerable.txt` / `PERF-171-safe.txt`
-- [ ] `PERF-181-vulnerable.txt` / `PERF-181-safe.txt`
-- [ ] `PERF-182-vulnerable.txt` / `PERF-182-safe.txt`
-- [ ] 20 manifest entries (vulnerable + safe) in `tests/fixtures/manifest.toml`
+- [x] `PERF-106-vulnerable.txt` / `PERF-106-safe.txt`
+- [x] `PERF-110-vulnerable.txt` / `PERF-110-safe.txt`
+- [x] `PERF-128-vulnerable.txt` / `PERF-128-safe.txt`
+- [x] `PERF-130-vulnerable.txt` / `PERF-130-safe.txt`
+- [x] `PERF-135-vulnerable.txt` / `PERF-135-safe.txt`
+- [x] `PERF-140-vulnerable.txt` / `PERF-140-safe.txt`
+- [x] `PERF-158-vulnerable.txt` / `PERF-158-safe.txt`
+- [x] `PERF-171-vulnerable.txt` / `PERF-171-safe.txt`
+- [x] `PERF-181-vulnerable.txt` / `PERF-181-safe.txt`
+- [x] `PERF-182-vulnerable.txt` / `PERF-182-safe.txt`
+- [x] 20 manifest entries (vulnerable + safe) in `tests/fixtures/manifest.toml`
 
 ### 4. Tests + verification
 
-- [ ] `cargo build --all-targets` — clean, no warnings
-- [ ] `cargo test --test go_perf_detector_integration` — all 10 new fixtures pass
-- [ ] `cargo test --test fixture_manifest_integration` — manifest is well-formed
-- [ ] `cargo test` — full suite still green
-- [ ] `cargo fmt --check` — formatted
-- [ ] Bump `tests/perf_regression.rs` budget if needed (the previous batch 3 raised it to 1.1s / 1.0s; ten more detectors may push past it)
+- [x] `cargo build --all-targets` — clean, no warnings
+- [x] `cargo test --test go_perf_detector_integration` — all 10 new fixtures pass
+- [x] `cargo test --test fixture_manifest_integration` — manifest is well-formed
+- [x] `cargo test` — full suite still green
+- [x] `cargo fmt --check` — formatted
+- [x] Bump `tests/perf_regression.rs` budget if needed — not needed; 1.1s / 1.0s ceiling held
 
 ### 5. Documentation
 
-- [ ] Update `CHANGELOG.md` Unreleased section with the new 10 detectors
-- [ ] Tick the new batch in `plans/p2-remaining-work.md` § B.1 and § B.2
-- [ ] Refresh the "P2.4 sub-progress" footer in `plans/p2-remaining-work.md` (30 → 40)
+- [x] Update `CHANGELOG.md` Unreleased section with the new 10 detectors
+- [x] Tick the new batch in `plans/p2-remaining-work.md` § B.1 and § B.2
+- [x] Refresh the "P2.4 sub-progress" footer in `plans/p2-remaining-work.md` (30 → 40)
+
+**Batch status:** Shipped in commit `e7f2cfd`. 10 / 10 detectors landed; 20 / 20 fixtures created; 20 / 20 manifest entries added; 10 / 10 `fix_for` entries added; 10 / 10 registry entries added. PERF catalog: 30 → 40 of 112 (36%).
 
 ## Estimated effort
 

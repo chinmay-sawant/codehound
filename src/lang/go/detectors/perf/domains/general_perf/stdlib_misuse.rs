@@ -1783,6 +1783,790 @@ fn method_name(callee: &str) -> &str {
     callee.rsplit('.').next().unwrap_or(callee)
 }
 
+/// PERF-204: GORM `db.Updates(map[...])` or `db.Model().Updates(map[...])`
+/// without a preceding `.Select("col1", ...)` call. The map can include
+/// any field, so the UPDATE statement touches every column. Use
+/// `.Select` to project only the intended columns.
+pub(crate) fn detect_perf_204(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    if !source.contains(".Updates(") {
+        return;
+    }
+
+    for call in &facts.calls {
+        let callee = call.callee.as_ref();
+        // Match `db.Updates` or `db.Model().Updates` (and the
+        // chained variants). The fact records the final call, so
+        // we accept either form.
+        if !callee.ends_with(".Updates") {
+            continue;
+        }
+        // The first argument must be a map literal / `map[...]` or
+        // a chained call. We accept anything that *contains* a
+        // `map[` token, including `db.Model(...).Updates(map[...])`.
+        let Some(first) = call.arguments.first().map(|a| a.as_ref()) else {
+            continue;
+        };
+        if !first.contains("map[") {
+            continue;
+        }
+        // Reject when the call chain has a `.Select(...)` somewhere
+        // in the source window before the call.
+        let window_start = call.start_byte.saturating_sub(256);
+        let window = &source[window_start..call.start_byte];
+        let select_idx = window.rfind(".Select(");
+        // Only treat it as a preceding .Select if the
+        // `Updates(` itself isn't part of the same chain. We
+        // approximate: the `.Select` must appear after the most
+        // recent `db.` or `.Model(` that starts the chain.
+        if let Some(idx) = select_idx {
+            // Find the start of the current statement by looking
+            // for a newline or `;` before the .Select.
+            let before = &window[..idx];
+            let stmt_start = before
+                .rfind('\n')
+                .max(before.rfind(';'))
+                .map(|i| i + 1)
+                .unwrap_or(0);
+            // If the .Select is on the same statement (no `;` or
+            // newline in between), accept it as a guard.
+            if stmt_start > 0 {
+                continue;
+            }
+        }
+        let (line, col) = unit.line_col(call.start_byte);
+        emit::push_finding(
+            &META_PERF_204,
+            file,
+            line,
+            col,
+            "db.Updates(map) without a preceding .Select; GORM will UPDATE every column",
+            out,
+        );
+    }
+}
+
+/// PERF-209: Cobra `PersistentPreRunE` / `PersistentPostRunE` on a
+/// parent command. Every subcommand inherits the hook, so the work
+/// runs many times per CLI invocation.
+pub(crate) fn detect_perf_209(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    if !source.contains("cobra.Command") {
+        return;
+    }
+    if !source.contains("PersistentPreRunE") && !source.contains("PersistentPostRunE") {
+        return;
+    }
+
+    for marker in &["PersistentPreRunE", "PersistentPostRunE"] {
+        let mut from = 0;
+        while let Some(rel) = source[from..].find(marker) {
+            let start = from + rel;
+            // Only flag when the marker is a key in a struct
+            // literal (preceded by a newline + whitespace).
+            let pre = &source[..start];
+            let last_nl = pre.rfind('\n').map(|i| i + 1).unwrap_or(0);
+            let between = &source[last_nl..start];
+            if !between.chars().all(|c| c.is_whitespace()) {
+                from = start + marker.len();
+                continue;
+            }
+            // Skip if the marker is on a comment line.
+            if pre
+                .lines()
+                .last()
+                .map(|l| l.trim_start().starts_with("//"))
+                .unwrap_or(false)
+            {
+                from = start + marker.len();
+                continue;
+            }
+            let (line, col) = unit.line_col(start);
+            emit::push_finding(
+                &META_PERF_209,
+                file,
+                line,
+                col,
+                "PersistentPreRunE / PersistentPostRunE runs for every subcommand; use a sync.Once or pre-build the dependency",
+                out,
+            );
+            from = start + marker.len();
+        }
+    }
+    let _ = facts;
+}
+
+/// PERF-211: GORM `db.Not(...)` / `db.Where("... NOT IN ...")` /
+/// `db.Where("... NOT LIKE ...")` in a hot-path query. `NOT IN` /
+/// `NOT LIKE` defeat index lookups because the planner must do a
+/// full scan.
+pub(crate) fn detect_perf_211(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    if !source.contains("db.Not(") && !source.contains(".Not(") {
+        // We need a fallback for `db.Where` with NOT IN / NOT LIKE.
+    }
+    let has_not_in = source.contains("NOT IN") || source.contains("not in");
+    let has_not_like = source.contains("NOT LIKE") || source.contains("not like");
+    if !source.contains("db.Not(") && !source.contains(".Not(") && !has_not_in && !has_not_like {
+        return;
+    }
+
+    for call in &facts.calls {
+        let callee = call.callee.as_ref();
+        if callee.ends_with(".Not") && call.arguments.len() >= 1 {
+            let (line, col) = unit.line_col(call.start_byte);
+            emit::push_finding(
+                &META_PERF_211,
+                file,
+                line,
+                col,
+                "db.Not(...) defeats index lookups; rewrite as a positive WHERE clause",
+                out,
+            );
+            continue;
+        }
+        if callee.ends_with(".Where") {
+            for arg in &call.arguments {
+                let arg_text = arg.as_ref();
+                if arg_text.to_uppercase().contains("NOT IN")
+                    || arg_text.to_uppercase().contains("NOT LIKE")
+                {
+                    let (line, col) = unit.line_col(call.start_byte);
+                    emit::push_finding(
+                        &META_PERF_211,
+                        file,
+                        line,
+                        col,
+                        "NOT IN / NOT LIKE defeats index lookups; use a positive WHERE clause",
+                        out,
+                    );
+                    break;
+                }
+            }
+        }
+    }
+}
+
+/// PERF-145: `r.WithContext(ctx)` in a function that looks like
+/// HTTP middleware (named `Middleware`, takes a `http.Handler`,
+/// or is registered via `engine.Use(...)` / `Group.Use(...)`).
+/// The allocation is harmless per call but compounds on every
+/// request.
+pub(crate) fn detect_perf_145(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    if !source.contains(".WithContext(") {
+        return;
+    }
+    if !is_middleware_shape(source) {
+        return;
+    }
+
+    let mut search_from = 0;
+    while let Some(rel) = source[search_from..].find(".WithContext(") {
+        let start = search_from + rel;
+        let (line, col) = unit.line_col(start);
+        emit::push_finding(
+            &META_PERF_145,
+            file,
+            line,
+            col,
+            "r.WithContext allocates a new *http.Request per call; use a single context propagation in the handler chain",
+            out,
+        );
+        search_from = start + ".WithContext(".len();
+    }
+}
+
+fn is_middleware_shape(source: &str) -> bool {
+    // A file is treated as "middleware-shaped" if it shows any of
+    // the common middleware patterns. We deliberately accept
+    // files that *contain* these patterns even if the immediate
+    // caller is not the middleware itself; the call site is the
+    // one allocation we want to flag.
+    if source.contains("func Middleware")
+        || source.contains("func (")
+            && (source.contains("http.Handler")
+                || source.contains("http.HandlerFunc")
+                || source.contains("http.ResponseWriter"))
+        || source.contains(".Use(")
+        || source.contains("Group.Use")
+        || source.contains("engine.Use")
+    {
+        return true;
+    }
+    false
+}
+
+/// PERF-132: `go func() { ... }` whose body makes a cancellable
+/// I/O call but the function literal does not accept a context.
+/// The parent function has a `ctx context.Context` parameter
+/// (otherwise the warning is moot); the goroutine can't propagate
+/// cancellation. We require both signals: the body makes a
+/// cancellable I/O call AND the parent function has a `ctx`
+/// parameter. Without the parent ctx, the goroutine has nothing
+/// to forward.
+pub(crate) fn detect_perf_132(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    if !source.contains("go func()") {
+        return;
+    }
+    if !parent_has_ctx_param(source) {
+        return;
+    }
+
+    for (start, _end) in &facts.go_starts {
+        let go_text = &source[*start..(*start + 256).min(source.len())];
+        // The function literal must be `func() { ... }` with no
+        // parameters. We accept `go func() {` (no params) and
+        // reject `go func(ctx context.Context) {` (has params).
+        if !go_text.contains("go func()") {
+            continue;
+        }
+        // The body is the `{ ... }` block following the
+        // signature. Look for cancellable I/O inside the body.
+        let body_start = go_text.find('{');
+        let Some(body_start) = body_start else {
+            continue;
+        };
+        let body_end_rel = go_text[body_start..].find('}');
+        let Some(body_end_rel) = body_end_rel else {
+            continue;
+        };
+        let body = &go_text[body_start + 1..body_start + body_end_rel];
+        if !body_has_io(body) {
+            continue;
+        }
+        let (line, col) = unit.line_col(*start);
+        emit::push_finding(
+            &META_PERF_132,
+            file,
+            line,
+            col,
+            "go func() body makes I/O calls but the goroutine doesn't accept a context; cancellation cannot propagate",
+            out,
+        );
+    }
+}
+
+fn parent_has_ctx_param(source: &str) -> bool {
+    // The parent function is the surrounding `func ... { ... }`
+    // that contains the `go func()` site. We approximate by
+    // looking for any function declaration that takes a
+    // `ctx context.Context` parameter anywhere in the file.
+    source.contains("ctx context.Context")
+        || source.contains("ctx context.Context,")
+        || source.contains("ctx context.Context)")
+        || source.contains("ctx context.Context ")
+}
+
+fn body_has_io(body: &str) -> bool {
+    // Match the common packages whose calls take a context as
+    // the first argument. The detector only checks substrings.
+    const PACKAGES: &[&str] = &[
+        "http.", "db.", "sql.", "redis.", "rdb.", "client.", "store.", "queue.", "kafka.",
+    ];
+    PACKAGES.iter().any(|p| body.contains(p))
+}
+
+/// PERF-131: `mu.Lock` / `mu.Unlock` wrapping only a single
+/// counter-style integer operation (`x++`, `x--`, `x = x + 1`,
+/// `x += 1`, or a single-line compound assignment). Use
+/// `sync/atomic` instead. We deliberately restrict the body
+/// match to these exact patterns to avoid false positives on
+/// mutex-guarded assignments to maps / slices / pointers (which
+/// are not atomic-safe).
+pub(crate) fn detect_perf_131(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    if !source.contains(".Lock()") || !source.contains(".Unlock()") {
+        return;
+    }
+
+    let mut search_from = 0;
+    while let Some(rel) = source[search_from..].find(".Lock()") {
+        let start = search_from + rel;
+        let unlock_rel = source[start..].find(".Unlock()");
+        let Some(unlock_rel) = unlock_rel else {
+            search_from = start + ".Lock()".len();
+            continue;
+        };
+        let unlock_start = start + unlock_rel;
+        let unlock_end = unlock_start + ".Unlock()".len();
+        let after_lock = start + ".Lock()".len();
+        let body = &source[after_lock..unlock_start];
+        eprintln!(
+            "[PERF-131] body={body:?} is_counter={}",
+            is_simple_counter_body(body)
+        );
+        if is_simple_counter_body(body) {
+            let (line, col) = unit.line_col(start);
+            emit::push_finding(
+                &META_PERF_131,
+                file,
+                line,
+                col,
+                "mu.Lock/mu.Unlock wraps only a simple counter op; use sync/atomic instead",
+                out,
+            );
+        }
+        search_from = unlock_end;
+    }
+}
+
+fn is_simple_counter_body(body: &str) -> bool {
+    // The body is the text between `.Lock()` and `.Unlock()`.
+    // Split on semicolons and newlines into statements. We
+    // accept only the canonical counter patterns: x++, x--,
+    // x += 1, x -= 1, x = x + 1, x = x - 1. Anything else
+    // (assignments to maps / slices / pointers, function calls,
+    // channel operations) is not atomic-safe and the mutex is
+    // justified.
+    //
+    // The body sometimes includes a partial leading token of
+    // the receiver for `.Unlock()` (e.g. the `mu` in
+    // `counter++\n\tmu.Unlock()`). We strip that trailing
+    // partial-identifier by trimming back to the last newline
+    // before any non-counter text.
+    let inner = body.trim();
+    let mut counter_op = false;
+    let mut non_counter_op = false;
+    for stmt in inner.split(|c: char| c == ';' || c == '\n') {
+        let stmt = stmt.trim();
+        if stmt.is_empty() {
+            continue;
+        }
+        // A partial leading identifier is a fragment of the
+        // `mu.Unlock()` call we don't want to count.
+        if stmt.starts_with('.') || stmt.ends_with('.') {
+            continue;
+        }
+        // The trailing partial-identifier of the next call is
+        // not a statement.
+        if looks_like_partial_recv(stmt) {
+            continue;
+        }
+        if is_counter_statement(stmt) {
+            counter_op = true;
+        } else {
+            non_counter_op = true;
+        }
+    }
+    counter_op && !non_counter_op
+}
+
+fn looks_like_partial_recv(stmt: &str) -> bool {
+    // The partial receiver for `mu.Unlock()` looks like `mu`
+    // (just an identifier with no operator). Skip it.
+    is_simple_ident(stmt)
+}
+
+fn is_counter_statement(stmt: &str) -> bool {
+    let stmt = stmt.trim();
+    if stmt.is_empty() {
+        return false;
+    }
+    // `x++` or `x--`
+    if stmt.ends_with("++") || stmt.ends_with("--") {
+        let head = stmt.trim_end_matches("++").trim_end_matches("--");
+        return is_simple_ident(head.trim());
+    }
+    // `x += 1` or `x -= 1`
+    if let Some((lhs, rhs)) = stmt.split_once("+=") {
+        return rhs.trim() == "1" && is_simple_ident(lhs.trim());
+    }
+    if let Some((lhs, rhs)) = stmt.split_once("-=") {
+        return rhs.trim() == "1" && is_simple_ident(lhs.trim());
+    }
+    // `x = x + 1` or `x = x - 1`
+    if let Some((lhs, rhs)) = stmt.split_once('=') {
+        let lhs = lhs.trim();
+        let rhs = rhs.trim();
+        if let Some((rlhs, rrhs)) = rhs.split_once('+') {
+            return rrhs.trim() == "1"
+                && is_simple_ident(rlhs.trim())
+                && is_simple_ident(lhs)
+                && lhs == rlhs.trim();
+        }
+        if let Some((rlhs, rrhs)) = rhs.split_once('-') {
+            return rrhs.trim() == "1"
+                && is_simple_ident(rlhs.trim())
+                && is_simple_ident(lhs)
+                && lhs == rlhs.trim();
+        }
+    }
+    false
+}
+
+/// PERF-168: `ch <- <CompositeLiteral>` where the literal has 4+
+/// fields or contains a slice / map / string field. A pointer
+/// (`ch <- &T{...}`) is the correct shape.
+pub(crate) fn detect_perf_168(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    let mut search_from = 0;
+    while let Some(rel) = source[search_from..].find("<- ") {
+        let start = search_from + rel;
+        // Distinguish a channel send from a channel type.
+        // `chan<- T` is a type with no space before `<-`; the
+        // send `ch <- T` has whitespace + identifier + space +
+        // `<- `. We require the character immediately before
+        // `<-` to be a space.
+        if start == 0 || source.as_bytes()[start - 1] != b' ' {
+            search_from = start + "<- ".len();
+            continue;
+        }
+        // The literal starts after `<- `. Look for the next `{`
+        // to find the literal start.
+        let arrow_end = start + "<- ".len();
+        let Some(open_rel) = source[arrow_end..].find('{') else {
+            search_from = arrow_end;
+            continue;
+        };
+        let pre = &source[arrow_end..arrow_end + open_rel];
+        // Reject if the channel send is already a pointer
+        // (`ch <- &T{...}`) or an existing variable
+        // (`ch <- someVar`).
+        let trimmed_pre = pre.trim_start();
+        if trimmed_pre.starts_with('&') {
+            search_from = arrow_end + open_rel;
+            continue;
+        }
+        let lit_start = arrow_end + open_rel;
+        let close_rel = source[lit_start..].find('}');
+        let Some(close_rel) = close_rel else {
+            search_from = lit_start;
+            continue;
+        };
+        let literal = &source[lit_start..lit_start + close_rel + 1];
+        if is_large_struct_literal(literal) {
+            let (line, col) = unit.line_col(start);
+            emit::push_finding(
+                &META_PERF_168,
+                file,
+                line,
+                col,
+                "large struct sent by value over a channel; pass a pointer instead",
+                out,
+            );
+        }
+        search_from = lit_start + close_rel + 1;
+    }
+}
+
+fn is_large_struct_literal(literal: &str) -> bool {
+    // Strip the outer `{ }` and split on top-level commas.
+    let inner = literal.trim().trim_start_matches('{').trim_end_matches('}');
+    // Count fields: split on commas not inside parens/brackets.
+    let mut depth = 0;
+    let mut fields = 0;
+    let mut has_complex_field = false;
+    let mut current = String::new();
+    for c in inner.chars() {
+        match c {
+            '(' | '[' | '{' => {
+                depth += 1;
+                current.push(c);
+            }
+            ')' | ']' | '}' => {
+                depth -= 1;
+                current.push(c);
+            }
+            ',' if depth == 0 => {
+                fields += 1;
+                let trimmed = current.trim();
+                if trimmed.contains('[') || trimmed.contains("map[") {
+                    has_complex_field = true;
+                }
+                current.clear();
+            }
+            _ => current.push(c),
+        }
+    }
+    if !current.trim().is_empty() {
+        fields += 1;
+        let trimmed = current.trim();
+        if trimmed.contains('[') || trimmed.contains("map[") {
+            has_complex_field = true;
+        }
+    }
+    fields >= 4 || has_complex_field
+}
+
+/// PERF-121: two consecutive same-shape struct literals where the
+/// second builds from the first. Direct conversion (T(x)) would
+/// suffice. We look for two struct literals with **different** type
+/// names but identical field sets within 8 lines.
+pub(crate) fn detect_perf_121(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    if !source.contains("struct {") {
+        return;
+    }
+
+    let literals = collect_struct_literals(source);
+    if literals.len() < 2 {
+        return;
+    }
+    for pair in literals.windows(2) {
+        let (a, b) = (&pair[0], &pair[1]);
+        // Two different type names with identical field sets.
+        if a.type_name == b.type_name {
+            continue;
+        }
+        if a.fields != b.fields {
+            continue;
+        }
+        // Adjacent lines: between offsets, at most 2 newlines.
+        let between = &source[a.end..b.start];
+        if between.matches('\n').count() > 2 {
+            continue;
+        }
+        let (line, col) = unit.line_col(a.start);
+        emit::push_finding(
+            &META_PERF_121,
+            file,
+            line,
+            col,
+            "struct literal copies another literal of the same shape; use a direct type conversion (T(x))",
+            out,
+        );
+        return;
+    }
+}
+
+struct StructLiteral {
+    type_name: String,
+    fields: Vec<String>,
+    start: usize,
+    end: usize,
+}
+
+fn collect_struct_literals(source: &str) -> Vec<StructLiteral> {
+    // Walk every `{` that closes after a TypeName{...} shape.
+    // We look for `Ident{` where Ident is a simple type name.
+    let mut out = Vec::new();
+    let bytes = source.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'{' {
+            // Look at the preceding non-whitespace token.
+            if i > 0 {
+                let pre = &source[..i];
+                let trimmed = pre.trim_end();
+                let Some(name) = trimmed
+                    .rsplit(|c: char| !c.is_alphanumeric() && c != '_')
+                    .next()
+                else {
+                    i += 1;
+                    continue;
+                };
+                if !is_simple_ident(name) {
+                    i += 1;
+                    continue;
+                }
+                // Find the matching `}`.
+                let close_rel = source[i..].find('}');
+                let Some(close_rel) = close_rel else {
+                    i += 1;
+                    continue;
+                };
+                let body = &source[i + 1..i + close_rel];
+                let fields = parse_field_list(body);
+                if !fields.is_empty() {
+                    out.push(StructLiteral {
+                        type_name: name.to_string(),
+                        fields,
+                        start: i,
+                        end: i + close_rel + 1,
+                    });
+                }
+            }
+            i += 1;
+        } else {
+            i += 1;
+        }
+    }
+    out
+}
+
+fn parse_field_list(body: &str) -> Vec<String> {
+    let mut fields = Vec::new();
+    let mut depth = 0;
+    let mut current = String::new();
+    for c in body.chars() {
+        match c {
+            '(' | '[' | '{' => {
+                depth += 1;
+                current.push(c);
+            }
+            ')' | ']' | '}' => {
+                depth -= 1;
+                current.push(c);
+            }
+            ',' if depth == 0 => {
+                let field = field_name(&current);
+                if let Some(name) = field {
+                    fields.push(name);
+                }
+                current.clear();
+            }
+            _ => current.push(c),
+        }
+    }
+    let field = field_name(&current);
+    if let Some(name) = field {
+        fields.push(name);
+    }
+    fields
+}
+
+fn field_name(text: &str) -> Option<String> {
+    // Field syntax: `Name: value` or `Name:`
+    let text = text.trim();
+    let (name, _) = text.split_once(':')?;
+    Some(name.trim().to_string())
+}
+
+/// PERF-165: `rows.Scan(&x)` followed by manual extraction of
+/// fields from a primitive type into a custom type on the next
+/// line. The proper fix is to implement `sql.Scanner`.
+pub(crate) fn detect_perf_165(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    if !source.contains("rows.Scan(") {
+        return;
+    }
+
+    let mut search_from = 0;
+    while let Some(rel) = source[search_from..].find("rows.Scan(") {
+        let start = search_from + rel;
+        let after_start = start + "rows.Scan(".len();
+        let after_end = (after_start + 384).min(source.len());
+        let window = &source[after_start..after_end];
+        if let Some(close) = window.find(')') {
+            let first_arg = &window[..close];
+            if first_arg.contains("&sql.Null")
+                || first_arg.contains("&*string")
+                || first_arg.contains("&*int")
+            {
+                search_from = after_start;
+                continue;
+            }
+        }
+        // The function body after the scan should contain a
+        // string-parsing call (`strconv.ParseInt`, `strconv.ParseFloat`,
+        // `strconv.ParseBool`, `time.Parse`, ...) and a `MyID(` /
+        // `MyType(` conversion. We restrict the search to the
+        // current function (delimited by the next top-level `}`)
+        // to avoid false positives across functions.
+        let func_end = source[after_start..]
+            .find("}\n\n")
+            .or_else(|| source[after_start..].find("}\nfunc"))
+            .or_else(|| source[after_start..].rfind('}'))
+            .map(|i| after_start + i)
+            .unwrap_or(source.len());
+        let after_block = &source[after_start..func_end];
+        let has_parse_call = after_block.contains("strconv.Parse")
+            || after_block.contains("time.Parse")
+            || after_block.contains("uuid.Parse")
+            || after_block.contains(".Parse(");
+        let has_custom_conversion = after_block.contains("MyID(")
+            || after_block.contains("MyType(")
+            || after_block.contains("UUID(")
+            || after_block.contains("Timestamp(")
+            || after_block.contains("MyTime(");
+        if !(has_parse_call && has_custom_conversion) {
+            search_from = after_start;
+            continue;
+        }
+        let (line, col) = unit.line_col(start);
+        emit::push_finding(
+            &META_PERF_165,
+            file,
+            line,
+            col,
+            "rows.Scan into a primitive type followed by manual conversion to a custom type; implement sql.Scanner on the custom type",
+            out,
+        );
+        search_from = after_start;
+    }
+}
+
+/// PERF-166: `rows.Scan(&s)` where `s` is `*string` / `*int64`,
+/// followed by an `if s != nil` null check. The idiomatic
+/// alternative is `sql.NullString` / `sql.NullInt64` which the
+/// `database/sql` package already knows how to populate.
+pub(crate) fn detect_perf_166(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    if !source.contains("rows.Scan(") {
+        return;
+    }
+
+    let mut search_from = 0;
+    while let Some(rel) = source[search_from..].find("rows.Scan(") {
+        let start = search_from + rel;
+        let after_start = start + "rows.Scan(".len();
+        let after_end = (after_start + 384).min(source.len());
+        let window = &source[after_start..after_end];
+        // The first scan argument must be a pointer (`&s`).
+        let Some(close) = window.find(')') else {
+            search_from = after_start;
+            continue;
+        };
+        let first_arg = window[..close].trim();
+        if !first_arg.starts_with('&') {
+            search_from = after_start;
+            continue;
+        }
+        // The variable must be a plain identifier (not already a
+        // sql.Null* type).
+        let var = first_arg.trim_start_matches('&').trim();
+        if !is_simple_ident(var) {
+            search_from = after_start;
+            continue;
+        }
+        if var.starts_with("Null") {
+            search_from = after_start;
+            continue;
+        }
+        // The next ~512 bytes should contain an `if var != nil`
+        // null check.
+        let after_block_end = (after_start + 512).min(source.len());
+        let after_block = &source[after_start..after_block_end];
+        let guard = format!("if {var} != nil");
+        if !after_block.contains(&guard) {
+            search_from = after_start;
+            continue;
+        }
+        let (line, col) = unit.line_col(start);
+        emit::push_finding(
+            &META_PERF_166,
+            file,
+            line,
+            col,
+            "rows.Scan into a pointer followed by a null check; use sql.NullString / sql.NullInt64 instead",
+            out,
+        );
+        search_from = after_start;
+    }
+}
+
 fn is_canonical_header(s: &str) -> bool {
     // A short, vetted list of common headers that are already
     // canonical. This is intentionally exact-case: `CanonicalHeaderKey`

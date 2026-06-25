@@ -37,25 +37,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   loop (BP-11), `context.Background` outside `main` (BP-13), and recursive
   `sync.Once.Do` (BP-15). CLI: `--bp-only`, `--no-bp`. Config:
   `[slopguard.bad_practices]`.
-- **PERF detector catalog (P2.4, first slice).** 40 detectors shipped
+- **PERF detector catalog (P2.4, first slice).** 50 detectors shipped
   covering missing `http.Server` timeouts (PERF-101), 50/100
   common-net/http idioms (PERF-103, PERF-105, PERF-107, PERF-111, PERF-112,
   PERF-113, PERF-114, PERF-115, PERF-116, PERF-117, PERF-118, PERF-119,
   PERF-120, PERF-122, PERF-123, PERF-124, PERF-125, PERF-126, PERF-127,
-  PERF-128, PERF-129, PERF-130, PERF-135, PERF-140), and a handful of
-  stdlib-misuse heuristics (PERF-146, PERF-147, PERF-156, PERF-157,
-  PERF-158, PERF-171, PERF-177, PERF-181, PERF-182, PERF-190, PERF-192,
-  PERF-198). The fourth batch adds 10 more Category-A rules: write-heavy
-  `sync.Map` (PERF-106), `sync.Pool` whose `New` returns a value type
-  (PERF-110), 3+ independent appends that should be one variadic
-  (PERF-128), an unnecessary `func() { f(args) }()` wrapper (PERF-130),
-  `gob.NewEncoder` inside a loop (PERF-135), `debug.SetGCPercent` misuse
-  (PERF-140), `sort.Slice` on `[]int`/`[]string`/`[]float64` (PERF-158),
-  `make(chan T, 1)` used as a mutex (PERF-171), `json.NewDecoder` without
-  `.UseNumber()` (PERF-181), and `bufio.NewWriter` without an explicit
-  buffer size (PERF-182). The remaining PERF-101..212 entries are
-  deferred to a follow-up release; the registry scaffolding, build.rs
-  wiring, and `golang.json` entries are in place.
+  PERF-128, PERF-129, PERF-130, PERF-131, PERF-132, PERF-135, PERF-140,
+  PERF-145, PERF-146, PERF-147, PERF-156, PERF-157, PERF-158, PERF-165,
+  PERF-166, PERF-168, PERF-171, PERF-177, PERF-181, PERF-182, PERF-190,
+  PERF-192, PERF-198, plus the function-scope and database rules
+  (PERF-121, PERF-145, PERF-204, PERF-209, PERF-211). The fifth batch
+  adds 10 more rules: a same-shape struct literal that should be a
+  conversion (PERF-121), `sync.Mutex` wrapping a simple counter
+  (PERF-131), `go func()` without context propagation (PERF-132),
+  `r.WithContext` in middleware (PERF-145), `rows.Scan` into a primitive
+  followed by manual conversion (PERF-165), `rows.Scan` into a pointer
+  with nil-check (PERF-166), large struct sent by value over a channel
+  (PERF-168), GORM `db.Updates(map)` without `.Select` (PERF-204),
+  Cobra `PersistentPreRunE` (PERF-209), and GORM `db.Not()` / `NOT IN` /
+  `NOT LIKE` (PERF-211). PERF-208 was considered and dropped because
+  PERF-99 already covers the high-cardinality Prometheus labels. The
+  remaining PERF-101..212 entries are deferred to a follow-up release;
+  the registry scaffolding, build.rs wiring, and `golang.json` entries
+  are in place.
 - **Multi-language default.** `go` + `python` features are on by default;
   mixed monorepos parse in one pass. `--lang auto` selects plugins by
   file extension.
