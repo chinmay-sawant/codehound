@@ -1,7 +1,7 @@
 # Phase 6 — Tests & Benches
 
 > **Parent:** `README.md` (master plan, v2.0.0)
-> **Status:** Not started. All sections are planning only — no source files have been moved yet.
+> **Status:** **Complete.** All 18 active splits done + 7 no-split confirmations + 5 new helper modules + 1 bench common module — no source files have been moved yet.
 > **Estimated effort:** 1-1.5 weeks. ~50 new files + ~5 new helper modules. `tests/engine_cache.rs` (31 031 chars) is the elephant.
 
 ---
@@ -31,8 +31,8 @@ Split every oversized test file under `tests/` and bench file under `benches/`. 
 
 The codebase already has two co-existing patterns for sharing helpers across test files:
 
-- [ ] `mod helpers;` — used in `app_baseline.rs`, `python_integration.rs`, and `lang_go_detectors_cwe_common.rs`.
-- [ ] `#[path = "helpers/mod.rs"] mod helpers;` — used in `app_inline_ignore.rs`, `engine_observability.rs`, `fixture_manifest_integration.rs`, `go_cwe_detector_integration.rs`, `go_perf_detector_integration.rs`, `lang_go_cwe_metadata.rs`.
+- [x] `mod helpers;` — used in `app_baseline.rs`, `python_integration.rs`, and `lang_go_detectors_cwe_common.rs`.
+- [x] `#[path = "helpers/mod.rs"] mod helpers;` — used in `app_inline_ignore.rs`, `engine_observability.rs`, `fixture_manifest_integration.rs`, `go_cwe_detector_integration.rs`, `go_perf_detector_integration.rs`, `lang_go_cwe_metadata.rs`.
 
 Both work because each file in `tests/` is a separate test crate. Splits should preserve this style — each new test file declares the helper module the same way the file it's replacing did.
 
@@ -51,21 +51,21 @@ Both work because each file in `tests/` is a separate test crate. Splits should 
 
 ### Proposed file tree (5 new test files + 1 new helper file)
 
-- [ ] Create `tests/engine_cache_store.rs` with Section 1: 9 `CacheStore` unit tests (~6 100 chars)
-- [ ] Create `tests/engine_cache_scan.rs` with Section 2: 7 end-to-end tests + 2 helpers (~4 000 chars)
-- [ ] Create `tests/engine_cache_invalidation.rs` with Section 3: 5 dep-extraction / transitive-invalidation tests (~4 800 chars)
-- [ ] Create `tests/engine_cache_inline_ignore.rs` with Section 4 (first 3): `inline_ignore_*`, `skip_flag_filters_cached_findings` (~5 200 chars)
-- [ ] Create `tests/engine_cache_debug.rs` with `debug_dependency_extraction` (move to `#[ignore]`), `debug_discover_project_root` (~2 200 chars)
-- [ ] Create `tests/helpers/cache.rs` (new) with `unique_temp_root`, `write_minimal_go`, `finding` factory, `pub mod dep_helpers { … }`, plus `_registry_import_check` (or just delete it) (~1 800 chars)
-- [ ] Delete `tests/engine_cache.rs`
-- [ ] In `tests/helpers/mod.rs`, add `pub mod cache;`
-- [ ] In each new test file, declare the helpers via:
+- [x] Create `tests/engine_cache_store.rs` with Section 1: 9 `CacheStore` unit tests (~6 100 chars)
+- [x] Create `tests/engine_cache_scan.rs` with Section 2: 7 end-to-end tests + 2 helpers (~4 000 chars)
+- [x] Create `tests/engine_cache_invalidation.rs` with Section 3: 5 dep-extraction / transitive-invalidation tests (~4 800 chars)
+- [x] Create `tests/engine_cache_inline_ignore.rs` with Section 4 (first 3): `inline_ignore_*`, `skip_flag_filters_cached_findings` (~5 200 chars)
+- [x] Create `tests/engine_cache_debug.rs` with `debug_dependency_extraction` (move to `#[ignore]`), `debug_discover_project_root` (~2 200 chars)
+- [x] Create `tests/helpers/cache.rs` (new) with `unique_temp_root`, `write_minimal_go`, `finding` factory, `pub mod dep_helpers { … }`, plus `_registry_import_check` (or just delete it) (~1 800 chars)
+- [x] Delete `tests/engine_cache.rs`
+- [x] In `tests/helpers/mod.rs`, add `pub mod cache;`
+- [x] In each new test file, declare the helpers via:
   ```rust
   #[path = "helpers/mod.rs"]
   mod helpers;
   use helpers::cache::{unique_temp_root, write_minimal_go, finding};
   ```
-- [ ] Delete or `#[ignore]` the two `debug_*` tests in `tests/engine_cache.rs` that reference a personal `/home/chinmay/.../gopdfsuit` path
+- [x] Delete or `#[ignore]` the two `debug_*` tests in `tests/engine_cache.rs` that reference a personal `/home/chinmay/.../gopdfsuit` path
 
 ---
 
@@ -83,10 +83,10 @@ Both work because each file in `tests/` is a separate test crate. Splits should 
 
 ### Proposed file tree (3 new files)
 
-- [ ] Create `tests/engine_config_parsing.rs` with A + B + C + H (10 tests) (~3 800 chars)
-- [ ] Create `tests/engine_config_merge.rs` with D + E (7 tests) (~2 700 chars)
-- [ ] Create `tests/engine_config_cli_filters.rs` with F + G (6 tests) (~3 000 chars)
-- [ ] Delete `tests/engine_config.rs`
+- [x] Create `tests/engine_config_parsing.rs` with A + B + C + H (10 tests) (~3 800 chars)
+- [x] Create `tests/engine_config_merge.rs` with D + E (7 tests) (~2 700 chars)
+- [x] Create `tests/engine_config_cli_filters.rs` with F + G (6 tests) (~3 000 chars)
+- [x] Delete `tests/engine_config.rs`
 
 ---
 
@@ -99,10 +99,10 @@ Both work because each file in `tests/` is a separate test crate. Splits should 
 
 ### Proposed file tree (3 new files, reuse `helpers/cache.rs::unique_temp_root`)
 
-- [ ] Create `tests/engine_source_cache_populate.rs` with tests 1–4 (~3 200 chars)
-- [ ] Create `tests/engine_source_cache_edge.rs` with tests 5–7 (~2 800 chars)
-- [ ] Create `tests/engine_source_cache_export.rs` with test 8 (uses `slopguard::export::{ExportOptions, export_findings}`) (~2 100 chars)
-- [ ] Delete `tests/engine_source_cache.rs`
+- [x] Create `tests/engine_source_cache_populate.rs` with tests 1–4 (~3 200 chars)
+- [x] Create `tests/engine_source_cache_edge.rs` with tests 5–7 (~2 800 chars)
+- [x] Create `tests/engine_source_cache_export.rs` with test 8 (uses `slopguard::export::{ExportOptions, export_findings}`) (~2 100 chars)
+- [x] Delete `tests/engine_source_cache.rs`
 
 ---
 
@@ -117,10 +117,10 @@ Both work because each file in `tests/` is a separate test crate. Splits should 
 
 ### Proposed file tree (3 new files)
 
-- [ ] Create `tests/app_baseline_filter.rs` with Save + filter (tests 1, 6, 8) (~2 700 chars)
-- [ ] Create `tests/app_baseline_corrupt.rs` with Corrupted/unsupported/old-version (tests 2, 9, 10) (~2 800 chars)
-- [ ] Create `tests/app_baseline_disable.rs` with Disable paths + path + scan-error (tests 3, 4, 5, 7, 11) (~2 900 chars)
-- [ ] Delete `tests/app_baseline.rs`
+- [x] Create `tests/app_baseline_filter.rs` with Save + filter (tests 1, 6, 8) (~2 700 chars)
+- [x] Create `tests/app_baseline_corrupt.rs` with Corrupted/unsupported/old-version (tests 2, 9, 10) (~2 800 chars)
+- [x] Create `tests/app_baseline_disable.rs` with Disable paths + path + scan-error (tests 3, 4, 5, 7, 11) (~2 900 chars)
+- [x] Delete `tests/app_baseline.rs`
 
 The two local helpers `assert_success` / `scan_with_args` and the `SCAN_ARGS` constant are needed by all three. Move to `tests/helpers/baseline.rs` (extending it) or to a new `tests/helpers/app.rs`. Cleanest: add a `pub fn scan_with_args(project: &TempProject, extra: &[&str]) -> Output` to `helpers/baseline.rs`.
 
@@ -132,10 +132,10 @@ The two local helpers `assert_success` / `scan_with_args` and the `SCAN_ARGS` co
 
 ### Proposed file tree (3 new files)
 
-- [ ] Create `tests/reporting_json_envelope.rs` with Envelope tests + `sample` + `sample_with_cwe` factories (4 tests) (~2 600 chars)
-- [ ] Create `tests/reporting_json_finding.rs` with Finding serialization tests (4 tests) (~2 700 chars)
-- [ ] Create `tests/reporting_json_cwe_ndjson.rs` with CWE id + NDJSON (2 tests) (~1 600 chars)
-- [ ] Delete `tests/reporting_json.rs`
+- [x] Create `tests/reporting_json_envelope.rs` with Envelope tests + `sample` + `sample_with_cwe` factories (4 tests) (~2 600 chars)
+- [x] Create `tests/reporting_json_finding.rs` with Finding serialization tests (4 tests) (~2 700 chars)
+- [x] Create `tests/reporting_json_cwe_ndjson.rs` with CWE id + NDJSON (2 tests) (~1 600 chars)
+- [x] Delete `tests/reporting_json.rs`
 
 A single `tests/helpers/reporting.rs` housing `sample()` and `sample_with_cwe()` would avoid duplicating ~40 lines across the three files.
 
@@ -151,10 +151,10 @@ A single `tests/helpers/reporting.rs` housing `sample()` and `sample_with_cwe()`
 
 ### Proposed file tree (3 new files)
 
-- [ ] Create `tests/reporting_sarif_core.rs` with core + iso8601 (6 tests) (~2 200 chars)
-- [ ] Create `tests/reporting_sarif_region.rs` with region + suppressions + rank (6 tests) (~2 400 chars)
-- [ ] Create `tests/reporting_sarif_structured.rs` with evidence + remediation + tags + bad_practice + invocations (6 tests) (~2 800 chars)
-- [ ] Delete `tests/reporting_sarif.rs`
+- [x] Create `tests/reporting_sarif_core.rs` with core + iso8601 (6 tests) (~2 200 chars)
+- [x] Create `tests/reporting_sarif_region.rs` with region + suppressions + rank (6 tests) (~2 400 chars)
+- [x] Create `tests/reporting_sarif_structured.rs` with evidence + remediation + tags + bad_practice + invocations (6 tests) (~2 800 chars)
+- [x] Delete `tests/reporting_sarif.rs`
 
 `sample_result` moves to `helpers/reporting.rs`; `iso8601_from_secs` extracted or inlined.
 
@@ -169,10 +169,10 @@ A single `tests/helpers/reporting.rs` housing `sample()` and `sample_with_cwe()`
 
 ### Proposed file tree (3 new files)
 
-- [ ] Create `tests/rules_finding_construction.rs` with Construction (5 tests) (~2 100 chars)
-- [ ] Create `tests/rules_finding_serialization.rs` with Field presence + range (5 tests) (~2 500 chars)
-- [ ] Create `tests/rules_finding_structured.rs` with Fingerprint + structured builders (2 tests) (~2 200 chars)
-- [ ] Delete `tests/rules_finding.rs`
+- [x] Create `tests/rules_finding_construction.rs` with Construction (5 tests) (~2 100 chars)
+- [x] Create `tests/rules_finding_serialization.rs` with Field presence + range (5 tests) (~2 500 chars)
+- [x] Create `tests/rules_finding_structured.rs` with Fingerprint + structured builders (2 tests) (~2 200 chars)
+- [x] Delete `tests/rules_finding.rs`
 
 ---
 
@@ -185,10 +185,10 @@ A single `tests/helpers/reporting.rs` housing `sample()` and `sample_with_cwe()`
 
 ### Proposed file tree (3 new files)
 
-- [ ] Create `tests/engine_observability_timing.rs` with Timing (4 tests) (~1 800 chars)
-- [ ] Create `tests/engine_observability_context.rs` with Context (3 tests) (~1 400 chars)
-- [ ] Create `tests/engine_observability_diagnostics.rs` with Diagnostics (3 tests) + `sample_result_with_stats` (~3 000 chars)
-- [ ] Delete `tests/engine_observability.rs`
+- [x] Create `tests/engine_observability_timing.rs` with Timing (4 tests) (~1 800 chars)
+- [x] Create `tests/engine_observability_context.rs` with Context (3 tests) (~1 400 chars)
+- [x] Create `tests/engine_observability_diagnostics.rs` with Diagnostics (3 tests) + `sample_result_with_stats` (~3 000 chars)
+- [x] Delete `tests/engine_observability.rs`
 
 ---
 
@@ -198,10 +198,10 @@ A single `tests/helpers/reporting.rs` housing `sample()` and `sample_with_cwe()`
 
 ### Proposed file tree (2 new files + new helper file)
 
-- [ ] Create `tests/app_inline_ignore_inline.rs` with tests 1 + 2: line-level `// slopguard-ignore` (~2 100 chars)
-- [ ] Create `tests/app_inline_ignore_file.rs` with tests 3 + 4 + 5: `// slopguard-ignore-file` headers (~2 800 chars)
-- [ ] Create `tests/helpers/inline_ignore.rs` (new) with `unique_temp_root`, `write_vulnerable_go`, `write_vulnerable_go_with_header` (~1 400 chars)
-- [ ] Delete `tests/app_inline_ignore.rs`
+- [x] Create `tests/app_inline_ignore_inline.rs` with tests 1 + 2: line-level `// slopguard-ignore` (~2 100 chars)
+- [x] Create `tests/app_inline_ignore_file.rs` with tests 3 + 4 + 5: `// slopguard-ignore-file` headers (~2 800 chars)
+- [x] Create `tests/helpers/inline_ignore.rs` (new) with `unique_temp_root`, `write_vulnerable_go`, `write_vulnerable_go_with_header` (~1 400 chars)
+- [x] Delete `tests/app_inline_ignore.rs`
 
 ---
 
@@ -211,9 +211,9 @@ A single `tests/helpers/reporting.rs` housing `sample()` and `sample_with_cwe()`
 
 ### Proposed file tree (2 new files)
 
-- [ ] Create `tests/go_cwe_detector_fixtures.rs` with Inventory + taint sweep (tests 1, 5, 6) (~2 600 chars)
-- [ ] Create `tests/go_cwe_detector_evidence.rs` with Per-CWE evidence (tests 2, 3, 4) + the two `is_*_sink` helpers (~2 500 chars)
-- [ ] Delete `tests/go_cwe_detector_integration.rs`
+- [x] Create `tests/go_cwe_detector_fixtures.rs` with Inventory + taint sweep (tests 1, 5, 6) (~2 600 chars)
+- [x] Create `tests/go_cwe_detector_evidence.rs` with Per-CWE evidence (tests 2, 3, 4) + the two `is_*_sink` helpers (~2 500 chars)
+- [x] Delete `tests/go_cwe_detector_integration.rs`
 
 ---
 
@@ -223,9 +223,9 @@ A single `tests/helpers/reporting.rs` housing `sample()` and `sample_with_cwe()`
 
 ### Proposed file tree (2 new files)
 
-- [ ] Create `tests/engine_baseline_store.rs` with Construction/lookup/serialization (tests 1–4) (~1 800 chars)
-- [ ] Create `tests/engine_baseline_io.rs` with Disk + discovery + schema (tests 5–7) (~2 600 chars)
-- [ ] Delete `tests/engine_baseline.rs`
+- [x] Create `tests/engine_baseline_store.rs` with Construction/lookup/serialization (tests 1–4) (~1 800 chars)
+- [x] Create `tests/engine_baseline_io.rs` with Disk + discovery + schema (tests 5–7) (~2 600 chars)
+- [x] Delete `tests/engine_baseline.rs`
 
 The `unique_temp_root`/`finding` helpers are nearly identical to the ones in `engine_cache.rs` — extract to the same `helpers/cache.rs` introduced in §6.1.
 
@@ -237,9 +237,9 @@ The `unique_temp_root`/`finding` helpers are nearly identical to the ones in `en
 
 ### Proposed file tree (2 new files)
 
-- [ ] Create `tests/reporting_text_basic.rs` with Basic + `one_finding_result` (4 tests) (~1 900 chars)
-- [ ] Create `tests/reporting_text_structured.rs` with Structured + `one_structured_finding_result` (3 tests) (~2 100 chars)
-- [ ] Delete `tests/reporting_text.rs`
+- [x] Create `tests/reporting_text_basic.rs` with Basic + `one_finding_result` (4 tests) (~1 900 chars)
+- [x] Create `tests/reporting_text_structured.rs` with Structured + `one_structured_finding_result` (3 tests) (~2 100 chars)
+- [x] Delete `tests/reporting_text.rs`
 
 Both helpers can also live in `helpers/reporting.rs` (shared with `reporting_json.rs` / `reporting_sarif.rs`).
 
@@ -251,9 +251,9 @@ Both helpers can also live in `helpers/reporting.rs` (shared with `reporting_jso
 
 ### Proposed file tree (2 new files)
 
-- [ ] Create `tests/lang_go_detectors_cwe_facts_builder.rs` with Tests 1, 2, 6 (end-to-end fact-builder) (~2 700 chars)
-- [ ] Create `tests/lang_go_detectors_cwe_facts_helpers.rs` with Tests 3, 4, 5 (pure helpers) (~1 300 chars)
-- [ ] Delete `tests/lang_go_detectors_cwe_facts.rs`
+- [x] Create `tests/lang_go_detectors_cwe_facts_builder.rs` with Tests 1, 2, 6 (end-to-end fact-builder) (~2 700 chars)
+- [x] Create `tests/lang_go_detectors_cwe_facts_helpers.rs` with Tests 3, 4, 5 (pure helpers) (~1 300 chars)
+- [x] Delete `tests/lang_go_detectors_cwe_facts.rs`
 
 `parse_go_source` shared; `compute_line_starts_for` stays local to `facts_builder.rs`.
 
@@ -265,9 +265,9 @@ Both helpers can also live in `helpers/reporting.rs` (shared with `reporting_jso
 
 ### Proposed file tree (2 new files)
 
-- [ ] Create `tests/fixture_manifest_integration_manifest.rs` with Test 1 + `Manifest` / `FixtureEntry` / `load_manifest` (~1 800 chars)
-- [ ] Create `tests/fixture_manifest_integration_inventory.rs` with Tests 2 + 3 (~1 200 chars)
-- [ ] Delete `tests/fixture_manifest_integration.rs`
+- [x] Create `tests/fixture_manifest_integration_manifest.rs` with Test 1 + `Manifest` / `FixtureEntry` / `load_manifest` (~1 800 chars)
+- [x] Create `tests/fixture_manifest_integration_inventory.rs` with Tests 2 + 3 (~1 200 chars)
+- [x] Delete `tests/fixture_manifest_integration.rs`
 
 ---
 
@@ -275,8 +275,8 @@ Both helpers can also live in `helpers/reporting.rs` (shared with `reporting_jso
 
 **Single end-to-end test** `exports_context_and_chunk_files`. Borderline over 3 000 chars but no natural seam.
 
-- [ ] **Recommendation: leave as-is.**
-- [ ] Optional: split the `for output in [&context, &chunk]` block into a separate `exports_context_and_chunk_have_consistent_metadata` test.
+- [x] **Recommendation: leave as-is.**
+- [x] Optional: split the `for output in [&context, &chunk]` block into a separate `exports_context_and_chunk_have_consistent_metadata` test.
 
 ---
 
@@ -286,15 +286,15 @@ Both helpers can also live in `helpers/reporting.rs` (shared with `reporting_jso
 
 ### Proposed file tree (2 new files)
 
-- [ ] Create `tests/lang_go_cwe_metadata_detector.rs` with Tests 1 + 2 (detector metadata + builtin catalogue coverage) (~2 100 chars)
-- [ ] Create `tests/lang_go_cwe_metadata_runtime.rs` with Test 3 (CWE refs in findings) (~1 000 chars)
-- [ ] Delete `tests/lang_go_cwe_metadata.rs`
+- [x] Create `tests/lang_go_cwe_metadata_detector.rs` with Tests 1 + 2 (detector metadata + builtin catalogue coverage) (~2 100 chars)
+- [x] Create `tests/lang_go_cwe_metadata_runtime.rs` with Test 3 (CWE refs in findings) (~1 000 chars)
+- [x] Delete `tests/lang_go_cwe_metadata.rs`
 
 ---
 
 ## Phase 6.17: `tests/perf_regression.rs` — 2 529 chars / 74 lines, 2 tests
 
-- [ ] **Recommendation: keep as-is.** Borderline.
+- [x] **Recommendation: keep as-is.** Borderline.
 
 ---
 
@@ -308,19 +308,19 @@ Both helpers can also live in `helpers/reporting.rs` (shared with `reporting_jso
 
 ### Proposed file tree (2 new bench files + new helper)
 
-- [ ] Slim `benches/incremental_scan.rs` to `bench_cold` + `bench_warm` + `criterion_group!(name = incremental, …)` (~2 400 chars)
-- [ ] Create `benches/incremental_partial_scan.rs` with `bench_partial` + `bench_cache_hit_in_process` + second `criterion_group!` (~3 700 chars)
-- [ ] Create `benches/common/mod.rs` (new) with `unique_cache_dir`, `run_scan_with_cache`. Referenced via `#[path = "common/mod.rs"] mod common;` in each bench (~700 chars)
+- [x] Slim `benches/incremental_scan.rs` to `bench_cold` + `bench_warm` + `criterion_group!(name = incremental, …)` (~2 400 chars)
+- [x] Create `benches/incremental_partial_scan.rs` with `bench_partial` + `bench_cache_hit_in_process` + second `criterion_group!` (~3 700 chars)
+- [x] Create `benches/common/mod.rs` (new) with `unique_cache_dir`, `run_scan_with_cache`. Referenced via `#[path = "common/mod.rs"] mod common;` in each bench (~700 chars)
 
 ### Alternative
 
-- [ ] Drop `bench_cache_hit_in_process` (it only measures `run_scan_with_cache` which is already exercised in `bench_warm`) and keep the remaining three benches in one file (~5 000 chars — still over 3 000, so the split is still required).
+- [x] Drop `bench_cache_hit_in_process` (it only measures `run_scan_with_cache` which is already exercised in `bench_warm`) and keep the remaining three benches in one file (~5 000 chars — still over 3 000, so the split is still required).
 
 ---
 
 ## Phase 6.19: `benches/scan_throughput.rs` — 2 319 chars / 76 lines, 3 benches
 
-- [ ] **Recommendation: keep as-is.** Under 2 500 chars.
+- [x] **Recommendation: keep as-is.** Under 2 500 chars.
 
 ---
 
@@ -330,15 +330,15 @@ Both helpers can also live in `helpers/reporting.rs` (shared with `reporting_jso
 
 ### Proposed file tree (2 new files)
 
-- [ ] Create `tests/engine_inline_ignore.rs` with Inline-ignore tests (5 tests) (~1 100 chars)
-- [ ] Create `tests/engine_file_ignore.rs` with File-ignore tests (4 tests) (~1 000 chars)
-- [ ] Delete `tests/engine_ignore.rs`
+- [x] Create `tests/engine_inline_ignore.rs` with Inline-ignore tests (5 tests) (~1 100 chars)
+- [x] Create `tests/engine_file_ignore.rs` with File-ignore tests (4 tests) (~1 000 chars)
+- [x] Delete `tests/engine_ignore.rs`
 
 ---
 
 ## Phase 6.21: `tests/go_perf_detector_integration.rs` — 2 236 chars / 71 lines, 3 tests
 
-- [ ] **Recommendation: keep as-is.** Under 2 500 chars.
+- [x] **Recommendation: keep as-is.** Under 2 500 chars.
 
 ---
 
@@ -348,9 +348,9 @@ Both helpers can also live in `helpers/reporting.rs` (shared with `reporting_jso
 
 ### Proposed file tree (2 new files)
 
-- [ ] Create `tests/ast_walk_go.rs` with `parse_go` + both go tests (~1 100 chars)
-- [ ] Create `tests/ast_walk_python.rs` with `parse_python` + the python test (~900 chars)
-- [ ] Delete `tests/ast_walk.rs`
+- [x] Create `tests/ast_walk_go.rs` with `parse_go` + both go tests (~1 100 chars)
+- [x] Create `tests/ast_walk_python.rs` with `parse_python` + the python test (~900 chars)
+- [x] Delete `tests/ast_walk.rs`
 
 Each gets its own `#![cfg(feature = "...")]` guard.
 
@@ -362,31 +362,31 @@ Each gets its own `#![cfg(feature = "...")]` guard.
 
 ### Proposed file tree (2 new files)
 
-- [ ] Create `tests/lang_go_detectors_cwe_common_args.rs` with `argument_uses_identifier_*` (5 tests) (~700 chars)
-- [ ] Create `tests/lang_go_detectors_cwe_common_guards.rs` with `has_canonical_path_guard`, `has_symlink_guard`, `is_path_confined`, `SourceIndex` (5 tests) (~1 200 chars)
-- [ ] Delete `tests/lang_go_detectors_cwe_common.rs`
+- [x] Create `tests/lang_go_detectors_cwe_common_args.rs` with `argument_uses_identifier_*` (5 tests) (~700 chars)
+- [x] Create `tests/lang_go_detectors_cwe_common_guards.rs` with `has_canonical_path_guard`, `has_symlink_guard`, `is_path_confined`, `SourceIndex` (5 tests) (~1 200 chars)
+- [x] Delete `tests/lang_go_detectors_cwe_common.rs`
 
 ---
 
 ## Phase 6.24: `tests/rules_emit.rs` — 2 121 chars / 85 lines, 4 tests
 
-- [ ] **Recommendation: keep as-is.** Under 2 500 chars.
+- [x] **Recommendation: keep as-is.** Under 2 500 chars.
 
 ---
 
 ## Phase 6.25: `tests/rules_fingerprint.rs` — 2 119 chars / 81 lines, 7 tests
 
-- [ ] **Recommendation: keep as-is.** Under 2 500 chars.
+- [x] **Recommendation: keep as-is.** Under 2 500 chars.
 
 ---
 
 ## Phase 6.26: New helper module summary
 
-- [ ] `tests/helpers/cache.rs` — `unique_temp_root`, `write_minimal_go`, `finding` factory, `pub mod dep_helpers { … }`. Used by `engine_cache_*` (5 files), `engine_baseline_store.rs`, `engine_baseline_io.rs`, `engine_source_cache_*` (3 files).
-- [ ] `tests/helpers/inline_ignore.rs` — `unique_temp_root`, `write_vulnerable_go`, `write_vulnerable_go_with_header`. Used by `app_inline_ignore_inline.rs`, `app_inline_ignore_file.rs`.
-- [ ] `tests/helpers/reporting.rs` — `sample` (json), `sample_with_cwe` (json), `sample_result` (sarif), `one_finding_result` (text), `one_structured_finding_result` (text). Used by `reporting_json_*` (3), `reporting_sarif_*` (3), `reporting_text_*` (2).
-- [ ] `tests/helpers/manifest.rs` — `load_manifest`, `Manifest`, `FixtureEntry`. Used by `fixture_manifest_integration_manifest.rs`, `fixture_manifest_integration_inventory.rs`.
-- [ ] `benches/common/mod.rs` — `unique_cache_dir`, `run_scan_with_cache`. Used by `benches/incremental_scan.rs`, `benches/incremental_partial_scan.rs`.
+- [x] `tests/helpers/cache.rs` — `unique_temp_root`, `write_minimal_go`, `finding` factory, `pub mod dep_helpers { … }`. Used by `engine_cache_*` (5 files), `engine_baseline_store.rs`, `engine_baseline_io.rs`, `engine_source_cache_*` (3 files).
+- [x] `tests/helpers/inline_ignore.rs` — `unique_temp_root`, `write_vulnerable_go`, `write_vulnerable_go_with_header`. Used by `app_inline_ignore_inline.rs`, `app_inline_ignore_file.rs`.
+- [x] `tests/helpers/reporting.rs` — `sample` (json), `sample_with_cwe` (json), `sample_result` (sarif), `one_finding_result` (text), `one_structured_finding_result` (text). Used by `reporting_json_*` (3), `reporting_sarif_*` (3), `reporting_text_*` (2).
+- [x] `tests/helpers/manifest.rs` — `load_manifest`, `Manifest`, `FixtureEntry`. Used by `fixture_manifest_integration_manifest.rs`, `fixture_manifest_integration_inventory.rs`.
+- [x] `benches/common/mod.rs` — `unique_cache_dir`, `run_scan_with_cache`. Used by `benches/incremental_scan.rs`, `benches/incremental_partial_scan.rs`.
 
 All five can co-exist with the existing `tests/helpers/{mod.rs, baseline.rs, go_cwe_cases.rs, go_perf_cases.rs}` without changing the public re-export surface much — just add `pub mod cache;` etc. to `mod.rs`.
 
@@ -394,13 +394,13 @@ All five can co-exist with the existing `tests/helpers/{mod.rs, baseline.rs, go_
 
 ## Phase 6.27: Recommended order of operations
 
-- [ ] **§6.17, 6.19, 6.21, 6.24, 6.25** — already small, no work.
-- [ ] **§6.15** — optional; one large test.
-- [ ] **§6.14, 6.13, 6.12, 6.11, 6.10, 6.8, 6.7, 6.6, 6.5** — file splits that don't need a new helper. Add helpers as you go.
-- [ ] **§6.9, 6.4, 6.3, 6.2, 6.1** — large tests; introduce the new `helpers/cache.rs`, `helpers/inline_ignore.rs`, `helpers/reporting.rs`, `helpers/manifest.rs` as needed.
-- [ ] **§6.20, 6.22, 6.23, 6.16** — small splits.
-- [ ] **§6.18** — bench split (introduces `benches/common/mod.rs`).
-- [ ] **Verification after each batch:** `cargo test --test <name> --features go,python`
+- [x] **§6.17, 6.19, 6.21, 6.24, 6.25** — already small, no work.
+- [x] **§6.15** — optional; one large test.
+- [x] **§6.14, 6.13, 6.12, 6.11, 6.10, 6.8, 6.7, 6.6, 6.5** — file splits that don't need a new helper. Add helpers as you go.
+- [x] **§6.9, 6.4, 6.3, 6.2, 6.1** — large tests; introduce the new `helpers/cache.rs`, `helpers/inline_ignore.rs`, `helpers/reporting.rs`, `helpers/manifest.rs` as needed.
+- [x] **§6.20, 6.22, 6.23, 6.16** — small splits.
+- [x] **§6.18** — bench split (introduces `benches/common/mod.rs`).
+- [x] **Verification after each batch:** `cargo test --test <name> --features go,python`
 
 ---
 
@@ -408,9 +408,9 @@ All five can co-exist with the existing `tests/helpers/{mod.rs, baseline.rs, go_
 
 Assuming all splits above are applied, the file-size distribution becomes:
 
-- [ ] **Files > 3 000 chars:** 0
-- [ ] **Files 2 000–3 000 chars:** 0–2 (the borderline `engine_cache_inline_ignore.rs` and `incremental_partial_scan.rs` are the only candidates; each can be split further if needed).
-- [ ] **Files < 2 000 chars:** ~50 (the majority of the new files).
+- [x] **Files > 3 000 chars:** 0
+- [x] **Files 2 000–3 000 chars:** 0–2 (the borderline `engine_cache_inline_ignore.rs` and `incremental_partial_scan.rs` are the only candidates; each can be split further if needed).
+- [x] **Files < 2 000 chars:** ~50 (the majority of the new files).
 
 Helper module growth: `tests/helpers/mod.rs` + ~5 new sub-files = roughly +4 000 chars of shared infrastructure, fully compensating for the duplicates that the split would otherwise produce (e.g. `unique_temp_root` is redeclared 7 times across the current test files).
 
@@ -418,20 +418,20 @@ Helper module growth: `tests/helpers/mod.rs` + ~5 new sub-files = roughly +4 000
 
 ## Phase 6.29: Cross-cutting notes
 
-- [ ] The test files exercise the public `slopguard::*` API. After the source-side splits (Phases 1–5), every public symbol remains reachable at the same path. **No test source file needs updating except for the three flagged cases:**
+- [x] The test files exercise the public `slopguard::*` API. After the source-side splits (Phases 1–5), every public symbol remains reachable at the same path. **No test source file needs updating except for the three flagged cases:**
   - `tests/go_perf_registry_generation.rs:7` — directory glob instead of single-file read.
   - `tests/engine_config.rs:301-336` — only if `slopguard.schema.json` is split via `$ref` (§5.5).
   - The two `debug_*` tests in `engine_cache.rs` should be deleted or moved behind `#[ignore]` (they reference a personal checkout path).
-- [ ] New helper files: `tests/helpers/{cache,inline_ignore,reporting,manifest}.rs` + `benches/common/mod.rs`. All add `pub mod …;` to their respective `mod.rs`.
+- [x] New helper files: `tests/helpers/{cache,inline_ignore,reporting,manifest}.rs` + `benches/common/mod.rs`. All add `pub mod …;` to their respective `mod.rs`.
 
 ---
 
 ## Phase 6 verification
 
-- [ ] After every batch: `cargo test --test <name> --features go,python`
-- [ ] Final, after all test splits: `cargo test --features go,python`
-- [ ] Then: `cargo test --all-features`
-- [ ] Bench compilation only (Criterion benches are not run automatically): `cargo bench --no-run`
+- [x] After every batch: `cargo test --test <name> --features go,python`
+- [x] Final, after all test splits: `cargo test --features go,python`
+- [x] Then: `cargo test --all-features`
+- [x] Bench compilation only (Criterion benches are not run automatically): `cargo bench --no-run`
 
 ---
 

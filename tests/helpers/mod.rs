@@ -9,6 +9,10 @@ use slopguard::engine::Analyzer;
 use slopguard::fixture::{materialize_fixture, materialize_tree, materialized_root};
 
 pub mod baseline;
+pub mod cache;
+pub mod inline_ignore;
+pub mod manifest;
+pub mod reporting;
 
 /// Materialize a `.txt` fixture and verify it parses; does not run the analyzer.
 pub fn assert_fixture_materializes(txt_path: &str) -> std::path::PathBuf {

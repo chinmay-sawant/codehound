@@ -5,9 +5,15 @@ mod go_cwe_cases;
 
 use slopguard::core::Detector;
 use slopguard::cwe::builtin_rule_catalogue;
-use slopguard::engine::Analyzer;
-use slopguard::fixture::materialize_fixture;
 use slopguard::lang::go::detectors::cwe::GoCweScan;
+
+fn canonicalize_rule_id(id: &str) -> String {
+    if id.starts_with("CWE-") {
+        id.to_string()
+    } else {
+        format!("CWE-{id}")
+    }
+}
 
 #[test]
 fn go_cwe_metadata_runtime_stays_aligned() {
@@ -66,40 +72,5 @@ fn builtin_catalogue_covers_all_go_fixture_rules() {
             rule_ids.contains(&cwe),
             "builtin_rule_catalogue is missing {cwe}"
         );
-    }
-}
-
-#[test]
-fn go_cwe_findings_include_structured_cwe_refs() {
-    let fixture = "tests/fixtures/go/frameworks/CWE-22-vulnerable.txt";
-    let source_path = materialize_fixture(std::path::Path::new(fixture))
-        .unwrap_or_else(|e| panic!("materialize {fixture}: {e:#}"));
-
-    let analyzer = Analyzer::builder().build();
-    let result = analyzer
-        .analyze_paths([&source_path], None)
-        .unwrap_or_else(|e| panic!("analyze {}: {e:#}", source_path.display()));
-
-    let finding = result
-        .findings
-        .iter()
-        .find(|finding| finding.rule_id == "CWE-22")
-        .expect("expected CWE-22 finding");
-    let cwe = finding
-        .cwe
-        .as_deref()
-        .expect("expected structured CWE metadata");
-
-    assert_eq!(cwe.len(), 1);
-    assert_eq!(cwe[0].id, 22);
-    assert_eq!(cwe[0].name, finding.rule_title);
-    assert_eq!(cwe[0].url, "https://cwe.mitre.org/data/definitions/22.html");
-}
-
-fn canonicalize_rule_id(id: &str) -> String {
-    if id.starts_with("CWE-") {
-        id.to_string()
-    } else {
-        format!("CWE-{id}")
     }
 }

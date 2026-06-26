@@ -1,7 +1,7 @@
 # v2.0.0 — Inventory of Files Exceeding 2 000–3 000 Character Limits
 
 > **Parent:** `README.md` (master plan)
-> **Status:** Phase 1 complete. Phase 2 complete. Phase 3 complete. Phase 4 complete. Phase 5 complete. Phase 6 not started.
+> **Status:** Phase 1 complete. Phase 2 complete. Phase 3 complete. Phase 4 complete. Phase 5 complete. Phase 6 complete. All 6 phases done..
 > **Estimated effort:** Reference-only document. No code changes.
 
 ---
@@ -162,31 +162,31 @@ document that covers the proposed split.
 
 | File | Bytes | Lines | Phase-6 section | Action | Done |
 |---|---:|---:|---|---|---|
-| `tests/engine_cache.rs` | 31 031 | 939 | §6.1 | **Critical** — split into 5 new test files + new `helpers/cache.rs` | [ ] |
-| `tests/engine_config.rs` | 9 039 | 337 | §6.2 | Split into 3 new test files | [ ] |
-| `tests/engine_source_cache.rs` | 8 905 | 266 | §6.3 | Split into 3 new test files (reuse `helpers/cache.rs::unique_temp_root`) | [ ] |
-| `tests/app_baseline.rs` | 8 356 | 274 | §6.4 | Split into 3 new test files | [ ] |
-| `tests/reporting_json.rs` | 7 967 | 280 | §6.5 | Split into 3 new test files + new `helpers/reporting.rs` | [ ] |
-| `tests/reporting_sarif.rs` | 7 433 | 241 | §6.6 | Split into 3 new test files | [ ] |
-| `tests/rules_finding.rs` | 7 257 | 285 | §6.7 | Split into 3 new test files | [ ] |
-| `tests/engine_observability.rs` | 6 331 | 206 | §6.8 | Split into 3 new test files | [ ] |
-| `tests/app_inline_ignore.rs` | 6 156 | 231 | §6.9 | Split into 2 new test files + new `helpers/inline_ignore.rs` | [ ] |
-| `tests/go_cwe_detector_integration.rs` | 5 452 | 177 | §6.10 | Split into 2 new test files | [ ] |
-| `tests/engine_baseline.rs` | 4 889 | 150 | §6.11 | Split into 2 new test files (reuse `helpers/cache.rs`) | [ ] |
-| `tests/reporting_text.rs` | 4 416 | 163 | §6.12 | Split into 2 new test files (reuse `helpers/reporting.rs`) | [ ] |
-| `tests/lang_go_detectors_cwe_facts.rs` | 4 313 | 150 | §6.13 | Split into 2 new test files | [ ] |
-| `tests/fixture_manifest_integration.rs` | 3 267 | 111 | §6.14 | Split into 2 new test files + new `helpers/manifest.rs` | [ ] |
-| `tests/export.rs` | 3 165 | 92 | §6.15 | Optional — borderline; leave as-is recommended | [ ] |
-| `tests/lang_go_cwe_metadata.rs` | 3 089 | 105 | §6.16 | Split into 2 new test files | [ ] |
-| `tests/perf_regression.rs` | 2 529 | 74 | §6.17 | **No split** — borderline | [ ] |
-| `benches/incremental_scan.rs` | 6 176 | 154 | §6.18 | Split into 2 bench files + new `benches/common/mod.rs` | [ ] |
-| `benches/scan_throughput.rs` | 2 319 | 76 | §6.19 | **No split** — under 2 500 chars | [ ] |
-| `tests/engine_ignore.rs` | 2 290 | 97 | §6.20 | Split into 2 new test files | [ ] |
-| `tests/go_perf_detector_integration.rs` | 2 236 | 71 | §6.21 | **No split** — under 2 500 chars | [ ] |
-| `tests/ast_walk.rs` | 2 203 | 84 | §6.22 | Split into 2 new test files (each with its own `#![cfg(feature = "...")]` guard) | [ ] |
-| `tests/lang_go_detectors_cwe_common.rs` | 2 135 | 75 | §6.23 | Split into 2 new test files | [ ] |
-| `tests/rules_emit.rs` | 2 121 | 85 | §6.24 | **No split** — under 2 500 chars | [ ] |
-| `tests/rules_fingerprint.rs` | 2 119 | 81 | §6.25 | **No split** — under 2 500 chars | [ ] |
+| `tests/engine_cache.rs` | 31 031 | 939 | §6.1 | **Critical** — split into 5 new test files + new `helpers/cache.rs` | [x] |
+| `tests/engine_config.rs` | 9 039 | 337 | §6.2 | Split into 3 new test files | [x] |
+| `tests/engine_source_cache.rs` | 8 905 | 266 | §6.3 | Split into 3 new test files (reuse `helpers/cache.rs::unique_temp_root`) | [x] |
+| `tests/app_baseline.rs` | 8 356 | 274 | §6.4 | Split into 3 new test files | [x] |
+| `tests/reporting_json.rs` | 7 967 | 280 | §6.5 | Split into 3 new test files + new `helpers/reporting.rs` | [x] |
+| `tests/reporting_sarif.rs` | 7 433 | 241 | §6.6 | Split into 3 new test files | [x] |
+| `tests/rules_finding.rs` | 7 257 | 285 | §6.7 | Split into 3 new test files | [x] |
+| `tests/engine_observability.rs` | 6 331 | 206 | §6.8 | Split into 3 new test files | [x] |
+| `tests/app_inline_ignore.rs` | 6 156 | 231 | §6.9 | Split into 2 new test files + new `helpers/inline_ignore.rs` | [x] |
+| `tests/go_cwe_detector_integration.rs` | 5 452 | 177 | §6.10 | Split into 2 new test files | [x] |
+| `tests/engine_baseline.rs` | 4 889 | 150 | §6.11 | Split into 2 new test files (reuse `helpers/cache.rs`) | [x] |
+| `tests/reporting_text.rs` | 4 416 | 163 | §6.12 | Split into 2 new test files (reuse `helpers/reporting.rs`) | [x] |
+| `tests/lang_go_detectors_cwe_facts.rs` | 4 313 | 150 | §6.13 | Split into 2 new test files | [x] |
+| `tests/fixture_manifest_integration.rs` | 3 267 | 111 | §6.14 | Split into 2 new test files + new `helpers/manifest.rs` | [x] |
+| `tests/export.rs` | 3 165 | 92 | §6.15 | Optional — borderline; leave as-is recommended | [x] |
+| `tests/lang_go_cwe_metadata.rs` | 3 089 | 105 | §6.16 | Split into 2 new test files | [x] |
+| `tests/perf_regression.rs` | 2 529 | 74 | §6.17 | **No split** — borderline | [x] |
+| `benches/incremental_scan.rs` | 6 176 | 154 | §6.18 | Split into 2 bench files + new `benches/common/mod.rs` | [x] |
+| `benches/scan_throughput.rs` | 2 319 | 76 | §6.19 | **No split** — under 2 500 chars | [x] |
+| `tests/engine_ignore.rs` | 2 290 | 97 | §6.20 | Split into 2 new test files | [x] |
+| `tests/go_perf_detector_integration.rs` | 2 236 | 71 | §6.21 | **No split** — under 2 500 chars | [x] |
+| `tests/ast_walk.rs` | 2 203 | 84 | §6.22 | Split into 2 new test files (each with its own `#![cfg(feature = "...")]` guard) | [x] |
+| `tests/lang_go_detectors_cwe_common.rs` | 2 135 | 75 | §6.23 | Split into 2 new test files | [x] |
+| `tests/rules_emit.rs` | 2 121 | 85 | §6.24 | **No split** — under 2 500 chars | [x] |
+| `tests/rules_fingerprint.rs` | 2 119 | 81 | §6.25 | **No split** — under 2 500 chars | [x] |
 
 **Phase 6 subtotal:** 25 files targeted, 18 require splitting, ~50 new files + ~5 new helper modules.
 
@@ -199,7 +199,7 @@ document that covers the proposed split.
 - [x] **Phase 3** — 30 files, 28 splits, ~75 new files (28/28 done; metadata_overrides kept flat per Option A)
 - [x] **Phase 4** — 19 files, 16 splits, ~75 new files
 - [x] **Phase 5** — 6 files, 5 splits, ~25 new files
-- [ ] **Phase 6** — 25 files, 18 splits, ~50 new files + ~5 new helper modules
+- [x] **Phase 6** — 25 files, 18 splits, ~50 new files + ~5 new helper modules
 
 **Grand total:** ~95 files targeted, ~80 require splitting, ~335 new files to author. **Phase 1: 22/22 splits done.**
 

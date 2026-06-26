@@ -1,81 +1,11 @@
-use std::borrow::Cow;
-use std::time::{Instant, SystemTime, UNIX_EPOCH};
+use std::time::Instant;
 
-use slopguard::engine::{BASELINE_FILE_NAME, Baseline, discover_baseline};
-use slopguard::rules::{Finding, LineCol, Severity};
+#[path = "helpers/mod.rs"]
+mod helpers;
+use helpers::cache::{finding, unique_temp_root};
 
-fn unique_temp_root(test_name: &str) -> std::path::PathBuf {
-    let unique = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    std::env::temp_dir().join(format!("slopguard-{test_name}-{unique}"))
-}
-
-fn finding(rule_id: &'static str, file: &str, line: usize, column: usize) -> Finding {
-    Finding::new(
-        rule_id,
-        "title",
-        file,
-        LineCol { line, column },
-        "msg",
-        Severity::High,
-        Cow::Borrowed(&[]),
-    )
-}
-
-#[test]
-fn baseline_from_findings_groups_entries_by_rule() {
-    let baseline = Baseline::from_findings(&[
-        finding("CWE-22", "a.go", 1, 2),
-        finding("CWE-89", "b.go", 3, 4),
-    ]);
-
-    assert_eq!(baseline.version, "1");
-    assert_eq!(baseline.entry_count(), 2);
-    assert_eq!(
-        baseline.entries["CWE-22"][0].fingerprint,
-        "slopguard:1:CWE-22:a.go:1:2"
-    );
-    assert_eq!(
-        baseline.entries["CWE-89"][0].fingerprint,
-        "slopguard:1:CWE-89:b.go:3:4"
-    );
-}
-
-#[test]
-fn baseline_contains_matches_exact_fingerprint() {
-    let baseline = Baseline::from_findings(&[finding("CWE-22", "a.go", 1, 2)]);
-
-    assert!(baseline.contains("CWE-22", "a.go", 1, 2));
-    assert!(!baseline.contains("CWE-22", "a.go", 1, 3));
-    assert!(!baseline.contains("CWE-22", "b.go", 1, 2));
-    assert!(!baseline.contains("CWE-89", "a.go", 1, 2));
-}
-
-#[test]
-fn baseline_round_trips_to_file() {
-    let root = unique_temp_root("baseline-round-trip");
-    std::fs::create_dir_all(&root).unwrap();
-    let path = root.join(BASELINE_FILE_NAME);
-    let baseline = Baseline::from_findings(&[finding("CWE-22", "a.go", 1, 2)]);
-
-    baseline.to_file(&path).unwrap();
-    let loaded = Baseline::from_file(&path).unwrap();
-
-    assert_eq!(loaded.entry_count(), 1);
-    assert!(loaded.contains("CWE-22", "a.go", 1, 2));
-
-    std::fs::remove_dir_all(root).unwrap();
-}
-
-#[test]
-fn empty_baseline_contains_nothing() {
-    let baseline = Baseline::from_findings(&[]);
-
-    assert_eq!(baseline.entry_count(), 0);
-    assert!(!baseline.contains("CWE-22", "a.go", 1, 2));
-}
+use slopguard::engine::{Baseline, BASELINE_FILE_NAME, discover_baseline};
+use slopguard::rules::Finding;
 
 #[test]
 fn discover_baseline_walks_up_to_git_root() {
