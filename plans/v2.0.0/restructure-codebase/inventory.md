@@ -1,7 +1,7 @@
 # v2.0.0 — Inventory of Files Exceeding 2 000–3 000 Character Limits
 
 > **Parent:** `README.md` (master plan)
-> **Status:** Phase 1 complete. Phase 2 complete. Phase 3 complete. Phase 4 complete. Phases 5-6 not started.
+> **Status:** Phase 1 complete. Phase 2 complete. Phase 3 complete. Phase 4 complete. Phase 5 complete. Phase 6 not started.
 > **Estimated effort:** Reference-only document. No code changes.
 
 ---
@@ -147,12 +147,12 @@ document that covers the proposed split.
 
 | File | Bytes | Lines | Phase-5 section | Action | Done |
 |---|---:|---:|---|---|---|
-| `src/lang/go/detectors/cwe/registry.toml` | 14 144 | 878 | §5.3 | Split by domain into 15 per-domain TOML files (mirror `domains/` layout) | [ ] |
-| `src/lang/go/detectors/perf/registry.toml` | 12 456 | 801 | §5.4 | Split by domain into 7 per-domain TOML files (mirror `domains/` layout) | [ ] |
-| `build.rs` | 12 914 | 386 | §5.2 | **Highest-leverage split** — into `build/` directory of 6 sub-modules | [ ] |
-| `slopguard.schema.json` | 4 403 | 124 | §5.5 | Optional split via `$ref` (recommendation: skip) | [ ] |
-| `.github/workflows/ci.yml` | 3 392 | 113 | §5.6 | Extract `rust-toolchain-cache` composite action; extract `scripts/check_bench_budget.sh` | [ ] |
-| `Cargo.toml` | 2 300 | 95 | §5.1 | **No split** — Cargo manifest format does not support it | [ ] |
+| `src/lang/go/detectors/cwe/registry.toml` | 14 144 | 878 | §5.3 | Split by domain into 15 per-domain TOML files (mirror `domains/` layout) | [x] |
+| `src/lang/go/detectors/perf/registry.toml` | 12 456 | 801 | §5.4 | Split by domain into 7 per-domain TOML files (mirror `domains/` layout) | [x] |
+| `build.rs` | 12 914 | 386 | §5.2 | **Highest-leverage split** — into `build/` directory of 6 sub-modules | [x] |
+| `slopguard.schema.json` | 4 403 | 124 | §5.5 | Optional split via `$ref` (recommendation: skip) | [x] |
+| `.github/workflows/ci.yml` | 3 392 | 113 | §5.6 | Extract `rust-toolchain-cache` composite action; extract `scripts/check_bench_budget.sh` | [x] |
+| `Cargo.toml` | 2 300 | 95 | §5.1 | **No split** — Cargo manifest format does not support it | [x] |
 
 **Phase 5 subtotal:** 6 files targeted, 5 require splitting, ~25 new files/artifacts to author.
 
@@ -198,7 +198,7 @@ document that covers the proposed split.
 - [x] **Phase 2** — 10 files, 7 splits, ~30 new files (7/7 done; +3 no-split confirmations)
 - [x] **Phase 3** — 30 files, 28 splits, ~75 new files (28/28 done; metadata_overrides kept flat per Option A)
 - [x] **Phase 4** — 19 files, 16 splits, ~75 new files
-- [ ] **Phase 5** — 6 files, 5 splits, ~25 new files
+- [x] **Phase 5** — 6 files, 5 splits, ~25 new files
 - [ ] **Phase 6** — 25 files, 18 splits, ~50 new files + ~5 new helper modules
 
 **Grand total:** ~95 files targeted, ~80 require splitting, ~335 new files to author. **Phase 1: 22/22 splits done.**

@@ -4,12 +4,22 @@ use slopguard::core::LanguageId;
 use slopguard::engine::Registry;
 
 fn registry_toml_perf_ids() -> BTreeSet<String> {
-    let text = std::fs::read_to_string("src/lang/go/detectors/perf/registry.toml")
-        .expect("read PERF registry");
-    text.lines()
-        .filter_map(|line| line.trim().strip_prefix("perf = "))
-        .map(|value| format!("PERF-{}", value.trim()))
-        .collect()
+    let mut ids = BTreeSet::new();
+    let dir = std::fs::read_dir("src/lang/go/detectors/perf/registry")
+        .expect("read PERF registry dir");
+    for entry in dir {
+        let entry = entry.unwrap();
+        let path = entry.path();
+        if path.extension().map_or(false, |e| e == "toml") {
+            let text = std::fs::read_to_string(&path).expect("read PERF registry file");
+            ids.extend(
+                text.lines()
+                    .filter_map(|line| line.trim().strip_prefix("perf = "))
+                    .map(|value| format!("PERF-{}", value.trim())),
+            );
+        }
+    }
+    ids
 }
 
 #[test]
