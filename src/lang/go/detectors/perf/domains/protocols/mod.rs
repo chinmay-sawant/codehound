@@ -1,3 +1,4 @@
+mod common;
 mod data_and_rpc;
 mod observability;
 mod web_frameworks;

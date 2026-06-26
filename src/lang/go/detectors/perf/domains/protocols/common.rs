@@ -93,17 +93,6 @@ pub(crate) const REDIS_LOOP_TRIGGERS: &[&str] = &[
     "rdb.Expire",
 ];
 
-pub(crate) const FLAG_METHODS: &[&str] = &[
-    "String",
-    "Bool",
-    "Int",
-    "Int64",
-    "Duration",
-    "Float64",
-    "StringSlice",
-    "StringArray",
-];
-
 pub(crate) const FLAG_METHOD_SFX: &[&str] = &[
     ".String(",
     ".Bool(",

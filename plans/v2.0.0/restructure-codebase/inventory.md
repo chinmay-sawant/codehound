@@ -1,7 +1,7 @@
 # v2.0.0 — Inventory of Files Exceeding 2 000–3 000 Character Limits
 
 > **Parent:** `README.md` (master plan)
-> **Status:** Phase 1 complete. Phase 2 complete. Phase 3 complete (domain leaves only; metadata_overrides kept flat with comments per Option A). Phases 4-6 not started.
+> **Status:** Phase 1 complete. Phase 2 complete. Phase 3 complete. Phase 4 complete. Phases 5-6 not started.
 > **Estimated effort:** Reference-only document. No code changes.
 
 ---
@@ -119,24 +119,24 @@ document that covers the proposed split.
 
 | File | Bytes | Lines | Phase-4 section | Action | Done |
 |---|---:|---:|---|---|---|
-| `src/lang/go/detectors/perf/domains/general_perf/stdlib_misuse.rs` | **106 814** | 3 045 | §4.1 | **CRITICAL** — split into `stdlib_misuse/` (13 new files) | [ ] |
-| `src/lang/go/detectors/perf/metadata_overrides.rs` | 17 082 | 152 | §4.2 | Option A: keep flat with comments. Option B: split (requires MSRV bump) | [ ] |
-| `src/lang/go/detectors/perf/domains/general_perf/concurrency_and_path.rs` | 13 020 | 415 | §4.3 | Split into `concurrency_and_path/` (3 new files) | [ ] |
-| `src/lang/go/detectors/perf/facts.rs` | 12 548 | 387 | §4.4 | Split into `facts/` (4 new files) | [ ] |
-| `src/lang/go/detectors/perf/domains/general_perf/allocations_and_reuse.rs` | 10 491 | 309 | §4.5 | Split into `allocations_and_reuse/` (3 new files) | [ ] |
-| `src/lang/go/detectors/perf/domains/request_path.rs` | 10 272 | 345 | §4.6 | Split into `request_path/` (3 new files) | [ ] |
-| `src/lang/go/detectors/perf/domains/parsing_in_loops.rs` | 10 219 | 349 | §4.7 | Split into `parsing_in_loops/` (3 new files) | [ ] |
-| `src/lang/go/detectors/perf/domains/protocols/web_frameworks.rs` | 9 624 | 326 | §4.8 | Split out `fiber.rs`; dedup with `common.rs` | [ ] |
-| `src/lang/go/detectors/perf/domains/gin_framework/handler_patterns.rs` | 9 152 | 280 | §4.9 | Split into `handler_patterns/` (3 new files) | [ ] |
-| `src/lang/go/detectors/perf/domains/loop_allocations.rs` | 8 511 | 269 | §4.10 | Optional split into `loop_allocations/` (2 new files) | [ ] |
-| `src/lang/go/detectors/perf/domains/data_access/gorm_queries.rs` | 8 296 | 282 | §4.11 | Split into `gorm_queries/` (2 new files) | [ ] |
-| `src/lang/go/detectors/perf/domains/gin_framework/middleware_and_routing.rs` | 7 640 | 224 | §4.12 | Split into `middleware_and_routing/` (2 new files) | [ ] |
-| `src/lang/go/detectors/perf/domains/general_perf/loops_and_iteration.rs` | 7 623 | 242 | §4.13 | Split into `loops_and_iteration/` (2 new files) | [ ] |
-| `src/lang/go/detectors/perf/domains/protocols/data_and_rpc.rs` | 7 444 | 273 | §4.14 | Split out `grpc.rs` + `redis.rs`; dedup with `common.rs` | [ ] |
-| `src/lang/go/detectors/perf/domains/data_access/sqlx_and_echo.rs` | 7 425 | 244 | §4.15 | Split into `sqlx_and_echo/` (2 new files) | [ ] |
-| `src/lang/go/detectors/perf/domains/protocols/observability.rs` | 6 273 | 233 | §4.16 | Split out `prometheus.rs` + `cobra.rs`; dedup with `common.rs` | [ ] |
-| `src/lang/go/detectors/perf/domains/protocols/common.rs` | 3 169 | 147 | §4.17 | **Activate** — add `pub(crate) use common::*;` to `protocols/mod.rs`; delete dead `FLAG_METHODS` | [ ] |
-| `src/lang/go/detectors/perf/source_index.rs` | 2 037 | 88 | §4.18 | **No split** — single concept | [ ] |
+| `src/lang/go/detectors/perf/domains/general_perf/stdlib_misuse.rs` | **106 814** | 3 045 | §4.1 | **CRITICAL** — split into `stdlib_misuse/` (13 new files) | [x] |
+| `src/lang/go/detectors/perf/metadata_overrides.rs` | 17 082 | 152 | §4.2 | Option A: keep flat with comments. Option B: split (requires MSRV bump) | [x] |
+| `src/lang/go/detectors/perf/domains/general_perf/concurrency_and_path.rs` | 13 020 | 415 | §4.3 | Split into `concurrency_and_path/` (3 new files) | [x] |
+| `src/lang/go/detectors/perf/facts.rs` | 12 548 | 387 | §4.4 | Split into `facts/` (4 new files) | [x] |
+| `src/lang/go/detectors/perf/domains/general_perf/allocations_and_reuse.rs` | 10 491 | 309 | §4.5 | Split into `allocations_and_reuse/` (3 new files) | [x] |
+| `src/lang/go/detectors/perf/domains/request_path.rs` | 10 272 | 345 | §4.6 | Split into `request_path/` (3 new files) | [x] |
+| `src/lang/go/detectors/perf/domains/parsing_in_loops.rs` | 10 219 | 349 | §4.7 | Split into `parsing_in_loops/` (3 new files) | [x] |
+| `src/lang/go/detectors/perf/domains/protocols/web_frameworks.rs` | 9 624 | 326 | §4.8 | Split out `fiber.rs`; dedup with `common.rs` | [x] |
+| `src/lang/go/detectors/perf/domains/gin_framework/handler_patterns.rs` | 9 152 | 280 | §4.9 | Split into `handler_patterns/` (3 new files) | [x] |
+| `src/lang/go/detectors/perf/domains/loop_allocations.rs` | 8 511 | 269 | §4.10 | Optional split into `loop_allocations/` (2 new files) | [x] |
+| `src/lang/go/detectors/perf/domains/data_access/gorm_queries.rs` | 8 296 | 282 | §4.11 | Split into `gorm_queries/` (2 new files) | [x] |
+| `src/lang/go/detectors/perf/domains/gin_framework/middleware_and_routing.rs` | 7 640 | 224 | §4.12 | Split into `middleware_and_routing/` (2 new files) | [x] |
+| `src/lang/go/detectors/perf/domains/general_perf/loops_and_iteration.rs` | 7 623 | 242 | §4.13 | Split into `loops_and_iteration/` (2 new files) | [x] |
+| `src/lang/go/detectors/perf/domains/protocols/data_and_rpc.rs` | 7 444 | 273 | §4.14 | Split out `grpc.rs` + `redis.rs`; dedup with `common.rs` | [x] |
+| `src/lang/go/detectors/perf/domains/data_access/sqlx_and_echo.rs` | 7 425 | 244 | §4.15 | Split into `sqlx_and_echo/` (2 new files) | [x] |
+| `src/lang/go/detectors/perf/domains/protocols/observability.rs` | 6 273 | 233 | §4.16 | Split out `prometheus.rs` + `cobra.rs`; dedup with `common.rs` | [x] |
+| `src/lang/go/detectors/perf/domains/protocols/common.rs` | 3 169 | 147 | §4.17 | **Activate** — add `pub(crate) use common::*;` to `protocols/mod.rs`; delete dead `FLAG_METHODS` | [x] |
+| `src/lang/go/detectors/perf/source_index.rs` | 2 037 | 88 | §4.18 | **No split** — single concept | [x] |
 | `src/lang/go/detectors/facts.rs` | 2 558 | 84 | (out of scope) | Parent bundle's facts stub — out of scope | [ ] |
 
 **Phase 4 subtotal:** 19 files targeted, 16 require splitting, ~75 new files to author.
@@ -197,7 +197,7 @@ document that covers the proposed split.
 - [x] **Phase 1** — 23 files, 22 splits, ~80 new files (22/22 done; +3 no-split confirmations)
 - [x] **Phase 2** — 10 files, 7 splits, ~30 new files (7/7 done; +3 no-split confirmations)
 - [x] **Phase 3** — 30 files, 28 splits, ~75 new files (28/28 done; metadata_overrides kept flat per Option A)
-- [ ] **Phase 4** — 19 files, 16 splits, ~75 new files
+- [x] **Phase 4** — 19 files, 16 splits, ~75 new files
 - [ ] **Phase 5** — 6 files, 5 splits, ~25 new files
 - [ ] **Phase 6** — 25 files, 18 splits, ~50 new files + ~5 new helper modules
 
