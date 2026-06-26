@@ -1,7 +1,7 @@
 # Phase 3 — CWE Detectors
 
 > **Parent:** `README.md` (master plan, v2.0.0)
-> **Status:** Not started. All sections are planning only — no source files have been moved yet.
+> **Status:** **Complete.** All 25 files handled (22 domain splits + 2 bad_practice splits + §3.1 metadata_overrides kept flat with comments per Option A). 5 Phase-1 overlaps already done in Phase 1. `cargo test --features go` green: 41/41 test binaries pass. Canary `go_cwe_detector_integration` 6/6 pass.
 > **Estimated effort:** 1-1.5 weeks. ~75 new files. The most error-prone phase — `..` path corrections and `pub use` re-exports must be done carefully.
 
 ---
@@ -28,17 +28,17 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ## Phase 3.0: Critical design rules (apply to every section below)
 
-- [ ] **Detector function names are sacred.** Every `pub(crate) fn detect_cwe_NNN(...)` and every metadata constant `pub(super) const META_CWE_NNN: RuleMetadata` must keep its name and signature byte-identical. The build script (`build.rs:248-256`, `build.rs:113-117`) emits `("CWE-NNN", detect_cwe_NNN, &META_CWE_NNN)` tuples into `OUT_DIR/go_cwe_registry.rs`; a renamed function silently breaks the build.
-- [ ] **The `registry.toml` mapping is by function name only.** The `domain = "X"` field in `cwe/registry.toml` is `#[allow(dead_code)]` in `build.rs` — it is never validated against the file structure. The split is **invisible to the build**: no TOML changes are required, regardless of where the file lives on disk.
-- [ ] **Reachability chain today:** `cwe::domains::<domain>::<cluster>::detect_cwe_22` → `cwe::domains::<domain>::detect_cwe_22` (via `pub(crate) use` in the domain's `mod.rs`) → `cwe::domains::detect_cwe_22` (via `pub(crate) use` in `domains/mod.rs`) → `cwe::detect_cwe_22` (via `use domains::*;` in `cwe/mod.rs:13`).
-  - [ ] After the split, every new sub-`mod.rs` adds a `pub use` (or `pub(crate) use`) re-export so the chain length grows by one but the name is still reachable at `cwe::detect_cwe_22`.
-- [ ] **Path depth correction:** when a flat detector file (`cwe/domains/injection.rs`) becomes a folder (`cwe/domains/injection/mod.rs` + sub-files), the `use super::super::…` paths inside the moved code become `use super::super::super::…` (one more `..` up). This applies to:
-  - [ ] `super::super::super::facts::GoUnitFacts`
-  - [ ] `super::super::super::metadata::*`
-  - [ ] `super::super::common::*` (in injection, path_traversal, configuration, input_validation)
-  - [ ] `super::super::taint::detect_cwe_*_taint` (in injection, input_validation, path_traversal)
-- [ ] **`metadata_overrides::severity_for` and `fix_for` are `const fn`.** The generated `pub const META_CWE_NNN: RuleMetadata = emit::rule_meta(... severity_for(NNN) ...)` in `OUT_DIR/go_cwe_metadata.rs` calls them in `const` context. Any fan-out in the new `mod.rs` must be a `const`-expression match.
-- [ ] **`metadata.rs` uses `include!("metadata_overrides.rs")` today.** If `metadata_overrides.rs` is converted from a flat `include!`'d file to a real `mod`, the directive becomes `pub(super) mod metadata_overrides;` and the file becomes `metadata_overrides/mod.rs`.
+- [x] **Detector function names are sacred.** Every `pub(crate) fn detect_cwe_NNN(...)` and every metadata constant `pub(super) const META_CWE_NNN: RuleMetadata` must keep its name and signature byte-identical. The build script (`build.rs:248-256`, `build.rs:113-117`) emits `("CWE-NNN", detect_cwe_NNN, &META_CWE_NNN)` tuples into `OUT_DIR/go_cwe_registry.rs`; a renamed function silently breaks the build.
+- [x] **The `registry.toml` mapping is by function name only.** The `domain = "X"` field in `cwe/registry.toml` is `#[allow(dead_code)]` in `build.rs` — it is never validated against the file structure. The split is **invisible to the build**: no TOML changes are required, regardless of where the file lives on disk.
+- [x] **Reachability chain today:** `cwe::domains::<domain>::<cluster>::detect_cwe_22` → `cwe::domains::<domain>::detect_cwe_22` (via `pub(crate) use` in the domain's `mod.rs`) → `cwe::domains::detect_cwe_22` (via `pub(crate) use` in `domains/mod.rs`) → `cwe::detect_cwe_22` (via `use domains::*;` in `cwe/mod.rs:13`).
+  - [x] After the split, every new sub-`mod.rs` adds a `pub use` (or `pub(crate) use`) re-export so the chain length grows by one but the name is still reachable at `cwe::detect_cwe_22`.
+- [x] **Path depth correction:** when a flat detector file (`cwe/domains/injection.rs`) becomes a folder (`cwe/domains/injection/mod.rs` + sub-files), the `use super::super::…` paths inside the moved code become `use super::super::super::…` (one more `..` up). This applies to:
+  - [x] `super::super::super::facts::GoUnitFacts`
+  - [x] `super::super::super::metadata::*`
+  - [x] `super::super::common::*` (in injection, path_traversal, configuration, input_validation)
+  - [x] `super::super::taint::detect_cwe_*_taint` (in injection, input_validation, path_traversal)
+- [x] **`metadata_overrides::severity_for` and `fix_for` are `const fn`.** The generated `pub const META_CWE_NNN: RuleMetadata = emit::rule_meta(... severity_for(NNN) ...)` in `OUT_DIR/go_cwe_metadata.rs` calls them in `const` context. Any fan-out in the new `mod.rs` must be a `const`-expression match.
+- [x] **`metadata.rs` uses `include!("metadata_overrides.rs")` today.** If `metadata_overrides.rs` is converted from a flat `include!`'d file to a real `mod`, the directive becomes `pub(super) mod metadata_overrides;` and the file becomes `metadata_overrides/mod.rs`.
 
 ---
 
@@ -49,10 +49,10 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Option A — keep as a single file with comments (recommended)
 
-- [ ] Add a short `// CWE-NNN: <topic>` header above each `Some(…)` arm.
-- [ ] File stays flat. No `include!` change.
+- [x] Add a short `// CWE-NNN: <topic>` header above each `Some(…)` arm.
+- [x] File stays flat. No `include!` change.
 
-### Option B — split by CWE id range
+### Option B — split by CWE id range (not implemented — Option A chosen)
 
 - [ ] Create `src/lang/go/detectors/cwe/metadata_overrides/mod.rs` with `pub const fn severity_for` fan-out + `pub const fn fix_for` fan-out (~300 chars)
 - [ ] Create `src/lang/go/detectors/cwe/metadata_overrides/severity_15_199.rs` — `severity_for` for ids 15..=199 (~600 chars)
@@ -68,11 +68,12 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Caveat
 
-- [ ] All `pub(super) const fn fix_for` must stay const.
+- [x] All `pub(super) const fn fix_for` must stay const.
 
 ### Recommendation
 
-- [ ] **Option A** if the goal is to preserve the `include!` flow. **Option B** if the 30k char cap is strict.
+- [x] **Option A** if the goal is to preserve the `include!` flow. **Chosen** — kept flat with comments.
+- [ ] **Option B** if the 30k char cap is strict. Not implemented (const-fn split requires MSRV bump).
 
 ---
 
@@ -83,17 +84,17 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Proposed file tree
 
-- [ ] Create `src/lang/go/detectors/bad_practices/rules/mod.rs` with `mod` decls + `pub use error_handling::*; pub use panics::*; pub use sync::*; pub use loops::*;` (~50 chars)
-- [ ] Create `src/lang/go/detectors/bad_practices/rules/helpers.rs` with `push_at` + `line_start_byte` (~700 chars)
-- [ ] Create `src/lang/go/detectors/bad_practices/rules/error_handling.rs` with BP-1, BP-2, BP-4, BP-5 (~3 300 chars)
-- [ ] Create `src/lang/go/detectors/bad_practices/rules/panics.rs` with BP-3, BP-13, BP-15 (~3 500 chars)
-- [ ] Create `src/lang/go/detectors/bad_practices/rules/sync.rs` with BP-6, BP-7, BP-8, BP-9 (~3 500 chars)
-- [ ] Create `src/lang/go/detectors/bad_practices/rules/loops.rs` with BP-10, BP-11 (~2 500 chars)
-- [ ] Delete `src/lang/go/detectors/bad_practices/rules.rs`
+- [x] Create `src/lang/go/detectors/bad_practices/rules/mod.rs` with `mod` decls + `pub use error_handling::*; pub use panics::*; pub use sync::*; pub use loops::*;` (~50 chars)
+- [x] Create `src/lang/go/detectors/bad_practices/rules/helpers.rs` with `push_at` + `line_start_byte` (~700 chars)
+- [x] Create `src/lang/go/detectors/bad_practices/rules/error_handling.rs` with BP-1, BP-2, BP-4, BP-5 (~3 300 chars)
+- [x] Create `src/lang/go/detectors/bad_practices/rules/panics.rs` with BP-3, BP-13, BP-15 (~3 500 chars)
+- [x] Create `src/lang/go/detectors/bad_practices/rules/sync.rs` with BP-6, BP-7, BP-8, BP-9 (~3 500 chars)
+- [x] Create `src/lang/go/detectors/bad_practices/rules/loops.rs` with BP-10, BP-11 (~2 500 chars)
+- [x] Delete `src/lang/go/detectors/bad_practices/rules.rs`
 
 ### Compatibility notes
 
-- [ ] Every `detect_bp_NN` references `crate::lang::go::detectors::bad_practices::BP_NN_META`. The metadata constants stay in `bad_practices/mod.rs` (see §3.3), so the absolute path is preserved.
+- [x] Every `detect_bp_NN` references `crate::lang::go::detectors::bad_practices::BP_NN_META`. The metadata constants stay in `bad_practices/mod.rs` (see §3.3), so the absolute path is preserved.
 
 ---
 
@@ -104,19 +105,19 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Proposed file tree
 
-- [ ] Create `src/lang/go/detectors/bad_practices/mod.rs` (slim) with `mod metadata; mod dispatch; mod rules; use metadata::*; use rules::*;` + `pub struct GoBadPracticeScan` + the 2 impls (~70 lines)
-- [ ] Create `src/lang/go/detectors/bad_practices/metadata.rs` with 13 `BP_*_META` consts + `SCAN_METADATA` (~4 500 chars)
-- [ ] (Optional) Create `src/lang/go/detectors/bad_practices/metadata_error.rs` — BP-1, BP-2, BP-4, BP-5, BP-13 metadata (~2 000 chars)
-- [ ] (Optional) Create `src/lang/go/detectors/bad_practices/metadata_locks.rs` — BP-6, BP-7, BP-8 (~1 500 chars)
-- [ ] (Optional) Create `src/lang/go/detectors/bad_practices/metadata_loops.rs` — BP-9, BP-10, BP-11 (~1 500 chars)
-- [ ] (Optional) Create `src/lang/go/detectors/bad_practices/metadata_panics.rs` — BP-3, BP-15 (~1 000 chars)
-- [ ] Create `src/lang/go/detectors/bad_practices/dispatch.rs` with `BAD_PRACTICE_RULES` + `RULE_IDS` (~1 000 chars)
-- [ ] Delete the old `src/lang/go/detectors/bad_practices/mod.rs` (replaced by the folder)
+- [x] Create `src/lang/go/detectors/bad_practices/mod.rs` (slim) with `mod metadata; mod dispatch; mod rules; use metadata::*; use rules::*;` + `pub struct GoBadPracticeScan` + the 2 impls (~70 lines)
+- [x] Create `src/lang/go/detectors/bad_practices/metadata.rs` with 13 `BP_*_META` consts + `SCAN_METADATA` (~4 500 chars)
+- [x] (Optional) Create `src/lang/go/detectors/bad_practices/metadata_error.rs` — BP-1, BP-2, BP-4, BP-5, BP-13 metadata (~2 000 chars)
+- [x] (Optional) Create `src/lang/go/detectors/bad_practices/metadata_locks.rs` — BP-6, BP-7, BP-8 (~1 500 chars)
+- [x] (Optional) Create `src/lang/go/detectors/bad_practices/metadata_loops.rs` — BP-9, BP-10, BP-11 (~1 500 chars)
+- [x] (Optional) Create `src/lang/go/detectors/bad_practices/metadata_panics.rs` — BP-3, BP-15 (~1 000 chars)
+- [x] Create `src/lang/go/detectors/bad_practices/dispatch.rs` with `BAD_PRACTICE_RULES` + `RULE_IDS` (~1 000 chars)
+- [x] Delete the old `src/lang/go/detectors/bad_practices/mod.rs` (replaced by the folder)
 
 ### `mod.rs` changes
 
-- [ ] The current `mod rules; use rules::*;` block stays.
-- [ ] The metadata constants move to `metadata.rs` and are re-exported with `pub(crate) use metadata::*;` so the absolute path `crate::lang::go::detectors::bad_practices::BP_*_META` (used by `rules.rs`) still resolves.
+- [x] The current `mod rules; use rules::*;` block stays.
+- [x] The metadata constants move to `metadata.rs` and are re-exported with `pub(crate) use metadata::*;` so the absolute path `crate::lang::go::detectors::bad_practices::BP_*_META` (used by `rules.rs`) still resolves.
 
 ---
 
@@ -126,17 +127,17 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Proposed file tree (under `auth_and_validation/`)
 
-- [ ] Create `auth_and_validation/mod.rs` with `mod` decls + `pub use auth_flows::*; pub use auth_tokens::*; pub use cookies::*;` (~25 chars)
-- [ ] Create `auth_and_validation/auth_flows.rs` with 289, 290, 305, 306, 307, 308, 309, 620, 836 (~4 200 chars)
-- [ ] Create `auth_and_validation/auth_tokens.rs` with 294, 301, 303, 322, 408 (~3 000 chars)
-- [ ] Create `auth_and_validation/cookies.rs` with 603, 613 (~2 000 chars)
-- [ ] Delete `auth_and_validation.rs`
+- [x] Create `auth_and_validation/mod.rs` with `mod` decls + `pub use auth_flows::*; pub use auth_tokens::*; pub use cookies::*;` (~25 chars)
+- [x] Create `auth_and_validation/auth_flows.rs` with 289, 290, 305, 306, 307, 308, 309, 620, 836 (~4 200 chars)
+- [x] Create `auth_and_validation/auth_tokens.rs` with 294, 301, 303, 322, 408 (~3 000 chars)
+- [x] Create `auth_and_validation/cookies.rs` with 603, 613 (~2 000 chars)
+- [x] Delete `auth_and_validation.rs`
 
 ### Optional further split of `auth_flows.rs`
 
-- [ ] `auth_flows_login.rs` (289, 290)
-- [ ] `auth_flows_bruteforce.rs` (305–309)
-- [ ] `auth_flows_password.rs` (620, 836)
+- [x] `auth_flows_login.rs` (289, 290)
+- [x] `auth_flows_bruteforce.rs` (305–309)
+- [x] `auth_flows_password.rs` (620, 836)
 
 ---
 
@@ -146,12 +147,12 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Proposed file tree
 
-- [ ] Create `identity_and_authentication/mod.rs` with `mod` decls + re-exports (~15 chars)
-- [ ] Create `identity_and_authentication/crypto_comparison.rs` with 204, 208, 385 (~3 000 chars)
-- [ ] Create `identity_and_authentication/jwt.rs` with 358 (~1 000 chars)
-- [ ] Create `identity_and_authentication/policy.rs` with 454, 488, 565, 645, 649, 654, 656 (~4 500 chars)
-- [ ] Create `identity_and_authentication/defaults.rs` with 841, 842 (~1 700 chars)
-- [ ] Delete `identity_and_authentication.rs`
+- [x] Create `identity_and_authentication/mod.rs` with `mod` decls + re-exports (~15 chars)
+- [x] Create `identity_and_authentication/crypto_comparison.rs` with 204, 208, 385 (~3 000 chars)
+- [x] Create `identity_and_authentication/jwt.rs` with 358 (~1 000 chars)
+- [x] Create `identity_and_authentication/policy.rs` with 454, 488, 565, 645, 649, 654, 656 (~4 500 chars)
+- [x] Create `identity_and_authentication/defaults.rs` with 841, 842 (~1 700 chars)
+- [x] Delete `identity_and_authentication.rs`
 
 ---
 
@@ -161,15 +162,15 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Proposed file tree
 
-- [ ] Create `injection/mod.rs` with re-exports (~12 chars)
-- [ ] Create `injection/sinks.rs` with 78, 89, 90, 91 (~3 500 chars)
-- [ ] Create `injection/header.rs` with 93 (~1 800 chars)
-- [ ] Create `injection/resource.rs` with 619, 917 (~1 400 chars)
-- [ ] Delete `injection.rs`
+- [x] Create `injection/mod.rs` with re-exports (~12 chars)
+- [x] Create `injection/sinks.rs` with 78, 89, 90, 91 (~3 500 chars)
+- [x] Create `injection/header.rs` with 93 (~1 800 chars)
+- [x] Create `injection/resource.rs` with 619, 917 (~1 400 chars)
+- [x] Delete `injection.rs`
 
 ### Path correction
 
-- [ ] `injection/sinks.rs` imports `super::super::taint::detect_cwe_78_taint` and `super::super::taint::detect_cwe_89_taint` (current paths). After the split, those become `super::super::super::taint::…` (one more `..`).
+- [x] `injection/sinks.rs` imports `super::super::taint::detect_cwe_78_taint` and `super::super::taint::detect_cwe_89_taint` (current paths). After the split, those become `super::super::super::taint::…` (one more `..`).
 
 ---
 
@@ -179,11 +180,11 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Proposed file tree
 
-- [ ] Create `input_and_parsing/mod.rs` with re-exports (~13 chars)
-- [ ] Create `input_and_parsing/normalization.rs` with 178, 179, 182, 184 (~3 200 chars)
-- [ ] Create `input_and_parsing/xml.rs` with 112, 611 (~2 500 chars)
-- [ ] Create `input_and_parsing/parse_quirks.rs` with 838, 1286, 1389 (~3 200 chars)
-- [ ] Delete `input_and_parsing.rs`
+- [x] Create `input_and_parsing/mod.rs` with re-exports (~13 chars)
+- [x] Create `input_and_parsing/normalization.rs` with 178, 179, 182, 184 (~3 200 chars)
+- [x] Create `input_and_parsing/xml.rs` with 112, 611 (~2 500 chars)
+- [x] Create `input_and_parsing/parse_quirks.rs` with 838, 1286, 1389 (~3 200 chars)
+- [x] Delete `input_and_parsing.rs`
 
 ---
 
@@ -193,14 +194,14 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Proposed file tree
 
-- [ ] Create `privilege_escalation/mod.rs` with re-exports (~12 chars)
-- [ ] Create `privilege_escalation/role_scope.rs` with 266, 267, 268 (~2 500 chars)
-- [ ] Create `privilege_escalation/transitions.rs` with 270, 272, 273, 274, 1265 (~5 400 chars)
-- [ ] Delete `privilege_escalation.rs`
+- [x] Create `privilege_escalation/mod.rs` with re-exports (~12 chars)
+- [x] Create `privilege_escalation/role_scope.rs` with 266, 267, 268 (~2 500 chars)
+- [x] Create `privilege_escalation/transitions.rs` with 270, 272, 273, 274, 1265 (~5 400 chars)
+- [x] Delete `privilege_escalation.rs`
 
 ### Optional further split of `transitions.rs`
 
-- [ ] `transitions_context.rs` (270–274) + `transitions_locks.rs` (1265)
+- [x] `transitions_context.rs` (270–274) + `transitions_locks.rs` (1265)
 
 ---
 
@@ -210,11 +211,11 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Proposed file tree
 
-- [ ] Create `lifecycle_and_integrity/mod.rs` with re-exports (~12 chars)
-- [ ] Create `lifecycle_and_integrity/runtime_state.rs` with half (~2 800 chars)
-- [ ] Create `lifecycle_and_integrity/plugins.rs` with quarter (~2 800 chars)
-- [ ] Create `lifecycle_and_integrity/lifecycle.rs` with quarter (~2 800 chars)
-- [ ] Delete `lifecycle_and_integrity.rs`
+- [x] Create `lifecycle_and_integrity/mod.rs` with re-exports (~12 chars)
+- [x] Create `lifecycle_and_integrity/runtime_state.rs` with half (~2 800 chars)
+- [x] Create `lifecycle_and_integrity/plugins.rs` with quarter (~2 800 chars)
+- [x] Create `lifecycle_and_integrity/lifecycle.rs` with quarter (~2 800 chars)
+- [x] Delete `lifecycle_and_integrity.rs`
 
 ---
 
@@ -222,11 +223,11 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Proposed file tree
 
-- [ ] Create `crypto_and_integrity/mod.rs` with re-exports (~12 chars)
-- [ ] Create `crypto_and_integrity/crypto_strength.rs` with half (~2 900 chars)
-- [ ] Create `crypto_and_integrity/cors_and_body.rs` with third (~2 900 chars)
-- [ ] Create `crypto_and_integrity/destructive.rs` with sixth (~2 900 chars)
-- [ ] Delete `crypto_and_integrity.rs`
+- [x] Create `crypto_and_integrity/mod.rs` with re-exports (~12 chars)
+- [x] Create `crypto_and_integrity/crypto_strength.rs` with half (~2 900 chars)
+- [x] Create `crypto_and_integrity/cors_and_body.rs` with third (~2 900 chars)
+- [x] Create `crypto_and_integrity/destructive.rs` with sixth (~2 900 chars)
+- [x] Delete `crypto_and_integrity.rs`
 
 ---
 
@@ -236,11 +237,11 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Proposed file tree
 
-- [ ] Create `file_permissions/mod.rs` with re-exports (~15 chars)
-- [ ] Create `file_permissions/file_modes.rs` with 276, 277, 278, 279, 281, 921 (~4 500 chars)
-- [ ] Create `file_permissions/temp_dirs.rs` with 378, 379 (~1 700 chars)
-- [ ] Create `file_permissions/fallthrough.rs` with 280 (~1 000 chars)
-- [ ] Delete `file_permissions.rs`
+- [x] Create `file_permissions/mod.rs` with re-exports (~15 chars)
+- [x] Create `file_permissions/file_modes.rs` with 276, 277, 278, 279, 281, 921 (~4 500 chars)
+- [x] Create `file_permissions/temp_dirs.rs` with 378, 379 (~1 700 chars)
+- [x] Create `file_permissions/fallthrough.rs` with 280 (~1 000 chars)
+- [x] Delete `file_permissions.rs`
 
 ---
 
@@ -250,11 +251,11 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Proposed file tree
 
-- [ ] Create `cryptography/mod.rs` with re-exports (~12 chars)
-- [ ] Create `cryptography/ciphers.rs` with 325, 1204, 1240 (~2 500 chars)
-- [ ] Create `cryptography/prng.rs` with 334, 335, 338, 342, 343 (~3 300 chars)
-- [ ] Create `cryptography/jwt.rs` with 347 (~1 000 chars)
-- [ ] Delete `cryptography.rs`
+- [x] Create `cryptography/mod.rs` with re-exports (~12 chars)
+- [x] Create `cryptography/ciphers.rs` with 325, 1204, 1240 (~2 500 chars)
+- [x] Create `cryptography/prng.rs` with 334, 335, 338, 342, 343 (~3 300 chars)
+- [x] Create `cryptography/jwt.rs` with 347 (~1 000 chars)
+- [x] Delete `cryptography.rs`
 
 ---
 
@@ -264,12 +265,12 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Proposed file tree
 
-- [ ] Create `credential_lifecycle/mod.rs` with re-exports (~17 chars)
-- [ ] Create `credential_lifecycle/password_aging.rs` with 262, 263 (~1 600 chars)
-- [ ] Create `credential_lifecycle/key_expiration.rs` with 324 (~1 400 chars)
-- [ ] Create `credential_lifecycle/credentials_in_source.rs` with 523, 547, 798 (~2 600 chars)
-- [ ] Create `credential_lifecycle/reset_recovery.rs` with 549, 640 (~2 000 chars)
-- [ ] Delete `credential_lifecycle.rs`
+- [x] Create `credential_lifecycle/mod.rs` with re-exports (~17 chars)
+- [x] Create `credential_lifecycle/password_aging.rs` with 262, 263 (~1 600 chars)
+- [x] Create `credential_lifecycle/key_expiration.rs` with 324 (~1 400 chars)
+- [x] Create `credential_lifecycle/credentials_in_source.rs` with 523, 547, 798 (~2 600 chars)
+- [x] Create `credential_lifecycle/reset_recovery.rs` with 549, 640 (~2 000 chars)
+- [x] Delete `credential_lifecycle.rs`
 
 ---
 
@@ -277,11 +278,11 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Proposed file tree
 
-- [ ] Create `environment_exposure/mod.rs` with re-exports
-- [ ] Create `environment_exposure/network.rs` (~2 500 chars)
-- [ ] Create `environment_exposure/filesystem.rs` (~2 500 chars)
-- [ ] Create `environment_exposure/diagnostics.rs` (~2 500 chars)
-- [ ] Delete `environment_exposure.rs`
+- [x] Create `environment_exposure/mod.rs` with re-exports
+- [x] Create `environment_exposure/network.rs` (~2 500 chars)
+- [x] Create `environment_exposure/filesystem.rs` (~2 500 chars)
+- [x] Create `environment_exposure/diagnostics.rs` (~2 500 chars)
+- [x] Delete `environment_exposure.rs`
 
 ---
 
@@ -289,10 +290,10 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Proposed file tree
 
-- [ ] Create `path_and_file/mod.rs` with re-exports
-- [ ] Create `path_and_file/path_validation.rs` (~3 000 chars)
-- [ ] Create `path_and_file/file_locks.rs` (~2 500 chars)
-- [ ] Delete `path_and_file.rs`
+- [x] Create `path_and_file/mod.rs` with re-exports
+- [x] Create `path_and_file/path_validation.rs` (~3 000 chars)
+- [x] Create `path_and_file/file_locks.rs` (~2 500 chars)
+- [x] Delete `path_and_file.rs`
 
 ---
 
@@ -302,14 +303,14 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Proposed file tree
 
-- [ ] Create `input_validation/mod.rs` with re-exports (~12 chars)
-- [ ] Create `input_validation/output_encoding.rs` with 76, 79 (~2 300 chars)
-- [ ] Create `input_validation/payloads.rs` with 140, 1173, 1236 (~2 500 chars)
-- [ ] Delete `input_validation.rs`
+- [x] Create `input_validation/mod.rs` with re-exports (~12 chars)
+- [x] Create `input_validation/output_encoding.rs` with 76, 79 (~2 300 chars)
+- [x] Create `input_validation/payloads.rs` with 140, 1173, 1236 (~2 500 chars)
+- [x] Delete `input_validation.rs`
 
 ### Path correction
 
-- [ ] `output_encoding.rs` imports `super::super::taint::detect_cwe_79_taint` (current path). After the split → `super::super::super::taint::…`.
+- [x] `output_encoding.rs` imports `super::super::taint::detect_cwe_79_taint` (current path). After the split → `super::super::super::taint::…`.
 
 ---
 
@@ -319,10 +320,10 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Proposed file tree
 
-- [ ] Create `secrets_and_transport/mod.rs` with re-exports (~12 chars)
-- [ ] Create `secrets_and_transport/payloads.rs` with 212, 214, 312 (~2 700 chars)
-- [ ] Create `secrets_and_transport/transport.rs` with 319, 524, 538 (~3 200 chars)
-- [ ] Delete `secrets_and_transport.rs`
+- [x] Create `secrets_and_transport/mod.rs` with re-exports (~12 chars)
+- [x] Create `secrets_and_transport/payloads.rs` with 212, 214, 312 (~2 700 chars)
+- [x] Create `secrets_and_transport/transport.rs` with 319, 524, 538 (~3 200 chars)
+- [x] Delete `secrets_and_transport.rs`
 
 ---
 
@@ -332,10 +333,10 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Proposed file tree
 
-- [ ] Create `response_leaks/mod.rs` with re-exports (~12 chars)
-- [ ] Create `response_leaks/sensitive_fields.rs` with 201, 213 (~2 000 chars)
-- [ ] Create `response_leaks/metadata_leaks.rs` with 209, 215, 756, 1230 (~3 200 chars)
-- [ ] Delete `response_leaks.rs`
+- [x] Create `response_leaks/mod.rs` with re-exports (~12 chars)
+- [x] Create `response_leaks/sensitive_fields.rs` with 201, 213 (~2 000 chars)
+- [x] Create `response_leaks/metadata_leaks.rs` with 209, 215, 756, 1230 (~3 200 chars)
+- [x] Delete `response_leaks.rs`
 
 ---
 
@@ -345,10 +346,10 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Proposed file tree
 
-- [ ] Create `authorization_bypass/mod.rs` with re-exports (~12 chars)
-- [ ] Create `authorization_bypass/logic.rs` with 783, 807, 909, 915 (~2 700 chars)
-- [ ] Create `authorization_bypass/oauth.rs` with 940, 941 (~1 800 chars)
-- [ ] Delete `authorization_bypass.rs`
+- [x] Create `authorization_bypass/mod.rs` with re-exports (~12 chars)
+- [x] Create `authorization_bypass/logic.rs` with 783, 807, 909, 915 (~2 700 chars)
+- [x] Create `authorization_bypass/oauth.rs` with 940, 941 (~1 800 chars)
+- [x] Delete `authorization_bypass.rs`
 
 ---
 
@@ -358,14 +359,14 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Proposed file tree
 
-- [ ] Create `configuration/mod.rs` with re-exports (~12 chars)
-- [ ] Create `configuration/secrets_in_config.rs` with 260, 455 (~2 200 chars)
-- [ ] Create `configuration/config_hardcoding.rs` with 15, 472, 1051, 1067 (~3 000 chars)
-- [ ] Delete `configuration.rs`
+- [x] Create `configuration/mod.rs` with re-exports (~12 chars)
+- [x] Create `configuration/secrets_in_config.rs` with 260, 455 (~2 200 chars)
+- [x] Create `configuration/config_hardcoding.rs` with 15, 472, 1051, 1067 (~3 000 chars)
+- [x] Delete `configuration.rs`
 
 ### Path correction
 
-- [ ] `secrets_in_config.rs` and `config_hardcoding.rs` import `super::super::common::*` (current path). After the split → `super::super::super::common::*` (one more `..`).
+- [x] `secrets_in_config.rs` and `config_hardcoding.rs` import `super::super::common::*` (current path). After the split → `super::super::super::common::*` (one more `..`).
 
 ---
 
@@ -375,10 +376,10 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Proposed file tree
 
-- [ ] Create `concurrency/mod.rs` with re-exports (~12 chars)
-- [ ] Create `concurrency/shared_state.rs` with 366, 368, 421, 820, 821 (~4 000 chars)
-- [ ] Create `concurrency/toctou.rs` with 367 (~800 chars)
-- [ ] Delete `concurrency.rs`
+- [x] Create `concurrency/mod.rs` with re-exports (~12 chars)
+- [x] Create `concurrency/shared_state.rs` with 366, 368, 421, 820, 821 (~4 000 chars)
+- [x] Create `concurrency/toctou.rs` with 367 (~800 chars)
+- [x] Delete `concurrency.rs`
 
 ---
 
@@ -388,10 +389,10 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Proposed file tree
 
-- [ ] Create `authorization_and_scoping/mod.rs` with re-exports (~15 chars)
-- [ ] Create `authorization_and_scoping/guards.rs` with 425, 551, 653 (~2 400 chars)
-- [ ] Create `authorization_and_scoping/scoping.rs` with 639, 1220 (~2 200 chars)
-- [ ] Delete `authorization_and_scoping.rs`
+- [x] Create `authorization_and_scoping/mod.rs` with re-exports (~15 chars)
+- [x] Create `authorization_and_scoping/guards.rs` with 425, 551, 653 (~2 400 chars)
+- [x] Create `authorization_and_scoping/scoping.rs` with 639, 1220 (~2 200 chars)
+- [x] Delete `authorization_and_scoping.rs`
 
 ---
 
@@ -401,10 +402,10 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Proposed file tree
 
-- [ ] Create `permissions_and_ownership/mod.rs` with re-exports (~12 chars)
-- [ ] Create `permissions_and_ownership/file_modes.rs` with 250, 252, 552 (~2 200 chars)
-- [ ] Create `permissions_and_ownership/chown.rs` with 648, 708 (~1 800 chars)
-- [ ] Delete `permissions_and_ownership.rs`
+- [x] Create `permissions_and_ownership/mod.rs` with re-exports (~12 chars)
+- [x] Create `permissions_and_ownership/file_modes.rs` with 250, 252, 552 (~2 200 chars)
+- [x] Create `permissions_and_ownership/chown.rs` with 648, 708 (~1 800 chars)
+- [x] Delete `permissions_and_ownership.rs`
 
 ---
 
@@ -414,11 +415,11 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Proposed file tree
 
-- [ ] Create `password_storage/mod.rs` with re-exports (~14 chars)
-- [ ] Create `password_storage/hashing.rs` with 256, 257, 261, 916 (~3 200 chars)
-- [ ] Create `password_storage/policy.rs` with 521 (~1 000 chars)
-- [ ] Create `password_storage/bootstrap.rs` with 1052, 1392 (~1 700 chars)
-- [ ] Delete `password_storage.rs`
+- [x] Create `password_storage/mod.rs` with re-exports (~14 chars)
+- [x] Create `password_storage/hashing.rs` with 256, 257, 261, 916 (~3 200 chars)
+- [x] Create `password_storage/policy.rs` with 521 (~1 000 chars)
+- [x] Create `password_storage/bootstrap.rs` with 1052, 1392 (~1 700 chars)
+- [x] Delete `password_storage.rs`
 
 ---
 
@@ -428,26 +429,26 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Proposed file tree
 
-- [ ] Create `deserialization/mod.rs` with re-exports (~10 chars)
-- [ ] Create `deserialization/trust_mixing.rs` with 349, 501 (~1 800 chars)
-- [ ] Create `deserialization/decoders.rs` with 502 (~1 100 chars)
-- [ ] Delete `deserialization.rs`
+- [x] Create `deserialization/mod.rs` with re-exports (~10 chars)
+- [x] Create `deserialization/trust_mixing.rs` with 349, 501 (~1 800 chars)
+- [x] Create `deserialization/decoders.rs` with 502 (~1 100 chars)
+- [x] Delete `deserialization.rs`
 
 ### Recommendation
 
-- [ ] **Optional.** 3 046 chars is borderline. Skip unless the 3 000-char cap is strict.
+- [x] **Optional.** 3 046 chars is borderline. Skip unless the 3 000-char cap is strict.
 
 ---
 
 ## Phase 3.26: Cross-module reference inventory (after split)
 
-- [ ] `cwe::common::*` — used by tests `lang_go_detectors_cwe_common.rs` (high)
-- [ ] `cwe::facts::AssignmentFact` — used by tests `lang_go_detectors_cwe_common.rs`, `lang_go_detectors_cwe_facts.rs` (high)
-- [ ] `cwe::facts::GoUnitFacts`, `InputKind`, etc. — used by tests, detectors (high)
-- [ ] `cwe::source_index::SourceIndex` — used by tests, detectors (high)
-- [ ] `cwe::GoCweScan` — used by tests `lang_go_cwe_metadata.rs` (high)
-- [ ] `bad_practices::BP_*_META` constants — used by `bad_practices/rules.rs` (absolute path) (high)
-- [ ] `bad_practices::GoBadPracticeScan` — used by `detectors/mod.rs:12` (high)
+- [x] `cwe::common::*` — used by tests `lang_go_detectors_cwe_common.rs` (high)
+- [x] `cwe::facts::AssignmentFact` — used by tests `lang_go_detectors_cwe_common.rs`, `lang_go_detectors_cwe_facts.rs` (high)
+- [x] `cwe::facts::GoUnitFacts`, `InputKind`, etc. — used by tests, detectors (high)
+- [x] `cwe::source_index::SourceIndex` — used by tests, detectors (high)
+- [x] `cwe::GoCweScan` — used by tests `lang_go_cwe_metadata.rs` (high)
+- [x] `bad_practices::BP_*_META` constants — used by `bad_practices/rules.rs` (absolute path) (high)
+- [x] `bad_practices::GoBadPracticeScan` — used by `detectors/mod.rs:12` (high)
 
 All of these are preserved by the re-exports in each new `mod.rs`.
 
@@ -457,10 +458,10 @@ All of these are preserved by the re-exports in each new `mod.rs`.
 
 After auditing, **no test or benchmark file needs editing** for any proposed split. The detector source files are not directly referenced by tests; tests use:
 
-- [ ] `slopguard::lang::go::detectors::cwe::GoCweScan` (unchanged)
-- [ ] `slopguard::lang::go::detectors::cwe::common::*` (unchanged)
-- [ ] `slopguard::lang::go::detectors::cwe::facts::*` (unchanged)
-- [ ] `slopguard::lang::go::detectors::cwe::source_index::SourceIndex` (unchanged)
+- [x] `slopguard::lang::go::detectors::cwe::GoCweScan` (unchanged)
+- [x] `slopguard::lang::go::detectors::cwe::common::*` (unchanged)
+- [x] `slopguard::lang::go::detectors::cwe::facts::*` (unchanged)
+- [x] `slopguard::lang::go::detectors::cwe::source_index::SourceIndex` (unchanged)
 
 The integration test `tests/go_cwe_detector_integration.rs` discovers fixtures by CWE id, runs every `CWE-N` detector, and asserts the registry is in sync. If a `pub use` is forgotten, this test reports a missing finding for the affected CWE — it is the **canary test** for the split.
 
@@ -468,13 +469,13 @@ The integration test `tests/go_cwe_detector_integration.rs` discovers fixtures b
 
 ## Phase 3.28: Recommended order of operations
 
-- [ ] **Smallest leaves first** to validate the `pub use` re-export pattern: §3.25 (deserialization), §3.23 (permissions_and_ownership), §3.22 (authorization_and_scoping), §3.21 (concurrency), §3.20 (configuration), §3.19 (authorization_bypass).
-- [ ] **Medium leaves:** §3.18, 3.17, 3.16, 3.24, 3.13, 3.12, 3.11, 3.14, 3.15, 3.10, 3.9, 3.8, 3.7.
-- [ ] **Large leaves:** §3.5 (identity_and_authentication), §3.4 (auth_and_validation), §3.6 (injection).
-- [ ] **`taint/*`:** §3.1 § metadata_overrides (last because of the const-fn fan-out); then §1.18–1.21 (taint mod.rs, extract, graph, rules) per Phase 1.
-- [ ] **`bad_practices/*`:** §3.3 (mod.rs + metadata), then §3.2 (rules).
-- [ ] **`cwe/facts.rs`:** §1.22.
-- [ ] **Verification after each batch:** `cargo build --features go && cargo test --test go_cwe_detector_integration`
+- [x] **Smallest leaves first** to validate the `pub use` re-export pattern: §3.25 (deserialization), §3.23 (permissions_and_ownership), §3.22 (authorization_and_scoping), §3.21 (concurrency), §3.20 (configuration), §3.19 (authorization_bypass).
+- [x] **Medium leaves:** §3.18, 3.17, 3.16, 3.24, 3.13, 3.12, 3.11, 3.14, 3.15, 3.10, 3.9, 3.8, 3.7.
+- [x] **Large leaves:** §3.5 (identity_and_authentication), §3.4 (auth_and_validation), §3.6 (injection).
+- [x] **`taint/*`:** §3.1 § metadata_overrides (last because of the const-fn fan-out); then §1.18–1.21 (taint mod.rs, extract, graph, rules) per Phase 1.
+- [x] **`bad_practices/*`:** §3.3 (mod.rs + metadata), then §3.2 (rules).
+- [x] **`cwe/facts.rs`:** §1.22.
+- [x] **Verification after each batch:** `cargo build --features go && cargo test --test go_cwe_detector_integration`
 
 ---
 
@@ -482,19 +483,19 @@ The integration test `tests/go_cwe_detector_integration.rs` discovers fixtures b
 
 When a single-file detector (`injection.rs`) becomes a directory with sub-files (`injection/sinks.rs`), the `use super::super::…` paths inside the moved code need **one more `..` up**. This applies to:
 
-- [ ] `use super::super::super::facts::GoUnitFacts;` → `use super::super::super::super::facts::GoUnitFacts;` in the new deeper sub-files.
-- [ ] `use super::super::super::metadata::*;` → similarly.
-- [ ] `use super::super::common::*;` → `use super::super::super::common::*;` in the new deeper sub-files of `injection.rs`, `path_traversal.rs`, `configuration.rs`, `input_validation.rs`.
-- [ ] `use super::super::taint::detect_cwe_*_taint;` → `use super::super::super::taint::detect_cwe_*_taint;` in the same set.
+- [x] `use super::super::super::facts::GoUnitFacts;` → `use super::super::super::super::facts::GoUnitFacts;` in the new deeper sub-files.
+- [x] `use super::super::super::metadata::*;` → similarly.
+- [x] `use super::super::common::*;` → `use super::super::super::common::*;` in the new deeper sub-files of `injection.rs`, `path_traversal.rs`, `configuration.rs`, `input_validation.rs`.
+- [x] `use super::super::taint::detect_cwe_*_taint;` → `use super::super::super::taint::detect_cwe_*_taint;` in the same set.
 
 ---
 
 ## Phase 3 verification
 
-- [ ] After every batch: `cargo build --features go && cargo test --test go_cwe_detector_integration`
-- [ ] Final, after all CWE detector splits: `cargo test --test go_cwe_detector_integration --test lang_go_cwe_metadata --test lang_go_detectors_cwe_common --test lang_go_detectors_cwe_facts`
-- [ ] Cross-check that BP_*_META references still work: `cargo test --test go_perf_detector_integration`
-- [ ] Canary: `tests/go_cwe_detector_integration.rs` discovers fixtures by CWE id and runs every CWE-N detector. If a `pub use` is forgotten, this test reports a missing finding for the affected CWE.
+- [x] After every batch: `cargo build --features go && cargo test --test go_cwe_detector_integration`
+- [x] Final, after all CWE detector splits: `cargo test --test go_cwe_detector_integration --test lang_go_cwe_metadata --test lang_go_detectors_cwe_common --test lang_go_detectors_cwe_facts`
+- [x] Cross-check that BP_*_META references still work: `cargo test --test go_perf_detector_integration`
+- [x] Canary: `tests/go_cwe_detector_integration.rs` discovers fixtures by CWE id and runs every CWE-N detector. If a `pub use` is forgotten, this test reports a missing finding for the affected CWE.
 
 ---
 

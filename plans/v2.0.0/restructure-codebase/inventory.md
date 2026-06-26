@@ -1,7 +1,7 @@
 # v2.0.0 — Inventory of Files Exceeding 2 000–3 000 Character Limits
 
 > **Parent:** `README.md` (master plan)
-> **Status:** Phase 1 complete. Phase 2 complete. Phases 3-6 not started.
+> **Status:** Phase 1 complete. Phase 2 complete. Phase 3 complete (domain leaves only; metadata_overrides kept flat with comments per Option A). Phases 4-6 not started.
 > **Estimated effort:** Reference-only document. No code changes.
 
 ---
@@ -81,37 +81,37 @@ document that covers the proposed split.
 
 | File | Bytes | Lines | Phase-3 section | Action | Done |
 |---|---:|---:|---|---|---|
-| `src/lang/go/detectors/cwe/metadata_overrides.rs` | 28 371 | 587 | §3.1 | Option A: keep flat with comments. Option B: split into `metadata_overrides/` (8 new files) | [ ] |
-| `src/lang/go/detectors/cwe/taint/extract.rs` | (overlap with Phase 1) | | §1.19 | See Phase 1 | [ ] |
-| `src/lang/go/detectors/cwe/taint/graph.rs` | (overlap with Phase 1) | | §1.20 | See Phase 1 | [ ] |
-| `src/lang/go/detectors/cwe/taint/rules.rs` | (overlap with Phase 1) | | §1.21 | See Phase 1 | [ ] |
-| `src/lang/go/detectors/cwe/facts.rs` | (overlap with Phase 1) | | §1.22 | See Phase 1 | [ ] |
-| `src/lang/go/detectors/bad_practices/rules.rs` | 15 790 | 454 | §3.2 | Split into `bad_practices/rules/` (4 new files) | [ ] |
-| `src/lang/go/detectors/bad_practices/mod.rs` | 6 932 | 207 | §3.3 | Split into `bad_practices/` (1 new file + metadata split) | [ ] |
-| `cwe/domains/access_control/auth_and_validation.rs` | 14 611 | 466 | §3.4 | Split into `auth_and_validation/` (3 new files) | [ ] |
-| `cwe/domains/general_security/identity_and_authentication.rs` | 10 841 | 346 | §3.5 | Split into `identity_and_authentication/` (4 new files) | [ ] |
-| `cwe/domains/injection.rs` | 9 569 | 301 | §3.6 | Split into `injection/` (3 new files) | [ ] |
-| `cwe/domains/general_security/input_and_parsing.rs` | 9 700 | 326 | §3.7 | Split into `input_and_parsing/` (3 new files) | [ ] |
-| `cwe/domains/general_security/privilege_escalation.rs` | 8 845 | 285 | §3.8 | Split into `privilege_escalation/` (2 new files) | [ ] |
-| `cwe/domains/general_security/lifecycle_and_integrity.rs` | 8 813 | 284 | §3.9 | Split into `lifecycle_and_integrity/` (3 new files) | [ ] |
-| `cwe/domains/general_security/crypto_and_integrity.rs` | 8 780 | (n/a) | §3.10 | Split into `crypto_and_integrity/` (3 new files) | [ ] |
-| `cwe/domains/access_control/file_permissions.rs` | 7 488 | 253 | §3.11 | Split into `file_permissions/` (3 new files) | [ ] |
-| `cwe/domains/cryptography.rs` | 7 411 | 235 | §3.12 | Split into `cryptography/` (3 new files) | [ ] |
-| `cwe/domains/credentials_and_secrets/credential_lifecycle.rs` | 7 198 | 237 | §3.13 | Split into `credential_lifecycle/` (4 new files) | [ ] |
-| `cwe/domains/general_security/environment_exposure.rs` | 7 519 | (n/a) | §3.14 | Split into `environment_exposure/` (3 new files) | [ ] |
-| `cwe/domains/general_security/path_and_file.rs` | 5 901 | (n/a) | §3.15 | Split into `path_and_file/` (2 new files) | [ ] |
-| `cwe/domains/input_validation.rs` | 5 878 | 197 | §3.16 | Split into `input_validation/` (2 new files) | [ ] |
-| `cwe/domains/information_exposure/secrets_and_transport.rs` | 6 119 | 196 | §3.17 | Split into `secrets_and_transport/` (2 new files) | [ ] |
-| `cwe/domains/information_exposure/response_leaks.rs` | 5 696 | 184 | §3.18 | Split into `response_leaks/` (2 new files) | [ ] |
-| `cwe/domains/general_security/authorization_bypass.rs` | 5 682 | 180 | §3.19 | Split into `authorization_bypass/` (2 new files) | [ ] |
-| `cwe/domains/configuration.rs` | 5 254 | 171 | §3.20 | Split into `configuration/` (2 new files) | [ ] |
-| `cwe/domains/concurrency.rs` | 5 143 | 170 | §3.21 | Split into `concurrency/` (2 new files) | [ ] |
-| `cwe/domains/access_control/authorization_and_scoping.rs` | 4 676 | 152 | §3.22 | Split into `authorization_and_scoping/` (2 new files) | [ ] |
-| `cwe/domains/general_security/permissions_and_ownership.rs` | 4 474 | 144 | §3.23 | Split into `permissions_and_ownership/` (2 new files) | [ ] |
-| `cwe/domains/credentials_and_secrets/password_storage.rs` | 6 546 | 206 | §3.24 | Split into `password_storage/` (3 new files) | [ ] |
-| `cwe/domains/deserialization.rs` | 3 046 | 93 | §3.25 | Optional split into `deserialization/` (2 new files) | [ ] |
+| `src/lang/go/detectors/cwe/metadata_overrides.rs` | 28 371 | 587 | §3.1 | Option A: keep flat with comments. Option B: split into `metadata_overrides/` (8 new files) | [x] |
+| `src/lang/go/detectors/cwe/taint/extract.rs` | (overlap with Phase 1) | | §1.19 | See Phase 1 | [x] |
+| `src/lang/go/detectors/cwe/taint/graph.rs` | (overlap with Phase 1) | | §1.20 | See Phase 1 | [x] |
+| `src/lang/go/detectors/cwe/taint/rules.rs` | (overlap with Phase 1) | | §1.21 | See Phase 1 | [x] |
+| `src/lang/go/detectors/cwe/facts.rs` | (overlap with Phase 1) | | §1.22 | See Phase 1 | [x] |
+| `src/lang/go/detectors/bad_practices/rules.rs` | 15 790 | 454 | §3.2 | Split into `bad_practices/rules/` (4 new files) | [x] |
+| `src/lang/go/detectors/bad_practices/mod.rs` | 6 932 | 207 | §3.3 | Split into `bad_practices/` (1 new file + metadata split) | [x] |
+| `cwe/domains/access_control/auth_and_validation.rs` | 14 611 | 466 | §3.4 | Split into `auth_and_validation/` (3 new files) | [x] |
+| `cwe/domains/general_security/identity_and_authentication.rs` | 10 841 | 346 | §3.5 | Split into `identity_and_authentication/` (4 new files) | [x] |
+| `cwe/domains/injection.rs` | 9 569 | 301 | §3.6 | Split into `injection/` (3 new files) | [x] |
+| `cwe/domains/general_security/input_and_parsing.rs` | 9 700 | 326 | §3.7 | Split into `input_and_parsing/` (3 new files) | [x] |
+| `cwe/domains/general_security/privilege_escalation.rs` | 8 845 | 285 | §3.8 | Split into `privilege_escalation/` (2 new files) | [x] |
+| `cwe/domains/general_security/lifecycle_and_integrity.rs` | 8 813 | 284 | §3.9 | Split into `lifecycle_and_integrity/` (3 new files) | [x] |
+| `cwe/domains/general_security/crypto_and_integrity.rs` | 8 780 | (n/a) | §3.10 | Split into `crypto_and_integrity/` (3 new files) | [x] |
+| `cwe/domains/access_control/file_permissions.rs` | 7 488 | 253 | §3.11 | Split into `file_permissions/` (3 new files) | [x] |
+| `cwe/domains/cryptography.rs` | 7 411 | 235 | §3.12 | Split into `cryptography/` (3 new files) | [x] |
+| `cwe/domains/credentials_and_secrets/credential_lifecycle.rs` | 7 198 | 237 | §3.13 | Split into `credential_lifecycle/` (4 new files) | [x] |
+| `cwe/domains/general_security/environment_exposure.rs` | 7 519 | (n/a) | §3.14 | Split into `environment_exposure/` (3 new files) | [x] |
+| `cwe/domains/general_security/path_and_file.rs` | 5 901 | (n/a) | §3.15 | Split into `path_and_file/` (2 new files) | [x] |
+| `cwe/domains/input_validation.rs` | 5 878 | 197 | §3.16 | Split into `input_validation/` (2 new files) | [x] |
+| `cwe/domains/information_exposure/secrets_and_transport.rs` | 6 119 | 196 | §3.17 | Split into `secrets_and_transport/` (2 new files) | [x] |
+| `cwe/domains/information_exposure/response_leaks.rs` | 5 696 | 184 | §3.18 | Split into `response_leaks/` (2 new files) | [x] |
+| `cwe/domains/general_security/authorization_bypass.rs` | 5 682 | 180 | §3.19 | Split into `authorization_bypass/` (2 new files) | [x] |
+| `cwe/domains/configuration.rs` | 5 254 | 171 | §3.20 | Split into `configuration/` (2 new files) | [x] |
+| `cwe/domains/concurrency.rs` | 5 143 | 170 | §3.21 | Split into `concurrency/` (2 new files) | [x] |
+| `cwe/domains/access_control/authorization_and_scoping.rs` | 4 676 | 152 | §3.22 | Split into `authorization_and_scoping/` (2 new files) | [x] |
+| `cwe/domains/general_security/permissions_and_ownership.rs` | 4 474 | 144 | §3.23 | Split into `permissions_and_ownership/` (2 new files) | [x] |
+| `cwe/domains/credentials_and_secrets/password_storage.rs` | 6 546 | 206 | §3.24 | Split into `password_storage/` (3 new files) | [x] |
+| `cwe/domains/deserialization.rs` | 3 046 | 93 | §3.25 | Optional split into `deserialization/` (2 new files) | [x] |
 
-**Phase 3 subtotal:** 30 files targeted, 28 require splitting, ~75 new files to author.
+**Phase 3 subtotal:** 30 files targeted, 28 require splitting, ~75 new files to author. **Progress: 28/28 splits done** (22 domain files + 2 bad_practice files + 5 Phase 1 overlaps + §3.1 metadata_overrides kept flat with comments).
 
 ---
 
@@ -196,7 +196,7 @@ document that covers the proposed split.
 
 - [x] **Phase 1** — 23 files, 22 splits, ~80 new files (22/22 done; +3 no-split confirmations)
 - [x] **Phase 2** — 10 files, 7 splits, ~30 new files (7/7 done; +3 no-split confirmations)
-- [ ] **Phase 3** — 30 files, 28 splits, ~75 new files
+- [x] **Phase 3** — 30 files, 28 splits, ~75 new files (28/28 done; metadata_overrides kept flat per Option A)
 - [ ] **Phase 4** — 19 files, 16 splits, ~75 new files
 - [ ] **Phase 5** — 6 files, 5 splits, ~25 new files
 - [ ] **Phase 6** — 25 files, 18 splits, ~50 new files + ~5 new helper modules
