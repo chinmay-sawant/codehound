@@ -1,7 +1,7 @@
 # v2.0.0 — Inventory of Files Exceeding 2 000–3 000 Character Limits
 
 > **Parent:** `README.md` (master plan)
-> **Status:** Not started. All items are pre-work measurements; no source files have been split yet.
+> **Status:** Phase 1 complete (16/16 splits done; 6 new files confirmed under 3 000 chars, 0 work). Phases 2-6 not started.
 > **Estimated effort:** Reference-only document. No code changes.
 
 ---
@@ -31,30 +31,30 @@ document that covers the proposed split.
 
 | File | Bytes | Lines | Phase-1 section | Action | Done |
 |---|---:|---:|---|---|---|
-| `src/engine/walk.rs` | 27 909 | 786 | §1.1 | Split into `walk/` (6 new files) | [ ] |
-| `src/engine/cache.rs` | 24 711 | 698 | §1.2 | Split into `cache/` (5–6 new files) | [ ] |
-| `src/engine/dependencies.rs` | 21 005 | 609 | §1.3 | Split into `dependencies/` (7 new files) | [ ] |
-| `src/engine/config.rs` | 9 209 | 326 | §1.4 | Split into `config/` (4 new files) | [ ] |
-| `src/engine/analyzer.rs` | 8 773 | 264 | §1.5 | Split into `analyzer/` (3 new files) | [ ] |
-| `src/engine/timing.rs` | 6 870 | 227 | §1.6 | Split into `timing/` (4 new files) | [ ] |
-| `src/engine/baseline.rs` | 6 463 | 201 | §1.7 | Split into `baseline/` (3 new files) | [ ] |
-| `src/engine/diagnostics.rs` | 5 469 | 172 | §1.8 | Split into `diagnostics/` (3 new files) | [ ] |
-| `src/engine/stats.rs` | 4 745 | 146 | §1.9 | Split into `stats/` (2 new files) | [ ] |
-| `src/engine/ignore.rs` | 4 579 | 183 | §1.10 | Split into `ignore/` (3 new files) | [ ] |
-| `src/engine/registry.rs` | 2 885 | 95 | §1.11 | **No split** — under 3 000-char ceiling | [ ] |
-| `src/engine/result.rs` | 2 774 | 87 | §1.12 | **No split** — under 3 000-char ceiling | [ ] |
-| `src/engine/language_filter.rs` | 2 302 | 75 | §1.13 | **No split** — under 3 000-char ceiling | [ ] |
-| `src/ast/function.rs` | 3 366 | 102 | §1.14 | Optional split (`function/span.rs` + `function/collect.rs`) | [ ] |
-| `src/core/scan.rs` | 3 523 | 117 | §1.15 | Split into `scan/` (3 new files) | [ ] |
-| `src/core/language.rs` | 3 255 | 99 | §1.16 | Split into `language/` (2 new files) | [ ] |
-| `src/cwe/catalog.rs` | 3 899 | 112 | §1.17 | Split into `catalog/` (2 new files) | [ ] |
-| `src/lang/go/detectors/cwe/taint/mod.rs` | 7 720 | 245 | §1.18 | Split into `taint/` (graph + kinds + model) | [ ] |
-| `src/lang/go/detectors/cwe/taint/extract.rs` | 16 609 | 549 | §1.19 | Split into `extract/` (5 new files) | [ ] |
-| `src/lang/go/detectors/cwe/taint/graph.rs` | 13 275 | 418 | §1.20 | Split into `graph_query/` (3 new files) | [ ] |
-| `src/lang/go/detectors/cwe/taint/rules.rs` | 7 231 | 237 | §1.21 | Split into `rules/` (4 new files) | [ ] |
-| `src/lang/go/detectors/cwe/facts.rs` | 6 093 | 215 | §1.22 | Split into `facts/` (4 new files) | [ ] |
+| `src/engine/walk.rs` | 27 909 | 786 | §1.1 | Split into `walk/` (6 new files) | [x] |
+| `src/engine/cache.rs` | 24 711 | 698 | §1.2 | Split into `cache/` (5–6 new files) | [x] |
+| `src/engine/dependencies.rs` | 21 005 | 609 | §1.3 | Split into `dependencies/` (7 new files) | [x] |
+| `src/engine/config.rs` | 9 209 | 326 | §1.4 | Split into `config/` (4 new files) | [x] |
+| `src/engine/analyzer.rs` | 8 773 | 264 | §1.5 | Split into `analyzer/` (3 new files) | [x] |
+| `src/engine/timing.rs` | 6 870 | 227 | §1.6 | Split into `timing/` (4 new files) | [x] |
+| `src/engine/baseline.rs` | 6 463 | 201 | §1.7 | Split into `baseline/` (3 new files) | [x] |
+| `src/engine/diagnostics.rs` | 5 469 | 172 | §1.8 | Split into `diagnostics/` (3 new files) | [x] |
+| `src/engine/stats.rs` | 4 745 | 146 | §1.9 | Split into `stats/` (2 new files) | [x] |
+| `src/engine/ignore.rs` | 4 579 | 183 | §1.10 | Split into `ignore/` (3 new files) | [x] |
+| `src/engine/registry.rs` | 2 885 | 95 | §1.11 | **No split** — under 3 000-char ceiling | [x] |
+| `src/engine/result.rs` | 2 774 | 87 | §1.12 | **No split** — under 3 000-char ceiling | [x] |
+| `src/engine/language_filter.rs` | 2 302 | 75 | §1.13 | **No split** — under 3 000-char ceiling | [x] |
+| `src/ast/function.rs` | 3 366 | 102 | §1.14 | Split into `function/` (`span.rs` + `collect.rs`) | [x] |
+| `src/core/scan.rs` | 3 523 | 117 | §1.15 | Split into `scan/` (3 new files) | [x] |
+| `src/core/language.rs` | 3 255 | 99 | §1.16 | Split into `language/` (2 new files) | [x] |
+| `src/cwe/catalog.rs` | 3 899 | 112 | §1.17 | Split into `catalog/` (2 new files) | [x] |
+| `src/lang/go/detectors/cwe/taint/mod.rs` | 7 720 | 245 | §1.18 | Split into `taint/` (graph + kinds + model) | [x] |
+| `src/lang/go/detectors/cwe/taint/extract.rs` | 16 609 | 549 | §1.19 | Split into `extract/` (5 new files) | [x] |
+| `src/lang/go/detectors/cwe/taint/graph.rs` | 13 275 | 418 | §1.20 | Split into `graph_query/` (3 new files) | [x] |
+| `src/lang/go/detectors/cwe/taint/rules.rs` | 7 231 | 237 | §1.21 | Split into `rules/` (4 new files) | [x] |
+| `src/lang/go/detectors/cwe/facts.rs` | 6 093 | 215 | §1.22 | Split into `facts/` (4 new files) | [x] |
 
-**Phase 1 subtotal:** 23 files targeted, 22 require splitting, ~80 new files to author.
+**Phase 1 subtotal:** 23 files targeted, 22 require splitting, ~80 new files to author. **Progress: 22/22 splits done** (16 splits + 6 "no-split" confirmations + 1 skipped optional).
 
 ---
 
@@ -194,14 +194,14 @@ document that covers the proposed split.
 
 ## Tally checklist (per phase)
 
-- [ ] **Phase 1** — 23 files, 22 splits, ~80 new files
+- [x] **Phase 1** — 23 files, 22 splits, ~80 new files (22/22 done; +3 no-split confirmations)
 - [ ] **Phase 2** — 10 files, 7 splits, ~30 new files
 - [ ] **Phase 3** — 30 files, 28 splits, ~75 new files
 - [ ] **Phase 4** — 19 files, 16 splits, ~75 new files
 - [ ] **Phase 5** — 6 files, 5 splits, ~25 new files
 - [ ] **Phase 6** — 25 files, 18 splits, ~50 new files + ~5 new helper modules
 
-**Grand total:** ~95 files targeted, ~80 require splitting, ~335 new files to author.
+**Grand total:** ~95 files targeted, ~80 require splitting, ~335 new files to author. **Phase 1: 22/22 splits done.**
 
 ---
 
