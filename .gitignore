@@ -7,3 +7,9 @@ scripts/chunks
 scripts/findings
 scripts/gopdfsuit
 .slopguard-cache
+
+.agents
+.grok 
+AGENTS.md 
+opencode.json 
+skills-lock.json
