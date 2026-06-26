@@ -1,43 +1,12 @@
-//! JSON reporter.
-//!
-//! Two output modes:
-//! - **NDJSON** (default): one finding per line, stream-friendly
-//! - **Envelope** (`--json-envelope`): a single JSON object wrapping the
-//!   run metadata + findings array
+//! JSON DTO types: `Envelope`, `FindingJson`, `DisplayCweRef`, plus the
+//! `From` impls and `is_false` helper.
 
-use std::io::Write;
-
-use anyhow::Result;
 use serde::Serialize;
 
 use crate::cwe::CweRef;
 use crate::engine::AnalysisResult;
 use crate::engine::ScanStats;
-use crate::rules::{DetectorEvidence, category_for_rule_id};
-
-pub fn print(result: &AnalysisResult) -> Result<()> {
-    print_ndjson(result)
-}
-
-pub fn print_envelope(result: &AnalysisResult) -> Result<()> {
-    let envelope = Envelope::from(result);
-    let stdout = std::io::stdout();
-    let mut out = stdout.lock();
-    serde_json::to_writer_pretty(&mut out, &envelope)?;
-    out.write_all(b"\n")?;
-    Ok(())
-}
-
-fn print_ndjson(result: &AnalysisResult) -> Result<()> {
-    let stdout = std::io::stdout();
-    let mut out = stdout.lock();
-    for f in &result.findings {
-        let j = FindingJson::from(f);
-        serde_json::to_writer(&mut out, &j)?;
-        out.write_all(b"\n")?;
-    }
-    Ok(())
-}
+use crate::rules::category_for_rule_id;
 
 /// JSON shape used in the envelope mode. The inner `findings` field is a
 /// `Vec<FindingJson>` so we can attach a `fingerprint` per finding.
@@ -102,7 +71,7 @@ pub struct FindingJson<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fix: Option<&'a str>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub evidence: Option<&'a DetectorEvidence>,
+    pub evidence: Option<&'a crate::rules::DetectorEvidence>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub confidence: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]

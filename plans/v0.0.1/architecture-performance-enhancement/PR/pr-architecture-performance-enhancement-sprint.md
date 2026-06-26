@@ -164,7 +164,7 @@ A follow-up forensic read (`additional-architecture-performance-findings.md`) sh
 
 | Area | Change |
 |------|--------|
-| `src/app.rs` | New — orchestration extracted from `main.rs` |
+| `src/app/` | New — orchestration extracted from `main.rs` |
 | `src/ast/location.rs` | `line_col` O(log N) via `line_starts` |
 | `src/ast/walk.rs` | Refactored walk utilities |
 | `src/cli/mod.rs` | Export flags, `--list-rules`, `--explain`, `--config`, env overrides |
@@ -206,7 +206,7 @@ A follow-up forensic read (`additional-architecture-performance-findings.md`) sh
 | Module files ≤400 lines | Domain modules enforce this; `wc -l` in CI |
 | Go CWE detector → domain module per category | 15 `domains/*` modules |
 | New Go CWE rule → `registry.toml` + domain module | Typed registry is source of truth |
-| Binary orchestration → `src/app.rs` only | `main.rs` stays tracing + `app::run` |
+| Binary orchestration → `src/app/` only | `main.rs` stays tracing + `app::run` |
 | Rule registry → `registry.toml` | `build.rs` reads it, generates typed code |
 
 ---

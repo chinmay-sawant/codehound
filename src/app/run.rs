@@ -1,30 +1,20 @@
-//! CLI orchestration for the `slopguard` binary.
-
-use std::collections::HashMap;
 use std::path::Path;
 use std::process::ExitCode;
 
 use anyhow::{Context, Result};
-use slopguard::cli::{Cli, Command, OutputFormat, RuleCategory};
-use slopguard::cwe::{RuleDescription, default_ruleset_path, load_rule_descriptions};
+use slopguard::cli::{Cli, Command, OutputFormat};
 use slopguard::engine::{
-    Analyzer, BASELINE_FILE_NAME, Baseline, CacheStore, DEFAULT_CACHE_DIR, Diagnostics, Registry,
-    SlopguardConfig, TimingCollector, collect_entries, discover_baseline, discover_cache_dir,
-    discover_config, resolve_language_filter,
+    Analyzer, BASELINE_FILE_NAME, Baseline, Diagnostics, Registry, TimingCollector,
+    collect_entries, resolve_language_filter,
 };
 use slopguard::export::export_findings;
 use slopguard::reporting;
-use slopguard::rules::category_for_rule_id;
 
-/// Conventional exit codes:
-/// 0 — clean (no failing findings, no errors)
-/// 1 — failing findings (per `FailPolicy`)
-/// 2 — configuration error (unknown flag, invalid `slopguard.toml`, ...)
-/// 3 — internal / I-O / engine error (scan aborted before completion)
-pub const EXIT_CLEAN: u8 = 0;
-pub const EXIT_FAILING: u8 = 1;
-pub const EXIT_CONFIG: u8 = 2;
-pub const EXIT_INTERNAL: u8 = 3;
+use super::cache::{cache_rebuild_dir, open_cache_store};
+use super::config::{baseline_load_path, baseline_loading_enabled, load_config};
+use super::exit_codes::{EXIT_CLEAN, EXIT_FAILING, EXIT_INTERNAL};
+use super::init_cmd::init_subcommand;
+use super::rule_info::{print_rule_explanation, print_rules};
 
 pub fn run(cli: Cli) -> Result<ExitCode> {
     #[cfg(feature = "terminal-output")]
@@ -84,8 +74,6 @@ pub fn run(cli: Cli) -> Result<ExitCode> {
                     eprintln!("Purged cache at {}", dir.display());
                 }
             }
-            // Re-open (or open for the first time) so the scan writes a
-            // fresh cache instead of running with the store closed.
             cache_store = open_cache_store(&cli, config.as_ref());
         }
     }
@@ -280,228 +268,4 @@ pub fn run(cli: Cli) -> Result<ExitCode> {
     } else {
         ExitCode::from(EXIT_CLEAN)
     })
-}
-
-fn baseline_loading_enabled(cli: &Cli, config: Option<&SlopguardConfig>) -> bool {
-    if cli.no_baseline {
-        return false;
-    }
-    config.is_none_or(SlopguardConfig::baseline_enabled)
-}
-
-fn baseline_load_path(cli: &Cli, config: Option<&SlopguardConfig>) -> Option<std::path::PathBuf> {
-    cli.baseline_file
-        .clone()
-        .or_else(|| config.and_then(SlopguardConfig::baseline_path))
-        .or_else(|| discover_baseline(Path::new(".")))
-}
-
-pub fn load_config(explicit: Option<&Path>) -> Result<Option<SlopguardConfig>> {
-    if let Some(path) = explicit {
-        if !path.is_file() {
-            anyhow::bail!("config file not found: {}", path.display());
-        }
-        Ok(Some(SlopguardConfig::load(path).with_context(|| {
-            format!("loading config {}", path.display())
-        })?))
-    } else if let Some(found) = discover_config(Path::new(".")) {
-        Ok(Some(SlopguardConfig::load(&found).with_context(|| {
-            format!("loading config {}", found.display())
-        })?))
-    } else {
-        Ok(None)
-    }
-}
-
-pub fn print_rules(category: Option<RuleCategory>) {
-    let registry = Registry::default();
-    let descriptions = load_descriptions();
-    let matching_rule_count: usize = registry
-        .detectors()
-        .iter()
-        .flat_map(|d| d.rule_ids().iter())
-        .filter(|id| category.is_none_or(|cat| category_for_rule_id(id) == cat.as_category()))
-        .count();
-    println!(
-        "Registered rules ({} detectors, {} rules{}):",
-        registry.detector_count(),
-        matching_rule_count,
-        category
-            .map(|cat| format!(", category: {}", cat.as_category()))
-            .unwrap_or_default(),
-    );
-    for det in registry.detectors() {
-        for id in det.rule_ids() {
-            if category.is_some_and(|cat| category_for_rule_id(id) != cat.as_category()) {
-                continue;
-            }
-            let title = descriptions
-                .get(*id)
-                .map(|d| d.name.as_str())
-                .or_else(|| det.metadata_for(id).map(|m| m.title))
-                .unwrap_or("<missing metadata>");
-            println!("  {id:<12} {title}");
-        }
-    }
-    if descriptions.is_empty() {
-        eprintln!(
-            "(rule descriptions not loaded from {}; install or build with ruleset)",
-            default_ruleset_path().display()
-        );
-    }
-}
-
-pub fn print_rule_explanation(rule_id: &str) {
-    let registry = Registry::default();
-    for det in registry.detectors() {
-        if det.rule_ids().contains(&rule_id) {
-            let Some(m) = det.metadata_for(rule_id) else {
-                continue;
-            };
-            println!("{} — {}", m.id, m.title);
-            println!();
-            println!("{}", m.description);
-            if let Some(fix) = m.fix {
-                println!();
-                println!("Fix: {fix}");
-            }
-            let descriptions = load_descriptions();
-            if let Some(rich) = descriptions.get(rule_id) {
-                if rich.description != m.description {
-                    println!();
-                    println!("From the CWE catalog:");
-                    println!("{}", rich.description);
-                }
-                if !rich.detection_notes.is_empty() {
-                    println!();
-                    println!("Detection notes:");
-                    println!("{}", rich.detection_notes);
-                }
-            }
-            return;
-        }
-    }
-    eprintln!("unknown rule: {rule_id}");
-}
-
-fn load_descriptions() -> &'static HashMap<String, RuleDescription> {
-    use std::sync::OnceLock;
-    static CACHE: OnceLock<HashMap<String, RuleDescription>> = OnceLock::new();
-    CACHE.get_or_init(|| {
-        let path = default_ruleset_path();
-        match load_rule_descriptions(&path) {
-            Ok(map) => map,
-            Err(e) => {
-                eprintln!(
-                    "warning: could not load rule descriptions from {}: {e}",
-                    path.display()
-                );
-                HashMap::new()
-            }
-        }
-    })
-}
-
-/// Resolve and open the incremental-analysis cache when enabled by
-/// CLI flags + `slopguard.toml`. Returns `None` when the cache is
-/// disabled (`--no-cache` or `cache.enabled = false`) or when the
-/// directory cannot be opened.
-fn open_cache_store(cli: &Cli, config: Option<&SlopguardConfig>) -> Option<CacheStore> {
-    if cli.no_cache {
-        return None;
-    }
-    if let Some(cfg) = config {
-        if !cfg.cache_enabled() {
-            return None;
-        }
-    }
-    let dir = cache_directory(cli, config)?;
-    let max_size_mb = config.map(|c| c.slopguard.cache.max_size_mb).unwrap_or(500);
-    match CacheStore::open_with_capacity(dir, max_size_mb) {
-        Ok(s) => Some(s),
-        Err(e) => {
-            if !cli.quiet {
-                eprintln!("warning: could not open incremental cache: {e:#}");
-            }
-            None
-        }
-    }
-}
-
-/// Resolve the cache directory following CLI > config > auto-discovery
-/// precedence. Returns `None` when none of the sources apply.
-fn cache_directory(cli: &Cli, config: Option<&SlopguardConfig>) -> Option<std::path::PathBuf> {
-    if let Some(dir) = cli.cache_dir.clone() {
-        return Some(dir);
-    }
-    if let Some(cfg) = config {
-        if let Some(p) = cfg.cache_path() {
-            return Some(p);
-        }
-    }
-    if let Some(found) = discover_cache_dir(Path::new(".")) {
-        return Some(found);
-    }
-    // No existing cache: lazily create one in the cwd so the next run
-    // can read it back.
-    Some(Path::new(DEFAULT_CACHE_DIR).to_path_buf())
-}
-
-/// Directory that would be purged by `--rebuild-cache`. Mirrors
-/// [`cache_directory`].
-fn cache_rebuild_dir(cli: &Cli, config: Option<&SlopguardConfig>) -> Option<std::path::PathBuf> {
-    cache_directory(cli, config)
-}
-
-pub fn init_subcommand() -> ExitCode {
-    const TEMPLATE: &str = "\
-# SlopGuard configuration. All fields are optional; unknown fields are rejected.
-[slopguard]
-# Limit analysis to specific languages.
-# languages = [\"go\", \"python\"]
-
-# Only run the union of these rule IDs and any passed via --only.
-# only = [\"CWE-22\", \"CWE-89\"]
-
-# Skip the union of these rule IDs and any passed via --skip.
-# skip = [\"CWE-15\"]
-
-# Exit policy: \"none\" | \"high\" | \"strict\" | anything else = warnings as errors.
-# fail_on = \"high\"
-
-# Optional include/exclude gitignore-style globs, relative to each scan root.
-# include = [\"**/*.go\"]
-# exclude = [\"**/vendor/**\", \"**/*_test.go\"]
-
-# Test files (*_test.*) are excluded by default; set to false to include them.
-# exclude_tests = false
-
-# Baselines are enabled by default and auto-discovered upward from the current directory.
-# [slopguard.baseline]
-# enabled = true
-# path = \".slopguard-baseline.json\"
-
-# Bad-practice rules (BP-*) are enabled by default.
-# [slopguard.bad_practices]
-# enabled = true
-# severity = \"low\"
-
-# Incremental analysis cache is enabled by default. SlopGuard stores per-file
-# results in `.slopguard-cache/` next to the project root and reuses them on
-# subsequent runs when the file's content hash has not changed.
-# [slopguard.cache]
-# enabled = true
-# path = \".slopguard-cache\"
-";
-    let path = Path::new("slopguard.toml");
-    if path.is_file() {
-        eprintln!("slopguard.toml already exists in this directory");
-        return ExitCode::from(EXIT_CONFIG);
-    }
-    if let Err(e) = std::fs::write(path, TEMPLATE) {
-        eprintln!("failed to write slopguard.toml: {e}");
-        return ExitCode::from(EXIT_INTERNAL);
-    }
-    println!("wrote starter slopguard.toml to {}", path.display());
-    ExitCode::from(EXIT_CLEAN)
 }

@@ -4,6 +4,7 @@ mod category;
 pub mod emit;
 mod evidence;
 mod finding;
+pub(crate) mod finding_wire;
 mod fingerprint;
 mod rule;
 mod severity;

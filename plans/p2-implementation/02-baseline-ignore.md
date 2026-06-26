@@ -123,7 +123,7 @@ Enable adoption on legacy codebases: first-run baseline captures all current fin
 
 ### 3.1 Load baseline in `app.rs`
 
-- [x] In `app::run()` (`src/app.rs`), after `analyze_paths()`:
+- [x] In `app::run()` (`src/app/`), after `analyze_paths()`:
   - [x] If `--baseline` flag: save findings as baseline file, print "Baseline saved with N entries" and exit 0
   - [x] If not `--no-baseline`:
     - [x] Discover baseline file via `discover_baseline()`

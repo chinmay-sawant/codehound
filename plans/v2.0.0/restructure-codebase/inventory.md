@@ -1,7 +1,7 @@
 # v2.0.0 — Inventory of Files Exceeding 2 000–3 000 Character Limits
 
 > **Parent:** `README.md` (master plan)
-> **Status:** Phase 1 complete (16/16 splits done; 6 new files confirmed under 3 000 chars, 0 work). Phases 2-6 not started.
+> **Status:** Phase 1 complete. Phase 2 complete. Phases 3-6 not started.
 > **Estimated effort:** Reference-only document. No code changes.
 
 ---
@@ -62,18 +62,18 @@ document that covers the proposed split.
 
 | File | Bytes | Lines | Phase-2 section | Action | Done |
 |---|---:|---:|---|---|---|
-| `src/app.rs` | 18 724 | 507 | §2.1 | Split into `app/` (6–7 new files) | [ ] |
-| `src/lib.rs` | 2 215 | 64 | §2.2 | **No split** — doc-only | [ ] |
-| `src/rules/finding.rs` | 13 521 | 409 | §2.3 | Add `finding_wire.rs` (slim finding.rs) | [ ] |
-| `src/rules/fingerprint.rs` | 3 235 | 107 | §2.4 | Optional split (leave as-is recommended) | [ ] |
-| `src/rules/emit.rs` | 2 165 | 96 | §2.5 | Optional split (leave as-is recommended) | [ ] |
-| `src/reporting/sarif.rs` | 12 062 | 378 | §2.6 | Split into `sarif/` (4 new files) | [ ] |
-| `src/reporting/text.rs` | 10 111 | 341 | §2.7 | Split into `text/` (4 new files) | [ ] |
-| `src/reporting/json.rs` | 5 315 | 170 | §2.8 | Split into `json/` (2 new files) | [ ] |
-| `src/export/mod.rs` | 8 638 | 272 | §2.9 | Split into `export/` (5 new files) | [ ] |
-| `src/cli/mod.rs` | 8 480 | 302 | §2.10 | Split into `cli/` (4 new files) | [ ] |
+| `src/app.rs` | 18 724 | 507 | §2.1 | Split into `app/` (6–7 new files) | [x] |
+| `src/lib.rs` | 2 215 | 64 | §2.2 | **No split** — doc-only | [x] |
+| `src/rules/finding.rs` | 13 521 | 409 | §2.3 | Add `finding_wire.rs` (slim finding.rs) | [x] |
+| `src/rules/fingerprint.rs` | 3 235 | 107 | §2.4 | Optional split (leave as-is recommended) | [x] |
+| `src/rules/emit.rs` | 2 165 | 96 | §2.5 | Optional split (leave as-is recommended) | [x] |
+| `src/reporting/sarif.rs` | 12 062 | 378 | §2.6 | Split into `sarif/` (4 new files) | [x] |
+| `src/reporting/text.rs` | 10 111 | 341 | §2.7 | Split into `text/` (4 new files) | [x] |
+| `src/reporting/json.rs` | 5 315 | 170 | §2.8 | Split into `json/` (2 new files) | [x] |
+| `src/export/mod.rs` | 8 638 | 272 | §2.9 | Split into `export/` (5 new files) | [x] |
+| `src/cli/mod.rs` | 8 480 | 302 | §2.10 | Split into `cli/` (4 new files) | [x] |
 
-**Phase 2 subtotal:** 10 files targeted, 7 require splitting, ~30 new files to author.
+**Phase 2 subtotal:** 10 files targeted, 7 require splitting, ~30 new files to author. **Progress: 7/7 splits done** (app, finding, sarif, text, json, export, cli + 3 no-split confirmations).
 
 ---
 
@@ -195,7 +195,7 @@ document that covers the proposed split.
 ## Tally checklist (per phase)
 
 - [x] **Phase 1** — 23 files, 22 splits, ~80 new files (22/22 done; +3 no-split confirmations)
-- [ ] **Phase 2** — 10 files, 7 splits, ~30 new files
+- [x] **Phase 2** — 10 files, 7 splits, ~30 new files (7/7 done; +3 no-split confirmations)
 - [ ] **Phase 3** — 30 files, 28 splits, ~75 new files
 - [ ] **Phase 4** — 19 files, 16 splits, ~75 new files
 - [ ] **Phase 5** — 6 files, 5 splits, ~25 new files

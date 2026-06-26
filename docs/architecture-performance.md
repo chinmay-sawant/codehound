@@ -50,7 +50,7 @@ Each file is read, parsed, analyzed, and dropped independently so peak memory st
 | `src/**/*.rs` module file | **≤ 400 lines** (split before exceeding) |
 | Go CWE detector | One **domain module** under `domains/` per ruleset category |
 | New Go CWE rule | Add `[[detector]]` to `registry.toml` + implement in the matching `domains/*.rs` |
-| Binary orchestration | `src/app.rs` only — `main.rs` stays tracing + `app::run` |
+| Binary orchestration | `src/app/` only — `main.rs` stays tracing + `app::run` |
 | Rule registry | `src/lang/go/detectors/cwe/registry.toml` is the source of truth |
 
 Run `wc -l src/lang/go/detectors/cwe/domains/*.rs` in CI or locally to catch module growth.
