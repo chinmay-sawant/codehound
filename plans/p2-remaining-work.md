@@ -3,7 +3,8 @@
 > **Scope:** Consolidated list of every unimplemented item across P2.1, P2.3, P2.4, and P2.5 — including items deferred during this session, items still unchecked in the individual plan files, and items that shipped in design-only form.
 > **Format:** Plain checklist. Each item is small enough to be a single PR.
 > **Source:** Cross-referenced from `plans/p2-implementation/{01,03,04,05}-*.md` and the parent `plans/p2.md`.
-> **Last updated:** after P2.4 batch 6. 61 / 112 PERF detectors shipped; 14 / ~15 BP rules shipped; taint Phases A+B done; cache Phases 1-6 done with LRU eviction.
+> **Last updated:** post-P2.4 batch 6 audit. 60 / 112 PERF detectors shipped (corrected from 61 — 1-off error); 13 / 13 BP MVP rules shipped with full fixture coverage; taint Phases A+B done; cache Phases 1-7 done with LRU eviction.
+> **Detailed breakdown:** See `plans/v2.0.0/pending-work/` for individual per-workstream plans.
 
 ---
 
@@ -24,13 +25,19 @@
   - [x] `[taint]` section in `slopguard.toml` with `enabled` (default false) and `show_paths`
   - [x] `taint_enabled` / `taint_show_paths` fields in `ScanContext`
 - [ ] **Phase C — Remove substring fallback for CWE-78/89/22/79** (deferred until taint is default-on; needs CLI signal + docs warning)
+  - 📋 Detailed plan: `plans/v2.0.0/pending-work/01-taint-tracking-remaining.md` Phase C
 - [ ] **Phase D — Extended sanitizer coverage** — add `strconv.Atoi`, `utf8.ValidString`, `validator.v10`, `html.EscapeString`, and the common middleware sanitizers (Gin's `c.ShouldBind`, Echo's `Binder.Bind`).
-- [ ] **Phase E — CLI `--show-taint` + documentation** — add the flag, wire it through `app.rs`, and document the taint-path output in `docs/taint.md` (new file). Also flip the default for `[slopguard.taint].enabled` to `true` once Phase C lands.
+  - 📋 Detailed plan: `plans/v2.0.0/pending-work/01-taint-tracking-remaining.md` Phase D
+- [ ] **Phase E — CLI `--show-taint` / `--taint` / `--no-taint` + documentation** — add flags, wire through `app.rs`, and document the taint-path output in `docs/taint.md` (new file). Also flip the default for `[slopguard.taint].enabled` to `true` once Phase C lands.
+  - 📋 Detailed plan: `plans/v2.0.0/pending-work/01-taint-tracking-remaining.md` Phase E + `plans/v2.0.0/pending-work/05-cross-cutting-remaining.md` Phase 2.1
 - [ ] **Phase F — Inter-procedural taint** (deferred, separate plan; needs callee-resolution work)
+  - 📋 Detailed plan: `plans/v2.0.0/pending-work/01-taint-tracking-remaining.md` Phase F
 
 ---
 
 ## A. P2.3 — Incremental Analysis
+
+📋 Detailed plan: `plans/v2.0.0/pending-work/04-cache-incremental-remaining.md`
 
 ### A.1 Plan items still unchecked in `03-incremental-analysis.md`
 
@@ -42,6 +49,8 @@
   - The transitive invalidation logic is covered by `transitive_invalidation_clears_dependents` in `tests/engine_cache.rs`. We still owe a *narrower* test that asserts the same thing without a `go.mod` on disk (so the test works in a fully synthetic temp dir). Add a `no_go_mod_path_inference_falls_back_to_cwd` variant.
 - [ ] **Phase 8.4 — Test concurrent scans (two processes) → cache corruption handling**
   - Documented limitation: a torn manifest is detected on next `open()` and falls back to an empty manifest. The test would need `fork()`-style process spawning and is non-portable. **Deferred** — needs a `std::process::Command`-based harness.
+
+📋 Detailed plan: `plans/v2.0.0/pending-work/04-cache-incremental-remaining.md`
 
 ### A.2 Configuration / CLI / Schema (mostly done — minor follow-ups)
 
@@ -58,6 +67,8 @@
 ---
 
 ## B. P2.4 — PERF Detector Implementation (212 rules, 30 shipped)
+
+📋 Detailed plan: `plans/v2.0.0/pending-work/02-perf-detectors-remaining.md`
 
 ### B.1 Plan items still unchecked in `04-perf-detector-implementation.md`
 
@@ -118,6 +129,8 @@
 The scope doc at `plans/bad-practices-scope.md` is a roadmap. MVP module is implemented in `src/lang/go/detectors/bad_practices/`.
 
 **Current active slice:** P2.5-A MVP rules and P2.4 planning/build verification — completed; current phase is remaining PERF registry/detector batches and benchmark regression investigation.
+
+📋 Detailed plan: `plans/v2.0.0/pending-work/03-bad-practices-remaining.md`
 
 ### C.1 Implementation (P2.5-A: MVP, 2 weeks)
 
@@ -184,6 +197,8 @@ The scope doc at `plans/bad-practices-scope.md` is a roadmap. MVP module is impl
 See **§ P2.1** above for detailed status: Phase A (Foundation) and Phase B (Intra-procedural graph + rewrites) shipped; Phases C–F deferred.
 
 ---
+
+📋 Detailed plan: `plans/v2.0.0/pending-work/05-cross-cutting-remaining.md`
 
 ## E. Cross-cutting
 

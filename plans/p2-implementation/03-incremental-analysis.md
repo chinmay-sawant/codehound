@@ -1,8 +1,9 @@
 # P2.3 — Incremental Analysis
 
 > **Parent:** `plans/p2.md` — P2.3
-> **Status:** Phase 1 + 2 + 3 + 4.1 + 4.2 + 4.3 + 5 + 6.1 complete. Cache is functional end-to-end with `--no-cache` / `--cache-dir` / `--rebuild-cache` / `--prune-cache` flags and `[slopguard.cache]` config block. Dependency-based transitive invalidation (Phase 4.3) is implemented. Size-based LRU pruning (Phase 6.2) is deferred.
-> **Estimated effort:** 2-3 weeks. ~1 week elapsed.
+> **Status:** Phases 1–7 **COMPLETED**. Phase 4.2 deferred (intentionally). Phase 6.2 (LRU eviction) **IMPLEMENTED** (contrary to earlier plan status; `evict_to_size()` is wired in `store_flush.rs`). Phase 8.4 deferred (non-portable concurrent-process test). Minor polish items remain.
+> **Estimated effort:** 1-2 days for remaining polish items.
+> **Pending work breakdown:** `plans/v2.0.0/pending-work/04-cache-incremental-remaining.md`
 
 ---
 

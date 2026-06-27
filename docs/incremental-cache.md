@@ -96,5 +96,6 @@ suppressions is essentially free.
 - Concurrent SlopGuard processes on the same cache directory may race on the
   manifest. Individual entry files are written atomically, and a torn manifest
   is detected on the next `open()` and falls back to an empty manifest.
-- Size-based LRU eviction (`max_size_mb`) is wired in config but not yet
-  enforced on `flush()`.
+- Size-based LRU eviction (`max_size_mb`) is enforced on `flush()` via
+  `CacheStore::evict_to_size()`. The eviction target ratio is hardcoded at 90%
+  of max_size_mb; a configurable `evict_target_ratio` field is planned.

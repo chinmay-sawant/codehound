@@ -1,9 +1,10 @@
 # P2.5 — Bad Practices Detection (Implementation Status)
 
 > **Parent:** `plans/p2.md` — P2.5
-> **Status:** ✅ **MVP implemented** (v2.0.0 remediation). Phases 2–4 (Testing, API Design, Code Org, Production Hardening, Dependency Hygiene) **not yet started**.
-> **Estimated effort:** MVP was ~1 week. Remaining phases ~5 weeks total.
+> **Status:** ✅ **MVP implemented** (v2.0.0 remediation). Phases 2–4 (Testing, API Design, Code Org, Production Hardening, Dependency Hygiene) **not started**.
+> **Estimated effort:** MVP was ~1 week. Remaining phases ~6 weeks total.
 > **See also:** `plans/v2.0.0/antipattern-remediation/bad-practices-scope.md` (original scoping doc), `plans/v2.0.0/rust-remediation-phase-3.md` (remediation tracking)
+> **Pending work breakdown:** `plans/v2.0.0/pending-work/03-bad-practices-remaining.md`
 
 ---
 
@@ -127,7 +128,7 @@ Bad Practices detection is a new rule category beyond CWE (security) and PERF (p
 - [x] `--no-bp` flag disables entire category (`engine_config_cli_filters.rs:43`)
 - [x] `--only BP-*` / `--skip BP-1` works via existing `--only`/`--skip` mechanism
 - [x] `RuleCategory::BadPractice` filter in `cli/enums.rs:48`
-- [ ] `--bp-only` shorthand flag — **not implemented** (use `--only BP-*` instead)
+- [x] `--bp-only` shorthand flag — **implemented** in `src/cli/args.rs:52-53` and wired in `src/cli/args_impl.rs:27`. (Plan was stale — code was ahead of docs.)
 
 ### 3.4 Configuration integration
 
@@ -150,7 +151,8 @@ Bad Practices detection is a new rule category beyond CWE (security) and PERF (p
 
 ### 3.6 Test fixtures
 
-- [x] 26 test fixture files in `tests/fixtures/go/bad_practices/` (vulnerable + safe pairs)
+- [x] 26 test fixture files in `tests/fixtures/go/bad_practices/` (13 vulnerable + 13 safe pairs — one per MVP rule)
+- [ ] **No dedicated `tests/go_bad_practice_integration.rs`** yet (BP tests share generic config-filter tests)
 - [x] Integration tests in `tests/engine_config_cli_filters.rs`, `tests/engine_config_parsing.rs`, `tests/reporting_json_finding.rs`, `tests/reporting_sarif_structured.rs`
 
 ---
@@ -250,7 +252,7 @@ src/lang/go/detectors/bad_practices/
 
 ```bash
 cargo test --all-features
-# 268 passed, 1 ignored (perf_regression budget)
+# 268+ passed, 1 ignored (perf_regression budget)
 
 cargo clippy --all-targets --all-features --locked -- -D warnings
 # pass

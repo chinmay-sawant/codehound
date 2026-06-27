@@ -1,8 +1,9 @@
 # P2.1 — Taint Tracking / Data Flow Analysis
 
 > **Parent:** `plans/p2.md` — P2.1
-> **Status:** Not started. All 275 detectors are substring/pattern matching on source text. Zero inter-procedural analysis.
-> **Estimated effort:** 4-6 weeks intra-procedural; 8-12 weeks inter-procedural.
+> **Status:** Phases A (Foundation) + B (Intra-procedural graph + CWE rewrites) **COMPLETED**. Phases C–F **not started**.
+> **Estimated effort:** 4-6 weeks for remaining phases (C–F).
+> **Pending work breakdown:** `plans/v2.0.0/pending-work/01-taint-tracking-remaining.md`
 
 ---
 

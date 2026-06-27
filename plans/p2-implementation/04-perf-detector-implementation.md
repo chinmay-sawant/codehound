@@ -1,8 +1,10 @@
 # P2.4 — PERF Ruleset Expansion: Detector Implementation
 
 > **Parent:** `plans/p2.md` — P2.4
-> **Status:** Ruleset catalog COMPLETED (212 rules in `ruleset/golang/golang.json`). First detector batch SHIPPED: PERF-103, 107, 115, 116, 117, 118, 120, 122, 124, 126, 127. Remaining 101 detector functions + fixtures deferred.
-> **Estimated effort:** 6-8 weeks for all 112 new detector functions + test fixtures.
+> **Status:** Ruleset catalog COMPLETED (112 rules PERF-101..212 in `golang.json`). **60 of 112 rules shipped** across 6 batches. 52 rules pending. Category B (context-aware) and Category C (semantic/multi-file) **not started**. 4 stub domain modules exist but are empty. 2 rules dropped (PERF-136, PERF-208).
+> **Estimated effort:** 4-6 weeks for remaining 52 rules + hygiene work.
+> **Pending work breakdown:** `plans/v2.0.0/pending-work/02-perf-detectors-remaining.md`
+> **Batch plans:** `plans/perf-batch-{4,5,6}.md`, `plans/perf-category-breakdown.md`
 
 ---
 
