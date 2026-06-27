@@ -13,3 +13,9 @@ scripts/gopdfsuit
 AGENTS.md 
 opencode.json 
 skills-lock.json
+
+.codex-plugin
+.cursor
+node_modules
+package.json 
+package-lock.json
