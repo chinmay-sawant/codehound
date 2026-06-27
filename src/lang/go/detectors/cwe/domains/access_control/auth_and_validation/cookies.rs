@@ -3,17 +3,17 @@ use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
-pub(crate) fn detect_cwe_603(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_603(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let trusts_auth_header = source.contains("X-Authenticated")
-        && source.contains(r#""true""#)
-        && source.contains("UPDATE billing SET plan");
+    let trusts_auth_header = facts.source_index.has("X-Authenticated")
+        && facts.source_index.has(r#""true""#)
+        && facts.source_index.has("UPDATE billing SET plan");
     if !trusts_auth_header {
         return;
     }
-    if source.contains("GetString(\"uid\")") || source.contains("Header.Get(\"X-UID\")") {
+    if facts.source_index.has_any(&[r#"GetString("uid")"#, r#"Header.Get("X-UID")"#]) {
         return;
     }
 
@@ -29,20 +29,16 @@ pub(crate) fn detect_cwe_603(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_613(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_613(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let non_expiring_cookie = (source.contains("SetCookie(\"sid\", sid, 0,")
-        || source.contains("http.SetCookie(w, &http.Cookie{Name: \"sid\", Value: sid, Path: \"/\", HttpOnly: true})"))
-        && source.contains("LogoutHandler");
+    let non_expiring_cookie = (facts.source_index.has_any(&[r#"SetCookie("sid", sid, 0,"#, r#"http.SetCookie(w, &http.Cookie{Name: "sid", Value: sid, Path: "/", HttpOnly: true})"#]))
+        && facts.source_index.has("LogoutHandler");
     if !non_expiring_cookie {
         return;
     }
-    if source.contains("revokedSessions[sid]")
-        || source.contains("revokedSessions[c.Value]")
-        || source.contains("MaxAge: 900")
-        || source.contains(", 900,")
+    if facts.source_index.has_any(&["revokedSessions[sid]", "revokedSessions[c.Value]", "MaxAge: 900", ", 900,"])
     {
         return;
     }

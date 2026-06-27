@@ -35,7 +35,7 @@ pub(super) fn record_call(node: tree_sitter::Node, state: &mut ExtractionState<'
             function: Arc::from(func_text),
             kind,
             byte_range,
-            result_variable: result_var.map(|s| Arc::from(s)),
+            result_variable: result_var.map(Arc::from),
             arguments: args.into_boxed_slice(),
         });
         return;
@@ -68,7 +68,7 @@ pub(super) fn record_call(node: tree_sitter::Node, state: &mut ExtractionState<'
             function: Arc::from(func_text),
             kind,
             byte_range,
-            result_variable: result_var.map(|s| Arc::from(s)),
+            result_variable: result_var.map(Arc::from),
             arguments: args.into_boxed_slice(),
         });
     }

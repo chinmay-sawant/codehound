@@ -1,4 +1,5 @@
 //! Stable finding identity.
+#![allow(missing_docs)] // ratchet: document in a follow-up pass
 
 use std::fmt;
 
@@ -43,6 +44,7 @@ impl Fingerprint {
         }
     }
 
+    #[must_use = "fingerprint parse failures must be handled"]
     pub fn parse(value: &str) -> Result<Self, FingerprintParseError> {
         let prefix = format!("{FINGERPRINT_TOOL}:{FINGERPRINT_VERSION}:");
         let Some(rest) = value.strip_prefix(&prefix) else {

@@ -2,16 +2,16 @@ use super::super::super::super::facts::GoUnitFacts;
 use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
-pub(crate) fn detect_cwe_353(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_353(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let ingests_body = source.contains("io.ReadAll(") && source.contains("INSERT INTO telemetry")
-        || source.contains("io.ReadAll(") && source.contains("INSERT INTO agent_reports");
+    let ingests_body = facts.source_index.has("io.ReadAll(")
+        && facts.source_index.has_any(&["INSERT INTO telemetry", "INSERT INTO agent_reports"]);
     if !ingests_body {
         return;
     }
-    if source.contains("X-Body-Mac") || source.contains("ConstantTimeCompare(expected, got)") {
+    if facts.source_index.has_any(&["X-Body-Mac", "ConstantTimeCompare(expected, got)"]) {
         return;
     }
 
@@ -27,18 +27,18 @@ pub(crate) fn detect_cwe_353(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_356(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_356(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let destructive_delete = (source.contains("func PurgeTenant(")
-        && source.contains("DELETE FROM tenants WHERE slug = ?"))
-        || (source.contains("func DeleteWorkspaceRecords(")
-            && source.contains("DELETE FROM workspaces WHERE slug = ?"));
+    let destructive_delete = (facts.source_index.has("func PurgeTenant(")
+        && facts.source_index.has("DELETE FROM tenants WHERE slug = ?"))
+        || (facts.source_index.has("func DeleteWorkspaceRecords(")
+            && facts.source_index.has("DELETE FROM workspaces WHERE slug = ?"));
     if !destructive_delete {
         return;
     }
-    if source.contains("X-Confirm-Purge") || source.contains("X-Confirm-Delete") {
+    if facts.source_index.has_any(&["X-Confirm-Purge", "X-Confirm-Delete"]) {
         return;
     }
 
@@ -58,15 +58,15 @@ pub(crate) fn detect_cwe_356(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_494(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_494(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let downloads_bundle = source.contains("http.Get(") && source.contains("/tmp/worker.bin");
+    let downloads_bundle = facts.source_index.has("http.Get(") && facts.source_index.has("/tmp/worker.bin");
     if !downloads_bundle {
         return;
     }
-    if source.contains("sha256.Sum256(") || source.contains("integrity check failed") {
+    if facts.source_index.has_any(&["sha256.Sum256(", "integrity check failed"]) {
         return;
     }
 
@@ -82,24 +82,17 @@ pub(crate) fn detect_cwe_494(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_924(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_924(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let applies_payment_webhook = (source.contains("AcceptWebhook(")
-        || source.contains("AcceptWebhookPure(")
-        || source.contains("AcceptWebhookVerified(")
-        || source.contains("AcceptWebhookVerifiedPure("))
-        && source.contains("UPDATE invoices SET paid = true")
-        && (source.contains("BindJSON(&evt)")
-            || source.contains("Decode(&evt)")
-            || source.contains("Unmarshal(body, &evt)"));
+    let applies_payment_webhook = (facts.source_index.has_any(&["AcceptWebhook(", "AcceptWebhookPure(", "AcceptWebhookVerified(", "AcceptWebhookVerifiedPure("]))
+        && facts.source_index.has("UPDATE invoices SET paid = true")
+        && (facts.source_index.has_any(&["BindJSON(&evt)", "Decode(&evt)", "Unmarshal(body, &evt)"]));
     if !applies_payment_webhook {
         return;
     }
-    if source.contains("X-Signature")
-        || source.contains("hmac.New(sha256.New")
-        || source.contains("hmac.Equal(")
+    if facts.source_index.has_any(&["X-Signature", "hmac.New(sha256.New", "hmac.Equal("])
     {
         return;
     }

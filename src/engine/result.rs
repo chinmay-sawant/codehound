@@ -39,8 +39,8 @@ impl ScanErrorKind {
         match self {
             ScanErrorKind::Io => 3,
             ScanErrorKind::Encoding => 3,
-            ScanErrorKind::Parse => 3,
-            ScanErrorKind::Engine => 3,
+            ScanErrorKind::Parse => 4,
+            ScanErrorKind::Engine => 5,
         }
     }
 }
@@ -58,6 +58,7 @@ impl std::fmt::Display for ScanErrorKind {
 }
 
 /// Findings (and per-file errors) from a scan run.
+#[must_use]
 #[derive(Debug, Default, Clone)]
 pub struct AnalysisResult {
     pub findings: Vec<Finding>,

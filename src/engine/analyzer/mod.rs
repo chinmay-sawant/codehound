@@ -1,7 +1,9 @@
 //! Scan orchestrator.
 
+mod builder;
 mod scan;
 mod types;
 mod units;
 
-pub use types::{Analyzer, AnalyzerBuilder};
+pub use builder::AnalyzerBuilder;
+pub use types::Analyzer;

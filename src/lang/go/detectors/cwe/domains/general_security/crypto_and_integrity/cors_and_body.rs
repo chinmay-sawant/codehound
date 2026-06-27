@@ -2,13 +2,13 @@ use super::super::super::super::facts::GoUnitFacts;
 use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
-pub(crate) fn detect_cwe_341(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_341(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let predictable_token = source.contains("fmt.Sprintf(\"%d-%d-%s\"")
-        && source.contains("os.Getpid()")
-        && source.contains("time.Now().Unix()");
+    let predictable_token = facts.source_index.has(r#"fmt.Sprintf("%d-%d-%s""#)
+        && facts.source_index.has("os.Getpid()")
+        && facts.source_index.has("time.Now().Unix()");
     if !predictable_token {
         return;
     }
@@ -25,13 +25,12 @@ pub(crate) fn detect_cwe_341(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_344(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_344(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let hardcoded_secret = source.contains("const billingHMACSecret = ")
-        || source.contains("const shipmentHMACSecret = ");
-    if !hardcoded_secret || !source.contains("hmac.New(") {
+    let hardcoded_secret = facts.source_index.has_any(&["const billingHMACSecret = ", "const shipmentHMACSecret = "]);
+    if !hardcoded_secret || !facts.source_index.has("hmac.New(") {
         return;
     }
 
@@ -51,18 +50,16 @@ pub(crate) fn detect_cwe_344(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_346(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_346(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let reflects_origin = source.contains("Access-Control-Allow-Origin\", origin")
-        && source.contains("Header.Get(\"Origin\")");
+    let reflects_origin = facts.source_index.has(r#"Access-Control-Allow-Origin", origin"#)
+        && facts.source_index.has(r#"Header.Get("Origin")"#);
     if !reflects_origin {
         return;
     }
-    if source.contains("allowedOrigins")
-        || source.contains("trustedOrigins")
-        || source.contains("forbidden origin")
+    if facts.source_index.has_any(&["allowedOrigins", "trustedOrigins", "forbidden origin"])
     {
         return;
     }

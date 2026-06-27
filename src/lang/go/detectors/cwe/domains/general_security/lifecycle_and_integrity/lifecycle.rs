@@ -3,17 +3,17 @@ use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
-pub(crate) fn detect_cwe_765(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_765(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let double_unlock = source.contains("Unlock()")
+    let double_unlock = facts.source_index.has("Unlock()")
         && source.matches("Unlock()").count() >= 2
-        && source.contains("DebitWallet");
+        && facts.source_index.has("DebitWallet");
     if !double_unlock {
         return;
     }
-    if source.contains("defer walletMu.Unlock()") || source.contains("defer cacheMu.Unlock()") {
+    if facts.source_index.has_any(&["defer walletMu.Unlock()", "defer cacheMu.Unlock()"]) {
         return;
     }
 
@@ -29,18 +29,18 @@ pub(crate) fn detect_cwe_765(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_778(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_778(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let missing_auth_audit = source.contains("SignIn")
-        && source.contains("username")
-        && source.contains("password")
-        && source.contains("Unauthorized");
+    let missing_auth_audit = facts.source_index.has("SignIn")
+        && facts.source_index.has("username")
+        && facts.source_index.has("password")
+        && facts.source_index.has("Unauthorized");
     if !missing_auth_audit {
         return;
     }
-    if source.contains("log.Printf(\"auth failure") {
+    if facts.source_index.has(r#"log.Printf("auth failure"#) {
         return;
     }
 
@@ -56,18 +56,18 @@ pub(crate) fn detect_cwe_778(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_826(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_826(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let premature_release = source.contains("go func()")
-        && source.contains("db.Close()")
-        && (source.contains("db.Query(") || source.contains("db.Query(\"SELECT"));
+    let premature_release = facts.source_index.has("go func()")
+        && facts.source_index.has("db.Close()")
+        && (facts.source_index.has_any(&["db.Query(", r#"db.Query("SELECT"#]));
     if !premature_release {
         return;
     }
-    if source.contains("QueryContext(")
-        || source.contains("<-done\n\tc.Status(") && !source.contains("db.Close()")
+    if facts.source_index.has_any(&["QueryContext(", "<-done
+	c.Status("]) && !facts.source_index.has("db.Close()")
     {
         return;
     }
@@ -84,19 +84,18 @@ pub(crate) fn detect_cwe_826(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_1322(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_1322(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let blocking_worker = (source.contains("StartWebhookWorker(")
-        || source.contains("StartWebhookWorkerPure("))
-        && source.contains("queue := make(chan")
-        && source.contains("for payload := range queue")
-        && source.contains("time.Sleep(2 * time.Second)");
+    let blocking_worker = (facts.source_index.has_any(&["StartWebhookWorker(", "StartWebhookWorkerPure("]))
+        && facts.source_index.has("queue := make(chan")
+        && facts.source_index.has("for payload := range queue")
+        && facts.source_index.has("time.Sleep(2 * time.Second)");
     if !blocking_worker {
         return;
     }
-    if source.contains("time.AfterFunc(") {
+    if facts.source_index.has("time.AfterFunc(") {
         return;
     }
 

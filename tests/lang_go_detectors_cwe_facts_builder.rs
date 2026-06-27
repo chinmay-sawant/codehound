@@ -12,7 +12,9 @@ use slopguard::lang::go::detectors::cwe::facts::*;
 fn parse_go_source(source: &str) -> ParsedUnit {
     let plugin = GoPlugin;
     let mut parser = Parser::new();
-    plugin.configure_parser(&mut parser);
+    plugin
+        .configure_parser(&mut parser)
+        .expect("configure Go parser");
     plugin
         .parse_with(&mut parser, Path::new("sample.go"), Arc::from(source))
         .expect("parse go source")

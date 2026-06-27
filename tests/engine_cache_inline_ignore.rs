@@ -40,6 +40,7 @@ func Run(w http.ResponseWriter, r *http.Request) {
     let mut cache = CacheStore::open(cache_dir.clone()).unwrap();
     let first_count = {
         let analyzer = Analyzer::builder()
+            .with_default_filter()
             .scan_context(ScanContext::default())
             .build();
         let r = analyzer.analyze_paths([&root], Some(&mut cache)).unwrap();
@@ -63,16 +64,12 @@ func Run(w http.ResponseWriter, r *http.Request) {
     let mut cache2 = CacheStore::open(cache_dir).unwrap();
     let (second_count, cwe78_in_second) = {
         let analyzer = Analyzer::builder()
+            .with_default_filter()
             .scan_context(ScanContext::default())
             .build();
         let r = analyzer.analyze_paths([&root], Some(&mut cache2)).unwrap();
-        let cwes: Vec<&str> = r
-            .findings
-            .iter()
-            .map(|f| f.rule_id)
-            .filter(|id| *id == "CWE-78")
-            .collect();
-        (r.findings.len(), cwes.len())
+        let cwe78_count = r.findings.iter().filter(|f| f.rule_id == "CWE-78").count();
+        (r.findings.len(), cwe78_count)
     };
     assert!(
         cwe78_in_second == 0,
@@ -103,6 +100,7 @@ fn inline_ignore_applied_on_cache_hit_when_source_unchanged() {
     let mut cache = CacheStore::open(cache_dir.clone()).unwrap();
     {
         let analyzer = Analyzer::builder()
+            .with_default_filter()
             .scan_context(ScanContext::default())
             .build();
         let _ = analyzer.analyze_paths([&root], Some(&mut cache)).unwrap();
@@ -114,6 +112,7 @@ fn inline_ignore_applied_on_cache_hit_when_source_unchanged() {
     let mut cache2 = CacheStore::open(cache_dir).unwrap();
     let cwe78 = {
         let analyzer = Analyzer::builder()
+            .with_default_filter()
             .scan_context(ScanContext::default())
             .build();
         let r = analyzer.analyze_paths([&root], Some(&mut cache2)).unwrap();
@@ -165,6 +164,7 @@ func ReadFile(r *http.Request) {
 
     let first_ids = {
         let analyzer = Analyzer::builder()
+            .with_default_filter()
             .scan_context(ScanContext::default())
             .build();
         let r = analyzer.analyze_paths([&root], Some(&mut cache)).unwrap();
@@ -189,7 +189,7 @@ func ReadFile(r *http.Request) {
             skip: skip_set,
             ..Default::default()
         };
-        let analyzer = Analyzer::builder().scan_context(ctx).build();
+        let analyzer = Analyzer::builder().with_default_filter().scan_context(ctx).build();
         let r = analyzer.analyze_paths([&root], Some(&mut cache2)).unwrap();
         let mut ids: Vec<String> = r.findings.iter().map(|f| f.rule_id.to_string()).collect();
         ids.sort();

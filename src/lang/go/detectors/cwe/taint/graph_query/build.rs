@@ -167,7 +167,7 @@ fn referenced_identifiers(expr: &str) -> Vec<&str> {
     let mut out = Vec::new();
     for token in expr.split(|c: char| !c.is_alphanumeric() && c != '_') {
         if !token.is_empty()
-            && !token.parse::<i64>().is_ok()
+            && token.parse::<i64>().is_err()
             && !is_go_keyword(token)
             && token.len() < 256
         {

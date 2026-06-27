@@ -5,8 +5,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use anyhow::Result;
-
+use crate::Error;
 use crate::engine::{
     SCAN_CHUNK_SIZE,
     cache::CacheStore,
@@ -24,11 +23,19 @@ impl Analyzer {
     /// cache for files whose content hash has not changed, and writes
     /// back new entries for files it scans. The cache is flushed
     /// before this method returns.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when file discovery fails (invalid paths, I/O while
+    /// walking the tree), when the incremental cache cannot be read or
+    /// written, or when a configured language plugin fails to parse a file
+    /// in a way that aborts the scan (per [`crate::core::FailPolicy`]).
+    #[must_use = "scan errors and findings are returned in AnalysisResult"]
     pub fn analyze_paths<I, P>(
         &self,
         paths: I,
         mut cache: Option<&mut CacheStore>,
-    ) -> Result<AnalysisResult>
+    ) -> Result<AnalysisResult, Error>
     where
         I: IntoIterator<Item = P>,
         P: AsRef<Path>,
@@ -62,8 +69,10 @@ impl Analyzer {
         let mut errors = Vec::new();
         let mut source_cache: HashMap<String, Arc<str>> = HashMap::new();
         let mut suppressed_count = 0;
-        let mut stats = ScanStats::default();
-        stats.files_skipped = files_skipped;
+        let mut stats = ScanStats {
+            files_skipped,
+            ..Default::default()
+        };
         let mut scanned_files: std::collections::HashSet<String> =
             std::collections::HashSet::with_capacity(entries.len());
         for entry in &entries {
@@ -79,14 +88,17 @@ impl Analyzer {
                 chunk_stats,
                 chunk_timing,
                 chunk_rescan_files,
-            ) = scan_entries_parallel(
+            ) = match scan_entries_parallel(
                 &self.registry,
                 &self.ctx,
                 chunk,
                 cache.as_deref_mut(),
                 &project_root,
                 module_prefix.as_deref(),
-            )?;
+            ) {
+                Ok(chunk) => chunk,
+                Err(e) => return Err(Error::Walk(e.to_string())),
+            };
             findings.extend(chunk_findings);
             errors.extend(chunk_errors);
             source_cache.extend(chunk_source_cache);

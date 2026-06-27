@@ -4,8 +4,6 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use anyhow::{Context, Result};
-
 use super::CacheStore;
 use super::io::mtime_of_file;
 use super::types::FILES_SUBDIR;
@@ -17,29 +15,28 @@ impl CacheStore {
     /// Open the cache at `cache_dir`, creating the directory layout if
     /// it does not exist. Reads an existing manifest if present;
     /// otherwise starts with an empty manifest. No size limit is enforced.
-    pub fn open(cache_dir: PathBuf) -> Result<Self> {
+    #[must_use = "callers must handle cache open failures"]
+    pub fn open(cache_dir: PathBuf) -> Result<Self, CacheError> {
         Self::open_with_capacity(cache_dir, 0)
     }
 
     /// Open the cache with a maximum on-disk size in MiB. `0` disables
     /// the size limit.
-    pub fn open_with_capacity(cache_dir: PathBuf, max_size_mb: u64) -> Result<Self> {
+    #[must_use = "callers must handle cache open failures"]
+    pub fn open_with_capacity(cache_dir: PathBuf, max_size_mb: u64) -> Result<Self, CacheError> {
         let files_dir = cache_dir.join(FILES_SUBDIR);
-        fs::create_dir_all(&files_dir)
-            .with_context(|| format!("creating cache directory {}", files_dir.display()))?;
+        fs::create_dir_all(&files_dir)?;
 
         let manifest_path = cache_dir.join(MANIFEST_NAME);
         let manifest = if manifest_path.is_file() {
-            let bytes = fs::read(&manifest_path)
-                .with_context(|| format!("reading manifest {}", manifest_path.display()))?;
+            let bytes = fs::read(&manifest_path)?;
             match serde_json::from_slice::<CacheManifest>(&bytes) {
                 Ok(m) => {
                     if m.schema_version != CACHE_VERSION {
                         return Err(CacheError::SchemaMismatch {
                             found: m.schema_version,
                             expected: CACHE_VERSION,
-                        }
-                        .into());
+                        });
                     }
                     if m.tool_version != env!("CARGO_PKG_VERSION") {
                         // Same major version is fine; a different version

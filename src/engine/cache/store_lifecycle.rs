@@ -4,7 +4,7 @@
 
 use std::fs;
 
-use anyhow::{Context, Result};
+use crate::Error;
 
 use super::CacheStore;
 use super::hash::cache_key_for_path;
@@ -14,31 +14,32 @@ use super::types::{CacheEntry, FileCacheMeta};
 impl CacheStore {
     /// Insert or replace a cache entry. Updates the manifest and marks
     /// the store dirty so [`flush`](Self::flush) writes to disk.
-    pub fn put(&mut self, entry: CacheEntry) -> Result<()> {
+    pub fn put(&mut self, entry: CacheEntry) -> Result<(), Error> {
         let cache_key = cache_key_for_path(&entry.file);
         let entry_path = self.files_dir().join(format!("{cache_key}.json"));
+        write_atomic(&entry_path, &entry)?;
         let meta = FileCacheMeta {
-            cache_key: cache_key.clone(),
+            cache_key,
             content_hash: entry.content_hash.clone(),
             mtime_secs: entry.mtime_secs,
             mtime_nanos: entry.mtime_nanos,
             language: entry.language.clone(),
             dependencies: entry.dependencies.clone(),
         };
-        write_atomic(&entry_path, &entry)?;
-        self.manifest.files.insert(entry.file.clone(), meta);
+        self.manifest.files.insert(entry.file, meta);
         self.dirty = true;
         Ok(())
     }
 
     /// Remove a single entry from the manifest and from disk. No-op
     /// when `file` is not tracked.
-    pub fn remove(&mut self, file: &str) -> Result<()> {
+    pub fn remove(&mut self, file: &str) -> Result<(), Error> {
         if let Some(meta) = self.manifest.files.remove(file) {
             let path = self.files_dir().join(format!("{}.json", meta.cache_key));
             if path.is_file() {
-                fs::remove_file(&path)
-                    .with_context(|| format!("removing cache entry {}", path.display()))?;
+                fs::remove_file(&path).map_err(|e| {
+                    Error::Walk(format!("removing cache entry {}: {e}", path.display()))
+                })?;
             }
             self.dirty = true;
         }
@@ -48,7 +49,10 @@ impl CacheStore {
     /// Drop every entry not present in `scanned_files` from the
     /// manifest and from disk. Use after a scan completes to remove
     /// entries for files that no longer exist.
-    pub fn prune(&mut self, scanned_files: &std::collections::HashSet<String>) -> Result<usize> {
+    pub fn prune(
+        &mut self,
+        scanned_files: &std::collections::HashSet<String>,
+    ) -> Result<usize, Error> {
         let to_remove: Vec<String> = self
             .manifest
             .files
@@ -67,7 +71,7 @@ impl CacheStore {
     /// present in the manifest. These orphans appear when the
     /// manifest is torn (e.g. concurrent writes). Returns the number
     /// of files removed.
-    pub fn clean_orphans(&self) -> Result<usize> {
+    pub fn clean_orphans(&self) -> Result<usize, Error> {
         if !self.files_dir.is_dir() {
             return Ok(0);
         }

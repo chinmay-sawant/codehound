@@ -2,18 +2,18 @@ use super::super::super::super::facts::GoUnitFacts;
 use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
-pub(crate) fn detect_cwe_523(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_523(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let cleartext_login = (source.contains("/login") && source.contains("password"))
-        && (source.contains("Addr: \":8080\"") || source.contains("StartCleartextLogin"));
+    let cleartext_login = (facts.source_index.has("/login") && facts.source_index.has("password"))
+        && (facts.source_index.has("Addr: \":8080\"") || facts.source_index.has("StartCleartextLogin"));
     if !cleartext_login {
         return;
     }
-    if source.contains("requireTLS(")
-        || source.contains("Request.TLS == nil")
-        || source.contains("r.TLS == nil")
+    if facts.source_index.has("requireTLS(")
+        || facts.source_index.has("Request.TLS == nil")
+        || facts.source_index.has("r.TLS == nil")
     {
         return;
     }
@@ -34,17 +34,17 @@ pub(crate) fn detect_cwe_523(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_547(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_547(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let hardcoded_signing_secret =
-        source.contains("const jwtSecret = ") || source.contains("const sessionMACKey = ");
+        facts.source_index.has("const jwtSecret = ") || facts.source_index.has("const sessionMACKey = ");
     if !hardcoded_signing_secret {
         return;
     }
-    if source.contains("os.Getenv(\"JWT_SIGNING_KEY\")")
-        || source.contains("os.Getenv(\"SESSION_MAC_KEY\")")
+    if facts.source_index.has("os.Getenv(\"JWT_SIGNING_KEY\")")
+        || facts.source_index.has("os.Getenv(\"SESSION_MAC_KEY\")")
     {
         return;
     }
@@ -65,7 +65,7 @@ pub(crate) fn detect_cwe_547(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_798(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_798(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
@@ -74,7 +74,7 @@ pub(crate) fn detect_cwe_798(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     if !hardcoded_dsn {
         return;
     }
-    if source.contains("os.Getenv(\"REPORTING_DSN\")") {
+    if facts.source_index.has("os.Getenv(\"REPORTING_DSN\")") {
         return;
     }
 

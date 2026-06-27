@@ -7,6 +7,8 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Deserializer, Serialize};
 
+use crate::Error;
+
 /// Deserialize an `id` field that may be either a JSON number (`15`) or a
 /// JSON string (`"PERF-001"`). Always stores the canonical `String` form.
 fn deserialize_id<'de, D: Deserializer<'de>>(de: D) -> Result<String, D::Error> {
@@ -39,9 +41,15 @@ pub struct RuleDescription {
 
 /// Load rule descriptions from a JSON file. The file is a map of rule ID
 /// (e.g. `"CWE-22"`) → `RuleDescription`.
-pub fn load_rule_descriptions(path: &Path) -> anyhow::Result<HashMap<String, RuleDescription>> {
-    let text = std::fs::read_to_string(path)?;
-    Ok(serde_json::from_str(&text)?)
+///
+/// # Errors
+///
+/// Returns [`Error::Io`] on read failure and [`Error::Json`] when the file is
+/// not valid JSON for the expected schema.
+#[must_use = "rule catalogue load failures must be handled"]
+pub fn load_rule_descriptions(path: &Path) -> Result<HashMap<String, RuleDescription>, Error> {
+    let text = std::fs::read_to_string(path).map_err(Error::from)?;
+    serde_json::from_str(&text).map_err(Error::from)
 }
 
 /// Default location of the Go ruleset, relative to the workspace root.

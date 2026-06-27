@@ -117,7 +117,7 @@ pub(crate) fn detect_perf_158(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("sort.Slice") {
+    if !facts.source_index.has("sort.Slice") {
         return;
     }
 
@@ -171,7 +171,6 @@ pub(crate) fn detect_perf_158(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
             out,
         );
     }
-    let _ = facts;
 }
 
 fn is_basic_slice_type(expr: &str) -> bool {
@@ -222,11 +221,11 @@ fn is_basic_typed_identifier(source: &str, ident: &str) -> bool {
 /// PERF-177: `(*os.File).Readdir(-1)` predates `os.ReadDir(name)` and
 /// returns a `[]os.FileInfo` (heavyweight) instead of `[]os.DirEntry`
 /// (lighter). Use `os.ReadDir` for new code.
-pub(crate) fn detect_perf_177(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_177(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains(".Readdir(") {
+    if !facts.source_index.has(".Readdir(") {
         return;
     }
 

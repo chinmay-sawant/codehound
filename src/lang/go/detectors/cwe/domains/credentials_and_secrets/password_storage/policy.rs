@@ -2,20 +2,20 @@ use super::super::super::super::facts::GoUnitFacts;
 use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
-pub(crate) fn detect_cwe_521(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_521(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let weak_password_policy = source.contains("Password")
-        && source.contains("len(body.Password) < 1")
-        || source.contains("len(body.Password)<1")
-        || source.contains("len(pw) < 1");
-    let stores_password = source.contains("password_hash")
-        && (source.contains("body.Password") || source.contains("body.Password"));
+    let weak_password_policy = facts.source_index.has("Password")
+        && facts.source_index.has("len(body.Password) < 1")
+        || facts.source_index.has("len(body.Password)<1")
+        || facts.source_index.has("len(pw) < 1");
+    let stores_password = facts.source_index.has("password_hash")
+        && (facts.source_index.has("body.Password") || facts.source_index.has("body.Password"));
     if !(weak_password_policy && stores_password) {
         return;
     }
-    if source.contains("strongPassword(") || source.contains("len(pw) < 12") {
+    if facts.source_index.has("strongPassword(") || facts.source_index.has("len(pw) < 12") {
         return;
     }
 

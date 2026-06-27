@@ -2,16 +2,16 @@ use super::super::super::super::facts::GoUnitFacts;
 use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
-pub(crate) fn detect_cwe_425(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_425(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let admin_export = source.contains("/internal/admin/export.csv")
-        && source.contains("SELECT email, ssn FROM customers");
+    let admin_export = facts.source_index.has("/internal/admin/export.csv")
+        && facts.source_index.has("SELECT email, ssn FROM customers");
     if !admin_export {
         return;
     }
-    if source.contains("requireAdmin()") || source.contains("requireAdmin(") {
+    if facts.source_index.has_any(&["requireAdmin()", "requireAdmin("]) {
         return;
     }
 
@@ -27,18 +27,18 @@ pub(crate) fn detect_cwe_425(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_551(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_551(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let raw_path_gate = source.contains("raw := ")
-        && source.contains("URL.Path")
-        && source.contains("strings.HasPrefix(raw, \"/admin\")")
-        && source.contains("strings.ReplaceAll(raw, \"%2f\", \"/\")");
+    let raw_path_gate = facts.source_index.has("raw := ")
+        && facts.source_index.has("URL.Path")
+        && facts.source_index.has(r#"strings.HasPrefix(raw, "/admin")"#)
+        && facts.source_index.has(r#"strings.ReplaceAll(raw, "%2f", "/")"#);
     if !raw_path_gate {
         return;
     }
-    if source.contains("url.PathUnescape(raw)") {
+    if facts.source_index.has("url.PathUnescape(raw)") {
         return;
     }
 
@@ -56,21 +56,17 @@ pub(crate) fn detect_cwe_551(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_653(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_653(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let shared_privileged_store = (source.contains("sharedDB")
-        || source.contains("sharedAuditStore"))
-        && source.contains("PublicSearch")
-        && source.contains("AdminPurge");
+    let shared_privileged_store = (facts.source_index.has_any(&["sharedDB", "sharedAuditStore"]))
+        && facts.source_index.has("PublicSearch")
+        && facts.source_index.has("AdminPurge");
     if !shared_privileged_store {
         return;
     }
-    if source.contains("readOnlyDB")
-        || source.contains("readOnlyAuditStore")
-        || source.contains("adminDB")
-        || source.contains("adminAuditStore")
+    if facts.source_index.has_any(&["readOnlyDB", "readOnlyAuditStore", "adminDB", "adminAuditStore"])
     {
         return;
     }

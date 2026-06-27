@@ -69,7 +69,6 @@ fn walk(root: Node<'_>, kinds: &[&str], depth: usize, out: &mut Vec<FunctionSpan
 ///
 /// Line numbers are set to `0`; the caller is responsible for resolving
 /// them later (e.g. via [`crate::ast::line_col_with_starts`]).
-#[allow(dead_code)]
 pub(crate) fn try_record_function_span(
     node: Node<'_>,
     kinds: &[&str],

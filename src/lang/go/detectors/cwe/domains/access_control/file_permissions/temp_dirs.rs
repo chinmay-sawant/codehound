@@ -2,15 +2,15 @@ use super::super::super::super::facts::GoUnitFacts;
 use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
-pub(crate) fn detect_cwe_378(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_378(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let insecure_temp_file = source.contains("os.TempDir()") && source.contains("0666");
+    let insecure_temp_file = facts.source_index.has("os.TempDir()") && facts.source_index.has("0666");
     if !insecure_temp_file {
         return;
     }
-    if source.contains("CreateTemp(") || source.contains("Chmod(f.Name(), 0600)") {
+    if facts.source_index.has_any(&["CreateTemp(", "Chmod(f.Name(), 0600)"]) {
         return;
     }
 
@@ -30,16 +30,16 @@ pub(crate) fn detect_cwe_378(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_379(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_379(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let insecure_temp_dir = source.contains("MkdirAll(dir, 0777)")
-        && (source.contains("/tmp/shared-reports") || source.contains("/tmp/shared-sessions"));
+    let insecure_temp_dir = facts.source_index.has("MkdirAll(dir, 0777)")
+        && (facts.source_index.has_any(&["/tmp/shared-reports", "/tmp/shared-sessions"]));
     if !insecure_temp_dir {
         return;
     }
-    if source.contains("MkdirTemp(") || source.contains("Chmod(dir, 0700)") {
+    if facts.source_index.has_any(&["MkdirTemp(", "Chmod(dir, 0700)"]) {
         return;
     }
 

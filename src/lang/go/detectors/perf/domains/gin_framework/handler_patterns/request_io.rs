@@ -22,9 +22,9 @@ pub(crate) fn detect_perf_56(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 }
 
 /// PERF-57: heavy allocation work in a Gin middleware / handler.
-pub(crate) fn detect_perf_58(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_58(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let source = unit.source.as_ref();
-    if !is_request_path(source) {
+    if !is_request_path(&facts.source_index) {
         return;
     }
     let buffered = [
@@ -34,12 +34,12 @@ pub(crate) fn detect_perf_58(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
         "ioutil.ReadAll(r.Body)",
         "c.Request.Body.Read(",
     ];
-    if !buffered.iter().any(|t| source.contains(t)) {
+    if !facts.source_index.has_any(&buffered) {
         return;
     }
-    if source.contains("defer c.Request.Body.Close()")
-        || source.contains("defer body.Close()")
-        || source.contains("io.Copy(io.Discard,")
+    if facts.source_index.has("defer c.Request.Body.Close()")
+        || facts.source_index.has("defer body.Close()")
+        || facts.source_index.has("io.Copy(io.Discard,")
     {
         return;
     }
@@ -70,9 +70,9 @@ pub(crate) fn detect_perf_59(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 }
 
 /// PERF-60: direct `render.JSON` / `render.HTML` allocation in a Gin handler.
-pub(crate) fn detect_perf_60(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_60(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let source = unit.source.as_ref();
-    if !is_request_path(source) {
+    if !is_request_path(&facts.source_index) {
         return;
     }
     let trig = [
@@ -84,7 +84,7 @@ pub(crate) fn detect_perf_60(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
         "render.YAML{",
         "render.String{",
     ];
-    if !trig.iter().any(|t| source.contains(t)) {
+    if !facts.source_index.has_any(&trig) {
         return;
     }
     emit_at(

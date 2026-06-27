@@ -225,7 +225,7 @@ pub(crate) fn detect_perf_125(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("if ") || !source.contains(" != nil") {
+    if !facts.source_index.has("if ") || !facts.source_index.has(" != nil") {
         return;
     }
 
@@ -294,11 +294,11 @@ pub(crate) fn detect_perf_124(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 /// single call expression. The wrapper adds an allocation and a
 /// function call without providing any closure capture; inline the
 /// call directly.
-pub(crate) fn detect_perf_130(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_130(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("func()") {
+    if !facts.source_index.has("func()") {
         return;
     }
 
@@ -409,7 +409,7 @@ fn is_single_call_expression(body: &str) -> bool {
     let mut depth = 0;
     let mut chars = prefix.chars().peekable();
     let mut last_was_dot = false;
-    while let Some(c) = chars.next() {
+    for c in chars.by_ref() {
         if c == '(' {
             depth += 1;
         } else if c == ')' {

@@ -2,17 +2,28 @@
 
 use std::io::Write;
 
-use anyhow::Result;
-
+use crate::Error;
 use crate::engine::AnalysisResult;
 
 use super::types::{Envelope, FindingJson};
 
-pub fn print(result: &AnalysisResult) -> Result<()> {
+/// Write findings as NDJSON (one JSON object per line) to stdout.
+///
+/// # Errors
+///
+/// Returns [`Error`] when JSON serialization or stdout write fails.
+#[must_use = "I/O errors from writing JSON output must be handled"]
+pub fn print(result: &AnalysisResult) -> Result<(), Error> {
     print_ndjson(result)
 }
 
-pub fn print_envelope(result: &AnalysisResult) -> Result<()> {
+/// Write a versioned JSON envelope (metadata + findings) to stdout.
+///
+/// # Errors
+///
+/// Returns [`Error`] when JSON serialization or stdout write fails.
+#[must_use = "I/O errors from writing JSON output must be handled"]
+pub fn print_envelope(result: &AnalysisResult) -> Result<(), Error> {
     let envelope = Envelope::from(result);
     let stdout = std::io::stdout();
     let mut out = stdout.lock();
@@ -21,7 +32,7 @@ pub fn print_envelope(result: &AnalysisResult) -> Result<()> {
     Ok(())
 }
 
-fn print_ndjson(result: &AnalysisResult) -> Result<()> {
+fn print_ndjson(result: &AnalysisResult) -> Result<(), Error> {
     let stdout = std::io::stdout();
     let mut out = stdout.lock();
     for f in &result.findings {

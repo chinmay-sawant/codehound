@@ -32,16 +32,16 @@ pub(crate) fn detect_cwe_15(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
     }
 }
 
-pub(crate) fn detect_cwe_472(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_472(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let trusts_role_form = source.contains("Role    string `form:\"role\"`")
-        || source.contains("role := r.FormValue(\"role\")");
+    let trusts_role_form = facts.source_index.has("Role    string `form:\"role\"`")
+        || facts.source_index.has("role := r.FormValue(\"role\")");
     if !trusts_role_form {
         return;
     }
-    if source.contains("SELECT role FROM users") {
+    if facts.source_index.has("SELECT role FROM users") {
         return;
     }
 
@@ -57,19 +57,19 @@ pub(crate) fn detect_cwe_472(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_1051(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_1051(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let hard_coded_upstream = (source.contains("ChargeCard(")
-        || source.contains("ChargeCardPure("))
-        && source.contains("10.20.30.40:9090")
-        && source.contains("http.NewRequest(")
-        && source.contains("X-Card-Token");
+    let hard_coded_upstream = (facts.source_index.has("ChargeCard(")
+        || facts.source_index.has("ChargeCardPure("))
+        && facts.source_index.has("10.20.30.40:9090")
+        && facts.source_index.has("http.NewRequest(")
+        && facts.source_index.has("X-Card-Token");
     if !hard_coded_upstream {
         return;
     }
-    if source.contains("os.Getenv(\"BILLING_API_URL\")") {
+    if facts.source_index.has("os.Getenv(\"BILLING_API_URL\")") {
         return;
     }
 
@@ -85,18 +85,18 @@ pub(crate) fn detect_cwe_1051(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
     );
 }
 
-pub(crate) fn detect_cwe_1067(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_1067(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let leading_wildcard_scan = (source.contains("fmt.Sprintf(\"%%%s%%\", term)")
-        || source.contains("pattern := fmt.Sprintf(\"%%%s%%\", term)"))
-        && source.contains("LIKE")
-        && (source.contains("notes.body") || source.contains("SELECT id, body FROM notes"));
+    let leading_wildcard_scan = (facts.source_index.has("fmt.Sprintf(\"%%%s%%\", term)")
+        || facts.source_index.has("pattern := fmt.Sprintf(\"%%%s%%\", term)"))
+        && facts.source_index.has("LIKE")
+        && (facts.source_index.has("notes.body") || facts.source_index.has("SELECT id, body FROM notes"));
     if !leading_wildcard_scan {
         return;
     }
-    if source.contains("prefix+\"%\"") || source.contains("pattern := prefix + \"%\"") {
+    if facts.source_index.has("prefix+\"%\"") || facts.source_index.has("pattern := prefix + \"%\"") {
         return;
     }
 

@@ -1,10 +1,10 @@
 use std::borrow::Cow;
 
-use slopguard::rules::{DetectorEvidence, Finding, LineCol, Severity};
+use slopguard::rules::{DetectorEvidence, Finding, FindingInputs, LineCol, Severity};
 
 #[test]
 fn fingerprint_is_stable_across_calls() {
-    let f = Finding::new(
+    let f = Finding::new(FindingInputs::new(
         "CWE-22",
         "title",
         "a.go",
@@ -15,14 +15,14 @@ fn fingerprint_is_stable_across_calls() {
         "msg",
         Severity::Info,
         Cow::Borrowed(&[]),
-    );
+    ));
     assert_eq!(f.fingerprint_string(), "slopguard:1:CWE-22:a.go:12:5");
     assert_eq!(f.fingerprint_string(), "slopguard:1:CWE-22:a.go:12:5");
 }
 
 #[test]
 fn structured_output_builders_chain_and_serialize() {
-    let f = Finding::new(
+    let f = Finding::new(FindingInputs::new(
         "CWE-78",
         "Command injection",
         "cmd.go",
@@ -33,7 +33,7 @@ fn structured_output_builders_chain_and_serialize() {
         "msg",
         Severity::High,
         Cow::Borrowed(&[]),
-    )
+    ))
     .with_evidence(DetectorEvidence::DangerousCall {
         function: "exec.Command".to_string(),
         argument_index: Some(1),

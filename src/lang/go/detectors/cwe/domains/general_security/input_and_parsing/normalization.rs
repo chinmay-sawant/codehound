@@ -7,7 +7,7 @@ pub(crate) fn detect_cwe_178(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if source.contains("strings.EqualFold(") {
+    if facts.source_index.has("strings.EqualFold(") {
         return;
     }
 
@@ -19,7 +19,7 @@ pub(crate) fn detect_cwe_178(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         return;
     };
 
-    if source.contains("ReplaceAllString(") {
+    if facts.source_index.has("ReplaceAllString(") {
         return;
     }
     if assignment.expr.contains("strings.TrimSpace(") {
@@ -54,7 +54,7 @@ pub(crate) fn detect_cwe_179(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if source.contains(".MatchString(decoded)") {
+    if facts.source_index.has(".MatchString(decoded)") {
         return;
     }
 
@@ -138,9 +138,8 @@ pub(crate) fn detect_cwe_182(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 
 pub(crate) fn detect_cwe_184(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
 
-    if source.contains(".MatchString(") {
+    if facts.source_index.has(".MatchString(") {
         return;
     }
 
@@ -159,7 +158,7 @@ pub(crate) fn detect_cwe_184(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         return;
     }
 
-    if !(source.contains("strings.Contains(") && source.contains("for _, word := range")) {
+    if !(facts.source_index.has("strings.Contains(") && facts.source_index.has("for _, word := range")) {
         return;
     }
 

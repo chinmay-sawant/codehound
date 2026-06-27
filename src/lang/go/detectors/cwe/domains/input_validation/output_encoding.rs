@@ -7,13 +7,13 @@ use crate::rules::{Finding, emit};
 
 pub(crate) fn detect_cwe_76(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
-    if source.contains("html.EscapeString(") {
+    if facts.source_index.has("html.EscapeString(") {
         return;
     }
-    if !source.contains(r#"strings.ReplaceAll(raw, "<", "")"#)
-        || !source.contains(r#"strings.ReplaceAll(safe, ">", "")"#)
+    if !facts.source_index.has(r#"strings.ReplaceAll(raw, "<", "")"#)
+        || !facts.source_index.has(r#"strings.ReplaceAll(safe, ">", "")"#)
     {
         return;
     }
@@ -24,7 +24,7 @@ pub(crate) fn detect_cwe_76(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
     {
         return;
     }
-    if !source.contains("text/html") {
+    if !facts.source_index.has("text/html") {
         return;
     }
 
@@ -54,12 +54,12 @@ pub(crate) fn detect_cwe_79(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
         return;
     }
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
-    if !source.contains("fmt.Sprintf(") || !source.contains("text/html") {
+    if !facts.source_index.has("fmt.Sprintf(") || !facts.source_index.has("text/html") {
         return;
     }
-    if source.contains("html.EscapeString(") {
+    if facts.source_index.has("html.EscapeString(") {
         return;
     }
 

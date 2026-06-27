@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use slopguard::engine::{Diagnostics, ScanStats};
-use slopguard::rules::{Finding, LineCol, Severity};
+use slopguard::rules::{Finding, FindingInputs, LineCol, Severity};
 
 #[path = "helpers/mod.rs"]
 mod helpers;
@@ -9,7 +9,7 @@ mod helpers;
 fn sample_result_with_stats() -> slopguard::engine::AnalysisResult {
     slopguard::engine::AnalysisResult {
         source_cache: std::collections::HashMap::new(),
-        findings: vec![Finding::new(
+        findings: vec![Finding::new(FindingInputs::new(
             "CWE-89",
             "SQL injection",
             "a.go",
@@ -17,7 +17,7 @@ fn sample_result_with_stats() -> slopguard::engine::AnalysisResult {
             "msg",
             Severity::High,
             Cow::Borrowed(&[]),
-        )],
+        ))],
         errors: vec![],
         suppressed_count: 0,
         stats: Some(ScanStats {

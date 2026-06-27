@@ -2,8 +2,7 @@
 
 use std::io;
 
-use anyhow::Result;
-
+use crate::Error;
 use crate::engine::AnalysisResult;
 
 use super::render::write_with_options;
@@ -16,12 +15,23 @@ pub struct TextOptions {
     pub debug_timing: bool,
 }
 
-pub fn print(result: &AnalysisResult) -> Result<()> {
+/// Write a human-readable finding report to stdout.
+///
+/// # Errors
+///
+/// Returns [`Error`] when formatting or stdout write fails.
+#[must_use = "I/O errors from writing text output must be handled"]
+pub fn print(result: &AnalysisResult) -> Result<(), Error> {
     print_with_options(result, TextOptions::default())
 }
 
 /// Like [`print`] but suppresses the source snippet block.
-pub fn print_without_snippet(result: &AnalysisResult) -> Result<()> {
+///
+/// # Errors
+///
+/// Returns [`Error`] when formatting or stdout write fails.
+#[must_use = "I/O errors from writing text output must be handled"]
+pub fn print_without_snippet(result: &AnalysisResult) -> Result<(), Error> {
     print_with_options(
         result,
         TextOptions {
@@ -31,7 +41,13 @@ pub fn print_without_snippet(result: &AnalysisResult) -> Result<()> {
     )
 }
 
-pub fn print_with_options(result: &AnalysisResult, options: TextOptions) -> Result<()> {
+/// Write a human-readable finding report with custom formatting options.
+///
+/// # Errors
+///
+/// Returns [`Error`] when formatting or stdout write fails.
+#[must_use = "I/O errors from writing text output must be handled"]
+pub fn print_with_options(result: &AnalysisResult, options: TextOptions) -> Result<(), Error> {
     let stdout = io::stdout();
     let mut out = stdout.lock();
     write_with_options(&mut out, result, options)

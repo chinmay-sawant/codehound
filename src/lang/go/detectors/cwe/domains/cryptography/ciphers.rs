@@ -2,14 +2,14 @@ use super::super::super::facts::GoUnitFacts;
 use super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
-pub(crate) fn detect_cwe_325(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_325(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("cipher.NewCTR(") || !source.contains("XORKeyStream(") {
+    if !facts.source_index.has("cipher.NewCTR(") || !facts.source_index.has("XORKeyStream(") {
         return;
     }
-    if source.contains("cipher.NewGCM(") || source.contains("Seal(") {
+    if facts.source_index.has("cipher.NewGCM(") || facts.source_index.has("Seal(") {
         return;
     }
 
@@ -25,17 +25,17 @@ pub(crate) fn detect_cwe_325(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_1204(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_1204(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let static_iv = source.contains("cipher.NewCBCEncrypter(")
-        && (source.contains("weakIV") || source.contains("weakIVPure"))
-        && source.contains("1234567890123456");
+    let static_iv = facts.source_index.has("cipher.NewCBCEncrypter(")
+        && (facts.source_index.has("weakIV") || facts.source_index.has("weakIVPure"))
+        && facts.source_index.has("1234567890123456");
     if !static_iv {
         return;
     }
-    if source.contains("io.ReadFull(rand.Reader, iv)") {
+    if facts.source_index.has("io.ReadFull(rand.Reader, iv)") {
         return;
     }
 
@@ -51,18 +51,18 @@ pub(crate) fn detect_cwe_1204(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
     );
 }
 
-pub(crate) fn detect_cwe_1240(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_1240(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let custom_xor_cipher = (source.contains("SealSessionToken(")
-        || source.contains("SealSessionTokenPure("))
-        && (source.contains("xorCipher(") || source.contains("xorCipherPure("))
-        && source.contains("^ key");
+    let custom_xor_cipher = (facts.source_index.has("SealSessionToken(")
+        || facts.source_index.has("SealSessionTokenPure("))
+        && (facts.source_index.has("xorCipher(") || facts.source_index.has("xorCipherPure("))
+        && facts.source_index.has("^ key");
     if !custom_xor_cipher {
         return;
     }
-    if source.contains("cipher.NewGCM(") || source.contains("aes.NewCipher(") {
+    if facts.source_index.has("cipher.NewGCM(") || facts.source_index.has("aes.NewCipher(") {
         return;
     }
 

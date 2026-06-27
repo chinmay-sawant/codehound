@@ -4,9 +4,9 @@ use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 pub(crate) fn detect_cwe_186(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
-    if !source.contains("regexp.MustCompile(`^[a-z]+$`)") {
+    if !facts.source_index.has("regexp.MustCompile(`^[a-z]+$`)") {
         return;
     }
 
@@ -28,17 +28,17 @@ pub(crate) fn detect_cwe_186(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     );
 }
 
-pub(crate) fn detect_cwe_1333(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_1333(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let redos_pattern = source.contains("^([a-zA-Z]+)*$")
-        && (source.contains("tagPattern") || source.contains("tagPatternPure"))
-        && source.contains("MatchString(tag)");
+    let redos_pattern = facts.source_index.has("^([a-zA-Z]+)*$")
+        && (facts.source_index.has("tagPattern") || facts.source_index.has("tagPatternPure"))
+        && facts.source_index.has("MatchString(tag)");
     if !redos_pattern {
         return;
     }
-    if source.contains("safeTagPattern") || source.contains("len(tag) > 32") {
+    if facts.source_index.has("safeTagPattern") || facts.source_index.has("len(tag) > 32") {
         return;
     }
 

@@ -2,21 +2,18 @@ use super::super::super::super::facts::GoUnitFacts;
 use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
-pub(crate) fn detect_cwe_648(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_648(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let privileged_chown = source.contains("os.Chown(")
-        && source.contains("uid")
-        && (source.contains("PostForm(\"uid\")") || source.contains("FormValue(\"uid\")"))
-        && (source.contains("PostForm(\"path\")") || source.contains("FormValue(\"path\")"));
+    let privileged_chown = facts.source_index.has("os.Chown(")
+        && facts.source_index.has("uid")
+        && (facts.source_index.has_any(&[r#"PostForm("uid")"#, r#"FormValue("uid")"#]))
+        && (facts.source_index.has_any(&[r#"PostForm("path")"#, r#"FormValue("path")"#]));
     if !privileged_chown {
         return;
     }
-    if source.contains("uploadRoot")
-        || source.contains("spoolDir")
-        || source.contains("serviceUID")
-        || source.contains("Setuid(")
+    if facts.source_index.has_any(&["uploadRoot", "spoolDir", "serviceUID", "Setuid("])
     {
         return;
     }
@@ -33,17 +30,17 @@ pub(crate) fn detect_cwe_648(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_708(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_708(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let caller_chosen_owner = source.contains("owner_uid")
-        && source.contains("os.Chown(")
-        && (source.contains("PostForm(\"dest\")") || source.contains("FormValue(\"dest\")"));
+    let caller_chosen_owner = facts.source_index.has("owner_uid")
+        && facts.source_index.has("os.Chown(")
+        && (facts.source_index.has_any(&[r#"PostForm("dest")"#, r#"FormValue("dest")"#]));
     if !caller_chosen_owner {
         return;
     }
-    if source.contains("spoolDir") || source.contains("serviceUID") || source.contains("serviceGID")
+    if facts.source_index.has_any(&["spoolDir", "serviceUID", "serviceGID"])
     {
         return;
     }

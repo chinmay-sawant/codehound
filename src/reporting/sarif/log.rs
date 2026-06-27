@@ -32,7 +32,8 @@ pub(super) fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
     let results: Vec<SarifResult> = result
         .findings
         .iter()
-        .map(|f| {
+        .filter_map(|f| {
+            let rule_index = *rule_index_of.get(f.rule_id)?;
             let level = match f.severity {
                 crate::rules::Severity::Info => "note",
                 crate::rules::Severity::Low => "warning",
@@ -79,11 +80,9 @@ pub(super) fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
                 .as_ref()
                 .and_then(|ev| serde_json::to_value(ev).ok());
 
-            SarifResult {
+            Some(SarifResult {
                 rule_id: f.rule_id,
-                rule_index: *rule_index_of
-                    .get(f.rule_id)
-                    .expect("rule_id present in rule_index_of"),
+                rule_index,
                 level,
                 message: SarifText {
                     text: f.message.as_str(),
@@ -115,7 +114,7 @@ pub(super) fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
                     slopguard_evidence,
                     remediation: f.remediation.clone(),
                 },
-            }
+            })
         })
         .collect();
 

@@ -1,9 +1,11 @@
 //! Reused tree-sitter parsers (one per language per Rayon worker).
 
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 
 use tree_sitter::Parser;
 
+use crate::Error;
 use crate::core::{LanguageId, LanguagePlugin};
 
 pub struct ParsePool {
@@ -17,12 +19,15 @@ impl ParsePool {
         }
     }
 
-    pub fn parser_for(&mut self, plugin: &dyn LanguagePlugin) -> &mut Parser {
+    pub fn parser_for(&mut self, plugin: &dyn LanguagePlugin) -> Result<&mut Parser, Error> {
         let id = plugin.id();
-        self.parsers.entry(id).or_insert_with(|| {
-            let mut parser = Parser::new();
-            plugin.configure_parser(&mut parser);
-            parser
-        })
+        match self.parsers.entry(id) {
+            Entry::Occupied(entry) => Ok(entry.into_mut()),
+            Entry::Vacant(entry) => {
+                let mut parser = Parser::new();
+                plugin.configure_parser(&mut parser)?;
+                Ok(entry.insert(parser))
+            }
+        }
     }
 }

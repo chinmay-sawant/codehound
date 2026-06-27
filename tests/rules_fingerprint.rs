@@ -1,9 +1,9 @@
 use std::borrow::Cow;
 
-use slopguard::rules::{Finding, Fingerprint, LineCol, Severity};
+use slopguard::rules::{Finding, FindingInputs, Fingerprint, LineCol, Severity};
 
 fn finding(file: &str, line: usize, column: usize) -> Finding {
-    Finding::new(
+    Finding::new(FindingInputs::new(
         "CWE-22",
         "Path traversal",
         file,
@@ -11,7 +11,7 @@ fn finding(file: &str, line: usize, column: usize) -> Finding {
         "msg",
         Severity::High,
         Cow::Borrowed(&[]),
-    )
+    ))
 }
 
 #[test]

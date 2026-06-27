@@ -4,9 +4,9 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::Path;
 
-use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
+use crate::Error;
 use crate::rules::{FINGERPRINT_TOOL, FINGERPRINT_VERSION, Finding, Fingerprint};
 
 use super::entry::{BaselineEntry, BaselineLocationKey};
@@ -53,23 +53,21 @@ impl Baseline {
         baseline
     }
 
-    pub fn from_file(path: &Path) -> Result<Self> {
-        let bytes =
-            fs::read(path).with_context(|| format!("reading baseline {}", path.display()))?;
-        let mut baseline: Self = serde_json::from_slice(&bytes)
-            .with_context(|| format!("parsing baseline {}", path.display()))?;
+    #[must_use = "baseline load failures must be handled"]
+    pub fn from_file(path: &Path) -> Result<Self, Error> {
+        let bytes = fs::read(path)?;
+        let mut baseline: Self = serde_json::from_slice(&bytes)?;
         baseline.rebuild_index();
         Ok(baseline)
     }
 
-    pub fn to_file(&self, path: &Path) -> Result<()> {
+    pub fn to_file(&self, path: &Path) -> Result<(), Error> {
         if let Some(parent) = path.parent().filter(|p| !p.as_os_str().is_empty()) {
-            fs::create_dir_all(parent)
-                .with_context(|| format!("creating baseline directory {}", parent.display()))?;
+            fs::create_dir_all(parent)?;
         }
-        let text = serde_json::to_string_pretty(self).context("serializing baseline")?;
-        fs::write(path, format!("{text}\n"))
-            .with_context(|| format!("writing baseline {}", path.display()))
+        let text = serde_json::to_string_pretty(self)?;
+        fs::write(path, format!("{text}\n"))?;
+        Ok(())
     }
 
     pub fn contains(&self, rule_id: &str, file: &str, line: usize, column: usize) -> bool {

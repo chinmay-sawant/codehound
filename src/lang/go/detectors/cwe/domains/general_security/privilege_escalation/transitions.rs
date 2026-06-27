@@ -5,7 +5,6 @@ use crate::rules::{Finding, emit};
 
 pub(crate) fn detect_cwe_270(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
 
     let Some(context_switch) = facts.call_facts.iter().find(|call| {
         (call.callee.as_ref() == "c.Set"
@@ -22,9 +21,9 @@ pub(crate) fn detect_cwe_270(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         return;
     };
 
-    let restores_context = source.contains("defer c.Set(\"effective_user\", original)")
-        || (source.contains("defer func()")
-            && source.contains("context.WithValue(r.Context(), effectiveUserKey, original)"));
+    let restores_context = facts.source_index.has(r#"defer c.Set("effective_user", original)"#)
+        || (facts.source_index.has("defer func()")
+            && facts.source_index.has("context.WithValue(r.Context(), effectiveUserKey, original)"));
     if restores_context {
         return;
     }
@@ -85,9 +84,8 @@ pub(crate) fn detect_cwe_272(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 
 pub(crate) fn detect_cwe_273(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
 
-    if source.contains("if err := syscall.Setuid(1000); err != nil") {
+    if facts.source_index.has("if err := syscall.Setuid(1000); err != nil") {
         return;
     }
 
@@ -124,7 +122,6 @@ pub(crate) fn detect_cwe_273(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 
 pub(crate) fn detect_cwe_274(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
 
     let Some(rename_call) = facts
         .call_facts
@@ -134,10 +131,9 @@ pub(crate) fn detect_cwe_274(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         return;
     };
 
-    let treats_error_as_success = (source.contains("if err != nil {")
-        && (source.contains(r#"c.JSON(200, gin.H{"rotated": true})"#)
-            || source.contains(r#"w.WriteHeader(http.StatusOK)"#)))
-        && !source.contains("errors.Is(err, syscall.EPERM)");
+    let treats_error_as_success = (facts.source_index.has("if err != nil {")
+        && (facts.source_index.has_any(&[r#"c.JSON(200, gin.H{"rotated": true})"#, "w.WriteHeader(http.StatusOK)"])))
+        && !facts.source_index.has("errors.Is(err, syscall.EPERM)");
     if !treats_error_as_success {
         return;
     }
@@ -153,18 +149,17 @@ pub(crate) fn detect_cwe_274(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     );
 }
 
-pub(crate) fn detect_cwe_1265(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_1265(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let nested_lock_reentry = (source.contains("UpdateBalance(")
-        || source.contains("UpdateBalancePure("))
-        && (source.contains("ledgerMu.Lock()") || source.contains("ledgerMuPure.Lock()"))
-        && (source.contains("PostTransfer(") || source.contains("PostTransferPure("));
+    let nested_lock_reentry = (facts.source_index.has_any(&["UpdateBalance(", "UpdateBalancePure("]))
+        && (facts.source_index.has_any(&["ledgerMu.Lock()", "ledgerMuPure.Lock()"]))
+        && (facts.source_index.has_any(&["PostTransfer(", "PostTransferPure("]));
     if !nested_lock_reentry {
         return;
     }
-    if source.contains("applyBalanceDelta(") || source.contains("applyBalanceDeltaPure(") {
+    if facts.source_index.has_any(&["applyBalanceDelta(", "applyBalanceDeltaPure("]) {
         return;
     }
 

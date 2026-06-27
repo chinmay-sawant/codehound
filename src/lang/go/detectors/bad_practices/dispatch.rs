@@ -4,15 +4,20 @@ use crate::core::ParsedUnit;
 use crate::rules::{Finding, RuleMetadata};
 
 use super::rules::*;
+use super::source_index::SourceIndex;
 
-type BadPracticeFn = fn(&ParsedUnit, &mut Vec<Finding>);
+type BadPracticeFn = fn(&ParsedUnit, &SourceIndex, &mut Vec<Finding>);
 type BadPracticeEntry = (&'static str, BadPracticeFn, &'static RuleMetadata);
 
 pub(crate) const BAD_PRACTICE_RULES: &[BadPracticeEntry] = &[
     ("BP-1", detect_bp_1_discarded_error, &super::BP_1_META),
     ("BP-2", detect_bp_2_naked_error_return, &super::BP_2_META),
     ("BP-3", detect_bp_3_panic_outside_main, &super::BP_3_META),
-    ("BP-4", detect_bp_4_recover_without_logging, &super::BP_4_META),
+    (
+        "BP-4",
+        detect_bp_4_recover_without_logging,
+        &super::BP_4_META,
+    ),
     ("BP-5", detect_bp_5_ignored_close_error, &super::BP_5_META),
     (
         "BP-6",
@@ -20,7 +25,11 @@ pub(crate) const BAD_PRACTICE_RULES: &[BadPracticeEntry] = &[
         &super::BP_6_META,
     ),
     ("BP-7", detect_bp_7_mutex_passed_by_value, &super::BP_7_META),
-    ("BP-8", detect_bp_8_defer_unlock_on_mutex_copy, &super::BP_8_META),
+    (
+        "BP-8",
+        detect_bp_8_defer_unlock_on_mutex_copy,
+        &super::BP_8_META,
+    ),
     ("BP-9", detect_bp_9_select_without_escape, &super::BP_9_META),
     ("BP-10", detect_bp_10_time_after_in_loop, &super::BP_10_META),
     ("BP-11", detect_bp_11_defer_in_loop, &super::BP_11_META),

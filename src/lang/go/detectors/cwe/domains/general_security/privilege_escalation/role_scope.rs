@@ -5,7 +5,6 @@ use crate::rules::{Finding, emit};
 
 pub(crate) fn detect_cwe_266(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
 
     let Some(role_assignment) = facts
         .assignments
@@ -23,7 +22,7 @@ pub(crate) fn detect_cwe_266(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     }
 
     let role_is_used_for_membership =
-        source.contains("Role: role") || source.contains("Store(userID, role)");
+        facts.source_index.has_any(&["Role: role", "Store(userID, role)"]);
     if !role_is_used_for_membership {
         return;
     }
@@ -41,10 +40,9 @@ pub(crate) fn detect_cwe_266(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 
 pub(crate) fn detect_cwe_267(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
 
     let reviewer_guard =
-        source.contains(r#"!= "reviewer""#) || source.contains(r#".Get("X-Role") != "reviewer""#);
+        facts.source_index.has_any(&[r#"!= "reviewer""#, r#".Get("X-Role") != "reviewer""#]);
     if !reviewer_guard {
         return;
     }
@@ -70,12 +68,10 @@ pub(crate) fn detect_cwe_267(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 
 pub(crate) fn detect_cwe_268(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
 
-    let has_chained_scopes = (source.contains(r#"p == "read""#)
-        || source.contains(r#"case "read":"#))
-        && (source.contains(r#"p == "export""#) || source.contains(r#"case "export":"#))
-        && (source.contains("hasRead && hasExport") || source.contains("hasExport && hasRead"));
+    let has_chained_scopes = (facts.source_index.has_any(&[r#"p == "read""#, r#"case "read":"#]))
+        && (facts.source_index.has_any(&[r#"p == "export""#, r#"case "export":"#]))
+        && (facts.source_index.has_any(&["hasRead && hasExport", "hasExport && hasRead"]));
     if !has_chained_scopes {
         return;
     }
@@ -87,8 +83,8 @@ pub(crate) fn detect_cwe_268(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
                 .first()
                 .is_some_and(|arg| arg.contains("password_hash")))
             || (call.callee.as_ref() == "json.NewEncoder"
-                && source.contains("Encode(userRecords)")
-                && source.contains(r#""hash""#))
+                && facts.source_index.has("Encode(userRecords)")
+                && facts.source_index.has(r#""hash""#))
     }) else {
         return;
     };

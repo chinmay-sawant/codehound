@@ -23,7 +23,9 @@ fn debug_dependency_extraction() {
     let source = std::fs::read_to_string(&path).expect("read source");
     let plugin = GoPlugin;
     let mut parser = tree_sitter::Parser::new();
-    plugin.configure_parser(&mut parser);
+    plugin
+        .configure_parser(&mut parser)
+        .expect("configure Go parser");
     let unit = plugin
         .parse_with(&mut parser, &path, Arc::from(source.as_str()))
         .expect("parse");

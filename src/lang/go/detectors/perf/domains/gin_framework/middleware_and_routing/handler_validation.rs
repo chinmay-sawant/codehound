@@ -6,13 +6,13 @@ use crate::core::ParsedUnit;
 use crate::rules::Finding;
 
 /// PERF-51: `unsafe.Pointer` in a request handler without benchmark justification.
-pub(crate) fn detect_perf_51(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_51(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let source = unit.source.as_ref();
-    if !is_request_path(source) || !source.contains("unsafe.Pointer") {
+    if !is_request_path(&facts.source_index) || !facts.source_index.has("unsafe.Pointer") {
         return;
     }
-    if source.contains("// benchmark justifies unsafe.Pointer")
-        || source.contains("// nolint:unsafe-ptr")
+    if facts.source_index.has("// benchmark justifies unsafe.Pointer")
+        || facts.source_index.has("// nolint:unsafe-ptr")
     {
         return;
     }
@@ -26,18 +26,18 @@ pub(crate) fn detect_perf_51(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
 }
 
 /// PERF-52: `runtime.GC()` outside tests, debug builds, or shutdown paths.
-pub(crate) fn detect_perf_57(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_57(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let source = unit.source.as_ref();
-    if !is_request_path(source)
-        || (!source.contains("*gin.Context") && !source.contains("gin.HandlerFunc"))
+    if !is_request_path(&facts.source_index)
+        || (!facts.source_index.has("*gin.Context") && !facts.source_index.has("gin.HandlerFunc"))
     {
         return;
     }
-    if !source.contains("c.Next()") {
+    if !facts.source_index.has("c.Next()") {
         return;
     }
     let trig = ["io.ReadAll(", "json.Unmarshal("];
-    if !trig.iter().any(|t| source.contains(t)) {
+    if !facts.source_index.has_any(&trig) {
         return;
     }
     emit_at(
@@ -50,14 +50,14 @@ pub(crate) fn detect_perf_57(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
 }
 
 /// PERF-62: complex `c.Param` parsing in middleware.
-pub(crate) fn detect_perf_62(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_62(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let source = unit.source.as_ref();
-    if !is_request_path(source) || !source.contains("c.Param(") {
+    if !is_request_path(&facts.source_index) || !facts.source_index.has("c.Param(") {
         return;
     }
-    let has_parser = source.contains("regexp.MustCompile(")
-        || source.contains("regexp.Compile(")
-        || source.contains("json.Unmarshal(");
+    let has_parser = facts.source_index.has("regexp.MustCompile(")
+        || facts.source_index.has("regexp.Compile(")
+        || facts.source_index.has("json.Unmarshal(");
     if !has_parser {
         return;
     }
@@ -71,14 +71,14 @@ pub(crate) fn detect_perf_62(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
 }
 
 /// PERF-63: `binding.Validator.Engine()` invoked in a request handler.
-pub(crate) fn detect_perf_63(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_63(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let source = unit.source.as_ref();
-    if !is_request_path(source) || !source.contains("binding.Validator.Engine()") {
+    if !is_request_path(&facts.source_index) || !facts.source_index.has("binding.Validator.Engine()") {
         return;
     }
-    if source.contains("var engine = binding.Validator.Engine()")
-        || source.contains("once.Do(func()")
-        || source.contains("sync.Once")
+    if facts.source_index.has("var engine = binding.Validator.Engine()")
+        || facts.source_index.has("once.Do(func()")
+        || facts.source_index.has("sync.Once")
     {
         return;
     }
@@ -92,13 +92,13 @@ pub(crate) fn detect_perf_63(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
 }
 
 /// PERF-64: `go func()` using `*gin.Context` without `c.Copy()`.
-pub(crate) fn detect_perf_65(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_65(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let source = unit.source.as_ref();
-    let middleware_registered = source.contains("r.Use(")
-        || source.contains("RouterGroup.Use(")
-        || source.contains("routerGroup.Use(")
-        || source.contains("engine.Use(");
-    if !middleware_registered || !source.contains("c.ShouldBind(") {
+    let middleware_registered = facts.source_index.has("r.Use(")
+        || facts.source_index.has("RouterGroup.Use(")
+        || facts.source_index.has("routerGroup.Use(")
+        || facts.source_index.has("engine.Use(");
+    if !middleware_registered || !facts.source_index.has("c.ShouldBind(") {
         return;
     }
     emit_at(

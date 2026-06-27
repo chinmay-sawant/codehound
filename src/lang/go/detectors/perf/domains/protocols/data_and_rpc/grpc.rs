@@ -12,11 +12,11 @@ use crate::rules::{Finding, emit};
 /// instead of reusing one with msg.Reset().
 pub(crate) fn detect_perf_96(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
-    if !source_matches_any(source, GRPC_MARKERS) || !source.contains("RecvMsg(") {
+    let _source = unit.source.as_ref();
+    if !index_matches_any(&facts.source_index, GRPC_MARKERS) || !facts.source_index.has("RecvMsg(") {
         return;
     }
-    if source.contains("msg.Reset()") || source.contains("m.Reset()") {
+    if facts.source_index.has("msg.Reset()") || facts.source_index.has("m.Reset()") {
         return;
     }
     for call in &facts.calls {
@@ -52,18 +52,18 @@ pub(crate) fn detect_perf_96(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 /// buffer reuse.
 pub(crate) fn detect_perf_97(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
-    if !source.contains("proto.Marshal") && !source.contains("protojson.Marshal") {
+    let _source = unit.source.as_ref();
+    if !facts.source_index.has("proto.Marshal") && !facts.source_index.has("protojson.Marshal") {
         return;
     }
-    if source.contains("bytesPool")
-        || source.contains("bufPool")
-        || source.contains("MarshalBuffer")
+    if facts.source_index.has("bytesPool")
+        || facts.source_index.has("bufPool")
+        || facts.source_index.has("MarshalBuffer")
     {
         return;
     }
-    if source.contains("MarshalOptions{")
-        && (source.contains("Pool") || source.contains("pool.Get"))
+    if facts.source_index.has("MarshalOptions{")
+        && (facts.source_index.has("Pool") || facts.source_index.has("pool.Get"))
     {
         return;
     }

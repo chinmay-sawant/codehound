@@ -3,16 +3,14 @@ use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
-pub(crate) fn detect_cwe_204(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_204(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let has_missing_account_branch =
-        source.contains("no account") && source.contains("StatusNotFound");
-    let has_wrong_secret_branch = source.contains("bad password")
-        || source.contains("bad secret")
-        || source.contains("StatusUnauthorized");
-    let has_uniform_failure = source.contains("invalid credentials");
+        facts.source_index.has("no account") && facts.source_index.has("StatusNotFound");
+    let has_wrong_secret_branch = facts.source_index.has_any(&["bad password", "bad secret", "StatusUnauthorized"]);
+    let has_uniform_failure = facts.source_index.has("invalid credentials");
 
     if !(has_missing_account_branch && has_wrong_secret_branch) || has_uniform_failure {
         return;
@@ -30,15 +28,15 @@ pub(crate) fn detect_cwe_204(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_208(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_208(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if source.contains("subtle.ConstantTimeCompare(") {
+    if facts.source_index.has("subtle.ConstantTimeCompare(") {
         return;
     }
-    if !(source.contains("for i := range expected")
-        && source.contains("provided[i] != expected[i]"))
+    if !(facts.source_index.has("for i := range expected")
+        && facts.source_index.has("provided[i] != expected[i]"))
     {
         return;
     }
@@ -55,17 +53,17 @@ pub(crate) fn detect_cwe_208(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_385(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_385(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let early_exit_secret_compare = source.contains("for i := 0; i < len(provided); i++")
-        && source.contains("if provided[i] != expected[i] {")
-        && source.contains("return false");
+    let early_exit_secret_compare = facts.source_index.has("for i := 0; i < len(provided); i++")
+        && facts.source_index.has("if provided[i] != expected[i] {")
+        && facts.source_index.has("return false");
     if !early_exit_secret_compare {
         return;
     }
-    if source.contains("ConstantTimeCompare(") {
+    if facts.source_index.has("ConstantTimeCompare(") {
         return;
     }
 

@@ -7,14 +7,14 @@ pub(crate) fn detect_cwe_618(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let exposes_native_bridge = source.contains("/opt/vendor/activex-bridge")
+    let exposes_native_bridge = facts.source_index.has("/opt/vendor/activex-bridge")
         && facts.source_index.has("exec.Command(")
-        && source.contains("method")
-        && source.contains("args");
+        && facts.source_index.has("method")
+        && facts.source_index.has("args");
     if !exposes_native_bridge {
         return;
     }
-    if source.contains("allowedPluginMethods") {
+    if facts.source_index.has("allowedPluginMethods") {
         return;
     }
 
@@ -30,16 +30,16 @@ pub(crate) fn detect_cwe_618(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     );
 }
 
-pub(crate) fn detect_cwe_829(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_829(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let untrusted_plugin_path = source.contains("plugin.Open(")
-        && (source.contains("module_path") || source.contains("path := "));
+    let untrusted_plugin_path = facts.source_index.has("plugin.Open(")
+        && (facts.source_index.has_any(&["module_path", "path := "]));
     if !untrusted_plugin_path {
         return;
     }
-    if source.contains("allowedModules") || source.contains("moduleRoot") {
+    if facts.source_index.has_any(&["allowedModules", "moduleRoot"]) {
         return;
     }
 
@@ -55,20 +55,19 @@ pub(crate) fn detect_cwe_829(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_1125(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_1125(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let wide_surface = (source.contains("MountWideSurface(")
-        || source.contains("MountWideSurfacePure("))
-        && (source.contains("/debug/pprof") || source.contains("pprof.Index"))
-        && source.contains("/admin/sql")
-        && source.contains("/admin/config")
-        && source.contains("/internal/reload");
+    let wide_surface = (facts.source_index.has_any(&["MountWideSurface(", "MountWideSurfacePure("]))
+        && (facts.source_index.has_any(&["/debug/pprof", "pprof.Index"]))
+        && facts.source_index.has("/admin/sql")
+        && facts.source_index.has("/admin/config")
+        && facts.source_index.has("/internal/reload");
     if !wide_surface {
         return;
     }
-    if source.contains("authRequired()") || source.contains("authRequiredPure(") {
+    if facts.source_index.has_any(&["authRequired()", "authRequiredPure("]) {
         return;
     }
 

@@ -40,7 +40,7 @@ pub(crate) fn detect_perf_137(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("runtime.Caller") {
+    if !facts.source_index.has("runtime.Caller") {
         return;
     }
 
@@ -74,11 +74,11 @@ pub(crate) fn detect_perf_137(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 
 /// PERF-141: `r.URL.Query()` called more than once in the same
 /// handler. Each call re-parses the query string.
-pub(crate) fn detect_perf_141(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_141(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains(".URL.Query()") {
+    if !facts.source_index.has(".URL.Query()") {
         return;
     }
 
@@ -142,9 +142,9 @@ pub(crate) fn detect_perf_149(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         // The file must be using the `net` package — otherwise
         // the receiver is a `hash.Hash` / `bytes.Buffer` /
         // similar.
-        if !source.contains("net.Conn")
-            && !source.contains("net.Dial")
-            && !source.contains("net.Listen")
+        if !facts.source_index.has("net.Conn")
+            && !facts.source_index.has("net.Dial")
+            && !facts.source_index.has("net.Listen")
         {
             continue;
         }
@@ -173,16 +173,16 @@ pub(crate) fn detect_perf_149(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 /// PERF-161: `for rows.Next()` block without a follow-up
 /// `rows.Err()` call. The `Next()` loop distinguishes "no more
 /// rows" from a real error only when `rows.Err()` is checked.
-pub(crate) fn detect_perf_161(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_161(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("rows.Next()") || !source.contains("rows.Close()") {
+    if !facts.source_index.has("rows.Next()") || !facts.source_index.has("rows.Close()") {
         return;
     }
     // A `for rows.Next()` block is a finding if the surrounding
     // function does NOT call `rows.Err()`.
-    if source.contains("rows.Err()") {
+    if facts.source_index.has("rows.Err()") {
         return;
     }
     let Some(rel) = source.find("rows.Next()") else {
@@ -204,18 +204,18 @@ pub(crate) fn detect_perf_161(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut
 /// single-row queries — it handles `rows.Close()` for you.
 pub(crate) fn detect_perf_163(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
-    if !source.contains("db.Query(") {
+    if !facts.source_index.has("db.Query(") {
         return;
     }
-    if !source.contains("rows.Next()") {
+    if !facts.source_index.has("rows.Next()") {
         return;
     }
     // Require the consumption shape `if rows.Next() {` (single
     // check) rather than `for rows.Next() {` (loop). The for
     // loop shape is the multi-row case where db.Query is correct.
-    if !source.contains("if rows.Next()") {
+    if !facts.source_index.has("if rows.Next()") {
         return;
     }
 
@@ -241,11 +241,11 @@ pub(crate) fn detect_perf_163(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 /// times per second. We restrict the check to functions whose
 /// signature contains `http.ResponseWriter` so the once in a
 /// non-handler helper (e.g. `loadReport`) doesn't false-positive.
-pub(crate) fn detect_perf_170(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_170(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("sync.Once") || !source.contains(".Do(") {
+    if !facts.source_index.has("sync.Once") || !facts.source_index.has(".Do(") {
         return;
     }
 
@@ -345,5 +345,4 @@ pub(crate) fn detect_perf_195(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
             out,
         );
     }
-    let _ = facts;
 }

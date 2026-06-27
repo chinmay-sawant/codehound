@@ -8,7 +8,7 @@ pub mod duration_millis {
         s.serialize_f64(d.as_secs_f64() * 1000.0)
     }
 
-    #[allow(dead_code)]
+    #[expect(dead_code, reason = "reserved for deserializing cached timing JSON")]
     pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Duration, D::Error> {
         let millis = f64::deserialize(d)?;
         Ok(Duration::from_secs_f64(millis / 1000.0))

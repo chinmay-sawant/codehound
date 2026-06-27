@@ -4,20 +4,20 @@ use super::super::common::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
-pub(crate) fn detect_perf_86(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_86(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
-    if !source.contains("echo.Context") {
+    if !facts.source_index.has("echo.Context") {
         return;
     }
-    let needle = if source.contains("c.JSON(") {
+    let needle = if facts.source_index.has("c.JSON(") {
         "c.JSON("
-    } else if source.contains("c.JSONP(") {
+    } else if facts.source_index.has("c.JSONP(") {
         "c.JSONP("
     } else {
         return;
     };
-    if source.contains("json.NewEncoder(") || source.contains("c.Stream(") {
+    if facts.source_index.has("json.NewEncoder(") || facts.source_index.has("c.Stream(") {
         return;
     }
     let start = source.find(needle).unwrap_or(0);
@@ -32,20 +32,23 @@ pub(crate) fn detect_perf_86(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_perf_87(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_87(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
-    if !source.contains("echo.Context") {
+    if !facts.source_index.has("echo.Context") {
         return;
     }
-    let needle = if source.contains("c.BindWith(") {
+    let needle = if facts.source_index.has("c.BindWith(") {
         "c.BindWith("
-    } else if source.contains("c.Bind(") {
+    } else if facts.source_index.has("c.Bind(") {
         "c.Bind("
     } else {
         return;
     };
-    if has_any(source, &["echo.Binder", "NewBinder()", "DefaultBinder{}"]) {
+    if has_any(
+        &facts.source_index,
+        &["echo.Binder", "NewBinder()", "DefaultBinder{}"],
+    ) {
         return;
     }
     let start = source.find(needle).unwrap_or(0);
@@ -60,15 +63,18 @@ pub(crate) fn detect_perf_87(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_perf_88(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_88(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
     let triggers = ["e.Static(", "e.File(", "echo.Static(", "Static("];
-    let Some(&needle) = triggers.iter().find(|n| source.contains(*n)) else {
+    let Some(&needle) = triggers
+        .iter()
+        .find(|n| facts.source_index.has(n))
+    else {
         return;
     };
     if has_any(
-        source,
+        &facts.source_index,
         &["Cache-Control", "cacheControl", "SetCache", "MaxAge"],
     ) {
         return;
@@ -85,17 +91,20 @@ pub(crate) fn detect_perf_88(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_perf_89(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_89(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
-    if !source.contains("echo.HandlerFunc") {
+    if !facts.source_index.has("echo.HandlerFunc") {
         return;
     }
     let triggers = ["make([]", "make(map[", "json.Unmarshal(", "&MyConfig{}"];
-    let Some(&needle) = triggers.iter().find(|n| source.contains(*n)) else {
+    let Some(&needle) = triggers
+        .iter()
+        .find(|n| facts.source_index.has(n))
+    else {
         return;
     };
-    if source.contains("sync.Once") || source.contains("var once ") {
+    if facts.source_index.has("sync.Once") || facts.source_index.has("var once ") {
         return;
     }
     let start = source.find(needle).unwrap_or(0);
@@ -110,17 +119,17 @@ pub(crate) fn detect_perf_89(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_perf_90(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_90(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
-    if !source.contains("echo.HandlerFunc") {
+    if !facts.source_index.has("echo.HandlerFunc") {
         return;
     }
-    if !source.contains("c.Set(") {
+    if !facts.source_index.has("c.Set(") {
         return;
     }
     if has_any(
-        source,
+        &facts.source_index,
         &[
             "c.Set(\"user_id\",",
             "c.Set(\"request_id\",",

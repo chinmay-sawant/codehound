@@ -4,15 +4,13 @@ use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 pub(crate) fn detect_cwe_276(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
 
     let Some(write_call) = facts.call_facts.iter().find(|call| {
         call.callee.as_ref() == "os.WriteFile"
             && call.arguments.len() >= 3
             && call.arguments[2].as_ref() == "0666"
             && (call.arguments[0].contains("sessions")
-                || source.contains("session_data")
-                || source.contains("X-Session-Data"))
+                || facts.source_index.has_any(&["session_data", "X-Session-Data"]))
     }) else {
         return;
     };
@@ -85,9 +83,8 @@ pub(crate) fn detect_cwe_278(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 
 pub(crate) fn detect_cwe_279(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
 
-    if !source.contains("strconv.ParseUint(") {
+    if !facts.source_index.has("strconv.ParseUint(") {
         return;
     }
 
@@ -112,9 +109,8 @@ pub(crate) fn detect_cwe_279(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 
 pub(crate) fn detect_cwe_281(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
 
-    if source.contains("info.Mode()") {
+    if facts.source_index.has("info.Mode()") {
         return;
     }
 
@@ -126,7 +122,7 @@ pub(crate) fn detect_cwe_281(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         return;
     };
 
-    if !source.contains("io.Copy(out, in)") {
+    if !facts.source_index.has("io.Copy(out, in)") {
         return;
     }
 
@@ -141,17 +137,17 @@ pub(crate) fn detect_cwe_281(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     );
 }
 
-pub(crate) fn detect_cwe_921(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_921(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let world_readable_secret = source.contains("/tmp/integration.key")
-        && source.contains("WriteFile(")
-        && source.contains("0644");
+    let world_readable_secret = facts.source_index.has("/tmp/integration.key")
+        && facts.source_index.has("WriteFile(")
+        && facts.source_index.has("0644");
     if !world_readable_secret {
         return;
     }
-    if source.contains("APP_SECRET_DIR") || source.contains("0600") {
+    if facts.source_index.has_any(&["APP_SECRET_DIR", "0600"]) {
         return;
     }
 

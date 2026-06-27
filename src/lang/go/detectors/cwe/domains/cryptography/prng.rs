@@ -2,11 +2,11 @@ use super::super::super::facts::GoUnitFacts;
 use super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
-pub(crate) fn detect_cwe_334(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_334(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("Intn(4096)") {
+    if !facts.source_index.has("Intn(4096)") {
         return;
     }
 
@@ -22,14 +22,14 @@ pub(crate) fn detect_cwe_334(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_335(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_335(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let predictable_seed = (source.contains("seed := time.Now().Unix()")
-        || source.contains("rand.NewSource(seed)"))
-        && (source.contains("rand.Seed(seed)")
-            || source.contains("rand.New(rand.NewSource(seed))"));
+    let predictable_seed = (facts.source_index.has("seed := time.Now().Unix()")
+        || facts.source_index.has("rand.NewSource(seed)"))
+        && (facts.source_index.has("rand.Seed(seed)")
+            || facts.source_index.has("rand.New(rand.NewSource(seed))"));
     if !predictable_seed {
         return;
     }
@@ -50,13 +50,13 @@ pub(crate) fn detect_cwe_335(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_338(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_338(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let weak_prng_token = (source.contains("rand.New(rand.NewSource(time.Now().UnixNano()))")
-        || source.contains("rand.NewSource(time.Now().UnixNano())"))
-        && (source.contains("sid") || source.contains("token"));
+    let weak_prng_token = (facts.source_index.has("rand.New(rand.NewSource(time.Now().UnixNano()))")
+        || facts.source_index.has("rand.NewSource(time.Now().UnixNano())"))
+        && (facts.source_index.has("sid") || facts.source_index.has("token"));
     if !weak_prng_token {
         return;
     }
@@ -80,12 +80,12 @@ pub(crate) fn detect_cwe_338(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_342(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_342(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let increments_previous = (source.contains("lastOTP++") && source.contains("code := lastOTP"))
-        || (source.contains("lastSmsCode++") && source.contains("code := lastSmsCode"));
+    let increments_previous = (facts.source_index.has("lastOTP++") && facts.source_index.has("code := lastOTP"))
+        || (facts.source_index.has("lastSmsCode++") && facts.source_index.has("code := lastSmsCode"));
     if !increments_previous {
         return;
     }
@@ -106,12 +106,12 @@ pub(crate) fn detect_cwe_342(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_343(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_343(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let deterministic_state_machine =
-        source.contains("*3 + 1) % 97") || source.contains("*5 + 3) % 101");
+        facts.source_index.has("*3 + 1) % 97") || facts.source_index.has("*5 + 3) % 101");
     if !deterministic_state_machine {
         return;
     }

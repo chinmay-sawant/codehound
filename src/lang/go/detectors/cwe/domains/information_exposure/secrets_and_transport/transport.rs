@@ -3,18 +3,18 @@ use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
-pub(crate) fn detect_cwe_319(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_319(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let handles_card_data = source.contains("CVV") && source.contains("Number");
+    let handles_card_data = facts.source_index.has("CVV") && facts.source_index.has("Number");
     if !handles_card_data {
         return;
     }
-    if source.contains("ListenAndServeTLS(") || source.contains("tls.Config") {
+    if facts.source_index.has("ListenAndServeTLS(") || facts.source_index.has("tls.Config") {
         return;
     }
-    if !(source.contains("ListenAndServe(") || source.contains("http.ListenAndServe(")) {
+    if !(facts.source_index.has("ListenAndServe(") || facts.source_index.has("http.ListenAndServe(")) {
         return;
     }
 
@@ -34,17 +34,17 @@ pub(crate) fn detect_cwe_319(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_524(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_524(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let process_wide_token_cache = (source.contains("map[string]string{}")
-        && source.contains("Authorization"))
-        && (source.contains("tokenCache") || source.contains("tokenVault"));
+    let process_wide_token_cache = (facts.source_index.has("map[string]string{}")
+        && facts.source_index.has("Authorization"))
+        && (facts.source_index.has("tokenCache") || facts.source_index.has("tokenVault"));
     if !process_wide_token_cache {
         return;
     }
-    if source.contains("context.WithValue(") || source.contains("session_token") {
+    if facts.source_index.has("context.WithValue(") || facts.source_index.has("session_token") {
         return;
     }
 
@@ -64,18 +64,18 @@ pub(crate) fn detect_cwe_524(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_538(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_538(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let public_secret_export = source.contains("DATABASE_URL")
-        && source.contains("os.WriteFile(")
-        && (source.contains("/var/www/") || source.contains("/var/www/html/public/"))
-        && source.contains("0o644");
+    let public_secret_export = facts.source_index.has("DATABASE_URL")
+        && facts.source_index.has("os.WriteFile(")
+        && (facts.source_index.has("/var/www/") || facts.source_index.has("/var/www/html/public/"))
+        && facts.source_index.has("0o644");
     if !public_secret_export {
         return;
     }
-    if source.contains("/var/lib/slopguard/private") || source.contains("0o600") {
+    if facts.source_index.has("/var/lib/slopguard/private") || facts.source_index.has("0o600") {
         return;
     }
 

@@ -3,12 +3,12 @@ use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
-pub(crate) fn detect_cwe_838(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_838(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let invalid_utf8 =
-        source.contains("application/json; charset=utf-8") && source.contains("0xC3, 0x28");
+        facts.source_index.has("application/json; charset=utf-8") && facts.source_index.has("0xC3, 0x28");
     if !invalid_utf8 {
         return;
     }
@@ -25,19 +25,17 @@ pub(crate) fn detect_cwe_838(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_1286(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_1286(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let loose_json_config = (source.contains("SaveHookConfig(")
-        || source.contains("SaveHookConfigPure("))
-        && (source.contains("json.Unmarshal(body, &cfg)")
-            || source.contains("json.NewDecoder(r.Body).Decode(&cfg)"))
-        && source.contains("hook_configs");
+    let loose_json_config = (facts.source_index.has_any(&["SaveHookConfig(", "SaveHookConfigPure("]))
+        && (facts.source_index.has_any(&["json.Unmarshal(body, &cfg)", "json.NewDecoder(r.Body).Decode(&cfg)"]))
+        && facts.source_index.has("hook_configs");
     if !loose_json_config {
         return;
     }
-    if source.contains("DisallowUnknownFields()") || source.contains("ParseRequestURI(cfg.URL)") {
+    if facts.source_index.has_any(&["DisallowUnknownFields()", "ParseRequestURI(cfg.URL)"]) {
         return;
     }
 
@@ -56,16 +54,16 @@ pub(crate) fn detect_cwe_1286(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
     );
 }
 
-pub(crate) fn detect_cwe_1389(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_1389(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let implicit_radix = (source.contains("ReserveSeats(") || source.contains("ReserveSeatsPure("))
-        && source.contains("strconv.ParseInt(raw, 0, 64)");
+    let implicit_radix = (facts.source_index.has_any(&["ReserveSeats(", "ReserveSeatsPure("]))
+        && facts.source_index.has("strconv.ParseInt(raw, 0, 64)");
     if !implicit_radix {
         return;
     }
-    if source.contains("strconv.ParseInt(raw, 10, 64)") {
+    if facts.source_index.has("strconv.ParseInt(raw, 10, 64)") {
         return;
     }
 

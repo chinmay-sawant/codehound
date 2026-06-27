@@ -8,7 +8,7 @@ use slopguard::fixture::{materialize_tree, materialized_root};
 
 #[path = "common/mod.rs"]
 mod common;
-use common::{unique_cache_dir, run_scan_with_cache};
+use common::{run_scan_with_cache, unique_cache_dir};
 
 fn bench_partial(c: &mut Criterion) {
     materialize_tree(Path::new("tests/fixtures")).expect("materialize fixtures");
@@ -16,7 +16,7 @@ fn bench_partial(c: &mut Criterion) {
     let cache_dir = unique_cache_dir("partial");
     {
         let mut cache = CacheStore::open(cache_dir.clone()).unwrap();
-        let _ = run_scan_with_cache(&root, Some(&mut cache));
+        let _ = run_scan_with_cache(root, Some(&mut cache));
     }
     let registry = slopguard::engine::Registry::default();
     let (entries, _skipped) = collect_entries(
@@ -27,7 +27,11 @@ fn bench_partial(c: &mut Criterion) {
     )
     .expect("collect");
     let to_change: Vec<std::path::PathBuf> =
-        entries.iter().step_by(2).map(|e| e.path.clone()).collect();
+        entries
+            .iter()
+            .step_by(2)
+            .map(|e| e.path.as_ref().to_path_buf())
+            .collect();
     let originals: Vec<(std::path::PathBuf, String)> = to_change
         .iter()
         .filter_map(|p| std::fs::read_to_string(p).ok().map(|s| (p.clone(), s)))
@@ -42,7 +46,7 @@ fn bench_partial(c: &mut Criterion) {
                 }
             }
             let mut cache = CacheStore::open(cache_dir.clone()).unwrap();
-            let _ = run_scan_with_cache(&root, Some(&mut cache));
+            let _ = run_scan_with_cache(root, Some(&mut cache));
             for (p, body) in &originals {
                 if changed_paths.contains(p) {
                     std::fs::write(p, body).unwrap();
@@ -57,11 +61,11 @@ fn bench_cache_hit_in_process(c: &mut Criterion) {
     materialize_tree(Path::new("tests/fixtures")).expect("materialize fixtures");
     let root = materialized_root();
     let mut cache = CacheStore::open(unique_cache_dir("hit-in-mem")).unwrap();
-    let _ = run_scan_with_cache(&root, Some(&mut cache));
+    let _ = run_scan_with_cache(root, Some(&mut cache));
     c.bench_function("incremental_warm_in_memory", |b| {
         b.iter(|| {
             let _ = content_hash("hello");
-            let _ = run_scan_with_cache(&root, Some(&mut cache));
+            let _ = run_scan_with_cache(root, Some(&mut cache));
         });
     });
 }

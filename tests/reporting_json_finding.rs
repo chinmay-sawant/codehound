@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use slopguard::reporting::json::FindingJson;
-use slopguard::rules::{DetectorEvidence, Finding, LineCol, Severity};
+use slopguard::rules::{DetectorEvidence, Finding, FindingInputs, LineCol, Severity};
 
 #[path = "helpers/mod.rs"]
 mod helpers;
@@ -44,7 +44,7 @@ fn json_omits_structured_fields_when_unset() {
 
 #[test]
 fn json_emits_structured_fields_when_set() {
-    let finding = Finding::new(
+    let finding = Finding::new(FindingInputs::new(
         "CWE-78",
         "Command injection",
         "cmd.go",
@@ -55,7 +55,7 @@ fn json_emits_structured_fields_when_set() {
         "command uses user input",
         Severity::High,
         Cow::Borrowed(&[]),
-    )
+    ))
     .with_evidence(DetectorEvidence::DangerousCall {
         function: "exec.Command".to_string(),
         argument_index: Some(0),
@@ -74,7 +74,7 @@ fn json_emits_structured_fields_when_set() {
 
 #[test]
 fn legacy_json_consumers_ignore_structured_fields() {
-    let finding = Finding::new(
+    let finding = Finding::new(FindingInputs::new(
         "CWE-78",
         "Command injection",
         "cmd.go",
@@ -85,7 +85,7 @@ fn legacy_json_consumers_ignore_structured_fields() {
         "command uses user input",
         Severity::High,
         Cow::Borrowed(&[]),
-    )
+    ))
     .with_evidence(DetectorEvidence::DangerousCall {
         function: "exec.Command".to_string(),
         argument_index: Some(0),
@@ -112,7 +112,7 @@ fn legacy_json_consumers_ignore_structured_fields() {
 
 #[test]
 fn json_finding_includes_bad_practice_category() {
-    let finding = Finding::new(
+    let finding = Finding::new(FindingInputs::new(
         "BP-1",
         "Discarded Error Return",
         "bad.go",
@@ -120,7 +120,7 @@ fn json_finding_includes_bad_practice_category() {
         "discarded error",
         Severity::Low,
         Cow::Borrowed(&[]),
-    );
+    ));
     let value = serde_json::to_value(FindingJson::from(&finding)).unwrap();
 
     assert_eq!(value["category"], "bad_practice");

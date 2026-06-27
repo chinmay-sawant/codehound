@@ -2,7 +2,7 @@
 
 use std::fs;
 
-use anyhow::Result;
+use crate::Error;
 
 use super::CacheStore;
 use super::hash::{iso8601_from_mtime, iso8601_utc_now};
@@ -13,7 +13,7 @@ impl CacheStore {
     /// Write the manifest and metadata to disk. No-op when no
     /// mutations have happened since the last flush. Should be called
     /// once per scan run, after all `put`/`remove` calls.
-    pub fn flush(&mut self) -> Result<()> {
+    pub fn flush(&mut self) -> Result<(), Error> {
         if !self.dirty {
             return Ok(());
         }
@@ -37,7 +37,7 @@ impl CacheStore {
     /// Remove the oldest cache entries until the total on-disk size is
     /// below `max_size_bytes`. The target is 90% of the limit to avoid
     /// repeated eviction on every small write.
-    pub(super) fn evict_to_size(&mut self) -> Result<()> {
+    pub(super) fn evict_to_size(&mut self) -> Result<(), Error> {
         let target = (self.max_size_bytes * 9) / 10;
         let mut current = self.total_size();
         if current <= target {

@@ -3,14 +3,14 @@ use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
-pub(crate) fn detect_cwe_420(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_420(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let has_unprotected_debug_route = (source.contains("r.GET(\"/debug/sqltrace\"")
-        && source.contains("r.Group(\"/api\", requireJWT())"))
-        || (source.contains("http.HandleFunc(\"/debug/sqltrace\"")
-            && source.contains("http.Handle(\"/api/invoices\", protected)"));
+    let has_unprotected_debug_route = (facts.source_index.has(r#"r.GET("/debug/sqltrace""#)
+        && facts.source_index.has(r#"r.Group("/api", requireJWT())"#))
+        || (facts.source_index.has(r#"http.HandleFunc("/debug/sqltrace""#)
+            && facts.source_index.has(r#"http.Handle("/api/invoices", protected)"#));
     if !has_unprotected_debug_route {
         return;
     }
@@ -27,16 +27,16 @@ pub(crate) fn detect_cwe_420(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_426(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_426(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let request_controlled_plugin_dir =
-        source.contains("plugin_dir") && source.contains("plugin.Open(modPath)");
+        facts.source_index.has("plugin_dir") && facts.source_index.has("plugin.Open(modPath)");
     if !request_controlled_plugin_dir {
         return;
     }
-    if source.contains("trustedPluginDir") || source.contains("trustedPluginRoot") {
+    if facts.source_index.has_any(&["trustedPluginDir", "trustedPluginRoot"]) {
         return;
     }
 
@@ -52,17 +52,15 @@ pub(crate) fn detect_cwe_426(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_497(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_497(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let exposes_host_details = source.contains("os.Environ()")
-        || source.contains("os.Hostname()")
-        || source.contains("runtime.NumCPU()");
+    let exposes_host_details = facts.source_index.has_any(&["os.Environ()", "os.Hostname()", "runtime.NumCPU()"]);
     if !exposes_host_details {
         return;
     }
-    if source.contains(r#""status": "ok""#) {
+    if facts.source_index.has(r#""status": "ok""#) {
         return;
     }
 

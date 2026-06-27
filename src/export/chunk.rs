@@ -7,7 +7,7 @@ use std::io::{BufWriter, Write};
 use std::path::Path;
 use std::sync::Arc;
 
-use anyhow::Result;
+use crate::Error;
 
 use crate::rules::Finding;
 
@@ -19,7 +19,7 @@ pub(super) fn write_chunk_files_streaming(
     chunk_size: usize,
     file_cache: &mut HashMap<String, Option<String>>,
     source_cache: &HashMap<String, Arc<str>>,
-) -> Result<usize> {
+) -> Result<usize, Error> {
     fs::create_dir_all(output_dir)?;
     clean_matching_txt_files(output_dir, |name| {
         name.starts_with("Chunk_") && name.ends_with(".txt")
@@ -62,7 +62,7 @@ pub(super) fn write_chunk_files_streaming(
 pub(super) fn clean_matching_txt_files(
     output_dir: &Path,
     should_remove: impl Fn(&str) -> bool,
-) -> Result<()> {
+) -> Result<(), Error> {
     for entry in fs::read_dir(output_dir)? {
         let entry = entry?;
         if !entry.file_type()?.is_file() {

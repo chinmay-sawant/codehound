@@ -25,7 +25,7 @@ fn iso8601_from_secs(secs: u64) -> String {
 
 #[test]
 fn driver_fields_are_populated() {
-    let log = render_to_string(&helpers::reporting::sample_result());
+    let log = render_to_string(&helpers::reporting::sample_result()).expect("render SARIF");
     assert!(log.contains("\"informationUri\""), "got: {log}");
     assert!(log.contains("\"semanticVersion\""), "got: {log}");
     assert!(log.contains("\"name\": \"slopguard\""), "got: {log}");
@@ -33,7 +33,7 @@ fn driver_fields_are_populated() {
 
 #[test]
 fn rules_array_is_sorted_alphabetically() {
-    let log = render_to_string(&helpers::reporting::sample_result());
+    let log = render_to_string(&helpers::reporting::sample_result()).expect("render SARIF");
     let i22 = log.find("\"CWE-22\"").expect("CWE-22");
     let i89 = log.find("\"CWE-89\"").expect("CWE-89");
     assert!(i22 < i89, "CWE-22 should appear before CWE-89, got: {log}");
@@ -41,13 +41,13 @@ fn rules_array_is_sorted_alphabetically() {
 
 #[test]
 fn results_have_rule_index_pointing_into_rules() {
-    let log = render_to_string(&helpers::reporting::sample_result());
+    let log = render_to_string(&helpers::reporting::sample_result()).expect("render SARIF");
     assert!(log.contains("\"ruleIndex\""), "got: {log}");
 }
 
 #[test]
 fn results_have_partial_fingerprints() {
-    let log = render_to_string(&helpers::reporting::sample_result());
+    let log = render_to_string(&helpers::reporting::sample_result()).expect("render SARIF");
     assert!(
         log.contains("\"partialFingerprints\""),
         "missing partialFingerprints, got: {log}"
@@ -60,7 +60,7 @@ fn results_have_partial_fingerprints() {
 
 #[test]
 fn results_have_security_severity_in_properties() {
-    let log = render_to_string(&helpers::reporting::sample_result());
+    let log = render_to_string(&helpers::reporting::sample_result()).expect("render SARIF");
     assert!(log.contains("\"security-severity\""), "got: {log}");
     assert!(log.contains("\"tags\""), "got: {log}");
 }

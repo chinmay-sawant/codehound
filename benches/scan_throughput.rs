@@ -12,15 +12,18 @@ fn bench_scan_materialized_fixtures(c: &mut Criterion) {
     materialize_tree(Path::new("tests/fixtures")).expect("materialize integration fixtures");
 
     let analyzer = Analyzer::builder()
+        .with_default_filter()
         .scan_context(ScanContext::default())
         .build();
     let root = materialized_root();
 
     c.bench_function("scan_materialized_fixtures", |b| {
         b.iter(|| {
-            analyzer
-                .analyze_paths([&root], None)
-                .expect("scan should succeed");
+            let _ = std::hint::black_box(
+                analyzer
+                    .analyze_paths([&root], None)
+                    .expect("scan should succeed"),
+            );
         });
     });
 }
@@ -53,14 +56,16 @@ fn bench_scan_go_only_subset(c: &mut Criterion) {
         ..ScanContext::default()
     };
 
-    let analyzer = Analyzer::builder().scan_context(ctx).build();
+    let analyzer = Analyzer::builder().with_default_filter().scan_context(ctx).build();
     let root = materialized_root();
 
     c.bench_function("scan_go_only_two_rules", |b| {
         b.iter(|| {
-            analyzer
-                .analyze_paths([&root], None)
-                .expect("scan should succeed");
+            let _ = std::hint::black_box(
+                analyzer
+                    .analyze_paths([&root], None)
+                    .expect("scan should succeed"),
+            );
         });
     });
 }

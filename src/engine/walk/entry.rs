@@ -1,11 +1,12 @@
 //! Walk paths and collect supported source files.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::sync::Arc;
 
-use anyhow::Result;
 use ignore::WalkBuilder;
 use ignore::gitignore::{Gitignore, GitignoreBuilder};
 
+use crate::Error;
 use crate::core::LanguageId;
 use crate::engine::config::PathFilters;
 use crate::engine::language_filter::LanguageFilter;
@@ -14,7 +15,7 @@ use crate::engine::registry::Registry;
 /// A source file queued for analysis.
 #[derive(Debug, Clone)]
 pub struct ScanEntry {
-    pub path: PathBuf,
+    pub path: Arc<Path>,
     pub language: LanguageId,
 }
 
@@ -25,12 +26,17 @@ pub struct ScanEntry {
 ///
 /// Returns the collected entries and the number of files skipped by
 /// ignore/language/path filters.
+///
+/// # Errors
+///
+/// Returns [`Error::Walk`] when a walk root path does not exist.
+#[must_use = "entry collection failures must be handled"]
 pub fn collect_entries<I, P>(
     registry: &Registry,
     paths: I,
     lang_filter: &LanguageFilter,
     path_filters: &PathFilters,
-) -> Result<(Vec<ScanEntry>, usize)>
+) -> Result<(Vec<ScanEntry>, usize), Error>
 where
     I: IntoIterator<Item = P>,
     P: AsRef<Path>,
@@ -63,7 +69,7 @@ where
                 continue;
             }
             entries.push(ScanEntry {
-                path: entry.path().to_path_buf(),
+                path: Arc::from(entry.path()),
                 language,
             });
         }
@@ -80,7 +86,7 @@ struct RootPathMatcher {
 }
 
 impl RootPathMatcher {
-    fn new(root: &Path, filters: &PathFilters) -> Result<Self> {
+    fn new(root: &Path, filters: &PathFilters) -> Result<Self, Error> {
         let base = if root.is_dir() {
             root
         } else {
@@ -116,7 +122,7 @@ impl RootPathMatcher {
     }
 }
 
-fn build_globset(base: &Path, patterns: &[String]) -> Result<Option<Gitignore>> {
+fn build_globset(base: &Path, patterns: &[String]) -> Result<Option<Gitignore>, Error> {
     if patterns.is_empty() {
         return Ok(None);
     }
@@ -125,7 +131,10 @@ fn build_globset(base: &Path, patterns: &[String]) -> Result<Option<Gitignore>> 
     for pattern in patterns {
         builder
             .add_line(None, pattern)
-            .map_err(anyhow::Error::from)?;
+            .map_err(|e| Error::Walk(e.to_string()))?;
     }
-    Ok(Some(builder.build()?))
+    builder
+        .build()
+        .map(Some)
+        .map_err(|e| Error::Walk(e.to_string()))
 }

@@ -2,7 +2,7 @@
 mod helpers;
 use helpers::cache::{finding, unique_temp_root};
 
-use slopguard::engine::{Baseline, BASELINE_FILE_NAME};
+use slopguard::engine::{BASELINE_FILE_NAME, Baseline};
 
 #[test]
 fn baseline_from_findings_groups_entries_by_rule() {

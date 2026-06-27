@@ -3,15 +3,15 @@ use super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
-pub(crate) fn detect_cwe_619(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_619(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let dangling_rows = source.contains("rows, err := db.Query(") && source.contains("rows.Next()");
+    let dangling_rows = facts.source_index.has("rows, err := db.Query(") && facts.source_index.has("rows.Next()");
     if !dangling_rows {
         return;
     }
-    if source.contains("defer rows.Close()") {
+    if facts.source_index.has("defer rows.Close()") {
         return;
     }
 
@@ -27,17 +27,17 @@ pub(crate) fn detect_cwe_619(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_917(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_917(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let template_injection = source.contains("template.New(\"report\").Parse(src)")
-        && source.contains("{{.Title}} where ")
-        && source.contains("+ expr");
+    let template_injection = facts.source_index.has("template.New(\"report\").Parse(src)")
+        && facts.source_index.has("{{.Title}} where ")
+        && facts.source_index.has("+ expr");
     if !template_injection {
         return;
     }
-    if source.contains("reportTemplate") || source.contains("reportTemplatePure") {
+    if facts.source_index.has("reportTemplate") || facts.source_index.has("reportTemplatePure") {
         return;
     }
 

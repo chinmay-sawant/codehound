@@ -9,11 +9,11 @@ use super::common::is_simple_ident;
 /// PERF-165: `rows.Scan(&x)` followed by manual extraction of
 /// fields from a primitive type into a custom type on the next
 /// line. The proper fix is to implement `sql.Scanner`.
-pub(crate) fn detect_perf_165(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_165(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("rows.Scan(") {
+    if !facts.source_index.has("rows.Scan(") {
         return;
     }
 
@@ -76,11 +76,11 @@ pub(crate) fn detect_perf_165(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut
 /// followed by an `if s != nil` null check. The idiomatic
 /// alternative is `sql.NullString` / `sql.NullInt64` which the
 /// `database/sql` package already knows how to populate.
-pub(crate) fn detect_perf_166(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_166(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("rows.Scan(") {
+    if !facts.source_index.has("rows.Scan(") {
         return;
     }
 
@@ -141,7 +141,7 @@ pub(crate) fn detect_perf_181(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("json.NewDecoder") {
+    if !facts.source_index.has("json.NewDecoder") {
         return;
     }
 
@@ -158,7 +158,7 @@ pub(crate) fn detect_perf_181(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
             continue;
         }
         // Suppress when the file doesn't have any int/int64 targets.
-        if !source.contains("int") && !source.contains("int64") && !source.contains("int32") {
+        if !facts.source_index.has("int") && !facts.source_index.has("int64") && !facts.source_index.has("int32") {
             continue;
         }
         let (line, col) = unit.line_col(call.start_byte);
@@ -171,7 +171,6 @@ pub(crate) fn detect_perf_181(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
             out,
         );
     }
-    let _ = facts;
 }
 
 /// PERF-182: `bufio.NewWriter(w)` (single-arg) followed by a `Write`
@@ -181,7 +180,7 @@ pub(crate) fn detect_perf_182(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("bufio.NewWriter") {
+    if !facts.source_index.has("bufio.NewWriter") {
         return;
     }
 
@@ -213,7 +212,6 @@ pub(crate) fn detect_perf_182(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
             out,
         );
     }
-    let _ = facts;
 }
 
 fn has_large_string_literal(window: &str) -> bool {

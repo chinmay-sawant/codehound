@@ -8,9 +8,9 @@ use crate::rules::{Finding, emit};
 /// PERF-017: string concatenation per request body parsing.
 pub(crate) fn detect_perf_17(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
-    if !is_request_handler(source) {
+    if !is_request_handler(&facts.source_index) {
         return;
     }
 
@@ -38,13 +38,13 @@ pub(crate) fn detect_perf_17(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 /// PERF-018: unnecessary slice copy in a function with a large input slice.
 pub(crate) fn detect_perf_18(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
     // The fixture shape is "processItems(items)" with append(items, ...) in body.
-    if !source.contains("func processItems(") {
+    if !facts.source_index.has("func processItems(") {
         return;
     }
-    if !source.contains("append(result, items...)") {
+    if !facts.source_index.has("append(result, items...)") {
         return;
     }
 
@@ -63,22 +63,21 @@ pub(crate) fn detect_perf_18(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
             return;
         }
     }
-    let _ = facts;
 }
 
 /// PERF-019: range over slice of large structs by value.
-pub(crate) fn detect_perf_19(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_19(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("for _, record := range records") {
+    if !facts.source_index.has("for _, record := range records") {
         return;
     }
-    if !source.contains("processRecord(record)") {
+    if !facts.source_index.has("processRecord(record)") {
         return;
     }
-    if source.contains("for _, record := range &records")
-        || source.contains("for _, record := range recordsPtr")
+    if facts.source_index.has("for _, record := range &records")
+        || facts.source_index.has("for _, record := range recordsPtr")
     {
         return;
     }

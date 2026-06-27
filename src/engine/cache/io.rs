@@ -5,8 +5,9 @@ use std::io::Write;
 use std::path::Path;
 use std::time::SystemTime;
 
-use anyhow::{Context, Result};
 use serde::Serialize;
+
+use crate::Error;
 
 /// `(secs, nanos)` from a file's mtime, or `(0, 0)` when the mtime
 /// cannot be determined.
@@ -19,21 +20,26 @@ pub(super) fn mtime_of_file(path: &str) -> std::io::Result<(u64, u32)> {
     Ok((dur.as_secs(), dur.subsec_nanos()))
 }
 
-pub(super) fn write_atomic<T: Serialize>(path: &Path, value: &T) -> Result<()> {
+pub(super) fn write_atomic<T: Serialize>(path: &Path, value: &T) -> Result<(), Error> {
     if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).with_context(|| format!("creating {}", parent.display()))?;
+        fs::create_dir_all(parent)
+            .map_err(|e| Error::Walk(format!("creating {}: {e}", parent.display())))?;
     }
     let tmp = path.with_extension("json.tmp");
     {
         let mut f = fs::File::create(&tmp)
-            .with_context(|| format!("creating tmp file {}", tmp.display()))?;
-        let text = serde_json::to_string_pretty(value)
-            .with_context(|| format!("serializing {}", path.display()))?;
+            .map_err(|e| Error::Walk(format!("creating tmp file {}: {e}", tmp.display())))?;
+        let text = serde_json::to_string_pretty(value).map_err(Error::from)?;
         f.write_all(text.as_bytes())?;
         f.write_all(b"\n")?;
         f.sync_all().ok();
     }
-    fs::rename(&tmp, path)
-        .with_context(|| format!("renaming {} -> {}", tmp.display(), path.display()))?;
+    fs::rename(&tmp, path).map_err(|e| {
+        Error::Walk(format!(
+            "renaming {} -> {}: {e}",
+            tmp.display(),
+            path.display()
+        ))
+    })?;
     Ok(())
 }

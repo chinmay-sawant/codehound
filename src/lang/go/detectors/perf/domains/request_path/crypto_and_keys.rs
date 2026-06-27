@@ -41,35 +41,41 @@ pub(crate) fn detect_perf_24(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 /// PERF-025: rsa.GenerateKey / ecdsa.GenerateKey on a request path.
 pub(crate) fn detect_perf_25(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
-    let triggers = [
+    let index_triggers = [
+        "rsa.GenerateKey(",
+        "rsa.GenerateMultiPrimeKey(",
+        "ecdsa.GenerateKey(",
+        "ed25519.GenerateKey(",
+    ];
+    let callee_triggers = [
         "rsa.GenerateKey",
         "rsa.GenerateMultiPrimeKey",
         "ecdsa.GenerateKey",
         "ed25519.GenerateKey",
     ];
 
-    if !triggers.iter().any(|t| source.contains(t)) {
+    if !facts.source_index.has_any(&index_triggers) {
         return;
     }
-    if source.contains("var (") && (source.contains("// gen once") || source.contains("sync.Once"))
+    if facts.source_index.has("var (") && (facts.source_index.has("// gen once") || facts.source_index.has("sync.Once"))
     {
         return;
     }
 
-    let on_request_path = is_request_handler(source);
+    let on_request_path = is_request_handler(&facts.source_index);
     let in_loop = facts
         .calls
         .iter()
-        .any(|c| is_in_loop(c) && triggers.iter().any(|t| c.callee.as_ref() == *t));
+        .any(|c| is_in_loop(c) && callee_triggers.iter().any(|t| c.callee.as_ref() == *t));
 
     if !on_request_path && !in_loop {
         return;
     }
 
     for call in &facts.calls {
-        if !triggers.iter().any(|t| call.callee.as_ref() == *t) {
+        if !callee_triggers.iter().any(|t| call.callee.as_ref() == *t) {
             continue;
         }
         let (line, col) = unit.line_col(call.start_byte);

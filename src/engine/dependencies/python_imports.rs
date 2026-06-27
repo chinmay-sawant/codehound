@@ -140,15 +140,12 @@ fn split_relative(node: &Node, source: &str) -> (usize, Option<String>) {
 /// Resolve an absolute module name (e.g. `pkg.utils`) to a
 /// project-relative file path. Drops stdlib and third-party
 /// imports.
-fn resolve_module(name: &str, project_root: &Path, source_dir: &str, out: &mut Vec<String>) {
+fn resolve_module(name: &str, project_root: &Path, _source_dir: &str, out: &mut Vec<String>) {
     if !is_local_module(name, project_root) {
         return;
     }
     let abs = project_root.join(name.replace('.', "/"));
     try_resolve_py(&abs, project_root, out);
-    // Source dir is unused for absolute imports but is part of
-    // the signature for symmetry with relative imports.
-    let _ = source_dir;
 }
 
 fn resolve_relative(

@@ -11,8 +11,8 @@ use crate::rules::{Finding, emit};
 /// UUID, path) that cause time-series storage explosion.
 pub(crate) fn detect_perf_99(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
-    if !source_matches_any(source, PROM_MARKERS) {
+    let _source = unit.source.as_ref();
+    if !index_matches_any(&facts.source_index, PROM_MARKERS) {
         return;
     }
     for call in &facts.calls {

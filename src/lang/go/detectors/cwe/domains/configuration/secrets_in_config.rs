@@ -2,19 +2,19 @@ use super::super::super::facts::GoUnitFacts;
 use super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
-pub(crate) fn detect_cwe_260(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_260(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let config_type_has_secret_field =
-        source.contains("Password string") || source.contains("Secret   string");
+        facts.source_index.has("Password string") || facts.source_index.has("Secret   string");
     if !config_type_has_secret_field {
         return;
     }
-    if source.contains("os.Getenv(") {
+    if facts.source_index.has("os.Getenv(") {
         return;
     }
-    if !(source.contains("cfg.Password") || source.contains("cfg.Secret")) {
+    if !(facts.source_index.has("cfg.Password") || facts.source_index.has("cfg.Secret")) {
         return;
     }
 
@@ -35,16 +35,16 @@ pub(crate) fn detect_cwe_260(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_455(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_455(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let continues_after_tls_failure =
-        source.contains("tls.LoadX509KeyPair(") && source.contains("continuing without mTLS");
+        facts.source_index.has("tls.LoadX509KeyPair(") && facts.source_index.has("continuing without mTLS");
     if !continues_after_tls_failure {
         return;
     }
-    if source.contains("log.Fatalf(") {
+    if facts.source_index.has("log.Fatalf(") {
         return;
     }
 

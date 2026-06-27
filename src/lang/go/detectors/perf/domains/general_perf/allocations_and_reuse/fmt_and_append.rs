@@ -8,9 +8,9 @@ use crate::rules::{Finding, emit};
 /// where indexed scan would be more efficient.
 pub(crate) fn detect_perf_35(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
-    if !is_request_path(source) && !source.contains("for ") {
+    if !is_request_path(&facts.source_index) && !facts.source_index.has("for ") {
         return;
     }
 
@@ -18,7 +18,7 @@ pub(crate) fn detect_perf_35(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         if !matches!(call.callee.as_ref(), "fmt.Sprintf" | "fmt.Errorf") {
             continue;
         }
-        if !is_in_loop_present(&facts.calls) && !is_request_path(source) {
+        if !is_in_loop_present(&facts.calls) && !is_request_path(&facts.source_index) {
             continue;
         }
         // A single literal argument does not box; the format call is a
@@ -44,25 +44,25 @@ pub(crate) fn detect_perf_35(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 /// PERF-36: `go func(){ use(v) }()` capturing a loop variable.
 pub(crate) fn detect_perf_37(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
-    if !is_request_path(source) {
+    if !is_request_path(&facts.source_index) {
         return;
     }
     // The function must (a) declare the slice as a nil/empty `var` or `:=`
     // without a `make` and (b) grow it via `append` inside a loop.
-    let has_unpreallocated_slice = source.contains("var out []int")
-        || source.contains("out := []int{}")
-        || source.contains("results := []int{}")
-        || source.contains("var results []int")
-        || source.contains("var out []string")
-        || source.contains("out := []string{}")
-        || source.contains("out := []byte{}")
-        || source.contains("var out []byte");
+    let has_unpreallocated_slice = facts.source_index.has("var out []int")
+        || facts.source_index.has("out := []int{}")
+        || facts.source_index.has("results := []int{}")
+        || facts.source_index.has("var results []int")
+        || facts.source_index.has("var out []string")
+        || facts.source_index.has("out := []string{}")
+        || facts.source_index.has("out := []byte{}")
+        || facts.source_index.has("var out []byte");
     if !has_unpreallocated_slice {
         return;
     }
-    if source.contains("make([]") {
+    if facts.source_index.has("make([]") {
         return;
     }
 
@@ -88,7 +88,7 @@ pub(crate) fn detect_perf_42(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !is_request_path(source) && !is_in_loop_present(&facts.calls) {
+    if !is_request_path(&facts.source_index) && !is_in_loop_present(&facts.calls) {
         return;
     }
 

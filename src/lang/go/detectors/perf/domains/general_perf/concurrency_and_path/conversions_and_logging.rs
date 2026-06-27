@@ -5,18 +5,18 @@ use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
 /// PERF-32: `[]byte(s)` or `string(b)` conversion in a loop or hot path.
-pub(crate) fn detect_perf_33(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_33(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !is_request_path(source) {
+    if !is_request_path(&facts.source_index) {
         return;
     }
-    if !source.contains("for _, item := range items") {
+    if !facts.source_index.has("for _, item := range items") {
         return;
     }
     // If the loop breaks early or uses an indexed scan, suppress.
-    if source.contains("for i := 0; i < len(items);") || source.contains("break") {
+    if facts.source_index.has("for i := 0; i < len(items);") || facts.source_index.has("break") {
         return;
     }
 
@@ -38,7 +38,7 @@ pub(crate) fn detect_perf_41(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !is_request_path(source) {
+    if !is_request_path(&facts.source_index) {
         return;
     }
 
@@ -68,7 +68,7 @@ pub(crate) fn detect_perf_44(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !is_request_path(source) && !source.contains("for ") {
+    if !is_request_path(&facts.source_index) && !facts.source_index.has("for ") {
         return;
     }
 
@@ -102,9 +102,9 @@ pub(crate) fn detect_perf_44(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 /// PERF-45: `append` in a `for` loop without a `make([]T, 0, hint)`.
 pub(crate) fn detect_perf_48(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
-    if !is_request_path(source) && !source.contains("for ") {
+    if !is_request_path(&facts.source_index) && !facts.source_index.has("for ") {
         return;
     }
 
@@ -115,7 +115,7 @@ pub(crate) fn detect_perf_48(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         ) {
             continue;
         }
-        if source.contains("if len(a) != len(b) { return false }") || source.contains("len(prefix)")
+        if facts.source_index.has("if len(a) != len(b) { return false }") || facts.source_index.has("len(prefix)")
         {
             return;
         }
@@ -135,15 +135,15 @@ pub(crate) fn detect_perf_48(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 /// PERF-49: `copy(dst, src)` with mismatched or unchecked length.
 pub(crate) fn detect_perf_49(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
-    if !is_request_path(source) && !source.contains("for ") {
+    if !is_request_path(&facts.source_index) && !facts.source_index.has("for ") {
         return;
     }
-    if !source.contains("copy(buf, payload)") && !source.contains("copy(dst, src)") {
+    if !facts.source_index.has("copy(buf, payload)") && !facts.source_index.has("copy(dst, src)") {
         return;
     }
-    if source.contains("if len(payload) > len(buf) { return }") {
+    if facts.source_index.has("if len(payload) > len(buf) { return }") {
         return;
     }
 

@@ -3,7 +3,7 @@ mod t {
     use crate::core::ParsedUnit;
     use crate::lang::go::detectors::cwe::taint::extract::extract_taint_facts;
 
-    use super::super::super::{TaintPath, build_taint_graph, find_taint_paths};
+    use super::super::super::{build_taint_graph, find_taint_paths};
     use crate::lang::go::detectors::cwe::taint::{SanitizerKind, SinkKind, SourceKind};
 
     fn parse(source: &str) -> ParsedUnit {

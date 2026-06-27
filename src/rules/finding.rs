@@ -1,4 +1,5 @@
 //! A single finding emitted by a detector.
+#![allow(missing_docs)] // ratchet: document in a follow-up pass
 
 use std::borrow::Cow;
 
@@ -7,6 +8,7 @@ use serde::{Serialize, Serializer};
 use super::Severity;
 use super::evidence::DetectorEvidence;
 use super::fingerprint::Fingerprint;
+use super::types::{FilePath, RuleId};
 use crate::cwe::CweRef;
 
 /// 1-indexed line and column in a source file.
@@ -30,6 +32,48 @@ fn serialize_optional_cwe<S: Serializer>(
 
 pub(crate) fn is_false(value: &bool) -> bool {
     !*value
+}
+
+/// Core fields required to construct a [`Finding`].
+#[derive(Debug, Clone)]
+pub struct FindingInputs {
+    /// Rule id, e.g. `CWE-89`.
+    pub rule_id: RuleId,
+    /// Rule title.
+    pub rule_title: &'static str,
+    /// File path (relative to the analyzed root when possible).
+    pub file: FilePath,
+    /// 1-indexed line and column of the match.
+    pub location: LineCol,
+    /// Free-form message.
+    pub message: String,
+    /// Severity.
+    pub severity: Severity,
+    /// Linked CWEs. An empty slice means no CWEs.
+    pub cwe: Cow<'static, [CweRef]>,
+}
+
+impl FindingInputs {
+    /// Convenience constructor for detectors, tests, and fixtures.
+    pub fn new(
+        rule_id: &'static str,
+        rule_title: &'static str,
+        file: impl Into<String>,
+        location: LineCol,
+        message: impl Into<String>,
+        severity: Severity,
+        cwe: Cow<'static, [CweRef]>,
+    ) -> Self {
+        Self {
+            rule_id: RuleId::new(rule_id),
+            rule_title,
+            file: FilePath::new(file),
+            location,
+            message: message.into(),
+            severity,
+            cwe,
+        }
+    }
 }
 
 /// A single static-analysis finding.
@@ -101,27 +145,19 @@ pub struct Finding {
 }
 
 impl Finding {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        rule_id: &'static str,
-        rule_title: &'static str,
-        file: impl Into<String>,
-        location: LineCol,
-        message: impl Into<String>,
-        severity: Severity,
-        cwe: Cow<'static, [CweRef]>,
-    ) -> Self {
-        let cwe = if cwe.is_empty() {
+    /// Construct a finding from [`FindingInputs`]; chain `with_*` methods for optional fields.
+    pub fn new(inputs: FindingInputs) -> Self {
+        let cwe = if inputs.cwe.is_empty() {
             None
         } else {
-            Some(cwe.into_owned().into_boxed_slice())
+            Some(inputs.cwe.into_owned().into_boxed_slice())
         };
         Self {
-            rule_id,
-            rule_title,
-            file: file.into(),
-            line: location.line,
-            column: location.column,
+            rule_id: inputs.rule_id.as_str(),
+            rule_title: inputs.rule_title,
+            file: inputs.file.into_inner(),
+            line: inputs.location.line,
+            column: inputs.location.column,
             end_line: None,
             end_column: None,
             byte_offset: None,
@@ -131,8 +167,8 @@ impl Finding {
             function_start_line: None,
             function_end_line: None,
             snippet: None,
-            message: message.into(),
-            severity,
+            message: inputs.message,
+            severity: inputs.severity,
             cwe,
             fix: None,
             evidence: None,

@@ -7,18 +7,20 @@ use crate::lang::python::loop_kinds::LOOP_NODE_KINDS;
 use crate::lang::python::matchers::is_re_compile_call;
 use crate::rules::{Finding, Rule, RuleMetadata, Severity, emit};
 
+const SLOP101_META: RuleMetadata = emit::rule_meta(
+    "SLOP101",
+    "re.compile called inside loop",
+    "Compiling a regex on every iteration is wasteful; compile once outside the loop.",
+    Severity::Medium,
+    CWE_REFS_400_1336,
+    Some("Hoist `re.compile(...)` before the loop or use a module-level pattern."),
+);
+
 pub struct ReCompileInLoop;
 
 impl Rule for ReCompileInLoop {
     fn metadata(&self) -> RuleMetadata {
-        emit::rule_meta(
-            "SLOP101",
-            "re.compile called inside loop",
-            "Compiling a regex on every iteration is wasteful; compile once outside the loop.",
-            Severity::Medium,
-            CWE_REFS_400_1336,
-            Some("Hoist `re.compile(...)` before the loop or use a module-level pattern."),
-        )
+        SLOP101_META.clone()
     }
 }
 
@@ -29,6 +31,14 @@ impl Detector for ReCompileInLoop {
 
     fn rule_ids(&self) -> &'static [&'static str] {
         &["SLOP101"]
+    }
+
+    fn metadata_for(&self, rule_id: &str) -> Option<&'static RuleMetadata> {
+        if rule_id == "SLOP101" {
+            Some(&SLOP101_META)
+        } else {
+            None
+        }
     }
 
     fn run(&self, _ctx: &ScanContext, unit: &ParsedUnit, out: &mut Vec<Finding>) {
@@ -43,7 +53,7 @@ impl Detector for ReCompileInLoop {
             }
             let (line, col) = unit.line_col(call.start_byte());
             emit::push_finding_with_snippet(
-                &self.metadata(),
+                &SLOP101_META,
                 file,
                 line,
                 col,

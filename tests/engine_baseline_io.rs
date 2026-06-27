@@ -4,7 +4,7 @@ use std::time::Instant;
 mod helpers;
 use helpers::cache::{finding, unique_temp_root};
 
-use slopguard::engine::{Baseline, BASELINE_FILE_NAME, discover_baseline};
+use slopguard::engine::{BASELINE_FILE_NAME, Baseline, discover_baseline};
 use slopguard::rules::Finding;
 
 #[test]

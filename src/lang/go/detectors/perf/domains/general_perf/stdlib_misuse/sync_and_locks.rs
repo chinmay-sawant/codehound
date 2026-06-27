@@ -40,9 +40,9 @@ pub(crate) fn detect_perf_135(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 /// trims the heap in production. Both warrant a code review.
 pub(crate) fn detect_perf_140(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
-    if !source.contains("debug.SetGCPercent") {
+    if !facts.source_index.has("debug.SetGCPercent") {
         return;
     }
 
@@ -75,7 +75,6 @@ pub(crate) fn detect_perf_140(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
             out,
         );
     }
-    let _ = facts;
 }
 
 /// PERF-171: a buffered channel of size 1 (`make(chan struct{}, 1)`
@@ -120,7 +119,6 @@ pub(crate) fn detect_perf_171(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
             out,
         );
     }
-    let _ = facts;
 }
 
 /// PERF-168: `ch <- <CompositeLiteral>` where the literal has 4+
@@ -192,10 +190,10 @@ pub(crate) fn detect_perf_132(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("go func()") {
+    if !facts.source_index.has("go func()") {
         return;
     }
-    if !parent_has_ctx_param(source) {
+    if !parent_has_ctx_param(&facts.source_index) {
         return;
     }
 
@@ -233,15 +231,15 @@ pub(crate) fn detect_perf_132(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     }
 }
 
-fn parent_has_ctx_param(source: &str) -> bool {
+fn parent_has_ctx_param(index: &crate::lang::go::detectors::perf::source_index::PerfSourceIndex) -> bool {
     // The parent function is the surrounding `func ... { ... }`
     // that contains the `go func()` site. We approximate by
     // looking for any function declaration that takes a
     // `ctx context.Context` parameter anywhere in the file.
-    source.contains("ctx context.Context")
-        || source.contains("ctx context.Context,")
-        || source.contains("ctx context.Context)")
-        || source.contains("ctx context.Context ")
+    index.has("ctx context.Context")
+        || index.has("ctx context.Context,")
+        || index.has("ctx context.Context)")
+        || index.has("ctx context.Context ")
 }
 
 /// PERF-131: `mu.Lock` / `mu.Unlock` wrapping only a single
@@ -251,11 +249,11 @@ fn parent_has_ctx_param(source: &str) -> bool {
 /// match to these exact patterns to avoid false positives on
 /// mutex-guarded assignments to maps / slices / pointers (which
 /// are not atomic-safe).
-pub(crate) fn detect_perf_131(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_131(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains(".Lock()") || !source.contains(".Unlock()") {
+    if !facts.source_index.has(".Lock()") || !facts.source_index.has(".Unlock()") {
         return;
     }
 
@@ -307,7 +305,7 @@ fn is_simple_counter_body(body: &str) -> bool {
     let inner = body.trim();
     let mut counter_op = false;
     let mut non_counter_op = false;
-    for stmt in inner.split(|c: char| c == ';' || c == '\n') {
+    for stmt in inner.split([';', '\n']) {
         let stmt = stmt.trim();
         if stmt.is_empty() {
             continue;

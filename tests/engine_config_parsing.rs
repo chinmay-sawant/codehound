@@ -152,6 +152,7 @@ fn runtime_include_exclude_filters_apply_during_collection() {
     materialize_tree(Path::new("tests/fixtures")).expect("materialize");
 
     let analyzer = Analyzer::builder()
+        .with_default_filter()
         .path_filters(PathFilters {
             include: vec!["**/*.go".to_string()],
             exclude: vec!["**/frameworks/**".to_string()],

@@ -3,23 +3,32 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use anyhow::Result;
+use crate::Error;
+use crate::core::{Detector, ParsedUnit};
 
 use super::id::LanguageId;
-use crate::core::{Detector, ParsedUnit};
 
 pub trait LanguagePlugin: Send + Sync {
     fn id(&self) -> LanguageId;
     fn extensions(&self) -> &'static [&'static str];
     /// Configure a reused tree-sitter parser (called once per language per scan).
-    fn configure_parser(&self, parser: &mut tree_sitter::Parser);
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Grammar`] when the tree-sitter grammar failed to load.
+    fn configure_parser(&self, parser: &mut tree_sitter::Parser) -> Result<(), Error>;
     /// Parse with a pre-configured parser (hot path — no allocator per file).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Parse`] when tree-sitter cannot build a syntax tree, or
+    /// [`Error::Grammar`] when the parser was not configured.
     fn parse_with(
         &self,
         parser: &mut tree_sitter::Parser,
         path: &Path,
         source: Arc<str>,
-    ) -> Result<ParsedUnit>;
+    ) -> Result<ParsedUnit, Error>;
     fn detectors(&self) -> Vec<Box<dyn Detector>>;
     fn loop_node_kinds(&self) -> &'static [&'static str];
 
@@ -34,9 +43,9 @@ pub trait LanguagePlugin: Send + Sync {
     }
 
     /// One-shot parse (tests only); production uses [`parse_with`] + pool.
-    fn parse(&self, path: &Path, source: Arc<str>) -> Result<ParsedUnit> {
+    fn parse(&self, path: &Path, source: Arc<str>) -> Result<ParsedUnit, Error> {
         let mut parser = tree_sitter::Parser::new();
-        self.configure_parser(&mut parser);
+        self.configure_parser(&mut parser)?;
         self.parse_with(&mut parser, path, source)
     }
 }

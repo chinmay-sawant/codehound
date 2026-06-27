@@ -119,6 +119,7 @@ func Handle() { db.Run() }
     let mut cache = CacheStore::open(cache_dir.clone()).unwrap();
     {
         let analyzer = Analyzer::builder()
+            .with_default_filter()
             .scan_context(ScanContext::default())
             .build();
         let _ = analyzer.analyze_paths([&root], Some(&mut cache)).unwrap();
@@ -151,6 +152,7 @@ func Handle() { db.Run() }
     let mut cache2 = CacheStore::open(cache_dir).unwrap();
     {
         let analyzer = Analyzer::builder()
+            .with_default_filter()
             .scan_context(ScanContext::default())
             .build();
         let _ = analyzer.analyze_paths([&root], Some(&mut cache2)).unwrap();

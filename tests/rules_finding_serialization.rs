@@ -1,10 +1,10 @@
 use std::borrow::Cow;
 
-use slopguard::rules::{Finding, LineCol, Severity};
+use slopguard::rules::{Finding, FindingInputs, LineCol, Severity};
 
 #[test]
 fn cwe_serializes_as_empty_array_for_none() {
-    let f = Finding::new(
+    let f = Finding::new(FindingInputs::new(
         "X",
         "t",
         "f",
@@ -12,14 +12,14 @@ fn cwe_serializes_as_empty_array_for_none() {
         "m",
         Severity::Info,
         Cow::Borrowed(&[]),
-    );
+    ));
     let s = serde_json::to_string(&f).unwrap();
     assert!(s.contains("\"cwe\":[]"), "expected 'cwe':[], got: {s}");
 }
 
 #[test]
 fn optional_fields_omitted_when_unset() {
-    let f = Finding::new(
+    let f = Finding::new(FindingInputs::new(
         "X",
         "t",
         "f",
@@ -27,7 +27,7 @@ fn optional_fields_omitted_when_unset() {
         "m",
         Severity::Info,
         Cow::Borrowed(&[]),
-    );
+    ));
     let s = serde_json::to_string(&f).unwrap();
     assert!(
         !s.contains("end_line"),
@@ -62,7 +62,7 @@ fn optional_fields_omitted_when_unset() {
 
 #[test]
 fn byte_range_appears_in_json() {
-    let f = Finding::new(
+    let f = Finding::new(FindingInputs::new(
         "X",
         "t",
         "f",
@@ -70,7 +70,7 @@ fn byte_range_appears_in_json() {
         "m",
         Severity::Info,
         Cow::Borrowed(&[]),
-    )
+    ))
     .with_byte_range(42, 7);
     let s = serde_json::to_string(&f).unwrap();
     assert!(s.contains("\"byte_offset\":42"), "got: {s}");
@@ -79,7 +79,7 @@ fn byte_range_appears_in_json() {
 
 #[test]
 fn end_position_appears_in_json() {
-    let f = Finding::new(
+    let f = Finding::new(FindingInputs::new(
         "X",
         "t",
         "f",
@@ -87,7 +87,7 @@ fn end_position_appears_in_json() {
         "m",
         Severity::Info,
         Cow::Borrowed(&[]),
-    )
+    ))
     .with_end(3, 5);
     let s = serde_json::to_string(&f).unwrap();
     assert!(s.contains("\"end_line\":3"), "got: {s}");
@@ -96,7 +96,7 @@ fn end_position_appears_in_json() {
 
 #[test]
 fn function_range_appears_in_json() {
-    let f = Finding::new(
+    let f = Finding::new(FindingInputs::new(
         "X",
         "t",
         "f",
@@ -107,7 +107,7 @@ fn function_range_appears_in_json() {
         "m",
         Severity::Info,
         Cow::Borrowed(&[]),
-    )
+    ))
     .with_function_range(0, 200, 1, 25);
     let s = serde_json::to_string(&f).unwrap();
     assert!(s.contains("\"function_start_byte\":0"), "got: {s}");

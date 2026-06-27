@@ -31,10 +31,9 @@ pub(crate) fn detect_perf_9(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Ve
 /// PERF-013: time.After inside long-running loops.
 pub(crate) fn detect_perf_13(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
 
-    let has_ticker_already =
-        source.contains("time.NewTicker(") || source.contains("time.NewTimer(");
+    let has_ticker_already = facts.source_index.has("time.NewTicker(")
+        || facts.source_index.has("time.NewTimer(");
     if has_ticker_already {
         return;
     }
@@ -45,13 +44,6 @@ pub(crate) fn detect_perf_13(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         }
         if call.callee.as_ref() != "time.After" {
             continue;
-        }
-        // Suppress bounded loops (for i := 0; i < N; i++ with small N literal).
-        if let Some(loop_node) = unit.tree.root_node().descendant_for_byte_range(
-            call.enclosing_loop.unwrap_or(0),
-            call.enclosing_loop.unwrap_or(0),
-        ) {
-            let _ = loop_node;
         }
 
         let (line, col) = unit.line_col(call.start_byte);

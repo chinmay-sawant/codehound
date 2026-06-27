@@ -2,15 +2,15 @@ use super::super::super::super::facts::GoUnitFacts;
 use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
-pub(crate) fn detect_cwe_262(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_262(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let loads_age_metadata = source.contains("last_seen") || source.contains("changed_at");
+    let loads_age_metadata = facts.source_index.has("last_seen") || facts.source_index.has("changed_at");
     if !loads_age_metadata {
         return;
     }
-    if source.contains("time.Since(") || source.contains("maxPasswordAge") {
+    if facts.source_index.has("time.Since(") || facts.source_index.has("maxPasswordAge") {
         return;
     }
 
@@ -31,11 +31,11 @@ pub(crate) fn detect_cwe_262(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_263(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_263(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("MaxAgeDays: 3650") {
+    if !facts.source_index.has("MaxAgeDays: 3650") {
         return;
     }
 

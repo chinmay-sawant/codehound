@@ -3,8 +3,7 @@
 
 use std::io::Write;
 
-use anyhow::Result;
-
+use crate::Error;
 use crate::engine::AnalysisResult;
 use crate::rules::DetectorEvidence;
 
@@ -12,11 +11,12 @@ use super::options::TextOptions;
 use super::style;
 use super::summary::write_summary;
 
+#[must_use = "I/O errors from writing text output must be handled"]
 pub fn write_with_options(
     out: &mut impl Write,
     result: &AnalysisResult,
     options: TextOptions,
-) -> Result<()> {
+) -> Result<(), Error> {
     if result.findings.is_empty() {
         writeln!(out, "{}", style::green_bold("no slop detected"))?;
         write_summary(out, result, options)?;

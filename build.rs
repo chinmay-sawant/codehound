@@ -1,7 +1,3 @@
-#[path = "build/types.rs"]
-mod types;
-#[path = "build/parse.rs"]
-mod parse;
 #[path = "build/escape.rs"]
 mod escape;
 #[path = "build/gen_catalogue.rs"]
@@ -10,6 +6,10 @@ mod gen_catalogue;
 mod gen_cwe;
 #[path = "build/gen_perf.rs"]
 mod gen_perf;
+#[path = "build/parse.rs"]
+mod parse;
+#[path = "build/types.rs"]
+mod types;
 
 use std::env;
 use std::fs;
@@ -22,17 +22,27 @@ fn read_registry_entries(dir_or_file: &str) -> Vec<types::RegistryDetector> {
     let path = Path::new(dir_or_file);
     let mut entries = Vec::new();
     if path.is_dir() {
-        for entry in fs::read_dir(path).unwrap() {
-            let entry = entry.unwrap();
-            if entry.path().extension().map_or(false, |e| e == "toml") {
-                let text = fs::read_to_string(entry.path()).unwrap();
-                let reg: RegistryFile = toml::from_str(&text).unwrap();
+        for entry in fs::read_dir(path)
+            .unwrap_or_else(|e| panic!("read CWE registry dir {dir_or_file}: {e}"))
+        {
+            let entry =
+                entry.unwrap_or_else(|e| panic!("read CWE registry entry in {dir_or_file}: {e}"));
+            if entry.path().extension().is_some_and(|e| e == "toml") {
+                let entry_path = entry.path();
+                let text = fs::read_to_string(&entry_path).unwrap_or_else(|e| {
+                    panic!("read CWE registry file {}: {e}", entry_path.display())
+                });
+                let reg: RegistryFile = toml::from_str(&text).unwrap_or_else(|e| {
+                    panic!("parse CWE registry TOML {}: {e}", entry_path.display())
+                });
                 entries.extend(reg.detector);
             }
         }
     } else if path.is_file() {
-        let text = fs::read_to_string(path).unwrap();
-        let reg: RegistryFile = toml::from_str(&text).unwrap();
+        let text = fs::read_to_string(path)
+            .unwrap_or_else(|e| panic!("read CWE registry file {dir_or_file}: {e}"));
+        let reg: RegistryFile = toml::from_str(&text)
+            .unwrap_or_else(|e| panic!("parse CWE registry TOML {dir_or_file}: {e}"));
         entries = reg.detector;
     }
     entries
@@ -42,17 +52,27 @@ fn read_perf_registry_entries(dir_or_file: &str) -> Vec<types::PerfRegistryDetec
     let path = Path::new(dir_or_file);
     let mut entries = Vec::new();
     if path.is_dir() {
-        for entry in fs::read_dir(path).unwrap() {
-            let entry = entry.unwrap();
-            if entry.path().extension().map_or(false, |e| e == "toml") {
-                let text = fs::read_to_string(entry.path()).unwrap();
-                let reg: PerfRegistryFile = toml::from_str(&text).unwrap();
+        for entry in fs::read_dir(path)
+            .unwrap_or_else(|e| panic!("read PERF registry dir {dir_or_file}: {e}"))
+        {
+            let entry =
+                entry.unwrap_or_else(|e| panic!("read PERF registry entry in {dir_or_file}: {e}"));
+            if entry.path().extension().is_some_and(|e| e == "toml") {
+                let entry_path = entry.path();
+                let text = fs::read_to_string(&entry_path).unwrap_or_else(|e| {
+                    panic!("read PERF registry file {}: {e}", entry_path.display())
+                });
+                let reg: PerfRegistryFile = toml::from_str(&text).unwrap_or_else(|e| {
+                    panic!("parse PERF registry TOML {}: {e}", entry_path.display())
+                });
                 entries.extend(reg.detector);
             }
         }
     } else if path.is_file() {
-        let text = fs::read_to_string(path).unwrap();
-        let reg: PerfRegistryFile = toml::from_str(&text).unwrap();
+        let text = fs::read_to_string(path)
+            .unwrap_or_else(|e| panic!("read PERF registry file {dir_or_file}: {e}"));
+        let reg: PerfRegistryFile = toml::from_str(&text)
+            .unwrap_or_else(|e| panic!("parse PERF registry TOML {dir_or_file}: {e}"));
         entries = reg.detector;
     }
     entries
@@ -71,10 +91,8 @@ fn main() {
     )
     .expect("Failed to parse ruleset/golang/golang.json as JSON");
 
-    let cwe_registry_entries =
-        read_registry_entries("src/lang/go/detectors/cwe/registry");
-    let perf_registry_entries =
-        read_perf_registry_entries("src/lang/go/detectors/perf/registry");
+    let cwe_registry_entries = read_registry_entries("src/lang/go/detectors/cwe/registry");
+    let perf_registry_entries = read_perf_registry_entries("src/lang/go/detectors/perf/registry");
 
     let mut supported_ids = Vec::new();
     for entry in &cwe_registry_entries {

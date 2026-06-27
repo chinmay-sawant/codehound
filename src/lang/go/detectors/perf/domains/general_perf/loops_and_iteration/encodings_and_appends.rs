@@ -44,13 +44,13 @@ pub(crate) fn detect_perf_26(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 /// be wrapped in a `sync.Pool`.
 pub(crate) fn detect_perf_34(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
     // The map-range + append pattern is only a problem when the slice is
     // NOT preallocated. Suppress when `make([]T, 0, len(m))` (or any
     // capacity hint that references the same map) appears before the
     // loop.
-    if source.contains("make([]") {
+    if facts.source_index.has("make([]") {
         return;
     }
 
@@ -61,9 +61,9 @@ pub(crate) fn detect_perf_34(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         if !is_in_loop(call) {
             continue;
         }
-        if !source.contains("for _, v := range m")
-            && !source.contains("for k, v := range m")
-            && !source.contains("for k := range m")
+        if !facts.source_index.has("for _, v := range m")
+            && !facts.source_index.has("for k, v := range m")
+            && !facts.source_index.has("for k := range m")
         {
             continue;
         }
@@ -82,16 +82,16 @@ pub(crate) fn detect_perf_34(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 
 /// PERF-35: interface boxing on a hot path (`fmt.Sprintf` with non-string
 /// arguments, or interface{}-typed function parameters in a hot call).
-pub(crate) fn detect_perf_36(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_36(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
-    if !source.contains("go func()") {
+    if !facts.source_index.has("go func()") {
         return;
     }
     // Suppress when a per-iteration copy is taken (Go 1.22+ idiom or explicit
     // shadowing).
-    if source.contains("v := v") || source.contains("go 1.22") {
+    if facts.source_index.has("v := v") || facts.source_index.has("go 1.22") {
         return;
     }
 
@@ -122,12 +122,12 @@ pub(crate) fn detect_perf_36(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
 /// PERF-37: `append` in a hot grow pattern with no `make` preallocation.
 pub(crate) fn detect_perf_45(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
-    if !source.contains("for _, v := range") && !source.contains("for i := 0;") {
+    if !facts.source_index.has("for _, v := range") && !facts.source_index.has("for i := 0;") {
         return;
     }
-    if source.contains("make([]") {
+    if facts.source_index.has("make([]") {
         return;
     }
 

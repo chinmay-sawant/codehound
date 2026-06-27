@@ -3,14 +3,14 @@ use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
-pub(crate) fn detect_cwe_289(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_289(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if source.contains("canonical_name = ?") {
+    if facts.source_index.has("canonical_name = ?") {
         return;
     }
-    if !source.contains("strings.Split(") || !source.contains(r#""@")[0]"#) {
+    if !facts.source_index.has("strings.Split(") || !facts.source_index.has(r#""@")[0]"#) {
         return;
     }
 
@@ -50,17 +50,16 @@ pub(crate) fn detect_cwe_290(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     );
 }
 
-pub(crate) fn detect_cwe_305(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_305(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let debug_bypass = source.contains(r#"Query("debug") == "1""#)
-        || source.contains(r#"Query().Get("debug") == "1""#);
+    let debug_bypass = facts.source_index.has_any(&[r#"Query("debug") == "1""#, r#"Query().Get("debug") == "1""#]);
     if !debug_bypass {
         return;
     }
 
-    let has_subject_check = source.contains("jwt_sub") || source.contains("X-JWT-Sub");
+    let has_subject_check = facts.source_index.has_any(&["jwt_sub", "X-JWT-Sub"]);
     if !has_subject_check {
         return;
     }
@@ -81,15 +80,15 @@ pub(crate) fn detect_cwe_305(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_306(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_306(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let destructive_purge = source.contains("TRUNCATE ledger");
+    let destructive_purge = facts.source_index.has("TRUNCATE ledger");
     if !destructive_purge {
         return;
     }
-    let has_auth_gate = source.contains("operator_id") || source.contains("X-Operator-ID");
+    let has_auth_gate = facts.source_index.has_any(&["operator_id", "X-Operator-ID"]);
     if has_auth_gate {
         return;
     }
@@ -106,19 +105,16 @@ pub(crate) fn detect_cwe_306(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_307(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_307(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let login_lookup = source.contains("SELECT hash FROM users WHERE email = ?")
-        || source.contains(r#"Where("email = ?", email).First(&u)"#);
+    let login_lookup = facts.source_index.has_any(&["SELECT hash FROM users WHERE email = ?", r#"Where("email = ?", email).First(&u)"#]);
     if !login_lookup {
         return;
     }
 
-    let has_attempt_tracking = source.contains("loginAttempts")
-        || source.contains("LoadOrStore(key, 0)")
-        || source.contains("time.Sleep(200 * time.Millisecond)");
+    let has_attempt_tracking = facts.source_index.has_any(&["loginAttempts", "LoadOrStore(key, 0)", "time.Sleep(200 * time.Millisecond)"]);
     if has_attempt_tracking {
         return;
     }
@@ -139,23 +135,20 @@ pub(crate) fn detect_cwe_307(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_308(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_308(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let has_password_gate =
-        source.contains(r#"PostForm("password")"#) || source.contains(r#"FormValue("password")"#);
+        facts.source_index.has_any(&[r#"PostForm("password")"#, r#"FormValue("password")"#]);
     if !has_password_gate {
         return;
     }
-    if source.contains(r#"PostForm("totp")"#)
-        || source.contains(r#"FormValue("totp")"#)
-        || source.contains("totp_valid")
-        || source.contains("X-TOTP-Valid")
+    if facts.source_index.has_any(&[r#"PostForm("totp")"#, r#"FormValue("totp")"#, "totp_valid", "X-TOTP-Valid"])
     {
         return;
     }
-    if !source.contains("INSERT INTO wires") {
+    if !facts.source_index.has("INSERT INTO wires") {
         return;
     }
 
@@ -173,29 +166,22 @@ pub(crate) fn detect_cwe_308(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_309(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_309(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let enterprise_login_shape = source.contains("func EnterpriseLogin(")
-        && (source.contains(r#"{"session":"` + user + `"}"#)
-            || source.contains(r#"{"session": user}"#)
-            || source.contains(r#"gin.H{"session": user}"#)
-            || source.contains(r#"gin.H{"session": c.GetString("subject")}"#));
+    let enterprise_login_shape = facts.source_index.has("func EnterpriseLogin(")
+        && (facts.source_index.has_any(&[r#"{"session":"` + user + `"}"#, r#"{"session": user}"#, r#"gin.H{"session": user}"#, r#"gin.H{"session": c.GetString("subject")}"#]));
     if !enterprise_login_shape {
         return;
     }
 
-    let password_form_login = (source.contains(r#"PostForm("username")"#)
-        || source.contains(r#"FormValue("username")"#))
-        && (source.contains(r#"PostForm("password")"#)
-            || source.contains(r#"FormValue("password")"#));
+    let password_form_login = (facts.source_index.has_any(&[r#"PostForm("username")"#, r#"FormValue("username")"#]))
+        && (facts.source_index.has_any(&[r#"PostForm("password")"#, r#"FormValue("password")"#]));
     if !password_form_login {
         return;
     }
-    if source.contains("webauthn_assertion")
-        || source.contains("X-WebAuthn-OK")
-        || source.contains("webauthn_ok")
+    if facts.source_index.has_any(&["webauthn_assertion", "X-WebAuthn-OK", "webauthn_ok"])
     {
         return;
     }
@@ -212,21 +198,17 @@ pub(crate) fn detect_cwe_309(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_620(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_620(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let blind_password_update = source.contains("ChangePassword")
-        && source.contains(r#""new_password""#)
-        && (source.contains("Update(\"password\",")
-            || source.contains("UPDATE accounts SET password"));
+    let blind_password_update = facts.source_index.has("ChangePassword")
+        && facts.source_index.has(r#""new_password""#)
+        && (facts.source_index.has_any(&[r#"Update("password","#, "UPDATE accounts SET password"]));
     if !blind_password_update {
         return;
     }
-    if source.contains("ForgotPassword")
-        || source.contains(r#""current_password""#)
-        || source.contains("CompareHashAndPassword")
-        || source.contains("ConstantTimeCompare")
+    if facts.source_index.has_any(&["ForgotPassword", r#""current_password""#, "CompareHashAndPassword", "ConstantTimeCompare"])
     {
         return;
     }
@@ -243,20 +225,18 @@ pub(crate) fn detect_cwe_620(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_836(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_836(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let client_submits_hash =
-        source.contains("PasswordHash string") || source.contains("`json:\"password_hash\"`");
+        facts.source_index.has_any(&["PasswordHash string", r#"`json:"password_hash"`"#]);
     let hash_as_password = client_submits_hash
-        && (source.contains("password_hash = ?")
-            || source.contains("WHERE username = ? AND password_hash = ?")
-            || source.contains("WHERE username = $1 AND password_hash = $2"));
+        && (facts.source_index.has_any(&["password_hash = ?", "WHERE username = ? AND password_hash = ?", "WHERE username = $1 AND password_hash = $2"]));
     if !hash_as_password {
         return;
     }
-    if source.contains("CompareHashAndPassword") || source.contains("ConstantTimeCompare") {
+    if facts.source_index.has_any(&["CompareHashAndPassword", "ConstantTimeCompare"]) {
         return;
     }
 

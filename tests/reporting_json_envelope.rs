@@ -1,18 +1,39 @@
+use slopguard::engine::ScanError;
 use slopguard::engine::ScanErrorKind;
 use slopguard::reporting::json::Envelope;
-use slopguard::engine::ScanError;
 
 #[path = "helpers/mod.rs"]
 mod helpers;
 
 #[test]
-fn envelope_has_tool_version_and_finding_count() {
+fn envelope_includes_tool_name() {
     let r = helpers::reporting::sample();
     let env = Envelope::from(&r);
     let s = serde_json::to_string_pretty(&env).unwrap();
     assert!(s.contains("\"tool\": \"slopguard\""), "got: {s}");
+}
+
+#[test]
+fn envelope_includes_version_field() {
+    let r = helpers::reporting::sample();
+    let env = Envelope::from(&r);
+    let s = serde_json::to_string_pretty(&env).unwrap();
     assert!(s.contains("\"version\""), "got: {s}");
+}
+
+#[test]
+fn envelope_reports_finding_count() {
+    let r = helpers::reporting::sample();
+    let env = Envelope::from(&r);
+    let s = serde_json::to_string_pretty(&env).unwrap();
     assert!(s.contains("\"findingCount\": 1"), "got: {s}");
+}
+
+#[test]
+fn envelope_reports_zero_errors_by_default() {
+    let r = helpers::reporting::sample();
+    let env = Envelope::from(&r);
+    let s = serde_json::to_string_pretty(&env).unwrap();
     assert!(s.contains("\"errorCount\": 0"), "got: {s}");
 }
 

@@ -55,7 +55,7 @@ pub fn assert_fixture_rules(txt_path: &str, required_rules: &[&str]) {
 
     let source_path = assert_fixture_materializes(txt_path);
 
-    let analyzer = Analyzer::builder().build();
+    let analyzer = Analyzer::builder().with_default_filter().build();
     let result = analyzer
         .analyze_paths([&source_path], None)
         .unwrap_or_else(|e| panic!("analyze {}: {e:#}", source_path.display()));
@@ -68,13 +68,8 @@ pub fn assert_fixture_rules(txt_path: &str, required_rules: &[&str]) {
         // that no CWE-* findings fire (PERF findings on a CWE-safe fixture
         // are valid signals, not test failures).
         let class = infer_rule_class(txt_path);
-        let matching: Vec<&str> = ids
-            .iter()
-            .copied()
-            .filter(|id| id.starts_with(class))
-            .collect();
         assert!(
-            matching.is_empty(),
+            !ids.iter().copied().any(|id| id.starts_with(class)),
             "fixture {txt_path} → {}: expected no {class} findings, got {ids:?}",
             source_path.display()
         );
@@ -113,13 +108,8 @@ pub fn assert_fixture_rules_with_context(
     let ids: Vec<&str> = result.findings.iter().map(|f| f.rule_id).collect();
     if required_rules.is_empty() {
         let class = infer_rule_class(txt_path);
-        let matching: Vec<&str> = ids
-            .iter()
-            .copied()
-            .filter(|id| id.starts_with(class))
-            .collect();
         assert!(
-            matching.is_empty(),
+            !ids.iter().copied().any(|id| id.starts_with(class)),
             "fixture {txt_path} → {}: expected no {class} findings, got {ids:?}",
             source_path.display()
         );
@@ -140,7 +130,7 @@ pub fn assert_mixed_txt_fixtures(fixtures_root: &str, go_rules: &[&str], python_
     materialize_tree(Path::new(fixtures_root))
         .unwrap_or_else(|e| panic!("materialize_tree {fixtures_root}: {e:#}"));
 
-    let analyzer = Analyzer::builder().build();
+    let analyzer = Analyzer::builder().with_default_filter().build();
     let result = analyzer
         .analyze_paths([materialized_root()], None)
         .unwrap_or_else(|e| panic!("analyze materialized fixtures: {e:#}"));

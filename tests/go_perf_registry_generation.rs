@@ -5,12 +5,12 @@ use slopguard::engine::Registry;
 
 fn registry_toml_perf_ids() -> BTreeSet<String> {
     let mut ids = BTreeSet::new();
-    let dir = std::fs::read_dir("src/lang/go/detectors/perf/registry")
-        .expect("read PERF registry dir");
+    let dir =
+        std::fs::read_dir("src/lang/go/detectors/perf/registry").expect("read PERF registry dir");
     for entry in dir {
         let entry = entry.unwrap();
         let path = entry.path();
-        if path.extension().map_or(false, |e| e == "toml") {
+        if path.extension().is_some_and(|e| e == "toml") {
             let text = std::fs::read_to_string(&path).expect("read PERF registry file");
             ids.extend(
                 text.lines()

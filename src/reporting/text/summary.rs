@@ -3,8 +3,8 @@
 use std::collections::BTreeMap;
 use std::io::Write;
 
+use crate::Error;
 use crate::engine::AnalysisResult;
-use anyhow::Result;
 
 use super::options::TextOptions;
 
@@ -12,7 +12,7 @@ pub(super) fn write_summary(
     out: &mut impl Write,
     result: &AnalysisResult,
     options: TextOptions,
-) -> Result<()> {
+) -> Result<(), Error> {
     let n = result.findings.len();
     let mut by_sev: BTreeMap<&'static str, usize> = BTreeMap::new();
     let mut by_rule: BTreeMap<&'static str, usize> = BTreeMap::new();
@@ -99,10 +99,10 @@ pub(super) fn write_summary(
 pub(super) fn write_detector_timing(
     out: &mut impl Write,
     timing: &crate::engine::TimingSummary,
-) -> Result<()> {
+) -> Result<(), Error> {
     writeln!(out, "--- Detector Timing (top 10) ---")?;
     let mut phases: Vec<_> = timing.phases.iter().collect();
-    phases.sort_by(|a, b| b.duration.cmp(&a.duration));
+    phases.sort_by_key(|b| std::cmp::Reverse(b.duration));
     let total: std::time::Duration = phases.iter().map(|p| p.duration).sum();
     for phase in phases.iter().take(10) {
         writeln!(

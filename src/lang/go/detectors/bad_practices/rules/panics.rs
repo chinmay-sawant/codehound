@@ -2,12 +2,17 @@
 
 use tree_sitter::Node;
 
+use super::helpers::push_at;
+use super::super::source_index::SourceIndex;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
-use super::helpers::push_at;
 
 /// BP-3: `panic(...)` called outside `main()` or test files.
-pub(crate) fn detect_bp_3_panic_outside_main(unit: &ParsedUnit, out: &mut Vec<Finding>) {
+pub(crate) fn detect_bp_3_panic_outside_main(
+    unit: &ParsedUnit,
+    _index: &SourceIndex,
+    out: &mut Vec<Finding>,
+) {
     let file = unit.display_path.as_str();
     let src = unit.source.as_bytes();
     let root = unit.tree.root_node();
@@ -61,6 +66,7 @@ pub(crate) fn detect_bp_3_panic_outside_main(unit: &ParsedUnit, out: &mut Vec<Fi
 /// BP-13: context.Background used outside main/test code.
 pub(crate) fn detect_bp_13_background_context_in_library(
     unit: &ParsedUnit,
+    _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
     let file = unit.display_path.as_str();
@@ -123,7 +129,11 @@ pub(crate) fn detect_bp_13_background_context_in_library(
 }
 
 /// BP-15: sync.Once.Do recursively calls the same Once.
-pub(crate) fn detect_bp_15_recursive_once_do(unit: &ParsedUnit, out: &mut Vec<Finding>) {
+pub(crate) fn detect_bp_15_recursive_once_do(
+    unit: &ParsedUnit,
+    _index: &SourceIndex,
+    out: &mut Vec<Finding>,
+) {
     let source = unit.source.as_ref();
     let Some(do_pos) = source.find(".Do(func()") else {
         return;

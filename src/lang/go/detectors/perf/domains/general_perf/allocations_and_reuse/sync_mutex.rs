@@ -8,21 +8,24 @@ use crate::lang::go::loop_kinds::LOOP_NODE_KINDS;
 use crate::rules::{Finding, emit};
 
 /// PERF-28: `sync.Mutex` / `sync.RWMutex` declared per request or per record.
-pub(crate) fn detect_perf_28(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_28(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !is_request_path(source) {
+    if !is_request_path(&facts.source_index) {
         return;
     }
-    if !source.contains("sync.Mutex") && !source.contains("sync.RWMutex") {
+    if !facts.source_index.has("sync.Mutex") && !facts.source_index.has("sync.RWMutex") {
         return;
     }
     // A package-scope singleton mutex is fine.
-    if source.contains("var mu sync.Mutex\n")
-        || source.contains("var mu sync.Mutex =")
-        || source.contains("var (\n")
-        || source.contains("var rwMu sync.RWMutex\n")
+    if facts.source_index.has("var mu sync.Mutex
+")
+        || facts.source_index.has("var mu sync.Mutex =")
+        || facts.source_index.has("var (
+")
+        || facts.source_index.has("var rwMu sync.RWMutex
+")
     {
         return;
     }
@@ -30,11 +33,12 @@ pub(crate) fn detect_perf_28(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
     // — the "per-record" pattern. We can only detect this from source
     // strings; the `sync.Mutex` token must appear inside a `type … struct`
     // block and that struct must be instantiated in the handler.
-    let in_struct = source.contains("struct {")
-        && (source.contains("\tmu sync.Mutex")
-            || source.contains("mu sync.Mutex\n")
-            || source.contains("rwMu sync.RWMutex"));
-    let literal_in_handler = source.contains("sync.Mutex{") || source.contains("sync.RWMutex{");
+    let in_struct = facts.source_index.has("struct {")
+        && (facts.source_index.has("	mu sync.Mutex")
+            || facts.source_index.has("mu sync.Mutex
+")
+            || facts.source_index.has("rwMu sync.RWMutex"));
+    let literal_in_handler = facts.source_index.has("sync.Mutex{") || facts.source_index.has("sync.RWMutex{");
     if !in_struct && !literal_in_handler {
         return;
     }
@@ -59,7 +63,7 @@ pub(crate) fn detect_perf_32(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let on_hot_path = is_request_path(source);
+    let on_hot_path = is_request_path(&facts.source_index);
 
     walk_nodes(
         unit.tree.root_node(),

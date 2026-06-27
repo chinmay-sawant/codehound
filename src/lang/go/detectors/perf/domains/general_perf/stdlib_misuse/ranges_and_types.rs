@@ -110,7 +110,7 @@ pub(crate) fn detect_perf_114(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("for ") || !source.contains("] =") {
+    if !facts.source_index.has("for ") || !facts.source_index.has("] =") {
         return;
     }
 
@@ -151,11 +151,11 @@ pub(crate) fn detect_perf_114(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 /// second builds from the first. Direct conversion (T(x)) would
 /// suffice. We look for two struct literals with **different** type
 /// names but identical field sets within 8 lines.
-pub(crate) fn detect_perf_121(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_121(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("struct {") {
+    if !facts.source_index.has("struct {") {
         return;
     }
 

@@ -10,7 +10,7 @@ pub(crate) fn detect_cwe_112(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         .call_facts
         .iter()
         .any(|call| call.callee.as_ref() == "xml.Unmarshal")
-        || source.contains("xml.Unmarshal(");
+        || facts.source_index.has("xml.Unmarshal(");
     if !has_xml_unmarshal {
         return;
     }
@@ -23,7 +23,7 @@ pub(crate) fn detect_cwe_112(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         return;
     }
 
-    let has_validation = source.contains(".MatchString(") || source.contains(" <= 0");
+    let has_validation = facts.source_index.has_any(&[".MatchString(", " <= 0"]);
     if has_validation {
         return;
     }
@@ -46,19 +46,17 @@ pub(crate) fn detect_cwe_112(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     );
 }
 
-pub(crate) fn detect_cwe_611(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_611(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let unsafe_xml = source.contains("xml.NewDecoder(")
-        && source.contains("dec.Strict = false")
-        && source.contains("Decode(&catalog)");
+    let unsafe_xml = facts.source_index.has("xml.NewDecoder(")
+        && facts.source_index.has("dec.Strict = false")
+        && facts.source_index.has("Decode(&catalog)");
     if !unsafe_xml {
         return;
     }
-    if source.contains("<!DOCTYPE")
-        || source.contains("dec.Strict = true")
-        || source.contains("LimitReader")
+    if facts.source_index.has_any(&["<!DOCTYPE", "dec.Strict = true", "LimitReader"])
     {
         return;
     }

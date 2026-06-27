@@ -4,19 +4,24 @@ use std::collections::HashMap;
 use std::fs;
 use std::sync::Arc;
 
-use anyhow::Result;
-
+use crate::Error;
 use crate::rules::Finding;
 
 use super::chunk::{clean_matching_txt_files, write_chunk_files_streaming};
 use super::finding_block::format_finding_block;
 use super::options::{ExportOptions, ExportSummary};
 
+/// Write per-finding context `.txt` files and/or chunked export files.
+///
+/// # Errors
+///
+/// Returns [`Error`] when directory creation, file removal, or file write fails.
+#[must_use = "export I/O failures must be handled"]
 pub fn export_findings(
     findings: &[Finding],
     options: &ExportOptions,
     source_cache: &HashMap<String, Arc<str>>,
-) -> Result<ExportSummary> {
+) -> Result<ExportSummary, Error> {
     if !options.export_context && !options.export_chunks {
         return Ok(ExportSummary::default());
     }

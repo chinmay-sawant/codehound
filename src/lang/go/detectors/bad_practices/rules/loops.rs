@@ -2,12 +2,17 @@
 
 use tree_sitter::Node;
 
+use super::helpers::push_at;
+use super::super::source_index::SourceIndex;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
-use super::helpers::push_at;
 
 /// BP-10: time.After inside a loop.
-pub(crate) fn detect_bp_10_time_after_in_loop(unit: &ParsedUnit, out: &mut Vec<Finding>) {
+pub(crate) fn detect_bp_10_time_after_in_loop(
+    unit: &ParsedUnit,
+    _index: &SourceIndex,
+    out: &mut Vec<Finding>,
+) {
     let src = unit.source.as_bytes();
     let root = unit.tree.root_node();
 
@@ -40,9 +45,12 @@ pub(crate) fn detect_bp_10_time_after_in_loop(unit: &ParsedUnit, out: &mut Vec<F
 }
 
 /// BP-11: `defer` inside a `for`/`range` loop body.
-pub(crate) fn detect_bp_11_defer_in_loop(unit: &ParsedUnit, out: &mut Vec<Finding>) {
+pub(crate) fn detect_bp_11_defer_in_loop(
+    unit: &ParsedUnit,
+    _index: &SourceIndex,
+    out: &mut Vec<Finding>,
+) {
     let file = unit.display_path.as_str();
-    let src = unit.source.as_bytes();
     let root = unit.tree.root_node();
 
     fn is_loop(node: Node) -> bool {
@@ -52,14 +60,7 @@ pub(crate) fn detect_bp_11_defer_in_loop(unit: &ParsedUnit, out: &mut Vec<Findin
         )
     }
 
-    fn walk(
-        node: Node,
-        src: &[u8],
-        file: &str,
-        unit: &ParsedUnit,
-        out: &mut Vec<Finding>,
-        inside_loop: bool,
-    ) {
+    fn walk(node: Node, file: &str, unit: &ParsedUnit, out: &mut Vec<Finding>, inside_loop: bool) {
         let inside_loop = inside_loop || is_loop(node);
         if inside_loop && node.kind() == "defer_statement" {
             let (line, col) = unit.line_col(node.start_byte());
@@ -74,9 +75,9 @@ pub(crate) fn detect_bp_11_defer_in_loop(unit: &ParsedUnit, out: &mut Vec<Findin
         }
         let mut cursor = node.walk();
         for child in node.named_children(&mut cursor) {
-            walk(child, src, file, unit, out, inside_loop);
+            walk(child, file, unit, out, inside_loop);
         }
     }
 
-    walk(root, src, file, unit, out, false);
+    walk(root, file, unit, out, false);
 }

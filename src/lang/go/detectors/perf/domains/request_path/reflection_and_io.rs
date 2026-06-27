@@ -8,22 +8,23 @@ use crate::rules::{Finding, emit};
 /// PERF-020: reflect.ValueOf / reflect.TypeOf / reflect.New on a hot path.
 pub(crate) fn detect_perf_20(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
-    if !is_request_handler(source) {
+    if !is_request_handler(&facts.source_index) {
         return;
     }
 
-    let triggers = ["reflect.ValueOf", "reflect.TypeOf", "reflect.New"];
-    if !triggers.iter().any(|t| source.contains(t)) {
+    let index_triggers = ["reflect.ValueOf(", "reflect.TypeOf(", "reflect.New("];
+    let callee_triggers = ["reflect.ValueOf", "reflect.TypeOf", "reflect.New"];
+    if !facts.source_index.has_any(&index_triggers) {
         return;
     }
-    if source.contains("// reflection initialised at startup") {
+    if facts.source_index.has("// reflection initialised at startup") {
         return;
     }
 
     for call in &facts.calls {
-        if !triggers.iter().any(|t| call.callee.as_ref() == *t) {
+        if !callee_triggers.iter().any(|t| call.callee.as_ref() == *t) {
             continue;
         }
         let (line, col) = unit.line_col(call.start_byte);
@@ -42,12 +43,12 @@ pub(crate) fn detect_perf_20(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 /// PERF-021: io.ReadAll on a request body in a handler.
 pub(crate) fn detect_perf_21(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
-    if !is_request_handler(source) {
+    if !is_request_handler(&facts.source_index) {
         return;
     }
-    if !source.contains("io.ReadAll(") {
+    if !facts.source_index.has("io.ReadAll(") {
         return;
     }
 
@@ -76,26 +77,25 @@ pub(crate) fn detect_perf_21(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
             return;
         }
     }
-    let _ = facts;
 }
 
 /// PERF-022: os.ReadFile / ioutil.ReadFile inside a handler.
 pub(crate) fn detect_perf_22(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
-    if !is_request_handler(source) {
+    if !is_request_handler(&facts.source_index) {
         return;
     }
-    if !source.contains("os.ReadFile(") && !source.contains("ioutil.ReadFile(") {
+    if !facts.source_index.has("os.ReadFile(") && !facts.source_index.has("ioutil.ReadFile(") {
         return;
     }
     // sync.Once / loadOnce / similar indicates the file is loaded once at
     // startup, not per request. Suppress so the safe pattern does not fire.
-    if source.contains("sync.Once")
-        || source.contains("loadOnce")
-        || source.contains("readOnce")
-        || source.contains("fileOnce")
+    if facts.source_index.has("sync.Once")
+        || facts.source_index.has("loadOnce")
+        || facts.source_index.has("readOnce")
+        || facts.source_index.has("fileOnce")
     {
         return;
     }
@@ -115,15 +115,14 @@ pub(crate) fn detect_perf_22(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         );
         return;
     }
-    let _ = facts;
 }
 
 /// PERF-023: bytes.NewReader allocation per request.
 pub(crate) fn detect_perf_23(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
-    if !is_request_handler(source) {
+    if !is_request_handler(&facts.source_index) {
         return;
     }
 
@@ -146,5 +145,4 @@ pub(crate) fn detect_perf_23(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         );
         return;
     }
-    let _ = facts;
 }

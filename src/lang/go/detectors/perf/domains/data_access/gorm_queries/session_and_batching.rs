@@ -5,10 +5,10 @@ use super::super::common::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
-pub(crate) fn detect_perf_72(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_72(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
-    if !is_request_path(source) {
+    if !is_request_path(&facts.source_index) {
         return;
     }
     let triggers = [
@@ -17,7 +17,10 @@ pub(crate) fn detect_perf_72(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
         "tx := db.Begin(",
         "tx, err := db.Begin(",
     ];
-    let Some(&needle) = triggers.iter().find(|n| source.contains(*n)) else {
+    let Some(&needle) = triggers
+        .iter()
+        .find(|n| facts.source_index.has(n))
+    else {
         return;
     };
     let start = source.find(needle).unwrap_or(0);
@@ -32,18 +35,18 @@ pub(crate) fn detect_perf_72(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_perf_75(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_75(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
-    if !is_request_path(source) {
+    if !is_request_path(&facts.source_index) {
         return;
     }
-    if !source.contains("db.Session(&gorm.Session{") {
+    if !facts.source_index.has("db.Session(&gorm.Session{") {
         return;
     }
-    if source.contains("var sessionOpts =")
-        || source.contains("var defaultSession =")
-        || source.contains("sessionOnce")
+    if facts.source_index.has("var sessionOpts =")
+        || facts.source_index.has("var defaultSession =")
+        || facts.source_index.has("sessionOnce")
     {
         return;
     }
@@ -61,8 +64,7 @@ pub(crate) fn detect_perf_75(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
 
 pub(crate) fn detect_perf_76(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
-    if source.contains("CreateInBatches") {
+    if facts.source_index.has("CreateInBatches") {
         return;
     }
     let Some(start) = call_in_loop_with(facts, &["db.Create"]) else {
@@ -79,16 +81,16 @@ pub(crate) fn detect_perf_76(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     );
 }
 
-pub(crate) fn detect_perf_77(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_77(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
-    if !source.contains("db.Save(") {
+    if !facts.source_index.has("db.Save(") {
         return;
     }
-    if source.contains("db.Create(") {
+    if facts.source_index.has("db.Create(") {
         return;
     }
-    if source.contains(".Updates(") {
+    if facts.source_index.has(".Updates(") {
         return;
     }
     let start = source.find("db.Save(").unwrap_or(0);
@@ -103,7 +105,7 @@ pub(crate) fn detect_perf_77(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_perf_79(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_79(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
     let triggers = [
@@ -113,11 +115,14 @@ pub(crate) fn detect_perf_79(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
         "postgres.Open(",
         "mysql.Open(",
     ];
-    let Some(&needle) = triggers.iter().find(|n| source.contains(*n)) else {
+    let Some(&needle) = triggers
+        .iter()
+        .find(|n| facts.source_index.has(n))
+    else {
         return;
     };
     if has_any(
-        source,
+        &facts.source_index,
         &[
             "SetMaxOpenConns(",
             "SetMaxIdleConns(",
@@ -138,14 +143,17 @@ pub(crate) fn detect_perf_79(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_perf_80(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_80(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
     let triggers = ["Pluck(", "Distinct("];
-    let Some(&needle) = triggers.iter().find(|n| source.contains(*n)) else {
+    let Some(&needle) = triggers
+        .iter()
+        .find(|n| facts.source_index.has(n))
+    else {
         return;
     };
-    if source.contains(".Limit(") {
+    if facts.source_index.has(".Limit(") {
         return;
     }
     let start = source.find(needle).unwrap_or(0);

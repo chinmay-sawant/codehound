@@ -28,13 +28,12 @@ pub(crate) fn detect_cwe_250(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 
 pub(crate) fn detect_cwe_252(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
 
     for call in &facts.call_facts {
         if call.callee.as_ref() != "os.WriteFile" {
             continue;
         }
-        if source.contains("if err := os.WriteFile(") {
+        if facts.source_index.has("if err := os.WriteFile(") {
             return;
         }
         let writes_audit_log = call
@@ -62,14 +61,13 @@ pub(crate) fn detect_cwe_552(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let permissive_upload_mode = (source.contains("FormFile(\"contract\")")
-        || source.contains("FormFile(\"contract\")"))
-        && source.contains("/srv/contracts")
-        && source.contains("os.Chmod(dest, 0o777)");
+    let permissive_upload_mode = (facts.source_index.has_any(&[r#"FormFile("contract")"#, r#"FormFile("contract")"#]))
+        && facts.source_index.has("/srv/contracts")
+        && facts.source_index.has("os.Chmod(dest, 0o777)");
     if !permissive_upload_mode {
         return;
     }
-    if facts.source_index.has("filepath.Base(") || source.contains("os.Chmod(dest, 0o600)") {
+    if facts.source_index.has("filepath.Base(") || facts.source_index.has("os.Chmod(dest, 0o600)") {
         return;
     }
 

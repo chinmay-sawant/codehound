@@ -24,8 +24,42 @@ fn scan_error_displays_path_and_message() {
 fn error_kind_maps_to_exit_codes() {
     assert_eq!(ScanErrorKind::Io.exit_code(), 3);
     assert_eq!(ScanErrorKind::Encoding.exit_code(), 3);
-    assert_eq!(ScanErrorKind::Parse.exit_code(), 3);
-    assert_eq!(ScanErrorKind::Engine.exit_code(), 3);
+    assert_eq!(ScanErrorKind::Parse.exit_code(), 4);
+    assert_eq!(ScanErrorKind::Engine.exit_code(), 5);
+}
+
+#[test]
+fn scan_exit_code_uses_worst_error_kind_code() {
+    use slopguard::core::FailPolicy;
+
+    let result = AnalysisResult {
+        findings: vec![],
+        errors: vec![
+            ScanError {
+                path: PathBuf::from("a.go"),
+                kind: ScanErrorKind::Io,
+                message: "io".into(),
+            },
+            ScanError {
+                path: PathBuf::from("b.go"),
+                kind: ScanErrorKind::Engine,
+                message: "panic".into(),
+            },
+        ],
+        suppressed_count: 0,
+        stats: None,
+        source_cache: Default::default(),
+    };
+    assert!(!result.should_fail(FailPolicy::NoFail));
+    assert_eq!(
+        result
+            .errors
+            .iter()
+            .map(|e| e.kind.exit_code())
+            .max()
+            .unwrap(),
+        5
+    );
 }
 
 #[test]

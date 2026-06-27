@@ -1,5 +1,7 @@
-pub(crate) fn source_matches_any(source: &str, needles: &[&str]) -> bool {
-    needles.iter().any(|n| source.contains(n))
+use super::super::super::source_index::PerfSourceIndex;
+
+pub(crate) fn index_matches_any(index: &PerfSourceIndex, needles: &[&str]) -> bool {
+    index.has_any(needles)
 }
 
 pub(crate) const FIBER_MARKERS: &[&str] = &[

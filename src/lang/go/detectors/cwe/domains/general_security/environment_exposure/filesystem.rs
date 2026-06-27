@@ -3,16 +3,16 @@ use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
-pub(crate) fn detect_cwe_403(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_403(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let opens_secret_before_exec = source.contains("os.Open(\"/etc/slopguard/master.key\")")
-        && source.contains("exec.Command(\"/bin/sh\", \"-c\"");
+    let opens_secret_before_exec = facts.source_index.has(r#"os.Open("/etc/slopguard/master.key")"#)
+        && facts.source_index.has(r#"exec.Command("/bin/sh", "-c""#);
     if !opens_secret_before_exec {
         return;
     }
-    if source.contains("secret.Fd()") || source.contains("defer secret.Close()") {
+    if facts.source_index.has_any(&["secret.Fd()", "defer secret.Close()"]) {
         return;
     }
 
@@ -30,16 +30,16 @@ pub(crate) fn detect_cwe_403(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_427(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_427(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let path_mutation =
-        source.contains("os.Setenv(\"PATH\",") && source.contains("exec.Command(\"pdftopng\"");
+        facts.source_index.has(r#"os.Setenv("PATH","#) && facts.source_index.has(r#"exec.Command("pdftopng""#);
     if !path_mutation {
         return;
     }
-    if source.contains("pdftopngPath") || source.contains("pdftopngBinary") {
+    if facts.source_index.has_any(&["pdftopngPath", "pdftopngBinary"]) {
         return;
     }
 
@@ -55,16 +55,16 @@ pub(crate) fn detect_cwe_427(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_459(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_459(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let temp_export = source.contains("CreateTemp(")
-        && (source.contains("c.File(f.Name())") || source.contains("ServeFile(w, r, f.Name())"));
+    let temp_export = facts.source_index.has("CreateTemp(")
+        && (facts.source_index.has_any(&["c.File(f.Name())", "ServeFile(w, r, f.Name())"]));
     if !temp_export {
         return;
     }
-    if source.contains("os.Remove(f.Name())") {
+    if facts.source_index.has("os.Remove(f.Name())") {
         return;
     }
 

@@ -1,4 +1,5 @@
 //! Severity levels for findings.
+#![allow(missing_docs)] // ratchet: document in a follow-up pass
 
 use serde::{Deserialize, Serialize};
 use std::fmt;

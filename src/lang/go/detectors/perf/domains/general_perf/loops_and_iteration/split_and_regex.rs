@@ -38,7 +38,6 @@ pub(crate) fn detect_perf_47(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         );
         return;
     }
-    let _ = facts;
 }
 
 /// Returns true when the call expression at `start_byte` is the `right`
@@ -91,5 +90,4 @@ pub(crate) fn detect_perf_50(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         );
         return;
     }
-    let _ = facts;
 }

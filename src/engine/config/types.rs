@@ -89,20 +89,11 @@ impl Default for CacheConfig {
 }
 
 /// Experimental taint-tracking configuration.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct TaintConfig {
     pub enabled: bool,
     pub show_paths: bool,
-}
-
-impl Default for TaintConfig {
-    fn default() -> Self {
-        Self {
-            enabled: false,
-            show_paths: false,
-        }
-    }
 }
 
 /// Go bad-practice rule configuration.

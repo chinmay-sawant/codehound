@@ -8,7 +8,8 @@ pub struct RegistryFile {
 #[derive(Debug, Deserialize)]
 pub struct RegistryDetector {
     pub cwe: u32,
-    #[allow(dead_code)]
+    // Deserialized for registry layout validation; not read after parse.
+    #[expect(dead_code)]
     pub domain: String,
     pub function: String,
 }
@@ -21,7 +22,8 @@ pub struct PerfRegistryFile {
 #[derive(Debug, Deserialize)]
 pub struct PerfRegistryDetector {
     pub perf: u32,
-    #[allow(dead_code)]
+    // Deserialized for registry layout validation; not read after parse.
+    #[expect(dead_code)]
     pub domain: String,
     pub function: String,
 }

@@ -1,11 +1,11 @@
 use std::borrow::Cow;
 
 use slopguard::cwe::CweRef;
-use slopguard::rules::{Finding, LineCol, Severity};
+use slopguard::rules::{Finding, FindingInputs, LineCol, Severity};
 
 #[test]
 fn new_builds_finding_with_no_snippet_or_fix() {
-    let f = Finding::new(
+    let f = Finding::new(FindingInputs::new(
         "CWE-89",
         "title",
         "a.go",
@@ -13,7 +13,7 @@ fn new_builds_finding_with_no_snippet_or_fix() {
         "msg",
         Severity::High,
         Cow::Borrowed(&[]),
-    );
+    ));
     assert_eq!(f.rule_id, "CWE-89");
     assert_eq!(f.rule_title, "title");
     assert_eq!(f.file, "a.go");
@@ -33,7 +33,7 @@ fn new_builds_finding_with_no_snippet_or_fix() {
 
 #[test]
 fn empty_cwe_slice_compiles_to_none() {
-    let f = Finding::new(
+    let f = Finding::new(FindingInputs::new(
         "X",
         "t",
         "f",
@@ -41,7 +41,7 @@ fn empty_cwe_slice_compiles_to_none() {
         "m",
         Severity::Info,
         Cow::Borrowed(&[]),
-    );
+    ));
     assert!(f.cwe.is_none(), "empty slice must collapse to None");
 }
 
@@ -49,7 +49,7 @@ fn empty_cwe_slice_compiles_to_none() {
 fn cwe_slice_with_entries_is_some() {
     let refs: &'static [CweRef] =
         Box::leak(Box::new([CweRef::new(89, "x", "https://example.com/89")]));
-    let f = Finding::new(
+    let f = Finding::new(FindingInputs::new(
         "X",
         "t",
         "f",
@@ -57,7 +57,7 @@ fn cwe_slice_with_entries_is_some() {
         "m",
         Severity::Info,
         Cow::Borrowed(refs),
-    );
+    ));
     let cwes = f.cwe.expect("non-empty slice must produce Some");
     assert_eq!(cwes.len(), 1);
     assert_eq!(cwes[0].id, 89);
@@ -65,7 +65,7 @@ fn cwe_slice_with_entries_is_some() {
 
 #[test]
 fn with_snippet_and_with_fix_chain() {
-    let f = Finding::new(
+    let f = Finding::new(FindingInputs::new(
         "X",
         "t",
         "f",
@@ -73,7 +73,7 @@ fn with_snippet_and_with_fix_chain() {
         "m",
         Severity::Info,
         Cow::Borrowed(&[]),
-    )
+    ))
     .with_snippet("the snippet")
     .with_fix("the fix");
     assert_eq!(f.snippet.as_deref(), Some("the snippet"));
@@ -83,7 +83,7 @@ fn with_snippet_and_with_fix_chain() {
 #[test]
 fn file_accepts_string_or_str() {
     let owned: String = String::from("owned.go");
-    let _ = Finding::new(
+    let _ = Finding::new(FindingInputs::new(
         "X",
         "t",
         owned,
@@ -91,8 +91,8 @@ fn file_accepts_string_or_str() {
         "m",
         Severity::Info,
         Cow::Borrowed(&[]),
-    );
-    let _ = Finding::new(
+    ));
+    let _ = Finding::new(FindingInputs::new(
         "X",
         "t",
         "borrowed.go",
@@ -100,5 +100,5 @@ fn file_accepts_string_or_str() {
         "m",
         Severity::Info,
         Cow::Borrowed(&[]),
-    );
+    ));
 }

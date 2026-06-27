@@ -4,12 +4,12 @@ use std::borrow::Cow;
 
 use slopguard::cwe::CweRef;
 use slopguard::engine::AnalysisResult;
-use slopguard::rules::{DetectorEvidence, Finding, LineCol, Severity};
+use slopguard::rules::{DetectorEvidence, Finding, FindingInputs, LineCol, Severity};
 
 pub fn sample() -> AnalysisResult {
     AnalysisResult {
         source_cache: std::collections::HashMap::new(),
-        findings: vec![Finding::new(
+        findings: vec![Finding::new(FindingInputs::new(
             "CWE-89",
             "SQL injection",
             "a.go",
@@ -20,7 +20,7 @@ pub fn sample() -> AnalysisResult {
             "user input is concatenated into the query",
             Severity::High,
             Cow::Borrowed(&[]),
-        )],
+        ))],
         errors: vec![],
         suppressed_count: 0,
         stats: None,
@@ -35,7 +35,7 @@ pub fn sample_with_cwe() -> AnalysisResult {
     )]));
     AnalysisResult {
         source_cache: std::collections::HashMap::new(),
-        findings: vec![Finding::new(
+        findings: vec![Finding::new(FindingInputs::new(
             "CWE-89",
             "SQL injection",
             "a.go",
@@ -43,7 +43,7 @@ pub fn sample_with_cwe() -> AnalysisResult {
             "msg",
             Severity::High,
             Cow::Borrowed(cwes),
-        )],
+        ))],
         errors: vec![],
         suppressed_count: 0,
         stats: None,
@@ -54,7 +54,7 @@ pub fn sample_result() -> AnalysisResult {
     AnalysisResult {
         source_cache: std::collections::HashMap::new(),
         findings: vec![
-            Finding::new(
+            Finding::new(FindingInputs::new(
                 "CWE-22",
                 "Path traversal",
                 "a.go",
@@ -62,8 +62,8 @@ pub fn sample_result() -> AnalysisResult {
                 "msg",
                 Severity::High,
                 Cow::Borrowed(&[]),
-            ),
-            Finding::new(
+            )),
+            Finding::new(FindingInputs::new(
                 "CWE-89",
                 "SQL injection",
                 "b.go",
@@ -71,7 +71,7 @@ pub fn sample_result() -> AnalysisResult {
                 "msg2",
                 Severity::Critical,
                 Cow::Borrowed(&[]),
-            ),
+            )),
         ],
         errors: vec![],
         suppressed_count: 0,
@@ -82,7 +82,7 @@ pub fn sample_result() -> AnalysisResult {
 pub fn one_finding_result() -> AnalysisResult {
     AnalysisResult {
         source_cache: std::collections::HashMap::new(),
-        findings: vec![Finding::new(
+        findings: vec![Finding::new(FindingInputs::new(
             "CWE-89",
             "SQL injection",
             "a.go",
@@ -90,7 +90,7 @@ pub fn one_finding_result() -> AnalysisResult {
             "msg",
             Severity::High,
             Cow::Borrowed(&[]),
-        )],
+        ))],
         errors: vec![],
         suppressed_count: 0,
         stats: None,
@@ -98,7 +98,7 @@ pub fn one_finding_result() -> AnalysisResult {
 }
 
 pub fn one_structured_finding_result() -> AnalysisResult {
-    let finding = Finding::new(
+    let finding = Finding::new(FindingInputs::new(
         "CWE-78",
         "Command injection",
         "cmd.go",
@@ -109,7 +109,7 @@ pub fn one_structured_finding_result() -> AnalysisResult {
         "command uses user input",
         Severity::High,
         Cow::Borrowed(&[]),
-    )
+    ))
     .with_evidence(DetectorEvidence::DangerousCall {
         function: "exec.Command".to_string(),
         argument_index: Some(0),

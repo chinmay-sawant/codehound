@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use slopguard::rules::{Finding, LineCol, Severity};
+use slopguard::rules::{Finding, FindingInputs, LineCol, Severity};
 
 pub fn unique_temp_root(test_name: &str) -> PathBuf {
     let unique = SystemTime::now()
@@ -33,7 +33,7 @@ func Run(w http.ResponseWriter, r *http.Request) {
 }
 
 pub fn finding(rule_id: &'static str, file: &str, line: usize, column: usize) -> Finding {
-    Finding::new(
+    Finding::new(FindingInputs::new(
         rule_id,
         "title",
         file,
@@ -41,7 +41,7 @@ pub fn finding(rule_id: &'static str, file: &str, line: usize, column: usize) ->
         "msg",
         Severity::High,
         Cow::Borrowed(&[]),
-    )
+    ))
 }
 
 #[cfg(feature = "go")]
@@ -74,7 +74,9 @@ pub mod dep_helpers {
         let source = std::fs::read_to_string(&path).unwrap();
         let plugin = GoPlugin;
         let mut parser = tree_sitter::Parser::new();
-        plugin.configure_parser(&mut parser);
+        plugin
+            .configure_parser(&mut parser)
+            .expect("configure Go parser");
         let unit = plugin
             .parse_with(&mut parser, &path, Arc::from(source.as_str()))
             .unwrap();

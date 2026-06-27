@@ -38,11 +38,11 @@ impl Detector for GoCweScan {
         self::metadata::GO_CWE_RULE_IDS
     }
 
-    fn metadata_for(&self, rule_id: &str) -> Option<RuleMetadata> {
+    fn metadata_for(&self, rule_id: &str) -> Option<&'static RuleMetadata> {
         GO_RULES
             .iter()
             .find(|(id, _, _)| *id == rule_id)
-            .map(|(_, _, meta)| (*meta).clone())
+            .map(|(_, _, meta)| *meta)
     }
 
     fn run(&self, ctx: &ScanContext, unit: &ParsedUnit, out: &mut Vec<Finding>) {

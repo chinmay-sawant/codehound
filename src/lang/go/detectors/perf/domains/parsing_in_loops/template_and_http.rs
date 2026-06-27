@@ -10,14 +10,14 @@ pub(crate) fn detect_perf_10(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let request_path = source.contains("gin.HandlerFunc")
-        || source.contains("c.JSON(")
-        || source.contains("c.HTML(")
-        || source.contains("*gin.Context")
-        || source.contains("echo.Context")
-        || source.contains("http.ResponseWriter")
-        || source.contains("c *gin.Context")
-        || source.contains("c echo.Context");
+    let request_path = facts.source_index.has("gin.HandlerFunc")
+        || facts.source_index.has("c.JSON(")
+        || facts.source_index.has("c.HTML(")
+        || facts.source_index.has("*gin.Context")
+        || facts.source_index.has("echo.Context")
+        || facts.source_index.has("http.ResponseWriter")
+        || facts.source_index.has("c *gin.Context")
+        || facts.source_index.has("c echo.Context");
     if !request_path {
         return;
     }
@@ -29,16 +29,12 @@ pub(crate) fn detect_perf_10(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         "html/template.New(",
         "html/template.ParseFiles(",
     ];
-    let has_template_parse = triggers.iter().any(|t| source.contains(t));
-    if !has_template_parse {
-        return;
-    }
     if !facts.source_index.has_any(&triggers) {
         return;
     }
-    if source.contains("template.Must(parseTemplates(")
-        || source.contains("var indexTmpl =")
-        || source.contains("sync.Once")
+    if facts.source_index.has("template.Must(parseTemplates(")
+        || facts.source_index.has("var indexTmpl =")
+        || facts.source_index.has("sync.Once")
     {
         return;
     }
@@ -66,7 +62,6 @@ pub(crate) fn detect_perf_10(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         return;
     }
 
-    // Fall back: emit at the first matching literal.
     let start = triggers
         .iter()
         .filter_map(|t| source.find(t))
@@ -86,26 +81,25 @@ pub(crate) fn detect_perf_10(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 /// PERF-011: http.Client allocated on the request path.
 pub(crate) fn detect_perf_11(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
 
-    let request_path = source.contains("gin.HandlerFunc")
-        || source.contains("c.JSON(")
-        || source.contains("*gin.Context")
-        || source.contains("echo.Context")
-        || source.contains("http.ResponseWriter")
-        || source.contains("func (");
+    let request_path = facts.source_index.has("gin.HandlerFunc")
+        || facts.source_index.has("c.JSON(")
+        || facts.source_index.has("*gin.Context")
+        || facts.source_index.has("echo.Context")
+        || facts.source_index.has("http.ResponseWriter")
+        || facts.source_index.has("func (");
     if !request_path {
         return;
     }
 
     let triggers = ["http.Client{", "&http.Client{"];
-    if !triggers.iter().any(|t| source.contains(t)) {
+    if !facts.source_index.has_any(&triggers) {
         return;
     }
-    if source.contains("var defaultClient =") || source.contains("var httpClient =") {
+    if facts.source_index.has("var defaultClient =") || facts.source_index.has("var httpClient =") {
         return;
     }
-    if source.contains("sync.Once") {
+    if facts.source_index.has("sync.Once") {
         return;
     }
 
@@ -125,21 +119,19 @@ pub(crate) fn detect_perf_11(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         );
         return;
     }
-    let _ = facts;
 }
 
 /// PERF-012: db.Prepare / db.PrepareContext on the request path.
 pub(crate) fn detect_perf_12(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
 
-    let request_path = source.contains("gin.HandlerFunc")
-        || source.contains("c.JSON(")
-        || source.contains("c.HTML(")
-        || source.contains("*gin.Context")
-        || source.contains("echo.Context")
-        || source.contains("http.ResponseWriter")
-        || source.contains("func (");
+    let request_path = facts.source_index.has("gin.HandlerFunc")
+        || facts.source_index.has("c.JSON(")
+        || facts.source_index.has("c.HTML(")
+        || facts.source_index.has("*gin.Context")
+        || facts.source_index.has("echo.Context")
+        || facts.source_index.has("http.ResponseWriter")
+        || facts.source_index.has("func (");
     if !request_path {
         return;
     }
@@ -148,14 +140,12 @@ pub(crate) fn detect_perf_12(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         if !matches!(call.callee.as_ref(), "db.Prepare" | "db.PrepareContext") {
             continue;
         }
-        if !is_in_loop(call) {
-            // Allow per-request prepare if the function body already caches.
-            if source.contains("sync.Once")
-                || source.contains("var stmtOnce")
-                || source.contains("StmtOnce")
-            {
-                continue;
-            }
+        if !is_in_loop(call)
+            && (facts.source_index.has("sync.Once")
+                || facts.source_index.has("var stmtOnce")
+                || facts.source_index.has("StmtOnce"))
+        {
+            continue;
         }
         let (line, col) = unit.line_col(call.start_byte);
         emit::push_finding(

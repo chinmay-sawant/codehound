@@ -5,17 +5,17 @@ use crate::core::ParsedUnit;
 use crate::rules::Finding;
 
 /// PERF-58: `c.Request.Body` read in a buffered way without a matching close / drain.
-pub(crate) fn detect_perf_61(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_61(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let source = unit.source.as_ref();
     let trig = ["gin.Static(", "router.Static(", "r.Static(", "c.File("];
-    if !trig.iter().any(|t| source.contains(t)) {
+    if !facts.source_index.has_any(&trig) {
         return;
     }
-    if source.contains("Cache-Control")
-        || source.contains("cacheControl")
-        || source.contains("MaxAge")
-        || source.contains("Max-Age")
-        || source.contains("c.Header(\"ETag\"")
+    if facts.source_index.has("Cache-Control")
+        || facts.source_index.has("cacheControl")
+        || facts.source_index.has("MaxAge")
+        || facts.source_index.has("Max-Age")
+        || facts.source_index.has("c.Header(\"ETag\"")
     {
         return;
     }
@@ -29,9 +29,9 @@ pub(crate) fn detect_perf_61(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
 }
 
 /// PERF-66: more than 5 middlewares passed to a single `.Use(...)` call.
-pub(crate) fn detect_perf_66(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_66(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let source = unit.source.as_ref();
-    if !source.contains(".Use(") {
+    if !facts.source_index.has(".Use(") {
         return;
     }
     let mut search_from = 0usize;
@@ -69,15 +69,15 @@ pub(crate) fn detect_perf_66(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
 }
 
 /// PERF-67: `gin.New()` without `gin.Recovery()`.
-pub(crate) fn detect_perf_67(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_67(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let source = unit.source.as_ref();
-    if !source.contains("gin.New()") {
+    if !facts.source_index.has("gin.New()") {
         return;
     }
-    if source.contains("gin.Recovery()")
-        || source.contains("gin.RecoveryWithWriter(")
-        || source.contains("gin.CustomRecovery(")
-        || source.contains("gin.CustomRecoveryWithWriter(")
+    if facts.source_index.has("gin.Recovery()")
+        || facts.source_index.has("gin.RecoveryWithWriter(")
+        || facts.source_index.has("gin.CustomRecovery(")
+        || facts.source_index.has("gin.CustomRecoveryWithWriter(")
     {
         return;
     }
@@ -91,14 +91,14 @@ pub(crate) fn detect_perf_67(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
 }
 
 /// PERF-68: `gin.Logger()` (synchronous logger) installed on the router.
-pub(crate) fn detect_perf_68(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_68(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let source = unit.source.as_ref();
-    if !source.contains("gin.Logger") {
+    if !facts.source_index.has("gin.Logger") {
         return;
     }
-    if source.contains("Output: io.Discard")
-        || source.contains("// logger disabled")
-        || source.contains("LoggerConfig{Output:")
+    if facts.source_index.has("Output: io.Discard")
+        || facts.source_index.has("// logger disabled")
+        || facts.source_index.has("LoggerConfig{Output:")
     {
         return;
     }

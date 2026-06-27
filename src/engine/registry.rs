@@ -6,6 +6,7 @@ use std::path::Path;
 use crate::core::{Detector, LanguageId, LanguagePlugin};
 
 /// Holds enabled language plugins and detectors indexed by language.
+#[must_use = "build a Registry before scanning"]
 pub struct Registry {
     plugins: Vec<Box<dyn LanguagePlugin>>,
     /// File extension (no dot) → index in `plugins`.

@@ -104,7 +104,7 @@ impl TimingCollector {
                 count,
             })
             .collect();
-        phases.sort_by(|a, b| b.duration.cmp(&a.duration));
+        phases.sort_by_key(|b| std::cmp::Reverse(b.duration));
 
         TimingSummary {
             total_wall_time: total,

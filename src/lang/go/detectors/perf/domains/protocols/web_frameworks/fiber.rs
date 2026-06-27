@@ -12,11 +12,11 @@ use crate::rules::{Finding, emit};
 /// c.Response.BodyWriter, bytes.NewReader) without using sync.Pool.
 pub(crate) fn detect_perf_91(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
-    if !source_matches_any(source, FIBER_MARKERS) {
+    let _source = unit.source.as_ref();
+    if !index_matches_any(&facts.source_index, FIBER_MARKERS) {
         return;
     }
-    if source.contains("sync.Pool") || source.contains("bytePool") {
+    if facts.source_index.has("sync.Pool") || facts.source_index.has("bytePool") {
         return;
     }
     for call in &facts.calls {
@@ -41,10 +41,10 @@ pub(crate) fn detect_perf_91(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 
 /// PERF-92: Fiber handler captures c inside a goroutine instead of using
 /// c.UserContext().
-pub(crate) fn detect_perf_92(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_92(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
-    if !source_matches_any(source, FIBER_MARKERS) {
+    if !index_matches_any(&facts.source_index, FIBER_MARKERS) {
         return;
     }
     walk_nodes(unit.tree.root_node(), &["go_statement"], &mut |node| {
@@ -73,14 +73,14 @@ pub(crate) fn detect_perf_92(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
 /// per request on a hot path.
 pub(crate) fn detect_perf_93(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
-    if !source_matches_any(source, FIBER_MARKERS) {
+    let _source = unit.source.as_ref();
+    if !index_matches_any(&facts.source_index, FIBER_MARKERS) {
         return;
     }
-    if source.contains("encoderPool") || source.contains("jsonPool") {
+    if facts.source_index.has("encoderPool") || facts.source_index.has("jsonPool") {
         return;
     }
-    if !source.contains("c.JSON(") && !source.contains("json.NewEncoder(") {
+    if !facts.source_index.has("c.JSON(") && !facts.source_index.has("json.NewEncoder(") {
         return;
     }
     for call in &facts.calls {
@@ -103,8 +103,8 @@ pub(crate) fn detect_perf_93(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 /// c.Body() where c.PostBody() zero-copy would suffice.
 pub(crate) fn detect_perf_94(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
-    if !source_matches_any(source, FIBER_MARKERS) {
+    let _source = unit.source.as_ref();
+    if !index_matches_any(&facts.source_index, FIBER_MARKERS) {
         return;
     }
     for call in &facts.calls {
@@ -149,11 +149,11 @@ pub(crate) fn detect_perf_94(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 /// PERF-95: Fiber app registers many app.Use middleware calls in a row.
 pub(crate) fn detect_perf_95(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
-    if !source.contains("fiber.New(")
-        && !source.contains("fiber.App")
-        && !source.contains("app.Use(")
-        && !source.contains("app.Group(")
+    let _source = unit.source.as_ref();
+    if !facts.source_index.has("fiber.New(")
+        && !facts.source_index.has("fiber.App")
+        && !facts.source_index.has("app.Use(")
+        && !facts.source_index.has("app.Group(")
     {
         return;
     }

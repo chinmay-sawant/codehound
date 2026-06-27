@@ -1,4 +1,5 @@
 //! Machine-readable evidence attached to findings.
+#![allow(missing_docs)] // ratchet: document in a follow-up pass
 
 use serde::{Deserialize, Serialize};
 

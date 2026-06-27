@@ -9,6 +9,7 @@ mod diagnostics;
 mod ignore;
 mod language_filter;
 mod parse_pool;
+pub mod prelude;
 mod registry;
 mod result;
 pub mod sinks;

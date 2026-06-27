@@ -3,17 +3,17 @@ use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
-pub(crate) fn detect_cwe_358(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_358(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let decodes_bearer_claims = source.contains("strings.TrimPrefix(raw, \"Bearer \")")
-        && source.contains("DecodeString(parts[1])")
-        && source.contains("json.Unmarshal(payload, &claims)");
+    let decodes_bearer_claims = facts.source_index.has(r#"strings.TrimPrefix(raw, "Bearer ")"#)
+        && facts.source_index.has("DecodeString(parts[1])")
+        && facts.source_index.has("json.Unmarshal(payload, &claims)");
     if !decodes_bearer_claims {
         return;
     }
-    if source.contains("invalid jwt structure") || source.contains("unsupported jwt algorithm") {
+    if facts.source_index.has_any(&["invalid jwt structure", "unsupported jwt algorithm"]) {
         return;
     }
 

@@ -2,28 +2,28 @@ use super::super::facts::GoUnitFacts;
 use super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
-pub(crate) fn detect_cwe_434(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_434(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let stores_client_filename = (source.contains("file.Filename")
-        && source.contains("SaveUploadedFile(file, dest)"))
-        || (source.contains("hdr.Filename") && source.contains("os.Create(dest)"));
+    let stores_client_filename = (facts.source_index.has("file.Filename")
+        && facts.source_index.has("SaveUploadedFile(file, dest)"))
+        || (facts.source_index.has("hdr.Filename") && facts.source_index.has("os.Create(dest)"));
     if !stores_client_filename {
         return;
     }
-    let executable_web_serve_shape = (source.contains("/var/www/static/avatars")
-        || source.contains("/static/avatars/"))
-        && (source.contains("c.Redirect(http.StatusFound, \"/static/avatars/\"+file.Filename)")
-            || source.contains(
+    let executable_web_serve_shape = (facts.source_index.has("/var/www/static/avatars")
+        || facts.source_index.has("/static/avatars/"))
+        && (facts.source_index.has("c.Redirect(http.StatusFound, \"/static/avatars/\"+file.Filename)")
+            || facts.source_index.has(
                 "http.Redirect(w, r, \"/static/avatars/\"+hdr.Filename, http.StatusFound)",
             ));
     if !executable_web_serve_shape {
         return;
     }
-    if source.contains("unsupported file type")
-        || source.contains("filepath.Ext(")
-        || source.contains("hex.EncodeToString(")
+    if facts.source_index.has("unsupported file type")
+        || facts.source_index.has("filepath.Ext(")
+        || facts.source_index.has("hex.EncodeToString(")
     {
         return;
     }

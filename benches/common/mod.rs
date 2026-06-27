@@ -15,6 +15,7 @@ pub fn unique_cache_dir(label: &str) -> PathBuf {
 
 pub fn run_scan_with_cache(root: &Path, cache: Option<&mut CacheStore>) -> Vec<Finding> {
     let analyzer = Analyzer::builder()
+        .with_default_filter()
         .scan_context(ScanContext::default())
         .build();
     analyzer

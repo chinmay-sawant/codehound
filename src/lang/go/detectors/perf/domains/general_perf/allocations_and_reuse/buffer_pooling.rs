@@ -6,12 +6,12 @@ use crate::rules::{Finding, emit};
 
 pub(crate) fn detect_perf_27(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
-    if !is_request_path(source) {
+    if !is_request_path(&facts.source_index) {
         return;
     }
-    if source.contains("sync.Pool") {
+    if facts.source_index.has("sync.Pool") {
         return;
     }
 
@@ -37,15 +37,14 @@ pub(crate) fn detect_perf_27(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         );
         return;
     }
-    let _ = facts;
 }
 
 /// PERF-43: `defer func(){ recover() }()` in a hot loop or per-request path.
 pub(crate) fn detect_perf_46(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
-    if !is_request_path(source) {
+    if !is_request_path(&facts.source_index) {
         return;
     }
 
@@ -72,5 +71,4 @@ pub(crate) fn detect_perf_46(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         );
         return;
     }
-    let _ = source;
 }

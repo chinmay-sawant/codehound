@@ -129,11 +129,11 @@ pub(crate) fn detect_perf_127(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 /// PERF-102: `w.WriteHeader(...)` called more than once on the
 /// same `http.ResponseWriter` in a single handler. Only the first
 /// call takes effect; subsequent calls log a warning at runtime.
-pub(crate) fn detect_perf_102(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_102(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains(".WriteHeader(") {
+    if !facts.source_index.has(".WriteHeader(") {
         return;
     }
 

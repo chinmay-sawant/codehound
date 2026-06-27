@@ -10,18 +10,18 @@ pub(crate) fn detect_perf_29(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 
     // Bounded patterns: worker pool, semaphore, errgroup.WithContext, or
     // a semaphore that uses a buffered channel of `struct{}` tokens.
-    if source.contains("errgroup.WithContext")
-        || source.contains("sem := make(chan struct{}")
-        || source.contains("sem <- struct{}{}")
-        || source.contains("workerCount")
-        || source.contains("workerPool")
-        || source.contains("semaphore")
+    if facts.source_index.has("errgroup.WithContext")
+        || facts.source_index.has("sem := make(chan struct{}")
+        || facts.source_index.has("sem <- struct{}{}")
+        || facts.source_index.has("workerCount")
+        || facts.source_index.has("workerPool")
+        || facts.source_index.has("semaphore")
         // Goroutine tied to the request lifecycle — not "unbounded".
-        || source.contains("sync.WaitGroup")
-        || source.contains("wg.Add(")
-        || source.contains("c.Request.Context()")
-        || source.contains("ctx, cancel := context.WithCancel")
-        || source.contains("ctx, cancel := context.WithTimeout")
+        || facts.source_index.has("sync.WaitGroup")
+        || facts.source_index.has("wg.Add(")
+        || facts.source_index.has("c.Request.Context()")
+        || facts.source_index.has("ctx, cancel := context.WithCancel")
+        || facts.source_index.has("ctx, cancel := context.WithTimeout")
     {
         return;
     }
@@ -35,7 +35,7 @@ pub(crate) fn detect_perf_29(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
             .for_ranges
             .iter()
             .any(|&(s, e)| s <= start_byte && start_byte <= e);
-        let on_request_path = is_request_path(source);
+        let on_request_path = is_request_path(&facts.source_index);
         if !in_loop && !on_request_path {
             continue;
         }
@@ -57,7 +57,7 @@ pub(crate) fn detect_perf_30(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !is_request_path(source) {
+    if !is_request_path(&facts.source_index) {
         return;
     }
 
@@ -82,16 +82,16 @@ pub(crate) fn detect_perf_30(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 /// PERF-31: `defer` inside a request handler or hot function.
 pub(crate) fn detect_perf_31(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
-    if !is_request_path(source) {
+    if !is_request_path(&facts.source_index) {
         return;
     }
     // Suppress resource-cleanup defer patterns (`defer x.Close()`,
     // `defer cancel()`, `defer x.Stop()`) — those are idiomatic Go and
     // should not trip the hot-path heuristic.
     let has_resource_defer =
-        source.contains(".Close()") || source.contains("cancel()") || source.contains(".Stop()");
+        facts.source_index.has(".Close()") || facts.source_index.has("cancel()") || facts.source_index.has(".Stop()");
     if has_resource_defer {
         return;
     }

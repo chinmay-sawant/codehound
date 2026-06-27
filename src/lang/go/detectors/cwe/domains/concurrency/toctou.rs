@@ -2,12 +2,12 @@ use super::super::super::facts::GoUnitFacts;
 use super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
-pub(crate) fn detect_cwe_367(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_367(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let stat_then_use =
-        source.contains("os.Stat(target)") && source.contains("os.ReadFile(target)");
+        facts.source_index.has("os.Stat(target)") && facts.source_index.has("os.ReadFile(target)");
     if !stat_then_use {
         return;
     }

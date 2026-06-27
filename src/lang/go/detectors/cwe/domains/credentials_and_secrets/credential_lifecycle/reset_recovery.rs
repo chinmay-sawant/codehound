@@ -2,17 +2,17 @@ use super::super::super::super::facts::GoUnitFacts;
 use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
-pub(crate) fn detect_cwe_549(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_549(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let password_echo = source.contains(r#""password": pass"#)
-        && (source.contains("gin.H{") || source.contains("map[string]string"));
+    let password_echo = facts.source_index.has(r#""password": pass"#)
+        && (facts.source_index.has("gin.H{") || facts.source_index.has("map[string]string"));
     if !password_echo {
         return;
     }
-    if source.contains(r#"Encode(map[string]string{"email": email})"#)
-        || source.contains("gin.H{\n\t\t\"email\": c.PostForm(\"email\"),\n\t})")
+    if facts.source_index.has(r#"Encode(map[string]string{"email": email})"#)
+        || facts.source_index.has("gin.H{\n\t\t\"email\": c.PostForm(\"email\"),\n\t})")
     {
         return;
     }
@@ -29,21 +29,21 @@ pub(crate) fn detect_cwe_549(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_640(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_640(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let email_only_reset = source.contains("ForgotPassword")
-        && source.contains("new_password")
-        && source.contains("email")
-        && (source.contains("UPDATE users SET password")
-            || source.contains("Where(\"email = ?\", email).Update(\"password\", newPass)"));
+    let email_only_reset = facts.source_index.has("ForgotPassword")
+        && facts.source_index.has("new_password")
+        && facts.source_index.has("email")
+        && (facts.source_index.has("UPDATE users SET password")
+            || facts.source_index.has("Where(\"email = ?\", email).Update(\"password\", newPass)"));
     if !email_only_reset {
         return;
     }
-    if source.contains("reset_tokens")
-        || source.contains(r#""token""#)
-        || source.contains("expires_at")
+    if facts.source_index.has("reset_tokens")
+        || facts.source_index.has(r#""token""#)
+        || facts.source_index.has("expires_at")
     {
         return;
     }

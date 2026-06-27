@@ -2,21 +2,21 @@ use super::super::super::super::facts::{GoUnitFacts, InputKind};
 use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
-pub(crate) fn detect_cwe_212(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_212(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let has_sensitive_payment_field = source.contains("Card") || source.contains("PAN");
+    let has_sensitive_payment_field = facts.source_index.has("Card") || facts.source_index.has("PAN");
     if !has_sensitive_payment_field {
         return;
     }
-    if !(source.contains("json.Marshal(rows)") || source.contains("json.Marshal(out)")) {
+    if !(facts.source_index.has("json.Marshal(rows)") || facts.source_index.has("json.Marshal(out)")) {
         return;
     }
-    if source.contains("type paymentExport struct") || source.contains("type chargeExport struct") {
+    if facts.source_index.has("type paymentExport struct") || facts.source_index.has("type chargeExport struct") {
         return;
     }
-    if !source.contains("json.Marshal(rows)") {
+    if !facts.source_index.has("json.Marshal(rows)") {
         return;
     }
 
@@ -34,13 +34,13 @@ pub(crate) fn detect_cwe_212(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
 
 pub(crate) fn detect_cwe_214(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
     for call in &facts.call_facts {
         if call.callee.as_ref() != "exec.Command" {
             continue;
         }
-        if source.contains("cmd.Stdin = strings.NewReader(") {
+        if facts.source_index.has("cmd.Stdin = strings.NewReader(") {
             return;
         }
 
@@ -72,18 +72,18 @@ pub(crate) fn detect_cwe_214(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     }
 }
 
-pub(crate) fn detect_cwe_312(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_312(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let stores_plain_ssn =
-        source.contains("SSN: c.PostForm(\"ssn\")") || source.contains("SSN: r.FormValue(\"ssn\")");
+        facts.source_index.has("SSN: c.PostForm(\"ssn\")") || facts.source_index.has("SSN: r.FormValue(\"ssn\")");
     let writes_plain_ssn_json =
-        source.contains(r#"SSN string `json:"ssn"`"#) && source.contains("json.Marshal(rec)");
+        facts.source_index.has(r#"SSN string `json:"ssn"`"#) && facts.source_index.has("json.Marshal(rec)");
     if !(stores_plain_ssn || writes_plain_ssn_json) {
         return;
     }
-    if source.contains("SSNCipher") || source.contains("gcm.Seal(") {
+    if facts.source_index.has("SSNCipher") || facts.source_index.has("gcm.Seal(") {
         return;
     }
 

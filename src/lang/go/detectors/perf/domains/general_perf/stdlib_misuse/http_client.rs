@@ -161,14 +161,14 @@ pub(crate) fn detect_perf_198(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 /// or is registered via `engine.Use(...)` / `Group.Use(...)`).
 /// The allocation is harmless per call but compounds on every
 /// request.
-pub(crate) fn detect_perf_145(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_145(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains(".WithContext(") {
+    if !facts.source_index.has(".WithContext(") {
         return;
     }
-    if !is_middleware_shape(source) {
+    if !is_middleware_shape(&facts.source_index) {
         return;
     }
 
@@ -188,20 +188,20 @@ pub(crate) fn detect_perf_145(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut
     }
 }
 
-fn is_middleware_shape(source: &str) -> bool {
+fn is_middleware_shape(index: &crate::lang::go::detectors::perf::source_index::PerfSourceIndex) -> bool {
     // A file is treated as "middleware-shaped" if it shows any of
     // the common middleware patterns. We deliberately accept
     // files that *contain* these patterns even if the immediate
     // caller is not the middleware itself; the call site is the
     // one allocation we want to flag.
-    if source.contains("func Middleware")
-        || source.contains("func (")
-            && (source.contains("http.Handler")
-                || source.contains("http.HandlerFunc")
-                || source.contains("http.ResponseWriter"))
-        || source.contains(".Use(")
-        || source.contains("Group.Use")
-        || source.contains("engine.Use")
+    if index.has("func Middleware")
+        || index.has("func (")
+            && (index.has("http.Handler")
+                || index.has("http.HandlerFunc")
+                || index.has("http.ResponseWriter"))
+        || index.has(".Use(")
+        || index.has("Group.Use")
+        || index.has("engine.Use")
     {
         return true;
     }

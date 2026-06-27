@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use slopguard::engine::AnalysisResult;
 use slopguard::reporting::json::{Envelope, FindingJson};
-use slopguard::rules::{Finding, LineCol, Severity};
+use slopguard::rules::{Finding, FindingInputs, LineCol, Severity};
 
 #[path = "helpers/mod.rs"]
 mod helpers;
@@ -20,7 +20,7 @@ fn ndjson_emits_one_finding_per_line() {
     let result = AnalysisResult {
         source_cache: std::collections::HashMap::new(),
         findings: vec![
-            Finding::new(
+            Finding::new(FindingInputs::new(
                 "CWE-1",
                 "a",
                 "a.go",
@@ -28,8 +28,8 @@ fn ndjson_emits_one_finding_per_line() {
                 "m1",
                 Severity::Info,
                 Cow::Borrowed(&[]),
-            ),
-            Finding::new(
+            )),
+            Finding::new(FindingInputs::new(
                 "CWE-2",
                 "b",
                 "b.go",
@@ -37,7 +37,7 @@ fn ndjson_emits_one_finding_per_line() {
                 "m2",
                 Severity::Info,
                 Cow::Borrowed(&[]),
-            ),
+            )),
         ],
         errors: vec![],
         suppressed_count: 0,

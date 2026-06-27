@@ -4,7 +4,6 @@ use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 pub(crate) fn detect_cwe_280(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
 
     let Some(open_call) = facts
         .call_facts
@@ -14,11 +13,10 @@ pub(crate) fn detect_cwe_280(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         return;
     };
 
-    let falls_through_on_error = source.contains("if err != nil {")
-        && !source.contains("errors.Is(err, syscall.EACCES)")
-        && !source.contains("errors.Is(err, syscall.EPERM)")
-        && (source.contains("db.Exec(\"DELETE FROM tenants")
-            || source.contains("tenantStore.Delete("));
+    let falls_through_on_error = facts.source_index.has("if err != nil {")
+        && !facts.source_index.has("errors.Is(err, syscall.EACCES)")
+        && !facts.source_index.has("errors.Is(err, syscall.EPERM)")
+        && (facts.source_index.has_any(&[r#"db.Exec("DELETE FROM tenants"#, "tenantStore.Delete("]));
     if !falls_through_on_error {
         return;
     }

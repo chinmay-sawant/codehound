@@ -4,23 +4,23 @@ use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
-pub(crate) fn detect_perf_38(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_38(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("make(chan") {
+    if !facts.source_index.has("make(chan") {
         return;
     }
     // A buffered channel always has a `, N` suffix.
-    if source.contains("make(chan int, ")
-        || source.contains("make(chan struct{}, ")
-        || source.contains("make(chan string, ")
-        || source.contains("make(chan T, ")
+    if facts.source_index.has("make(chan int, ")
+        || facts.source_index.has("make(chan struct{}, ")
+        || facts.source_index.has("make(chan string, ")
+        || facts.source_index.has("make(chan T, ")
     {
         return;
     }
     // Suppress test / one-shot signals.
-    if source.contains("_test.go") {
+    if facts.source_index.has("_test.go") {
         return;
     }
 
@@ -41,16 +41,16 @@ pub(crate) fn detect_perf_39(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("default:") {
+    if !facts.source_index.has("default:") {
         return;
     }
     // Suppress if a backoff / sleep is present.
-    if source.contains("time.Sleep(") {
+    if facts.source_index.has("time.Sleep(") {
         return;
     }
     // Suppress the timer-drain idiom (`if !timer.Stop() { select { ...
     // default: } }`) where default is a deliberate non-blocking peek.
-    if source.contains("!timer.Stop()") || source.contains("if !t.Stop()") {
+    if facts.source_index.has("!timer.Stop()") || facts.source_index.has("if !t.Stop()") {
         return;
     }
 
@@ -80,10 +80,10 @@ pub(crate) fn detect_perf_39(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 /// PERF-40: `time.Now()` called multiple times in the same function body.
 pub(crate) fn detect_perf_40(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
-    let on_hot_path = is_request_path(source);
-    let in_loop_present = source.contains("for ");
+    let on_hot_path = is_request_path(&facts.source_index);
+    let in_loop_present = facts.source_index.has("for ");
 
     if !on_hot_path && !in_loop_present {
         return;
@@ -119,7 +119,7 @@ pub(crate) fn detect_perf_43(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !is_request_path(source) && !source.contains("for ") {
+    if !is_request_path(&facts.source_index) && !facts.source_index.has("for ") {
         return;
     }
 
@@ -128,7 +128,7 @@ pub(crate) fn detect_perf_43(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         if !text.contains("recover()") {
             continue;
         }
-        if !is_request_path(source) {
+        if !is_request_path(&facts.source_index) {
             let in_loop = facts
                 .for_ranges
                 .iter()

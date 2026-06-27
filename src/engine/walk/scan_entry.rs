@@ -20,6 +20,129 @@ use crate::rules::Finding;
 use super::analyze::analyze_parsed_unit;
 use super::entry::ScanEntry;
 
+fn scan_err(entry: &ScanEntry, kind: ScanErrorKind, message: impl Into<String>) -> ScanError {
+    ScanError {
+        path: entry.path.as_ref().to_path_buf(),
+        kind,
+        message: message.into(),
+    }
+}
+
+type ScanEntryResult = (
+    Vec<Finding>,
+    String,
+    Arc<str>,
+    usize,
+    ScanStats,
+    Vec<String>,
+    TimingCollector,
+);
+
+struct ReadOutcome {
+    source: Arc<str>,
+    file_stats: FileStats,
+}
+
+fn read_entry_source(
+    entry: &ScanEntry,
+    timing: &mut TimingCollector,
+    stats: &mut ScanStats,
+) -> Result<ReadOutcome, ScanError> {
+    let idx = timing.start("file_read");
+    let bytes = std::fs::read(&entry.path).map_err(|e| {
+        stats.record_errored();
+        scan_err(
+            entry,
+            ScanErrorKind::Io,
+            format!("reading {}: {e}", entry.path.display()),
+        )
+    })?;
+    timing.stop(idx);
+
+    let source = String::from_utf8(bytes).map_err(|e| {
+        stats.record_errored();
+        scan_err(
+            entry,
+            ScanErrorKind::Encoding,
+            format!("source is not valid UTF-8: {e}"),
+        )
+    })?;
+    let source: Arc<str> = Arc::from(source);
+    let file_stats = FileStats::from_source(&source);
+    Ok(ReadOutcome { source, file_stats })
+}
+
+fn parse_entry_unit(
+    entry: &ScanEntry,
+    plugin: &dyn LanguagePlugin,
+    pool: &mut ParsePool,
+    source: Arc<str>,
+    timing: &mut TimingCollector,
+    stats: &mut ScanStats,
+) -> Result<ParsedUnit, ScanError> {
+    let parser = pool.parser_for(plugin).map_err(|e| {
+        stats.record_errored();
+        scan_err(
+            entry,
+            ScanErrorKind::Parse,
+            format!("configuring parser for {}: {e}", entry.path.display()),
+        )
+    })?;
+    let idx = timing.start("tree_sitter_parse");
+    let unit = plugin
+        .parse_with(parser, &entry.path, Arc::clone(&source))
+        .map_err(|e| {
+            stats.record_errored();
+            scan_err(
+                entry,
+                ScanErrorKind::Parse,
+                format!("parsing {}: {e:#}", entry.path.display()),
+            )
+        })?;
+    timing.stop(idx);
+    Ok(unit)
+}
+
+fn analyze_parsed_entry(
+    registry: &Registry,
+    ctx: &ScanContext,
+    plugin: &dyn LanguagePlugin,
+    unit: &mut ParsedUnit,
+    timing: &mut TimingCollector,
+    stats: &mut ScanStats,
+    file_stats: FileStats,
+) -> (Vec<Finding>, usize) {
+    let file_ignore = parse_file_ignore(unit.source.as_ref());
+    if !ctx.show_ignored && file_ignore.as_ref().is_some_and(IgnoreDirective::is_all) {
+        stats.record_file(file_stats.bytes, file_stats.lines);
+        return (Vec::new(), 0);
+    }
+
+    let fn_kinds = plugin.function_node_kinds();
+    if !fn_kinds.is_empty() {
+        unit.function_spans = ast::collect_function_spans(unit.tree.root_node(), fn_kinds);
+    }
+
+    let det_idx = timing.start("detector_execution");
+    let (mut findings, rules_executed) = analyze_parsed_unit(registry, ctx, unit, timing);
+    timing.stop(det_idx);
+    attach_function_context(&mut findings, plugin, unit);
+    let mut suppressed_count =
+        apply_file_ignore(&mut findings, file_ignore.as_ref(), ctx.show_ignored);
+    if file_ignore.is_none() {
+        let inline_ignores = parse_inline_ignores(unit.source.as_ref());
+        suppressed_count += apply_inline_ignores(&mut findings, &inline_ignores, ctx.show_ignored);
+    }
+
+    stats.record_file(file_stats.bytes, file_stats.lines);
+    stats.findings_total = findings.len();
+    stats.findings_suppressed = suppressed_count;
+    stats.rules_executed = rules_executed;
+    stats.detectors_loaded = registry.detector_count();
+
+    (findings, suppressed_count)
+}
+
 /// Read, parse, and analyze a single file. Drops the parse tree before returning.
 ///
 /// `pool` is reused across many files on the same worker thread (see [`scan_entries_parallel`]).
@@ -38,18 +161,7 @@ pub(crate) fn scan_entry(
     pool: &mut ParsePool,
     project_root: &Path,
     module_prefix: Option<&str>,
-) -> std::result::Result<
-    (
-        Vec<Finding>,
-        String,
-        Arc<str>,
-        usize,
-        ScanStats,
-        Vec<String>,
-        TimingCollector,
-    ),
-    ScanError,
-> {
+) -> std::result::Result<ScanEntryResult, ScanError> {
     let collect_stats = ctx.collect_stats();
     let mut timing = TimingCollector::new(collect_stats);
     let mut stats = ScanStats::default();
@@ -58,62 +170,23 @@ pub(crate) fn scan_entry(
         Some(p) => p,
         None => {
             stats.record_errored();
-            return Err(ScanError {
-                path: entry.path.clone(),
-                kind: ScanErrorKind::Engine,
-                message: format!("no plugin registered for {:?}", entry.language),
-            });
+            return Err(scan_err(
+                entry,
+                ScanErrorKind::Engine,
+                format!("no plugin registered for {:?}", entry.language),
+            ));
         }
     };
 
-    let bytes = {
-        let idx = timing.start("file_read");
-        let result = std::fs::read(&entry.path);
-        timing.stop(idx);
-        match result {
-            Ok(b) => b,
-            Err(e) => {
-                stats.record_errored();
-                return Err(ScanError {
-                    path: entry.path.clone(),
-                    kind: ScanErrorKind::Io,
-                    message: format!("reading {}: {e}", entry.path.display()),
-                });
-            }
-        }
-    };
-
-    let source = match String::from_utf8(bytes) {
-        Ok(s) => Arc::from(s),
-        Err(e) => {
-            stats.record_errored();
-            return Err(ScanError {
-                path: entry.path.clone(),
-                kind: ScanErrorKind::Encoding,
-                message: format!("source is not valid UTF-8: {e}"),
-            });
-        }
-    };
-
-    let file_stats = FileStats::from_source(&source);
-
-    let parser = pool.parser_for(plugin);
-    let mut unit = {
-        let idx = timing.start("tree_sitter_parse");
-        let result = plugin.parse_with(parser, &entry.path, Arc::clone(&source));
-        timing.stop(idx);
-        match result {
-            Ok(u) => u,
-            Err(e) => {
-                stats.record_errored();
-                return Err(ScanError {
-                    path: entry.path.clone(),
-                    kind: ScanErrorKind::Parse,
-                    message: format!("parsing {}: {e:#}", entry.path.display()),
-                });
-            }
-        }
-    };
+    let ReadOutcome { source, file_stats } = read_entry_source(entry, &mut timing, &mut stats)?;
+    let mut unit = parse_entry_unit(
+        entry,
+        plugin,
+        pool,
+        Arc::clone(&source),
+        &mut timing,
+        &mut stats,
+    )?;
 
     let file_ignore = parse_file_ignore(unit.source.as_ref());
     if !ctx.show_ignored && file_ignore.as_ref().is_some_and(IgnoreDirective::is_all) {
@@ -121,8 +194,8 @@ pub(crate) fn scan_entry(
         stats.record_file(file_stats.bytes, file_stats.lines);
         return Ok((
             Vec::new(),
-            unit.display_path.clone(),
-            Arc::clone(&unit.source),
+            unit.display_path,
+            source,
             0,
             stats,
             dependencies,
@@ -130,37 +203,21 @@ pub(crate) fn scan_entry(
         ));
     }
 
-    // Precompute function spans once so attach_function_context can skip its
-    // dedicated tree walk. Only languages that declare function_node_kinds
-    // benefit (Go: function_declaration, method_declaration).
-    let fn_kinds = plugin.function_node_kinds();
-    if !fn_kinds.is_empty() {
-        unit.function_spans = ast::collect_function_spans(unit.tree.root_node(), fn_kinds);
-    }
-
-    let det_idx = timing.start("detector_execution");
-    let (mut findings, rules_executed) = analyze_parsed_unit(registry, ctx, &unit, &mut timing);
-    timing.stop(det_idx);
-    attach_function_context(&mut findings, plugin, &unit);
-    let mut suppressed_count =
-        apply_file_ignore(&mut findings, file_ignore.as_ref(), ctx.show_ignored);
-    if file_ignore.is_none() {
-        let inline_ignores = parse_inline_ignores(unit.source.as_ref());
-        suppressed_count += apply_inline_ignores(&mut findings, &inline_ignores, ctx.show_ignored);
-    }
-
+    let (findings, suppressed_count) = analyze_parsed_entry(
+        registry,
+        ctx,
+        plugin,
+        &mut unit,
+        &mut timing,
+        &mut stats,
+        file_stats,
+    );
     let dependencies = extract_dependencies(&unit, project_root, module_prefix);
-
-    stats.record_file(file_stats.bytes, file_stats.lines);
-    stats.findings_total = findings.len();
-    stats.findings_suppressed = suppressed_count;
-    stats.rules_executed = rules_executed;
-    stats.detectors_loaded = registry.detector_count();
 
     Ok((
         findings,
-        unit.display_path.clone(),
-        Arc::clone(&unit.source),
+        unit.display_path,
+        source,
         suppressed_count,
         stats,
         dependencies,
@@ -189,8 +246,6 @@ pub(super) fn attach_function_context(
         if kinds.is_empty() {
             return;
         }
-        // Fallback: compute on-demand (should not happen in normal scan path
-        // since scan_entry precomputes them).
         let _ = kinds;
         return;
     };

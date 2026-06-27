@@ -2,19 +2,19 @@ use super::super::super::super::facts::GoUnitFacts;
 use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
-pub(crate) fn detect_cwe_256(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_256(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if source.contains("GenerateFromPassword(")
-        || source.contains("hashPassphrase(")
-        || source.contains("digest")
-        || source.contains("hash")
+    if facts.source_index.has("GenerateFromPassword(")
+        || facts.source_index.has("hashPassphrase(")
+        || facts.source_index.has("digest")
+        || facts.source_index.has("hash")
     {
         return;
     }
 
-    let gorm_plaintext = source.contains("Password: c.PostForm(\"password\")");
+    let gorm_plaintext = facts.source_index.has("Password: c.PostForm(\"password\")");
     let sql_plaintext = source
         .contains("db.Exec(\"INSERT INTO credentials(login, pass) VALUES(?, ?)\", login, pass)");
     if !(gorm_plaintext || sql_plaintext) {
@@ -40,20 +40,20 @@ pub(crate) fn detect_cwe_256(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_257(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_257(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let uses_reversible_crypto = source.contains("aes.NewCipher(")
-        && source.contains("cipher.NewGCM(")
-        && source.contains("gcm.Seal(")
-        && source.contains("base64.StdEncoding.EncodeToString(");
+    let uses_reversible_crypto = facts.source_index.has("aes.NewCipher(")
+        && facts.source_index.has("cipher.NewGCM(")
+        && facts.source_index.has("gcm.Seal(")
+        && facts.source_index.has("base64.StdEncoding.EncodeToString(");
     if !uses_reversible_crypto {
         return;
     }
 
-    let persists_recoverable_secret = source.contains(r#""password": encoded"#)
-        || source.contains("VALUES(?, ?)\", login, encoded)");
+    let persists_recoverable_secret = facts.source_index.has(r#""password": encoded"#)
+        || facts.source_index.has("VALUES(?, ?)\", login, encoded)");
     if !persists_recoverable_secret {
         return;
     }
@@ -70,15 +70,15 @@ pub(crate) fn detect_cwe_257(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_261(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_261(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("base64.StdEncoding.EncodeToString(") {
+    if !facts.source_index.has("base64.StdEncoding.EncodeToString(") {
         return;
     }
     let stores_encoded_secret =
-        source.contains("Secret: encoded") || source.contains("Store(user, encoded)");
+        facts.source_index.has("Secret: encoded") || facts.source_index.has("Store(user, encoded)");
     if !stores_encoded_secret {
         return;
     }
@@ -97,15 +97,15 @@ pub(crate) fn detect_cwe_261(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_916(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_916(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let weak_password_hash = source.contains("md5.Sum(") && source.contains("password");
+    let weak_password_hash = facts.source_index.has("md5.Sum(") && facts.source_index.has("password");
     if !weak_password_hash {
         return;
     }
-    if source.contains("bcrypt.GenerateFromPassword") || source.contains("hashIterations = 100_000")
+    if facts.source_index.has("bcrypt.GenerateFromPassword") || facts.source_index.has("hashIterations = 100_000")
     {
         return;
     }

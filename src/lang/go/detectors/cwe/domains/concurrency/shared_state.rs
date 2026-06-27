@@ -2,16 +2,16 @@ use super::super::super::facts::GoUnitFacts;
 use super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
-pub(crate) fn detect_cwe_366(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_366(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let direct_credit_increment =
-        source.contains("walletCredits += amount") || source.contains("referralCredits += 10");
+        facts.source_index.has("walletCredits += amount") || facts.source_index.has("referralCredits += 10");
     if !direct_credit_increment {
         return;
     }
-    if source.contains("atomic.AddInt64(") {
+    if facts.source_index.has("atomic.AddInt64(") {
         return;
     }
 
@@ -35,13 +35,13 @@ pub(crate) fn detect_cwe_368(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let shared_privilege_flag = (source.contains("actingAsRoot = true")
-        || source.contains("privilegedMode = true"))
-        && source.contains("os.Setenv(");
+    let shared_privilege_flag = (facts.source_index.has("actingAsRoot = true")
+        || facts.source_index.has("privilegedMode = true"))
+        && facts.source_index.has("os.Setenv(");
     if !shared_privilege_flag {
         return;
     }
-    if facts.source_index.has("sync.Mutex") || source.contains("Lock()") {
+    if facts.source_index.has("sync.Mutex") || facts.source_index.has("Lock()") {
         return;
     }
 
@@ -65,16 +65,16 @@ pub(crate) fn detect_cwe_421(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let shared_event_state = (source.contains("transferToken =")
-        && source.contains("event: status\\ndata: \" + transferToken"))
-        || (source.contains("wireTransferCode =")
-            && source.contains("event: status\\ndata: %s\\n\\n\", wireTransferCode"));
+    let shared_event_state = (facts.source_index.has("transferToken =")
+        && facts.source_index.has("event: status\\ndata: \" + transferToken"))
+        || (facts.source_index.has("wireTransferCode =")
+            && facts.source_index.has("event: status\\ndata: %s\\n\\n\", wireTransferCode"));
     if !shared_event_state {
         return;
     }
     if facts.source_index.has("sync.Mutex")
-        || source.contains("transferMu")
-        || source.contains("wireMu")
+        || facts.source_index.has("transferMu")
+        || facts.source_index.has("wireMu")
     {
         return;
     }
@@ -95,16 +95,16 @@ pub(crate) fn detect_cwe_421(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     );
 }
 
-pub(crate) fn detect_cwe_820(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_820(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let unsynchronized_map_write =
-        source.contains("visitCounts[key] = visitCounts[key] + 1") && source.contains("TrackVisit");
+        facts.source_index.has("visitCounts[key] = visitCounts[key] + 1") && facts.source_index.has("TrackVisit");
     if !unsynchronized_map_write {
         return;
     }
-    if source.contains("visitMu.Lock()") || source.contains("visitMu sync.Mutex") {
+    if facts.source_index.has("visitMu.Lock()") || facts.source_index.has("visitMu sync.Mutex") {
         return;
     }
 
@@ -122,16 +122,16 @@ pub(crate) fn detect_cwe_820(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_821(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_821(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     let writes_under_rlock =
-        source.contains("RLock()") && source.contains("tokenCache[key] = value");
+        facts.source_index.has("RLock()") && facts.source_index.has("tokenCache[key] = value");
     if !writes_under_rlock {
         return;
     }
-    if source.contains("cacheMu.Lock()") {
+    if facts.source_index.has("cacheMu.Lock()") {
         return;
     }
 

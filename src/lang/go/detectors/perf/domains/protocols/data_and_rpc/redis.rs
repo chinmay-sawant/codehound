@@ -12,14 +12,14 @@ use crate::rules::{Finding, emit};
 /// Pipeline / Pipelined / TxPipeline.
 pub(crate) fn detect_perf_98(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
-    if !source_matches_any(source, REDIS_MARKERS) {
+    let _source = unit.source.as_ref();
+    if !index_matches_any(&facts.source_index, REDIS_MARKERS) {
         return;
     }
-    if source.contains(".Pipeline()")
-        || source.contains(".Pipelined(")
-        || source.contains(".TxPipeline()")
-        || source.contains(".TxPipelined(")
+    if facts.source_index.has(".Pipeline()")
+        || facts.source_index.has(".Pipelined(")
+        || facts.source_index.has(".TxPipeline()")
+        || facts.source_index.has(".TxPipelined(")
     {
         return;
     }

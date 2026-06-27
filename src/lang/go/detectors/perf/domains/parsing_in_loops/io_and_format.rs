@@ -69,18 +69,17 @@ pub(crate) fn detect_perf_15(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 }
 
 /// PERF-016: bytes.Buffer{} or new(bytes.Buffer) inside a loop.
-pub(crate) fn detect_perf_16(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_16(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("bytes.Buffer{}") && !source.contains("new(bytes.Buffer)") {
+    if !facts.source_index.has("bytes.Buffer{}") && !facts.source_index.has("new(bytes.Buffer)") {
         return;
     }
-    if !source.contains("bytes.Buffer{") {
+    if !facts.source_index.has("bytes.Buffer{") {
         return;
     }
 
-    // TODO: move to facts
     walk_nodes(
         unit.tree.root_node(),
         &["composite_literal", "unary_expression"],

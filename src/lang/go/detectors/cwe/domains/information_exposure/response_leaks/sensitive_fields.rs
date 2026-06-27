@@ -4,15 +4,15 @@ use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 pub(crate) fn detect_cwe_201(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
-    let has_sensitive_field = source.contains("APIKey") || source.contains("TokenKey");
+    let has_sensitive_field = facts.source_index.has("APIKey") || facts.source_index.has("TokenKey");
     if !has_sensitive_field {
         return;
     }
 
-    let sensitive_record_name = if source.contains("type userRecord struct")
-        || source.contains("type memberRecord struct")
+    let sensitive_record_name = if facts.source_index.has("type userRecord struct")
+        || facts.source_index.has("type memberRecord struct")
     {
         Some("record")
     } else {
@@ -43,13 +43,13 @@ pub(crate) fn detect_cwe_201(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 
 pub(crate) fn detect_cwe_213(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
-    let has_comp_field = source.contains("Salary") || source.contains("Comp");
+    let has_comp_field = facts.source_index.has("Salary") || facts.source_index.has("Comp");
     if !has_comp_field {
         return;
     }
-    if source.contains("guestProfile{") || source.contains("directoryEntry{") {
+    if facts.source_index.has("guestProfile{") || facts.source_index.has("directoryEntry{") {
         return;
     }
 

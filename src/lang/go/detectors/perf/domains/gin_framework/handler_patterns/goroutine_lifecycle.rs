@@ -7,9 +7,9 @@ use crate::core::ParsedUnit;
 use crate::rules::Finding;
 
 /// PERF-61: `gin.Static` / `c.File` without cache header configuration.
-pub(crate) fn detect_perf_64(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_64(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let source = unit.source.as_ref();
-    if !source.contains("go func()") || source.contains("c.Copy()") {
+    if !facts.source_index.has("go func()") || facts.source_index.has("c.Copy()") {
         return;
     }
     let go_pos = source.find("go func()").unwrap_or(0);
@@ -43,12 +43,12 @@ pub(crate) fn detect_perf_64(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
 }
 
 /// PERF-65: `c.ShouldBind` in a middleware registered via `RouterGroup.Use`.
-pub(crate) fn detect_perf_69(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_69(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let source = unit.source.as_ref();
     let trig = ["c.Writer.Write(", "c.Stream("];
-    if !trig.iter().any(|t| source.contains(t))
-        || source.contains("c.Writer.Flush()")
-        || source.contains("c.Writer.FlushHeaders()")
+    if !facts.source_index.has_any(&trig)
+        || facts.source_index.has("c.Writer.Flush()")
+        || facts.source_index.has("c.Writer.FlushHeaders()")
     {
         return;
     }
@@ -62,24 +62,24 @@ pub(crate) fn detect_perf_69(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
 }
 
 /// PERF-70: `go func(){}` in a Gin handler without a WaitGroup / done channel / context cancellation.
-pub(crate) fn detect_perf_70(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_70(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let source = unit.source.as_ref();
-    if !is_request_path(source) || !source.contains("go func()") {
+    if !is_request_path(&facts.source_index) || !facts.source_index.has("go func()") {
         return;
     }
-    let has_lifecycle = source.contains("sync.WaitGroup")
-        || source.contains("wg.Add(")
-        || source.contains("done := make(chan")
-        || source.contains("ctx, cancel := context.WithCancel")
-        || source.contains("ctx, cancel := context.WithTimeout")
-        || source.contains("ctx, cancel := context.WithDeadline")
-        || source.contains("c.Request.Context()")
-        || source.contains("sync.Once")
-        || source.contains("errgroup")
-        || source.contains("sem := make(chan")
-        || source.contains("semaphore")
-        || source.contains("workerPool")
-        || source.contains("workerCount");
+    let has_lifecycle = facts.source_index.has("sync.WaitGroup")
+        || facts.source_index.has("wg.Add(")
+        || facts.source_index.has("done := make(chan")
+        || facts.source_index.has("ctx, cancel := context.WithCancel")
+        || facts.source_index.has("ctx, cancel := context.WithTimeout")
+        || facts.source_index.has("ctx, cancel := context.WithDeadline")
+        || facts.source_index.has("c.Request.Context()")
+        || facts.source_index.has("sync.Once")
+        || facts.source_index.has("errgroup")
+        || facts.source_index.has("sem := make(chan")
+        || facts.source_index.has("semaphore")
+        || facts.source_index.has("workerPool")
+        || facts.source_index.has("workerCount");
     if has_lifecycle {
         return;
     }

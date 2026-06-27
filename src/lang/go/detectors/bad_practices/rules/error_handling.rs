@@ -2,12 +2,17 @@
 
 use tree_sitter::Node;
 
+use super::helpers::{line_start_byte, push_at};
+use super::super::source_index::SourceIndex;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
-use super::helpers::{line_start_byte, push_at};
 
 /// BP-1: `_ = f()` where `f` likely returns an `error`.
-pub(crate) fn detect_bp_1_discarded_error(unit: &ParsedUnit, out: &mut Vec<Finding>) {
+pub(crate) fn detect_bp_1_discarded_error(
+    unit: &ParsedUnit,
+    _index: &SourceIndex,
+    out: &mut Vec<Finding>,
+) {
     let file = unit.display_path.as_str();
     let src = unit.source.as_bytes();
     let root = unit.tree.root_node();
@@ -22,7 +27,7 @@ pub(crate) fn detect_bp_1_discarded_error(unit: &ParsedUnit, out: &mut Vec<Findi
                         .or_else(|| text.split_once('=').map(|(l, _)| l));
                     if let Some(lhs) = lhs {
                         let names: Vec<&str> = lhs.split(',').map(str::trim).collect();
-                        let discards_error = names.iter().any(|name| *name == "_")
+                        let discards_error = names.contains(&"_")
                             && !names.iter().any(|name| name.eq_ignore_ascii_case("err"));
                         if discards_error {
                             let (line, col) = unit.line_col(node.start_byte());
@@ -49,7 +54,11 @@ pub(crate) fn detect_bp_1_discarded_error(unit: &ParsedUnit, out: &mut Vec<Findi
 }
 
 /// BP-2: `return err` without contextual wrapping.
-pub(crate) fn detect_bp_2_naked_error_return(unit: &ParsedUnit, out: &mut Vec<Finding>) {
+pub(crate) fn detect_bp_2_naked_error_return(
+    unit: &ParsedUnit,
+    _index: &SourceIndex,
+    out: &mut Vec<Finding>,
+) {
     for (idx, line) in unit.source.lines().enumerate() {
         if line.trim() == "return err" {
             push_at(
@@ -64,17 +73,21 @@ pub(crate) fn detect_bp_2_naked_error_return(unit: &ParsedUnit, out: &mut Vec<Fi
 }
 
 /// BP-4: `recover()` without nearby logging or explicit reporting.
-pub(crate) fn detect_bp_4_recover_without_logging(unit: &ParsedUnit, out: &mut Vec<Finding>) {
+pub(crate) fn detect_bp_4_recover_without_logging(
+    unit: &ParsedUnit,
+    index: &SourceIndex,
+    out: &mut Vec<Finding>,
+) {
     let source = unit.source.as_ref();
-    if !source.contains("recover()") {
+    if !index.has("recover()") {
         return;
     }
-    let reports_recovery = source.contains("log.")
-        || source.contains("Logger.")
-        || source.contains(".Error(")
-        || source.contains(".Warn(")
-        || source.contains("fmt.Printf(")
-        || source.contains("fmt.Fprintf(");
+    let reports_recovery = index.has("log.")
+        || index.has("Logger.")
+        || index.has(".Error(")
+        || index.has(".Warn(")
+        || index.has("fmt.Printf(")
+        || index.has("fmt.Fprintf(");
     if reports_recovery {
         return;
     }
@@ -90,7 +103,11 @@ pub(crate) fn detect_bp_4_recover_without_logging(unit: &ParsedUnit, out: &mut V
 }
 
 /// BP-5: Close() errors ignored through bare or deferred calls.
-pub(crate) fn detect_bp_5_ignored_close_error(unit: &ParsedUnit, out: &mut Vec<Finding>) {
+pub(crate) fn detect_bp_5_ignored_close_error(
+    unit: &ParsedUnit,
+    _index: &SourceIndex,
+    out: &mut Vec<Finding>,
+) {
     let source = unit.source.as_ref();
     for (idx, line) in source.lines().enumerate() {
         let trimmed = line.trim();

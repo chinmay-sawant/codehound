@@ -3,11 +3,11 @@ use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
-pub(crate) fn detect_cwe_209(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_209(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains(r#"fmt.Sprintf("db failure: %v", err)"#) {
+    if !facts.source_index.has(r#"fmt.Sprintf("db failure: %v", err)"#) {
         return;
     }
 
@@ -58,19 +58,19 @@ pub(crate) fn detect_cwe_215(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     }
 }
 
-pub(crate) fn detect_cwe_756(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_756(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let raw_error_to_client = source.contains("err.Error()")
-        && source.contains("FetchProfile")
-        && source.contains("SELECT email FROM profiles")
-        && (source.contains("c.String(http.StatusInternalServerError, err.Error())")
-            || source.contains("http.Error(w, err.Error(), http.StatusInternalServerError)"));
+    let raw_error_to_client = facts.source_index.has("err.Error()")
+        && facts.source_index.has("FetchProfile")
+        && facts.source_index.has("SELECT email FROM profiles")
+        && (facts.source_index.has("c.String(http.StatusInternalServerError, err.Error())")
+            || facts.source_index.has("http.Error(w, err.Error(), http.StatusInternalServerError)"));
     if !raw_error_to_client {
         return;
     }
-    if source.contains("\"unable to load profile\"") {
+    if facts.source_index.has("\"unable to load profile\"") {
         return;
     }
 
@@ -86,19 +86,19 @@ pub(crate) fn detect_cwe_756(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_1230(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_1230(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let metadata_leak = (source.contains("DownloadRedacted(")
-        || source.contains("DownloadRedactedPure("))
-        && source.contains("X-Original-Name")
-        && source.contains("X-File-Size")
-        && source.contains("[REDACTED CONTENT]");
+    let metadata_leak = (facts.source_index.has("DownloadRedacted(")
+        || facts.source_index.has("DownloadRedactedPure("))
+        && facts.source_index.has("X-Original-Name")
+        && facts.source_index.has("X-File-Size")
+        && facts.source_index.has("[REDACTED CONTENT]");
     if !metadata_leak {
         return;
     }
-    if source.contains("Cache-Control") {
+    if facts.source_index.has("Cache-Control") {
         return;
     }
 

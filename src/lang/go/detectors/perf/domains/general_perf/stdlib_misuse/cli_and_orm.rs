@@ -13,7 +13,7 @@ pub(crate) fn detect_perf_204(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains(".Updates(") {
+    if !facts.source_index.has(".Updates(") {
         return;
     }
 
@@ -77,10 +77,10 @@ pub(crate) fn detect_perf_209(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("cobra.Command") {
+    if !facts.source_index.has("cobra.Command") {
         return;
     }
-    if !source.contains("PersistentPreRunE") && !source.contains("PersistentPostRunE") {
+    if !facts.source_index.has("PersistentPreRunE") && !facts.source_index.has("PersistentPostRunE") {
         return;
     }
 
@@ -119,7 +119,6 @@ pub(crate) fn detect_perf_209(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
             from = start + marker.len();
         }
     }
-    let _ = facts;
 }
 
 /// PERF-211: GORM `db.Not(...)` / `db.Where("... NOT IN ...")` /
@@ -128,20 +127,20 @@ pub(crate) fn detect_perf_209(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 /// full scan.
 pub(crate) fn detect_perf_211(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let _source = unit.source.as_ref();
 
-    if !source.contains("db.Not(") && !source.contains(".Not(") {
+    if !facts.source_index.has("db.Not(") && !facts.source_index.has(".Not(") {
         // We need a fallback for `db.Where` with NOT IN / NOT LIKE.
     }
-    let has_not_in = source.contains("NOT IN") || source.contains("not in");
-    let has_not_like = source.contains("NOT LIKE") || source.contains("not like");
-    if !source.contains("db.Not(") && !source.contains(".Not(") && !has_not_in && !has_not_like {
+    let has_not_in = facts.source_index.has("NOT IN") || facts.source_index.has("not in");
+    let has_not_like = facts.source_index.has("NOT LIKE") || facts.source_index.has("not like");
+    if !facts.source_index.has("db.Not(") && !facts.source_index.has(".Not(") && !has_not_in && !has_not_like {
         return;
     }
 
     for call in &facts.calls {
         let callee = call.callee.as_ref();
-        if callee.ends_with(".Not") && call.arguments.len() >= 1 {
+        if callee.ends_with(".Not") && !call.arguments.is_empty() {
             let (line, col) = unit.line_col(call.start_byte);
             emit::push_finding(
                 &META_PERF_211,

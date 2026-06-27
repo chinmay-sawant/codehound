@@ -45,7 +45,7 @@ impl TimingSummary {
                 phase.duration.as_secs_f64() / total.as_secs_f64() * 100.0
             };
         }
-        phases.sort_by(|a, b| b.duration.cmp(&a.duration));
+        phases.sort_by_key(|b| std::cmp::Reverse(b.duration));
 
         self.total_wall_time = total;
         self.phases = phases;

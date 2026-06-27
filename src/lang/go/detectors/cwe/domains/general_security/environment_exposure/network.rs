@@ -3,23 +3,21 @@ use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
-pub(crate) fn detect_cwe_359(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_359(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let serializes_pii = (source.contains("SSN")
-        && source.contains("Phone")
-        && source.contains("json.Marshal(row)"))
-        || (source.contains("SSN")
-            && source.contains("Phone")
-            && source.contains("json.Marshal(")
-            && source.contains("PersonRecord"));
+    let serializes_pii = (facts.source_index.has("SSN")
+        && facts.source_index.has("Phone")
+        && facts.source_index.has("json.Marshal(row)"))
+        || (facts.source_index.has("SSN")
+            && facts.source_index.has("Phone")
+            && facts.source_index.has("json.Marshal(")
+            && facts.source_index.has("PersonRecord"));
     if !serializes_pii {
         return;
     }
-    if source.contains("PublicProfile")
-        || source.contains("PublicPersonView")
-        || source.contains("requester != target")
+    if facts.source_index.has_any(&["PublicProfile", "PublicPersonView", "requester != target"])
     {
         return;
     }
@@ -38,14 +36,14 @@ pub(crate) fn detect_cwe_359(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_360(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_360(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("X-Forwarded-For") {
+    if !facts.source_index.has("X-Forwarded-For") {
         return;
     }
-    if source.contains("SplitHostPort(") || source.contains("RemoteAddr") {
+    if facts.source_index.has_any(&["SplitHostPort(", "RemoteAddr"]) {
         return;
     }
 
@@ -61,13 +59,13 @@ pub(crate) fn detect_cwe_360(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_393(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_393(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let wrong_status = source.contains("if err != nil {")
-        && source.contains("WriteHeader(http.StatusOK)")
-        && source.contains(r#"{"balance":0}"#);
+    let wrong_status = facts.source_index.has("if err != nil {")
+        && facts.source_index.has("WriteHeader(http.StatusOK)")
+        && facts.source_index.has(r#"{"balance":0}"#);
     if !wrong_status {
         return;
     }

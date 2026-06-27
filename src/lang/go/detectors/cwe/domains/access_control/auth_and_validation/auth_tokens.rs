@@ -3,20 +3,16 @@ use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
-pub(crate) fn detect_cwe_294(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_294(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let loads_auth_token = source.contains(r#"c.PostForm("auth_token")"#)
-        || source.contains(r#"r.FormValue("auth_token")"#);
+    let loads_auth_token = facts.source_index.has_any(&[r#"c.PostForm("auth_token")"#, r#"r.FormValue("auth_token")"#]);
     if !loads_auth_token {
         return;
     }
 
-    let has_nonce_tracking = source.contains("LoadOrStore(nonce, true)")
-        || source.contains("spentNonces")
-        || source.contains(r#"PostForm("nonce")"#)
-        || source.contains(r#"FormValue("nonce")"#);
+    let has_nonce_tracking = facts.source_index.has_any(&["LoadOrStore(nonce, true)", "spentNonces", r#"PostForm("nonce")"#, r#"FormValue("nonce")"#]);
     if has_nonce_tracking {
         return;
     }
@@ -38,17 +34,15 @@ pub(crate) fn detect_cwe_294(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_301(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_301(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let echoes_challenge = source.contains(r#"gin.H{"proof": challenge}"#)
-        || source.contains(r#"{"proof": challenge}"#)
-        || source.contains(r#"map[string]string{"proof": challenge}"#);
+    let echoes_challenge = facts.source_index.has_any(&[r#"gin.H{"proof": challenge}"#, r#"{"proof": challenge}"#, r#"map[string]string{"proof": challenge}"#]);
     if !echoes_challenge {
         return;
     }
-    if source.contains("hmac.New(") || source.contains("EncodeToString(") {
+    if facts.source_index.has_any(&["hmac.New(", "EncodeToString("]) {
         return;
     }
 
@@ -64,14 +58,14 @@ pub(crate) fn detect_cwe_301(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_303(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_303(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("hmac.New(") || !source.contains("mac.Sum(nil)") {
+    if !facts.source_index.has("hmac.New(") || !facts.source_index.has("mac.Sum(nil)") {
         return;
     }
-    if !source.contains("string(expected) == sig") {
+    if !facts.source_index.has("string(expected) == sig") {
         return;
     }
 
@@ -87,11 +81,11 @@ pub(crate) fn detect_cwe_303(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_322(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_322(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("tls.Dial(") || !source.contains("InsecureSkipVerify: true") {
+    if !facts.source_index.has("tls.Dial(") || !facts.source_index.has("InsecureSkipVerify: true") {
         return;
     }
 
@@ -107,12 +101,12 @@ pub(crate) fn detect_cwe_322(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_408(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_408(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let query_before_auth = (source.contains("SELECT * FROM orders WHERE tenant_id = ?")
-        && source.contains("Authorization"))
+    let query_before_auth = (facts.source_index.has("SELECT * FROM orders WHERE tenant_id = ?")
+        && facts.source_index.has("Authorization"))
         && (source
             .find("SELECT * FROM orders WHERE tenant_id = ?")
             .unwrap_or(usize::MAX)

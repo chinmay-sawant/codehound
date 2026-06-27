@@ -15,7 +15,7 @@ pub(crate) fn detect_perf_106(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("sync.Map") {
+    if !facts.source_index.has("sync.Map") {
         return;
     }
 
@@ -61,14 +61,14 @@ fn sync_map_location(source: &str, unit: &ParsedUnit) -> (usize, usize) {
 /// instead of a pointer. Each `Put` boxes the value into an `eface`
 /// on the pool's internal queue, and each `Get` unboxes it; returning
 /// `*T` from `New` avoids the round trip.
-pub(crate) fn detect_perf_110(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_110(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     use crate::ast::walk_nodes;
     use tree_sitter::Node;
 
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("sync.Pool") {
+    if !facts.source_index.has("sync.Pool") {
         return;
     }
 
@@ -302,5 +302,4 @@ pub(crate) fn detect_perf_192(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
             out,
         );
     }
-    let _ = facts;
 }

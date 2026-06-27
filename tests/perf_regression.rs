@@ -24,6 +24,7 @@ fn materialized_fixture_scan_within_smoke_budget() {
     materialize_tree(Path::new("tests/fixtures")).expect("materialize integration fixtures");
 
     let analyzer = Analyzer::builder()
+        .with_default_filter()
         .scan_context(ScanContext::default())
         .build();
     let root = materialized_root();
@@ -51,6 +52,7 @@ fn materialized_fixture_scan_repeat_within_budget() {
     materialize_tree(Path::new("tests/fixtures")).expect("materialize integration fixtures");
 
     let analyzer = Analyzer::builder()
+        .with_default_filter()
         .scan_context(ScanContext::default())
         .build();
     let root = materialized_root();

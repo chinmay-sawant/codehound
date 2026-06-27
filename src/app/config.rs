@@ -9,13 +9,17 @@ pub fn load_config(explicit: Option<&Path>) -> Result<Option<SlopguardConfig>> {
         if !path.is_file() {
             anyhow::bail!("config file not found: {}", path.display());
         }
-        Ok(Some(SlopguardConfig::load(path).with_context(|| {
-            format!("loading config {}", path.display())
-        })?))
+        Ok(Some(
+            SlopguardConfig::load(path)
+                .map_err(anyhow::Error::from)
+                .with_context(|| format!("loading config {}", path.display()))?,
+        ))
     } else if let Some(found) = discover_config(Path::new(".")) {
-        Ok(Some(SlopguardConfig::load(&found).with_context(|| {
-            format!("loading config {}", found.display())
-        })?))
+        Ok(Some(
+            SlopguardConfig::load(&found)
+                .map_err(anyhow::Error::from)
+                .with_context(|| format!("loading config {}", found.display()))?,
+        ))
     } else {
         Ok(None)
     }

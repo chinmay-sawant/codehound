@@ -4,6 +4,8 @@
 pub enum LanguageId {
     Go,
     Python,
+    /// Reserved for a future tree-sitter plugin; requires `typescript` feature.
+    #[cfg(feature = "typescript")]
     TypeScript,
 }
 
@@ -12,6 +14,7 @@ impl LanguageId {
         match ext {
             "go" => Some(Self::Go),
             "py" => Some(Self::Python),
+            #[cfg(feature = "typescript")]
             "ts" | "tsx" | "js" | "jsx" => Some(Self::TypeScript),
             _ => None,
         }
@@ -22,6 +25,7 @@ impl LanguageId {
         match name.trim().to_lowercase().as_str() {
             "go" => Some(Self::Go),
             "python" | "py" => Some(Self::Python),
+            #[cfg(feature = "typescript")]
             "typescript" | "ts" => Some(Self::TypeScript),
             _ => None,
         }
@@ -31,6 +35,7 @@ impl LanguageId {
         match self {
             Self::Go => &["go"],
             Self::Python => &["python", "py"],
+            #[cfg(feature = "typescript")]
             Self::TypeScript => &["typescript", "ts"],
         }
     }
@@ -41,6 +46,7 @@ impl LanguageId {
         match self {
             Self::Go => "go",
             Self::Python => "python",
+            #[cfg(feature = "typescript")]
             Self::TypeScript => "typescript",
         }
     }
@@ -50,6 +56,7 @@ impl LanguageId {
         match s {
             "go" => Some(Self::Go),
             "python" => Some(Self::Python),
+            #[cfg(feature = "typescript")]
             "typescript" | "ts" => Some(Self::TypeScript),
             _ => None,
         }

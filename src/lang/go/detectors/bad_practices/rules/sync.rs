@@ -1,16 +1,18 @@
 //! BP-6, BP-7, BP-8, BP-9 — concurrency/synchronisation bad practices.
 
+use super::helpers::{line_start_byte, push_at};
+use super::super::source_index::SourceIndex;
 use crate::core::ParsedUnit;
 use crate::rules::Finding;
-use super::helpers::{line_start_byte, push_at};
 
 /// BP-6: sync.WaitGroup.Add inside the goroutine it tracks.
 pub(crate) fn detect_bp_6_waitgroup_add_inside_goroutine(
     unit: &ParsedUnit,
+    index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
     let source = unit.source.as_ref();
-    if !source.contains("go func") || !source.contains(".Add(") {
+    if !index.has("go func") || !index.has(".Add(") {
         return;
     }
     let mut in_goroutine = false;
@@ -28,14 +30,18 @@ pub(crate) fn detect_bp_6_waitgroup_add_inside_goroutine(
                 "WaitGroup.Add is inside the goroutine; call Add before launching it",
             );
         }
-        if in_goroutine && (trimmed == "}" || trimmed == "}()" || trimmed == "}()") {
+        if in_goroutine && (trimmed == "}" || trimmed == "}()") {
             in_goroutine = false;
         }
     }
 }
 
 /// BP-7: sync.Mutex copied by function parameter value.
-pub(crate) fn detect_bp_7_mutex_passed_by_value(unit: &ParsedUnit, out: &mut Vec<Finding>) {
+pub(crate) fn detect_bp_7_mutex_passed_by_value(
+    unit: &ParsedUnit,
+    _index: &SourceIndex,
+    out: &mut Vec<Finding>,
+) {
     let source = unit.source.as_ref();
     for (idx, line) in source.lines().enumerate() {
         let trimmed = line.trim();
@@ -55,11 +61,13 @@ pub(crate) fn detect_bp_7_mutex_passed_by_value(unit: &ParsedUnit, out: &mut Vec
 }
 
 /// BP-8: deferred unlock on a mutex value copy.
-pub(crate) fn detect_bp_8_defer_unlock_on_mutex_copy(unit: &ParsedUnit, out: &mut Vec<Finding>) {
+pub(crate) fn detect_bp_8_defer_unlock_on_mutex_copy(
+    unit: &ParsedUnit,
+    index: &SourceIndex,
+    out: &mut Vec<Finding>,
+) {
     let source = unit.source.as_ref();
-    if !(source.contains(" sync.Mutex")
-        && source.contains("defer ")
-        && source.contains(".Unlock()"))
+    if !(index.has(" sync.Mutex") && index.has("defer ") && index.has(".Unlock()"))
     {
         return;
     }
@@ -77,7 +85,11 @@ pub(crate) fn detect_bp_8_defer_unlock_on_mutex_copy(unit: &ParsedUnit, out: &mu
 }
 
 /// BP-9: select without default, timeout, or context cancellation.
-pub(crate) fn detect_bp_9_select_without_escape(unit: &ParsedUnit, out: &mut Vec<Finding>) {
+pub(crate) fn detect_bp_9_select_without_escape(
+    unit: &ParsedUnit,
+    _index: &SourceIndex,
+    out: &mut Vec<Finding>,
+) {
     let source = unit.source.as_ref();
     let Some(pos) = source.find("select {") else {
         return;

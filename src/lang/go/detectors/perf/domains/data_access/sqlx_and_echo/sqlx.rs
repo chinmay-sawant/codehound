@@ -5,17 +5,23 @@ use super::super::common::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
-pub(crate) fn detect_perf_81(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_81(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
     let triggers = ["db.Select(", "db.Queryx(", "db.QueryxContext("];
-    let Some(&needle) = triggers.iter().find(|n| source.contains(*n)) else {
+    let Some(&needle) = triggers
+        .iter()
+        .find(|n| facts.source_index.has(n))
+    else {
         return;
     };
-    if !source.contains("IN (?)") {
+    if !facts.source_index.has("IN (?)") {
         return;
     }
-    if source.contains("chunk") || source.contains("Chunked") || source.contains("batchIDs") {
+    if facts.source_index.has("chunk")
+        || facts.source_index.has("Chunked")
+        || facts.source_index.has("batchIDs")
+    {
         return;
     }
     let start = source.find(needle).unwrap_or(0);
@@ -62,10 +68,10 @@ pub(crate) fn detect_perf_83(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     );
 }
 
-pub(crate) fn detect_perf_84(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_84(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
-    if !is_request_path(source) {
+    if !is_request_path(&facts.source_index) {
         return;
     }
     let triggers = [
@@ -74,7 +80,10 @@ pub(crate) fn detect_perf_84(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
         "tx, err := db.Beginx",
         "tx := db.MustBegin",
     ];
-    let Some(&needle) = triggers.iter().find(|n| source.contains(*n)) else {
+    let Some(&needle) = triggers
+        .iter()
+        .find(|n| facts.source_index.has(n))
+    else {
         return;
     };
     let start = source.find(needle).unwrap_or(0);

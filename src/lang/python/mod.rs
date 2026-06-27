@@ -8,8 +8,7 @@ mod parser;
 use std::path::Path;
 use std::sync::Arc;
 
-use anyhow::Result;
-
+use crate::Error;
 use crate::core::{Detector, LanguageId, LanguagePlugin, ParsedUnit};
 
 pub struct PythonPlugin;
@@ -23,8 +22,8 @@ impl LanguagePlugin for PythonPlugin {
         &["py"]
     }
 
-    fn configure_parser(&self, parser: &mut tree_sitter::Parser) {
-        parser::configure(parser);
+    fn configure_parser(&self, parser: &mut tree_sitter::Parser) -> Result<(), Error> {
+        parser::configure(parser)
     }
 
     fn parse_with(
@@ -32,7 +31,7 @@ impl LanguagePlugin for PythonPlugin {
         parser: &mut tree_sitter::Parser,
         path: &Path,
         source: Arc<str>,
-    ) -> Result<ParsedUnit> {
+    ) -> Result<ParsedUnit, Error> {
         parser::parse_with(parser, path, source)
     }
 

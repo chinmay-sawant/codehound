@@ -7,7 +7,9 @@ use helpers::cache::{unique_temp_root, write_minimal_go};
 use std::path::PathBuf;
 
 use slopguard::core::ScanContext;
-use slopguard::engine::{Analyzer, CacheStore, SlopguardConfig, content_hash, DEFAULT_CACHE_DIR, discover_cache_dir};
+use slopguard::engine::{
+    Analyzer, CacheStore, DEFAULT_CACHE_DIR, SlopguardConfig, content_hash, discover_cache_dir,
+};
 
 fn scan_with_cache(root: &std::path::Path, cache: Option<&mut CacheStore>) -> Vec<String> {
     scan_with_context(root, cache, ScanContext::default())
@@ -18,7 +20,7 @@ fn scan_with_context(
     cache: Option<&mut CacheStore>,
     ctx: ScanContext,
 ) -> Vec<String> {
-    let analyzer = Analyzer::builder().scan_context(ctx).build();
+    let analyzer = Analyzer::builder().with_default_filter().scan_context(ctx).build();
     let result = analyzer
         .analyze_paths([root], cache)
         .expect("analyze_paths");
@@ -63,7 +65,7 @@ fn changing_source_invalidates_cache_entry() {
     write_minimal_go(&source);
 
     let cache_dir = root.join(DEFAULT_CACHE_DIR);
-    let mut cache = CacheStore::open(cache_dir.clone()).unwrap();
+    let mut cache = CacheStore::open(cache_dir).unwrap();
     let _ = scan_with_cache(&root, Some(&mut cache));
     assert_eq!(cache.len(), 1);
 
@@ -91,7 +93,7 @@ fn deleting_a_file_prunes_its_cache_entry() {
     write_minimal_go(&source);
 
     let cache_dir = root.join(DEFAULT_CACHE_DIR);
-    let mut cache = CacheStore::open(cache_dir.clone()).unwrap();
+    let mut cache = CacheStore::open(cache_dir).unwrap();
     let _ = scan_with_cache(&root, Some(&mut cache));
     assert_eq!(cache.len(), 1);
 

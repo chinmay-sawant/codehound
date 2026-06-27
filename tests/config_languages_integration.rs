@@ -15,6 +15,7 @@ fn go_only_filter_skips_python_files() {
 
     let filter = LanguageFilter::Many(HashSet::from([LanguageId::Go]));
     let analyzer = Analyzer::builder()
+        .with_default_filter()
         .scan_context(ScanContext::default())
         .language_filter(filter)
         .build();

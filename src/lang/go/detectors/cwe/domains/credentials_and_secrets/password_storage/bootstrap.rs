@@ -2,18 +2,18 @@ use super::super::super::super::facts::GoUnitFacts;
 use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
-pub(crate) fn detect_cwe_1052(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_1052(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let hard_coded_dsn = (source.contains("gorm.Open(postgres.Open(dsn)")
-        || source.contains("sql.Open(\"postgres\", appDSNPure)"))
-        && source.contains("password=SuperSecret99")
-        && source.contains("host=db.internal");
+    let hard_coded_dsn = (facts.source_index.has("gorm.Open(postgres.Open(dsn)")
+        || facts.source_index.has("sql.Open(\"postgres\", appDSNPure)"))
+        && facts.source_index.has("password=SuperSecret99")
+        && facts.source_index.has("host=db.internal");
     if !hard_coded_dsn {
         return;
     }
-    if source.contains("APP_DATABASE_URL") || source.contains("DB_PASSWORD") {
+    if facts.source_index.has("APP_DATABASE_URL") || facts.source_index.has("DB_PASSWORD") {
         return;
     }
 
@@ -29,18 +29,18 @@ pub(crate) fn detect_cwe_1052(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
     );
 }
 
-pub(crate) fn detect_cwe_1392(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_1392(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let default_admin = (source.contains("BootstrapAdmin(")
-        || source.contains("BootstrapAdminPure("))
-        && source.contains("Username: \"admin\"")
-        && source.contains("Password: \"admin\"");
+    let default_admin = (facts.source_index.has("BootstrapAdmin(")
+        || facts.source_index.has("BootstrapAdminPure("))
+        && facts.source_index.has("Username: \"admin\"")
+        && facts.source_index.has("Password: \"admin\"");
     if !default_admin {
         return;
     }
-    if source.contains("BOOTSTRAP_ADMIN_PASSWORD") {
+    if facts.source_index.has("BOOTSTRAP_ADMIN_PASSWORD") {
         return;
     }
 

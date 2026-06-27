@@ -2,7 +2,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use slopguard::cwe::CweRef;
 use slopguard::export::{ExportOptions, export_findings};
-use slopguard::rules::{DetectorEvidence, Finding, LineCol, Severity};
+use slopguard::rules::{DetectorEvidence, Finding, FindingInputs, LineCol, Severity};
 
 #[test]
 fn exports_context_and_chunk_files() {
@@ -25,7 +25,7 @@ fn exports_context_and_chunk_files() {
         "https://cwe.mitre.org/data/definitions/89.html",
     )]));
     let findings = vec![
-        Finding::new(
+        Finding::new(FindingInputs::new(
             "CWE-89",
             "SQL injection via concatenated query",
             source_path.to_string_lossy().to_string(),
@@ -33,7 +33,7 @@ fn exports_context_and_chunk_files() {
             "query string is built from untrusted input",
             Severity::Medium,
             std::borrow::Cow::Borrowed(cwe),
-        )
+        ))
         .with_evidence(DetectorEvidence::DangerousCall {
             function: "database/sql.Query".to_string(),
             argument_index: Some(0),

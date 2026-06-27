@@ -3,17 +3,22 @@
 
 use std::path::PathBuf;
 
-use anyhow::Context;
-
+use crate::Error;
 use crate::core::ScanContext;
 
 use super::types::SlopguardConfig;
 
 impl SlopguardConfig {
-    pub fn load(path: &std::path::Path) -> anyhow::Result<Self> {
-        let text = std::fs::read_to_string(path)
-            .with_context(|| format!("reading config {}", path.display()))?;
-        toml::from_str(&text).context("parsing slopguard.toml")
+    /// Load and parse a `slopguard.toml` file from `path`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Io`] when the file cannot be read and [`Error::Config`]
+    /// when the TOML is invalid or contains unknown fields (serde `deny_unknown_fields`).
+    #[must_use = "config load failures must be handled"]
+    pub fn load(path: &std::path::Path) -> Result<Self, Error> {
+        let text = std::fs::read_to_string(path).map_err(Error::from)?;
+        toml::from_str(&text).map_err(|e| Error::Config(format!("parsing {}: {e}", path.display())))
     }
 
     pub fn discover() -> Option<Self> {

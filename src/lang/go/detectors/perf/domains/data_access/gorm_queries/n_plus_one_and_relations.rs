@@ -7,8 +7,7 @@ use crate::rules::{Finding, emit};
 
 pub(crate) fn detect_perf_71(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
-    if source.contains("Preload(") || source.contains(".Joins(") {
+    if facts.source_index.has("Preload(") || facts.source_index.has(".Joins(") {
         return;
     }
     let triggers = ["db.Find", "db.First", "db.Take", "db.Where"];
@@ -26,13 +25,16 @@ pub(crate) fn detect_perf_71(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     );
 }
 
-pub(crate) fn detect_perf_73(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_73(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
-    if source.contains("Preload(") || source.contains(".Joins(") {
+    if facts.source_index.has("Preload(") || facts.source_index.has(".Joins(") {
         return;
     }
-    if !has_any(source, &["db.Find(", "db.First(", "db.Take("]) {
+    if !has_any(
+        &facts.source_index,
+        &["db.Find(", "db.First(", "db.Take("],
+    ) {
         return;
     }
     let relations = [
@@ -46,12 +48,12 @@ pub(crate) fn detect_perf_73(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
         ".Tags",
         ".Addresses",
     ];
-    if !has_any(source, &relations) {
+    if !has_any(&facts.source_index, &relations) {
         return;
     }
     let needle = ["db.Find(", "db.First(", "db.Take("]
         .iter()
-        .find(|n| source.contains(**n))
+        .find(|n| facts.source_index.has(n))
         .copied()
         .unwrap_or("db.Find(");
     let start = source.find(needle).unwrap_or(0);
@@ -66,17 +68,20 @@ pub(crate) fn detect_perf_73(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_perf_74(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_74(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
-    if !is_request_path(source) {
+    if !is_request_path(&facts.source_index) {
         return;
     }
-    if source.contains(".Select(") {
+    if facts.source_index.has(".Select(") {
         return;
     }
     let triggers = ["db.Find(", "db.First(", "db.Take(", "db.Where("];
-    let Some(&needle) = triggers.iter().find(|n| source.contains(*n)) else {
+    let Some(&needle) = triggers
+        .iter()
+        .find(|n| facts.source_index.has(n))
+    else {
         return;
     };
     let start = source.find(needle).unwrap_or(0);
@@ -91,25 +96,28 @@ pub(crate) fn detect_perf_74(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_perf_78(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_78(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
     let triggers = ["db.Raw(", "db.Exec("];
-    let Some(&needle) = triggers.iter().find(|n| source.contains(*n)) else {
+    let Some(&needle) = triggers
+        .iter()
+        .find(|n| facts.source_index.has(n))
+    else {
         return;
     };
     let after_idx = source.find(needle).unwrap_or(0);
     let after = &source[after_idx..];
-    if !has_any(
+    if !substr_has_any(
         after,
         &["WHERE", "ORDER BY", "JOIN", "where ", "order by ", "join "],
     ) {
         return;
     }
-    if source.contains("// index-backed")
-        || source.contains("/* index */")
-        || source.contains("USING INDEX")
-        || source.contains("use index")
+    if facts.source_index.has("// index-backed")
+        || facts.source_index.has("/* index */")
+        || facts.source_index.has("USING INDEX")
+        || facts.source_index.has("use index")
     {
         return;
     }

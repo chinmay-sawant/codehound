@@ -23,15 +23,15 @@ pub(crate) fn detect_perf_52(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 }
 
 /// PERF-53: package-level `math/rand` on the request path.
-pub(crate) fn detect_perf_53(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_53(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let source = unit.source.as_ref();
-    if !is_request_path(source) {
+    if !is_request_path(&facts.source_index) {
         return;
     }
     let trig = ["rand.Intn(", "rand.Float64(", "rand.Read("];
-    if !trig.iter().any(|t| source.contains(t))
-        || source.contains("rand.NewSource(")
-        || source.contains("rand.New(")
+    if !facts.source_index.has_any(&trig)
+        || facts.source_index.has("rand.NewSource(")
+        || facts.source_index.has("rand.New(")
     {
         return;
     }
@@ -45,14 +45,14 @@ pub(crate) fn detect_perf_53(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
 }
 
 /// PERF-54: `strings.Builder{}` allocated in a request handler.
-pub(crate) fn detect_perf_54(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_54(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let source = unit.source.as_ref();
-    if !is_request_path(source) || !source.contains("strings.Builder{}") {
+    if !is_request_path(&facts.source_index) || !facts.source_index.has("strings.Builder{}") {
         return;
     }
-    if source.contains("Reset()")
-        || source.contains("var builderPool =")
-        || source.contains("sync.Pool{")
+    if facts.source_index.has("Reset()")
+        || facts.source_index.has("var builderPool =")
+        || facts.source_index.has("sync.Pool")
     {
         return;
     }
@@ -66,9 +66,9 @@ pub(crate) fn detect_perf_54(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut 
 }
 
 /// PERF-55: `bufio.NewScanner` with no explicit `Buffer` sizing.
-pub(crate) fn detect_perf_55(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_55(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let source = unit.source.as_ref();
-    if source.contains("bufio.NewScanner(") && !source.contains(".Buffer(") {
+    if facts.source_index.has("bufio.NewScanner(") && !facts.source_index.has(".Buffer(") {
         emit_at(
             unit,
             &META_PERF_55,

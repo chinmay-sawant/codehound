@@ -1,0 +1,13 @@
+---
+source: tests/reporting_text_snapshot.rs
+expression: s
+---
+high  CWE-22  a.go:1:1
+  msg
+
+critical  CWE-89  b.go:2:3
+  msg2
+
+2 findings
+  severity: 1 critical, 1 high
+  top rules: CWE-22 ×1, CWE-89 ×1

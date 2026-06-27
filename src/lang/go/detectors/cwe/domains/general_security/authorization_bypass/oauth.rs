@@ -3,21 +3,17 @@ use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
-pub(crate) fn detect_cwe_940(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_940(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let oauth_callback = (source.contains("OAuthCallback(")
-        || source.contains("OAuthCallbackPure("))
-        && source.contains("code")
-        && source.contains("INSERT INTO oauth_tokens (user_id, code) VALUES ($1, $2)");
+    let oauth_callback = (facts.source_index.has_any(&["OAuthCallback(", "OAuthCallbackPure("]))
+        && facts.source_index.has("code")
+        && facts.source_index.has("INSERT INTO oauth_tokens (user_id, code) VALUES ($1, $2)");
     if !oauth_callback {
         return;
     }
-    if source.contains("oauth_state")
-        || source.contains("Cookie(\"oauth_state\")")
-        || source.contains("r.Cookie(\"oauth_state\")")
-        || source.contains("invalid oauth state")
+    if facts.source_index.has_any(&["oauth_state", r#"Cookie("oauth_state")"#, r#"r.Cookie("oauth_state")"#, "invalid oauth state"])
     {
         return;
     }
@@ -37,21 +33,18 @@ pub(crate) fn detect_cwe_940(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_941(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_941(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let caller_directed_reset = (source.contains("SendResetLink(")
-        || source.contains("SendResetLinkPure("))
-        && source.contains("smtp.SendMail")
-        && (source.contains("Query(\"email\")") || source.contains("Query().Get(\"email\")"))
-        && source.contains("[]string{email}");
+    let caller_directed_reset = (facts.source_index.has_any(&["SendResetLink(", "SendResetLinkPure("]))
+        && facts.source_index.has("smtp.SendMail")
+        && (facts.source_index.has_any(&[r#"Query("email")"#, r#"Query().Get("email")"#]))
+        && facts.source_index.has("[]string{email}");
     if !caller_directed_reset {
         return;
     }
-    if source.contains("user.Email")
-        || source.contains("lookupEmail(")
-        || source.contains("sessionUserID")
+    if facts.source_index.has_any(&["user.Email", "lookupEmail(", "sessionUserID"])
     {
         return;
     }

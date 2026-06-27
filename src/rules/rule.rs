@@ -1,4 +1,5 @@
 //! Static metadata about a rule.
+#![allow(missing_docs)] // ratchet: document in a follow-up pass
 
 use serde::Serialize;
 

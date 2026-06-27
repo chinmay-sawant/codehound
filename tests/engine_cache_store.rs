@@ -38,7 +38,7 @@ fn put_then_get_round_trips_findings() {
         dependencies: Vec::new(),
         cached_at: "2026-06-10T00:00:00Z".to_string(),
     };
-    store.put(entry.clone()).unwrap();
+    store.put(entry).unwrap();
     store.flush().unwrap();
 
     let read = store.get("pkg/a.go").expect("entry should be present");

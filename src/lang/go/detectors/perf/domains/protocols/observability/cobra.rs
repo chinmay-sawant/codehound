@@ -10,10 +10,10 @@ use crate::rules::{Finding, emit};
 
 /// PERF-100: cobra.Command with heavy RunE (large init, repeated flag
 /// registration).
-pub(crate) fn detect_perf_100(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_perf_100(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
-    if !source_matches_any(source, COBRA_MARKERS) {
+    if !index_matches_any(&facts.source_index, COBRA_MARKERS) {
         return;
     }
     let mut flag_count = 0usize;

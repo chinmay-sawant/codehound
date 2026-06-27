@@ -2,6 +2,7 @@
 
 use std::path::Path;
 
+use crate::Error;
 use crate::core::FailPolicy;
 use crate::engine::DEFAULT_CACHE_DIR;
 
@@ -56,7 +57,13 @@ pub fn discover_config(start: &Path) -> Option<std::path::PathBuf> {
 }
 
 /// Load `slopguard.toml` from the current directory when present.
-pub fn load_discovered_config() -> anyhow::Result<Option<SlopguardConfig>> {
+///
+/// # Errors
+///
+/// Propagates [`SlopguardConfig::load`] failures when `slopguard.toml` exists but
+/// cannot be read or parsed.
+#[must_use = "config load failures must be handled"]
+pub fn load_discovered_config() -> Result<Option<SlopguardConfig>, Error> {
     let path = Path::new("slopguard.toml");
     if path.is_file() {
         Ok(Some(SlopguardConfig::load(path)?))

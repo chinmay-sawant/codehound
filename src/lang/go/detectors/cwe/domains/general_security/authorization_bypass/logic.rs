@@ -3,15 +3,15 @@ use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
-pub(crate) fn detect_cwe_783(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_783(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let precedence_bug = source.contains("!authenticated || isAdmin && ownerID == docOwner");
+    let precedence_bug = facts.source_index.has("!authenticated || isAdmin && ownerID == docOwner");
     if !precedence_bug {
         return;
     }
-    if source.contains("!(isAdmin || ownerID == docOwner)") {
+    if facts.source_index.has("!(isAdmin || ownerID == docOwner)") {
         return;
     }
 
@@ -29,17 +29,16 @@ pub(crate) fn detect_cwe_783(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_807(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_807(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let spoofable_ip_gate = source.contains("blockedIPs")
-        && (source.contains("GetHeader(\"X-Forwarded-For\")")
-            || source.contains("Header.Get(\"X-Forwarded-For\")"));
+    let spoofable_ip_gate = facts.source_index.has("blockedIPs")
+        && (facts.source_index.has_any(&[r#"GetHeader("X-Forwarded-For")"#, r#"Header.Get("X-Forwarded-For")"#]));
     if !spoofable_ip_gate {
         return;
     }
-    if source.contains("RemoteAddr") {
+    if facts.source_index.has("RemoteAddr") {
         return;
     }
 
@@ -59,13 +58,13 @@ pub(crate) fn detect_cwe_807(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_909(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_909(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let missing_init_guard = (source.contains("appDB.Find(") || source.contains("widgetDB.Query("))
-        && !source.contains("if appDB == nil")
-        && !source.contains("if widgetDB == nil");
+    let missing_init_guard = (facts.source_index.has_any(&["appDB.Find(", "widgetDB.Query("]))
+        && !facts.source_index.has("if appDB == nil")
+        && !facts.source_index.has("if widgetDB == nil");
     if !missing_init_guard {
         return;
     }
@@ -86,16 +85,16 @@ pub(crate) fn detect_cwe_909(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_915(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_915(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let mass_assignment = source.contains("map[string]interface{}")
-        && (source.contains("Updates(fields)") || source.contains("json.Unmarshal(raw, &p)"));
+    let mass_assignment = facts.source_index.has("map[string]interface{}")
+        && (facts.source_index.has_any(&["Updates(fields)", "json.Unmarshal(raw, &p)"]));
     if !mass_assignment {
         return;
     }
-    if source.contains("Update(\"name\"") || source.contains("p.Name = body.Name") {
+    if facts.source_index.has_any(&[r#"Update("name""#, "p.Name = body.Name"]) {
         return;
     }
 

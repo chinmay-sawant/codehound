@@ -7,13 +7,13 @@ pub(crate) fn detect_cwe_140(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !source.contains("text/csv") {
+    if !facts.source_index.has("text/csv") {
         return;
     }
-    if source.contains("csv.NewWriter(") {
+    if facts.source_index.has("csv.NewWriter(") {
         return;
     }
-    if !source.contains("strings.Join(") || !source.contains("\",\"") {
+    if !facts.source_index.has("strings.Join(") || !facts.source_index.has("\",\"") {
         return;
     }
 
@@ -44,19 +44,19 @@ pub(crate) fn detect_cwe_140(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     );
 }
 
-pub(crate) fn detect_cwe_1173(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_1173(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let bypassed_validation = source.contains("var raw map[string]interface{}")
-        && (source.contains("ShouldBindJSON(&raw)") || source.contains("Decode(&raw)"))
-        && (source.contains("SignupPayload{}") || source.contains("SignupPayloadPure{}"));
+    let bypassed_validation = facts.source_index.has("var raw map[string]interface{}")
+        && (facts.source_index.has("ShouldBindJSON(&raw)") || facts.source_index.has("Decode(&raw)"))
+        && (facts.source_index.has("SignupPayload{}") || facts.source_index.has("SignupPayloadPure{}"));
     if !bypassed_validation {
         return;
     }
-    if source.contains("ShouldBindJSON(&payload)")
-        || source.contains("Decode(&payload)")
-        || source.contains("mail.ParseAddress(payload.Email)")
+    if facts.source_index.has("ShouldBindJSON(&payload)")
+        || facts.source_index.has("Decode(&payload)")
+        || facts.source_index.has("mail.ParseAddress(payload.Email)")
     {
         return;
     }
@@ -73,21 +73,21 @@ pub(crate) fn detect_cwe_1173(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut
     );
 }
 
-pub(crate) fn detect_cwe_1236(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_1236(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let raw_csv_export = (source.contains("ExportFeedbackCSV(")
-        || source.contains("ExportFeedbackCSVPure("))
-        && source.contains("id,comment")
-        && source.contains("fmt.Sprintf(\"%d,%s\\n\"")
-        && source.contains("row.Comment");
+    let raw_csv_export = (facts.source_index.has("ExportFeedbackCSV(")
+        || facts.source_index.has("ExportFeedbackCSVPure("))
+        && facts.source_index.has("id,comment")
+        && facts.source_index.has("fmt.Sprintf(\"%d,%s\\n\"")
+        && facts.source_index.has("row.Comment");
     if !raw_csv_export {
         return;
     }
-    if source.contains("sanitizeCSVField(")
-        || source.contains("sanitizeCSVFieldPure(")
-        || source.contains("csv.NewWriter(")
+    if facts.source_index.has("sanitizeCSVField(")
+        || facts.source_index.has("sanitizeCSVFieldPure(")
+        || facts.source_index.has("csv.NewWriter(")
     {
         return;
     }

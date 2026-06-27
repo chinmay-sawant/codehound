@@ -10,7 +10,10 @@ pub const CWE_400: CweRef = CweRef::new(
     "https://cwe.mitre.org/data/definitions/400.html",
 );
 
-#[allow(dead_code)]
+#[expect(
+    dead_code,
+    reason = "catalog completeness; wired when CWE-405 rules ship"
+)]
 pub const CWE_405: CweRef = CweRef::new(
     405,
     "Asymmetric Resource Consumption (Amplification)",
@@ -35,7 +38,10 @@ pub const CWE_1336: CweRef = CweRef::new(
     "https://cwe.mitre.org/data/definitions/1336.html",
 );
 
-#[allow(dead_code)]
+#[expect(
+    dead_code,
+    reason = "catalog completeness; wired when CWE-1041 rules ship"
+)]
 pub const CWE_1041: CweRef = CweRef::new(
     1041,
     "Use of Redundant Code",
