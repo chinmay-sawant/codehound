@@ -6,7 +6,8 @@ pub(crate) fn detect_cwe_262(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let loads_age_metadata = facts.source_index.has("last_seen") || facts.source_index.has("changed_at");
+    let loads_age_metadata =
+        facts.source_index.has("last_seen") || facts.source_index.has("changed_at");
     if !loads_age_metadata {
         return;
     }

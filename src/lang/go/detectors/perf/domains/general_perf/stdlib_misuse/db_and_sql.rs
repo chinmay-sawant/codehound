@@ -1,10 +1,10 @@
 //! PERF-165, 166, 181, 182: database and SQL misuse.
 
+use super::common::is_simple_ident;
 use crate::core::ParsedUnit;
 use crate::lang::go::detectors::perf::facts::GoPerfFacts;
 use crate::lang::go::detectors::perf::metadata::*;
-use crate::rules::{emit, Finding};
-use super::common::is_simple_ident;
+use crate::rules::{Finding, emit};
 
 /// PERF-165: `rows.Scan(&x)` followed by manual extraction of
 /// fields from a primitive type into a custom type on the next
@@ -158,7 +158,10 @@ pub(crate) fn detect_perf_181(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
             continue;
         }
         // Suppress when the file doesn't have any int/int64 targets.
-        if !facts.source_index.has("int") && !facts.source_index.has("int64") && !facts.source_index.has("int32") {
+        if !facts.source_index.has("int")
+            && !facts.source_index.has("int64")
+            && !facts.source_index.has("int32")
+        {
             continue;
         }
         let (line, col) = unit.line_col(call.start_byte);

@@ -7,14 +7,20 @@ pub(crate) fn detect_cwe_349(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let source = unit.source.as_ref();
 
     let mixed_trust_blob = (facts.source_index.has("json.RawMessage")
-        && facts.source_index.has("json.Unmarshal(bundle.Profile, &profile)"))
+        && facts
+            .source_index
+            .has("json.Unmarshal(bundle.Profile, &profile)"))
         || (facts.source_index.has("json.RawMessage")
-            && facts.source_index.has("json.Unmarshal(env.Profile, &profile)"));
+            && facts
+                .source_index
+                .has("json.Unmarshal(env.Profile, &profile)"));
     if !mixed_trust_blob {
         return;
     }
     if facts.source_index.has("Role != \"support\"")
-        || facts.source_index.has("role not allowed from trusted channel")
+        || facts
+            .source_index
+            .has("role not allowed from trusted channel")
     {
         return;
     }
@@ -35,14 +41,17 @@ pub(crate) fn detect_cwe_501(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let merged_trust_struct =
-        (facts.source_index.has("Approved bool") && facts.source_index.has("Amount") && facts.source_index.has("Memo"))
-            && (facts.source_index.has("ShouldBindJSON(&msg)") || facts.source_index.has("Decode(&msg)"))
-            && facts.source_index.has("msg.Approved = true");
+    let merged_trust_struct = (facts.source_index.has("Approved bool")
+        && facts.source_index.has("Amount")
+        && facts.source_index.has("Memo"))
+        && (facts.source_index.has("ShouldBindJSON(&msg)")
+            || facts.source_index.has("Decode(&msg)"))
+        && facts.source_index.has("msg.Approved = true");
     if !merged_trust_struct {
         return;
     }
-    if facts.source_index.has("payoutDecision") || facts.source_index.has("Request  payoutRequest") {
+    if facts.source_index.has("payoutDecision") || facts.source_index.has("Request  payoutRequest")
+    {
         return;
     }
 

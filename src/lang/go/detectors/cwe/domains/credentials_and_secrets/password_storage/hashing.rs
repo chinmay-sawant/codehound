@@ -101,11 +101,13 @@ pub(crate) fn detect_cwe_916(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let weak_password_hash = facts.source_index.has("md5.Sum(") && facts.source_index.has("password");
+    let weak_password_hash =
+        facts.source_index.has("md5.Sum(") && facts.source_index.has("password");
     if !weak_password_hash {
         return;
     }
-    if facts.source_index.has("bcrypt.GenerateFromPassword") || facts.source_index.has("hashIterations = 100_000")
+    if facts.source_index.has("bcrypt.GenerateFromPassword")
+        || facts.source_index.has("hashIterations = 100_000")
     {
         return;
     }

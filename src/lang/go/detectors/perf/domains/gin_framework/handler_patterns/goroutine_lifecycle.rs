@@ -72,7 +72,9 @@ pub(crate) fn detect_perf_70(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         || facts.source_index.has("done := make(chan")
         || facts.source_index.has("ctx, cancel := context.WithCancel")
         || facts.source_index.has("ctx, cancel := context.WithTimeout")
-        || facts.source_index.has("ctx, cancel := context.WithDeadline")
+        || facts
+            .source_index
+            .has("ctx, cancel := context.WithDeadline")
         || facts.source_index.has("c.Request.Context()")
         || facts.source_index.has("sync.Once")
         || facts.source_index.has("errgroup")

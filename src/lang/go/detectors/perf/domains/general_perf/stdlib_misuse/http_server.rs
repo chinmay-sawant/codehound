@@ -1,11 +1,11 @@
 //! PERF-102, 120, 122, 126, 127: HTTP server / general misuse detectors.
 
+use super::common::{extract_first_quoted, fmt_contains_verb, is_log_call};
+use super::header_allowlist::is_canonical_header;
 use crate::core::ParsedUnit;
 use crate::lang::go::detectors::perf::facts::GoPerfFacts;
 use crate::lang::go::detectors::perf::metadata::*;
-use crate::rules::{emit, Finding};
-use super::common::{extract_first_quoted, fmt_contains_verb, is_log_call};
-use super::header_allowlist::is_canonical_header;
+use crate::rules::{Finding, emit};
 
 /// PERF-120: `time.Now().Sub(t)` should be `time.Since(t)`.
 pub(crate) fn detect_perf_120(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {

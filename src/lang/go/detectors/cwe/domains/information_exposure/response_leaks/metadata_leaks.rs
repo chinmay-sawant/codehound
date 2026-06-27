@@ -7,7 +7,10 @@ pub(crate) fn detect_cwe_209(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !facts.source_index.has(r#"fmt.Sprintf("db failure: %v", err)"#) {
+    if !facts
+        .source_index
+        .has(r#"fmt.Sprintf("db failure: %v", err)"#)
+    {
         return;
     }
 
@@ -65,8 +68,12 @@ pub(crate) fn detect_cwe_756(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let raw_error_to_client = facts.source_index.has("err.Error()")
         && facts.source_index.has("FetchProfile")
         && facts.source_index.has("SELECT email FROM profiles")
-        && (facts.source_index.has("c.String(http.StatusInternalServerError, err.Error())")
-            || facts.source_index.has("http.Error(w, err.Error(), http.StatusInternalServerError)"));
+        && (facts
+            .source_index
+            .has("c.String(http.StatusInternalServerError, err.Error())")
+            || facts
+                .source_index
+                .has("http.Error(w, err.Error(), http.StatusInternalServerError)"));
     if !raw_error_to_client {
         return;
     }

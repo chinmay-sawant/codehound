@@ -7,13 +7,18 @@ pub(crate) fn detect_cwe_358(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let decodes_bearer_claims = facts.source_index.has(r#"strings.TrimPrefix(raw, "Bearer ")"#)
+    let decodes_bearer_claims = facts
+        .source_index
+        .has(r#"strings.TrimPrefix(raw, "Bearer ")"#)
         && facts.source_index.has("DecodeString(parts[1])")
         && facts.source_index.has("json.Unmarshal(payload, &claims)");
     if !decodes_bearer_claims {
         return;
     }
-    if facts.source_index.has_any(&["invalid jwt structure", "unsupported jwt algorithm"]) {
+    if facts
+        .source_index
+        .has_any(&["invalid jwt structure", "unsupported jwt algorithm"])
+    {
         return;
     }
 

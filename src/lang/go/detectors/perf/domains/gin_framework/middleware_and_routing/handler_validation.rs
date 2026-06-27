@@ -11,7 +11,9 @@ pub(crate) fn detect_perf_51(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     if !is_request_path(&facts.source_index) || !facts.source_index.has("unsafe.Pointer") {
         return;
     }
-    if facts.source_index.has("// benchmark justifies unsafe.Pointer")
+    if facts
+        .source_index
+        .has("// benchmark justifies unsafe.Pointer")
         || facts.source_index.has("// nolint:unsafe-ptr")
     {
         return;
@@ -73,10 +75,14 @@ pub(crate) fn detect_perf_62(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 /// PERF-63: `binding.Validator.Engine()` invoked in a request handler.
 pub(crate) fn detect_perf_63(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let source = unit.source.as_ref();
-    if !is_request_path(&facts.source_index) || !facts.source_index.has("binding.Validator.Engine()") {
+    if !is_request_path(&facts.source_index)
+        || !facts.source_index.has("binding.Validator.Engine()")
+    {
         return;
     }
-    if facts.source_index.has("var engine = binding.Validator.Engine()")
+    if facts
+        .source_index
+        .has("var engine = binding.Validator.Engine()")
         || facts.source_index.has("once.Do(func()")
         || facts.source_index.has("sync.Once")
     {

@@ -35,7 +35,10 @@ fn manifest_entries_exist_and_fire() {
                 taint_enabled: true,
                 ..ScanContext::default()
             };
-            let analyzer = Analyzer::builder().with_default_filter().scan_context(ctx).build();
+            let analyzer = Analyzer::builder()
+                .with_default_filter()
+                .scan_context(ctx)
+                .build();
             helpers::assert_fixture_rules_with_context(&entry.path, &rules, &analyzer);
         } else {
             helpers::assert_fixture_rules(&entry.path, &rules);

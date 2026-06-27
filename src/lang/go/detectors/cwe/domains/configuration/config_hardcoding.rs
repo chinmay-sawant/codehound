@@ -90,13 +90,17 @@ pub(crate) fn detect_cwe_1067(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut 
     let source = unit.source.as_ref();
 
     let leading_wildcard_scan = (facts.source_index.has("fmt.Sprintf(\"%%%s%%\", term)")
-        || facts.source_index.has("pattern := fmt.Sprintf(\"%%%s%%\", term)"))
+        || facts
+            .source_index
+            .has("pattern := fmt.Sprintf(\"%%%s%%\", term)"))
         && facts.source_index.has("LIKE")
-        && (facts.source_index.has("notes.body") || facts.source_index.has("SELECT id, body FROM notes"));
+        && (facts.source_index.has("notes.body")
+            || facts.source_index.has("SELECT id, body FROM notes"));
     if !leading_wildcard_scan {
         return;
     }
-    if facts.source_index.has("prefix+\"%\"") || facts.source_index.has("pattern := prefix + \"%\"") {
+    if facts.source_index.has("prefix+\"%\"") || facts.source_index.has("pattern := prefix + \"%\"")
+    {
         return;
     }
 

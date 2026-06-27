@@ -7,12 +7,20 @@ pub(crate) fn detect_cwe_294(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let loads_auth_token = facts.source_index.has_any(&[r#"c.PostForm("auth_token")"#, r#"r.FormValue("auth_token")"#]);
+    let loads_auth_token = facts.source_index.has_any(&[
+        r#"c.PostForm("auth_token")"#,
+        r#"r.FormValue("auth_token")"#,
+    ]);
     if !loads_auth_token {
         return;
     }
 
-    let has_nonce_tracking = facts.source_index.has_any(&["LoadOrStore(nonce, true)", "spentNonces", r#"PostForm("nonce")"#, r#"FormValue("nonce")"#]);
+    let has_nonce_tracking = facts.source_index.has_any(&[
+        "LoadOrStore(nonce, true)",
+        "spentNonces",
+        r#"PostForm("nonce")"#,
+        r#"FormValue("nonce")"#,
+    ]);
     if has_nonce_tracking {
         return;
     }
@@ -38,11 +46,18 @@ pub(crate) fn detect_cwe_301(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let echoes_challenge = facts.source_index.has_any(&[r#"gin.H{"proof": challenge}"#, r#"{"proof": challenge}"#, r#"map[string]string{"proof": challenge}"#]);
+    let echoes_challenge = facts.source_index.has_any(&[
+        r#"gin.H{"proof": challenge}"#,
+        r#"{"proof": challenge}"#,
+        r#"map[string]string{"proof": challenge}"#,
+    ]);
     if !echoes_challenge {
         return;
     }
-    if facts.source_index.has_any(&["hmac.New(", "EncodeToString("]) {
+    if facts
+        .source_index
+        .has_any(&["hmac.New(", "EncodeToString("])
+    {
         return;
     }
 
@@ -105,7 +120,9 @@ pub(crate) fn detect_cwe_408(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let query_before_auth = (facts.source_index.has("SELECT * FROM orders WHERE tenant_id = ?")
+    let query_before_auth = (facts
+        .source_index
+        .has("SELECT * FROM orders WHERE tenant_id = ?")
         && facts.source_index.has("Authorization"))
         && (source
             .find("SELECT * FROM orders WHERE tenant_id = ?")

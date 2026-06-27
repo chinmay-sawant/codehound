@@ -49,8 +49,10 @@ pub(crate) fn detect_cwe_1173(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut 
     let source = unit.source.as_ref();
 
     let bypassed_validation = facts.source_index.has("var raw map[string]interface{}")
-        && (facts.source_index.has("ShouldBindJSON(&raw)") || facts.source_index.has("Decode(&raw)"))
-        && (facts.source_index.has("SignupPayload{}") || facts.source_index.has("SignupPayloadPure{}"));
+        && (facts.source_index.has("ShouldBindJSON(&raw)")
+            || facts.source_index.has("Decode(&raw)"))
+        && (facts.source_index.has("SignupPayload{}")
+            || facts.source_index.has("SignupPayloadPure{}"));
     if !bypassed_validation {
         return;
     }

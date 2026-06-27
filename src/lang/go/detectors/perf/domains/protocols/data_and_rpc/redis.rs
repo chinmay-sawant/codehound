@@ -1,10 +1,10 @@
 #![allow(dead_code)]
 //! PERF-98: go-redis client performance detector.
 
-use super::super::common::*;
 use super::super::super::super::common::is_in_loop;
 use super::super::super::super::facts::GoPerfFacts;
 use super::super::super::super::metadata::*;
+use super::super::common::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 

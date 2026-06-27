@@ -19,7 +19,10 @@ pub(crate) fn detect_perf_20(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     if !facts.source_index.has_any(&index_triggers) {
         return;
     }
-    if facts.source_index.has("// reflection initialised at startup") {
+    if facts
+        .source_index
+        .has("// reflection initialised at startup")
+    {
         return;
     }
 

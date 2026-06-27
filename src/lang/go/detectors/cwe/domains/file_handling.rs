@@ -14,10 +14,12 @@ pub(crate) fn detect_cwe_434(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     }
     let executable_web_serve_shape = (facts.source_index.has("/var/www/static/avatars")
         || facts.source_index.has("/static/avatars/"))
-        && (facts.source_index.has("c.Redirect(http.StatusFound, \"/static/avatars/\"+file.Filename)")
-            || facts.source_index.has(
-                "http.Redirect(w, r, \"/static/avatars/\"+hdr.Filename, http.StatusFound)",
-            ));
+        && (facts
+            .source_index
+            .has("c.Redirect(http.StatusFound, \"/static/avatars/\"+file.Filename)")
+            || facts
+                .source_index
+                .has("http.Redirect(w, r, \"/static/avatars/\"+hdr.Filename, http.StatusFound)"));
     if !executable_web_serve_shape {
         return;
     }

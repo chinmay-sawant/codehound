@@ -1,12 +1,12 @@
 //! PERF-131, 132, 135, 140, 168, 171: synchronization and lock misuse.
 
+use super::common::{body_has_io, is_simple_ident};
+use super::ranges_and_types::is_large_struct_literal;
 use crate::core::ParsedUnit;
 use crate::lang::go::detectors::perf::common::is_in_loop;
 use crate::lang::go::detectors::perf::facts::GoPerfFacts;
 use crate::lang::go::detectors::perf::metadata::*;
-use crate::rules::{emit, Finding};
-use super::common::{body_has_io, is_simple_ident};
-use super::ranges_and_types::is_large_struct_literal;
+use crate::rules::{Finding, emit};
 
 /// PERF-135: `gob.NewEncoder` / `gob.NewDecoder` constructed inside a
 /// loop. The constructor reflects on the destination type, which is
@@ -231,7 +231,9 @@ pub(crate) fn detect_perf_132(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     }
 }
 
-fn parent_has_ctx_param(index: &crate::lang::go::detectors::perf::source_index::PerfSourceIndex) -> bool {
+fn parent_has_ctx_param(
+    index: &crate::lang::go::detectors::perf::source_index::PerfSourceIndex,
+) -> bool {
     // The parent function is the surrounding `func ... { ... }`
     // that contains the `go func()` site. We approximate by
     // looking for any function declaration that takes a

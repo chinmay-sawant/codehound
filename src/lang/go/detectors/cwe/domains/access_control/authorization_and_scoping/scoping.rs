@@ -7,13 +7,17 @@ pub(crate) fn detect_cwe_639(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let source = unit.source.as_ref();
 
     let user_controlled_key = facts.source_index.has("invoice_id")
-        && (facts.source_index.has("SELECT id, user_id, amount FROM invoices WHERE id = $1")
+        && (facts
+            .source_index
+            .has("SELECT id, user_id, amount FROM invoices WHERE id = $1")
             || source
                 .contains("SELECT id, user_id, amount FROM invoices WHERE id = $1\", invoiceID"));
     if !user_controlled_key {
         return;
     }
-    if facts.source_index.has_any(&["AND user_id = $2", "ownerID", "X-User-ID"])
+    if facts
+        .source_index
+        .has_any(&["AND user_id = $2", "ownerID", "X-User-ID"])
     {
         return;
     }
@@ -34,13 +38,17 @@ pub(crate) fn detect_cwe_1220(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut 
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let unscoped_invoice_read = (facts.source_index.has_any(&["GetInvoice(", "GetInvoicePure("]))
+    let unscoped_invoice_read = (facts
+        .source_index
+        .has_any(&["GetInvoice(", "GetInvoicePure("]))
         && facts.source_index.has("Authorization")
         && facts.source_index.has("FROM invoices WHERE id = $1");
     if !unscoped_invoice_read {
         return;
     }
-    if facts.source_index.has_any(&["owner_id = $2", "ownerID", "X-User-ID"])
+    if facts
+        .source_index
+        .has_any(&["owner_id = $2", "ownerID", "X-User-ID"])
     {
         return;
     }

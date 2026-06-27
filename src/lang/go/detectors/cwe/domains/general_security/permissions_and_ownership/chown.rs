@@ -8,12 +8,18 @@ pub(crate) fn detect_cwe_648(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 
     let privileged_chown = facts.source_index.has("os.Chown(")
         && facts.source_index.has("uid")
-        && (facts.source_index.has_any(&[r#"PostForm("uid")"#, r#"FormValue("uid")"#]))
-        && (facts.source_index.has_any(&[r#"PostForm("path")"#, r#"FormValue("path")"#]));
+        && (facts
+            .source_index
+            .has_any(&[r#"PostForm("uid")"#, r#"FormValue("uid")"#]))
+        && (facts
+            .source_index
+            .has_any(&[r#"PostForm("path")"#, r#"FormValue("path")"#]));
     if !privileged_chown {
         return;
     }
-    if facts.source_index.has_any(&["uploadRoot", "spoolDir", "serviceUID", "Setuid("])
+    if facts
+        .source_index
+        .has_any(&["uploadRoot", "spoolDir", "serviceUID", "Setuid("])
     {
         return;
     }
@@ -36,11 +42,15 @@ pub(crate) fn detect_cwe_708(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 
     let caller_chosen_owner = facts.source_index.has("owner_uid")
         && facts.source_index.has("os.Chown(")
-        && (facts.source_index.has_any(&[r#"PostForm("dest")"#, r#"FormValue("dest")"#]));
+        && (facts
+            .source_index
+            .has_any(&[r#"PostForm("dest")"#, r#"FormValue("dest")"#]));
     if !caller_chosen_owner {
         return;
     }
-    if facts.source_index.has_any(&["spoolDir", "serviceUID", "serviceGID"])
+    if facts
+        .source_index
+        .has_any(&["spoolDir", "serviceUID", "serviceGID"])
     {
         return;
     }

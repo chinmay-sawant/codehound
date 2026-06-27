@@ -3,8 +3,8 @@ use tree_sitter::Node;
 use crate::ast::{walk_calls_and_assignments, walk_nodes};
 use crate::core::ParsedUnit;
 
-use super::classifier::{classify_init_only, collect_var_spec_kinds};
 use super::super::source_index::PerfSourceIndex;
+use super::classifier::{classify_init_only, collect_var_spec_kinds};
 use super::text::{extract_identifiers, split_assignment};
 use super::types::*;
 

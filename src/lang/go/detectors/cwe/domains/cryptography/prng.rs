@@ -54,8 +54,12 @@ pub(crate) fn detect_cwe_338(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let weak_prng_token = (facts.source_index.has("rand.New(rand.NewSource(time.Now().UnixNano()))")
-        || facts.source_index.has("rand.NewSource(time.Now().UnixNano())"))
+    let weak_prng_token = (facts
+        .source_index
+        .has("rand.New(rand.NewSource(time.Now().UnixNano()))")
+        || facts
+            .source_index
+            .has("rand.NewSource(time.Now().UnixNano())"))
         && (facts.source_index.has("sid") || facts.source_index.has("token"));
     if !weak_prng_token {
         return;
@@ -84,8 +88,10 @@ pub(crate) fn detect_cwe_342(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let increments_previous = (facts.source_index.has("lastOTP++") && facts.source_index.has("code := lastOTP"))
-        || (facts.source_index.has("lastSmsCode++") && facts.source_index.has("code := lastSmsCode"));
+    let increments_previous = (facts.source_index.has("lastOTP++")
+        && facts.source_index.has("code := lastOTP"))
+        || (facts.source_index.has("lastSmsCode++")
+            && facts.source_index.has("code := lastSmsCode"));
     if !increments_previous {
         return;
     }

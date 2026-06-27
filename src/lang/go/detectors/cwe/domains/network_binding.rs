@@ -8,7 +8,8 @@ pub(crate) fn detect_cwe_1327(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut 
 
     let unrestricted_bind = (facts.source_index.has("StartPublicAPI(")
         || facts.source_index.has("StartPublicAPIPure("))
-        && (facts.source_index.has("Run(\":9090\")") || facts.source_index.has("ListenAndServe(\":9090\","));
+        && (facts.source_index.has("Run(\":9090\")")
+            || facts.source_index.has("ListenAndServe(\":9090\","));
     if !unrestricted_bind {
         return;
     }

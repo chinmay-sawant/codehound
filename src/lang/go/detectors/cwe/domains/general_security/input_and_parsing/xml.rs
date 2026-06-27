@@ -56,7 +56,9 @@ pub(crate) fn detect_cwe_611(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     if !unsafe_xml {
         return;
     }
-    if facts.source_index.has_any(&["<!DOCTYPE", "dec.Strict = true", "LimitReader"])
+    if facts
+        .source_index
+        .has_any(&["<!DOCTYPE", "dec.Strict = true", "LimitReader"])
     {
         return;
     }

@@ -7,12 +7,17 @@ pub(crate) fn detect_cwe_403(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let opens_secret_before_exec = facts.source_index.has(r#"os.Open("/etc/slopguard/master.key")"#)
+    let opens_secret_before_exec = facts
+        .source_index
+        .has(r#"os.Open("/etc/slopguard/master.key")"#)
         && facts.source_index.has(r#"exec.Command("/bin/sh", "-c""#);
     if !opens_secret_before_exec {
         return;
     }
-    if facts.source_index.has_any(&["secret.Fd()", "defer secret.Close()"]) {
+    if facts
+        .source_index
+        .has_any(&["secret.Fd()", "defer secret.Close()"])
+    {
         return;
     }
 
@@ -34,12 +39,15 @@ pub(crate) fn detect_cwe_427(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let path_mutation =
-        facts.source_index.has(r#"os.Setenv("PATH","#) && facts.source_index.has(r#"exec.Command("pdftopng""#);
+    let path_mutation = facts.source_index.has(r#"os.Setenv("PATH","#)
+        && facts.source_index.has(r#"exec.Command("pdftopng""#);
     if !path_mutation {
         return;
     }
-    if facts.source_index.has_any(&["pdftopngPath", "pdftopngBinary"]) {
+    if facts
+        .source_index
+        .has_any(&["pdftopngPath", "pdftopngBinary"])
+    {
         return;
     }
 
@@ -60,7 +68,9 @@ pub(crate) fn detect_cwe_459(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let source = unit.source.as_ref();
 
     let temp_export = facts.source_index.has("CreateTemp(")
-        && (facts.source_index.has_any(&["c.File(f.Name())", "ServeFile(w, r, f.Name())"]));
+        && (facts
+            .source_index
+            .has_any(&["c.File(f.Name())", "ServeFile(w, r, f.Name())"]));
     if !temp_export {
         return;
     }

@@ -13,7 +13,10 @@ pub(crate) fn detect_cwe_765(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     if !double_unlock {
         return;
     }
-    if facts.source_index.has_any(&["defer walletMu.Unlock()", "defer cacheMu.Unlock()"]) {
+    if facts
+        .source_index
+        .has_any(&["defer walletMu.Unlock()", "defer cacheMu.Unlock()"])
+    {
         return;
     }
 
@@ -62,12 +65,17 @@ pub(crate) fn detect_cwe_826(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 
     let premature_release = facts.source_index.has("go func()")
         && facts.source_index.has("db.Close()")
-        && (facts.source_index.has_any(&["db.Query(", r#"db.Query("SELECT"#]));
+        && (facts
+            .source_index
+            .has_any(&["db.Query(", r#"db.Query("SELECT"#]));
     if !premature_release {
         return;
     }
-    if facts.source_index.has_any(&["QueryContext(", "<-done
-	c.Status("]) && !facts.source_index.has("db.Close()")
+    if facts.source_index.has_any(&[
+        "QueryContext(",
+        "<-done
+	c.Status(",
+    ]) && !facts.source_index.has("db.Close()")
     {
         return;
     }
@@ -88,7 +96,9 @@ pub(crate) fn detect_cwe_1322(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut 
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let blocking_worker = (facts.source_index.has_any(&["StartWebhookWorker(", "StartWebhookWorkerPure("]))
+    let blocking_worker = (facts
+        .source_index
+        .has_any(&["StartWebhookWorker(", "StartWebhookWorkerPure("]))
         && facts.source_index.has("queue := make(chan")
         && facts.source_index.has("for payload := range queue")
         && facts.source_index.has("time.Sleep(2 * time.Second)");

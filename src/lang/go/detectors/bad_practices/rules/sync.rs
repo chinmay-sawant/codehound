@@ -1,7 +1,7 @@
 //! BP-6, BP-7, BP-8, BP-9 — concurrency/synchronisation bad practices.
 
-use super::helpers::{line_start_byte, push_at};
 use super::super::source_index::SourceIndex;
+use super::helpers::{line_start_byte, push_at};
 use crate::core::ParsedUnit;
 use crate::rules::Finding;
 
@@ -67,8 +67,7 @@ pub(crate) fn detect_bp_8_defer_unlock_on_mutex_copy(
     out: &mut Vec<Finding>,
 ) {
     let source = unit.source.as_ref();
-    if !(index.has(" sync.Mutex") && index.has("defer ") && index.has(".Unlock()"))
-    {
+    if !(index.has(" sync.Mutex") && index.has("defer ") && index.has(".Unlock()")) {
         return;
     }
     for (idx, line) in source.lines().enumerate() {

@@ -6,11 +6,15 @@ pub(crate) fn detect_cwe_378(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let insecure_temp_file = facts.source_index.has("os.TempDir()") && facts.source_index.has("0666");
+    let insecure_temp_file =
+        facts.source_index.has("os.TempDir()") && facts.source_index.has("0666");
     if !insecure_temp_file {
         return;
     }
-    if facts.source_index.has_any(&["CreateTemp(", "Chmod(f.Name(), 0600)"]) {
+    if facts
+        .source_index
+        .has_any(&["CreateTemp(", "Chmod(f.Name(), 0600)"])
+    {
         return;
     }
 
@@ -35,11 +39,16 @@ pub(crate) fn detect_cwe_379(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let source = unit.source.as_ref();
 
     let insecure_temp_dir = facts.source_index.has("MkdirAll(dir, 0777)")
-        && (facts.source_index.has_any(&["/tmp/shared-reports", "/tmp/shared-sessions"]));
+        && (facts
+            .source_index
+            .has_any(&["/tmp/shared-reports", "/tmp/shared-sessions"]));
     if !insecure_temp_dir {
         return;
     }
-    if facts.source_index.has_any(&["MkdirTemp(", "Chmod(dir, 0700)"]) {
+    if facts
+        .source_index
+        .has_any(&["MkdirTemp(", "Chmod(dir, 0700)"])
+    {
         return;
     }
 

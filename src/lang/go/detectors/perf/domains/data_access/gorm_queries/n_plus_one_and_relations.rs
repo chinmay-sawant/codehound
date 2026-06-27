@@ -31,10 +31,7 @@ pub(crate) fn detect_perf_73(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     if facts.source_index.has("Preload(") || facts.source_index.has(".Joins(") {
         return;
     }
-    if !has_any(
-        &facts.source_index,
-        &["db.Find(", "db.First(", "db.Take("],
-    ) {
+    if !has_any(&facts.source_index, &["db.Find(", "db.First(", "db.Take("]) {
         return;
     }
     let relations = [
@@ -78,10 +75,7 @@ pub(crate) fn detect_perf_74(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         return;
     }
     let triggers = ["db.Find(", "db.First(", "db.Take(", "db.Where("];
-    let Some(&needle) = triggers
-        .iter()
-        .find(|n| facts.source_index.has(n))
-    else {
+    let Some(&needle) = triggers.iter().find(|n| facts.source_index.has(n)) else {
         return;
     };
     let start = source.find(needle).unwrap_or(0);
@@ -100,10 +94,7 @@ pub(crate) fn detect_perf_78(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
     let triggers = ["db.Raw(", "db.Exec("];
-    let Some(&needle) = triggers
-        .iter()
-        .find(|n| facts.source_index.has(n))
-    else {
+    let Some(&needle) = triggers.iter().find(|n| facts.source_index.has(n)) else {
         return;
     };
     let after_idx = source.find(needle).unwrap_or(0);

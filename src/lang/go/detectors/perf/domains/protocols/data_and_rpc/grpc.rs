@@ -1,10 +1,10 @@
 #![allow(dead_code)]
 //! PERF-96 and PERF-97: gRPC / protobuf performance detectors.
 
-use super::super::common::*;
 use super::super::super::super::common::is_in_loop;
 use super::super::super::super::facts::GoPerfFacts;
 use super::super::super::super::metadata::*;
+use super::super::common::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
@@ -13,7 +13,8 @@ use crate::rules::{Finding, emit};
 pub(crate) fn detect_perf_96(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let _source = unit.source.as_ref();
-    if !index_matches_any(&facts.source_index, GRPC_MARKERS) || !facts.source_index.has("RecvMsg(") {
+    if !index_matches_any(&facts.source_index, GRPC_MARKERS) || !facts.source_index.has("RecvMsg(")
+    {
         return;
     }
     if facts.source_index.has("msg.Reset()") || facts.source_index.has("m.Reset()") {

@@ -7,7 +7,9 @@ pub(crate) fn detect_cwe_515(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let shared_covert_flag = (facts.source_index.has_any(&["var quotaFlag int", "var quotaCovertFlag int"]))
+    let shared_covert_flag = (facts
+        .source_index
+        .has_any(&["var quotaFlag int", "var quotaCovertFlag int"]))
         && facts.source_index.has(r#""over""#)
         && facts.source_index.has("= 1")
         && facts.source_index.has("= 0")
@@ -15,7 +17,9 @@ pub(crate) fn detect_cwe_515(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     if !shared_covert_flag {
         return;
     }
-    if facts.source_index.has_any(&["WHERE tenant = ?", r#"GetString("tenant")"#, "X-Tenant"])
+    if facts
+        .source_index
+        .has_any(&["WHERE tenant = ?", r#"GetString("tenant")"#, "X-Tenant"])
     {
         return;
     }
@@ -40,14 +44,19 @@ pub(crate) fn detect_cwe_544(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let inconsistent_db_failure_paths = (facts.source_index.has_any(&["panic(err)", "panic(err)
-"]))
-        && facts.source_index.has("log.Println(err)")
+    let inconsistent_db_failure_paths = (facts.source_index.has_any(&[
+        "panic(err)",
+        "panic(err)
+",
+    ])) && facts.source_index.has("log.Println(err)")
         && (facts.source_index.has_any(&["db.Get(", "db.QueryRow("]));
     if !inconsistent_db_failure_paths {
         return;
     }
-    if facts.source_index.has_any(&["writeDBError(", "writeDBFailure("]) {
+    if facts
+        .source_index
+        .has_any(&["writeDBError(", "writeDBFailure("])
+    {
         return;
     }
 

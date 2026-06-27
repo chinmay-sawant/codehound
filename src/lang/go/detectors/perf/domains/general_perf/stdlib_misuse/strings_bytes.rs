@@ -1,10 +1,10 @@
 //! PERF-105, 111, 112, 115, 116, 117, 119, 124, 125, 130: strings/bytes misuse.
 
+use super::common::{call_text, is_simple_ident};
 use crate::core::ParsedUnit;
 use crate::lang::go::detectors::perf::facts::{CallFact, GoPerfFacts};
 use crate::lang::go::detectors::perf::metadata::*;
-use crate::rules::{emit, Finding};
-use super::common::{call_text, is_simple_ident};
+use crate::rules::{Finding, emit};
 
 /// PERF-105: `runtime.SetFinalizer` on frequently-created objects adds
 /// finalizer overhead and delays collection by an extra GC cycle.

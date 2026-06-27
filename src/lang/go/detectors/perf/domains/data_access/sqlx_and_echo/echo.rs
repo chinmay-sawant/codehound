@@ -67,10 +67,7 @@ pub(crate) fn detect_perf_88(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
     let triggers = ["e.Static(", "e.File(", "echo.Static(", "Static("];
-    let Some(&needle) = triggers
-        .iter()
-        .find(|n| facts.source_index.has(n))
-    else {
+    let Some(&needle) = triggers.iter().find(|n| facts.source_index.has(n)) else {
         return;
     };
     if has_any(
@@ -98,10 +95,7 @@ pub(crate) fn detect_perf_89(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         return;
     }
     let triggers = ["make([]", "make(map[", "json.Unmarshal(", "&MyConfig{}"];
-    let Some(&needle) = triggers
-        .iter()
-        .find(|n| facts.source_index.has(n))
-    else {
+    let Some(&needle) = triggers.iter().find(|n| facts.source_index.has(n)) else {
         return;
     };
     if facts.source_index.has("sync.Once") || facts.source_index.has("var once ") {

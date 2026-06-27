@@ -90,8 +90,9 @@ pub(crate) fn detect_perf_31(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     // Suppress resource-cleanup defer patterns (`defer x.Close()`,
     // `defer cancel()`, `defer x.Stop()`) — those are idiomatic Go and
     // should not trip the hot-path heuristic.
-    let has_resource_defer =
-        facts.source_index.has(".Close()") || facts.source_index.has("cancel()") || facts.source_index.has(".Stop()");
+    let has_resource_defer = facts.source_index.has(".Close()")
+        || facts.source_index.has("cancel()")
+        || facts.source_index.has(".Stop()");
     if has_resource_defer {
         return;
     }

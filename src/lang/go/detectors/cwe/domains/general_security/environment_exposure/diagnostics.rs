@@ -9,8 +9,12 @@ pub(crate) fn detect_cwe_420(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 
     let has_unprotected_debug_route = (facts.source_index.has(r#"r.GET("/debug/sqltrace""#)
         && facts.source_index.has(r#"r.Group("/api", requireJWT())"#))
-        || (facts.source_index.has(r#"http.HandleFunc("/debug/sqltrace""#)
-            && facts.source_index.has(r#"http.Handle("/api/invoices", protected)"#));
+        || (facts
+            .source_index
+            .has(r#"http.HandleFunc("/debug/sqltrace""#)
+            && facts
+                .source_index
+                .has(r#"http.Handle("/api/invoices", protected)"#));
     if !has_unprotected_debug_route {
         return;
     }
@@ -36,7 +40,10 @@ pub(crate) fn detect_cwe_426(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     if !request_controlled_plugin_dir {
         return;
     }
-    if facts.source_index.has_any(&["trustedPluginDir", "trustedPluginRoot"]) {
+    if facts
+        .source_index
+        .has_any(&["trustedPluginDir", "trustedPluginRoot"])
+    {
         return;
     }
 
@@ -56,7 +63,10 @@ pub(crate) fn detect_cwe_497(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let exposes_host_details = facts.source_index.has_any(&["os.Environ()", "os.Hostname()", "runtime.NumCPU()"]);
+    let exposes_host_details =
+        facts
+            .source_index
+            .has_any(&["os.Environ()", "os.Hostname()", "runtime.NumCPU()"]);
     if !exposes_host_details {
         return;
     }

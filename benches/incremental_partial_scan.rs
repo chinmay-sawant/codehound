@@ -26,12 +26,11 @@ fn bench_partial(c: &mut Criterion) {
         &Default::default(),
     )
     .expect("collect");
-    let to_change: Vec<std::path::PathBuf> =
-        entries
-            .iter()
-            .step_by(2)
-            .map(|e| e.path.as_ref().to_path_buf())
-            .collect();
+    let to_change: Vec<std::path::PathBuf> = entries
+        .iter()
+        .step_by(2)
+        .map(|e| e.path.as_ref().to_path_buf())
+        .collect();
     let originals: Vec<(std::path::PathBuf, String)> = to_change
         .iter()
         .filter_map(|p| std::fs::read_to_string(p).ok().map(|s| (p.clone(), s)))

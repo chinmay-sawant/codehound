@@ -3,7 +3,7 @@
 use crate::core::ParsedUnit;
 use crate::lang::go::detectors::perf::facts::GoPerfFacts;
 use crate::lang::go::detectors::perf::metadata::*;
-use crate::rules::{emit, Finding};
+use crate::rules::{Finding, emit};
 
 /// PERF-101: `http.Server{}` without any configured server timeout.
 pub(crate) fn detect_perf_101(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
@@ -188,7 +188,9 @@ pub(crate) fn detect_perf_145(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     }
 }
 
-fn is_middleware_shape(index: &crate::lang::go::detectors::perf::source_index::PerfSourceIndex) -> bool {
+fn is_middleware_shape(
+    index: &crate::lang::go::detectors::perf::source_index::PerfSourceIndex,
+) -> bool {
     // A file is treated as "middleware-shaped" if it shows any of
     // the common middleware patterns. We deliberately accept
     // files that *contain* these patterns even if the immediate

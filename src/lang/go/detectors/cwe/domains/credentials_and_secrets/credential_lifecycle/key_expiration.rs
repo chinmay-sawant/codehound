@@ -9,7 +9,8 @@ pub(crate) fn detect_cwe_324(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     if !facts.source_index.has("ExpiresAt") {
         return;
     }
-    let key_expiry_crypto_shape = (facts.source_index.has("ApiKeyRow") || facts.source_index.has("SigningKey"))
+    let key_expiry_crypto_shape = (facts.source_index.has("ApiKeyRow")
+        || facts.source_index.has("SigningKey"))
         && facts.source_index.has("Secret")
         && facts.source_index.has("hmac.New(");
     if !key_expiry_crypto_shape {
@@ -21,8 +22,8 @@ pub(crate) fn detect_cwe_324(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         return;
     }
 
-    let expired_key_source =
-        facts.source_index.has("Add(-48 * time.Hour)") || facts.source_index.has("ExpiresAt time.Time");
+    let expired_key_source = facts.source_index.has("Add(-48 * time.Hour)")
+        || facts.source_index.has("ExpiresAt time.Time");
     if !expired_key_source {
         return;
     }

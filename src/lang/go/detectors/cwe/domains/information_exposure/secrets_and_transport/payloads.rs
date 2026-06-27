@@ -6,14 +6,19 @@ pub(crate) fn detect_cwe_212(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let has_sensitive_payment_field = facts.source_index.has("Card") || facts.source_index.has("PAN");
+    let has_sensitive_payment_field =
+        facts.source_index.has("Card") || facts.source_index.has("PAN");
     if !has_sensitive_payment_field {
         return;
     }
-    if !(facts.source_index.has("json.Marshal(rows)") || facts.source_index.has("json.Marshal(out)")) {
+    if !(facts.source_index.has("json.Marshal(rows)")
+        || facts.source_index.has("json.Marshal(out)"))
+    {
         return;
     }
-    if facts.source_index.has("type paymentExport struct") || facts.source_index.has("type chargeExport struct") {
+    if facts.source_index.has("type paymentExport struct")
+        || facts.source_index.has("type chargeExport struct")
+    {
         return;
     }
     if !facts.source_index.has("json.Marshal(rows)") {
@@ -76,10 +81,10 @@ pub(crate) fn detect_cwe_312(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let stores_plain_ssn =
-        facts.source_index.has("SSN: c.PostForm(\"ssn\")") || facts.source_index.has("SSN: r.FormValue(\"ssn\")");
-    let writes_plain_ssn_json =
-        facts.source_index.has(r#"SSN string `json:"ssn"`"#) && facts.source_index.has("json.Marshal(rec)");
+    let stores_plain_ssn = facts.source_index.has("SSN: c.PostForm(\"ssn\")")
+        || facts.source_index.has("SSN: r.FormValue(\"ssn\")");
+    let writes_plain_ssn_json = facts.source_index.has(r#"SSN string `json:"ssn"`"#)
+        && facts.source_index.has("json.Marshal(rec)");
     if !(stores_plain_ssn || writes_plain_ssn_json) {
         return;
     }

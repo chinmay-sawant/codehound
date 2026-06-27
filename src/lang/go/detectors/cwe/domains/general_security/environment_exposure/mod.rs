@@ -1,7 +1,7 @@
-mod network;
-mod filesystem;
 mod diagnostics;
+mod filesystem;
+mod network;
 
-pub(crate) use network::*;
-pub(crate) use filesystem::*;
 pub(crate) use diagnostics::*;
+pub(crate) use filesystem::*;
+pub(crate) use network::*;

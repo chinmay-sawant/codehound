@@ -16,7 +16,9 @@ pub(crate) fn detect_cwe_280(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let falls_through_on_error = facts.source_index.has("if err != nil {")
         && !facts.source_index.has("errors.Is(err, syscall.EACCES)")
         && !facts.source_index.has("errors.Is(err, syscall.EPERM)")
-        && (facts.source_index.has_any(&[r#"db.Exec("DELETE FROM tenants"#, "tenantStore.Delete("]));
+        && (facts
+            .source_index
+            .has_any(&[r#"db.Exec("DELETE FROM tenants"#, "tenantStore.Delete("]));
     if !falls_through_on_error {
         return;
     }

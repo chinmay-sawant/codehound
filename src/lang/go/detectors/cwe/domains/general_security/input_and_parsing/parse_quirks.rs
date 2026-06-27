@@ -7,8 +7,8 @@ pub(crate) fn detect_cwe_838(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let invalid_utf8 =
-        facts.source_index.has("application/json; charset=utf-8") && facts.source_index.has("0xC3, 0x28");
+    let invalid_utf8 = facts.source_index.has("application/json; charset=utf-8")
+        && facts.source_index.has("0xC3, 0x28");
     if !invalid_utf8 {
         return;
     }
@@ -29,13 +29,21 @@ pub(crate) fn detect_cwe_1286(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut 
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let loose_json_config = (facts.source_index.has_any(&["SaveHookConfig(", "SaveHookConfigPure("]))
-        && (facts.source_index.has_any(&["json.Unmarshal(body, &cfg)", "json.NewDecoder(r.Body).Decode(&cfg)"]))
+    let loose_json_config = (facts
+        .source_index
+        .has_any(&["SaveHookConfig(", "SaveHookConfigPure("]))
+        && (facts.source_index.has_any(&[
+            "json.Unmarshal(body, &cfg)",
+            "json.NewDecoder(r.Body).Decode(&cfg)",
+        ]))
         && facts.source_index.has("hook_configs");
     if !loose_json_config {
         return;
     }
-    if facts.source_index.has_any(&["DisallowUnknownFields()", "ParseRequestURI(cfg.URL)"]) {
+    if facts
+        .source_index
+        .has_any(&["DisallowUnknownFields()", "ParseRequestURI(cfg.URL)"])
+    {
         return;
     }
 
@@ -58,7 +66,9 @@ pub(crate) fn detect_cwe_1389(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut 
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let implicit_radix = (facts.source_index.has_any(&["ReserveSeats(", "ReserveSeatsPure("]))
+    let implicit_radix = (facts
+        .source_index
+        .has_any(&["ReserveSeats(", "ReserveSeatsPure("]))
         && facts.source_index.has("strconv.ParseInt(raw, 0, 64)");
     if !implicit_radix {
         return;

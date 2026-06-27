@@ -1,9 +1,9 @@
 #![allow(dead_code)]
 //! PERF-100: Cobra CLI performance detector.
 
-use super::super::common::*;
 use super::super::super::super::facts::GoPerfFacts;
 use super::super::super::super::metadata::*;
+use super::super::common::*;
 use crate::ast::walk_nodes;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};

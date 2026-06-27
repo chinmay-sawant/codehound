@@ -9,7 +9,10 @@ pub(crate) fn detect_cwe_204(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 
     let has_missing_account_branch =
         facts.source_index.has("no account") && facts.source_index.has("StatusNotFound");
-    let has_wrong_secret_branch = facts.source_index.has_any(&["bad password", "bad secret", "StatusUnauthorized"]);
+    let has_wrong_secret_branch =
+        facts
+            .source_index
+            .has_any(&["bad password", "bad secret", "StatusUnauthorized"]);
     let has_uniform_failure = facts.source_index.has("invalid credentials");
 
     if !(has_missing_account_branch && has_wrong_secret_branch) || has_uniform_failure {

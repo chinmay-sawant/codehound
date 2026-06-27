@@ -21,9 +21,13 @@ pub(crate) fn detect_cwe_270(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         return;
     };
 
-    let restores_context = facts.source_index.has(r#"defer c.Set("effective_user", original)"#)
+    let restores_context = facts
+        .source_index
+        .has(r#"defer c.Set("effective_user", original)"#)
         || (facts.source_index.has("defer func()")
-            && facts.source_index.has("context.WithValue(r.Context(), effectiveUserKey, original)"));
+            && facts
+                .source_index
+                .has("context.WithValue(r.Context(), effectiveUserKey, original)"));
     if restores_context {
         return;
     }
@@ -85,7 +89,10 @@ pub(crate) fn detect_cwe_272(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 pub(crate) fn detect_cwe_273(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
 
-    if facts.source_index.has("if err := syscall.Setuid(1000); err != nil") {
+    if facts
+        .source_index
+        .has("if err := syscall.Setuid(1000); err != nil")
+    {
         return;
     }
 
@@ -132,7 +139,10 @@ pub(crate) fn detect_cwe_274(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     };
 
     let treats_error_as_success = (facts.source_index.has("if err != nil {")
-        && (facts.source_index.has_any(&[r#"c.JSON(200, gin.H{"rotated": true})"#, "w.WriteHeader(http.StatusOK)"])))
+        && (facts.source_index.has_any(&[
+            r#"c.JSON(200, gin.H{"rotated": true})"#,
+            "w.WriteHeader(http.StatusOK)",
+        ])))
         && !facts.source_index.has("errors.Is(err, syscall.EPERM)");
     if !treats_error_as_success {
         return;
@@ -153,13 +163,22 @@ pub(crate) fn detect_cwe_1265(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut 
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let nested_lock_reentry = (facts.source_index.has_any(&["UpdateBalance(", "UpdateBalancePure("]))
-        && (facts.source_index.has_any(&["ledgerMu.Lock()", "ledgerMuPure.Lock()"]))
-        && (facts.source_index.has_any(&["PostTransfer(", "PostTransferPure("]));
+    let nested_lock_reentry = (facts
+        .source_index
+        .has_any(&["UpdateBalance(", "UpdateBalancePure("]))
+        && (facts
+            .source_index
+            .has_any(&["ledgerMu.Lock()", "ledgerMuPure.Lock()"]))
+        && (facts
+            .source_index
+            .has_any(&["PostTransfer(", "PostTransferPure("]));
     if !nested_lock_reentry {
         return;
     }
-    if facts.source_index.has_any(&["applyBalanceDelta(", "applyBalanceDeltaPure("]) {
+    if facts
+        .source_index
+        .has_any(&["applyBalanceDelta(", "applyBalanceDeltaPure("])
+    {
         return;
     }
 

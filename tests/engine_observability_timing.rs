@@ -34,7 +34,10 @@ fn analyzer_collects_stats_when_enabled() {
 
 #[test]
 fn analyzer_omits_stats_when_disabled() {
-    let analyzer = Analyzer::builder().with_default_filter().collect_stats(false).build();
+    let analyzer = Analyzer::builder()
+        .with_default_filter()
+        .collect_stats(false)
+        .build();
     let result = analyzer.analyze_paths(["src"], None).unwrap();
     assert!(result.stats.is_none());
 }

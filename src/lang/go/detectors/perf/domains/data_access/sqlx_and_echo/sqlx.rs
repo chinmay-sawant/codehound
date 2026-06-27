@@ -9,10 +9,7 @@ pub(crate) fn detect_perf_81(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
     let triggers = ["db.Select(", "db.Queryx(", "db.QueryxContext("];
-    let Some(&needle) = triggers
-        .iter()
-        .find(|n| facts.source_index.has(n))
-    else {
+    let Some(&needle) = triggers.iter().find(|n| facts.source_index.has(n)) else {
         return;
     };
     if !facts.source_index.has("IN (?)") {
@@ -80,10 +77,7 @@ pub(crate) fn detect_perf_84(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         "tx, err := db.Beginx",
         "tx := db.MustBegin",
     ];
-    let Some(&needle) = triggers
-        .iter()
-        .find(|n| facts.source_index.has(n))
-    else {
+    let Some(&needle) = triggers.iter().find(|n| facts.source_index.has(n)) else {
         return;
     };
     let start = source.find(needle).unwrap_or(0);

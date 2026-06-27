@@ -1,12 +1,12 @@
 //! PERF-108, 133, 156, 158, 177: sort, search, and I/O misuse.
 
+use super::common::is_simple_ident;
+use super::ranges_and_types::{is_string_iterable, word_appears_in};
 use crate::core::ParsedUnit;
 use crate::lang::go::detectors::perf::common::is_in_loop;
 use crate::lang::go::detectors::perf::facts::GoPerfFacts;
 use crate::lang::go::detectors::perf::metadata::*;
-use crate::rules::{emit, Finding};
-use super::common::is_simple_ident;
-use super::ranges_and_types::{is_string_iterable, word_appears_in};
+use crate::rules::{Finding, emit};
 
 /// PERF-108: `sort.Search` inside a loop. Binary search is the
 /// whole point of caching; calling it per iteration is wasted

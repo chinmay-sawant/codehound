@@ -4,7 +4,7 @@ use crate::core::ParsedUnit;
 use crate::lang::go::detectors::perf::common::is_in_loop;
 use crate::lang::go::detectors::perf::facts::GoPerfFacts;
 use crate::lang::go::detectors::perf::metadata::*;
-use crate::rules::{emit, Finding};
+use crate::rules::{Finding, emit};
 
 /// PERF-107: `encoding/binary.Read` / `binary.Write` inside a loop body
 /// — the encoding layer makes a function call per element with

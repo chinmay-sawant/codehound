@@ -6,7 +6,12 @@ pub(crate) fn detect_cwe_323(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let fixed_nonce = facts.source_index.has_any(&["sharedNonce", "relaySessionNonce", "static-nonce12", "fixednonce12"]);
+    let fixed_nonce = facts.source_index.has_any(&[
+        "sharedNonce",
+        "relaySessionNonce",
+        "static-nonce12",
+        "fixednonce12",
+    ]);
     if !fixed_nonce || !facts.source_index.has("aead.Seal(") {
         return;
     }
@@ -56,7 +61,9 @@ pub(crate) fn detect_cwe_331(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let weak_recovery_code = facts.source_index.has("rand.NewSource(time.Now().UnixNano())")
+    let weak_recovery_code = facts
+        .source_index
+        .has("rand.NewSource(time.Now().UnixNano())")
         && facts.source_index.has("Intn(900000) + 100000")
         && facts.source_index.has("code");
     if !weak_recovery_code {

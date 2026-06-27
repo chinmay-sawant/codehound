@@ -103,7 +103,10 @@ pub(crate) fn detect_cwe_59(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
 pub(crate) fn detect_cwe_283(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
 
-    if facts.source_index.has_any(&["info.Sys().(*syscall.Stat_t)", "stat.Uid"]) {
+    if facts
+        .source_index
+        .has_any(&["info.Sys().(*syscall.Stat_t)", "stat.Uid"])
+    {
         return;
     }
 

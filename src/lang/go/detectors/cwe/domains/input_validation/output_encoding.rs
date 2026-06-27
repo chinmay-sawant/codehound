@@ -12,8 +12,12 @@ pub(crate) fn detect_cwe_76(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
     if facts.source_index.has("html.EscapeString(") {
         return;
     }
-    if !facts.source_index.has(r#"strings.ReplaceAll(raw, "<", "")"#)
-        || !facts.source_index.has(r#"strings.ReplaceAll(safe, ">", "")"#)
+    if !facts
+        .source_index
+        .has(r#"strings.ReplaceAll(raw, "<", "")"#)
+        || !facts
+            .source_index
+            .has(r#"strings.ReplaceAll(safe, ">", "")"#)
     {
         return;
     }

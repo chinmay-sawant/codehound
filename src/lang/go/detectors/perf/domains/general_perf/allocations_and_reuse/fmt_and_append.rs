@@ -122,5 +122,7 @@ pub(crate) fn detect_perf_42(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 }
 
 pub(super) fn is_in_loop_present(calls: &[CallFact]) -> bool {
-    calls.iter().any(super::super::super::super::common::is_in_loop)
+    calls
+        .iter()
+        .any(super::super::super::super::common::is_in_loop)
 }

@@ -158,7 +158,9 @@ pub(crate) fn detect_cwe_184(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         return;
     }
 
-    if !(facts.source_index.has("strings.Contains(") && facts.source_index.has("for _, word := range")) {
+    if !(facts.source_index.has("strings.Contains(")
+        && facts.source_index.has("for _, word := range"))
+    {
         return;
     }
 

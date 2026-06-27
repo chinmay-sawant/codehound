@@ -19,13 +19,18 @@ pub(crate) fn detect_perf_28(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         return;
     }
     // A package-scope singleton mutex is fine.
-    if facts.source_index.has("var mu sync.Mutex
-")
-        || facts.source_index.has("var mu sync.Mutex =")
-        || facts.source_index.has("var (
-")
-        || facts.source_index.has("var rwMu sync.RWMutex
-")
+    if facts.source_index.has(
+        "var mu sync.Mutex
+",
+    ) || facts.source_index.has("var mu sync.Mutex =")
+        || facts.source_index.has(
+            "var (
+",
+        )
+        || facts.source_index.has(
+            "var rwMu sync.RWMutex
+",
+        )
     {
         return;
     }
@@ -35,10 +40,13 @@ pub(crate) fn detect_perf_28(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     // block and that struct must be instantiated in the handler.
     let in_struct = facts.source_index.has("struct {")
         && (facts.source_index.has("	mu sync.Mutex")
-            || facts.source_index.has("mu sync.Mutex
-")
+            || facts.source_index.has(
+                "mu sync.Mutex
+",
+            )
             || facts.source_index.has("rwMu sync.RWMutex"));
-    let literal_in_handler = facts.source_index.has("sync.Mutex{") || facts.source_index.has("sync.RWMutex{");
+    let literal_in_handler =
+        facts.source_index.has("sync.Mutex{") || facts.source_index.has("sync.RWMutex{");
     if !in_struct && !literal_in_handler {
         return;
     }

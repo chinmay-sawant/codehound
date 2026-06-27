@@ -56,7 +56,10 @@ fn bench_scan_go_only_subset(c: &mut Criterion) {
         ..ScanContext::default()
     };
 
-    let analyzer = Analyzer::builder().with_default_filter().scan_context(ctx).build();
+    let analyzer = Analyzer::builder()
+        .with_default_filter()
+        .scan_context(ctx)
+        .build();
     let root = materialized_root();
 
     c.bench_function("scan_go_only_two_rules", |b| {

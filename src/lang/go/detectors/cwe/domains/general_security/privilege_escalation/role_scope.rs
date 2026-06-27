@@ -21,8 +21,9 @@ pub(crate) fn detect_cwe_266(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         return;
     }
 
-    let role_is_used_for_membership =
-        facts.source_index.has_any(&["Role: role", "Store(userID, role)"]);
+    let role_is_used_for_membership = facts
+        .source_index
+        .has_any(&["Role: role", "Store(userID, role)"]);
     if !role_is_used_for_membership {
         return;
     }
@@ -41,8 +42,9 @@ pub(crate) fn detect_cwe_266(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 pub(crate) fn detect_cwe_267(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
 
-    let reviewer_guard =
-        facts.source_index.has_any(&[r#"!= "reviewer""#, r#".Get("X-Role") != "reviewer""#]);
+    let reviewer_guard = facts
+        .source_index
+        .has_any(&[r#"!= "reviewer""#, r#".Get("X-Role") != "reviewer""#]);
     if !reviewer_guard {
         return;
     }
@@ -69,9 +71,15 @@ pub(crate) fn detect_cwe_267(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 pub(crate) fn detect_cwe_268(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
 
-    let has_chained_scopes = (facts.source_index.has_any(&[r#"p == "read""#, r#"case "read":"#]))
-        && (facts.source_index.has_any(&[r#"p == "export""#, r#"case "export":"#]))
-        && (facts.source_index.has_any(&["hasRead && hasExport", "hasExport && hasRead"]));
+    let has_chained_scopes = (facts
+        .source_index
+        .has_any(&[r#"p == "read""#, r#"case "read":"#]))
+        && (facts
+            .source_index
+            .has_any(&[r#"p == "export""#, r#"case "export":"#]))
+        && (facts
+            .source_index
+            .has_any(&["hasRead && hasExport", "hasExport && hasRead"]));
     if !has_chained_scopes {
         return;
     }

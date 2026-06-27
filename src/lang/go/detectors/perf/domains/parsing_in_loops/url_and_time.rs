@@ -32,8 +32,8 @@ pub(crate) fn detect_perf_9(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Ve
 pub(crate) fn detect_perf_13(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
 
-    let has_ticker_already = facts.source_index.has("time.NewTicker(")
-        || facts.source_index.has("time.NewTimer(");
+    let has_ticker_already =
+        facts.source_index.has("time.NewTicker(") || facts.source_index.has("time.NewTimer(");
     if has_ticker_already {
         return;
     }

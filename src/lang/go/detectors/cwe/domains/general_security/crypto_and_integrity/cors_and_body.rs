@@ -29,7 +29,9 @@ pub(crate) fn detect_cwe_344(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let hardcoded_secret = facts.source_index.has_any(&["const billingHMACSecret = ", "const shipmentHMACSecret = "]);
+    let hardcoded_secret = facts
+        .source_index
+        .has_any(&["const billingHMACSecret = ", "const shipmentHMACSecret = "]);
     if !hardcoded_secret || !facts.source_index.has("hmac.New(") {
         return;
     }
@@ -54,12 +56,16 @@ pub(crate) fn detect_cwe_346(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let reflects_origin = facts.source_index.has(r#"Access-Control-Allow-Origin", origin"#)
+    let reflects_origin = facts
+        .source_index
+        .has(r#"Access-Control-Allow-Origin", origin"#)
         && facts.source_index.has(r#"Header.Get("Origin")"#);
     if !reflects_origin {
         return;
     }
-    if facts.source_index.has_any(&["allowedOrigins", "trustedOrigins", "forbidden origin"])
+    if facts
+        .source_index
+        .has_any(&["allowedOrigins", "trustedOrigins", "forbidden origin"])
     {
         return;
     }

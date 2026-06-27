@@ -39,7 +39,10 @@ pub(crate) fn detect_cwe_829(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     if !untrusted_plugin_path {
         return;
     }
-    if facts.source_index.has_any(&["allowedModules", "moduleRoot"]) {
+    if facts
+        .source_index
+        .has_any(&["allowedModules", "moduleRoot"])
+    {
         return;
     }
 
@@ -59,7 +62,9 @@ pub(crate) fn detect_cwe_1125(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut 
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let wide_surface = (facts.source_index.has_any(&["MountWideSurface(", "MountWideSurfacePure("]))
+    let wide_surface = (facts
+        .source_index
+        .has_any(&["MountWideSurface(", "MountWideSurfacePure("]))
         && (facts.source_index.has_any(&["/debug/pprof", "pprof.Index"]))
         && facts.source_index.has("/admin/sql")
         && facts.source_index.has("/admin/config")
@@ -67,7 +72,10 @@ pub(crate) fn detect_cwe_1125(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut 
     if !wide_surface {
         return;
     }
-    if facts.source_index.has_any(&["authRequired()", "authRequiredPure("]) {
+    if facts
+        .source_index
+        .has_any(&["authRequired()", "authRequiredPure("])
+    {
         return;
     }
 

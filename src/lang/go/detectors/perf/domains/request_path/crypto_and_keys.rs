@@ -59,7 +59,8 @@ pub(crate) fn detect_perf_25(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     if !facts.source_index.has_any(&index_triggers) {
         return;
     }
-    if facts.source_index.has("var (") && (facts.source_index.has("// gen once") || facts.source_index.has("sync.Once"))
+    if facts.source_index.has("var (")
+        && (facts.source_index.has("// gen once") || facts.source_index.has("sync.Once"))
     {
         return;
     }

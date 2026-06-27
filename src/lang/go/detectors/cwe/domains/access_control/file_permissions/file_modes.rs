@@ -10,7 +10,9 @@ pub(crate) fn detect_cwe_276(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
             && call.arguments.len() >= 3
             && call.arguments[2].as_ref() == "0666"
             && (call.arguments[0].contains("sessions")
-                || facts.source_index.has_any(&["session_data", "X-Session-Data"]))
+                || facts
+                    .source_index
+                    .has_any(&["session_data", "X-Session-Data"]))
     }) else {
         return;
     };

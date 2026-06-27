@@ -7,8 +7,12 @@ pub(crate) fn detect_cwe_601(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let source = unit.source.as_ref();
 
     let caller_redirect = facts.source_index.has(r#""next""#)
-        && (facts.source_index.has("c.Redirect(http.StatusFound, target)")
-            || facts.source_index.has("http.Redirect(w, r, target, http.StatusFound)"));
+        && (facts
+            .source_index
+            .has("c.Redirect(http.StatusFound, target)")
+            || facts
+                .source_index
+                .has("http.Redirect(w, r, target, http.StatusFound)"));
     if !caller_redirect {
         return;
     }
@@ -35,7 +39,8 @@ pub(crate) fn detect_cwe_918(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let source = unit.source.as_ref();
 
     let ssrf_fetch = facts.source_index.has("http.Get(target)")
-        && (facts.source_index.has("c.Query(\"url\")") || facts.source_index.has("r.URL.Query().Get(\"url\")"));
+        && (facts.source_index.has("c.Query(\"url\")")
+            || facts.source_index.has("r.URL.Query().Get(\"url\")"));
     if !ssrf_fetch {
         return;
     }

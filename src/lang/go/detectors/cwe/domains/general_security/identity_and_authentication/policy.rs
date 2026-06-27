@@ -9,7 +9,9 @@ pub(crate) fn detect_cwe_454(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 
     let request_bootstrap_flag = source
         .contains("enforceMFA = c.PostForm(\"enforce_mfa\") == \"true\"")
-        || facts.source_index.has(r#"enforceMFA = r.FormValue("enforce_mfa") == "true""#);
+        || facts
+            .source_index
+            .has(r#"enforceMFA = r.FormValue("enforce_mfa") == "true""#);
     if !request_bootstrap_flag {
         return;
     }
@@ -30,11 +32,15 @@ pub(crate) fn detect_cwe_488(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let global_session_map = facts.source_index.has("map[string][]string{}") && facts.source_index.has("session");
+    let global_session_map =
+        facts.source_index.has("map[string][]string{}") && facts.source_index.has("session");
     if !global_session_map {
         return;
     }
-    if facts.source_index.has_any(&[r#"Cookie("session_id")"#, r#"r.Cookie("session_id")"#]) {
+    if facts
+        .source_index
+        .has_any(&[r#"Cookie("session_id")"#, r#"r.Cookie("session_id")"#])
+    {
         return;
     }
 
@@ -58,13 +64,18 @@ pub(crate) fn detect_cwe_565(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let trusts_role_cookie = (facts.source_index.has_any(&[r#"c.Cookie("role")"#, r#"r.Cookie("role")"#]))
+    let trusts_role_cookie = (facts
+        .source_index
+        .has_any(&[r#"c.Cookie("role")"#, r#"r.Cookie("role")"#]))
         && facts.source_index.has(r#""admin""#)
         && facts.source_index.has("DELETE FROM tenants");
     if !trusts_role_cookie {
         return;
     }
-    if facts.source_index.has_any(&[r#"GetString("role")"#, r#"Header.Get("X-Role")"#]) {
+    if facts
+        .source_index
+        .has_any(&[r#"GetString("role")"#, r#"Header.Get("X-Role")"#])
+    {
         return;
     }
 
@@ -84,12 +95,15 @@ pub(crate) fn detect_cwe_645(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let one_strike_lockout =
-        facts.source_index.has("failedAttempts[user]++") && facts.source_index.has("failedAttempts[user] >= 1");
+    let one_strike_lockout = facts.source_index.has("failedAttempts[user]++")
+        && facts.source_index.has("failedAttempts[user] >= 1");
     if !one_strike_lockout {
         return;
     }
-    if facts.source_index.has_any(&["failedAttempts[user] >= 5", "lockedUntil"]) {
+    if facts
+        .source_index
+        .has_any(&["failedAttempts[user] >= 5", "lockedUntil"])
+    {
         return;
     }
 
@@ -115,7 +129,9 @@ pub(crate) fn detect_cwe_649(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     if !obfuscated_role_cookie {
         return;
     }
-    if facts.source_index.has_any(&["hmac.New(", "hmac.Equal(", "RawURLEncoding"])
+    if facts
+        .source_index
+        .has_any(&["hmac.New(", "hmac.Equal(", "RawURLEncoding"])
     {
         return;
     }
@@ -142,7 +158,10 @@ pub(crate) fn detect_cwe_654(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     if !single_factor_admin {
         return;
     }
-    if facts.source_index.has_any(&[r#"Get("role")"#, "X-User-Role"]) {
+    if facts
+        .source_index
+        .has_any(&[r#"Get("role")"#, "X-User-Role"])
+    {
         return;
     }
 
@@ -162,12 +181,15 @@ pub(crate) fn detect_cwe_656(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let hidden_path_gate =
-        facts.source_index.has("/maintenance-portal-9f3c2a") && facts.source_index.has("HiddenConfigPanel");
+    let hidden_path_gate = facts.source_index.has("/maintenance-portal-9f3c2a")
+        && facts.source_index.has("HiddenConfigPanel");
     if !hidden_path_gate {
         return;
     }
-    if facts.source_index.has_any(&[r#"role != "admin""#, "X-User-Role"]) {
+    if facts
+        .source_index
+        .has_any(&[r#"role != "admin""#, "X-User-Role"])
+    {
         return;
     }
 

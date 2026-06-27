@@ -11,7 +11,10 @@ pub(crate) fn detect_cwe_425(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     if !admin_export {
         return;
     }
-    if facts.source_index.has_any(&["requireAdmin()", "requireAdmin("]) {
+    if facts
+        .source_index
+        .has_any(&["requireAdmin()", "requireAdmin("])
+    {
         return;
     }
 
@@ -33,8 +36,12 @@ pub(crate) fn detect_cwe_551(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 
     let raw_path_gate = facts.source_index.has("raw := ")
         && facts.source_index.has("URL.Path")
-        && facts.source_index.has(r#"strings.HasPrefix(raw, "/admin")"#)
-        && facts.source_index.has(r#"strings.ReplaceAll(raw, "%2f", "/")"#);
+        && facts
+            .source_index
+            .has(r#"strings.HasPrefix(raw, "/admin")"#)
+        && facts
+            .source_index
+            .has(r#"strings.ReplaceAll(raw, "%2f", "/")"#);
     if !raw_path_gate {
         return;
     }
@@ -60,14 +67,20 @@ pub(crate) fn detect_cwe_653(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let shared_privileged_store = (facts.source_index.has_any(&["sharedDB", "sharedAuditStore"]))
+    let shared_privileged_store = (facts
+        .source_index
+        .has_any(&["sharedDB", "sharedAuditStore"]))
         && facts.source_index.has("PublicSearch")
         && facts.source_index.has("AdminPurge");
     if !shared_privileged_store {
         return;
     }
-    if facts.source_index.has_any(&["readOnlyDB", "readOnlyAuditStore", "adminDB", "adminAuditStore"])
-    {
+    if facts.source_index.has_any(&[
+        "readOnlyDB",
+        "readOnlyAuditStore",
+        "adminDB",
+        "adminAuditStore",
+    ]) {
         return;
     }
 

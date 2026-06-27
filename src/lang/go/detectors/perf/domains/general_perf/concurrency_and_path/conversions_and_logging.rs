@@ -115,7 +115,10 @@ pub(crate) fn detect_perf_48(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         ) {
             continue;
         }
-        if facts.source_index.has("if len(a) != len(b) { return false }") || facts.source_index.has("len(prefix)")
+        if facts
+            .source_index
+            .has("if len(a) != len(b) { return false }")
+            || facts.source_index.has("len(prefix)")
         {
             return;
         }
@@ -143,7 +146,10 @@ pub(crate) fn detect_perf_49(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     if !facts.source_index.has("copy(buf, payload)") && !facts.source_index.has("copy(dst, src)") {
         return;
     }
-    if facts.source_index.has("if len(payload) > len(buf) { return }") {
+    if facts
+        .source_index
+        .has("if len(payload) > len(buf) { return }")
+    {
         return;
     }
 

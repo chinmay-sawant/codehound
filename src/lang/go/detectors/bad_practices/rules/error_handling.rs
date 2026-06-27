@@ -2,8 +2,8 @@
 
 use tree_sitter::Node;
 
-use super::helpers::{line_start_byte, push_at};
 use super::super::source_index::SourceIndex;
+use super::helpers::{line_start_byte, push_at};
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 

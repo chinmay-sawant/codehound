@@ -6,8 +6,8 @@ pub(crate) fn detect_cwe_366(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let direct_credit_increment =
-        facts.source_index.has("walletCredits += amount") || facts.source_index.has("referralCredits += 10");
+    let direct_credit_increment = facts.source_index.has("walletCredits += amount")
+        || facts.source_index.has("referralCredits += 10");
     if !direct_credit_increment {
         return;
     }
@@ -66,9 +66,13 @@ pub(crate) fn detect_cwe_421(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let source = unit.source.as_ref();
 
     let shared_event_state = (facts.source_index.has("transferToken =")
-        && facts.source_index.has("event: status\\ndata: \" + transferToken"))
+        && facts
+            .source_index
+            .has("event: status\\ndata: \" + transferToken"))
         || (facts.source_index.has("wireTransferCode =")
-            && facts.source_index.has("event: status\\ndata: %s\\n\\n\", wireTransferCode"));
+            && facts
+                .source_index
+                .has("event: status\\ndata: %s\\n\\n\", wireTransferCode"));
     if !shared_event_state {
         return;
     }
@@ -99,8 +103,10 @@ pub(crate) fn detect_cwe_820(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let unsynchronized_map_write =
-        facts.source_index.has("visitCounts[key] = visitCounts[key] + 1") && facts.source_index.has("TrackVisit");
+    let unsynchronized_map_write = facts
+        .source_index
+        .has("visitCounts[key] = visitCounts[key] + 1")
+        && facts.source_index.has("TrackVisit");
     if !unsynchronized_map_write {
         return;
     }

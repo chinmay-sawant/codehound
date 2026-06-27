@@ -1,11 +1,11 @@
 //! PERF-113, 114, 121, 146, 147, 157: ranges, types, and fmt misuse.
 
+use super::common::is_simple_ident;
+use super::strings_bytes::{is_indexed_range, looks_like_loop_copy};
 use crate::core::ParsedUnit;
 use crate::lang::go::detectors::perf::facts::GoPerfFacts;
 use crate::lang::go::detectors::perf::metadata::*;
-use crate::rules::{emit, Finding};
-use super::common::is_simple_ident;
-use super::strings_bytes::{is_indexed_range, looks_like_loop_copy};
+use crate::rules::{Finding, emit};
 
 /// PERF-146: `fmt.Sprintf("%s", value)` is just string conversion.
 pub(crate) fn detect_perf_146(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {

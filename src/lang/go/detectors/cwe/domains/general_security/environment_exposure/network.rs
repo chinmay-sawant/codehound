@@ -17,7 +17,9 @@ pub(crate) fn detect_cwe_359(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     if !serializes_pii {
         return;
     }
-    if facts.source_index.has_any(&["PublicProfile", "PublicPersonView", "requester != target"])
+    if facts
+        .source_index
+        .has_any(&["PublicProfile", "PublicPersonView", "requester != target"])
     {
         return;
     }
@@ -43,7 +45,10 @@ pub(crate) fn detect_cwe_360(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     if !facts.source_index.has("X-Forwarded-For") {
         return;
     }
-    if facts.source_index.has_any(&["SplitHostPort(", "RemoteAddr"]) {
+    if facts
+        .source_index
+        .has_any(&["SplitHostPort(", "RemoteAddr"])
+    {
         return;
     }
 

@@ -14,7 +14,9 @@ pub(crate) fn detect_cwe_319(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     if facts.source_index.has("ListenAndServeTLS(") || facts.source_index.has("tls.Config") {
         return;
     }
-    if !(facts.source_index.has("ListenAndServe(") || facts.source_index.has("http.ListenAndServe(")) {
+    if !(facts.source_index.has("ListenAndServe(")
+        || facts.source_index.has("http.ListenAndServe("))
+    {
         return;
     }
 

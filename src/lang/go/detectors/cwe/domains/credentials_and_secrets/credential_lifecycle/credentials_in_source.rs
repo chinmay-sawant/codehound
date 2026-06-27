@@ -7,7 +7,8 @@ pub(crate) fn detect_cwe_523(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let source = unit.source.as_ref();
 
     let cleartext_login = (facts.source_index.has("/login") && facts.source_index.has("password"))
-        && (facts.source_index.has("Addr: \":8080\"") || facts.source_index.has("StartCleartextLogin"));
+        && (facts.source_index.has("Addr: \":8080\"")
+            || facts.source_index.has("StartCleartextLogin"));
     if !cleartext_login {
         return;
     }
@@ -38,8 +39,8 @@ pub(crate) fn detect_cwe_547(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let hardcoded_signing_secret =
-        facts.source_index.has("const jwtSecret = ") || facts.source_index.has("const sessionMACKey = ");
+    let hardcoded_signing_secret = facts.source_index.has("const jwtSecret = ")
+        || facts.source_index.has("const sessionMACKey = ");
     if !hardcoded_signing_secret {
         return;
     }

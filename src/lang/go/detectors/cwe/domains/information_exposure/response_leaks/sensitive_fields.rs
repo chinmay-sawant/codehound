@@ -6,7 +6,8 @@ pub(crate) fn detect_cwe_201(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let _source = unit.source.as_ref();
 
-    let has_sensitive_field = facts.source_index.has("APIKey") || facts.source_index.has("TokenKey");
+    let has_sensitive_field =
+        facts.source_index.has("APIKey") || facts.source_index.has("TokenKey");
     if !has_sensitive_field {
         return;
     }

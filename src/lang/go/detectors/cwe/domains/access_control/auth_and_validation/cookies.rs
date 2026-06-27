@@ -13,7 +13,10 @@ pub(crate) fn detect_cwe_603(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     if !trusts_auth_header {
         return;
     }
-    if facts.source_index.has_any(&[r#"GetString("uid")"#, r#"Header.Get("X-UID")"#]) {
+    if facts
+        .source_index
+        .has_any(&[r#"GetString("uid")"#, r#"Header.Get("X-UID")"#])
+    {
         return;
     }
 
@@ -33,13 +36,19 @@ pub(crate) fn detect_cwe_613(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let non_expiring_cookie = (facts.source_index.has_any(&[r#"SetCookie("sid", sid, 0,"#, r#"http.SetCookie(w, &http.Cookie{Name: "sid", Value: sid, Path: "/", HttpOnly: true})"#]))
-        && facts.source_index.has("LogoutHandler");
+    let non_expiring_cookie = (facts.source_index.has_any(&[
+        r#"SetCookie("sid", sid, 0,"#,
+        r#"http.SetCookie(w, &http.Cookie{Name: "sid", Value: sid, Path: "/", HttpOnly: true})"#,
+    ])) && facts.source_index.has("LogoutHandler");
     if !non_expiring_cookie {
         return;
     }
-    if facts.source_index.has_any(&["revokedSessions[sid]", "revokedSessions[c.Value]", "MaxAge: 900", ", 900,"])
-    {
+    if facts.source_index.has_any(&[
+        "revokedSessions[sid]",
+        "revokedSessions[c.Value]",
+        "MaxAge: 900",
+        ", 900,",
+    ]) {
         return;
     }
 

@@ -15,7 +15,9 @@ pub(crate) fn detect_cwe_502(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         return;
     }
     if facts.source_index.has("ShouldBindJSON(&req)")
-        || facts.source_index.has("json.NewDecoder(r.Body).Decode(&req)")
+        || facts
+            .source_index
+            .has("json.NewDecoder(r.Body).Decode(&req)")
     {
         return;
     }

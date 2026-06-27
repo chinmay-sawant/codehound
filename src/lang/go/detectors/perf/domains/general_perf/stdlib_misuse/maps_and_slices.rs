@@ -1,12 +1,12 @@
 //! PERF-106, 110, 123, 128, 129, 192: maps, slices, and sync.Pool.
 
-use crate::core::ParsedUnit;
-use crate::lang::go::detectors::perf::facts::{CallFact, GoPerfFacts};
-use crate::lang::go::detectors::perf::metadata::*;
-use crate::rules::{emit, Finding};
 use super::common::{is_simple_ident, method_name};
 use super::ranges_and_types::word_appears_in;
 use super::strings_bytes::{intermediate, intervening_read};
+use crate::core::ParsedUnit;
+use crate::lang::go::detectors::perf::facts::{CallFact, GoPerfFacts};
+use crate::lang::go::detectors::perf::metadata::*;
+use crate::rules::{Finding, emit};
 
 /// PERF-106: `sync.Map` used in a write-heavy workload. We count
 /// `Store` and `LoadAndDelete` calls vs `Load` calls in the file and

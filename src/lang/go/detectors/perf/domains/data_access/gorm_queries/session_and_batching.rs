@@ -17,10 +17,7 @@ pub(crate) fn detect_perf_72(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         "tx := db.Begin(",
         "tx, err := db.Begin(",
     ];
-    let Some(&needle) = triggers
-        .iter()
-        .find(|n| facts.source_index.has(n))
-    else {
+    let Some(&needle) = triggers.iter().find(|n| facts.source_index.has(n)) else {
         return;
     };
     let start = source.find(needle).unwrap_or(0);
@@ -115,10 +112,7 @@ pub(crate) fn detect_perf_79(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         "postgres.Open(",
         "mysql.Open(",
     ];
-    let Some(&needle) = triggers
-        .iter()
-        .find(|n| facts.source_index.has(n))
-    else {
+    let Some(&needle) = triggers.iter().find(|n| facts.source_index.has(n)) else {
         return;
     };
     if has_any(
@@ -147,10 +141,7 @@ pub(crate) fn detect_perf_80(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
     let triggers = ["Pluck(", "Distinct("];
-    let Some(&needle) = triggers
-        .iter()
-        .find(|n| facts.source_index.has(n))
-    else {
+    let Some(&needle) = triggers.iter().find(|n| facts.source_index.has(n)) else {
         return;
     };
     if facts.source_index.has(".Limit(") {

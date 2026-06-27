@@ -7,7 +7,8 @@ pub(crate) fn detect_cwe_619(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let dangling_rows = facts.source_index.has("rows, err := db.Query(") && facts.source_index.has("rows.Next()");
+    let dangling_rows =
+        facts.source_index.has("rows, err := db.Query(") && facts.source_index.has("rows.Next()");
     if !dangling_rows {
         return;
     }
@@ -31,7 +32,9 @@ pub(crate) fn detect_cwe_917(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let template_injection = facts.source_index.has("template.New(\"report\").Parse(src)")
+    let template_injection = facts
+        .source_index
+        .has("template.New(\"report\").Parse(src)")
         && facts.source_index.has("{{.Title}} where ")
         && facts.source_index.has("+ expr");
     if !template_injection {

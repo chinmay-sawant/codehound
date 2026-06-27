@@ -189,7 +189,10 @@ func ReadFile(r *http.Request) {
             skip: skip_set,
             ..Default::default()
         };
-        let analyzer = Analyzer::builder().with_default_filter().scan_context(ctx).build();
+        let analyzer = Analyzer::builder()
+            .with_default_filter()
+            .scan_context(ctx)
+            .build();
         let r = analyzer.analyze_paths([&root], Some(&mut cache2)).unwrap();
         let mut ids: Vec<String> = r.findings.iter().map(|f| f.rule_id.to_string()).collect();
         ids.sort();

@@ -61,7 +61,9 @@ pub(crate) fn detect_cwe_552(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let permissive_upload_mode = (facts.source_index.has_any(&[r#"FormFile("contract")"#, r#"FormFile("contract")"#]))
+    let permissive_upload_mode = (facts
+        .source_index
+        .has_any(&[r#"FormFile("contract")"#, r#"FormFile("contract")"#]))
         && facts.source_index.has("/srv/contracts")
         && facts.source_index.has("os.Chmod(dest, 0o777)");
     if !permissive_upload_mode {

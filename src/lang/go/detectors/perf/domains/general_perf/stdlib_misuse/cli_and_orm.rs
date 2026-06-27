@@ -3,7 +3,7 @@
 use crate::core::ParsedUnit;
 use crate::lang::go::detectors::perf::facts::GoPerfFacts;
 use crate::lang::go::detectors::perf::metadata::*;
-use crate::rules::{emit, Finding};
+use crate::rules::{Finding, emit};
 
 /// PERF-204: GORM `db.Updates(map[...])` or `db.Model().Updates(map[...])`
 /// without a preceding `.Select("col1", ...)` call. The map can include
@@ -80,7 +80,8 @@ pub(crate) fn detect_perf_209(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     if !facts.source_index.has("cobra.Command") {
         return;
     }
-    if !facts.source_index.has("PersistentPreRunE") && !facts.source_index.has("PersistentPostRunE") {
+    if !facts.source_index.has("PersistentPreRunE") && !facts.source_index.has("PersistentPostRunE")
+    {
         return;
     }
 
@@ -134,7 +135,11 @@ pub(crate) fn detect_perf_211(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     }
     let has_not_in = facts.source_index.has("NOT IN") || facts.source_index.has("not in");
     let has_not_like = facts.source_index.has("NOT LIKE") || facts.source_index.has("not like");
-    if !facts.source_index.has("db.Not(") && !facts.source_index.has(".Not(") && !has_not_in && !has_not_like {
+    if !facts.source_index.has("db.Not(")
+        && !facts.source_index.has(".Not(")
+        && !has_not_in
+        && !has_not_like
+    {
         return;
     }
 

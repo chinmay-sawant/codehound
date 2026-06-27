@@ -6,7 +6,8 @@ pub(crate) fn detect_cwe_412(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let client_lock_path = facts.source_index.has("lockfile") && facts.source_index.has("os.ReadFile(lockPath)");
+    let client_lock_path =
+        facts.source_index.has("lockfile") && facts.source_index.has("os.ReadFile(lockPath)");
     if !client_lock_path {
         return;
     }
@@ -30,14 +31,18 @@ pub(crate) fn detect_cwe_1289(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut 
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let literal_path_block = (facts.source_index.has_any(&["FetchSharedAsset(", "FetchSharedAssetPure("]))
+    let literal_path_block = (facts
+        .source_index
+        .has_any(&["FetchSharedAsset(", "FetchSharedAssetPure("]))
         && facts.source_index.has(r#"requested == "private/keys.pem""#)
         && facts.source_index.has("filepath.Join(root, requested)");
     if !literal_path_block {
         return;
     }
-    if facts.source_index.has_any(&["filepath.Clean(filepath.Join(root, requested))", "HasPrefix(clean, root+string(filepath.Separator))"])
-    {
+    if facts.source_index.has_any(&[
+        "filepath.Clean(filepath.Join(root, requested))",
+        "HasPrefix(clean, root+string(filepath.Separator))",
+    ]) {
         return;
     }
 

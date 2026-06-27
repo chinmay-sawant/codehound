@@ -39,8 +39,8 @@ pub(crate) fn detect_cwe_455(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let continues_after_tls_failure =
-        facts.source_index.has("tls.LoadX509KeyPair(") && facts.source_index.has("continuing without mTLS");
+    let continues_after_tls_failure = facts.source_index.has("tls.LoadX509KeyPair(")
+        && facts.source_index.has("continuing without mTLS");
     if !continues_after_tls_failure {
         return;
     }

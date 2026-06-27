@@ -35,8 +35,8 @@ pub(crate) fn detect_cwe_842(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let wrong_default_group =
-        facts.source_index.has("RegisterMember") && facts.source_index.has(r#"Group: "administrators""#);
+    let wrong_default_group = facts.source_index.has("RegisterMember")
+        && facts.source_index.has(r#"Group: "administrators""#);
     if !wrong_default_group {
         return;
     }

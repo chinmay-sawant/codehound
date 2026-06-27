@@ -7,14 +7,22 @@ pub(crate) fn detect_cwe_940(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let oauth_callback = (facts.source_index.has_any(&["OAuthCallback(", "OAuthCallbackPure("]))
+    let oauth_callback = (facts
+        .source_index
+        .has_any(&["OAuthCallback(", "OAuthCallbackPure("]))
         && facts.source_index.has("code")
-        && facts.source_index.has("INSERT INTO oauth_tokens (user_id, code) VALUES ($1, $2)");
+        && facts
+            .source_index
+            .has("INSERT INTO oauth_tokens (user_id, code) VALUES ($1, $2)");
     if !oauth_callback {
         return;
     }
-    if facts.source_index.has_any(&["oauth_state", r#"Cookie("oauth_state")"#, r#"r.Cookie("oauth_state")"#, "invalid oauth state"])
-    {
+    if facts.source_index.has_any(&[
+        "oauth_state",
+        r#"Cookie("oauth_state")"#,
+        r#"r.Cookie("oauth_state")"#,
+        "invalid oauth state",
+    ]) {
         return;
     }
 
@@ -37,14 +45,20 @@ pub(crate) fn detect_cwe_941(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let caller_directed_reset = (facts.source_index.has_any(&["SendResetLink(", "SendResetLinkPure("]))
+    let caller_directed_reset = (facts
+        .source_index
+        .has_any(&["SendResetLink(", "SendResetLinkPure("]))
         && facts.source_index.has("smtp.SendMail")
-        && (facts.source_index.has_any(&[r#"Query("email")"#, r#"Query().Get("email")"#]))
+        && (facts
+            .source_index
+            .has_any(&[r#"Query("email")"#, r#"Query().Get("email")"#]))
         && facts.source_index.has("[]string{email}");
     if !caller_directed_reset {
         return;
     }
-    if facts.source_index.has_any(&["user.Email", "lookupEmail(", "sessionUserID"])
+    if facts
+        .source_index
+        .has_any(&["user.Email", "lookupEmail(", "sessionUserID"])
     {
         return;
     }

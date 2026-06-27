@@ -11,8 +11,12 @@ pub(crate) fn detect_cwe_549(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     if !password_echo {
         return;
     }
-    if facts.source_index.has(r#"Encode(map[string]string{"email": email})"#)
-        || facts.source_index.has("gin.H{\n\t\t\"email\": c.PostForm(\"email\"),\n\t})")
+    if facts
+        .source_index
+        .has(r#"Encode(map[string]string{"email": email})"#)
+        || facts
+            .source_index
+            .has("gin.H{\n\t\t\"email\": c.PostForm(\"email\"),\n\t})")
     {
         return;
     }
@@ -37,7 +41,9 @@ pub(crate) fn detect_cwe_640(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         && facts.source_index.has("new_password")
         && facts.source_index.has("email")
         && (facts.source_index.has("UPDATE users SET password")
-            || facts.source_index.has("Where(\"email = ?\", email).Update(\"password\", newPass)"));
+            || facts
+                .source_index
+                .has("Where(\"email = ?\", email).Update(\"password\", newPass)"));
     if !email_only_reset {
         return;
     }
