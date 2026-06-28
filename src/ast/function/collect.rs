@@ -64,26 +64,3 @@ fn walk(root: Node<'_>, kinds: &[&str], depth: usize, out: &mut Vec<FunctionSpan
     }
 }
 
-/// Push a function span from a single node (if its kind is function-like).
-/// Returns `true` when the node was function-like and a span was recorded.
-///
-/// Line numbers are set to `0`; the caller is responsible for resolving
-/// them later (e.g. via [`crate::ast::line_col_with_starts`]).
-pub(crate) fn try_record_function_span(
-    node: Node<'_>,
-    kinds: &[&str],
-    depth: usize,
-    out: &mut Vec<FunctionSpan>,
-) -> bool {
-    if kinds.contains(&node.kind()) {
-        out.push(FunctionSpan {
-            start_byte: node.start_byte(),
-            end_byte: node.end_byte(),
-            start_line: 0,
-            end_line: 0,
-            depth,
-        });
-        return true;
-    }
-    false
-}

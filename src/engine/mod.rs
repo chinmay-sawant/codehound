@@ -14,6 +14,7 @@ mod registry;
 mod result;
 pub mod sinks;
 mod stats;
+pub(crate) mod time;
 mod timing;
 mod walk;
 

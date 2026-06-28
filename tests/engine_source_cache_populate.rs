@@ -2,7 +2,7 @@
 
 #[path = "helpers/mod.rs"]
 mod helpers;
-use helpers::cache::unique_temp_root;
+use helpers::unique_temp_root;
 
 use slopguard::core::ScanContext;
 use slopguard::engine::Analyzer;
@@ -19,7 +19,7 @@ fn analyze_paths_populates_source_cache_for_scanned_files() {
         .with_default_filter()
         .scan_context(ScanContext::default())
         .build();
-    let result = analyzer.analyze_paths([&root], None).unwrap();
+    let result = analyzer.analyze_paths(&[&root], None).unwrap();
     let key = source_path.display().to_string();
 
     assert_eq!(result.source_cache.len(), 1);
@@ -46,7 +46,7 @@ fn analyze_paths_populates_source_cache_for_files_with_zero_findings() {
         .with_default_filter()
         .scan_context(ScanContext::default())
         .build();
-    let result = analyzer.analyze_paths([&root], None).unwrap();
+    let result = analyzer.analyze_paths(&[&root], None).unwrap();
     let key = source_path.display().to_string();
 
     assert!(result.findings.is_empty());
@@ -70,7 +70,7 @@ fn analyze_paths_populates_source_cache_for_empty_files() {
         .with_default_filter()
         .scan_context(ScanContext::default())
         .build();
-    let result = analyzer.analyze_paths([&root], None).unwrap();
+    let result = analyzer.analyze_paths(&[&root], None).unwrap();
     let key = source_path.display().to_string();
 
     assert!(result.findings.is_empty());
@@ -100,7 +100,7 @@ func add(a int, b int) int {
         .with_default_filter()
         .scan_context(ScanContext::default())
         .build();
-    let result = analyzer.analyze_paths([&root], None).unwrap();
+    let result = analyzer.analyze_paths(&[&root], None).unwrap();
 
     assert!(result.errors.is_empty(), "errors: {:?}", result.errors);
     assert_eq!(result.source_cache.len(), 2);

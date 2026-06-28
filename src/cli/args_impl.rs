@@ -8,10 +8,6 @@ use crate::export::ExportOptions;
 use super::args::Cli;
 
 impl Cli {
-    pub fn generate_baseline(&self) -> bool {
-        self.baseline
-    }
-
     pub fn scan_context(&self, config: Option<crate::engine::SlopguardConfig>) -> ScanContext {
         let cli_set_fail_policy = self.severity.is_explicit();
         let mut ctx = build_scan_context(

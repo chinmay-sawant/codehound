@@ -21,7 +21,7 @@ use crate::engine::timing::TimingCollector;
 use crate::rules::Finding;
 
 use super::entry::ScanEntry;
-use super::scan_entry::scan_entry;
+use super::scan_entry::{read_entry_utf8, scan_err, scan_entry};
 
 type ParallelScanResult = (
     Vec<Finding>,
@@ -50,8 +50,6 @@ pub(crate) enum ScanOutcome {
         findings: Vec<Finding>,
         cache_key: String,
         source: Arc<str>,
-        #[expect(dead_code)] // retained for cache-hit metadata parity with Ok arm
-        language: LanguageId,
         stats: ScanStats,
     },
     Err(ScanError),
@@ -121,53 +119,25 @@ pub(crate) fn scan_entries_parallel(
     ))
 }
 
-fn scan_err(entry: &ScanEntry, kind: ScanErrorKind, message: impl Into<String>) -> ScanError {
-    ScanError {
-        path: entry.path.as_ref().to_path_buf(),
-        kind,
-        message: message.into(),
-    }
-}
-
-fn read_entry_utf8(entry: &ScanEntry) -> Result<(Arc<str>, String), ScanError> {
-    let bytes = std::fs::read(&entry.path).map_err(|e| {
-        scan_err(
-            entry,
-            ScanErrorKind::Io,
-            format!("reading {}: {e}", entry.path.display()),
-        )
-    })?;
-    let source = String::from_utf8(bytes).map_err(|e| {
-        scan_err(
-            entry,
-            ScanErrorKind::Encoding,
-            format!("source is not valid UTF-8: {e}"),
-        )
-    })?;
-    Ok((Arc::from(source), entry.path.display().to_string()))
-}
-
 fn apply_cached_ignores(ctx: &ScanContext, source: &str, findings: &mut Vec<Finding>) {
     let file_ignore = parse_file_ignore(source);
     if !ctx.show_ignored && file_ignore.as_ref().is_some_and(IgnoreDirective::is_all) {
         findings.clear();
         return;
     }
-    let mut suppressed = apply_file_ignore(findings, file_ignore.as_ref(), ctx.show_ignored);
+    apply_file_ignore(findings, file_ignore.as_ref(), ctx.show_ignored);
     if file_ignore.is_none() {
         let inline_ignores = parse_inline_ignores(source);
-        suppressed += apply_inline_ignores(findings, &inline_ignores, ctx.show_ignored);
+        apply_inline_ignores(findings, &inline_ignores, ctx.show_ignored);
     }
-    let _ = suppressed;
 }
 
 fn process_cache_hit(
     ctx: &ScanContext,
     cached: CacheEntry,
     source: Arc<str>,
-    fallback_language: LanguageId,
+    _fallback_language: LanguageId,
 ) -> ScanOutcome {
-    let language = LanguageId::parse(&cached.language).unwrap_or(fallback_language);
     let cache_key = cached.file;
     let mut findings = filter_cached_findings(ctx, cached.findings);
     apply_cached_ignores(ctx, source.as_ref(), &mut findings);
@@ -177,7 +147,6 @@ fn process_cache_hit(
         findings,
         cache_key,
         source,
-        language,
         stats: file_stats,
     }
 }
@@ -385,7 +354,7 @@ fn write_cache_on_miss(
         language: language.as_str().to_string(),
         findings: findings.to_vec(),
         dependencies: dependencies.to_vec(),
-        cached_at: crate::engine::cache::iso8601_now(),
+        cached_at: crate::engine::time::iso8601_utc_now(),
     };
     if let Err(e) = cache.put(entry) {
         tracing::warn!(file = %cache_key, error = %e, "failed to write cache entry");

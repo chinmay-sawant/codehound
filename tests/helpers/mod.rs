@@ -3,7 +3,10 @@
 //! Each integration test binary only uses a subset of these helpers.
 #![allow(dead_code)]
 
+use std::collections::BTreeSet;
+use std::fs;
 use std::path::Path;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use slopguard::engine::Analyzer;
 use slopguard::fixture::{materialize_fixture, materialize_tree, materialized_root};
@@ -43,30 +46,14 @@ fn infer_rule_class(txt_path: &str) -> &'static str {
 }
 
 /// Materialize a `.txt` fixture, analyze it, and assert required rules fired.
-pub fn assert_fixture_rules(txt_path: &str, required_rules: &[&str]) {
-    assert!(
-        Path::new(txt_path).is_file(),
-        "fixture missing (mandatory .txt): {txt_path}"
-    );
-    assert!(
-        txt_path.ends_with(".txt"),
-        "fixtures must use .txt text format, not source extensions: {txt_path}"
-    );
-
+pub fn assert_fixture_rules(txt_path: &str, required_rules: &[&str], analyzer: &Analyzer) {
     let source_path = assert_fixture_materializes(txt_path);
-
-    let analyzer = Analyzer::builder().with_default_filter().build();
     let result = analyzer
-        .analyze_paths([&source_path], None)
+        .analyze_paths(&[&source_path], None)
         .unwrap_or_else(|e| panic!("analyze {}: {e:#}", source_path.display()));
 
     let ids: Vec<&str> = result.findings.iter().map(|f| f.rule_id).collect();
     if required_rules.is_empty() {
-        // `required_rules` is empty, so the caller is asserting that the
-        // fixture is "clean" w.r.t. whatever rule class it cares about. The
-        // CWE integration tests use this for safe fixtures and only care
-        // that no CWE-* findings fire (PERF findings on a CWE-safe fixture
-        // are valid signals, not test failures).
         let class = infer_rule_class(txt_path);
         assert!(
             !ids.iter().copied().any(|id| id.starts_with(class)),
@@ -85,44 +72,58 @@ pub fn assert_fixture_rules(txt_path: &str, required_rules: &[&str]) {
     }
 }
 
-/// Like `assert_fixture_rules` but uses a custom `ScanContext`.
-pub fn assert_fixture_rules_with_context(
-    txt_path: &str,
-    required_rules: &[&str],
-    analyzer: &Analyzer,
-) {
-    assert!(
-        Path::new(txt_path).is_file(),
-        "fixture missing (mandatory .txt): {txt_path}"
-    );
-    assert!(
-        txt_path.ends_with(".txt"),
-        "fixtures must use .txt text format, not source extensions: {txt_path}"
-    );
+/// Collect fixture case names from a directory that match the given suffix.
+pub fn collect_cases_with_suffix(dir: &Path, suffix: &str) -> BTreeSet<String> {
+    let mut cases = BTreeSet::new();
 
-    let source_path = assert_fixture_materializes(txt_path);
-    let result = analyzer
-        .analyze_paths([&source_path], None)
-        .unwrap_or_else(|e| panic!("analyze {}: {e:#}", source_path.display()));
+    for entry in fs::read_dir(dir).unwrap_or_else(|e| panic!("read_dir {}: {e}", dir.display())) {
+        let path = entry
+            .unwrap_or_else(|e| panic!("read_dir entry {}: {e}", dir.display()))
+            .path();
+        let name = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or_else(|| panic!("non-utf8 fixture path: {}", path.display()));
 
-    let ids: Vec<&str> = result.findings.iter().map(|f| f.rule_id).collect();
-    if required_rules.is_empty() {
-        let class = infer_rule_class(txt_path);
-        assert!(
-            !ids.iter().copied().any(|id| id.starts_with(class)),
-            "fixture {txt_path} → {}: expected no {class} findings, got {ids:?}",
-            source_path.display()
-        );
-        return;
+        if let Some(case) = name.strip_suffix(suffix) {
+            cases.insert(case.to_string());
+        }
     }
 
-    for rule in required_rules {
-        assert!(
-            ids.contains(rule),
-            "fixture {txt_path} → {}: expected rule {rule}, got {ids:?}",
-            source_path.display()
-        );
-    }
+    cases
+}
+
+pub fn unique_temp_root(test_name: &str) -> std::path::PathBuf {
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    std::env::temp_dir().join(format!("slopguard-{test_name}-{unique}"))
+}
+
+/// Write a Go source file that triggers a command-injection finding.
+/// The template uses `w.Write(out)` (not `_, _ = w.Write(out)`) to avoid
+/// triggering BP-1 on the final Write call.
+pub fn write_go_source(path: &Path, header: &str) {
+    let body = r#"package sample
+
+import (
+	"net/http"
+	"os/exec"
+)
+
+func TraceRoute(w http.ResponseWriter, r *http.Request) {
+	host := r.URL.Query().Get("host")
+	cmd := exec.Command("sh", "-c", "traceroute -m 1 "+host)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		http.Error(w, string(out), http.StatusBadRequest)
+		return
+	}
+	w.Write(out)
+}
+"#;
+    std::fs::write(path, format!("{header}{body}")).unwrap();
 }
 
 /// Materialize all `*.{FIXTURE_EXTENSION}` under `fixtures_root`, then scan the generated tree.
@@ -132,7 +133,7 @@ pub fn assert_mixed_txt_fixtures(fixtures_root: &str, go_rules: &[&str], python_
 
     let analyzer = Analyzer::builder().with_default_filter().build();
     let result = analyzer
-        .analyze_paths([materialized_root()], None)
+        .analyze_paths(&[materialized_root()], None)
         .unwrap_or_else(|e| panic!("analyze materialized fixtures: {e:#}"));
 
     let ids: Vec<&str> = result.findings.iter().map(|f| f.rule_id).collect();

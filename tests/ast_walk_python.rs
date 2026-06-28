@@ -22,7 +22,7 @@ y = re.compile("x").match("y")
     );
     let mut calls = 0;
     let mut others = 0;
-    walk_calls_and_assignments(tree.root_node(), &mut |node| match node.kind() {
+    walk_calls_and_assignments(tree.root_node(), &["call"], &mut |node| match node.kind() {
         "call" => calls += 1,
         _ => others += 1,
     });

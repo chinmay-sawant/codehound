@@ -17,10 +17,11 @@ fn go_cwe_fixtures_fire_vulnerable_and_silence_safe() {
         for suite in ["frameworks", "stdlib"] {
             let vulnerable = go_cwe_cases::fixture_path(suite, cwe, true);
             let safe = go_cwe_cases::fixture_path(suite, cwe, false);
-            if let Err(e) = std::panic::catch_unwind(|| {
-                helpers::assert_fixture_rules(&vulnerable, &[cwe.as_str()]);
-                helpers::assert_fixture_rules(&safe, &[]);
-            }) {
+            let analyzer = Analyzer::builder().with_default_filter().build();
+            if let Err(e) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                helpers::assert_fixture_rules(&vulnerable, &[cwe.as_str()], &analyzer);
+                helpers::assert_fixture_rules(&safe, &[], &analyzer);
+            })) {
                 failures.push(format!("{suite}/{cwe}: {e:?}"));
             }
         }
@@ -75,13 +76,13 @@ fn taint_cwe_fixtures_fire_vulnerable_and_silence_safe() {
             "tests/fixtures/go/taint/{cwe}-safe.txt"
         ));
 
-        let vuln_result = analyzer.analyze_paths([&vulnerable], None).unwrap();
+        let vuln_result = analyzer.analyze_paths(&[&vulnerable], None).unwrap();
         assert!(
             vuln_result.findings.iter().any(|f| f.rule_id == cwe),
             "{cwe} taint vulnerable fixture should fire"
         );
 
-        let safe_result = analyzer.analyze_paths([&safe], None).unwrap();
+        let safe_result = analyzer.analyze_paths(&[&safe], None).unwrap();
         assert!(
             !safe_result.findings.iter().any(|f| f.rule_id == cwe),
             "{cwe} taint safe fixture should be silent, got {:?}",

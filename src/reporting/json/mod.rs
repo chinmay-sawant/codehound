@@ -9,4 +9,4 @@ mod entry;
 mod types;
 
 pub use entry::{print, print_envelope};
-pub use types::{DisplayCweRef, Envelope, FindingJson};
+pub use types::{Envelope, FindingJson};

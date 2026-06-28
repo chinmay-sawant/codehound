@@ -2,18 +2,19 @@
 
 #[path = "helpers/mod.rs"]
 mod helpers;
-use helpers::cache::{finding, unique_temp_root};
+use helpers::unique_temp_root;
+use helpers::cache::finding;
 
 use std::collections::HashSet;
 
-use slopguard::engine::{CacheEntry, CacheStore, content_hash};
+use slopguard::engine::{CacheEntry, CacheLookup, CacheStore, content_hash};
 
 // ---- CacheStore unit-style tests ---------------------------------------
 
 #[test]
 fn open_creates_files_directory_on_empty_path() {
     let root = unique_temp_root("open-empty");
-    let store = CacheStore::open(root.clone()).expect("open");
+    let store = CacheStore::open_with_capacity(root.clone(), 500).expect("open");
 
     assert!(root.is_dir(), "cache root was not created");
     assert!(root.join("files").is_dir(), "files/ subdir was not created");
@@ -26,7 +27,7 @@ fn open_creates_files_directory_on_empty_path() {
 #[test]
 fn put_then_get_round_trips_findings() {
     let root = unique_temp_root("round-trip");
-    let mut store = CacheStore::open(root.clone()).unwrap();
+    let mut store = CacheStore::open_with_capacity(root.clone(), 500).unwrap();
     let entry = CacheEntry {
         schema_version: slopguard::engine::CACHE_VERSION,
         file: "pkg/a.go".to_string(),
@@ -55,7 +56,7 @@ fn put_then_get_round_trips_findings() {
 #[test]
 fn is_cache_hit_matches_when_hash_matches_and_misses_otherwise() {
     let root = unique_temp_root("hit-miss");
-    let mut store = CacheStore::open(root.clone()).unwrap();
+    let mut store = CacheStore::open_with_capacity(root.clone(), 500).unwrap();
     let entry = CacheEntry {
         schema_version: slopguard::engine::CACHE_VERSION,
         file: "a.go".to_string(),
@@ -69,9 +70,9 @@ fn is_cache_hit_matches_when_hash_matches_and_misses_otherwise() {
     };
     store.put(entry).unwrap();
 
-    assert!(store.is_cache_hit("a.go", &content_hash("source-v1")));
-    assert!(!store.is_cache_hit("a.go", &content_hash("source-v2")));
-    assert!(!store.is_cache_hit("b.go", &content_hash("source-v1")));
+    assert!(matches!(store.lookup("a.go", &content_hash("source-v1")), CacheLookup::Hit(_)));
+    assert!(!matches!(store.lookup("a.go", &content_hash("source-v2")), CacheLookup::Hit(_)));
+    assert!(!matches!(store.lookup("b.go", &content_hash("source-v1")), CacheLookup::Hit(_)));
 
     std::fs::remove_dir_all(root).unwrap();
 }
@@ -79,7 +80,7 @@ fn is_cache_hit_matches_when_hash_matches_and_misses_otherwise() {
 #[test]
 fn remove_drops_entry_from_manifest_and_disk() {
     let root = unique_temp_root("remove");
-    let mut store = CacheStore::open(root.clone()).unwrap();
+    let mut store = CacheStore::open_with_capacity(root.clone(), 500).unwrap();
     let entry = CacheEntry {
         schema_version: slopguard::engine::CACHE_VERSION,
         file: "x.go".to_string(),
@@ -103,7 +104,7 @@ fn remove_drops_entry_from_manifest_and_disk() {
 #[test]
 fn flush_is_idempotent_when_not_dirty() {
     let root = unique_temp_root("flush-idempotent");
-    let mut store = CacheStore::open(root.clone()).unwrap();
+    let mut store = CacheStore::open_with_capacity(root.clone(), 500).unwrap();
     store.flush().unwrap();
     // No exception: flushing a clean cache is a no-op.
     store.flush().unwrap();
@@ -135,7 +136,7 @@ fn reopen_loads_existing_manifest() {
     )
     .unwrap();
 
-    let store = CacheStore::open(root.clone()).unwrap();
+    let store = CacheStore::open_with_capacity(root.clone(), 500).unwrap();
     assert_eq!(store.len(), 1);
     assert!(store.manifest().files.contains_key("pkg/handler/user.go"));
 
@@ -148,7 +149,7 @@ fn corrupt_manifest_falls_back_to_empty() {
     std::fs::create_dir_all(root.join("files")).unwrap();
     std::fs::write(root.join("manifest.json"), "{ this is not valid json").unwrap();
 
-    let store = CacheStore::open(root.clone()).unwrap();
+    let store = CacheStore::open_with_capacity(root.clone(), 500).unwrap();
     assert!(store.is_empty());
 
     std::fs::remove_dir_all(root).unwrap();
@@ -170,7 +171,7 @@ fn schema_mismatch_returns_error() {
     )
     .unwrap();
 
-    let err = match CacheStore::open(root.clone()) {
+    let err = match CacheStore::open_with_capacity(root.clone(), 500) {
         Ok(_) => panic!("expected schema mismatch error"),
         Err(e) => format!("{e:#}"),
     };
@@ -182,7 +183,7 @@ fn schema_mismatch_returns_error() {
 #[test]
 fn prune_removes_orphaned_entries() {
     let root = unique_temp_root("prune");
-    let mut store = CacheStore::open(root.clone()).unwrap();
+    let mut store = CacheStore::open_with_capacity(root.clone(), 500).unwrap();
     for (name, body) in [("a.go", "alpha"), ("b.go", "beta"), ("c.go", "gamma")] {
         let entry = CacheEntry {
             schema_version: slopguard::engine::CACHE_VERSION,

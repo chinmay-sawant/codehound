@@ -1,8 +1,36 @@
+use std::borrow::Cow;
+
+use slopguard::engine::AnalysisResult;
+use slopguard::rules::{Finding, FindingInputs, LineCol, Severity};
+
 #[path = "helpers/mod.rs"]
 mod helpers;
 
 use insta::assert_snapshot;
 use slopguard::reporting::sarif::render_to_string;
+
+fn sample_result() -> AnalysisResult {
+    helpers::reporting::sample_result(vec![
+        Finding::new(FindingInputs::new(
+            "CWE-22",
+            "Path traversal",
+            "a.go",
+            LineCol { line: 1, column: 1 },
+            "msg",
+            Severity::High,
+            Cow::Borrowed(&[]),
+        )),
+        Finding::new(FindingInputs::new(
+            "CWE-89",
+            "SQL injection",
+            "b.go",
+            LineCol { line: 2, column: 3 },
+            "msg2",
+            Severity::Critical,
+            Cow::Borrowed(&[]),
+        )),
+    ])
+}
 
 fn redact_sarif_timestamps(mut s: String) -> String {
     if let Ok(mut v) = serde_json::from_str::<serde_json::Value>(&s) {
@@ -31,7 +59,7 @@ fn redact_sarif_timestamps(mut s: String) -> String {
 
 #[test]
 fn sarif_log_snapshot_is_stable() {
-    let sample = helpers::reporting::sample_result();
+    let sample = sample_result();
     let raw = render_to_string(&sample).unwrap();
     let s = redact_sarif_timestamps(raw);
     assert_snapshot!("sarif_log", s);

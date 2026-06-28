@@ -8,10 +8,6 @@ use crate::rules::LineCol;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind")]
 pub enum DetectorEvidence {
-    PatternMatch {
-        pattern: String,
-        match_location: LineCol,
-    },
     DangerousCall {
         function: String,
         argument_index: Option<usize>,
@@ -22,16 +18,9 @@ pub enum DetectorEvidence {
         hops: usize,
         sanitized: bool,
     },
-    MissingConfig {
-        struct_name: String,
-        field: String,
-    },
     ControlFlowIssue {
         control_flow_kind: ControlFlowKind,
         location: LineCol,
-    },
-    Other {
-        data: serde_json::Value,
     },
 }
 
@@ -51,6 +40,4 @@ pub struct TaintSinkInfo {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ControlFlowKind {
     LoopBodyAllocation,
-    DeferInLoop,
-    MissingErrorCheck,
 }

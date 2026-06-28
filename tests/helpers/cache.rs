@@ -1,36 +1,6 @@
 use std::borrow::Cow;
-use std::path::{Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use slopguard::rules::{Finding, FindingInputs, LineCol, Severity};
-
-pub fn unique_temp_root(test_name: &str) -> PathBuf {
-    let unique = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    std::env::temp_dir().join(format!("slopguard-{test_name}-{unique}"))
-}
-
-pub fn write_minimal_go(path: &Path) {
-    std::fs::write(
-        path,
-        r#"package sample
-
-import (
-	"net/http"
-	"os/exec"
-)
-
-func Run(w http.ResponseWriter, r *http.Request) {
-	host := r.URL.Query().Get("host")
-	cmd := exec.Command("sh", "-c", "ping -c 1 "+host)
-	_, _ = cmd.CombinedOutput()
-}
-"#,
-    )
-    .unwrap();
-}
 
 pub fn finding(rule_id: &'static str, file: &str, line: usize, column: usize) -> Finding {
     Finding::new(FindingInputs::new(
@@ -46,21 +16,12 @@ pub fn finding(rule_id: &'static str, file: &str, line: usize, column: usize) ->
 
 #[cfg(feature = "go")]
 pub mod dep_helpers {
-    use std::path::{Path, PathBuf};
+    use std::path::Path;
     use std::sync::Arc;
-    use std::time::{SystemTime, UNIX_EPOCH};
 
     use slopguard::core::LanguagePlugin;
     use slopguard::engine::{extract_dependencies, go_module_prefix};
     use slopguard::lang::go::GoPlugin;
-
-    pub fn unique_root(label: &str) -> PathBuf {
-        let unique = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        std::env::temp_dir().join(format!("slopguard-dep-{label}-{unique}"))
-    }
 
     pub fn write_file(path: &Path, body: &str) {
         if let Some(parent) = path.parent() {

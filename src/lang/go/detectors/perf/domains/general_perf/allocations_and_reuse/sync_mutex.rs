@@ -4,7 +4,7 @@ use super::super::super::super::metadata::*;
 use crate::ast::nearest_loop;
 use crate::ast::walk_nodes;
 use crate::core::ParsedUnit;
-use crate::lang::go::loop_kinds::LOOP_NODE_KINDS;
+use crate::lang::go::LOOP_NODE_KINDS;
 use crate::rules::{Finding, emit};
 
 /// PERF-28: `sync.Mutex` / `sync.RWMutex` declared per request or per record.

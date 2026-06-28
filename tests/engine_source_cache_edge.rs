@@ -2,7 +2,7 @@
 
 #[path = "helpers/mod.rs"]
 mod helpers;
-use helpers::cache::unique_temp_root;
+use helpers::unique_temp_root;
 
 use std::sync::Arc;
 
@@ -23,7 +23,7 @@ fn analyze_paths_handles_unicode_and_omits_non_utf8_source_cache_entries() {
         .with_default_filter()
         .scan_context(ScanContext::default())
         .build();
-    let result = analyzer.analyze_paths([&root], None).unwrap();
+    let result = analyzer.analyze_paths(&[&root], None).unwrap();
 
     assert!(result.findings.is_empty());
     assert_eq!(result.errors.len(), 1);
@@ -60,7 +60,7 @@ fn analyze_paths_caches_large_utf8_sources() {
         .with_default_filter()
         .scan_context(ScanContext::default())
         .build();
-    let result = analyzer.analyze_paths([&root], None).unwrap();
+    let result = analyzer.analyze_paths(&[&root], None).unwrap();
     let key = source_path.display().to_string();
 
     assert!(result.errors.is_empty(), "errors: {:?}", result.errors);
@@ -90,7 +90,7 @@ fn source_cache_arc_clone_shares_source_allocation() {
         .with_default_filter()
         .scan_context(ScanContext::default())
         .build();
-    let result = analyzer.analyze_paths([&root], None).unwrap();
+    let result = analyzer.analyze_paths(&[&root], None).unwrap();
     let key = source_path.display().to_string();
 
     let cached = result.source_cache.get(&key).unwrap();

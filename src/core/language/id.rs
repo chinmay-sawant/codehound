@@ -22,12 +22,17 @@ impl LanguageId {
 
     /// Parse a `slopguard.toml` / operator language name (e.g. `go`, `python`, `py`).
     pub fn from_config_name(name: &str) -> Option<Self> {
-        match name.trim().to_lowercase().as_str() {
-            "go" => Some(Self::Go),
-            "python" | "py" => Some(Self::Python),
+        let name = name.trim();
+        if name.eq_ignore_ascii_case("go") {
+            Some(Self::Go)
+        } else if name.eq_ignore_ascii_case("python") || name.eq_ignore_ascii_case("py") {
+            Some(Self::Python)
+        } else {
             #[cfg(feature = "typescript")]
-            "typescript" | "ts" => Some(Self::TypeScript),
-            _ => None,
+            if name.eq_ignore_ascii_case("typescript") || name.eq_ignore_ascii_case("ts") {
+                return Some(Self::TypeScript);
+            }
+            None
         }
     }
 

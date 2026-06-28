@@ -29,12 +29,12 @@ pub(crate) fn baseline_loading_enabled(cli: &Cli, config: Option<&SlopguardConfi
     if cli.no_baseline {
         return false;
     }
-    config.is_none_or(SlopguardConfig::baseline_enabled)
+    config.is_none_or(|cfg| cfg.slopguard.baseline.enabled)
 }
 
 pub(crate) fn baseline_load_path(cli: &Cli, config: Option<&SlopguardConfig>) -> Option<PathBuf> {
     cli.baseline_file
         .clone()
-        .or_else(|| config.and_then(SlopguardConfig::baseline_path))
+        .or_else(|| config.and_then(|cfg| cfg.slopguard.baseline.path.clone()))
         .or_else(|| discover_baseline(Path::new(".")))
 }

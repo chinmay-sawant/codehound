@@ -8,6 +8,8 @@ use crate::core::FailPolicy;
 #[group(multiple = false)]
 pub struct SeverityArgs {
     /// Exit non-zero on warnings (default).
+    // ponytail: dead — fail_policy() always returns MediumAsErrors regardless
+    // of this flag; kept to avoid breaking the CLI interface.
     #[arg(long)]
     pub warnings_as_errors: bool,
 

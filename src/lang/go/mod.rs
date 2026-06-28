@@ -1,49 +1,21 @@
 //! Go language plugin.
 
 pub mod detectors;
-mod function_kinds;
-mod loop_kinds;
 mod parser;
 
-use std::path::Path;
-use std::sync::Arc;
+const FUNCTION_NODE_KINDS: &[&str] = &["function_declaration", "method_declaration"];
+const LOOP_NODE_KINDS: &[&str] = &["for_statement"];
 
-use crate::Error;
-use crate::core::{Detector, LanguageId, LanguagePlugin, ParsedUnit};
+pub(crate) const CALL_ASSIGN_NODE_KINDS: &[&str] = &[
+    "call_expression", "call",
+    "assignment_statement", "short_var_declaration",
+    "defer_statement", "go_statement",
+    "for_statement", "type_assertion_expression",
+];
+
+use crate::core::LanguageId;
+use crate::lang::plugin::lang_plugin;
 
 pub struct GoPlugin;
 
-impl LanguagePlugin for GoPlugin {
-    fn id(&self) -> LanguageId {
-        LanguageId::Go
-    }
-
-    fn extensions(&self) -> &'static [&'static str] {
-        &["go"]
-    }
-
-    fn configure_parser(&self, parser: &mut tree_sitter::Parser) -> Result<(), Error> {
-        parser::configure(parser)
-    }
-
-    fn parse_with(
-        &self,
-        parser: &mut tree_sitter::Parser,
-        path: &Path,
-        source: Arc<str>,
-    ) -> Result<ParsedUnit, Error> {
-        parser::parse_with(parser, path, source)
-    }
-
-    fn detectors(&self) -> Vec<Box<dyn Detector>> {
-        detectors::all()
-    }
-
-    fn loop_node_kinds(&self) -> &'static [&'static str] {
-        loop_kinds::LOOP_NODE_KINDS
-    }
-
-    fn function_node_kinds(&self) -> &'static [&'static str] {
-        function_kinds::FUNCTION_NODE_KINDS
-    }
-}
+lang_plugin!(GoPlugin, LanguageId::Go, &["go"], detectors::all(), FUNCTION_NODE_KINDS, LOOP_NODE_KINDS);

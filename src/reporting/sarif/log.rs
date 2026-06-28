@@ -8,7 +8,7 @@ use crate::rules::category_for_rule_id;
 use super::schema::{
     SarifArtifactLocation, SarifInvocation, SarifInvocationProperties, SarifLocation, SarifLog,
     SarifPhysicalLocation, SarifProperties, SarifRegion, SarifResult, SarifRule, SarifRun,
-    SarifRunProperties, SarifSuppression, SarifText, TOOL_NAME, TOOL_URI, TOOL_VERSION,
+    SarifRunProperties, SarifSuppression, SarifText,
 };
 use super::time::iso8601_utc_now;
 
@@ -138,10 +138,10 @@ pub(super) fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
         runs: vec![SarifRun {
             tool: super::schema::SarifTool {
                 driver: super::schema::SarifDriver {
-                    name: TOOL_NAME,
-                    information_uri: TOOL_URI,
-                    version: TOOL_VERSION,
-                    semantic_version: TOOL_VERSION,
+                    name: "slopguard",
+                    information_uri: env!("CARGO_PKG_REPOSITORY"),
+                    version: env!("CARGO_PKG_VERSION"),
+                    semantic_version: env!("CARGO_PKG_VERSION"),
                     rules,
                 },
             },

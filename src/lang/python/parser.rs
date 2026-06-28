@@ -8,26 +8,16 @@ use tree_sitter::Parser;
 use crate::Error;
 use crate::ast::compute_line_starts;
 use crate::core::{LanguageId, ParsedUnit};
-use crate::error::GrammarError;
+use crate::lang::parser::{self, LangCache};
 
-static PYTHON_LANGUAGE: OnceLock<Result<tree_sitter::Language, GrammarError>> = OnceLock::new();
+static PYTHON_LANGUAGE: LangCache = OnceLock::new();
 
-fn python_language() -> Result<&'static tree_sitter::Language, GrammarError> {
-    PYTHON_LANGUAGE
-        .get_or_init(|| {
-            let lang: tree_sitter::Language = tree_sitter_python::LANGUAGE.into();
-            let mut parser = Parser::new();
-            parser
-                .set_language(&lang)
-                .map_err(|e| GrammarError::Load(e.to_string()))?;
-            Ok(lang)
-        })
-        .as_ref()
-        .map_err(|e| e.clone())
+fn python_language() -> Result<&'static tree_sitter::Language, String> {
+    parser::init_language(&PYTHON_LANGUAGE, tree_sitter_python::LANGUAGE.into())
 }
 
 pub fn configure(parser: &mut Parser) -> Result<(), Error> {
-    let lang = python_language()?;
+    let lang = python_language().map_err(|e| Error::Grammar(e))?;
     parser
         .set_language(lang)
         .map_err(|e| Error::Grammar(format!("tree-sitter-python: {e}")))?;

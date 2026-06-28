@@ -12,14 +12,6 @@ use super::types::{
 };
 
 impl CacheStore {
-    /// Open the cache at `cache_dir`, creating the directory layout if
-    /// it does not exist. Reads an existing manifest if present;
-    /// otherwise starts with an empty manifest. No size limit is enforced.
-    #[must_use = "callers must handle cache open failures"]
-    pub fn open(cache_dir: PathBuf) -> Result<Self, CacheError> {
-        Self::open_with_capacity(cache_dir, 0)
-    }
-
     /// Open the cache with a maximum on-disk size in MiB. `0` disables
     /// the size limit.
     #[must_use = "callers must handle cache open failures"]
@@ -74,11 +66,10 @@ impl CacheStore {
         })
     }
 
-    fn empty_manifest(cache_dir: &Path) -> CacheManifest {
+    fn empty_manifest(_cache_dir: &Path) -> CacheManifest {
         CacheManifest {
             schema_version: CACHE_VERSION,
             tool_version: env!("CARGO_PKG_VERSION").to_string(),
-            cache_dir: cache_dir.display().to_string(),
             files: HashMap::new(),
         }
     }
@@ -124,7 +115,7 @@ impl CacheStore {
                 );
             }
         }
-        match self.read_entry(&meta.cache_key) {
+        match super::store_lifecycle::read_entry(self, &meta.cache_key) {
             Some(entry) => CacheLookup::Hit(entry),
             None => CacheLookup::Stale,
         }
@@ -132,6 +123,7 @@ impl CacheStore {
 
     /// Cheap pre-check that the manifest has a matching `content_hash`
     /// for `file`. Does not read the per-file entry from disk.
+    #[cfg(test)]
     pub fn is_cache_hit(&self, file: &str, content_hash: &str) -> bool {
         matches!(self.lookup(file, content_hash), CacheLookup::Hit(_))
     }
@@ -141,7 +133,7 @@ impl CacheStore {
     /// manifest or the entry file is missing/corrupt.
     pub fn get(&self, file: &str) -> Option<CacheEntry> {
         let meta = self.manifest.files.get(file)?;
-        self.read_entry(&meta.cache_key)
+        super::store_lifecycle::read_entry(self, &meta.cache_key)
     }
 
     /// Read-only access to the manifest, primarily for tests and
@@ -150,7 +142,4 @@ impl CacheStore {
         &self.manifest
     }
 
-    pub(super) fn read_entry(&self, cache_key: &str) -> Option<CacheEntry> {
-        super::store_lifecycle::read_entry(self, cache_key)
-    }
 }

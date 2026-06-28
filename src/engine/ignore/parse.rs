@@ -31,15 +31,17 @@ pub fn parse_file_ignore(source: &str) -> Option<IgnoreDirective> {
         .find_map(parse_file_ignore_line)
 }
 
+fn comment_body(line: &str) -> Option<&str> {
+    Some(line.split_once("//")?.1.trim_start())
+}
+
 fn parse_ignore_line(line: &str) -> Option<IgnoreDirective> {
-    let comment = line.split_once("//")?.1.trim_start();
-    let raw = comment.strip_prefix("slopguard-ignore:")?.trim();
+    let raw = comment_body(line)?.strip_prefix("slopguard-ignore:")?.trim();
     parse_rule_list(raw)
 }
 
 fn parse_file_ignore_line(line: &str) -> Option<IgnoreDirective> {
-    let comment = line.split_once("//")?.1.trim_start();
-    let raw = comment.strip_prefix("slopguard-ignore-file")?.trim();
+    let raw = comment_body(line)?.strip_prefix("slopguard-ignore-file")?.trim();
     if raw.is_empty() {
         return Some(IgnoreDirective::all());
     }

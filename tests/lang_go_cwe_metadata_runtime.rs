@@ -11,7 +11,7 @@ fn go_cwe_findings_include_structured_cwe_refs() {
 
     let analyzer = Analyzer::builder().with_default_filter().build();
     let result = analyzer
-        .analyze_paths([&source_path], None)
+        .analyze_paths(&[&source_path], None)
         .unwrap_or_else(|e| panic!("analyze {}: {e:#}", source_path.display()));
 
     let finding = result

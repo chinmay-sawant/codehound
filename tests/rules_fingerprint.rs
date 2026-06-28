@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use slopguard::rules::{Finding, FindingInputs, Fingerprint, LineCol, Severity};
+use slopguard::rules::{Finding, FindingInputs, LineCol, Severity};
 
 fn finding(file: &str, line: usize, column: usize) -> Finding {
     Finding::new(FindingInputs::new(
@@ -42,18 +42,6 @@ fn different_files_produce_different_fingerprints() {
 }
 
 #[test]
-fn fingerprint_parse_round_trips() {
-    let raw = "slopguard:1:CWE-22:pkg/handler/user.go:42:5";
-    let parsed = Fingerprint::parse(raw).unwrap();
-
-    assert_eq!(parsed.to_string(), raw);
-    assert_eq!(parsed.rule_id, "CWE-22");
-    assert_eq!(parsed.file, "pkg/handler/user.go");
-    assert_eq!(parsed.line, 42);
-    assert_eq!(parsed.column, 5);
-}
-
-#[test]
 fn fingerprint_normalizes_windows_path_separators() {
     let f = finding(r"pkg\handler\user.go", 42, 5);
 
@@ -73,9 +61,4 @@ fn fingerprint_handles_unicode_file_paths() {
     );
 }
 
-#[test]
-fn fingerprint_parse_rejects_invalid_prefix() {
-    let err = Fingerprint::parse("CWE-22:pkg/handler/user.go:42:5").unwrap_err();
 
-    assert!(err.to_string().contains("must start with slopguard:1:"));
-}

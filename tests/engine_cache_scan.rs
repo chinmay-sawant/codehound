@@ -2,14 +2,12 @@
 
 #[path = "helpers/mod.rs"]
 mod helpers;
-use helpers::cache::{unique_temp_root, write_minimal_go};
+use helpers::{unique_temp_root, write_go_source};
 
 use std::path::PathBuf;
 
 use slopguard::core::ScanContext;
-use slopguard::engine::{
-    Analyzer, CacheStore, DEFAULT_CACHE_DIR, SlopguardConfig, content_hash, discover_cache_dir,
-};
+use slopguard::engine::{Analyzer, CacheStore, DEFAULT_CACHE_DIR, content_hash, discover_cache_dir};
 
 fn scan_with_cache(root: &std::path::Path, cache: Option<&mut CacheStore>) -> Vec<String> {
     scan_with_context(root, cache, ScanContext::default())
@@ -25,7 +23,7 @@ fn scan_with_context(
         .scan_context(ctx)
         .build();
     let result = analyzer
-        .analyze_paths([root], cache)
+        .analyze_paths(&[root], cache)
         .expect("analyze_paths");
     let mut ids: Vec<String> = result
         .findings
@@ -42,10 +40,10 @@ fn first_run_writes_cache_second_run_reads_it() {
     let root = unique_temp_root("first-second");
     std::fs::create_dir_all(&root).unwrap();
     let source = root.join("sample.go");
-    write_minimal_go(&source);
+    write_go_source(&source, "");
 
     let cache_dir = root.join(DEFAULT_CACHE_DIR);
-    let mut cache = CacheStore::open(cache_dir.clone()).expect("open cache");
+    let mut cache = CacheStore::open_with_capacity(cache_dir.clone(), 500).expect("open cache");
 
     let first = scan_with_cache(&root, Some(&mut cache));
     assert!(cache_dir.join("manifest.json").is_file());
@@ -65,10 +63,10 @@ fn changing_source_invalidates_cache_entry() {
     let root = unique_temp_root("invalidate");
     std::fs::create_dir_all(&root).unwrap();
     let source = root.join("sample.go");
-    write_minimal_go(&source);
+    write_go_source(&source, "");
 
-    let cache_dir = root.join(DEFAULT_CACHE_DIR);
-    let mut cache = CacheStore::open(cache_dir).unwrap();
+    let     cache_dir = root.join(DEFAULT_CACHE_DIR);
+    let mut cache = CacheStore::open_with_capacity(cache_dir, 500).unwrap();
     let _ = scan_with_cache(&root, Some(&mut cache));
     assert_eq!(cache.len(), 1);
 
@@ -93,10 +91,10 @@ fn deleting_a_file_prunes_its_cache_entry() {
     let root = unique_temp_root("delete");
     std::fs::create_dir_all(&root).unwrap();
     let source = root.join("sample.go");
-    write_minimal_go(&source);
+    write_go_source(&source, "");
 
     let cache_dir = root.join(DEFAULT_CACHE_DIR);
-    let mut cache = CacheStore::open(cache_dir).unwrap();
+    let mut cache = CacheStore::open_with_capacity(cache_dir, 500).unwrap();
     let _ = scan_with_cache(&root, Some(&mut cache));
     assert_eq!(cache.len(), 1);
 
@@ -140,32 +138,4 @@ fn discover_cache_dir_finds_existing_dir() {
     std::fs::remove_dir_all(root).unwrap();
 }
 
-#[test]
-fn cache_config_is_parsed_from_toml() {
-    let toml = r#"
-[slopguard.cache]
-enabled = false
-path = "/tmp/custom-cache"
-"#;
-    let cfg: SlopguardConfig = toml::from_str(toml).unwrap();
-    assert!(!cfg.cache_enabled());
-    assert_eq!(cfg.cache_path(), Some(PathBuf::from("/tmp/custom-cache")));
-}
 
-#[test]
-fn cache_disabled_in_config_means_open_returns_none() {
-    // Verifies the public app helper is consistent with the config: when
-    // cache.enabled = false, the cache should not be opened even if a
-    // directory exists. We exercise this through the config API only.
-    let cfg = SlopguardConfig {
-        slopguard: slopguard::engine::SlopguardSection {
-            cache: slopguard::engine::CacheConfig {
-                enabled: false,
-                path: None,
-                ..Default::default()
-            },
-            ..Default::default()
-        },
-    };
-    assert!(!cfg.cache_enabled());
-}

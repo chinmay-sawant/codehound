@@ -2,6 +2,7 @@
 
 use crate::ast::walk_calls_and_assignments;
 use crate::core::ParsedUnit;
+use crate::lang::go::CALL_ASSIGN_NODE_KINDS;
 
 use super::super::source_index::SourceIndex;
 use super::super::taint::{build_taint_graph, extract_taint_facts};
@@ -14,7 +15,7 @@ pub fn build_go_unit_facts(unit: &ParsedUnit) -> GoUnitFacts {
     let mut facts = GoUnitFacts::default();
     let mut interner = SharedTextInterner::default();
 
-    walk_calls_and_assignments(root, &mut |node| match node.kind() {
+    walk_calls_and_assignments(root, CALL_ASSIGN_NODE_KINDS, &mut |node| match node.kind() {
         "call_expression" | "call" => {
             record_call_fact(node, &mut facts, src, &mut interner);
         }

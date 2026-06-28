@@ -7,9 +7,6 @@ use serde_json::Value;
 
 pub const SCHEMA_URL: &str = "https://json.schemastore.org/sarif-2.1.0.json";
 pub const SARIF_VERSION: &str = "2.1.0";
-pub const TOOL_NAME: &str = "slopguard";
-pub const TOOL_VERSION: &str = env!("CARGO_PKG_VERSION");
-pub const TOOL_URI: &str = env!("CARGO_PKG_REPOSITORY");
 
 #[derive(Serialize)]
 #[doc(hidden)]

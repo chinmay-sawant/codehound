@@ -30,18 +30,18 @@ fn manifest_entries_exist_and_fire() {
             entry.lang
         );
         let rules: Vec<&str> = entry.required_rules.iter().map(String::as_str).collect();
-        if entry.taint {
-            let ctx = ScanContext {
+        let ctx = if entry.taint {
+            ScanContext {
                 taint_enabled: true,
                 ..ScanContext::default()
-            };
-            let analyzer = Analyzer::builder()
-                .with_default_filter()
-                .scan_context(ctx)
-                .build();
-            helpers::assert_fixture_rules_with_context(&entry.path, &rules, &analyzer);
+            }
         } else {
-            helpers::assert_fixture_rules(&entry.path, &rules);
-        }
+            ScanContext::default()
+        };
+        let analyzer = Analyzer::builder()
+            .with_default_filter()
+            .scan_context(ctx)
+            .build();
+        helpers::assert_fixture_rules(&entry.path, &rules, &analyzer);
     }
 }

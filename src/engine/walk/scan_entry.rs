@@ -20,12 +20,23 @@ use crate::rules::Finding;
 use super::analyze::analyze_parsed_unit;
 use super::entry::ScanEntry;
 
-fn scan_err(entry: &ScanEntry, kind: ScanErrorKind, message: impl Into<String>) -> ScanError {
+pub(super) fn scan_err(entry: &ScanEntry, kind: ScanErrorKind, message: impl Into<String>) -> ScanError {
     ScanError {
         path: entry.path.as_ref().to_path_buf(),
         kind,
         message: message.into(),
     }
+}
+
+/// Read file at `entry.path`, decode as UTF-8, return `(Arc<str>, display_path)`.
+pub(super) fn read_entry_utf8(entry: &ScanEntry) -> Result<(std::sync::Arc<str>, String), ScanError> {
+    let bytes = std::fs::read(&entry.path).map_err(|e| {
+        scan_err(entry, ScanErrorKind::Io, format!("reading {}: {e}", entry.path.display()))
+    })?;
+    let source = String::from_utf8(bytes).map_err(|e| {
+        scan_err(entry, ScanErrorKind::Encoding, format!("source is not valid UTF-8: {e}"))
+    })?;
+    Ok((std::sync::Arc::from(source), entry.path.display().to_string()))
 }
 
 type ScanEntryResult = (
@@ -49,25 +60,11 @@ fn read_entry_source(
     stats: &mut ScanStats,
 ) -> Result<ReadOutcome, ScanError> {
     let idx = timing.start("file_read");
-    let bytes = std::fs::read(&entry.path).map_err(|e| {
+    let (source, _) = read_entry_utf8(entry).map_err(|e| {
         stats.record_errored();
-        scan_err(
-            entry,
-            ScanErrorKind::Io,
-            format!("reading {}: {e}", entry.path.display()),
-        )
+        e
     })?;
     timing.stop(idx);
-
-    let source = String::from_utf8(bytes).map_err(|e| {
-        stats.record_errored();
-        scan_err(
-            entry,
-            ScanErrorKind::Encoding,
-            format!("source is not valid UTF-8: {e}"),
-        )
-    })?;
-    let source: Arc<str> = Arc::from(source);
     let file_stats = FileStats::from_source(&source);
     Ok(ReadOutcome { source, file_stats })
 }
@@ -249,10 +246,6 @@ pub(super) fn attach_function_context(
         let _ = kinds;
         return;
     };
-    if spans.is_empty() {
-        return;
-    }
-
     for finding in findings.iter_mut() {
         if let Some(span) = ast::enclosing_function(spans, finding.line) {
             finding.function_start_byte = Some(span.start_byte);

@@ -2,7 +2,7 @@
 
 #[path = "helpers/mod.rs"]
 mod helpers;
-use helpers::cache::unique_temp_root;
+use helpers::unique_temp_root;
 
 use slopguard::core::ScanContext;
 use slopguard::engine::Analyzer;
@@ -20,7 +20,7 @@ fn export_uses_source_cache_after_source_file_is_removed() {
         .with_default_filter()
         .scan_context(ScanContext::default())
         .build();
-    let result = analyzer.analyze_paths([&root], None).unwrap();
+    let result = analyzer.analyze_paths(&[&root], None).unwrap();
     assert_eq!(result.findings.len(), 1);
     assert!(
         result

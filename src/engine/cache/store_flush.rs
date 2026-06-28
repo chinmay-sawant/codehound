@@ -5,7 +5,7 @@ use std::fs;
 use crate::Error;
 
 use super::CacheStore;
-use super::hash::{iso8601_from_mtime, iso8601_utc_now};
+use crate::engine::time::{iso8601_from_secs, iso8601_utc_now};
 use super::io::write_atomic;
 use super::types::{CacheMetadata, MANIFEST_NAME, METADATA_NAME};
 
@@ -17,6 +17,9 @@ impl CacheStore {
         if !self.dirty {
             return Ok(());
         }
+        if self.max_size_bytes > 0 {
+            self.evict_to_size()?;
+        }
         let manifest_path = self.cache_dir.join(MANIFEST_NAME);
         write_atomic(&manifest_path, &self.manifest)?;
         let metadata = CacheMetadata {
@@ -27,10 +30,6 @@ impl CacheStore {
         let metadata_path = self.cache_dir.join(METADATA_NAME);
         write_atomic(&metadata_path, &metadata)?;
         self.dirty = false;
-
-        if self.max_size_bytes > 0 {
-            self.evict_to_size()?;
-        }
         Ok(())
     }
 
@@ -57,10 +56,9 @@ impl CacheStore {
                 continue;
             }
             // Read cached_at from the entry file; fall back to manifest mtime.
-            let cached_at = self
-                .read_entry(&meta.cache_key)
+            let cached_at = super::store_lifecycle::read_entry(self, &meta.cache_key)
                 .map(|e| e.cached_at)
-                .unwrap_or_else(|| iso8601_from_mtime(meta.mtime_secs));
+                .unwrap_or_else(|| iso8601_from_secs(meta.mtime_secs));
             entries.push((file.clone(), cached_at, size));
         }
 
@@ -75,19 +73,7 @@ impl CacheStore {
             current = current.saturating_sub(size);
         }
 
-        // Re-write the manifest if we evicted anything.
-        if self.dirty {
-            let manifest_path = self.cache_dir.join(MANIFEST_NAME);
-            write_atomic(&manifest_path, &self.manifest)?;
-            let metadata = CacheMetadata {
-                tool_version: env!("CARGO_PKG_VERSION").to_string(),
-                last_scan: iso8601_utc_now(),
-                entry_count: self.manifest.files.len(),
-            };
-            let metadata_path = self.cache_dir.join(METADATA_NAME);
-            write_atomic(&metadata_path, &metadata)?;
-            self.dirty = false;
-        }
+        // Mark dirty so flush() writes the updated manifest.
         Ok(())
     }
 

@@ -6,6 +6,10 @@ use crate::engine::ScanStats;
 use crate::rules::Severity;
 
 use super::clock::iso8601_utc_now;
+
+fn severity_count(stats: &ScanStats, sev: Severity) -> usize {
+    *stats.findings_by_severity.get(sev.as_str()).unwrap_or(&0)
+}
 use super::types::{
     DetectorsDiagnostics, FindingsDiagnostics, RuleTiming, ScanDiagnostics, TimingDiagnostics,
 };
@@ -46,26 +50,11 @@ impl Diagnostics {
             },
             findings: FindingsDiagnostics {
                 total: stats.findings_total,
-                critical: *stats
-                    .findings_by_severity
-                    .get(Severity::Critical.as_str())
-                    .unwrap_or(&0),
-                high: *stats
-                    .findings_by_severity
-                    .get(Severity::High.as_str())
-                    .unwrap_or(&0),
-                medium: *stats
-                    .findings_by_severity
-                    .get(Severity::Medium.as_str())
-                    .unwrap_or(&0),
-                low: *stats
-                    .findings_by_severity
-                    .get(Severity::Low.as_str())
-                    .unwrap_or(&0),
-                info: *stats
-                    .findings_by_severity
-                    .get(Severity::Info.as_str())
-                    .unwrap_or(&0),
+                critical: severity_count(stats, Severity::Critical),
+                high: severity_count(stats, Severity::High),
+                medium: severity_count(stats, Severity::Medium),
+                low: severity_count(stats, Severity::Low),
+                info: severity_count(stats, Severity::Info),
                 suppressed: stats.findings_suppressed,
             },
             timing: stats.timing.as_ref().map(|summary| TimingDiagnostics {

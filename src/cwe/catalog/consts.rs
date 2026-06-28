@@ -10,16 +10,6 @@ pub const CWE_400: CweRef = CweRef::new(
     "https://cwe.mitre.org/data/definitions/400.html",
 );
 
-#[expect(
-    dead_code,
-    reason = "catalog completeness; wired when CWE-405 rules ship"
-)]
-pub const CWE_405: CweRef = CweRef::new(
-    405,
-    "Asymmetric Resource Consumption (Amplification)",
-    "https://cwe.mitre.org/data/definitions/405.html",
-);
-
 pub const CWE_407: CweRef = CweRef::new(
     407,
     "Algorithmic Complexity",
@@ -36,16 +26,6 @@ pub const CWE_1336: CweRef = CweRef::new(
     1336,
     "Improper Neutralization of Special Elements Used in a Template Engine",
     "https://cwe.mitre.org/data/definitions/1336.html",
-);
-
-#[expect(
-    dead_code,
-    reason = "catalog completeness; wired when CWE-1041 rules ship"
-)]
-pub const CWE_1041: CweRef = CweRef::new(
-    1041,
-    "Use of Redundant Code",
-    "https://cwe.mitre.org/data/definitions/1041.html",
 );
 
 // -- auto-generated entries from golang.json follow --

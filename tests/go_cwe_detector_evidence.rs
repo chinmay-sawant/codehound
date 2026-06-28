@@ -11,7 +11,7 @@ fn cwe_78_finding_includes_dangerous_call_evidence() {
     let source_path =
         helpers::assert_fixture_materializes("tests/fixtures/go/stdlib/CWE-78-vulnerable.txt");
     let analyzer = Analyzer::builder().with_default_filter().build();
-    let result = analyzer.analyze_paths([&source_path], None).unwrap();
+    let result = analyzer.analyze_paths(&[&source_path], None).unwrap();
 
     let finding = result
         .findings
@@ -33,7 +33,7 @@ fn cwe_22_finding_includes_dangerous_call_evidence() {
     let source_path =
         helpers::assert_fixture_materializes("tests/fixtures/go/stdlib/CWE-22-vulnerable.txt");
     let analyzer = Analyzer::builder().with_default_filter().build();
-    let result = analyzer.analyze_paths([&source_path], None).unwrap();
+    let result = analyzer.analyze_paths(&[&source_path], None).unwrap();
 
     let finding = result
         .findings
@@ -55,7 +55,7 @@ fn cwe_89_finding_includes_dangerous_call_evidence() {
     let source_path =
         helpers::assert_fixture_materializes("tests/fixtures/go/stdlib/CWE-89-vulnerable.txt");
     let analyzer = Analyzer::builder().with_default_filter().build();
-    let result = analyzer.analyze_paths([&source_path], None).unwrap();
+    let result = analyzer.analyze_paths(&[&source_path], None).unwrap();
 
     let finding = result
         .findings

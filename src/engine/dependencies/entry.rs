@@ -8,7 +8,7 @@ use super::go_imports;
 use super::python_imports;
 
 /// File extensions scanned for each supported language.
-fn extensions_for(lang: LanguageId) -> &'static [&'static str] {
+pub(super) fn extensions_for(lang: LanguageId) -> &'static [&'static str] {
     match lang {
         LanguageId::Go => &["go"],
         LanguageId::Python => &["py"],
@@ -65,6 +65,4 @@ pub fn extract_dependencies(
 }
 
 pub(super) use super::resolve::resolve_local_path;
-pub(super) fn extensions(lang: LanguageId) -> &'static [&'static str] {
-    extensions_for(lang)
-}
+pub(super) use extensions_for as extensions;

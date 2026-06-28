@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::ast::{walk_calls_and_assignments, walk_nodes};
 use crate::core::ParsedUnit;
+use crate::lang::go::CALL_ASSIGN_NODE_KINDS;
 
 use super::super::source_index::PerfSourceIndex;
 use super::classifier::{classify_init_only, collect_var_spec_kinds};
@@ -14,7 +15,7 @@ pub fn build_go_perf_facts(unit: &ParsedUnit) -> GoPerfFacts {
     let mut facts = GoPerfFacts::default();
     let mut interner = SharedTextInterner::default();
 
-    walk_calls_and_assignments(root, &mut |node| match node.kind() {
+    walk_calls_and_assignments(root, CALL_ASSIGN_NODE_KINDS, &mut |node| match node.kind() {
         "call_expression" | "call" => {
             record_call_fact(node, &mut facts, src, &mut interner);
         }

@@ -1,8 +1,23 @@
+use std::borrow::Cow;
+
 use slopguard::engine::AnalysisResult;
 use slopguard::reporting::text::{TextOptions, write_with_options};
+use slopguard::rules::{Finding, FindingInputs, LineCol, Severity};
 
 #[path = "helpers/mod.rs"]
 mod helpers;
+
+fn one_finding_result() -> AnalysisResult {
+    helpers::reporting::sample_result(vec![Finding::new(FindingInputs::new(
+        "CWE-89",
+        "SQL injection",
+        "a.go",
+        LineCol { line: 1, column: 1 },
+        "msg",
+        Severity::High,
+        Cow::Borrowed(&[]),
+    ))])
+}
 
 #[test]
 fn empty_result_renders_summary() {
@@ -16,7 +31,7 @@ fn empty_result_renders_summary() {
 
 #[test]
 fn finding_with_cwe_renders() {
-    let r = helpers::reporting::one_finding_result();
+    let r = one_finding_result();
     let mut out = Vec::new();
     write_with_options(&mut out, &r, TextOptions::default()).unwrap();
     let rendered = String::from_utf8(out).unwrap();
@@ -27,7 +42,7 @@ fn finding_with_cwe_renders() {
 
 #[test]
 fn text_output_hides_fingerprint_by_default() {
-    let r = helpers::reporting::one_finding_result();
+    let r = one_finding_result();
     let mut out = Vec::new();
 
     write_with_options(&mut out, &r, TextOptions::default()).unwrap();
@@ -42,7 +57,7 @@ fn text_output_hides_fingerprint_by_default() {
 
 #[test]
 fn text_output_can_show_fingerprint() {
-    let r = helpers::reporting::one_finding_result();
+    let r = one_finding_result();
     let mut out = Vec::new();
 
     write_with_options(

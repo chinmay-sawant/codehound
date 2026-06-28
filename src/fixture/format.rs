@@ -1,6 +1,7 @@
 //! `.txt` text fixture format.
 
 use std::path::Path;
+use std::str::FromStr;
 
 use anyhow::{Context, Result, bail};
 
@@ -15,8 +16,10 @@ pub enum FixtureLanguage {
     Rust,
 }
 
-impl FixtureLanguage {
-    pub fn parse(s: &str) -> Result<Self> {
+impl FromStr for FixtureLanguage {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
         match s.trim().to_lowercase().as_str() {
             "go" => Ok(Self::Go),
             "python" | "py" => Ok(Self::Python),
@@ -24,7 +27,9 @@ impl FixtureLanguage {
             other => bail!("unknown fixture language: {other}"),
         }
     }
+}
 
+impl FixtureLanguage {
     pub fn extension(self) -> &'static str {
         match self {
             Self::Go => "go",
@@ -76,7 +81,7 @@ pub fn parse_fixture(text: &str, txt_path: &Path) -> Result<TextFixture> {
             continue;
         };
         match key.trim().to_lowercase().as_str() {
-            "lang" | "language" => language = Some(FixtureLanguage::parse(value)?),
+            "lang" | "language" => language = Some(value.parse()?),
             "file" | "filename" => filename = Some(value.trim().to_string()),
             _ => {}
         }

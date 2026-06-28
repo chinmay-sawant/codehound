@@ -12,7 +12,7 @@ pub(crate) fn open_cache_store(cli: &Cli, config: Option<&SlopguardConfig>) -> O
         return None;
     }
     if let Some(cfg) = config {
-        if !cfg.cache_enabled() {
+        if !cfg.slopguard.cache.enabled {
             return None;
         }
     }
@@ -31,12 +31,12 @@ pub(crate) fn open_cache_store(cli: &Cli, config: Option<&SlopguardConfig>) -> O
 
 /// Resolve the cache directory following CLI > config > auto-discovery
 /// precedence. Returns `None` when none of the sources apply.
-fn cache_directory(cli: &Cli, config: Option<&SlopguardConfig>) -> Option<PathBuf> {
+pub(crate) fn cache_directory(cli: &Cli, config: Option<&SlopguardConfig>) -> Option<PathBuf> {
     if let Some(dir) = cli.cache_dir.clone() {
         return Some(dir);
     }
     if let Some(cfg) = config {
-        if let Some(p) = cfg.cache_path() {
+        if let Some(p) = cfg.slopguard.cache.path.clone() {
             return Some(p);
         }
     }
@@ -46,8 +46,4 @@ fn cache_directory(cli: &Cli, config: Option<&SlopguardConfig>) -> Option<PathBu
     Some(Path::new(DEFAULT_CACHE_DIR).to_path_buf())
 }
 
-/// Directory that would be purged by `--rebuild-cache`. Mirrors
-/// [`cache_directory`].
-pub(crate) fn cache_rebuild_dir(cli: &Cli, config: Option<&SlopguardConfig>) -> Option<PathBuf> {
-    cache_directory(cli, config)
-}
+

@@ -6,6 +6,5 @@
 mod collect;
 mod span;
 
-pub(crate) use collect::try_record_function_span;
 pub use collect::{FunctionSpan, collect_function_spans};
 pub use span::enclosing_function;

@@ -8,26 +8,16 @@ use tree_sitter::Parser;
 use crate::Error;
 use crate::ast::compute_line_starts;
 use crate::core::{LanguageId, ParsedUnit};
-use crate::error::GrammarError;
+use crate::lang::parser::{self, LangCache};
 
-static GO_LANGUAGE: OnceLock<Result<tree_sitter::Language, GrammarError>> = OnceLock::new();
+static GO_LANGUAGE: LangCache = OnceLock::new();
 
-fn go_language() -> Result<&'static tree_sitter::Language, GrammarError> {
-    GO_LANGUAGE
-        .get_or_init(|| {
-            let lang: tree_sitter::Language = tree_sitter_go::LANGUAGE.into();
-            let mut parser = Parser::new();
-            parser
-                .set_language(&lang)
-                .map_err(|e| GrammarError::Load(e.to_string()))?;
-            Ok(lang)
-        })
-        .as_ref()
-        .map_err(|e| e.clone())
+fn go_language() -> Result<&'static tree_sitter::Language, String> {
+    parser::init_language(&GO_LANGUAGE, tree_sitter_go::LANGUAGE.into())
 }
 
 pub fn configure(parser: &mut Parser) -> Result<(), Error> {
-    let lang = go_language()?;
+    let lang = go_language().map_err(|e| Error::Grammar(e))?;
     parser
         .set_language(lang)
         .map_err(|e| Error::Grammar(format!("tree-sitter-go: {e}")))?;

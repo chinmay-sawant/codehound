@@ -16,7 +16,7 @@ impl CacheStore {
     /// the store dirty so [`flush`](Self::flush) writes to disk.
     pub fn put(&mut self, entry: CacheEntry) -> Result<(), Error> {
         let cache_key = cache_key_for_path(&entry.file);
-        let entry_path = self.files_dir().join(format!("{cache_key}.json"));
+        let entry_path = self.files_dir.join(format!("{cache_key}.json"));
         write_atomic(&entry_path, &entry)?;
         let meta = FileCacheMeta {
             cache_key,
@@ -35,7 +35,7 @@ impl CacheStore {
     /// when `file` is not tracked.
     pub fn remove(&mut self, file: &str) -> Result<(), Error> {
         if let Some(meta) = self.manifest.files.remove(file) {
-            let path = self.files_dir().join(format!("{}.json", meta.cache_key));
+            let path = self.files_dir.join(format!("{}.json", meta.cache_key));
             if path.is_file() {
                 fs::remove_file(&path).map_err(|e| {
                     Error::Walk(format!("removing cache entry {}: {e}", path.display()))
@@ -136,15 +136,12 @@ impl CacheStore {
         count
     }
 
-    pub(super) fn files_dir(&self) -> &std::path::Path {
-        &self.files_dir
-    }
 }
 
 /// Free-function `read_entry` for the `CacheStore` impl. The `lookup`
 /// and `get` methods call this through `CacheStore::read_entry`.
 pub(super) fn read_entry(store: &CacheStore, cache_key: &str) -> Option<CacheEntry> {
-    let path = store.files_dir().join(format!("{cache_key}.json"));
+    let path = store.files_dir.join(format!("{cache_key}.json"));
     if !path.is_file() {
         tracing::warn!(cache_key, "cache entry file missing on disk");
         return None;

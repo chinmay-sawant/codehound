@@ -7,7 +7,7 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 
 use crate::Error;
-use crate::rules::{FINGERPRINT_TOOL, FINGERPRINT_VERSION, Finding, Fingerprint};
+use crate::rules::Finding;
 
 use super::entry::{BaselineEntry, BaselineLocationKey};
 use super::io::iso8601_utc_now;
@@ -68,26 +68,6 @@ impl Baseline {
         let text = serde_json::to_string_pretty(self)?;
         fs::write(path, format!("{text}\n"))?;
         Ok(())
-    }
-
-    pub fn contains(&self, rule_id: &str, file: &str, line: usize, column: usize) -> bool {
-        let fingerprint = Fingerprint {
-            tool: FINGERPRINT_TOOL.to_string(),
-            version: FINGERPRINT_VERSION,
-            rule_id: rule_id.to_string(),
-            file: file.replace('\\', "/"),
-            line,
-            column,
-        }
-        .to_string();
-
-        self.fingerprint_index.contains(&fingerprint)
-            || self.location_index.contains(&BaselineLocationKey {
-                rule_id: rule_id.to_string(),
-                file: file.to_string(),
-                line,
-                column,
-            })
     }
 
     pub fn contains_finding(&self, finding: &Finding) -> bool {

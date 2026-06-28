@@ -39,10 +39,10 @@ impl TempProject {
         std::fs::write(path, contents).unwrap();
     }
 
-    pub fn write_python_finding(&self, path: impl AsRef<Path>, pattern_name: &str) {
+    pub fn write_python_finding(&self, path: impl AsRef<Path>) {
         self.write_file(
             path,
-            format!("import re\n\nfor item in items:\n    re.compile({pattern_name})\n"),
+            "import re\n\nfor item in items:\n    re.compile(item)\n",
         );
     }
 }
@@ -56,7 +56,7 @@ impl Drop for TempProject {
 pub fn setup_temp_project(fixtures: &[&str]) -> TempProject {
     let project = TempProject::new("baseline");
     for fixture in fixtures {
-        project.write_python_finding(fixture, "item");
+        project.write_python_finding(fixture);
     }
     project
 }

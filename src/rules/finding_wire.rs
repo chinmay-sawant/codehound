@@ -2,6 +2,9 @@
 //! [`Finding`] except `cwe` is owned and `rule_id` / `rule_title` are
 //! `String`s. The cache writes this struct and converts back to
 //! [`Finding`] on read.
+//!
+//! ponytail: Needed because CweRef has &'static str fields (can't Deserialize).
+//! The leak-to-static pattern is acceptable — bounded working set per cache load.
 
 use serde::de::Deserializer;
 use serde::{Deserialize, Serialize};

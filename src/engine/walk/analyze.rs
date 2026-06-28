@@ -19,7 +19,7 @@ pub fn analyze_parsed_unit(
 ) -> (Vec<Finding>, usize) {
     let mut findings = Vec::new();
     let mut rules_executed = 0;
-    let collect_detector_timing = ctx.collect_detector_timing();
+    let collect_detector_timing = ctx.collect_stats();
     for &idx in registry.detector_indices(unit.language) {
         let det = registry.detector(idx);
         if !det.rule_ids().iter().any(|id| ctx.allows(id)) {

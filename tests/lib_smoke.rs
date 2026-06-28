@@ -15,7 +15,7 @@ fn library_quick_start_analyzes_a_file() {
         .language_filter(filter)
         .build();
 
-    let result = analyzer.analyze_paths(["src/lib.rs"], None).unwrap();
+    let result = analyzer.analyze_paths(&["src/lib.rs"], None).unwrap();
     assert!(
         result.errors.is_empty(),
         "unexpected scan errors: {:?}",

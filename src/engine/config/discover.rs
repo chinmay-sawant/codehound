@@ -8,28 +8,38 @@ use crate::engine::DEFAULT_CACHE_DIR;
 
 use super::types::SlopguardConfig;
 
-/// Walk from `start` upward looking for the closest `.slopguard-cache/`
-/// directory. Returns `None` if none is found in the chain. Used when
-/// the user did not set `cache.path` in `slopguard.toml` and did not
-/// pass `--cache-dir`.
-pub fn discover_cache_dir(start: &Path) -> Option<std::path::PathBuf> {
+fn walk_up<F: Fn(&Path, &Path) -> bool>(
+    start: &Path,
+    stop_at_git: bool,
+    predicate: F,
+) -> Option<std::path::PathBuf> {
     let mut current = if start.is_file() {
         start.parent()?.to_path_buf()
     } else {
         start.to_path_buf()
     };
     loop {
-        let candidate = current.join(DEFAULT_CACHE_DIR);
-        if candidate.is_dir() {
-            return Some(candidate);
+        if predicate(&current, start) {
+            return Some(current.clone());
         }
-        if current.join(".git").is_dir() {
+        if stop_at_git && current.join(".git").is_dir() {
             return None;
         }
         if !current.pop() {
             return None;
         }
     }
+}
+
+/// Walk from `start` upward looking for the closest `.slopguard-cache/`
+/// directory. Returns `None` if none is found in the chain. Used when
+/// the user did not set `cache.path` in `slopguard.toml` and did not
+/// pass `--cache-dir`.
+pub fn discover_cache_dir(start: &Path) -> Option<std::path::PathBuf> {
+    walk_up(start, true, |current, _| {
+        current.join(DEFAULT_CACHE_DIR).is_dir()
+    })
+    .map(|dir| dir.join(DEFAULT_CACHE_DIR))
 }
 
 #[doc(hidden)]
@@ -44,16 +54,10 @@ pub fn fail_on_to_policy(s: &str) -> FailPolicy {
 
 /// Walk from `start` upward looking for the closest `slopguard.toml`.
 pub fn discover_config(start: &Path) -> Option<std::path::PathBuf> {
-    let mut current = start.to_path_buf();
-    loop {
-        let candidate = current.join("slopguard.toml");
-        if candidate.is_file() {
-            return Some(candidate);
-        }
-        if !current.pop() {
-            return None;
-        }
-    }
+    walk_up(start, false, |current, _| {
+        current.join("slopguard.toml").is_file()
+    })
+    .map(|dir| dir.join("slopguard.toml"))
 }
 
 /// Load `slopguard.toml` from the current directory when present.

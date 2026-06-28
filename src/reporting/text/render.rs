@@ -94,13 +94,6 @@ pub fn write_with_options(
 
 pub(super) fn evidence_summary(evidence: &DetectorEvidence) -> String {
     match evidence {
-        DetectorEvidence::PatternMatch {
-            pattern,
-            match_location,
-        } => format!(
-            "pattern `{pattern}` at {}:{}",
-            match_location.line, match_location.column
-        ),
         DetectorEvidence::DangerousCall {
             function,
             argument_index,
@@ -126,9 +119,6 @@ pub(super) fn evidence_summary(evidence: &DetectorEvidence) -> String {
                 ""
             }
         ),
-        DetectorEvidence::MissingConfig { struct_name, field } => {
-            format!("missing config `{struct_name}.{field}`")
-        }
         DetectorEvidence::ControlFlowIssue {
             control_flow_kind,
             location,
@@ -136,6 +126,6 @@ pub(super) fn evidence_summary(evidence: &DetectorEvidence) -> String {
             "control-flow issue {control_flow_kind:?} at {}:{}",
             location.line, location.column
         ),
-        DetectorEvidence::Other { .. } => "custom detector evidence".to_string(),
+
     }
 }

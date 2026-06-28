@@ -2,7 +2,7 @@
 //! cascade-invalidation, pruning, and stats aggregation.
 
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
 use crate::Error;
@@ -31,35 +31,22 @@ impl Analyzer {
     /// written, or when a configured language plugin fails to parse a file
     /// in a way that aborts the scan (per [`crate::core::FailPolicy`]).
     #[must_use = "scan errors and findings are returned in AnalysisResult"]
-    pub fn analyze_paths<I, P>(
+    pub fn analyze_paths(
         &self,
-        paths: I,
+        paths: &[impl AsRef<Path>],
         mut cache: Option<&mut CacheStore>,
-    ) -> Result<AnalysisResult, Error>
-    where
-        I: IntoIterator<Item = P>,
-        P: AsRef<Path>,
-    {
+    ) -> Result<AnalysisResult, Error> {
         let mut timing = TimingCollector::new(self.collect_stats);
-
-        // Resolve project_root / module_prefix from the first scan
-        // path. `Analyzer::build` provides sensible defaults from
-        // the cwd, but a user scanning an external project gets the
-        // wrong go.mod otherwise.
-        let paths: Vec<PathBuf> = paths
-            .into_iter()
-            .map(|p| p.as_ref().to_path_buf())
-            .collect();
         let project_root = paths
             .first()
-            .map(|p| discover_project_root(p))
+            .map(|p| discover_project_root(p.as_ref()))
             .unwrap_or_else(|| self.project_root.clone());
         let module_prefix = go_module_prefix(&project_root).or_else(|| self.module_prefix.clone());
 
         let (entries, files_skipped) = timing.measure("file_walk", || {
             collect_entries(
                 &self.registry,
-                paths.iter().map(|p| p.as_path()),
+                paths.iter().map(|p| p.as_ref()),
                 &self.lang_filter,
                 &self.path_filters,
             )

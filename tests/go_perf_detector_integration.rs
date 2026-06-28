@@ -20,10 +20,11 @@ fn go_perf_fixtures_fire_vulnerable_and_silence_safe() {
         let vulnerable = go_perf_cases::fixture_path(*perf_id, true);
         let safe = go_perf_cases::fixture_path(*perf_id, false);
         let rule = format!("PERF-{perf_id}");
-        if let Err(e) = std::panic::catch_unwind(|| {
-            helpers::assert_fixture_rules(&vulnerable, &[rule.as_str()]);
-            helpers::assert_fixture_rules(&safe, &[]);
-        }) {
+        let analyzer = Analyzer::builder().with_default_filter().build();
+        if let Err(e) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            helpers::assert_fixture_rules(&vulnerable, &[rule.as_str()], &analyzer);
+            helpers::assert_fixture_rules(&safe, &[], &analyzer);
+        })) {
             failures.push(format!("PERF-{perf_id}: {e:?}"));
         }
     }
@@ -41,7 +42,7 @@ fn perf_1_finding_includes_control_flow_issue_evidence() {
     let source_path =
         helpers::assert_fixture_materializes("tests/fixtures/go/perf/PERF-001-vulnerable.txt");
     let analyzer = Analyzer::builder().with_default_filter().build();
-    let result = analyzer.analyze_paths([&source_path], None).unwrap();
+    let result = analyzer.analyze_paths(&[&source_path], None).unwrap();
 
     let finding = result
         .findings

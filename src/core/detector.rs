@@ -1,16 +1,11 @@
 //! Detector trait — language-scoped analysis rule.
 
-use crate::core::{DetectorKind, LanguageId, ParsedUnit, ScanContext};
+use crate::core::{LanguageId, ParsedUnit, ScanContext};
 use crate::rules::{Finding, Rule};
 
 /// Walks one parsed unit and appends findings.
 pub trait Detector: Rule + Send + Sync {
     fn language(&self) -> LanguageId;
-
-    /// Primary execution strategy for this detector bundle.
-    fn kind(&self) -> DetectorKind {
-        DetectorKind::Heuristic
-    }
 
     /// Rule ids implemented by this detector (one id, or all ids in a language bundle).
     fn rule_ids(&self) -> &'static [&'static str];

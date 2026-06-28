@@ -4,7 +4,6 @@ use std::collections::HashSet;
 
 use crate::rules::{Finding, Severity};
 
-use super::filter::rule_matches;
 use super::policy::FailPolicy;
 
 #[derive(Debug, Clone)]
@@ -57,12 +56,12 @@ impl ScanContext {
         if self
             .skip
             .iter()
-            .any(|pattern| rule_matches(pattern, rule_id))
+            .any(|pattern| pattern == rule_id || pattern.strip_suffix('*').is_some_and(|p| rule_id.starts_with(p)))
         {
             return false;
         }
         if let Some(only) = &self.only {
-            return only.iter().any(|pattern| rule_matches(pattern, rule_id));
+            return only.iter().any(|pattern| pattern == rule_id || pattern.strip_suffix('*').is_some_and(|p| rule_id.starts_with(p)));
         }
         true
     }
@@ -75,13 +74,11 @@ impl ScanContext {
         }
     }
 
-    /// True if the run should collect scan statistics and phase timings.
+    /// True if the run should collect scan statistics, phase timings, and
+    /// per-detector timings.
     pub fn collect_stats(&self) -> bool {
         self.debug_timing || self.diagnostics
     }
-
-    /// True if the run should collect per-detector timings.
-    pub fn collect_detector_timing(&self) -> bool {
-        self.debug_timing || self.diagnostics
-    }
+    // ponytail: collect_detector_timing was identical to collect_stats — merged.
+    // Callers migrated to collect_stats().
 }

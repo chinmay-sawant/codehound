@@ -3,6 +3,7 @@
 #[path = "helpers/mod.rs"]
 mod helpers;
 use helpers::cache::dep_helpers;
+use helpers::unique_temp_root;
 
 use slopguard::core::ScanContext;
 use slopguard::engine::{Analyzer, CacheStore, DEFAULT_CACHE_DIR, go_module_prefix};
@@ -12,7 +13,7 @@ use slopguard::engine::{Analyzer, CacheStore, DEFAULT_CACHE_DIR, go_module_prefi
 #[test]
 fn go_dependency_extraction_finds_local_package() {
     use dep_helpers::*;
-    let root = unique_root("local-pkg");
+    let root = unique_temp_root("local-pkg");
     std::fs::create_dir_all(root.join("pkg/db")).unwrap();
     std::fs::write(root.join("go.mod"), "module example.com/proj\n\ngo 1.22\n").unwrap();
     write_file(&root.join("pkg/db/db.go"), "package db\n\nfunc Open() {}\n");
@@ -35,7 +36,7 @@ func Run() { db.Open() }
 #[test]
 fn go_dependency_extraction_skips_stdlib_and_third_party() {
     use dep_helpers::*;
-    let root = unique_root("skip-stdlib");
+    let root = unique_temp_root("skip-stdlib");
     std::fs::create_dir_all(root.join("pkg")).unwrap();
     std::fs::write(root.join("go.mod"), "module example.com/proj\n\ngo 1.22\n").unwrap();
     write_file(
@@ -56,7 +57,7 @@ import (
 #[test]
 fn go_dependency_extraction_handles_directory_import() {
     use dep_helpers::*;
-    let root = unique_root("dir-import");
+    let root = unique_temp_root("dir-import");
     std::fs::create_dir_all(root.join("pkg/handlers")).unwrap();
     std::fs::write(root.join("go.mod"), "module example.com/proj\n\ngo 1.22\n").unwrap();
     write_file(&root.join("pkg/handlers/a.go"), "package handlers\n");
@@ -80,8 +81,7 @@ import "example.com/proj/pkg/handlers"
 
 #[test]
 fn go_module_prefix_returns_none_for_missing_go_mod() {
-    use dep_helpers::*;
-    let root = unique_root("no-go-mod");
+    let root = unique_temp_root("no-go-mod");
     std::fs::create_dir_all(&root).unwrap();
     assert!(go_module_prefix(&root).is_none());
 }
@@ -91,7 +91,7 @@ fn transitive_invalidation_clears_dependents() {
     use dep_helpers::*;
     use slopguard::engine::discover_cache_dir;
 
-    let root = unique_root("transitive");
+    let root = unique_temp_root("transitive");
     std::fs::create_dir_all(root.join("pkg/db")).unwrap();
     std::fs::write(root.join("go.mod"), "module example.com/proj\n\ngo 1.22\n").unwrap();
     write_file(
@@ -116,13 +116,13 @@ func Handle() { db.Run() }
     // First scan: both files end up in the manifest, and handler.go
     // declares db.go as a dependency.
     let cache_dir = root.join(DEFAULT_CACHE_DIR);
-    let mut cache = CacheStore::open(cache_dir.clone()).unwrap();
+    let mut cache = CacheStore::open_with_capacity(cache_dir.clone(), 500).unwrap();
     {
         let analyzer = Analyzer::builder()
             .with_default_filter()
             .scan_context(ScanContext::default())
             .build();
-        let _ = analyzer.analyze_paths([&root], Some(&mut cache)).unwrap();
+        let _ = analyzer.analyze_paths(&[&root], Some(&mut cache)).unwrap();
     }
     cache.flush().unwrap();
 
@@ -149,13 +149,13 @@ func Handle() { db.Run() }
     db_src.push_str("\n// touch\n");
     std::fs::write(root.join("pkg/db/db.go"), &db_src).unwrap();
 
-    let mut cache2 = CacheStore::open(cache_dir).unwrap();
+    let mut cache2 = CacheStore::open_with_capacity(cache_dir, 500).unwrap();
     {
         let analyzer = Analyzer::builder()
             .with_default_filter()
             .scan_context(ScanContext::default())
             .build();
-        let _ = analyzer.analyze_paths([&root], Some(&mut cache2)).unwrap();
+        let _ = analyzer.analyze_paths(&[&root], Some(&mut cache2)).unwrap();
     }
     let m2 = cache2.manifest();
     // After invalidation, handler.go's manifest entry is dropped,

@@ -1,13 +1,29 @@
+use std::borrow::Cow;
+
+use slopguard::engine::AnalysisResult;
 use slopguard::engine::ScanError;
 use slopguard::engine::ScanErrorKind;
 use slopguard::reporting::json::Envelope;
+use slopguard::rules::{Finding, FindingInputs, LineCol, Severity};
 
 #[path = "helpers/mod.rs"]
 mod helpers;
 
+fn sample() -> AnalysisResult {
+    helpers::reporting::sample_result(vec![Finding::new(FindingInputs::new(
+        "CWE-89",
+        "SQL injection",
+        "a.go",
+        LineCol { line: 12, column: 5 },
+        "user input is concatenated into the query",
+        Severity::High,
+        Cow::Borrowed(&[]),
+    ))])
+}
+
 #[test]
 fn envelope_includes_tool_name() {
-    let r = helpers::reporting::sample();
+    let r = sample();
     let env = Envelope::from(&r);
     let s = serde_json::to_string_pretty(&env).unwrap();
     assert!(s.contains("\"tool\": \"slopguard\""), "got: {s}");
@@ -15,7 +31,7 @@ fn envelope_includes_tool_name() {
 
 #[test]
 fn envelope_includes_version_field() {
-    let r = helpers::reporting::sample();
+    let r = sample();
     let env = Envelope::from(&r);
     let s = serde_json::to_string_pretty(&env).unwrap();
     assert!(s.contains("\"version\""), "got: {s}");
@@ -23,7 +39,7 @@ fn envelope_includes_version_field() {
 
 #[test]
 fn envelope_reports_finding_count() {
-    let r = helpers::reporting::sample();
+    let r = sample();
     let env = Envelope::from(&r);
     let s = serde_json::to_string_pretty(&env).unwrap();
     assert!(s.contains("\"findingCount\": 1"), "got: {s}");
@@ -31,7 +47,7 @@ fn envelope_reports_finding_count() {
 
 #[test]
 fn envelope_reports_zero_errors_by_default() {
-    let r = helpers::reporting::sample();
+    let r = sample();
     let env = Envelope::from(&r);
     let s = serde_json::to_string_pretty(&env).unwrap();
     assert!(s.contains("\"errorCount\": 0"), "got: {s}");
@@ -39,7 +55,7 @@ fn envelope_reports_zero_errors_by_default() {
 
 #[test]
 fn envelope_serializes_finding_fingerprint() {
-    let r = helpers::reporting::sample();
+    let r = sample();
     let env = Envelope::from(&r);
     let s = serde_json::to_string_pretty(&env).unwrap();
     assert!(
@@ -51,7 +67,7 @@ fn envelope_serializes_finding_fingerprint() {
 #[test]
 fn envelope_with_errors_includes_error_count() {
     let r = {
-        let mut r = helpers::reporting::sample();
+        let mut r = sample();
         r.errors = vec![ScanError {
             path: std::path::PathBuf::from("x.go"),
             kind: ScanErrorKind::Io,
@@ -66,11 +82,27 @@ fn envelope_with_errors_includes_error_count() {
 
 #[test]
 fn envelope_includes_suppressed_count() {
-    let mut r = helpers::reporting::sample();
+    let mut r = sample();
     r.suppressed_count = 3;
 
     let env = Envelope::from(&r);
     let s = serde_json::to_string_pretty(&env).unwrap();
 
     assert!(s.contains("\"suppressedCount\": 3"), "got: {s}");
+}
+
+#[test]
+fn envelope_snapshot_is_stable() {
+    use insta::assert_snapshot;
+
+    let sample = sample();
+    let env = Envelope::from(&sample);
+    let mut s = serde_json::to_string_pretty(&env).unwrap();
+    if let Ok(mut v) = serde_json::from_str::<serde_json::Value>(&s) {
+        if let Some(obj) = v.as_object_mut() {
+            obj.remove("version");
+        }
+        s = serde_json::to_string_pretty(&v).unwrap();
+    }
+    assert_snapshot!("json_envelope", s);
 }

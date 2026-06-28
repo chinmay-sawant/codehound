@@ -3,7 +3,6 @@
 //! References: <https://cwe.mitre.org/>
 
 mod catalog;
-pub mod helpers;
 mod reference;
 
 pub use catalog::{
@@ -12,20 +11,12 @@ pub use catalog::{
 };
 pub use reference::CweRef;
 
-use std::fmt;
-
 /// Look up a CWE by its numeric id (e.g. `400`).
 pub fn lookup(id: u32) -> Option<&'static CweRef> {
     CWE_CATALOG.iter().find(|c| c.id == id)
 }
 
 /// Format a CWE as `CWE-400` for display.
-pub fn format_cwe(id: u32) -> impl fmt::Display {
-    struct W(u32);
-    impl fmt::Display for W {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            write!(f, "CWE-{}", self.0)
-        }
-    }
-    W(id)
+pub fn format_cwe(id: u32) -> String {
+    format!("CWE-{id}")
 }

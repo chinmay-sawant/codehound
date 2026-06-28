@@ -1,8 +1,6 @@
 //! `SlopguardConfig` impl: load, discover, merge_into, and the field
 //! accessors used by `app/run.rs`.
 
-use std::path::PathBuf;
-
 use crate::Error;
 use crate::core::ScanContext;
 
@@ -19,10 +17,6 @@ impl SlopguardConfig {
     pub fn load(path: &std::path::Path) -> Result<Self, Error> {
         let text = std::fs::read_to_string(path).map_err(Error::from)?;
         toml::from_str(&text).map_err(|e| Error::Config(format!("parsing {}: {e}", path.display())))
-    }
-
-    pub fn discover() -> Option<Self> {
-        super::discover::load_discovered_config().ok().flatten()
     }
 
     /// Merge this config into a `ScanContext`. CLI-set fields take precedence:
@@ -50,59 +44,4 @@ impl SlopguardConfig {
         ctx
     }
 
-    pub fn include(&self) -> &[String] {
-        &self.slopguard.include
-    }
-
-    pub fn exclude(&self) -> &[String] {
-        &self.slopguard.exclude
-    }
-
-    pub fn path_filters(&self) -> super::types::PathFilters {
-        super::types::PathFilters {
-            include: self.slopguard.include.clone(),
-            exclude: self.slopguard.exclude.clone(),
-            exclude_tests: self.slopguard.exclude_tests.unwrap_or(true),
-        }
-    }
-
-    pub fn baseline_enabled(&self) -> bool {
-        self.slopguard.baseline.enabled
-    }
-
-    pub fn baseline_path(&self) -> Option<PathBuf> {
-        self.slopguard.baseline.path.clone()
-    }
-
-    /// `false` only when the user explicitly disabled the cache in
-    /// `slopguard.toml`. Default is `true` (cache on).
-    pub fn cache_enabled(&self) -> bool {
-        self.slopguard.cache.enabled
-    }
-
-    /// Custom cache directory, if any. When `None`, the caller is
-    /// responsible for auto-discovery (or the CLI-provided override).
-    pub fn cache_path(&self) -> Option<PathBuf> {
-        self.slopguard.cache.path.clone()
-    }
-
-    /// True when experimental taint tracking is enabled.
-    pub fn taint_enabled(&self) -> bool {
-        self.slopguard.taint.enabled
-    }
-
-    /// True when taint paths should be emitted in evidence.
-    pub fn taint_show_paths(&self) -> bool {
-        self.slopguard.taint.show_paths
-    }
-
-    /// True when bad-practice rules are enabled.
-    pub fn bad_practices_enabled(&self) -> bool {
-        self.slopguard.bad_practices.enabled
-    }
-
-    /// Optional severity override for bad-practice rules.
-    pub fn bad_practice_severity(&self) -> Option<crate::rules::Severity> {
-        self.slopguard.bad_practices.severity
-    }
 }

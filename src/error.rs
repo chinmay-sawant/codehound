@@ -3,7 +3,6 @@
 use thiserror::Error;
 
 use crate::engine::CacheError;
-use crate::rules::FingerprintParseError;
 
 /// Unified error type for fallible [`crate`] library operations.
 #[derive(Debug, Error)]
@@ -13,9 +12,6 @@ pub enum Error {
 
     #[error(transparent)]
     Cache(#[from] CacheError),
-
-    #[error(transparent)]
-    Fingerprint(#[from] FingerprintParseError),
 
     #[error(transparent)]
     Json(#[from] serde_json::Error),
@@ -33,15 +29,5 @@ pub enum Error {
     Config(String),
 }
 
-/// Failure to load a tree-sitter grammar at runtime.
-#[derive(Debug, Clone, Error)]
-pub enum GrammarError {
-    #[error("failed to load tree-sitter grammar: {0}")]
-    Load(String),
-}
-
-impl From<GrammarError> for Error {
-    fn from(value: GrammarError) -> Self {
-        Self::Grammar(value.to_string())
-    }
-}
+// ponytail: GrammarError was a one-variant wrapper with a single From impl.
+// Replaced with bare String in the parser OnceLock types — less code, same safety.

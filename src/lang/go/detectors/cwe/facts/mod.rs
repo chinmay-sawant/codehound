@@ -12,5 +12,4 @@ pub use build::{build_go_unit_facts, build_taint_graph_for_facts};
 pub use expr_patterns::{
     extract_identifiers, is_trusted_config_expr, is_user_input_expr, split_assignment,
 };
-pub(crate) use interner::{SharedTextInterner, record_assignment_fact, record_call_fact};
 pub use types::{AssignmentFact, CallFact, GoUnitFacts, InputBinding, InputKind, SharedText};

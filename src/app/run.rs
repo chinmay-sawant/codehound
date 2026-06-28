@@ -11,7 +11,7 @@ use slopguard::engine::{
 use slopguard::export::{ExportOptions, ExportSummary, export_findings};
 use slopguard::reporting;
 
-use super::cache::{cache_rebuild_dir, open_cache_store};
+use super::cache::{cache_directory, open_cache_store};
 use super::config::{baseline_load_path, baseline_loading_enabled, load_config};
 use super::exit_codes::{EXIT_CLEAN, EXIT_FAILING, EXIT_INTERNAL};
 use super::init_cmd::init_subcommand;
@@ -64,7 +64,14 @@ fn run_scan(cli: Cli) -> Result<ExitCode> {
 
     let mut path_filters = config
         .as_ref()
-        .map(|cfg| cfg.path_filters())
+        .map(|cfg| {
+            use slopguard::engine::PathFilters;
+            PathFilters {
+                include: cfg.slopguard.include.clone(),
+                exclude: cfg.slopguard.exclude.clone(),
+                exclude_tests: cfg.slopguard.exclude_tests.unwrap_or(true),
+            }
+        })
         .unwrap_or_default();
     if cli.include_tests {
         path_filters.exclude_tests = false;
@@ -73,7 +80,6 @@ fn run_scan(cli: Cli) -> Result<ExitCode> {
     let scan_context = cli.scan_context(config.clone());
     let collect_stats = scan_context.collect_stats();
     let analyzer = Analyzer::builder()
-        .with_default_filter()
         .scan_context(scan_context)
         .path_filters(path_filters.clone())
         .language_filter(lang_filter.clone())
@@ -97,7 +103,7 @@ fn run_scan(cli: Cli) -> Result<ExitCode> {
 
     report_scan_errors(&result);
 
-    if cli.generate_baseline() {
+    if cli.baseline {
         return save_baseline(&cli, &result);
     }
 
@@ -118,7 +124,7 @@ fn run_scan(cli: Cli) -> Result<ExitCode> {
     merge_app_timing(&mut result, &app_timing, collect_stats);
     write_diagnostics(&cli, &result)?;
 
-    Ok(scan_exit_code(&result, analyzer.scan_context().fail_policy))
+    Ok(scan_exit_code(&result, analyzer.ctx.fail_policy))
 }
 
 fn rebuild_cache_if_requested(
@@ -129,7 +135,7 @@ fn rebuild_cache_if_requested(
     if !cli.rebuild_cache {
         return;
     }
-    let Some(dir) = cache_rebuild_dir(cli, config) else {
+    let Some(dir) = cache_directory(cli, config) else {
         return;
     };
     if !dir.is_dir() {

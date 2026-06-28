@@ -10,7 +10,7 @@ mod types;
 
 use std::path::PathBuf;
 
-pub use hash::{cache_key_for_path, content_hash, iso8601_now};
+pub use hash::{cache_key_for_path, content_hash};
 pub use types::{
     CACHE_VERSION, CacheEntry, CacheError, CacheLookup, CacheManifest, CacheMetadata,
     DEFAULT_CACHE_DIR, FileCacheMeta,

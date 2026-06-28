@@ -80,7 +80,7 @@ fn default_baseline_auto_discovery_suppresses_findings() {
 fn baseline_allows_new_findings_not_in_baseline() {
     let project = setup_temp_project(&["sample.py"]);
     save_baseline(&project, "sample.py", BASELINE_FILE);
-    project.write_python_finding("new.py", "other");
+    project.write_python_finding("new.py");
 
     let output = scan_with_args(
         &project,

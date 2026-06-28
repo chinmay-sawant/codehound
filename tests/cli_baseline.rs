@@ -15,7 +15,7 @@ fn baseline_flags_parse() {
         ".",
     ]);
 
-    assert!(cli.generate_baseline());
+    assert!(cli.baseline);
     assert!(cli.no_baseline);
     assert!(cli.show_ignored);
     assert!(cli.show_fingerprint);

@@ -11,6 +11,8 @@ use crate::Error;
 
 /// Deserialize an `id` field that may be either a JSON number (`15`) or a
 /// JSON string (`"PERF-001"`). Always stores the canonical `String` form.
+// ponytail: custom serde fn; #[serde(untagged)] helper enum adds the same
+// code for unclear readability gain. Keep as-is.
 fn deserialize_id<'de, D: Deserializer<'de>>(de: D) -> Result<String, D::Error> {
     use serde::de::Error;
     let v = serde_json::Value::deserialize(de)?;
@@ -31,6 +33,8 @@ pub struct RuleDescription {
     pub id: String,
     pub name: String,
     pub description: String,
+    /// Retained for deserialization from the auto-generated rule catalogue.
+    #[allow(dead_code)]
     #[serde(default)]
     pub original_description: String,
     #[serde(default)]

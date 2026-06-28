@@ -4,7 +4,6 @@
 pub struct FileStats {
     pub bytes: u64,
     pub lines: u64,
-    pub skipped: bool,
 }
 
 impl FileStats {
@@ -12,7 +11,6 @@ impl FileStats {
         Self {
             bytes: source.len() as u64,
             lines: source.lines().count() as u64,
-            skipped: false,
         }
     }
 }

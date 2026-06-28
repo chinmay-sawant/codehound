@@ -8,7 +8,6 @@ use serde::{Serialize, Serializer};
 use super::Severity;
 use super::evidence::DetectorEvidence;
 use super::fingerprint::Fingerprint;
-use super::types::{FilePath, RuleId};
 use crate::cwe::CweRef;
 
 /// 1-indexed line and column in a source file.
@@ -20,6 +19,7 @@ pub struct LineCol {
 
 /// Serialize `Option<Box<[T]>>` so that `None` and `Some(&[])` both emit as
 /// `[]` (preserves the historical wire shape for JSON consumers).
+// ponytail: serde lacks native "None → []" serialization. Custom fn is the shortest path.
 fn serialize_optional_cwe<S: Serializer>(
     cwe: &Option<Box<[CweRef]>>,
     serializer: S,
@@ -38,11 +38,11 @@ pub(crate) fn is_false(value: &bool) -> bool {
 #[derive(Debug, Clone)]
 pub struct FindingInputs {
     /// Rule id, e.g. `CWE-89`.
-    pub rule_id: RuleId,
+    pub rule_id: &'static str,
     /// Rule title.
     pub rule_title: &'static str,
     /// File path (relative to the analyzed root when possible).
-    pub file: FilePath,
+    pub file: String,
     /// 1-indexed line and column of the match.
     pub location: LineCol,
     /// Free-form message.
@@ -65,9 +65,9 @@ impl FindingInputs {
         cwe: Cow<'static, [CweRef]>,
     ) -> Self {
         Self {
-            rule_id: RuleId::new(rule_id),
+            rule_id,
             rule_title,
-            file: FilePath::new(file),
+            file: file.into(),
             location,
             message: message.into(),
             severity,
@@ -89,16 +89,14 @@ pub struct Finding {
     pub line: usize,
     /// 1-indexed column.
     pub column: usize,
-    /// 1-indexed end line of the matched region, when known.
+    // ponytail: end_line/end_column/byte_offset/byte_length are always None in
+    // new findings but kept for the JSON/SARIF/finding_wire API shape.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub end_line: Option<usize>,
-    /// 1-indexed end column of the matched region, when known.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub end_column: Option<usize>,
-    /// 0-indexed byte offset of the match start within the source file.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub byte_offset: Option<usize>,
-    /// Number of bytes covered by the match, when known.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub byte_length: Option<usize>,
     /// 0-indexed byte offset of the start of the enclosing function, when
@@ -153,9 +151,9 @@ impl Finding {
             Some(inputs.cwe.into_owned().into_boxed_slice())
         };
         Self {
-            rule_id: inputs.rule_id.as_str(),
+            rule_id: inputs.rule_id,
             rule_title: inputs.rule_title,
-            file: inputs.file.into_inner(),
+            file: inputs.file,
             line: inputs.location.line,
             column: inputs.location.column,
             end_line: None,
@@ -214,14 +212,13 @@ impl Finding {
         self
     }
 
-    /// Attach byte-range information to the finding.
+    // ponytail: with_byte_range/with_end kept for API shape (reporting reads the fields).
     pub fn with_byte_range(mut self, byte_offset: usize, byte_length: usize) -> Self {
         self.byte_offset = Some(byte_offset);
         self.byte_length = Some(byte_length);
         self
     }
 
-    /// Attach end-line/end-column information to the finding.
     pub fn with_end(mut self, end_line: usize, end_column: usize) -> Self {
         self.end_line = Some(end_line);
         self.end_column = Some(end_column);

@@ -10,7 +10,7 @@ use crate::engine::registry::Registry;
 /// Language-agnostic static analyzer.
 pub struct Analyzer {
     pub(super) registry: Registry,
-    pub(super) ctx: ScanContext,
+    pub ctx: ScanContext,
     pub(super) lang_filter: LanguageFilter,
     pub(super) path_filters: PathFilters,
     pub(super) collect_stats: bool,
@@ -23,8 +23,4 @@ pub struct Analyzer {
     pub(super) module_prefix: Option<String>,
 }
 
-impl Analyzer {
-    pub fn scan_context(&self) -> &ScanContext {
-        &self.ctx
-    }
-}
+

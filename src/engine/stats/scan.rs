@@ -107,21 +107,8 @@ impl ScanStats {
         self.lines_scanned += lines;
     }
 
-    /// Record that a file was skipped during collection.
-    pub fn record_skipped(&mut self) {
-        self.files_skipped += 1;
-    }
-
     /// Record that a file produced an error.
     pub fn record_errored(&mut self) {
         self.files_errored += 1;
-    }
-
-    pub fn record_cache_hit(&mut self) {
-        self.cache_hits += 1;
-    }
-
-    pub fn record_cache_miss(&mut self) {
-        self.cache_misses += 1;
     }
 }

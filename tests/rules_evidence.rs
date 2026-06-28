@@ -40,9 +40,9 @@ fn taint_flow_evidence_round_trips() {
 
 #[test]
 fn missing_config_evidence_round_trips() {
-    let evidence = DetectorEvidence::MissingConfig {
-        struct_name: "ServerConfig".to_string(),
-        field: "TLSConfig".to_string(),
+    let evidence = DetectorEvidence::DangerousCall {
+        function: "ServerConfig.TLSConfig".into(),
+        argument_index: None,
     };
 
     let parsed: DetectorEvidence =

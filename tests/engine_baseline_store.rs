@@ -1,6 +1,7 @@
 #[path = "helpers/mod.rs"]
 mod helpers;
-use helpers::cache::{finding, unique_temp_root};
+use helpers::unique_temp_root;
+use helpers::cache::finding;
 
 use slopguard::engine::{BASELINE_FILE_NAME, Baseline};
 
@@ -27,10 +28,10 @@ fn baseline_from_findings_groups_entries_by_rule() {
 fn baseline_contains_matches_exact_fingerprint() {
     let baseline = Baseline::from_findings(&[finding("CWE-22", "a.go", 1, 2)]);
 
-    assert!(baseline.contains("CWE-22", "a.go", 1, 2));
-    assert!(!baseline.contains("CWE-22", "a.go", 1, 3));
-    assert!(!baseline.contains("CWE-22", "b.go", 1, 2));
-    assert!(!baseline.contains("CWE-89", "a.go", 1, 2));
+    assert!(baseline.contains_finding(&finding("CWE-22", "a.go", 1, 2)));
+    assert!(!baseline.contains_finding(&finding("CWE-22", "a.go", 1, 3)));
+    assert!(!baseline.contains_finding(&finding("CWE-22", "b.go", 1, 2)));
+    assert!(!baseline.contains_finding(&finding("CWE-89", "a.go", 1, 2)));
 }
 
 #[test]
@@ -44,7 +45,7 @@ fn baseline_round_trips_to_file() {
     let loaded = Baseline::from_file(&path).unwrap();
 
     assert_eq!(loaded.entry_count(), 1);
-    assert!(loaded.contains("CWE-22", "a.go", 1, 2));
+    assert!(loaded.contains_finding(&finding("CWE-22", "a.go", 1, 2)));
 
     std::fs::remove_dir_all(root).unwrap();
 }
@@ -54,5 +55,5 @@ fn empty_baseline_contains_nothing() {
     let baseline = Baseline::from_findings(&[]);
 
     assert_eq!(baseline.entry_count(), 0);
-    assert!(!baseline.contains("CWE-22", "a.go", 1, 2));
+    assert!(!baseline.contains_finding(&finding("CWE-22", "a.go", 1, 2)));
 }

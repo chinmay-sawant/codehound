@@ -1,6 +1,7 @@
-use slopguard::engine::{PathFilters, SlopguardConfig};
+use slopguard::core::FailPolicy;
+use slopguard::engine::{CacheConfig, PathFilters, SlopguardConfig, SlopguardSection, discover_config};
 use slopguard::rules::Severity;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[test]
 fn deny_unknown_fields_at_top_level() {
@@ -42,8 +43,8 @@ severity = "medium"
 fn bad_practices_config_defaults_enabled() {
     let cfg = toml::from_str::<SlopguardConfig>("[slopguard]\n").unwrap();
 
-    assert!(cfg.bad_practices_enabled());
-    assert_eq!(cfg.bad_practice_severity(), None);
+    assert!(cfg.slopguard.bad_practices.enabled);
+    assert_eq!(cfg.slopguard.bad_practices.severity, None);
 }
 
 #[test]
@@ -57,16 +58,16 @@ severity = "high"
     )
     .unwrap();
 
-    assert!(!cfg.bad_practices_enabled());
-    assert_eq!(cfg.bad_practice_severity(), Some(Severity::High));
+    assert!(!cfg.slopguard.bad_practices.enabled);
+    assert_eq!(cfg.slopguard.bad_practices.severity, Some(Severity::High));
 }
 
 #[test]
 fn baseline_config_defaults_enabled() {
     let cfg = toml::from_str::<SlopguardConfig>("[slopguard]\n").unwrap();
 
-    assert!(cfg.baseline_enabled());
-    assert_eq!(cfg.baseline_path(), None);
+    assert!(cfg.slopguard.baseline.enabled);
+    assert_eq!(cfg.slopguard.baseline.path, None);
 }
 
 #[test]
@@ -80,9 +81,9 @@ path = "custom-baseline.json"
     )
     .unwrap();
 
-    assert!(!cfg.baseline_enabled());
+    assert!(!cfg.slopguard.baseline.enabled);
     assert_eq!(
-        cfg.baseline_path().as_deref(),
+        cfg.slopguard.baseline.path.as_deref(),
         Some(Path::new("custom-baseline.json"))
     );
 }
@@ -160,7 +161,7 @@ fn runtime_include_exclude_filters_apply_during_collection() {
         })
         .build();
     let result = analyzer
-        .analyze_paths([materialized_root()], None)
+        .analyze_paths(&[materialized_root()], None)
         .expect("analyze with runtime filters");
 
     assert!(
@@ -187,4 +188,117 @@ fn runtime_include_exclude_filters_apply_during_collection() {
             .map(|finding| finding.file.clone())
             .collect::<Vec<_>>()
     );
+}
+
+#[test]
+fn cache_config_is_parsed_from_toml() {
+    let toml = r#"
+[slopguard.cache]
+enabled = false
+path = "/tmp/custom-cache"
+"#;
+    let cfg: SlopguardConfig = toml::from_str(toml).unwrap();
+    assert!(!cfg.slopguard.cache.enabled);
+    assert_eq!(cfg.slopguard.cache.path, Some(PathBuf::from("/tmp/custom-cache")));
+}
+
+#[test]
+fn cache_disabled_in_config_means_open_returns_none() {
+    let cfg = SlopguardConfig {
+        slopguard: SlopguardSection {
+            cache: CacheConfig {
+                enabled: false,
+                path: None,
+                ..Default::default()
+            },
+            ..Default::default()
+        },
+    };
+    assert!(!cfg.slopguard.cache.enabled);
+}
+
+#[test]
+fn discover_config_finds_in_cwd() {
+    let path = discover_config(Path::new("."));
+    assert!(path.is_some(), "expected slopguard.toml in cwd");
+    let path = path.unwrap();
+    assert!(path.ends_with("slopguard.toml"));
+}
+
+#[test]
+fn discover_config_finds_in_subdir() {
+    let target = Path::new("./target");
+    if target.is_dir() {
+        let path = discover_config(target);
+        assert!(path.is_some(), "expected upward walk to find slopguard.toml");
+    }
+}
+
+#[test]
+fn discover_config_returns_none_outside_repo() {
+    let path = discover_config(Path::new("/tmp"));
+    assert!(path.is_none(), "expected None for /tmp, got {path:?}");
+}
+
+#[test]
+fn merge_into_cli_fail_policy_wins_over_config() {
+    let cfg = SlopguardConfig {
+        slopguard: SlopguardSection {
+            fail_on: Some("none".to_string()),
+            ..Default::default()
+        },
+    };
+    let ctx = slopguard::core::ScanContext {
+        fail_policy: FailPolicy::Strict,
+        ..Default::default()
+    };
+    let merged = cfg.merge_into(ctx, true);
+    assert_eq!(merged.fail_policy, FailPolicy::Strict);
+}
+
+#[test]
+fn merge_into_config_fail_on_applies_when_cli_didnt_set_it() {
+    let cfg = SlopguardConfig {
+        slopguard: SlopguardSection {
+            fail_on: Some("none".to_string()),
+            ..Default::default()
+        },
+    };
+    let ctx = slopguard::core::ScanContext {
+        fail_policy: FailPolicy::MediumAsErrors,
+        ..Default::default()
+    };
+    let merged = cfg.merge_into(ctx, false);
+    assert_eq!(merged.fail_policy, FailPolicy::NoFail);
+}
+
+#[test]
+fn merge_into_only_is_additive_with_cli_values() {
+    let cfg = SlopguardConfig {
+        slopguard: SlopguardSection {
+            only: vec!["CWE-22".to_string()],
+            ..Default::default()
+        },
+    };
+    let ctx = slopguard::core::ScanContext {
+        only: Some(["CWE-89".to_string()].into_iter().collect()),
+        ..Default::default()
+    };
+
+    let merged = cfg.merge_into(ctx, false);
+    let only = merged.only.expect("merged only set");
+    assert!(only.contains("CWE-22"));
+    assert!(only.contains("CWE-89"));
+    assert_eq!(only.len(), 2);
+}
+
+#[test]
+fn scan_context_supports_rule_prefix_filters() {
+    let ctx = slopguard::core::ScanContext {
+        only: Some(["BP-*".to_string()].into_iter().collect()),
+        ..Default::default()
+    };
+
+    assert!(ctx.allows("BP-1"));
+    assert!(!ctx.allows("CWE-89"));
 }

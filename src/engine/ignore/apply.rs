@@ -6,6 +6,14 @@ use crate::rules::{Finding, Severity};
 
 use super::directive::IgnoreDirective;
 
+const SUPPRESSED_TAG: &str = " (suppressed)";
+
+fn tag_suppressed(finding: &mut Finding) {
+    if !finding.message.ends_with(SUPPRESSED_TAG) {
+        finding.message.push_str(SUPPRESSED_TAG);
+    }
+}
+
 pub fn apply_inline_ignores(
     findings: &mut Vec<Finding>,
     ignores: &HashMap<usize, IgnoreDirective>,
@@ -28,9 +36,7 @@ pub fn apply_inline_ignores(
         if show_ignored {
             finding.severity = Severity::Info;
             finding.suppressed = true;
-            if !finding.message.ends_with(" (suppressed)") {
-                finding.message.push_str(" (suppressed)");
-            }
+            tag_suppressed(finding);
             true
         } else {
             false
@@ -72,9 +78,7 @@ fn apply_directive(
         suppressed += 1;
         if show_ignored {
             finding.severity = Severity::Info;
-            if !finding.message.ends_with(" (suppressed)") {
-                finding.message.push_str(" (suppressed)");
-            }
+            tag_suppressed(finding);
             true
         } else {
             false

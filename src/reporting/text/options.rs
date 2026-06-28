@@ -31,7 +31,7 @@ pub fn print(result: &AnalysisResult) -> Result<(), Error> {
 ///
 /// Returns [`Error`] when formatting or stdout write fails.
 #[must_use = "I/O errors from writing text output must be handled"]
-pub fn print_without_snippet(result: &AnalysisResult) -> Result<(), Error> {
+pub(crate) fn print_without_snippet(result: &AnalysisResult) -> Result<(), Error> {
     print_with_options(
         result,
         TextOptions {

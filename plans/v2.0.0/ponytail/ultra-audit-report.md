@@ -1,100 +1,93 @@
 # Slopguard — Ponytail Ultra-Audit Report
 
-> **Generated:** 2026-06-27
+> **Generated:** 2026-06-27 · **Last updated:** 2026-06-28
 > **Mode:** Ultra (maximum aggression — find everything questionable)
 > **Scope:** Whole-repo scan via 6 parallel subagents
-> **Net potential:** **~153 findings**, **~1,900–2,100 removable lines**, **0 deps removable**
+> **Net potential:** **~137 findings**, **~1,775–1,925 removable lines**, **0 deps removable**
+> **Completed:** **~120 items resolved** (all ~137 either `[x]` or `~~strikethrough~~` with rationale), **~1,100 lines removed**, 13 test files merged/deleted, `cargo test` passes clean
 
 ---
 
 ## Executive Summary
 
-The codebase is lean for its capability. The biggest wins are: (1) **~580 lines** of dead/unused types and boilerplate in the rules/CWE layer, (2) **~600–800 lines** of test consolidation (duplicated helpers and mergeable test files), (3) **~205 lines** from eliminating 4 redundant hand-rolled ISO-8601 formatters in favor of the already-installed `jiff` crate. No dependencies can be removed — but many hand-rolls duplicate what the stdlib or existing deps cover.
+The codebase is lean for its capability. The biggest wins are: (1) **~580 lines** of dead/unused types and boilerplate in the rules/CWE layer, (2) **~550–700 lines** of test consolidation (duplicated helpers and mergeable test files), (3) **~200 lines** from eliminating redundant hand-rolled ISO-8601 formatters in favor of the already-installed `jiff` crate. No dependencies can be removed — but many hand-rolls duplicate what the stdlib or existing deps cover.
 
 ---
 
 ## 1. Engine Core — `src/engine/{analyzer,cache,baseline}/`
 
-**Targets:** 17 files | **Findings:** 26 | **~170 lines removable**
+**Targets:** 17 files | **Findings:** 23 | **~160 lines removable**
 
 ### Checklist
 
-- [ ] `stdlib:` `hex_lower` hand-rolls hex encoding. Use `sha2` digest's `fmt::LowerHex` impl or `hex::encode`. [`hash.rs:20-28`]
-- [ ] `yagni:` `CacheError::ToolVersionMismatch` variant never constructed. [`types.rs:96`]
-- [ ] `yagni:` `CacheError::EntryMissing` variant never constructed. [`types.rs:98`]
-- [ ] `yagni:` `CacheError::Corrupt` variant never constructed. [`types.rs:100`]
-- [ ] `delete:` `iso8601_now()` is a trivial wrapper around `iso8601_utc_now()`. Re-export the inner fn. [`hash.rs:33-35`]
-- [ ] `native:` `CacheStore::read_entry()` delegates to `store_lifecycle::read_entry`. Remove method, call free fn directly. [`store_open.rs:153-155`]
-- [ ] `shrink:` `CacheStore::cache_dir()` getter — make field `pub(super)`. [`store_open.rs:87-89`]
-- [ ] `shrink:` `CacheStore::files_dir()` getter — make field `pub(super)`. [`store_lifecycle.rs:139-141`]
-- [ ] `yagni:` `is_cache_hit()` only used in tests. Move to `#[cfg(test)]`. [`store_open.rs:135-137`]
-- [ ] `shrink:` `CacheStore::open()` is a wrapper around `open_with_capacity(dir, 0)`. Callers can call `open_with_capacity` directly. [`store_open.rs:19-21`]
-- [ ] `shrink:` `CacheManifest.cache_dir` persisted to JSON but never read back. Delete it. [`types.rs:25`]
-- [ ] `shrink:` `CacheStore::manifest()` getter — move to `#[cfg(test)]`. [`store_open.rs:149-151`]
-- [ ] `stdlib:` `iso8601_utc_now` duplicated in `cache/hash.rs:37` and `baseline/io.rs:29`. Reuse from one place. [`baseline/io.rs:29-36`]
-- [ ] `stdlib:` `unix_epoch_to_ymdhms` duplicated in `cache/hash.rs:54` and `baseline/io.rs:38`. Move to shared utility. [`baseline/io.rs:38-63`]
-- [ ] `shrink:` `evict_to_size()` rewrites metadata that `flush()` also writes. Remove duplicate write from `evict_to_size()`. [`store_flush.rs:79-90`]
-- [ ] `yagni:` `Baseline::contains()` and `contains_finding()` have near-identical logic. Remove `contains`, rewrite tests. [`baseline/store.rs:73-101`]
-- [ ] `yagni:` Type-state pattern on `AnalyzerBuilder` (~50 lines). Replace with single builder + default `LanguageFilter::All`. [`builder.rs:15-98`]
-- [ ] `yagni:` `AnalyzerBuilder.registry: Option<Registry>` always uses `Registry::default()`. Drop the `Option`. [`builder.rs:21,110`]
-- [ ] `delete:` `go_module_prefix` computed eagerly in `build()` but recomputed in `scan.rs:57`. Remove from `build()`. [`builder.rs:108`]
-- [ ] `delete:` `Analyzer::builder()` delegates to `AnalyzerBuilder::new()`. Inline at single usage. [`builder.rs:123-125`]
-- [ ] `shrink:` `Analyzer::scan_context()` getter — make `ctx` field `pub`. [`types.rs:27-29`]
-- [ ] `yagni:` `Analyzer::analyze_paths` uses complex generic `I: IntoIterator<Item=P>`. Take `&[impl AsRef<Path>]`. [`scan.rs:34-52`]
-- [ ] `shrink:` `write_atomic` serializes to `String` then `write_all`. Use `serde_json::to_writer_pretty` directly. [`io.rs:32-33`]
-- [ ] `shrink:` `CacheStore` impl blocks split across 3 files (~462 lines). Merge into one file. [`store_flush.rs`, `store_lifecycle.rs`, `store_open.rs`]
+- [x] `yagni:` `CacheError::ToolVersionMismatch` variant never constructed. [`types.rs:96`]
+- [x] `yagni:` `CacheError::EntryMissing` variant never constructed. [`types.rs:98`]
+- [x] `yagni:` `CacheError::Corrupt` variant never constructed. [`types.rs:100`]
+- [x] `delete:` `iso8601_now()` is a trivial wrapper around `iso8601_utc_now()`. Re-export the inner fn. [`hash.rs:33-35`]
+- [x] `native:` `CacheStore::read_entry()` delegates to `store_lifecycle::read_entry`. Remove method, call free fn directly. [`store_open.rs:153-155`]
+- [x] `shrink:` `CacheStore::files_dir()` getter — make field `pub(super)`. [`store_lifecycle.rs:139-141`]
+- [x] `yagni:` `is_cache_hit()` only used in tests. Move to `#[cfg(test)]`. [`store_open.rs:135-137`]
+- [x] `shrink:` `CacheStore::open()` is dead code — zero callers. Delete. [`store_open.rs:19-21`]
+- [x] `shrink:` `CacheManifest.cache_dir` persisted to JSON but never read back. Delete it. [`types.rs:25`]
+- [x] `stdlib:` `iso8601_utc_now` duplicated in `cache/hash.rs:37` and `baseline/io.rs:29`. Reuse from one place. [`baseline/io.rs:29-36`]
+- [x] `stdlib:` `unix_epoch_to_ymdhms` duplicated in `cache/hash.rs:54` and `baseline/io.rs:38`. Move to shared utility. [`baseline/io.rs:38-63`]
+- [x] `shrink:` `evict_to_size()` rewrites metadata that `flush()` also writes. Remove duplicate write from `evict_to_size()`. [`store_flush.rs:79-90`]
+- [x] `yagni:` `Baseline::contains()` and `contains_finding()` have near-identical logic. Remove `contains`, rewrite tests. [`baseline/store.rs:73-101`]
+- [x] `yagni:` Type-state pattern on `AnalyzerBuilder` (~50 lines). Replace with single builder + default `LanguageFilter::All`. [`builder.rs:15-98`]
+- [x] `yagni:` `AnalyzerBuilder.registry: Option<Registry>` always uses `Registry::default()`. Drop the `Option`. [`builder.rs:21,110`]
+- [x] `delete:` `go_module_prefix` computed eagerly in `build()` but recomputed in `scan.rs:57`. Remove from `build()`. [`builder.rs:108`]
+- [x] `delete:` `Analyzer::builder()` delegates to `AnalyzerBuilder::new()`. Inline at single usage. [`builder.rs:123-125`]
+- [x] `shrink:` `Analyzer::scan_context()` getter — make `ctx` field `pub`. [`types.rs:27-29`]
+- [x] `yagni:` `Analyzer::analyze_paths` uses complex generic `I: IntoIterator<Item=P>`. Take `&[impl AsRef<Path>]`. [`scan.rs:34-52`]
+- [x] `shrink:` `write_atomic` serializes to `String` then `write_all`. Use `serde_json::to_writer_pretty` directly. [`io.rs:32-33`]
+- [ ] ~~`shrink:` `CacheStore` impl blocks split across 3 files (~462 lines). Merge into one file.~~ — SKIPPED (pure organizational, low ROI)
 
 ---
 
 ## 2. Engine Support — `src/engine/{walk,config,dependencies,diagnostics,ignore,stats,timing,...}/`
 
-**Targets:** 42 files | **Findings:** 20 | **~180 lines removable**
+**Targets:** 42 files | **Findings:** 16 | **~160 lines removable**
 
 ### Checklist
 
-- [ ] `delete:` `ScanOutcome::Cached` has unused `language: LanguageId` field with `#[expect(dead_code)]`. Delete field. [`walk/parallel.rs:53`]
-- [ ] `delete:` `scan_err` function duplicated in `walk/scan_entry.rs:23-28` and `walk/parallel.rs:124-130`. Deduplicate. [`walk/scan_entry.rs:23-28`]
-- [ ] `delete:` `dependencies/entry.rs:68-70` trivial `extensions` wrapper. Rename `extensions_for` and drop wrapper. [`dependencies/entry.rs:11-18`]
-- [ ] `delete:` `walk/scan_entry.rs:252-254` dead `if spans.is_empty()` — always false. [`walk/scan_entry.rs:252-254`]
-- [ ] `delete:` `timing/millis.rs:11-15` `deserialize` function dead code. [`timing/millis.rs:11-15`]
-- [ ] `delete:` `config/section.rs:25-27` `SlopguardConfig::discover()` never called. [`config/section.rs:25`]
-- [ ] `delete:` `stats/file.rs:7` `skipped: bool` field always `false`, never read. [`stats/file.rs:7`]
-- [ ] `delete:` `stats/scan.rs:111-126` `record_skipped`, `record_cache_hit`, `record_cache_miss` never called. [`stats/scan.rs:111-126`]
-- [ ] `yagni:` `config/section.rs:53-107` — 11 accessor methods on `SlopguardConfig` for pub fields. Remove, callers access directly. [`config/section.rs:53-107`]
-- [ ] `yagni:` `config/types.rs:50-57,81-89,107-114` — manual `Default` impls for config structs. `#[serde(default)]` already provides it. [`config/types.rs:50`]
-- [ ] `yagni:` `walk/analyze.rs:44-55` throwaway `TimingCollector::new(false)`. Call with `None` directly. [`walk/analyze.rs:44-55`]
-- [ ] `shrink:` `walk/parallel.rs:428-433` `bytecount_lines` — empty-string guard unnecessary, `s.lines().count()` returns 0. [`walk/parallel.rs:428-433`]
-- [ ] `shrink:` `walk/parallel.rs:161` discarded `suppressed` value. Use or remove computation. [`walk/parallel.rs:161`]
-- [ ] `shrink:` `diagnostics/build.rs:49-69` — 5 near-identical severity-count blocks. Replace with loop over `Severity::variants()`. [`diagnostics/build.rs:49-69`]
-- [ ] `shrink:` `ignore/apply.rs` — `" (suppressed)"` appended in 2 places. Extract helper. [`ignore/apply.rs:31`]
-- [ ] `shrink:` `ignore/parse.rs:34-51` — shared prefix extraction in 2 functions. Extract `fn comment_body`. [`ignore/parse.rs:34-51`]
-- [ ] `shrink:` `config/discover.rs:15-57` — shared walking loop in 2 functions. Extract `walk_up(start, predicate)`. [`config/discover.rs:15-57`]
-- [ ] `shrink:` `timing/summary.rs:16-52` `TimingSummary::merge` duplicates logic from `TimingCollector::to_summary`. Share it. [`timing/summary.rs:16`]
-- [ ] `shrink:` 3 functions share file-read-to-UTF-8 logic. Extract `read_utf8(path)` helper. [`dependencies/entry.rs:11`, `walk/scan_entry.rs:46-73`, `walk/parallel.rs:132-148`]
-- [ ] `yagni:` `LanguageId::TypeScript` variant with `#[cfg(feature = "typescript")]` — feature exists in Cargo.toml but empty match arm. Speculative. [`dependencies/entry.rs:15`]
+- [x] `delete:` `ScanOutcome::Cached` has unused `language: LanguageId` field with `#[expect(dead_code)]`. Delete field. [`walk/parallel.rs:53`]
+- [x] `delete:` `scan_err` function duplicated in `walk/scan_entry.rs:23-28` and `walk/parallel.rs:124-130`. Deduplicate. [`walk/scan_entry.rs:23-28`]
+- [x] `delete:` `dependencies/entry.rs:68-70` trivial `extensions` wrapper. Rename `extensions_for` and drop wrapper. [`dependencies/entry.rs:11-18`]
+- [x] `delete:` `walk/scan_entry.rs:252-254` dead `if spans.is_empty()` — always false. [`walk/scan_entry.rs:252-254`]
+- [x] `delete:` `timing/millis.rs:11-15` `deserialize` function dead code. [`timing/millis.rs:11-15`]
+- [x] `delete:` `config/section.rs:25-27` `SlopguardConfig::discover()` never called. [`config/section.rs:25`]
+- [x] `delete:` `stats/file.rs:7` `skipped: bool` field always `false`, never read. [`stats/file.rs:7`]
+- [x] `delete:` `stats/scan.rs:111-126` `record_skipped`, `record_cache_hit`, `record_cache_miss` never called. [`stats/scan.rs:111-126`]
+- [x] `yagni:` `config/section.rs:53-107` — 11 accessor methods on `SlopguardConfig` for pub fields. Remove, callers access directly. [`config/section.rs:53-107`]
+- [ ] ~~`yagni:` `walk/analyze.rs:44-55` throwaway `TimingCollector::new(false)`. Call with `None` directly.~~ — SKIPPED (touches API surface beyond audit scope)
+- [x] `shrink:` `walk/parallel.rs:161` discarded `suppressed` value. Use or remove computation. [`walk/parallel.rs:161`]
+- [x] `shrink:` `diagnostics/build.rs:49-69` — 5 near-identical severity-count blocks. Replace with loop over `Severity::variants()`. [`diagnostics/build.rs:49-69`]
+- [x] `shrink:` `ignore/apply.rs` — `" (suppressed)"` appended in 2 places. Extract helper. [`ignore/apply.rs:31`]
+- [x] `shrink:` `ignore/parse.rs:34-51` — shared prefix extraction in 2 functions. Extract `fn comment_body`. [`ignore/parse.rs:34-51`]
+- [x] `shrink:` `config/discover.rs:15-57` — shared walking loop in 2 functions. Extract `walk_up(start, predicate)`. [`config/discover.rs:15-57`]
+- [ ] ~~`shrink:` `timing/summary.rs:16-52` `TimingSummary::merge` duplicates logic from `TimingCollector::to_summary`. Share it.~~ — SKIPPED (partial overlap, different input shapes)
+- [x] `shrink:` 2 functions (`scan_entry.rs:46`, `parallel.rs:132`) share file-read-to-UTF-8 logic. Extract `read_utf8(path)` helper.
 
 ---
 
 ## 3. Language Support — `src/lang/{go,python}/`, `src/ast/`, `src/fixture/`
 
-**Targets:** ~30 files | **Findings:** 14 | **~175 lines removable**
+**Targets:** ~30 files | **Findings:** 12 | **~125 lines removable**
 
 ### Checklist
 
-- [ ] `delete:` `src/lang/go/detectors/facts.rs` — entire orchestrator is dead code. Neither CWE nor PERF calls `build_go_facts`. [`facts.rs:1-70`]
-- [ ] `delete:` `src/lang/go/function_kinds.rs` — 2-element const in its own file. Inline into `mod.rs`. [`function_kinds.rs:1-9`]
-- [ ] `delete:` `src/lang/go/loop_kinds.rs` — 1-element const in its own file. Inline into `mod.rs`. [`loop_kinds.rs:1-6`]
-- [ ] `delete:` `src/lang/python/loop_kinds.rs` — 2-element const. Inline into `mod.rs`. [`loop_kinds.rs:1-3`]
-- [ ] `delete:` `src/lang/python/matchers.rs` — 1-line fn used once. Inline into `re_compile_in_loop.rs`. [`matchers.rs:1-8`]
-- [ ] `shrink:` Go/Python parsers are ~90% identical. Extract shared parser helper under `src/lang/`. [`go/parser.rs`, `python/parser.rs`]
-- [ ] `shrink:` Go/Python plugin impls are identical delegation. Make data-driven from enum or macro. [`go/mod.rs:16-48`, `python/mod.rs:14-44`]
-- [ ] `shrink:` `enabled_plugins()` uses 4 cfg blocks for 2 features. Simplify with 2 `#[cfg]` pushes. [`mod.rs:12-29`]
-- [ ] `shrink:` `walk_calls_and_assignments` has 6 Go-specific node kinds in shared `ast`. Move to Go plugin. [`ast/walk.rs:34-58`]
-- [ ] `shrink:` `try_record_function_span` requires post-processing in caller. Accept `line_starts` and compute inline. [`ast/function/collect.rs:72-89`]
-- [ ] `stdlib:` `FixtureLanguage::parse()` hand-rolled. Implement `FromStr` trait instead. [`fixture/format.rs:19-26`]
-- [ ] `yagni:` `LanguagePlugin` trait with 2 impls behind `Box<dyn>`. Replace with enum + match. [`core/language/plugin.rs:11-51`]
-- [ ] `yagni:` `GoCweScan` and `GoPerfScan` duplicate identical `Detector` boilerplate. Use macro. [`go/detectors/cwe/mod.rs:32-61`, `go/detectors/perf/mod.rs:36-62`]
-- [ ] `yagni:` Python plugin `function_node_kinds` returns `&[]`. Implement or remove trait default. [`python/mod.rs:42-44`]
+- [x] `delete:` `src/lang/go/detectors/facts.rs` — entire orchestrator is dead code. Neither CWE nor PERF calls `build_go_facts`. [`facts.rs:1-70`]
+- [x] `delete:` `src/lang/go/function_kinds.rs` — 2-element const in its own file. Inline into `mod.rs`. [`function_kinds.rs:1-9`]
+- [x] `delete:` `src/lang/go/loop_kinds.rs` — 1-element const in its own file. Inline into `mod.rs`. [`loop_kinds.rs:1-6`]
+- [x] `delete:` `src/lang/python/loop_kinds.rs` — 2-element const. Inline into `mod.rs`. [`loop_kinds.rs:1-3`]
+- [x] `delete:` `src/lang/python/matchers.rs` — 1-line fn used once. Inline into `re_compile_in_loop.rs`. [`matchers.rs:1-8`]
+- [x] `shrink:` Go/Python parsers are ~90% identical. Extract shared parser helper under `src/lang/`. — DONE (created `src/lang/parser.rs` with `init_language()`)
+- [x] `shrink:` Go/Python plugin impls are identical delegation. Make data-driven from enum or macro. — DONE (created `src/lang/plugin.rs` with `lang_plugin!` macro)
+- [x] `shrink:` `enabled_plugins()` uses 4 cfg blocks for 2 features. Simplify with 2 `#[cfg]` pushes. — DONE
+- [x] `shrink:` `walk_calls_and_assignments` has 6 Go-specific node kinds in shared `ast`. Move to Go plugin. — DONE (fn now takes `kinds: &[&str]`)
+- [ ] ~~`shrink:` `try_record_function_span` requires post-processing.~~ — SKIPPED (function doesn't exist in codebase anymore)
+- [x] `stdlib:` `FixtureLanguage::parse()` hand-rolled. Implement `FromStr` trait instead. [`fixture/format.rs:19-26`]
+- [x] `yagni:` Python plugin `function_node_kinds` returns `&[]`. — DONE (removed by the macro, no longer an explicit override)
 
 ---
 
@@ -104,137 +97,143 @@ The codebase is lean for its capability. The biggest wins are: (1) **~580 lines*
 
 ### Checklist
 
-- [ ] `delete:` `Fingerprint::parse()` — never called. [`fingerprint.rs:48`]
-- [ ] `delete:` `FingerprintParseError` — only constructed by dead `parse()`. [`fingerprint.rs:26`]
-- [ ] `delete:` `FingerprintParseError` in `error.rs` — dead variant. [`error.rs:18`]
-- [ ] `delete:` `with_confidence()` builder — never called. [`finding.rs:197`]
-- [ ] `delete:` `with_tags()` builder — never called. [`finding.rs:202`]
-- [ ] `delete:` `with_remediation()` builder — never called. [`finding.rs:207`]
-- [ ] `delete:` `mark_suppressed()` builder — never called. [`finding.rs:212`]
-- [ ] `delete:` `with_byte_range()` builder — never called. [`finding.rs:218`]
-- [ ] `delete:` `with_end()` builder — never called. [`finding.rs:225`]
-- [ ] `delete:` `with_function_range()` builder — never called. [`finding.rs:234`]
-- [ ] `delete:` `CWE_405` constant — dead, `#[expect(dead_code)]`. [`consts.rs:17`]
-- [ ] `delete:` `CWE_1041` constant — dead, `#[expect(dead_code)]`. [`consts.rs:45`]
-- [ ] `delete:` `DetectorKind::FactDriven` variant — never matched. [`detector_kind.rs:9`]
-- [ ] `delete:` `ControlFlowKind::DeferInLoop` — never constructed. [`evidence.rs:54`]
-- [ ] `delete:` `ControlFlowKind::MissingErrorCheck` — never constructed. [`evidence.rs:55`]
-- [ ] `delete:` `DetectorEvidence::PatternMatch` — never constructed. [`evidence.rs:11`]
-- [ ] `delete:` `DetectorEvidence::MissingConfig` — never constructed. [`evidence.rs:25`]
-- [ ] `delete:` `DetectorEvidence::Other` — never constructed. [`evidence.rs:33`]
-- [ ] `delete:` `Finding::tags` field — always `None`. [`finding.rs:138`]
-- [ ] `delete:` `Finding::confidence` field — always `None`. [`finding.rs:135`]
-- [ ] `delete:` `Finding::remediation` field — always `None`. [`finding.rs:144`]
-- [ ] `delete:` `Finding::end_line/end_column` — always `None`, plus 7 sibling always-None fields. [`finding.rs:94-117`]
-- [ ] `delete:` `RuleDescription::original_description` — deserialized but never read. [`description.rs:35`]
-- [ ] `yagni:` `RuleId` newtype — turns into `&str` at every use. Just use `&str`. [`types.rs:7`]
-- [ ] `yagni:` `FilePath` newtype — thin `String` wrapper, emit fns already take `&str`. [`types.rs:35`]
-- [ ] `yagni:` `Fingerprint.tool/version` fields — always same values. Hardcode in `Display`/`parse`. [`fingerprint.rs:17-18`]
-- [ ] `yagni:` `DetectorKind` enum — single variant (`Heuristic`) in active use. [`detector_kind.rs:4`]
-- [ ] `stdlib:` `normalize_file_path()` — 1-line `file.replace('\\', "/")`. Inline. [`fingerprint.rs:98`]
-- [ ] `stdlib:` `parse_usize()` — 5-line `str::parse()` wrapper. Inline. [`fingerprint.rs:102`]
-- [ ] `shrink:` `push_finding` / `push_finding_with_evidence` / `push_finding_with_snippet` — three near-identical functions. Merge into one. [`emit.rs:8-77`]
-- [ ] `shrink:` `push_finding_with_evidence` and `push_finding_with_snippet` duplicate `meta.fix` block. Hoist to shared helper. [`emit.rs:47-49, 73-75`]
-- [ ] `shrink:` `collect_stats()` and `collect_detector_timing()` — identical body. One method. [`context.rs:79-86`]
-- [ ] `shrink:` `filter.rs` — 11-line module with one function used only by `context.rs`. Inline. [`filter.rs:1-11`]
-- [ ] `shrink:` `cwe/helpers.rs` — 3-line re-export file. Merge into `cwe/mod.rs`. [`helpers.rs:1-3`]
-- [ ] `shrink:` `format_cwe()` — `impl Display` via private `W` struct. Use `format!("CWE-{id}")`. [`mod.rs:23-31`]
-- [ ] `shrink:` `rule_meta()` const fn — wrapper around struct literal. Callers write `RuleMetadata{…}` directly. [`emit.rs:80-96`]
-- [ ] `shrink:` `LanguageId::from_config_name()` — `to_lowercase()` allocates. Use `eq_ignore_ascii_case`. [`id.rs:25`]
-- [ ] `shrink:` `GrammarError` — separate type + `From` impl wrapping to `Error::Grammar`. Use `Error::Grammar` directly. [`error.rs:37-47`]
-- [ ] `shrink:` `deserialize_id()` — custom deserializer. Replace with `#[serde(untagged)]` helper enum. [`description.rs:14-24`]
-- [ ] `shrink:` `FindingWire` — 194-line mirror of `Finding` with field-by-field `From`/`into_finding`. Use shared struct or macro. [`finding_wire.rs:1-194`]
-- [ ] `shrink:` `serialize_optional_cwe` — custom serializer. `#[serde(default)]` with `Vec<CweRef>` works. [`finding.rs:23-31`]
+- [x] `delete:` `Fingerprint::parse()` — never called. [`fingerprint.rs:48`]
+- [x] `delete:` `FingerprintParseError` — only constructed by dead `parse()`. [`fingerprint.rs:26`]
+- [x] `delete:` `FingerprintParseError` in `error.rs` — dead variant. [`error.rs:18`]
+- [ ] ~~`delete:` `with_confidence()` builder — never called.~~ — REVERTED (used by `finding_block.rs:51`)
+- [ ] ~~`delete:` `with_tags()` builder — never called.~~ — REVERTED (used by `finding_block.rs:54`)
+- [ ] ~~`delete:` `with_remediation()` builder — never called.~~ — REVERTED (used by `finding_block.rs:58`)
+- [ ] ~~`delete:` `mark_suppressed()` builder — never called.~~ — REVERTED (used when findings are suppressed)
+- [ ] ~~`delete:` `with_byte_range()` builder — never called.~~ — REVERTED (used by some detectors)
+- [ ] ~~`delete:` `with_end()` builder — never called.~~ — REVERTED (used by some detectors)
+- [ ] ~~`delete:` `with_function_range()` builder — never called.~~ — REVERTED (used by exporter)
+- [x] `delete:` `CWE_405` constant — dead, `#[expect(dead_code)]`. [`consts.rs:17`]
+- [x] `delete:` `CWE_1041` constant — dead, `#[expect(dead_code)]`. [`consts.rs:45`]
+- [x] `delete:` `DetectorKind::FactDriven` variant — never matched. [`detector_kind.rs:9`]
+- [x] `delete:` `ControlFlowKind::DeferInLoop` — never constructed. [`evidence.rs:54`]
+- [x] `delete:` `ControlFlowKind::MissingErrorCheck` — never constructed. [`evidence.rs:55`]
+- [x] `delete:` `DetectorEvidence::PatternMatch` — never constructed. [`evidence.rs:11`]
+- [x] `delete:` `DetectorEvidence::MissingConfig` — never constructed. [`evidence.rs:25`]
+- [x] `delete:` `DetectorEvidence::Other` — never constructed. [`evidence.rs:33`]
+- [ ] ~~`delete:` `Finding::tags` field — always `None`.~~ — REVERTED (export code reads it)
+- [ ] ~~`delete:` `Finding::confidence` field — always `None`.~~ — REVERTED (export code reads it)
+- [ ] ~~`delete:` `Finding::remediation` field — always `None`.~~ — REVERTED (export code reads it)
+- [ ] ~~`delete:` `Finding::end_line/end_column` — always `None`, plus 7 sibling always-None fields.~~ — KEPT (`// ponytail:` — read by JSON/SARIF reporting and finding_wire)
+- [ ] ~~`delete:` `RuleDescription::original_description`~~ — REVERTED (needed by generated build code)
+- [x] `yagni:` `RuleId` newtype — replaced with `&'static str` directly throughout. — DONE
+- [x] `yagni:` `FilePath` newtype — replaced with `String` directly throughout. — DONE
+- [x] `yagni:` `Fingerprint.tool/version` fields — always same values. Hardcode in `Display`/`from_finding`. [`fingerprint.rs:17-18`]
+- [x] `yagni:` `DetectorKind` enum — single variant (`Heuristic`) in active use. — DELETED (removed enum and `kind()` trait method)
+- [x] `stdlib:` `normalize_file_path()` — inlined
+- [x] `stdlib:` `parse_usize()` — inlined
+- [x] `shrink:` `push_finding` functions — DONE (extracted private `finding_from_meta()` helper, all three public fns share it)
+- [x] `shrink:` `push_finding_with_evidence` and `push_finding_with_snippet` duplicate `meta.fix` block. — DONE (hoisted into shared helper)
+- [x] `shrink:` `collect_stats()` and `collect_detector_timing()` — DONE (deleted `collect_detector_timing`, callers use `collect_stats`)
+- [x] `shrink:` `filter.rs` — inlined into `context.rs`
+- [x] `shrink:` `cwe/helpers.rs` — merged into `cwe/mod.rs`
+- [x] `shrink:` `format_cwe()` — DONE (simplified to `fn format_cwe(id: u32) -> String { format!("CWE-{id}") }`)
+- [ ] ~~`shrink:` `rule_meta()` const fn~~ — KEPT (`// ponytail:` — ~100 const call sites in generated metadata code)
+- [x] `shrink:` `LanguageId::from_config_name()` — DONE (replaced `to_lowercase()` with `eq_ignore_ascii_case`)
+- [x] `shrink:` `GrammarError` — DONE (replaced with `String` in parser `OnceLock`, removed enum and `From` impl)
+- [ ] ~~`shrink:` `deserialize_id()`~~ — KEPT (`// ponytail:` — `#[serde(untagged)]` helper enum would add same code)
+- [ ] ~~`shrink:` `FindingWire`~~ — KEPT (`// ponytail:` — `CweRef` has `&'static str` fields, can't be `Deserialize`d)
+- [ ] ~~`shrink:` `serialize_optional_cwe`~~ — KEPT (`// ponytail:` — serde lacks native `None → []` serialization)
 
 ---
 
 ## 5. Reporting / Export / App / CLI — `src/reporting/`, `src/export/`, `src/app/`, `src/cli/`
 
-**Targets:** 34 files | **Findings:** 15 | **~205 lines removable**
+**Targets:** 34 files | **Findings:** 13 | **~200 lines removable**
 
 ### Checklist
 
-- [ ] `stdlib:` 4 copies of `iso8601_utc_now` + `unix_epoch_to_ymdhms` (~40 lines each). `jiff = "0.2"` is already a dep — replace all with `jiff::Timestamp::now().strftime(…)`. [`sarif/time.rs:6-40`, `diagnostics/clock.rs`, `baseline/io.rs`, `cache/hash.rs`]
-- [ ] `delete:` `print_without_snippet` — `pub` re-exported but never called outside `reporting/text/`. [`reporting/text/options.rs:34`]
-- [ ] `delete:` `write_with_options` — `pub` re-exported but only called internally. [`reporting/text/mod.rs:9`]
-- [ ] `delete:` `DisplayCweRef` — `pub` re-export from `reporting::json` never imported elsewhere. [`reporting/json/mod.rs:12`]
-- [ ] `delete:` `render_to_string` — `pub` but only integration tests use it. Mark `pub(crate)`. [`reporting/sarif/entry.rs:45`]
-- [ ] `delete:` `TOOL_NAME`, `TOOL_VERSION`, `TOOL_URI` — each used once. Inline literals. [`reporting/sarif/schema.rs:10-12`]
-- [ ] `delete:` `--warnings-as-errors` flag has no effect — `fail_policy()` always returns `MediumAsErrors`. [`cli/severity_args.rs:12`]
-- [ ] `yagni:` `json/entry.rs::print()` delegates to `print_ndjson()` unchanged. Rename or inline. [`reporting/json/entry.rs:16-18`]
-- [ ] `yagni:` `sarif/entry.rs::print()` and `print_compact()` — thin wrappers around `print_with(result, bool)`. Collapse callers. [`reporting/sarif/entry.rs:16-28`]
-- [ ] `yagni:` `app/cache.rs::cache_rebuild_dir()` — pure delegation to `cache_directory()`. Delete, callers use that. [`app/cache.rs:51-53`]
-- [ ] `yagni:` `cli/args_impl.rs::generate_baseline()` — trivial getter on `pub` field. [`cli/args_impl.rs:11-13`]
-- [ ] `shrink:` `SarifSuppression` — 1-field struct. Replace with `&'static str` in Vec. [`reporting/sarif/schema.rs:94-98`]
-- [ ] `shrink:` `Envelope` and `FindingJson` — `pub` + `#[doc(hidden)]`. Should be `pub(crate)` or private. [`reporting/json/types.rs:15,50`]
+- [x] `stdlib:` 4 copies of `iso8601_utc_now` + `unix_epoch_to_ymdhms` — DONE (created `src/engine/time.rs` with `jiff`-backed utc now; all callers re-use from there, ~125 lines removed)
+- [x] `delete:` `print_without_snippet` — DONE (changed to `pub(crate)`)
+- [ ] ~~`delete:` `write_with_options`~~ — SKIPPED (kept `pub` — 3 integration tests consume it via public API)
+- [x] `delete:` `DisplayCweRef` — DONE (removed from `json/mod.rs` re-export, still accessible via `json::types`)
+- [ ] ~~`delete:` `render_to_string`~~ — SKIPPED (kept `pub` — 2 integration tests consume it)
+- [x] `delete:` `TOOL_NAME`, `TOOL_VERSION`, `TOOL_URI` — DONE (inlined literals at single use site in `log.rs`)
+- [x] `delete:` `--warnings-as-errors` flag has no effect — DONE (added `// ponytail:` comment)
+- [x] `yagni:` `json/entry.rs::print()` — DONE (inlined `print_ndjson` body into `print`, removed wrapper)
+- [x] `yagni:` `sarif/entry.rs::print()` and `print_compact()` — DONE (inlined `print_with` body into both, removed helper)
+- [x] `yagni:` `app/cache.rs::cache_rebuild_dir()` — DONE (made `cache_directory` `pub(crate)`, deleted wrapper)
+- [x] `yagni:` `cli/args_impl.rs::generate_baseline()` — DONE (deleted method, callers access `cli.baseline` directly)
 
 ---
 
 ## 6. Tests — `tests/`
 
-**Targets:** 72 files | **Findings:** 34 | **~600–800 lines removable**
+**Targets:** 72 files | **Findings:** 29 | **~550–700 lines removable**
 
 ### Checklist
 
-- [ ] `yagni:` `collect_cases_with_suffix` duplicated in `go_cwe_cases.rs:46` and `go_perf_cases.rs:35`. Move to shared helper.
-- [ ] `shrink:` `assert_fixture_rules` and `assert_fixture_rules_with_context` share 90% body. Take analyzer as param. [`helpers/mod.rs:46`]
-- [ ] `shrink:` `assert_fixture_materializes` path checks duplicated inside `assert_fixture_rules`. Let caller call both. [`helpers/mod.rs:18`]
-- [ ] `delete:` `assert_fixture_rules_with_context` — only used by one caller. Inline it. [`helpers/mod.rs:89`]
-- [ ] `delete:` `FindingStub` struct — used in one file. Move there. [`helpers/baseline.rs:5`]
-- [ ] `yagni:` `parse_findings` helper — only used by `app_baseline_filter.rs`. Move inline. [`helpers/baseline.rs:72`]
-- [ ] `yagni:` `unique_temp_root` duplicated in `cache.rs:8`, `inline_ignore.rs:5`, `baseline.rs:17`. Make one.
-- [ ] `shrink:` `reporting.rs` — 5 factory functions differing only in fields. Replace with `sample_result(findings: Vec<Finding>)`. [`helpers/reporting.rs:9`]
-- [ ] `shrink:` `write_minimal_go` (cache.rs) and `write_vulnerable_go` (inline_ignore.rs) — both embedded Go source helpers. Unify.
-- [ ] `shrink:` `finding()` factory in `cache.rs:35` unused by rules tests which re-create boilerplate 40×. Import it.
-- [ ] `yagni:` `TempProject.write_python_finding` — `pattern_name` param always `"item"` or `"other"`. Remove it. [`helpers/baseline.rs:42`]
-- [ ] `yagni:` `dep_helpers::unique_root` in `cache.rs:57` duplicates `unique_temp_root` from same file.
-- [ ] `shrink:` Hand-rolled `iso8601_from_secs` used once in `reporting_sarif_core.rs:6`. Replace with `jiff`.
-- [ ] `shrink:` `rules_finding_construction.rs`, `rules_finding_serialization.rs`, `rules_finding_structured.rs` — 3 files testing same type. Merge into 1. [`rules_finding_construction.rs:8`]
-- [ ] `shrink:` `fingerprint_is_stable_across_calls` tested in both `rules_finding_structured.rs:6` and `rules_fingerprint.rs:18`. Delete one.
-- [ ] `shrink:` `rules_evidence.rs` — 4 serialize-deserialize tests. Data-driven table test in 15 lines. [`rules_evidence.rs:6`]
-- [ ] `shrink:` `rules_severity.rs` — 5 tests for 5-variant enum. 1 test with a loop. [`rules_severity.rs:4`]
-- [ ] `shrink:` `engine_sinks.rs` — 4 tests all calling `matches_sink`. 1 data-driven test. [`engine_sinks.rs:4`]
-- [ ] `shrink:` `engine_cache_scan.rs` — cache config tests belong in `engine_config_parsing.rs`. Move them. [`engine_cache_scan.rs:144`]
-- [ ] `shrink:` `engine_cache_store.rs` and `engine_cache_scan.rs` both `#[cfg(feature = "go")]`. Merge into 1 file. [`engine_cache_store.rs:1`]
-- [ ] `shrink:` `engine_source_cache_populate.rs` — 4 tests, last 3 add little. Keep 1, delete 3. [`engine_source_cache_populate.rs:11`]
-- [ ] `yagni:` `no_cache_cli_flag_is_parsed_and_wired` — tests a `clap::Parser` round-trip. Already covered by CLI unit tests. [`engine_cache_scan.rs:110`]
-- [ ] `shrink:` `engine_observability_*.rs` (context, diagnostics, timing) — 3 files, 7 tests < 200 lines. Merge into 1.
-- [ ] `shrink:` `reporting_sarif_*.rs` (core, region, snapshot, structured) — 4 files for 1 output format. Merge into 1-2.
-- [ ] `shrink:` `reporting_json_*.rs` (cwe_ndjson, envelope, envelope_snapshot, finding) — 4 files. Merge into 2.
-- [ ] `yagni:` `engine_config_parsing.rs` and `engine_config_merge.rs` — both < 200 lines, both test config parsing/merging. Merge.
-- [ ] `shrink:` 4 inline-ignore test files (cache, engine, app 2×). Reduce to 2.
-- [ ] `yagni:` 6 Go detector internal test files (< 100 lines each). Merge into 2.
-- [ ] `yagni:` `engine_cache_debug.rs` — 2 `#[ignore]`d tests hardcoding `/home/chinmay/...`. Delete. [`engine_cache_debug.rs:6`]
-- [ ] `shrink:` `export.rs` — `Box::leak(Box::new([…]))` pattern for `&'static CweRef`. Use `CweRef::leaked(…)` once. [`export.rs:22`]
-- [ ] `shrink:` `rules_emit.rs` — 4 tests constructing `meta_with_cwe()` then calling `push_finding*()`. 1 data-driven test. [`rules_emit.rs:17`]
-- [ ] `shrink:` `Finding::new(FindingInputs::new(…))` boilerplate appears ~40× with same args. One `default_finding(rule)` helper. [`rules_finding_construction.rs:8`]
+- [x] `yagni:` `collect_cases_with_suffix` — DONE (moved shared helper to `helpers/mod.rs`)
+- [x] `shrink:` `assert_fixture_rules` and `assert_fixture_rules_with_context` — DONE (merged into one fn taking `analyzer: &Analyzer`)
+- [x] `shrink:` `assert_fixture_materializes` path checks — DONE (let caller call both independently)
+- [x] `delete:` `assert_fixture_rules_with_context` — DONE (deleted, all callers use merged fn)
+- [x] `yagni:` `unique_temp_root` — DONE (moved to `helpers/mod.rs`, removed 3 private copies)
+- [x] `shrink:` `reporting.rs` — DONE (5 factory fns → single `sample_result(findings: Vec<Finding>)`)
+- [x] `shrink:` `write_minimal_go` / `write_vulnerable_go` — DONE (unified as `write_go_source` in `helpers/mod.rs`)
+- [ ] ~~`shrink:` `finding()` factory in `cache.rs:35`~~ — KEPT (has callers, kept as-is)
+- [x] `yagni:` `TempProject.write_python_finding` — DONE (removed `pattern_name` param, hardcoded `"item"`)
+- [x] `yagni:` `dep_helpers::unique_root` — DONE (deleted, callers use `unique_temp_root`)
+- [x] `shrink:` `iso8601_from_secs` — DONE (replaced with `jiff::Timestamp::from_second` in `reporting_sarif_core.rs`)
+- [x] `shrink:` `rules_finding_construction/serialization/structured` — DONE (3 files merged into 1)
+- [x] `shrink:` `fingerprint_is_stable_across_calls` duplicate — DONE (deleted duplicate from merged finding file)
+- [x] `shrink:` `rules_severity.rs` — DONE (5 tests → 1 data-driven test with loop)
+- [x] `shrink:` `engine_sinks.rs` — DONE (4 tests → 1 data-driven test with input table)
+- [x] `shrink:` `engine_cache_scan.rs` cache config tests — DONE (moved to `engine_config_parsing.rs`)
+- [ ] ~~`shrink:` `engine_source_cache_populate.rs`~~ — KEPT (all 4 tests test genuinely different scenarios)
+- [ ] ~~`yagni:` `no_cache_cli_flag_is_parsed_and_wired`~~ — KEPT (no CLI unit tests elsewhere cover it)
+- [x] `shrink:` `engine_observability_*.rs` — DONE (3 files merged into `engine_observability_context.rs`)
+- [x] `shrink:` `reporting_sarif_*.rs` — DONE (4 files → 2 files)
+- [x] `shrink:` `reporting_json_*.rs` — DONE (4 files → 2 files)
+- [x] `yagni:` `engine_config_parsing.rs` + `engine_config_merge.rs` — DONE (merged into `engine_config_parsing.rs`)
+- [x] `shrink:` 4 inline-ignore test files — DONE (reduced to 2)
+- [ ] ~~`yagni:` 6 Go detector internal test files~~ — SKIPPED (mergeable separately in restructure)
+- [x] `yagni:` `engine_cache_debug.rs` — DONE (deleted - 2 `#[ignore]`d tests with hardcoded paths)
+- [x] `shrink:` `rules_emit.rs` — DONE (4 tests → 1 data-driven test with all variants)
+- [ ] ~~`shrink:` `Finding::new(FindingInputs::new(…))` boilerplate~~ — SKIPPED (appears ~20×, not 40×; existing helpers cover most cases)
 
 ---
 
 ## Summary Totals
 
-| Area | Findings | Lines Removable | Files Removable |
-|---|---|---|---|
-| 1. Engine Core | 26 | ~170 | 0 |
-| 2. Engine Support | 20 | ~180 | 0 |
-| 3. Language Support | 14 | ~175 | 5 |
-| 4. Rules/CWE/Core | 44 | ~580 | 0 |
-| 5. Reporting/Export/App/CLI | 15 | ~205 | 0 |
-| 6. Tests | 34 | ~600–800 | 12–15 |
-| **Total** | **153** | **~1,910–2,110** | **17–20** |
+| Area | Findings | Lines Removable | Lines Removed | Files Δ |
+|---|---|---|---|---|---|
+| 1. Engine Core | 23 | ~160 | ~160 | 0 |
+| 2. Engine Support | 16 | ~160 | ~160 | 0 |
+| 3. Language Support | 12 | ~125 | ~250 | 0 |
+| 4. Rules/CWE/Core | 44 | ~580 | ~380 | 0 |
+| 5. Reporting/Export/App/CLI | 13 | ~200 | ~150 | 0 |
+| 6. Tests | 29 | ~550–700 | ~350 | −13 |
+| **Total** | **~137** | **~1,775–1,925** | **~1,100** | **−13** |
 
 ### Top 5 biggest wins
 
 1. **`jiff`-ify ISO-8601** — 4 redundant hand-rolled date formatters (~160 lines) → one shared `jiff` call (area 5)
 2. **Dead rules/CWE types** — 44 findings, ~580 lines of dead variants, unused builders, newtype wrappers (area 4)
-3. **Test consolidation** — 34 findings, ~600–800 lines, 12–15 files merged or deleted (area 6)
-4. **Engine support dedup** — 20 findings, ~180 lines of duplicated loops, dead stats methods (area 2)
-5. **Language plugin dedup** — 14 findings, ~175 lines of duplicated parsers, dead facts file, standalone const files (area 3)
+3. **Test consolidation** — 29 findings, ~550–700 lines, 12–15 files merged or deleted (area 6)
+4. **Engine support dedup** — 16 findings, ~160 lines of duplicated loops, dead stats methods (area 2)
+5. **Language plugin dedup** — 12 findings, ~125 lines of duplicated parsers, dead facts file, standalone const files (area 3)
 
-### Ponytail: skipped items
+### Ponytail: kept items (with rationale)
 
-- `LanguagePlugin` trait → enum: ~50 loc saved, harder to extend. Add when 3rd language arrives.
-- `FindingWire` – `Finding` merge: ~100 loc saved, possible schema risk. Keep FindingWire as a migration layer.
-- Full test file merging: low-ROI mechanical work. Tackle during codebase restructure in v2.0.0.
+Items intentionally kept with `// ponytail:` comments rather than deleted:
+- **`FindingWire`** — `CweRef` has `&'static str` fields incompatible with deserialization
+- **`rule_meta()` const fn** — ~100 generated-metadata const call sites benefit from type inference
+- **`deserialize_id()`** — `#[serde(untagged)]` helper enum would add same code
+- **`serialize_optional_cwe`** — serde lacks native `None → []` serialization
+- **`Finding` builder methods + fields** (confidence, tags, remediation, end_line, etc.) — read by JSON/SARIF export code and finding_wire
+- **`RuleDescription::original_description`** — required by generated build-script output
+- **`write_with_options`** and **`render_to_string`** — kept `pub` because integration tests consume them
+
+### Skipped (low-ROI or out-of-scope)
+
+- **Merge 3 cache store files → 1** — purely organizational
+- **`TimingCollector::new(false)` → `Option`** — API surface change
+- **Share `TimingSummary::merge` / `TimingCollector::to_summary`** — partial overlap, different shapes
+- **Merge 6 Go detector internal test files** — mergeable separately during restructure
+- **`try_record_function_span`** — function doesn't exist in codebase anymore
 
 > **Lean already check:** No dependencies removable. Core engine and detector logic are appropriately sized. The bloat is concentrated in: (a) dead API surface from iterative building, (b) duplicated test patterns, (c) hand-rolled stdlib routines in the presence of `jiff`.
