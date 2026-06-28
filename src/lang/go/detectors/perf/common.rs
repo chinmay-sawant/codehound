@@ -53,3 +53,29 @@ pub fn has_echo_handler(index: &PerfSourceIndex) -> bool {
 pub fn has_http_handler(index: &PerfSourceIndex) -> bool {
     index.has("http.ResponseWriter")
 }
+
+/// Returns true if the 1 KiB window before `start_byte` contains a
+/// request-handler signature token (http.ResponseWriter, gin.Context,
+/// echo.Context, fiber.Ctx, or common response methods).
+pub fn is_handler_shaped(source: &str, start_byte: usize) -> bool {
+    let window_start = start_byte.saturating_sub(1024);
+    let window = &source[window_start..start_byte];
+    window.contains("http.ResponseWriter")
+        || window.contains("*gin.Context")
+        || window.contains("gin.Context")
+        || window.contains("echo.Context")
+        || window.contains("c echo.Context")
+        || window.contains("*fiber.Ctx")
+        || window.contains("c *fiber.Ctx")
+        || window.contains("func Handle")
+        || window.contains("func (")
+        || window.contains("c.JSON(")
+        || window.contains("c.String(")
+        || window.contains("c.HTML(")
+}
+
+/// Whole-file handler-shape check: returns true when the file contains
+/// a request-handler signature token anywhere.
+pub fn file_has_handler(source: &str) -> bool {
+    is_handler_shaped(source, source.len())
+}

@@ -2,7 +2,6 @@ pub(crate) mod cli_and_orm;
 pub(crate) mod common;
 pub(crate) mod db_and_sql;
 pub(crate) mod header_allowlist;
-pub(crate) mod hot_path_misc;
 pub(crate) mod http_client;
 pub(crate) mod http_server;
 pub(crate) mod io_runtime;
@@ -14,7 +13,6 @@ pub(crate) mod sync_and_locks;
 
 pub(crate) use cli_and_orm::*;
 pub(crate) use db_and_sql::*;
-pub(crate) use hot_path_misc::*;
 pub(crate) use http_client::*;
 pub(crate) use http_server::*;
 pub(crate) use io_runtime::*;

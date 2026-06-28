@@ -115,9 +115,9 @@
 - [x] **Batch 4 (10):** PERF-106, 110, 128, 130, 135, 140, 158, 171, 181, 182. See `plans/perf-batch-4.md`.
 - [x] **Batch 5 (10):** PERF-121, 131, 132, 145, 165, 166, 168, 204, 209, 211. PERF-208 dropped (overlaps PERF-99). See `plans/perf-batch-5.md`.
 - [x] **Batch 6 (11):** PERF-102, 108, 133, 137, 141, 149, 161, 163, 170, 176, 195. PERF-136 dropped. See `plans/perf-batch-6.md`.
-- [x] **Batch 7 (22):** PERF-138, 159, 167, 169, 173, 174, 175, 178, 179, 180, 183, 184, 185, 186, 187, 188, 193, 194, 202, 207, 210, 212. All in `general_perf/stdlib_misuse/hot_path_misc.rs`.
-- [x] **Batch 8 (16):** PERF-109, 142, 144, 148, 152, 153, 154, 160, 162, 164, 189, 191, 197, 203, 205, 206. All in `general_perf/stdlib_misuse/hot_path_misc.rs`.
-- [x] **Batch 9 (6):** PERF-143, 155, 196, 199, 200, 201. PERF-172 dropped (conflicts with PERF-70 safe fixtures). All in `general_perf/stdlib_misuse/hot_path_misc.rs`.
+- [x] **Batch 7 (22):** PERF-138, 159, 167, 169, 173, 174, 175, 178, 179, 180, 183, 184, 185, 186, 187, 188, 193, 194, 202, 207, 210, 212. Migrated from `hot_path_misc.rs` to domain modules. See `plans/v2.0.0/reports/domain-migration-review.md`.
+- [x] **Batch 8 (16):** PERF-109, 142, 144, 148, 152, 153, 154, 160, 162, 164, 189, 191, 197, 203, 205, 206. Migrated from `hot_path_misc.rs` to domain modules.
+- [x] **Batch 9 (6):** PERF-143, 155, 196, 199, 200, 201. PERF-172 reimplemented with smarter heuristic. All migrated to domain modules.
 - [ ] **Real-project positive smoke fixture** — *deferred* to a dedicated test file. Need a small Go file in `tests/fixtures/go/perf_real_world/` (HTTP server, request handler, etc.) that fires at least one shipped detector on non-synthetic code, plus a clean companion file. Crosses into E.4.
 - [x] **PERF-126's `is_canonical_header` list** is hardcoded; should be verified against `net/http`'s `textproto.CanonicalMIMEHeaderKey` behavior, especially for less-common headers. Verified with unit coverage for canonical spellings including `Etag`, `Www-Authenticate`, `X-Csrf-Token`, and fixed exact-case matching so non-canonical spellings like `ETag` are not flagged as redundant.
 - [x] **PERF-122 / PERF-127 substring heuristics** are coarse; a real implementation would parse the source window properly. Trade-off documented in `detection_notes` and detector comments.

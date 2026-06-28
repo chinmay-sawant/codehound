@@ -1,8 +1,8 @@
 # P2.4 — PERF Detectors: Remaining Work (Hygiene Only — All Rules Shipped)
 
 > **Parent:** `plans/p2-implementation/04-perf-detector-implementation.md` — P2.4
-> **Status:** **109 of 112** PERF-101..212 rules shipped across 9+ batches. 3 intentionally dropped (PERF-104, 136, 208). Category B ✅, Category C ✅.
-> **Estimated effort:** ~1 day (domain migration + documentation)
+> **Status:** **109 of 112** PERF-101..212 rules shipped across 9+ batches. 3 intentionally dropped (PERF-104, 136, 208). Category B ✅, Category C ✅. Code review findings ✅ All fixed.
+> **Estimated effort:** Complete
 > **See also:** `plans/perf-category-breakdown.md`, `plans/perf-batch-{4,5,6}.md`
 
 ---
@@ -11,7 +11,7 @@
 
 The PERF detector system has 212 defined rules (PERF-1..212). **209 have working implementations** with test fixtures (100 original PERF-1..100 + 109 new PERF-101..212), dispatched from 7 domain-specific registry TOML files. **3 rules are intentionally dropped** (PERF-104 — covered by existing detector, PERF-136 — needs type inference, PERF-208 — overlaps PERF-99).
 
-All detector code lives in `general_perf/stdlib_misuse/hot_path_misc.rs`. Domain module migration (Phase 2) is still deferred.
+Detectors are now organized by domain in `domains/{concurrency,memory_gc,string_bytes,stdlib_optimization}.rs`. Shared helpers live in `common.rs`. Phase 2 (domain migration) complete.
 
 ---
 
@@ -104,30 +104,28 @@ The following 8 PERF rules have **no registry entry** in any `registry.*.toml` f
 
 ## Phase 2 — Domain Module Migration
 
-> **Status:** ⏳ Deferred. All 104 shipped rules now live in `general_perf/stdlib_misuse/hot_path_misc.rs`.
-> **Effort:** 1 day
+> **Status:** ✅ **Complete.** All 49 hot-path detectors migrated from `general_perf/stdlib_misuse/hot_path_misc.rs` into 4 domain modules.
+> **Effort:** Done ~1h
 
 ### 2.1 Move rules into their designated domain modules
 
-Per the `perf-category-breakdown.md` domain mapping, move functions from `general_perf/stdlib_misuse/` into the semantic domain modules:
+Migrated 49 detectors into domain modules under `src/lang/go/detectors/perf/domains/`:
 
-**Concurrency rules:**
-PERF-132, PERF-148, PERF-167, PERF-171, PERF-172, PERF-173, PERF-174, PERF-175, PERF-176, PERF-183, PERF-193, PERF-194, PERF-195
+| Domain module | Detectors | Count |
+|--------------|-----------|-------|
+| `concurrency.rs` | PERF-148, 167, 172, 173, 174, 175, 183, 193, 194 | 9 |
+| `memory_gc.rs` | PERF-134, 138, 139, 150, 151, 169, 191 | 7 |
+| `string_bytes.rs` | PERF-159, 178, 179, 186, 203 | 5 |
+| `stdlib_optimization.rs` | PERF-109, 142, 143, 144, 152, 153, 154, 155, 160, 162, 164, 180, 184, 185, 187, 188, 189, 196, 197, 199, 200, 201, 202, 205, 206, 207, 210, 212 | 28 |
+| `common.rs` | `is_handler_shaped`, `file_has_handler` (from private→pub) | — |
+| `hot_path_misc.rs` | Replaced with migration note (dead code) | — |
 
-**Memory / GC rules:**
-PERF-106, PERF-110, PERF-128, PERF-129, PERF-130, PERF-133, PERF-135, PERF-137, PERF-138, PERF-139, PERF-140, PERF-150, PERF-151, PERF-168, PERF-169, PERF-170, PERF-191, PERF-192
-
-**String / byte rules:**
-PERF-111, PERF-112, PERF-113, PERF-114, PERF-115, PERF-116, PERF-117, PERF-118, PERF-119, PERF-120, PERF-121, PERF-122, PERF-123, PERF-124, PERF-125, PERF-126, PERF-127, PERF-130, PERF-146, PERF-147, PERF-156, PERF-157, PERF-158, PERF-159, PERF-178, PERF-179, PERF-180, PERF-184, PERF-185, PERF-186, PERF-187, PERF-188, PERF-203
-
-**Stdlib optimization rules:**
-PERF-101, PERF-102, PERF-103, PERF-104, PERF-109, PERF-118, PERF-120, PERF-122, PERF-126, PERF-127, PERF-141, PERF-142, PERF-143, PERF-144, PERF-145, PERF-149, PERF-152, PERF-153, PERF-154, PERF-155, PERF-160, PERF-161, PERF-162, PERF-163, PERF-164, PERF-165, PERF-166, PERF-170, PERF-176, PERF-181, PERF-182, PERF-189, PERF-190, PERF-195, PERF-196, PERF-197, PERF-198, PERF-199, PERF-200, PERF-201, PERF-202, PERF-204, PERF-205, PERF-206, PERF-207, PERF-209, PERF-210, PERF-211, PERF-212
-
-- [ ] For each domain module, create the submodule structure (mirroring `general_perf/stdlib_misuse/`)
-- [ ] Re-export from the domain module
-- [ ] Update the registry TOML files to point to the new domain paths
-- [ ] Verify `tests/go_perf_detector_integration.rs` and `tests/go_perf_registry_generation.rs` still pass
-- [ ] Remove the migrated functions from their old location once all consumers are updated
+- [x] Created `concurrency.rs`, `memory_gc.rs`, `string_bytes.rs`, `stdlib_optimization.rs`
+- [x] Added `pub(crate) use` re-exports in `domains/mod.rs`
+- [x] Removed `hot_path_misc` from `stdlib_misuse/mod.rs` re-exports
+- [x] Moved `is_handler_shaped` + `file_has_handler` to `common.rs`
+- [x] Updated imports to use `crate::lang::go::detectors::perf::common::*`
+- [x] `cargo build` and `cargo test` pass (0 failures)
 
 ---
 
