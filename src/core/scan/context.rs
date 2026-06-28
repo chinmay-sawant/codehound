@@ -53,15 +53,21 @@ impl ScanContext {
         if self.skip.contains(rule_id) {
             return false;
         }
-        if self
-            .skip
-            .iter()
-            .any(|pattern| pattern == rule_id || pattern.strip_suffix('*').is_some_and(|p| rule_id.starts_with(p)))
-        {
+        if self.skip.iter().any(|pattern| {
+            pattern == rule_id
+                || pattern
+                    .strip_suffix('*')
+                    .is_some_and(|p| rule_id.starts_with(p))
+        }) {
             return false;
         }
         if let Some(only) = &self.only {
-            return only.iter().any(|pattern| pattern == rule_id || pattern.strip_suffix('*').is_some_and(|p| rule_id.starts_with(p)));
+            return only.iter().any(|pattern| {
+                pattern == rule_id
+                    || pattern
+                        .strip_suffix('*')
+                        .is_some_and(|p| rule_id.starts_with(p))
+            });
         }
         true
     }

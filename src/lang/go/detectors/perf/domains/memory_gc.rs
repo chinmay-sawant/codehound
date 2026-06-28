@@ -3,7 +3,7 @@
 //! PERF-134, PERF-138, PERF-139, PERF-150, PERF-151, PERF-169, PERF-191
 
 use crate::core::ParsedUnit;
-use crate::lang::go::detectors::perf::common::{file_has_handler, is_handler_shaped, is_in_loop};
+use crate::lang::go::detectors::perf::common::{char_boundary, file_has_handler, is_handler_shaped, is_in_loop};
 use crate::lang::go::detectors::perf::facts::GoPerfFacts;
 use crate::lang::go::detectors::perf::metadata::*;
 use crate::rules::{Finding, emit};
@@ -37,7 +37,6 @@ pub(crate) fn detect_perf_134(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut
             "manual io.Read + io.Write loop; use io.Copy(dst, src) instead",
             out,
         );
-        return;
     }
 }
 
@@ -92,7 +91,7 @@ pub(crate) fn detect_perf_139(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         // `})` comes after it.
         // Find the LAST `go func(` before the Write call
         let search_start = call.start_byte.saturating_sub(1000);
-        let search_region = &source[search_start..call.start_byte];
+        let search_region = &source[char_boundary(source, search_start)..call.start_byte];
         let last_go_rel = search_region.rfind("go func(");
         let last_defer_rel = search_region.rfind("defer func(");
         let closure_start_rel = match (last_go_rel, last_defer_rel) {
@@ -116,7 +115,8 @@ pub(crate) fn detect_perf_139(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         };
         // Look for `})` or `}()` that closes this closure.
         let after_body = &source[body_open..];
-        let close_pos = after_body.find("})")
+        let close_pos = after_body
+            .find("})")
             .or_else(|| after_body.find("}()"))
             .or_else(|| after_body.find("}"))
             .map(|p| body_open + p);
@@ -184,7 +184,6 @@ pub(crate) fn detect_perf_150(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut
             "large stack frame: multiple large local allocations (> 1 KiB); consider heap-allocating or reducing buffer sizes",
             out,
         );
-        return;
     }
 }
 
@@ -222,7 +221,6 @@ pub(crate) fn detect_perf_151(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut
             "non-inlinable handler function: too complex for the Go compiler to inline; reduce body size or split into smaller functions",
             out,
         );
-        return;
     }
 }
 
@@ -272,7 +270,7 @@ pub(crate) fn detect_perf_191(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut
     let mut search_from = 0;
     while let Some(rel) = source[search_from..].find("[]*") {
         let pos = search_from + rel;
-        let after = &source[pos + 3..(pos + 128).min(source.len())];
+        let after = &source[pos + 3..char_boundary(source, (pos + 128).min(source.len()))];
         let type_name: String = after
             .chars()
             .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
@@ -316,4 +314,3 @@ pub(crate) fn detect_perf_191(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut
         search_from = pos + 3;
     }
 }
-

@@ -3,7 +3,7 @@
 //! PERF-109, PERF-142, PERF-143, PERF-144, PERF-152, PERF-153, PERF-154, PERF-155, PERF-160, PERF-162, PERF-164, PERF-180, PERF-184, PERF-185, PERF-187, PERF-188, PERF-189, PERF-196, PERF-197, PERF-199, PERF-200, PERF-201, PERF-202, PERF-205, PERF-206, PERF-207, PERF-210, PERF-212
 
 use crate::core::ParsedUnit;
-use crate::lang::go::detectors::perf::common::{file_has_handler, is_handler_shaped, is_in_loop};
+use crate::lang::go::detectors::perf::common::{char_boundary, file_has_handler, is_handler_shaped, is_in_loop};
 use crate::lang::go::detectors::perf::facts::GoPerfFacts;
 use crate::lang::go::detectors::perf::metadata::*;
 use crate::rules::{Finding, emit};
@@ -17,11 +17,16 @@ pub(crate) fn detect_perf_109(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     }
 
     for (start, _end) in &facts.for_ranges {
-        let range_text = &source[*start..(*start + 1024).min(source.len())];
+        let range_text = &source[*start..char_boundary(source, (*start + 1024).min(source.len()))];
         // Look for an expensive key computation inside the
         // loop body. The marker must be followed by use as a
         // map index in the same loop body.
-        for marker in &["fmt.Sprintf(", "strings.Join(", "strings.ToLower(", "strings.ToUpper("] {
+        for marker in &[
+            "fmt.Sprintf(",
+            "strings.Join(",
+            "strings.ToLower(",
+            "strings.ToUpper(",
+        ] {
             if !range_text.contains(marker) {
                 continue;
             }
@@ -168,7 +173,7 @@ pub(crate) fn detect_perf_152(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     }
 
     for (start, _end) in &facts.for_ranges {
-        let range_text = &source[*start..(*start + 512).min(source.len())];
+        let range_text = &source[*start..char_boundary(source, (*start + 512).min(source.len()))];
         if !range_text.contains("range ") {
             continue;
         }
@@ -323,7 +328,7 @@ pub(crate) fn detect_perf_160(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         // package level). Approximate by checking the 16 bytes
         // before the call.
         let pre_start = call.start_byte.saturating_sub(16);
-        let pre = &source[pre_start..call.start_byte];
+        let pre = &source[char_boundary(source, pre_start)..call.start_byte];
         if pre.contains("var ") && !pre.contains("func ") {
             continue;
         }
@@ -353,7 +358,9 @@ pub(crate) fn detect_perf_162(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 
     for call in &facts.calls {
         let callee = call.callee.as_ref();
-        if callee != "db.Ping" && callee != "db.PingContext" && !callee.ends_with(".Ping")
+        if callee != "db.Ping"
+            && callee != "db.PingContext"
+            && !callee.ends_with(".Ping")
             && !callee.ends_with(".PingContext")
         {
             continue;
@@ -362,8 +369,11 @@ pub(crate) fn detect_perf_162(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         // approximate by looking at the 64 bytes before the
         // call for `func Health` or `func (h *Health`.
         let pre_start = call.start_byte.saturating_sub(256);
-        let pre = &source[pre_start..call.start_byte];
-        if pre.contains("func Health") || pre.contains("func (h *Health") || pre.contains("func Healthz") {
+        let pre = &source[char_boundary(source, pre_start)..call.start_byte];
+        if pre.contains("func Health")
+            || pre.contains("func (h *Health")
+            || pre.contains("func Healthz")
+        {
             continue;
         }
         let (line, col) = unit.line_col(call.start_byte);
@@ -404,12 +414,7 @@ pub(crate) fn detect_perf_164(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         return;
     }
 
-    let triggers = [
-        "db.Query(",
-        "db.Exec(",
-        "db.Prepare(",
-        "db.Begin(",
-    ];
+    let triggers = ["db.Query(", "db.Exec(", "db.Prepare(", "db.Begin("];
     if !triggers.iter().any(|t| source.contains(t)) {
         return;
     }
@@ -608,7 +613,7 @@ pub(crate) fn detect_perf_196(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         // function (the call is wrapped in a function whose
         // name contains Middleware, Auth, or Session).
         let pre_start = rel.saturating_sub(512);
-        let pre = &source[pre_start..rel];
+        let pre = &source[char_boundary(source, pre_start)..rel];
         if pre.contains("func AuthMiddleware")
             || pre.contains("func SessionMiddleware")
             || pre.contains("func Middleware")
@@ -706,9 +711,7 @@ pub(crate) fn detect_perf_199(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
                 // middleware. We approximate by looking for
                 // `c.Next()` or a return type of `gin.HandlerFunc`
                 // in the function signature.
-                let func_start = source[..pos]
-                    .rfind("func ")
-                    .unwrap_or(0);
+                let func_start = source[..pos].rfind("func ").unwrap_or(0);
                 let func_window_end = (pos + 1024).min(source.len());
                 let func_window = &source[func_start..func_window_end];
                 if func_window.contains("c.Next()")
@@ -764,7 +767,6 @@ pub(crate) fn detect_perf_200(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut
                 "expensive middleware (Auth) registered before cheap preflight (CORS); move CORS first to short-circuit preflight requests",
                 out,
             );
-            return;
         }
     }
 }
@@ -881,7 +883,8 @@ pub(crate) fn detect_perf_206(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     }
     for call in &facts.calls {
         let callee = call.callee.as_ref();
-        if !callee.ends_with(".Where") && !callee.ends_with(".Find") && !callee.ends_with(".First") {
+        if !callee.ends_with(".Where") && !callee.ends_with(".Find") && !callee.ends_with(".First")
+        {
             continue;
         }
         let Some(first) = call.arguments.first().map(|a| a.as_ref()) else {
@@ -929,7 +932,8 @@ pub(crate) fn detect_perf_207(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         }
         // The 1 KiB window around the call must NOT contain a
         // Cache-Control / ETag / Last-Modified set.
-        let window = &source[call.start_byte.saturating_sub(512)..(call.start_byte + 512).min(source.len())];
+        let window =
+            &source[char_boundary(source, call.start_byte.saturating_sub(512))..char_boundary(source, (call.start_byte + 512).min(source.len()))];
         if window.contains("Cache-Control")
             || window.contains("ETag")
             || window.contains("Last-Modified")
@@ -1042,4 +1046,3 @@ pub(crate) fn detect_perf_212(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         );
     }
 }
-

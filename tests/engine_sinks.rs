@@ -35,7 +35,10 @@ fn sink_matching_is_correct() {
             assert!(sinks::matches_sink(sink_table, s), "expected match: {s}");
         }
         for s in negative {
-            assert!(!sinks::matches_sink(sink_table, s), "expected no match: {s}");
+            assert!(
+                !sinks::matches_sink(sink_table, s),
+                "expected no match: {s}"
+            );
         }
     }
 }

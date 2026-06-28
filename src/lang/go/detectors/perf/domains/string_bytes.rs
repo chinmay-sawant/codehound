@@ -48,7 +48,9 @@ pub(crate) fn detect_perf_178(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     let mut formats: Vec<&crate::lang::go::detectors::perf::facts::CallFact> = facts
         .calls
         .iter()
-        .filter(|c| c.callee.as_ref().ends_with(".Format") && !c.callee.as_ref().ends_with("AppendFormat"))
+        .filter(|c| {
+            c.callee.as_ref().ends_with(".Format") && !c.callee.as_ref().ends_with("AppendFormat")
+        })
         .collect();
     if formats.len() < 2 {
         return;
@@ -179,4 +181,3 @@ pub(crate) fn detect_perf_203(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         }
     }
 }
-

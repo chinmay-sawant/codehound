@@ -141,5 +141,4 @@ impl CacheStore {
     pub fn manifest(&self) -> &CacheManifest {
         &self.manifest
     }
-
 }

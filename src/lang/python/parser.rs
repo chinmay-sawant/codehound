@@ -17,7 +17,7 @@ fn python_language() -> Result<&'static tree_sitter::Language, String> {
 }
 
 pub fn configure(parser: &mut Parser) -> Result<(), Error> {
-    let lang = python_language().map_err(|e| Error::Grammar(e))?;
+    let lang = python_language().map_err(Error::Grammar)?;
     parser
         .set_language(lang)
         .map_err(|e| Error::Grammar(format!("tree-sitter-python: {e}")))?;

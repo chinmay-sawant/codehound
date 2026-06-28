@@ -130,7 +130,10 @@ fn optional_fields_omitted_when_unset() {
         Cow::Borrowed(&[]),
     ));
     let s = serde_json::to_string(&f).unwrap();
-    assert!(!s.contains("end_line"), "end_line must be skipped when None");
+    assert!(
+        !s.contains("end_line"),
+        "end_line must be skipped when None"
+    );
     assert!(
         !s.contains("byte_offset"),
         "byte_offset must be skipped when None"
@@ -139,7 +142,10 @@ fn optional_fields_omitted_when_unset() {
         !s.contains("fingerprint"),
         "fingerprint field must be skipped when None"
     );
-    assert!(!s.contains("evidence"), "evidence must be skipped when None");
+    assert!(
+        !s.contains("evidence"),
+        "evidence must be skipped when None"
+    );
     assert!(
         !s.contains("confidence"),
         "confidence must be skipped when None"

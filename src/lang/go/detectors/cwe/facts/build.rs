@@ -15,15 +15,19 @@ pub fn build_go_unit_facts(unit: &ParsedUnit) -> GoUnitFacts {
     let mut facts = GoUnitFacts::default();
     let mut interner = SharedTextInterner::default();
 
-    walk_calls_and_assignments(root, CALL_ASSIGN_NODE_KINDS, &mut |node| match node.kind() {
-        "call_expression" | "call" => {
-            record_call_fact(node, &mut facts, src, &mut interner);
-        }
-        "assignment_statement" | "short_var_declaration" => {
-            record_assignment_fact(node, &mut facts, src, &mut interner);
-        }
-        _ => {}
-    });
+    walk_calls_and_assignments(
+        root,
+        CALL_ASSIGN_NODE_KINDS,
+        &mut |node| match node.kind() {
+            "call_expression" | "call" => {
+                record_call_fact(node, &mut facts, src, &mut interner);
+            }
+            "assignment_statement" | "short_var_declaration" => {
+                record_assignment_fact(node, &mut facts, src, &mut interner);
+            }
+            _ => {}
+        },
+    );
 
     facts.source_index = SourceIndex::build(unit.source.as_ref());
     facts.taint = extract_taint_facts(unit);

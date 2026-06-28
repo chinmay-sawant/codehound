@@ -31,7 +31,9 @@ pub fn parse_cwe_number(cwe: &str) -> u32 {
 
 fn collect_cases_with_suffix(dir: &Path, suffix: &str) -> BTreeSet<String> {
     let mut cases = BTreeSet::new();
-    for entry in std::fs::read_dir(dir).unwrap_or_else(|e| panic!("read_dir {}: {e}", dir.display())) {
+    for entry in
+        std::fs::read_dir(dir).unwrap_or_else(|e| panic!("read_dir {}: {e}", dir.display()))
+    {
         let path = entry
             .unwrap_or_else(|e| panic!("read_dir entry {}: {e}", dir.display()))
             .path();
@@ -58,5 +60,3 @@ fn collect_suite_cases(suite: &str) -> BTreeSet<String> {
 
     vulnerable
 }
-
-

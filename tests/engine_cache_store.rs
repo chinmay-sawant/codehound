@@ -2,8 +2,8 @@
 
 #[path = "helpers/mod.rs"]
 mod helpers;
-use helpers::unique_temp_root;
 use helpers::cache::finding;
+use helpers::unique_temp_root;
 
 use std::collections::HashSet;
 
@@ -70,9 +70,18 @@ fn is_cache_hit_matches_when_hash_matches_and_misses_otherwise() {
     };
     store.put(entry).unwrap();
 
-    assert!(matches!(store.lookup("a.go", &content_hash("source-v1")), CacheLookup::Hit(_)));
-    assert!(!matches!(store.lookup("a.go", &content_hash("source-v2")), CacheLookup::Hit(_)));
-    assert!(!matches!(store.lookup("b.go", &content_hash("source-v1")), CacheLookup::Hit(_)));
+    assert!(matches!(
+        store.lookup("a.go", &content_hash("source-v1")),
+        CacheLookup::Hit(_)
+    ));
+    assert!(!matches!(
+        store.lookup("a.go", &content_hash("source-v2")),
+        CacheLookup::Hit(_)
+    ));
+    assert!(!matches!(
+        store.lookup("b.go", &content_hash("source-v1")),
+        CacheLookup::Hit(_)
+    ));
 
     std::fs::remove_dir_all(root).unwrap();
 }

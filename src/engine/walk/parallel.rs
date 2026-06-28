@@ -21,7 +21,7 @@ use crate::engine::timing::TimingCollector;
 use crate::rules::Finding;
 
 use super::entry::ScanEntry;
-use super::scan_entry::{read_entry_utf8, scan_err, scan_entry};
+use super::scan_entry::{read_entry_utf8, scan_entry, scan_err};
 
 type ParallelScanResult = (
     Vec<Finding>,

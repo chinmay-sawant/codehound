@@ -1,7 +1,21 @@
 //! Shared helpers for the Go PERF detector bundle.
 
-use super::facts::{AssignmentFact, CallFact};
 use super::source_index::PerfSourceIndex;
+
+/// Clamp `index` to the nearest valid UTF-8 char boundary ≤ index.
+/// MSRV-safe equivalent of `str::floor_char_boundary` (stable 1.91).
+pub(crate) fn char_boundary(s: &str, mut index: usize) -> usize {
+    let len = s.len();
+    if index > len {
+        index = len;
+    }
+    while !s.is_char_boundary(index) {
+        index -= 1;
+    }
+    index
+}
+
+use super::facts::{AssignmentFact, CallFact};
 
 /// True if the call site has an enclosing `for_statement`.
 pub fn is_in_loop(call: &CallFact) -> bool {
@@ -58,7 +72,7 @@ pub fn has_http_handler(index: &PerfSourceIndex) -> bool {
 /// request-handler signature token (http.ResponseWriter, gin.Context,
 /// echo.Context, fiber.Ctx, or common response methods).
 pub fn is_handler_shaped(source: &str, start_byte: usize) -> bool {
-    let window_start = start_byte.saturating_sub(1024);
+    let window_start = char_boundary(source, start_byte.saturating_sub(1024));
     let window = &source[window_start..start_byte];
     window.contains("http.ResponseWriter")
         || window.contains("*gin.Context")

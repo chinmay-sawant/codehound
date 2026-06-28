@@ -22,5 +22,3 @@ pub struct Analyzer {
     /// stdlib / third-party.
     pub(super) module_prefix: Option<String>,
 }
-
-

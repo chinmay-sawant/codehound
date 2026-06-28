@@ -60,5 +60,3 @@ fn fingerprint_handles_unicode_file_paths() {
         "slopguard:1:CWE-22:pkg/हैंडलर/user.go:42:5"
     );
 }
-
-

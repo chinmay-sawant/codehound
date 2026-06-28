@@ -2,8 +2,8 @@ use std::time::Instant;
 
 #[path = "helpers/mod.rs"]
 mod helpers;
-use helpers::unique_temp_root;
 use helpers::cache::finding;
+use helpers::unique_temp_root;
 
 use slopguard::engine::{BASELINE_FILE_NAME, Baseline, discover_baseline};
 use slopguard::rules::Finding;

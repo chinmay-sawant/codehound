@@ -89,8 +89,14 @@ fn show_ignored_reports_file_ignored_finding_as_info() {
         "stdout:\n{stdout}\nstderr:\n{}",
         String::from_utf8_lossy(&output.stderr)
     );
-    assert!(stdout.contains("\"rule_id\":\"CWE-78\""), "stdout:\n{stdout}");
-    assert!(stdout.contains("\"severity\":\"info\""), "stdout:\n{stdout}");
+    assert!(
+        stdout.contains("\"rule_id\":\"CWE-78\""),
+        "stdout:\n{stdout}"
+    );
+    assert!(
+        stdout.contains("\"severity\":\"info\""),
+        "stdout:\n{stdout}"
+    );
     assert!(stdout.contains("suppressed"), "stdout:\n{stdout}");
 
     std::fs::remove_dir_all(root).unwrap();
@@ -169,8 +175,14 @@ func TraceRoute(w http.ResponseWriter, r *http.Request) {
         "stdout:\n{stdout}\nstderr:\n{}",
         String::from_utf8_lossy(&output.stderr)
     );
-    assert!(stdout.contains("\"rule_id\":\"CWE-78\""), "stdout:\n{stdout}");
-    assert!(stdout.contains("\"severity\":\"info\""), "stdout:\n{stdout}");
+    assert!(
+        stdout.contains("\"rule_id\":\"CWE-78\""),
+        "stdout:\n{stdout}"
+    );
+    assert!(
+        stdout.contains("\"severity\":\"info\""),
+        "stdout:\n{stdout}"
+    );
     assert!(stdout.contains("suppressed"), "stdout:\n{stdout}");
 
     std::fs::remove_dir_all(root).unwrap();

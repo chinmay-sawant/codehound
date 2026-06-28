@@ -126,6 +126,5 @@ pub(super) fn evidence_summary(evidence: &DetectorEvidence) -> String {
             "control-flow issue {control_flow_kind:?} at {}:{}",
             location.line, location.column
         ),
-
     }
 }

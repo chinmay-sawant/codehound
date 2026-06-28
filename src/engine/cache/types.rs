@@ -91,5 +91,4 @@ pub enum CacheError {
 
     #[error("unsupported cache schema version: {found}, expected {expected}")]
     SchemaMismatch { found: u32, expected: u32 },
-
 }

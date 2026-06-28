@@ -29,5 +29,3 @@ pub fn fixture_path(perf_id: u32, vulnerable: bool) -> String {
     let suffix = if vulnerable { "vulnerable" } else { "safe" };
     format!("tests/fixtures/go/perf/PERF-{perf_id:03}-{suffix}.txt")
 }
-
-

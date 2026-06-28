@@ -7,7 +7,9 @@ use helpers::{unique_temp_root, write_go_source};
 use std::path::PathBuf;
 
 use slopguard::core::ScanContext;
-use slopguard::engine::{Analyzer, CacheStore, DEFAULT_CACHE_DIR, content_hash, discover_cache_dir};
+use slopguard::engine::{
+    Analyzer, CacheStore, DEFAULT_CACHE_DIR, content_hash, discover_cache_dir,
+};
 
 fn scan_with_cache(root: &std::path::Path, cache: Option<&mut CacheStore>) -> Vec<String> {
     scan_with_context(root, cache, ScanContext::default())
@@ -65,7 +67,7 @@ fn changing_source_invalidates_cache_entry() {
     let source = root.join("sample.go");
     write_go_source(&source, "");
 
-    let     cache_dir = root.join(DEFAULT_CACHE_DIR);
+    let cache_dir = root.join(DEFAULT_CACHE_DIR);
     let mut cache = CacheStore::open_with_capacity(cache_dir, 500).unwrap();
     let _ = scan_with_cache(&root, Some(&mut cache));
     assert_eq!(cache.len(), 1);
@@ -137,5 +139,3 @@ fn discover_cache_dir_finds_existing_dir() {
 
     std::fs::remove_dir_all(root).unwrap();
 }
-
-

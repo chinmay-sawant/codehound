@@ -43,5 +43,4 @@ impl SlopguardConfig {
         ctx.bad_practice_severity = self.slopguard.bad_practices.severity;
         ctx
     }
-
 }

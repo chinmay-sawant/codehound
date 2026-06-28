@@ -28,7 +28,11 @@ func main() {
     let mut assignments = 0;
     walk_calls_and_assignments(
         tree.root_node(),
-        &["call_expression", "assignment_statement", "short_var_declaration"],
+        &[
+            "call_expression",
+            "assignment_statement",
+            "short_var_declaration",
+        ],
         &mut |node| match node.kind() {
             "call_expression" => calls += 1,
             "assignment_statement" | "short_var_declaration" => assignments += 1,
@@ -53,7 +57,11 @@ func main() {
     let mut count = 0;
     walk_calls_and_assignments(
         tree.root_node(),
-        &["call_expression", "assignment_statement", "short_var_declaration"],
+        &[
+            "call_expression",
+            "assignment_statement",
+            "short_var_declaration",
+        ],
         &mut |_| count += 1,
     );
     assert_eq!(count, 4, "expected 4 matched nodes, got {count}");

@@ -161,7 +161,10 @@ fn analyzer_collects_stats_when_enabled() {
     let scan_root = source_path.parent().unwrap();
     let result = analyzer.analyze_paths(&[scan_root], None).unwrap();
 
-    assert!(result.stats.is_some(), "stats should be collected when enabled");
+    assert!(
+        result.stats.is_some(),
+        "stats should be collected when enabled"
+    );
     let stats = result.stats.unwrap();
     assert!(stats.files_scanned > 0);
     assert!(stats.timing.is_some());

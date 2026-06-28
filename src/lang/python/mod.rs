@@ -10,4 +10,11 @@ use crate::lang::plugin::lang_plugin;
 
 pub struct PythonPlugin;
 
-lang_plugin!(PythonPlugin, LanguageId::Python, &["py"], detectors::all(), &[], LOOP_NODE_KINDS);
+lang_plugin!(
+    PythonPlugin,
+    LanguageId::Python,
+    &["py"],
+    detectors::all(),
+    &[],
+    LOOP_NODE_KINDS
+);

@@ -7,6 +7,4 @@ pub mod duration_millis {
     pub fn serialize<S: Serializer>(d: &Duration, s: S) -> Result<S::Ok, S::Error> {
         s.serialize_f64(d.as_secs_f64() * 1000.0)
     }
-
-
 }

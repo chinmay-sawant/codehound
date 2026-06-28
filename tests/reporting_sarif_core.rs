@@ -55,7 +55,10 @@ fn results_have_rule_index_pointing_into_rules() {
 #[test]
 fn results_have_partial_fingerprints() {
     let log = render_to_string(&sample_result()).expect("render SARIF");
-    assert!(log.contains("\"partialFingerprints\""), "missing partialFingerprints, got: {log}");
+    assert!(
+        log.contains("\"partialFingerprints\""),
+        "missing partialFingerprints, got: {log}"
+    );
     assert!(
         log.contains("\"slopguard/v1\": \"slopguard:1:CWE-22:a.go:1:1\""),
         "missing canonical fingerprint, got: {log}"
@@ -191,7 +194,10 @@ fn remediation_maps_to_properties_remediation() {
     r.findings[0].remediation = Some("Use parameterized queries.".to_string());
 
     let log = render_to_string(&r).expect("render SARIF");
-    assert!(log.contains("\"remediation\": \"Use parameterized queries.\""), "got: {log}");
+    assert!(
+        log.contains("\"remediation\": \"Use parameterized queries.\""),
+        "got: {log}"
+    );
 }
 
 #[test]
@@ -206,5 +212,8 @@ fn finding_tags_are_included_in_properties_tags() {
     let tags_start = log.find("\"tags\"").expect("tags property");
     let tags_section = &log[tags_start..tags_start + 200];
     assert!(tags_section.contains("\"needs-review\""), "got: {log}");
-    assert!(tags_section.contains("\"false-positive-risk\""), "got: {log}");
+    assert!(
+        tags_section.contains("\"false-positive-risk\""),
+        "got: {log}"
+    );
 }

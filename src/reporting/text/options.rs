@@ -1,4 +1,4 @@
-//! `TextOptions` type and convenience entry points (`print`, `print_without_snippet`, `print_with_options`).
+//! `TextOptions` type and convenience entry points (`print`, `print_with_options`).
 
 use std::io;
 
@@ -23,22 +23,6 @@ pub struct TextOptions {
 #[must_use = "I/O errors from writing text output must be handled"]
 pub fn print(result: &AnalysisResult) -> Result<(), Error> {
     print_with_options(result, TextOptions::default())
-}
-
-/// Like [`print`] but suppresses the source snippet block.
-///
-/// # Errors
-///
-/// Returns [`Error`] when formatting or stdout write fails.
-#[must_use = "I/O errors from writing text output must be handled"]
-pub(crate) fn print_without_snippet(result: &AnalysisResult) -> Result<(), Error> {
-    print_with_options(
-        result,
-        TextOptions {
-            suppress_snippet: true,
-            ..TextOptions::default()
-        },
-    )
 }
 
 /// Write a human-readable finding report with custom formatting options.

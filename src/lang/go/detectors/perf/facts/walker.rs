@@ -15,18 +15,22 @@ pub fn build_go_perf_facts(unit: &ParsedUnit) -> GoPerfFacts {
     let mut facts = GoPerfFacts::default();
     let mut interner = SharedTextInterner::default();
 
-    walk_calls_and_assignments(root, CALL_ASSIGN_NODE_KINDS, &mut |node| match node.kind() {
-        "call_expression" | "call" => {
-            record_call_fact(node, &mut facts, src, &mut interner);
-        }
-        "assignment_statement" | "short_var_declaration" => {
-            record_assignment_fact(node, &mut facts, src, &mut interner);
-        }
-        "defer_statement" | "go_statement" | "for_statement" | "type_assertion_expression" => {
-            record_perf_node(node, &mut facts);
-        }
-        _ => {}
-    });
+    walk_calls_and_assignments(
+        root,
+        CALL_ASSIGN_NODE_KINDS,
+        &mut |node| match node.kind() {
+            "call_expression" | "call" => {
+                record_call_fact(node, &mut facts, src, &mut interner);
+            }
+            "assignment_statement" | "short_var_declaration" => {
+                record_assignment_fact(node, &mut facts, src, &mut interner);
+            }
+            "defer_statement" | "go_statement" | "for_statement" | "type_assertion_expression" => {
+                record_perf_node(node, &mut facts);
+            }
+            _ => {}
+        },
+    );
 
     // Walk `var_spec` nodes to capture variables declared with an explicit
     // type (`var x int = 5`, `var s string`, `var buf []byte`). The explicit

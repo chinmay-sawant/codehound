@@ -91,5 +91,3 @@ pub fn push_finding_with_snippet(
     }
     out.push(finding);
 }
-
-

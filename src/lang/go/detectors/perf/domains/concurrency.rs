@@ -3,7 +3,7 @@
 //! PERF-148, PERF-167, PERF-172, PERF-173, PERF-174, PERF-175, PERF-183, PERF-193, PERF-194
 
 use crate::core::ParsedUnit;
-use crate::lang::go::detectors::perf::common::{file_has_handler, is_handler_shaped, is_in_loop};
+use crate::lang::go::detectors::perf::common::{char_boundary, file_has_handler, is_handler_shaped, is_in_loop};
 use crate::lang::go::detectors::perf::facts::GoPerfFacts;
 use crate::lang::go::detectors::perf::metadata::*;
 use crate::rules::{Finding, emit};
@@ -36,13 +36,19 @@ pub(crate) fn detect_perf_148(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut
     while let Some(rel) = source[search_from..].find("make(chan ") {
         let start = search_from + rel;
         let stmt_end = source[start..]
-            .find(|c: char| c == '\n' || c == ';')
+            .find(['\n', ';'])
             .map(|i| start + i)
             .unwrap_or(source.len());
         let make_stmt = &source[start..stmt_end];
         let is_unbuffered = if make_stmt.contains(", ") {
-            let after = &make_stmt[make_stmt.rfind(", ").unwrap() + 2..];
-            let cap_str: String = after.chars().take_while(|c| c.is_ascii_digit()).collect();
+            let after_comma = make_stmt
+                .rfind(", ")
+                .map(|p| &make_stmt[p + 2..])
+                .unwrap_or("");
+            let cap_str: String = after_comma
+                .chars()
+                .take_while(|c| c.is_ascii_digit())
+                .collect();
             cap_str == "0" || cap_str.is_empty()
         } else {
             true
@@ -76,7 +82,7 @@ pub(crate) fn detect_perf_167(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         // before the call and there must be no `func ` boundary
         // between them that is not a `go func()`.
         let window_start = call.start_byte.saturating_sub(2048);
-        let window = &source[window_start..call.start_byte];
+        let window = &source[char_boundary(source, window_start)..call.start_byte];
         let go_idx = window.rfind("go func()");
         let Some(go_idx) = go_idx else {
             continue;
@@ -134,7 +140,7 @@ pub(crate) fn detect_perf_172(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     // Suppress when a context-cancellation pattern exists in the
     // window before the wait call.
     let window_start = wait_pos.saturating_sub(2048);
-    let window = &source[window_start..wait_pos];
+    let window = &source[char_boundary(source, window_start)..wait_pos];
     if window.contains("ctx := c.Request.Context()")
         || window.contains("ctx := r.Context()")
         || window.contains("ctx, cancel := context.WithCancel")
@@ -194,7 +200,7 @@ pub(crate) fn detect_perf_173(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         // whether `range ` immediately precedes the call (within
         // ~32 bytes).
         let pre_start = call.start_byte.saturating_sub(32);
-        let pre = &source[pre_start..call.start_byte];
+        let pre = &source[char_boundary(source, pre_start)..call.start_byte];
         if pre.contains("range ") {
             continue;
         }
@@ -230,9 +236,7 @@ pub(crate) fn detect_perf_174(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         // before the call) and the function end (the next `}` at
         // the same depth). We approximate by looking for the
         // previous `func ` and the matching close brace.
-        let func_start = source[..call.start_byte]
-            .rfind("func ")
-            .unwrap_or(0);
+        let func_start = source[..call.start_byte].rfind("func ").unwrap_or(0);
         let body_start = source[func_start..].find('{').map(|i| func_start + i + 1);
         let body_start = body_start.unwrap_or(source.len());
         // Find the matching `}` from the body start by counting
@@ -293,7 +297,7 @@ pub(crate) fn detect_perf_175(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut
     let mut search_from = 0;
     while let Some(rel) = source[search_from..].find("for {") {
         let start = search_from + rel;
-        let body_window = &source[start..(start + 1024).min(source.len())];
+        let body_window = &source[start..char_boundary(source, (start + 1024).min(source.len()))];
         if !body_window.contains("<-") {
             search_from = start + "for {".len();
             continue;
@@ -365,7 +369,7 @@ pub(crate) fn detect_perf_193(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         // The loop body must NOT contain a `t.Reset(` or
         // `timer.Reset(` to be a finding. We approximate with a
         // 1 KiB scan around the call.
-        let window = &source[call.start_byte..(call.start_byte + 1024).min(source.len())];
+        let window = &source[call.start_byte..char_boundary(source, (call.start_byte + 1024).min(source.len()))];
         if window.contains(".Reset(") {
             continue;
         }
@@ -402,4 +406,3 @@ pub(crate) fn detect_perf_194(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         );
     }
 }
-

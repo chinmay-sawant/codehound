@@ -135,7 +135,6 @@ impl CacheStore {
         }
         count
     }
-
 }
 
 /// Free-function `read_entry` for the `CacheStore` impl. The `lookup`

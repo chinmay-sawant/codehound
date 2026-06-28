@@ -63,4 +63,3 @@ fn walk(root: Node<'_>, kinds: &[&str], depth: usize, out: &mut Vec<FunctionSpan
         }
     }
 }
-

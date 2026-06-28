@@ -45,5 +45,3 @@ pub(crate) fn cache_directory(cli: &Cli, config: Option<&SlopguardConfig>) -> Op
     }
     Some(Path::new(DEFAULT_CACHE_DIR).to_path_buf())
 }
-
-

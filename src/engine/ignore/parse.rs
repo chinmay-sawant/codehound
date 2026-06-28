@@ -36,12 +36,16 @@ fn comment_body(line: &str) -> Option<&str> {
 }
 
 fn parse_ignore_line(line: &str) -> Option<IgnoreDirective> {
-    let raw = comment_body(line)?.strip_prefix("slopguard-ignore:")?.trim();
+    let raw = comment_body(line)?
+        .strip_prefix("slopguard-ignore:")?
+        .trim();
     parse_rule_list(raw)
 }
 
 fn parse_file_ignore_line(line: &str) -> Option<IgnoreDirective> {
-    let raw = comment_body(line)?.strip_prefix("slopguard-ignore-file")?.trim();
+    let raw = comment_body(line)?
+        .strip_prefix("slopguard-ignore-file")?
+        .trim();
     if raw.is_empty() {
         return Some(IgnoreDirective::all());
     }

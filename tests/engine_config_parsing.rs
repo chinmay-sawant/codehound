@@ -1,5 +1,7 @@
 use slopguard::core::FailPolicy;
-use slopguard::engine::{CacheConfig, PathFilters, SlopguardConfig, SlopguardSection, discover_config};
+use slopguard::engine::{
+    CacheConfig, PathFilters, SlopguardConfig, SlopguardSection, discover_config,
+};
 use slopguard::rules::Severity;
 use std::path::{Path, PathBuf};
 
@@ -199,7 +201,10 @@ path = "/tmp/custom-cache"
 "#;
     let cfg: SlopguardConfig = toml::from_str(toml).unwrap();
     assert!(!cfg.slopguard.cache.enabled);
-    assert_eq!(cfg.slopguard.cache.path, Some(PathBuf::from("/tmp/custom-cache")));
+    assert_eq!(
+        cfg.slopguard.cache.path,
+        Some(PathBuf::from("/tmp/custom-cache"))
+    );
 }
 
 #[test]
@@ -230,7 +235,10 @@ fn discover_config_finds_in_subdir() {
     let target = Path::new("./target");
     if target.is_dir() {
         let path = discover_config(target);
-        assert!(path.is_some(), "expected upward walk to find slopguard.toml");
+        assert!(
+            path.is_some(),
+            "expected upward walk to find slopguard.toml"
+        );
     }
 }
 

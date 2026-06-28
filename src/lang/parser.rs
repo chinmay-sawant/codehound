@@ -14,8 +14,7 @@ pub fn init_language(
     cache
         .get_or_init(|| {
             let mut p = tree_sitter::Parser::new();
-            p.set_language(&lang)
-                .map_err(|e| e.to_string())?;
+            p.set_language(&lang).map_err(|e| e.to_string())?;
             Ok(lang)
         })
         .as_ref()

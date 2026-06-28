@@ -5,9 +5,9 @@ use std::fs;
 use crate::Error;
 
 use super::CacheStore;
-use crate::engine::time::{iso8601_from_secs, iso8601_utc_now};
 use super::io::write_atomic;
 use super::types::{CacheMetadata, MANIFEST_NAME, METADATA_NAME};
+use crate::engine::time::{iso8601_from_secs, iso8601_utc_now};
 
 impl CacheStore {
     /// Write the manifest and metadata to disk. No-op when no

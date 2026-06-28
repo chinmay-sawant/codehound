@@ -12,7 +12,10 @@ fn one_structured_finding_result() -> AnalysisResult {
         "CWE-78",
         "Command injection",
         "cmd.go",
-        LineCol { line: 10, column: 3 },
+        LineCol {
+            line: 10,
+            column: 3,
+        },
         "command uses user input",
         Severity::High,
         Cow::Borrowed(&[]),

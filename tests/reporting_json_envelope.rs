@@ -14,7 +14,10 @@ fn sample() -> AnalysisResult {
         "CWE-89",
         "SQL injection",
         "a.go",
-        LineCol { line: 12, column: 5 },
+        LineCol {
+            line: 12,
+            column: 5,
+        },
         "user input is concatenated into the query",
         Severity::High,
         Cow::Borrowed(&[]),
