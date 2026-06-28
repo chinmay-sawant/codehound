@@ -3,7 +3,7 @@
 > **Scope:** Consolidated list of every unimplemented item across P2.1, P2.3, P2.4, and P2.5 — including items deferred during this session, items still unchecked in the individual plan files, and items that shipped in design-only form.
 > **Format:** Plain checklist. Each item is small enough to be a single PR.
 > **Source:** Cross-referenced from `plans/p2-implementation/{01,03,04,05}-*.md` and the parent `plans/p2.md`.
-> **Last updated:** post-conversation batches 7-9 audit. 104 / 112 PERF detectors shipped across 9 batches; 8 remaining (5 unimplemented + 3 intentionally dropped); 13 / 13 BP MVP rules shipped with full fixture coverage; taint Phases A+B done; cache Phases 1-7 done with LRU eviction.
+> **Last updated:** post-Category-C-completion. 109 / 112 PERF detectors shipped across 9+ batches; 0 unimplemented, 3 intentionally dropped (PERF-104, 136, 208). Category C ✅ (PERF-134, 139, 150, 151, 172). 13 / 13 BP MVP rules shipped with full fixture coverage; taint Phases A+B done; cache Phases 1-7 done with LRU eviction.
 > **Detailed breakdown:** See `plans/v2.0.0/pending-work/` for individual per-workstream plans.
 
 ---
@@ -66,7 +66,7 @@
 
 ---
 
-## B. P2.4 — PERF Detector Implementation (212 rules, 204 shipped)
+## B. P2.4 — PERF Detector Implementation (212 rules, 209 shipped)
 
 📋 Detailed plan: `plans/v2.0.0/pending-work/02-perf-detectors-remaining.md`
 
@@ -103,7 +103,7 @@
   - [x] **Phase 4 batch 7 (conversation batch 1: 22 detectors)** — PERF-138, 159, 167, 169, 173, 174, 175, 178, 179, 180, 183, 184, 185, 186, 187, 188, 193, 194, 202, 207, 210, 212. All shipped with fixtures.
   - [x] **Phase 4 batch 8 (conversation batch 2: 16 detectors)** — PERF-109, 142, 144, 148, 152, 153, 154, 160, 162, 164, 189, 191, 197, 203, 205, 206. All shipped with fixtures.
   - [x] **Phase 4 batch 9 (conversation batch 3: 6 detectors)** — PERF-143, 155, 196, 199, 200, 201. PERF-172 was dropped (conflict with PERF-70). All shipped with fixtures.
-  - [ ] **Phase 4 final batch — 5 remaining unimplemented** — PERF-134, 139, 150, 151 (Category C — needs control-flow/escape analysis), and optionally PERF-172 (needs smarter handler-scope heuristic that doesn't collide with PERF-70). 3 intentionally dropped: PERF-104, 136, 208.
+  - [x] **Phase 4 final batch — 5 Category C rules** — PERF-134, 139, 150, 151, 172. PERF-172 reimplemented with smarter heuristic (fires only when `wg.Wait()` is followed by response write and goroutine body has no real work call). 3 intentionally dropped: PERF-104, 136, 208.
 - [ ] **Phase 5 — Performance verification**
   - Lightweight `cargo bench --bench incremental_scan -- --sample-size 10 --measurement-time 1` was run. Criterion completed with exit code 0 but reported regressions versus the saved local baseline for cold, warm, partial, and in-memory warm paths. The P2.4 batch 3 work bumped the regression-test budget to 1.1s / 1.0s in `tests/perf_regression.rs`; the criterion bench itself still needs investigation.
 

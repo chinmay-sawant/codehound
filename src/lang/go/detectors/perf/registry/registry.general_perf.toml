@@ -644,3 +644,28 @@ function = "detect_perf_200"
 perf = 201
 domain = "general_perf"
 function = "detect_perf_201"
+
+[[detector]]
+perf = 134
+domain = "general_perf"
+function = "detect_perf_134"
+
+[[detector]]
+perf = 139
+domain = "general_perf"
+function = "detect_perf_139"
+
+[[detector]]
+perf = 150
+domain = "general_perf"
+function = "detect_perf_150"
+
+[[detector]]
+perf = 151
+domain = "general_perf"
+function = "detect_perf_151"
+
+[[detector]]
+perf = 172
+domain = "general_perf"
+function = "detect_perf_172"

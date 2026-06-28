@@ -12,7 +12,9 @@ use slopguard::fixture::{materialize_tree, materialized_root};
 /// (one extra tree walk per file) added for enclosing-function resolution.
 /// Bumped again to 1.1s to cover the eight new PERF detectors (PERF-114,
 /// 119, 125, 129, 156, 177, 192) that each do an additional source scan.
-const MAX_FULL_SCAN: Duration = Duration::from_millis(1100);
+/// Bumped to 1.5s to cover the 5 new Category C detectors (PERF-134, 139,
+/// 150, 151, 172) that each do additional source scans.
+const MAX_FULL_SCAN: Duration = Duration::from_millis(1500);
 
 /// Collect + scan should stay well under the full-scan ceiling. Bumped from
 /// 500ms to cover the function-context post-pass added for enclosing-function

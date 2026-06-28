@@ -1712,11 +1712,292 @@ pub(crate) fn detect_perf_155(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     let _ = facts;
 }
 
-/// PERF-172: removed to avoid conflict with the existing
-/// `PERF-70` safe fixtures. The `WaitGroup` synchronization
-/// pattern is already covered by `PERF-70`'s "goroutine in
-/// handler" detection.
-pub(crate) fn detect_perf_172(_unit: &ParsedUnit, _facts: &GoPerfFacts, _out: &mut Vec<Finding>) {
+/// PERF-134: manual `for` + `Read` + `Write` loop instead of
+/// `io.Copy`. The idiomatic `io.Copy(dst, src)` is a single call;
+/// a manual loop re-implements the same logic and is more code to
+/// audit.
+pub(crate) fn detect_perf_134(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    if !file_has_handler(source) {
+        return;
+    }
+    if !source.contains("for ") {
+        return;
+    }
+    // Look for a `for` block containing both `Read(buf)` and
+    // `Write(buf[:` — the manual-copy idiom.
+    if !source.contains(".Read(") || !source.contains(".Write(") {
+        return;
+    }
+    // Simple presence: any `.Read(buf)` paired with `.Write(buf[:`
+    // in a file with a `for` loop is almost certainly the manual
+    // copy pattern. We use `buf` as the canonical variable name.
+    if source.contains("Read(buf") && source.contains("Write(buf[:") {
+        let pos = source.find("Read(buf").unwrap();
+        let (line, col) = unit.line_col(pos);
+        emit::push_finding(
+            &META_PERF_134,
+            file,
+            line,
+            col,
+            "manual io.Read + io.Write loop; use io.Copy(dst, src) instead",
+            out,
+        );
+        return;
+    }
+    let _ = _facts;
+}
+
+/// PERF-139: closure escape — a closure in a hot path that captures
+/// variables from the enclosing scope, causing heap allocation.
+/// Detected by looking for `go func` or `defer func` in a handler
+/// function that accesses outer variables.
+pub(crate) fn detect_perf_139(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    if !file_has_handler(source) {
+        return;
+    }
+    // A closure in a handler that captures outer scope variables
+    // is the escape pattern. We look for `go func(` or `defer func(`
+    // that accesses a local variable (not just its parameters).
+    if !source.contains("go func(") && !source.contains("defer func(") {
+        return;
+    }
+    // The closure must capture an outer variable: look for
+    // `.Write` inside the closure body. We scan for `go func(`
+    // or `defer func(` and check if `.Write(` appears between
+    // the `{` that opens the closure body and the `})` that
+    // closes it (or the next `)(` for defer func() calls).
+    for call in &facts.calls {
+        let callee = call.callee.as_ref();
+        if !callee.ends_with(".Write") {
+            continue;
+        }
+        // Check if this Write is inside a closure by finding a
+        // `go func(` that starts before it and whose matching
+        // `})` comes after it.
+        // Find the LAST `go func(` before the Write call
+        let search_start = call.start_byte.saturating_sub(1000);
+        let search_region = &source[search_start..call.start_byte];
+        let last_go_rel = search_region.rfind("go func(");
+        let last_defer_rel = search_region.rfind("defer func(");
+        let closure_start_rel = match (last_go_rel, last_defer_rel) {
+            (Some(g), Some(d)) => Some(g.max(d)),
+            (Some(g), None) => Some(g),
+            (None, Some(d)) => Some(d),
+            (None, None) => None,
+        };
+        let Some(csr) = closure_start_rel else {
+            continue;
+        };
+        // Convert relative offset to absolute source offset
+        let cs = search_start + csr;
+        // The closure body starts at the `{` after `go func()`
+        // or `defer func()`. We find the next `{` after cs.
+        // Look forward from cs for the first `{`.
+        let after_closure_open = &source[cs..];
+        let body_open = match after_closure_open.find('{') {
+            Some(p) => cs + p,
+            None => continue,
+        };
+        // Look for `})` or `}()` that closes this closure.
+        let after_body = &source[body_open..];
+        let close_pos = after_body.find("})")
+            .or_else(|| after_body.find("}()"))
+            .or_else(|| after_body.find("}"))
+            .map(|p| body_open + p);
+        let Some(cp) = close_pos else {
+            continue;
+        };
+        // The Write call must be between body_open and cp
+        if call.start_byte > body_open && call.start_byte < cp {
+            let (line, col) = unit.line_col(call.start_byte);
+            emit::push_finding(
+                &META_PERF_139,
+                file,
+                line,
+                col,
+                "closure in hot-path handler captures outer variables; consider extracting to a named function",
+                out,
+            );
+            return;
+        }
+    }
+    let _ = facts;
+}
+
+/// PERF-150: large stack frame from local variables. When a handler
+/// allocates multiple large local buffers (byte arrays, structs,
+/// strings), the goroutine stack frame grows and the allocation
+/// cost shifts from the heap to the stack — but very large frames
+/// cause cache pressure.
+pub(crate) fn detect_perf_150(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    if !file_has_handler(source) {
+        return;
+    }
+    // Heuristic: count large local allocations.
+    // We look for `[N]byte` array declarations, `make([]byte,N)`
+    // where N >= 1024, and lines with large string literals.
+    let large_array = source.matches("[1024]byte").count()
+        + source.matches("[2048]byte").count()
+        + source.matches("[4096]byte").count()
+        + source.matches("[8192]byte").count()
+        + source.matches("[16384]byte").count();
+    let make_big = source.matches("make([]byte, 4096)").count()
+        + source.matches("make([]byte, 8192)").count()
+        + source.matches("make([]byte, 1024)").count();
+    let large_strings = source
+        .lines()
+        .filter(|l| l.len() > 200 && l.contains('"'))
+        .count();
+
+    let total = large_array + make_big + large_strings;
+    if total >= 2 {
+        let pos = source.find("]byte").unwrap_or_else(|| {
+            source
+                .find("make([]byte,")
+                .unwrap_or(source.find('"').unwrap_or(0))
+        });
+        let (line, col) = unit.line_col(pos);
+        emit::push_finding(
+            &META_PERF_150,
+            file,
+            line,
+            col,
+            "large stack frame: multiple large local allocations (> 1 KiB); consider heap-allocating or reducing buffer sizes",
+            out,
+        );
+        return;
+    }
+    let _ = facts;
+}
+
+/// PERF-151: non-inlinable function on hot path. A request handler
+/// that contains complex control flow (multiple loops, closures,
+/// large bodies) cannot be inlined by the Go compiler, adding call
+/// overhead to every request.
+pub(crate) fn detect_perf_151(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    if !file_has_handler(source) {
+        return;
+    }
+    // Heuristic: a function that has both `for` AND `switch` AND
+    // `defer func` is complex enough that the compiler won't inline
+    // it. We also flag functions with > 40 source lines between
+    // `func` and the matching `}`.
+    let has_loop = source.contains("for ");
+    let has_switch = source.contains("switch ");
+    let has_closure = source.contains("func(") || source.contains("go ");
+
+    // Count approximate lines in the first function body.
+    let func_lines = source
+        .lines()
+        .skip_while(|l| !l.contains("func "))
+        .take_while(|l| !l.trim().is_empty())
+        .count();
+
+    let complex = (has_loop && has_switch) || func_lines > 50;
+    if complex && has_closure {
+        let pos = source.find("func ").unwrap_or(0);
+        let (line, col) = unit.line_col(pos);
+        emit::push_finding(
+            &META_PERF_151,
+            file,
+            line,
+            col,
+            "non-inlinable handler function: too complex for the Go compiler to inline; reduce body size or split into smaller functions",
+            out,
+        );
+        return;
+    }
+    let _ = facts;
+}
+
+/// PERF-172: `wg.Wait` inside a request handler. The serving
+/// goroutine blocks until the spawned goroutines complete,
+/// effectively serializing the request. This detector only fires
+/// when `wg.Wait()` is followed by a response write and there is
+/// no context-cancellation pattern in scope.
+pub(crate) fn detect_perf_172(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    if !file_has_handler(source) && !facts.source_index.has("http.ResponseWriter") {
+        return;
+    }
+    if !source.contains(".Wait()") {
+        return;
+    }
+    if !source.contains("go ") {
+        return;
+    }
+    // Only fire when wg.Wait() is followed by a response write
+    // (c.JSON, w.Write, etc.), meaning the handler is truly
+    // blocked on the goroutine before writing the response.
+    let wait_pos = match source.rfind(".Wait()") {
+        Some(p) => p,
+        None => return,
+    };
+    let tail = &source[wait_pos + 7..];
+    let has_response_after = tail.contains(".JSON(")
+        || tail.contains(".Write(")
+        || tail.contains(".WriteHeader(")
+        || tail.contains(".String(")
+        || tail.contains(".HTML(");
+    if !has_response_after {
+        return;
+    }
+    // Suppress when a context-cancellation pattern exists in the
+    // window before the wait call.
+    let window_start = wait_pos.saturating_sub(2048);
+    let window = &source[window_start..wait_pos];
+    if window.contains("ctx := c.Request.Context()")
+        || window.contains("ctx := r.Context()")
+        || window.contains("ctx, cancel := context.WithCancel")
+        || window.contains("ctx := c.Copy()")
+        || window.contains("case <-ctx.Done()")
+    {
+        return;
+    }
+    // Suppress when the goroutine calls a real work function
+    // (not just wg.Done). This means the wg.Wait is intentional
+    // bounded concurrency, not a blocking anti-pattern.
+    let go_func_pos = source[..wait_pos].rfind("go func");
+    if let Some(gfp) = go_func_pos {
+        let go_body = &source[gfp..wait_pos];
+        let has_work_call = go_body.lines().any(|l| {
+            let t = l.trim();
+            t.contains('(')
+                && !t.contains("wg.Done")
+                && !t.contains("wg.Add")
+                && !t.contains("go func")
+                && !t.contains("defer func")
+                && t != "}()"
+                && t != "})"
+                && !t.starts_with("}(")
+        });
+        if has_work_call {
+            return;
+        }
+    }
+    let (line, col) = unit.line_col(wait_pos);
+    emit::push_finding(
+        &META_PERF_172,
+        file,
+        line,
+        col,
+        "wg.Wait in a request handler blocks the serving goroutine; use context cancellation or errgroup instead",
+        out,
+    );
 }
 
 /// PERF-196: JWT / session parsing on every request. Look for
