@@ -482,6 +482,7 @@ pub const NEEDLES: &[&str] = &[
     "sync.RWMutex",
     "sync.RWMutex{",
     "sync.WaitGroup",
+    "sync/atomic",
     "template.Must(",
     "template.Must(parseTemplates(",
     "template.Must(template.Parse",

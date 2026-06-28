@@ -3,7 +3,7 @@
 > **Scope:** Consolidated list of every unimplemented item across P2.1, P2.3, P2.4, and P2.5 — including items deferred during this session, items still unchecked in the individual plan files, and items that shipped in design-only form.
 > **Format:** Plain checklist. Each item is small enough to be a single PR.
 > **Source:** Cross-referenced from `plans/p2-implementation/{01,03,04,05}-*.md` and the parent `plans/p2.md`.
-> **Last updated:** post-P2.4 batch 6 audit. 60 / 112 PERF detectors shipped (corrected from 61 — 1-off error); 13 / 13 BP MVP rules shipped with full fixture coverage; taint Phases A+B done; cache Phases 1-7 done with LRU eviction.
+> **Last updated:** post-conversation batches 7-9 audit. 104 / 112 PERF detectors shipped across 9 batches; 8 remaining (5 unimplemented + 3 intentionally dropped); 13 / 13 BP MVP rules shipped with full fixture coverage; taint Phases A+B done; cache Phases 1-7 done with LRU eviction.
 > **Detailed breakdown:** See `plans/v2.0.0/pending-work/` for individual per-workstream plans.
 
 ---
@@ -66,7 +66,7 @@
 
 ---
 
-## B. P2.4 — PERF Detector Implementation (212 rules, 30 shipped)
+## B. P2.4 — PERF Detector Implementation (212 rules, 204 shipped)
 
 📋 Detailed plan: `plans/v2.0.0/pending-work/02-perf-detectors-remaining.md`
 
@@ -80,36 +80,44 @@
   - [x] Domain mapping saved in `plans/perf-category-breakdown.md`.
 - [x] **Phase 1.3 — Create `concurrency` / `memory_gc` / `stdlib_optimization` / `string_bytes` domain modules if needed**
   - [x] Placeholder domain modules created under `src/lang/go/detectors/perf/domains/`.
-- [ ] **Phase 2.1 — Add registry entries for PERF-101..212**
-  - Partially done: **61 of 112 entries** (101, 102, 103, 105, 106, 107, 108, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 135, 137, 140, 141, 145, 146, 147, 149, 156, 157, 158, 161, 163, 165, 166, 168, 170, 171, 176, 177, 181, 182, 190, 192, 195, 198, 204, 209, 211). The remaining 51 entries (PERF-104, 109, 134, 136, 138-139, 142-144, 148, 150-155, 159-160, 162, 164, 167, 169, 172-175, 178-180, 183-189, 191, 193-194, 196-197, 199-203, 205-208, 210, 212) need stub entries (function, domain) before further detectors can land. Note: PERF-136 was dropped from batch 6 (cannot reliably detect loop-invariant first arg without type inference); PERF-208 was dropped from batch 5 (overlaps with PERF-99).
+- [x] **Phase 2.1 — Add registry entries for PERF-101..212**
+  - **104 of 112 entries** now have implementations (100 original PERF-1..100 + 104 new). The remaining **8 entries** are intentionally absent:
+    - **PERF-104**: covered by existing `detect_perf_102` (WriteHeader duplicate detection)
+    - **PERF-134**: manual `io.Copy` — needs function-scope/control-flow analysis (Category C)
+    - **PERF-136**: dropped (cannot reliably detect loop-invariant first arg without type inference)
+    - **PERF-139**: closure escape — needs escape analysis (Category C)
+    - **PERF-150**: large stack frame — needs size heuristics (Category C)
+    - **PERF-151**: non-inlinable function — needs inlinability check (Category C)
+    - **PERF-172**: removed (conflicts with existing PERF-70 safe fixtures — `wg.Wait` pattern is covered by PERF-70's "goroutine in handler" detection)
+    - **PERF-208**: dropped (overlaps with existing PERF-99)
 - [x] **Phase 2.2 — Verify `build.rs` reads `perf/registry.toml` and generates metadata + dispatch**
   - [x] `tests/go_perf_registry_generation.rs` compares generated runtime PERF rule IDs against `registry.toml`.
-- [ ] **Phase 3.2 — Category B (~40 context-aware rules)** — not started. Examples: `sync.Mutex` in struct vs local, `ioutil.ReadAll` ignored error, `strings.Builder` pre-allocation. Order of attack: PERF-102, 104, 108, 109, 141-144, 160-164, 189, 205, 207, 212 (HTTP/database rules with function-scope helpers).
-- [ ] **Phase 3.3 — Category C (~32 multi-file / semantic rules)** — not started. Examples: `http.Client` without timeout across package boundaries, `database/sql` connection pool exhaustion. Overlaps with P2.1 taint tracking; many of these need the inter-procedural work from P2.1 Phase F.
+- [x] **Phase 3.2 — Category B (~40 context-aware rules)** — mostly shipped across batches 6-9. The HTTP/database rules (PERF-102, 108, 109, 141-144, 160-164, 189, 205, 207, 212) are all implemented and tested.
+- [ ] **Phase 3.3 — Category C (~32 multi-file / semantic rules)** — not started. The remaining 5 unimplemented rules (PERF-134, 139, 150, 151) need Category C treatment. Overlaps with P2.1 taint tracking; many need the inter-procedural work from P2.1 Phase F.
 - [ ] **Phase 4 — Test fixtures (`vulnerable_perf_N.txt` + `safe_perf_N.txt`) for PERF-101..212**
   - [x] First batch (PERF-103/105/107/111/112/115-118/120/122/123/124/126-127) fixtures created and registered (15 detectors).
   - [x] Second registry/fixture batch (PERF-101/113/146/147/157/190/198) created and registered (7 detectors).
   - [x] Third registry/fixture batch (PERF-114/119/125/129/156/177/192) created and registered (7 Category-A detectors).
   - [x] **Fourth registry/fixture batch (PERF-106/110/128/130/135/140/158/171/181/182) created and registered (10 Category-A detectors)** — see `plans/perf-batch-4.md` for the per-rule scope.
   - [x] **Sixth registry/fixture batch (PERF-102/108/133/137/141/149/161/163/170/176/195) created and registered (11 Category-B detectors)** — see `plans/perf-batch-6.md` for the per-rule scope. PERF-136 was dropped (cannot reliably detect loop-invariant first arg without type inference).
-  - [ ] **Phase 4 next batch — fill in the remaining Category-B / Category-C gaps** — PERF-104, 109, 134, 138-139, 142-144, 148, 150-155, 159-160, 162, 164, 167, 169, 172-175, 178-180, 183-189, 191, 193-194, 196-197, 199-203, 205-207, 210, 212 (≈ 40 detectors, mostly need function-scope walking, control-flow analysis, or domain-specific type inference).
-  - [ ] **Phase 4 final batch — full PERF-101..212 fixtures** — *deferred*; only lands when the corresponding detectors ship.
+  - [x] **Phase 4 batch 7 (conversation batch 1: 22 detectors)** — PERF-138, 159, 167, 169, 173, 174, 175, 178, 179, 180, 183, 184, 185, 186, 187, 188, 193, 194, 202, 207, 210, 212. All shipped with fixtures.
+  - [x] **Phase 4 batch 8 (conversation batch 2: 16 detectors)** — PERF-109, 142, 144, 148, 152, 153, 154, 160, 162, 164, 189, 191, 197, 203, 205, 206. All shipped with fixtures.
+  - [x] **Phase 4 batch 9 (conversation batch 3: 6 detectors)** — PERF-143, 155, 196, 199, 200, 201. PERF-172 was dropped (conflict with PERF-70). All shipped with fixtures.
+  - [ ] **Phase 4 final batch — 5 remaining unimplemented** — PERF-134, 139, 150, 151 (Category C — needs control-flow/escape analysis), and optionally PERF-172 (needs smarter handler-scope heuristic that doesn't collide with PERF-70). 3 intentionally dropped: PERF-104, 136, 208.
 - [ ] **Phase 5 — Performance verification**
   - Lightweight `cargo bench --bench incremental_scan -- --sample-size 10 --measurement-time 1` was run. Criterion completed with exit code 0 but reported regressions versus the saved local baseline for cold, warm, partial, and in-memory warm paths. The P2.4 batch 3 work bumped the regression-test budget to 1.1s / 1.0s in `tests/perf_regression.rs`; the criterion bench itself still needs investigation.
 
-### B.2 The 61 detectors shipped (PERF-101, 102, 103, 105, 106, 107, 108, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 135, 137, 140, 141, 145, 146, 147, 149, 156, 157, 158, 161, 163, 165, 166, 168, 170, 171, 176, 177, 181, 182, 190, 192, 195, 198, 204, 209, 211)
+### B.2 The 104 PERF-101..212 detectors shipped (9 batches + 100 original = 204 total)
 
-- [x] **Add `.txt` fixtures in `tests/fixtures/go/perf/` for each of the 15 detectors**
-  - [x] Created fixtures and manifest entries for all 15.
-- [x] **Resolve the PERF-1..100 contiguity invariant** so the 15 new detectors can be registered in `tests/fixtures/manifest.toml` and run through `assert_fixture_rules`. Two options:
-  - [x] (a) Loosen the contiguity test in `tests/go_perf_detector_integration.rs:68` to require sortedness only, allowing gaps. — Done.
-  - [ ] (b) Create stub fixtures for missing PERF IDs. This is bookkeeping. — Not needed.
-- [x] **4 detectors added in second batch (PERF-105, 111, 112, 123)** — all have fixtures, registry entries, and implemented detectors in `stdlib_misuse.rs`.
-- [x] **7 detectors added in PERF-101+ registry/fixture batch (PERF-101, 113, 146, 147, 157, 190, 198)** — all have fixtures, registry entries, and implemented detectors in `stdlib_misuse.rs`.
-- [x] **7 detectors added in third batch (PERF-114, 119, 125, 129, 156, 177, 192)** — all have fixtures, registry entries, and implemented detectors in `stdlib_misuse.rs`.
-- [x] **10 detectors added in fourth batch (PERF-106, 110, 128, 130, 135, 140, 158, 171, 181, 182)** — all have fixtures, registry entries, and implemented detectors in `stdlib_misuse.rs`. See `plans/perf-batch-4.md` for the per-rule scope.
-- [x] **10 detectors added in fifth batch (PERF-121, 131, 132, 145, 165, 166, 168, 204, 209, 211)** — all have fixtures, registry entries, and implemented detectors in `stdlib_misuse.rs`. See `plans/perf-batch-5.md` for the per-rule scope. PERF-208 was considered and dropped (overlaps with PERF-99).
-- [x] **11 detectors added in sixth batch (PERF-102, 108, 133, 137, 141, 149, 161, 163, 170, 176, 195)** — all have fixtures, registry entries, and implemented detectors in `stdlib_misuse.rs`. See `plans/perf-batch-6.md` for the per-rule scope. PERF-136 was dropped (cannot reliably detect loop-invariant first arg without type inference).
+- [x] **Batch 1 (first 15):** PERF-103, 105, 107, 111, 112, 115, 116, 117, 118, 120, 122, 123, 124, 126, 127. All have fixtures.
+- [x] **Batch 2 (7):** PERF-101, 113, 146, 147, 157, 190, 198. All have fixtures.
+- [x] **Batch 3 (7):** PERF-114, 119, 125, 129, 156, 177, 192. All have fixtures.
+- [x] **Batch 4 (10):** PERF-106, 110, 128, 130, 135, 140, 158, 171, 181, 182. See `plans/perf-batch-4.md`.
+- [x] **Batch 5 (10):** PERF-121, 131, 132, 145, 165, 166, 168, 204, 209, 211. PERF-208 dropped (overlaps PERF-99). See `plans/perf-batch-5.md`.
+- [x] **Batch 6 (11):** PERF-102, 108, 133, 137, 141, 149, 161, 163, 170, 176, 195. PERF-136 dropped. See `plans/perf-batch-6.md`.
+- [x] **Batch 7 (22):** PERF-138, 159, 167, 169, 173, 174, 175, 178, 179, 180, 183, 184, 185, 186, 187, 188, 193, 194, 202, 207, 210, 212. All in `general_perf/stdlib_misuse/hot_path_misc.rs`.
+- [x] **Batch 8 (16):** PERF-109, 142, 144, 148, 152, 153, 154, 160, 162, 164, 189, 191, 197, 203, 205, 206. All in `general_perf/stdlib_misuse/hot_path_misc.rs`.
+- [x] **Batch 9 (6):** PERF-143, 155, 196, 199, 200, 201. PERF-172 dropped (conflicts with PERF-70 safe fixtures). All in `general_perf/stdlib_misuse/hot_path_misc.rs`.
 - [ ] **Real-project positive smoke fixture** — *deferred* to a dedicated test file. Need a small Go file in `tests/fixtures/go/perf_real_world/` (HTTP server, request handler, etc.) that fires at least one shipped detector on non-synthetic code, plus a clean companion file. Crosses into E.4.
 - [x] **PERF-126's `is_canonical_header` list** is hardcoded; should be verified against `net/http`'s `textproto.CanonicalMIMEHeaderKey` behavior, especially for less-common headers. Verified with unit coverage for canonical spellings including `Etag`, `Www-Authenticate`, `X-Csrf-Token`, and fixed exact-case matching so non-canonical spellings like `ETag` are not flagged as redundant.
 - [x] **PERF-122 / PERF-127 substring heuristics** are coarse; a real implementation would parse the source window properly. Trade-off documented in `detection_notes` and detector comments.
@@ -257,16 +265,15 @@ See **§ P2.1** above for detailed status: Phase A (Foundation) and Phase B (Int
 |---|---|---|
 | P2.1 (D) | 4 items (Phases C–F) | 4-6 weeks |
 | P2.3 (A + E.6) | ~8 items | 1-2 days |
-| P2.4 (B) | ~10 items (incl. ~82 detector entries + Category-B/C work) | 4-6 weeks |
+| P2.4 (B) | ~5 items (5 unimplemented Category-C rules) | 1-2 weeks |
 | P2.5 (C) | ~10 items (metadata refactor + per-rule severity + 3 follow-up phases) | 6 weeks |
 | Cross-cutting (E) | ~9 items (docs + bench + real-project fixture) | 2-3 days |
 
-**Total remaining effort:** ~14-18 weeks. P2.4 and P2.5 are the high-leverage next steps; P2.1 is the biggest correctness gap. The cross-cutting items are cheap (1-2 PRs of small docs/bench/real-fixture work) and worth landing before the next big batch.
+**Total remaining effort:** ~10-14 weeks. P2.5 and P2.1 are the high-leverage next steps. P2.4 PERF detectors are nearly complete (93% shipped). The cross-cutting items are cheap (1-2 PRs of small docs/bench/real-fixture work) and worth landing before the next big batch.
 
 **P2.4 sub-progress:**
-- Shipped: 61 / 112 detectors (54%).
-- Registry scaffolding: in place; new entries can be added one batch at a time without touching `build.rs`.
-- Fixture coverage: 61 / 61 shipped detectors have vulnerable + safe `.txt` pairs.
-- Batches so far: 6 (`31f395c`, `4e5da2b`-area, `196c625`, `e7f2cfd`, `0f38a44`, and the present commit).
-- Dropped in batch 5: PERF-208 (overlaps with existing PERF-99).
-- Dropped in batch 6: PERF-136 (cannot reliably detect loop-invariant first arg without type inference).
+- Shipped: **104 / 112** detectors (93%).
+- Fixture coverage: **204 / 204** shipped detectors have vulnerable + safe `.txt` pairs (100 original + 104 new).
+- Batches so far: 9 batches.
+- Dropped: PERF-104 (covered by existing detect_perf_102), PERF-136 (needs type inference), PERF-208 (overlaps PERF-99), PERF-172 (conflicts with PERF-70).
+- Remaining unimplemented: **5 rules** — PERF-134 (io.Copy), 139 (closure escape), 150 (large stack frame), 151 (non-inlinable function), 172 (wg.Wait — needs smarter handler-scope heuristic). All Category C, needing control-flow/escape analysis.

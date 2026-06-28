@@ -1,89 +1,128 @@
-# P2.4 — PERF Detectors: Remaining Work (52 Rules + Category B/C + Hygiene)
+# P2.4 — PERF Detectors: Remaining Work (8 Rules + Category C tail + Hygiene)
 
 > **Parent:** `plans/p2-implementation/04-perf-detector-implementation.md` — P2.4
-> **Status:** **60 of 112** PERF-101..212 rules shipped across 6 batches. 52 rules pending. Category B (context-aware) and Category C (semantic/multi-file) **not started**.
-> **Estimated effort:** ~4–6 weeks total
+> **Status:** **104 of 112** PERF-101..212 rules shipped across 9 batches. 8 unregistered (3 intentionally dropped, 5 unimplemented Category C). Category B **complete**.
+> **Estimated effort:** ~1–2 weeks total
 > **See also:** `plans/perf-category-breakdown.md`, `plans/perf-batch-{4,5,6}.md`
 
 ---
 
 ## Overview
 
-The PERF detector system has 212 defined rules (PERF-101..212). 60 have working implementations with test fixtures, dispatched from 7 domain-specific registry TOML files. The remaining 52 rules span Category A (simple — stubs needed), Category B (context-aware — function-scope walking), and Category C (semantic/multi-file — control-flow analysis or call-graph).
+The PERF detector system has 212 defined rules (PERF-1..212). **204 have working implementations** with test fixtures (100 original PERF-1..100 + 104 new PERF-101..212), dispatched from 7 domain-specific registry TOML files. **8 rules are not registered: 3 intentionally dropped, 5 unimplemented Category C** (control-flow analysis or escape analysis needed).
 
-4 stub domain modules (`concurrency.rs`, `memory_gc.rs`, `string_bytes.rs`, `stdlib_optimization.rs`) exist but contain **no actual implementations** — all current code lives in `general_perf/stdlib_misuse/`.
+All detector code lives in `general_perf/stdlib_misuse/hot_path_misc.rs`. Domain module migration (Phase 2) is still deferred.
 
 ---
 
 ## Executive Summary
 
-- **60 rules shipped** (53.6% complete). 52 rules remain.
-- **2 rules dropped** during batches: PERF-136 (loop-invariant first arg — needs type inference), PERF-208 (duplicates PERF-99).
+- **104 rules shipped** (93% complete). **5 rules remain** unimplemented (Category C).
+- **3 rules intentionally dropped**: PERF-104 (covered by existing `detect_perf_102`), PERF-136 (needs type inference), PERF-208 (duplicates PERF-99).
+- **1 rule removed after implementation**: PERF-172 (conflicts with existing PERF-70 safe fixtures).
 - **Recommended execution order:**
-  1. Ship the remaining Category-A registry stubs (fast wins, ~1 day)
+  1. Attack Category C — 5 remaining rules needing control-flow/escape analysis (~1 week)
   2. Migrate existing `general_perf/stdlib_misuse/` rules into proper domain modules (~1 day)
-  3. Attack Category B in 3 batches of ~12–15 rules each (~2 weeks)
-  4. Attack Category C (~32 rules) — this overlaps with P2.1 Phase F (inter-procedural taint) for call-graph infrastructure (~2 weeks)
-  5. Finalize: fixtures, registry entries, and any remaining hygiene items
+  3. Finalize: any remaining hygiene items
 
 ---
 
-## Phase 1 — Registry Stubs for Remaining 52 Rules
+## Phase 1 — Registry Stubs for Remaining Rules
 
-> **Status:** ❌ Not started
-> **Effort:** 1 day
+> **Status:** ✅ **Complete** — 104 of 112 rules from PERF-101..212 have registry entries and implementations. 100 original PERF-1..100 are all shipped.
+> **Effort:** None remaining
 
-### 1.1 Missing registry entries
+### 1.1 Missing registry entries — 8 rules not registered
 
-The following PERF rules have **no registry entry** in any `registry.*.toml` file. Each needs a stub entry (function name, domain) so the dispatch table can be generated. The plan in `perf-category-breakdown.md` provides the domain mapping.
+The following 8 PERF rules have **no registry entry** in any `registry.*.toml` file. Each needs a stub entry (function name, domain) so the dispatch table can be generated. The plan in `perf-category-breakdown.md` provides the domain mapping.
 
-**HTTP / handler (9 rules):**
-PERF-104, PERF-142, PERF-143, PERF-144, PERF-152, PERF-153, PERF-154, PERF-155, PERF-189
+**HTTP / handler (9 rules — 2 unimplemented, 7 shipped):**
+- [x] PERF-142 — http.MaxBytesReader not used for body
+- [x] PERF-143 — http.TimeoutHandler not used
+- [x] PERF-144 — Content-Length not set
+- [x] PERF-152 — Header copy via manual loop instead of Clone
+- [x] PERF-153 — http.Cookie.String called repeatedly
+- [x] PERF-154 — Unnecessary http.HandlerFunc type conversion
+- [x] PERF-155 — http.ServeMux pattern without method restriction
+- [x] PERF-189 — HTTP response body not drained before close
+- [ ] **PERF-104** — WriteHeader called multiple times in handler (covered by existing `detect_perf_102` — intentionally not implemented)
 
-**Control flow / semantic (11 rules):**
-PERF-109, PERF-134, PERF-150, PERF-151, PERF-167, PERF-172, PERF-173, PERF-174, PERF-175, PERF-193, PERF-194
+**Control flow / semantic (11 rules — 4 unimplemented, 7 shipped):**
+- [x] PERF-109 — Map key recomputed in loop without caching
+- [x] PERF-167 — WaitGroup.Add inside goroutine
+- [x] PERF-173 — time.Tick not stopped causing goroutine leak
+- [x] PERF-174 — Closing channel by receiver
+- [x] PERF-175 — Buffered channel spinning on receive
+- [x] PERF-193 — Not resetting timer in loop
+- [x] PERF-194 — Using time.Sleep for polling
+- [ ] **PERF-134** — Manual io.Read/Write loop instead of io.Copy
+- [ ] **PERF-150** — Large stack frame from local variables
+- [ ] **PERF-151** — Non-inlinable function on hot path due to complexity
+- [ ] **PERF-172** — WaitGroup.Wait blocking serving goroutine (removed, conflicts with PERF-70)
+- [ ] **PERF-136** — filepath.Join repeatedly called with same base (dropped — needs type inference)
 
-**String / byte / encoding (10 rules):**
-PERF-159, PERF-178, PERF-179, PERF-180, PERF-184, PERF-185, PERF-186, PERF-187, PERF-188, PERF-203
+**String / byte / encoding (10 rules — 0 unimplemented, 10 shipped):**
+- [x] PERF-159 — Using json.NewDecoder instead of json.Unmarshal for buffered data
+- [x] PERF-178 — time.Format instead of time.AppendFormat
+- [x] PERF-179 — strings.Replacer not used for repeated replace
+- [x] PERF-180 — encoding/csv Reader per row
+- [x] PERF-184 — mime.TypeByExtension in hot path
+- [x] PERF-185 — http.DetectContentType in request handler
+- [x] PERF-186 — strings.Fields in hot parsing path
+- [x] PERF-187 — template.HTMLEscaper in hot path
+- [x] PERF-188 — fmt.Sscanf in hot path
+- [x] PERF-203 — net.IP.String repeated in hot path
 
-**DB / SQL / framework (12 rules):**
-PERF-160, PERF-162, PERF-164, PERF-196, PERF-197, PERF-199, PERF-200, PERF-201, PERF-202, PERF-205, PERF-206, PERF-207, PERF-210, PERF-212
+**DB / SQL / framework (14 rules — 0 unimplemented, 14 shipped):**
+- [x] PERF-160 — sql.Open inside request handler
+- [x] PERF-162 — db.Ping inside request handler
+- [x] PERF-164 — Missing context in database calls
+- [x] PERF-196 — JWT token parsing per handler
+- [x] PERF-197 — Multiple io.ReadAll on request body
+- [x] PERF-199 — Session store lookup per handler
+- [x] PERF-200 — Middleware ordering penalty
+- [x] PERF-201 — CORS preflight handler allocation
+- [x] PERF-202 — json.Marshal Indent in production handler
+- [x] PERF-205 — GORM pagination without count optimization
+- [x] PERF-206 — sqlx Unsafe without known input
+- [x] PERF-207 — Fiber ctx.SendFile without caching
+- [x] PERF-210 — go-redis KEYS command in application code
+- [x] PERF-212 — GORM Find without limit on large table
 
-**Concurrency / GC (6 rules):**
-PERF-138, PERF-139, PERF-148, PERF-169, PERF-191
+**Concurrency / GC (6 rules — 1 unimplemented, 5 shipped):**
+- [x] PERF-138 — runtime.Stack used in hot path
+- [x] PERF-148 — Goroutine leak via channel send without guaranteed receiver
+- [x] PERF-169 — atomic.Value frequent store allocation
+- [x] PERF-191 — Slice of pointers for small structs
+- [x] PERF-197 — Multiple io.ReadAll on request body
+- [ ] **PERF-139** — Closure allocates due to variable escape
 
-- [ ] Add stub entries in the appropriate `registry.*.toml` file for each rule
-- [ ] Add a `fn detect_perf_NNN(...)` function in the appropriate domain module with:
-  ```rust
-  pub fn detect_perf_NNN(_unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut Vec<Finding>) {
-      // TODO: implement in next batch
-  }
-  ```
-- [ ] Verify `cargo build --all-features` succeeds after adding stubs
-- [ ] Verify `tests/go_perf_registry_generation.rs` now lists all 112 rules
+- [x] All 104 shipped rules have registry entries and implementations
+- [x] `cargo build --all-features` succeeds
+- [x] `tests/go_perf_registry_generation.rs` passes with all 104 registered rules
 
 ---
 
 ## Phase 2 — Domain Module Migration
 
-> **Status:** ❌ Not started. All 60 shipped rules live in `general_perf/stdlib_misuse/` submodules.
+> **Status:** ⏳ Deferred. All 104 shipped rules now live in `general_perf/stdlib_misuse/hot_path_misc.rs`.
 > **Effort:** 1 day
 
 ### 2.1 Move rules into their designated domain modules
 
 Per the `perf-category-breakdown.md` domain mapping, move functions from `general_perf/stdlib_misuse/` into the semantic domain modules:
 
-**Move to `concurrency.rs`:**
-PERF-132, PERF-171, PERF-176, PERF-195 (and eventually PERF-148, 167, 172..175, 183, 193..194)
+**Concurrency rules:**
+PERF-132, PERF-148, PERF-167, PERF-171, PERF-172, PERF-173, PERF-174, PERF-175, PERF-176, PERF-183, PERF-193, PERF-194, PERF-195
 
-**Move to `memory_gc.rs`:**
-PERF-106, PERF-110, PERF-128, PERF-129, PERF-130, PERF-133, PERF-135, PERF-137, PERF-140, PERF-168, PERF-170, PERF-192 (and eventually PERF-138, 139, 150, 151, 169, 191)
+**Memory / GC rules:**
+PERF-106, PERF-110, PERF-128, PERF-129, PERF-130, PERF-133, PERF-135, PERF-137, PERF-138, PERF-139, PERF-140, PERF-150, PERF-151, PERF-168, PERF-169, PERF-170, PERF-191, PERF-192
 
-**Move to `string_bytes.rs`:**
-PERF-111, PERF-112, PERF-115, PERF-116, PERF-117, PERF-119, PERF-124, PERF-125, PERF-130, PERF-146, PERF-147, PERF-156, PERF-157 (and eventually PERF-113, 114, 118, 120..127, 158, 159, 178..188, 203)
+**String / byte rules:**
+PERF-111, PERF-112, PERF-113, PERF-114, PERF-115, PERF-116, PERF-117, PERF-118, PERF-119, PERF-120, PERF-121, PERF-122, PERF-123, PERF-124, PERF-125, PERF-126, PERF-127, PERF-130, PERF-146, PERF-147, PERF-156, PERF-157, PERF-158, PERF-159, PERF-178, PERF-179, PERF-180, PERF-184, PERF-185, PERF-186, PERF-187, PERF-188, PERF-203
 
-**Move to `stdlib_optimization.rs`:**
-PERF-101, PERF-102, PERF-103, PERF-118, PERF-120, PERF-122, PERF-126, PERF-127, PERF-141, PERF-145, PERF-149, PERF-161, PERF-163, PERF-165, PERF-166, PERF-170, PERF-176, PERF-181, PERF-182, PERF-190, PERF-195, PERF-198, PERF-204, PERF-209, PERF-211 (and eventually PERF-104, 142..144, 152..155, 160, 162, 164, 189, 196..202, 205..207, 210, 212)
+**Stdlib optimization rules:**
+PERF-101, PERF-102, PERF-103, PERF-104, PERF-109, PERF-118, PERF-120, PERF-122, PERF-126, PERF-127, PERF-141, PERF-142, PERF-143, PERF-144, PERF-145, PERF-149, PERF-152, PERF-153, PERF-154, PERF-155, PERF-160, PERF-161, PERF-162, PERF-163, PERF-164, PERF-165, PERF-166, PERF-170, PERF-176, PERF-181, PERF-182, PERF-189, PERF-190, PERF-195, PERF-196, PERF-197, PERF-198, PERF-199, PERF-200, PERF-201, PERF-202, PERF-204, PERF-205, PERF-206, PERF-207, PERF-209, PERF-210, PERF-211, PERF-212
 
 - [ ] For each domain module, create the submodule structure (mirroring `general_perf/stdlib_misuse/`)
 - [ ] Re-export from the domain module
@@ -95,126 +134,183 @@ PERF-101, PERF-102, PERF-103, PERF-118, PERF-120, PERF-122, PERF-126, PERF-127, 
 
 ## Phase 3 — Category B Detectors (~40 Context-Aware Rules)
 
-> **Status:** ❌ Not started. These need function-scope walking, source-index use, or simple control-flow analysis.
-> **Effort:** 2 weeks (3 batches of ~12–15)
+> **Status:** ✅ **Complete** — All Category B rules shipped across batches 6-9.
+> **Effort:** Done
 
 ### 3.1 Batch B1: HTTP and database rules
 
-- [ ] **PERF-104**: `http.ServeMux` pattern redundancy — detect overlapping route patterns
-- [ ] **PERF-142**: `database/sql` rows iteration without `Rows.Close()` — track `defer rows.Close()` presence
-- [ ] **PERF-143**: `database/sql` named params vs positional — detect positional args where named would be clearer
-- [ ] **PERF-144**: `database/sql` prepared statement inside loop — detect `db.Prepare` in `for`/`range`
-- [ ] **PERF-152**: `net/http` response body not drained before close — detect missing `io.Copy(ioutil.Discard, resp.Body)` before close
-- [ ] **PERF-153**: `net/http` connection reuse — detect missing `resp.Body.Close()`
-- [ ] **PERF-154**: `net/http` request body not closed — detect missing `req.Body.Close()`
-- [ ] **PERF-155**: `net/http` transport not reused — detect `http.Transport` created per-request
-- [ ] **PERF-160**: `database/sql` wrong scan target type — detect Scan(..., &string) vs integer column (heuristic: variable name suggests type)
-- [ ] **PERF-162**: `gorm` preloading with limit — detect `Preload("...")` inside pagination loop
-- [ ] **PERF-164**: `database/sql` transaction without rollback — detect `tx.Rollback()` missing in defer
+- [x] **PERF-102**: `w.WriteHeader` called multiple times in handler (batch 6)
+- [x] **PERF-108**: `sort.Search` repeated in loop (batch 6)
+- [x] **PERF-109**: Map key recomputed in loop (batch 8)
+- [x] **PERF-141**: `r.URL.Query()` called repeatedly (batch 6)
+- [x] **PERF-142**: `http.MaxBytesReader` not used for body (batch 8)
+- [x] **PERF-143**: `http.TimeoutHandler` not used (batch 9)
+- [x] **PERF-144**: Content-Length not set (batch 8)
+- [x] **PERF-152**: Header copy via manual loop (batch 8)
+- [x] **PERF-153**: `http.Cookie.String` called repeatedly (batch 8)
+- [x] **PERF-154**: Unnecessary `http.HandlerFunc` type conversion (batch 8)
+- [x] **PERF-155**: `http.ServeMux` without method restriction (batch 9)
+- [x] **PERF-160**: `sql.Open` inside handler (batch 8)
+- [x] **PERF-162**: `db.Ping` inside handler (batch 8)
+- [x] **PERF-164**: Missing ctx in DB calls (batch 8)
+- [x] **PERF-189**: Response body not drained before close (batch 8)
+- [x] **PERF-205**: GORM pagination without count optimization (batch 8)
+- [x] **PERF-206**: `sqlx.Unsafe` without known input (batch 8)
+- [x] **PERF-207**: Fiber `SendFile` without caching (batch 7)
+- [x] **PERF-210**: go-redis KEYS in app code (batch 7)
+- [x] **PERF-212**: GORM Find without limit (batch 7)
 
 ### 3.2 Batch B2: String and slice optimization rules
 
-- [ ] **PERF-109**: `strings.Count` to check substring existence vs `strings.Contains` — detect `strings.Count(s, sub) > 0`
-- [ ] **PERF-150**: `fmt.Sprintf` with `%v` on string — detect `fmt.Sprintf("%v", s)` instead of `s`
-- [ ] **PERF-151**: `fmt.Sprintf` with `%v` on error — detect `fmt.Sprintf("%v", err)` instead of `err.Error()`
-- [ ] **PERF-159**: `strings.TrimSuffix` vs `strings.TrimRight` — detect TrimRight when TrimSuffix is intended
-- [ ] **PERF-167**: `sync.Pool` for temporary allocations in hot paths — detect `make(...)` inside loops without sync.Pool
-- [ ] **PERF-172**: unnecessary `reflect.ValueOf` inside loop — detect reflection in hot path
-- [ ] **PERF-173**: `fmt.Sprintf` in logging — detect `log.Printf(fmt.Sprintf(...))` vs `log.Printf("%s", x)`
-- [ ] **PERF-174**: logging with `%s` on a string — detect `log.Printf("msg %s", s)` vs `log.Printf("msg", s)`
-- [ ] **PERF-175**: `regexp.MustCompile` inside function — detect non-package-level regex compilation
-- [ ] **PERF-178**: `bytes.Buffer` reuse — detect `var buf bytes.Buffer` inside loop vs `b.Reset()`
-- [ ] **PERF-179**: `bytes.Compare` vs `bytes.Equal` — detect `bytes.Compare(a, b) == 0`
-- [ ] **PERF-180**: `bytes.Count` to check emptiness vs `len()` — detect `bytes.Count(s, sep) > 0` vs `strings.Contains`
+- [x] **PERF-109**: `strings.Count` to check substring existence vs `strings.Contains` (batch 8)
+- [x] **PERF-159**: `json.NewDecoder` instead of `json.Unmarshal` (batch 7)
+- [x] **PERF-167**: `sync.Pool` for temporary allocations (batch 7)
+- [x] **PERF-173**: `fmt.Sprintf` in logging (batch 7)
+- [x] **PERF-174**: logging with `%s` on string (batch 7)
+- [x] **PERF-175**: `regexp.MustCompile` inside function (batch 7)
+- [x] **PERF-178**: `bytes.Buffer` reuse (batch 7)
+- [x] **PERF-179**: `bytes.Compare` vs `bytes.Equal` (batch 7)
+- [x] **PERF-180**: `bytes.Count` to check emptiness (batch 7)
+- [x] **PERF-183**: `io.Copy` with `bytes.Buffer` (batch 7)
+- [x] **PERF-184**: `io.Copy` with `os.File` and no `Sync` (batch 7)
+- [x] **PERF-185**: `ioutil.ReadFile` vs `os.ReadFile` (batch 7)
+- [x] **PERF-186**: `ioutil.ReadAll` vs `io.ReadAll` (batch 7)
+- [x] **PERF-187**: `ioutil.WriteFile` vs `os.WriteFile` (batch 7)
+- [x] **PERF-188**: `ioutil.TempDir`/`ioutil.TempFile` vs `os.*` (batch 7)
+- [x] **PERF-193**: `net.LookupAddr` vs faster alternatives (batch 7)
+- [x] **PERF-194**: unnecessary `json.Marshal` via string (batch 7)
+- [x] **PERF-203**: `net.IP.String` repeated in hot path (batch 8)
 
 ### 3.3 Batch B3: Concurrency and control-flow rules
 
-- [ ] **PERF-138**: `time.Tick` leak in hot path — detect `time.Tick` without stopping
-- [ ] **PERF-139**: `time.NewTicker` not stopped — detect missing `ticker.Stop()` in defer
-- [ ] **PERF-148**: goroutine without wait — detect `go func()` with no `sync.WaitGroup` or error group
-- [ ] **PERF-169**: `sync/RWMutex` vs `sync.Mutex` on read-heavy path — detect `Lock()/Unlock()` where `RLock()/RUnlock()` would suffice (heuristic: detect write vs read ratio in the guarded block)
-- [ ] **PERF-183**: `io.Copy` with `bytes.Buffer` — detect `io.Copy(&buf, r)` vs `buf.ReadFrom(r)`
-- [ ] **PERF-184**: `io.Copy` with `os.File` and no `Sync` — detect file write without sync
-- [ ] **PERF-185**: `ioutil.ReadFile` vs `os.ReadFile` — detect deprecated `ioutil` (Go 1.16+)
-- [ ] **PERF-186**: `ioutil.ReadAll` vs `io.ReadAll` — detect deprecated `ioutil` (Go 1.16+)
-- [ ] **PERF-187**: `ioutil.WriteFile` vs `os.WriteFile` — detect deprecated `ioutil` (Go 1.16+)
-- [ ] **PERF-188**: `ioutil.TempDir`/`ioutil.TempFile` vs `os.TempDir`/`os.CreateTemp` — detect deprecated `ioutil`
-- [ ] **PERF-191**: `context.WithCancel` not assigned — detect ignored cancel func
-- [ ] **PERF-193**: `net.LookupAddr` vs faster alternatives — detect DNS lookup in hot path
-- [ ] **PERF-194**: unnecessary `json.Marshal` via string — detect `json.Marshal(string(x))` when bytes would do
+- [x] **PERF-138**: `time.Tick` leak in hot path (batch 7)
+- [x] **PERF-148**: goroutine without wait (batch 8)
+- [x] **PERF-169**: `sync/RWMutex` vs `sync.Mutex` on read-heavy path (batch 7)
+- [x] **PERF-183**: `io.Copy` with `bytes.Buffer` — detect `io.Copy(&buf, r)` vs `buf.ReadFrom(r)` (batch 7)
+- [x] **PERF-184**: `io.Copy` with `os.File` and no `Sync` (batch 7)
+- [x] **PERF-185**: `ioutil.ReadFile` vs `os.ReadFile` (batch 7)
+- [x] **PERF-186**: `ioutil.ReadAll` vs `io.ReadAll` (batch 7)
+- [x] **PERF-187**: `ioutil.WriteFile` vs `os.WriteFile` (batch 7)
+- [x] **PERF-188**: `ioutil.TempDir`/`ioutil.TempFile` vs `os.TempDir`/`os.CreateTemp` (batch 7)
+- [x] **PERF-191**: `context.WithCancel` not assigned (batch 8)
+- [x] **PERF-193**: `net.LookupAddr` vs faster alternatives (batch 7)
+- [x] **PERF-194**: unnecessary `json.Marshal` via string (batch 7)
 
 ---
 
-## Phase 4 — Category C Detectors (~32 Semantic / Multi-File Rules)
+## Phase 4 — Category C Detectors (5 Remaining Rules)
 
-> **Status:** ❌ Not started. These require control-flow analysis, type inference, or call-graph infrastructure.
-> **Effort:** 2–3 weeks. Overlaps with P2.1 Phase F (inter-procedural taint).
+> **Status:** 🔵 **5 rules remaining.** These need control-flow analysis, escape analysis, or size heuristics.
+> **Effort:** 1 week
 
-### 4.1 Rules needing call-graph or cross-function analysis
+### 4.1 Rules needing call-graph / control-flow / escape analysis
 
-These rules detect patterns that span function or package boundaries:
+These rules detect patterns that span function boundaries or need deeper analysis:
 
-- [ ] **PERF-134**: `io.Copy` vs manual `Read`/`Write` loop — detect custom copy when `io.Copy` would suffice (cross-function: may be in a helper)
-- [ ] **PERF-189**: HTTP client not reused across requests — detect per-function `http.Client{}` creation in multiple functions
-- [ ] **PERF-196**: `database/sql` connection pool settings not configured — detect missing `SetMaxOpenConns`, `SetMaxIdleConns` at init
-- [ ] **PERF-197**: `database/sql` query without context — detect `db.Query(...)` vs `db.QueryContext(...)` across all queries
-- [ ] **PERF-199**: `gorm` without error check — detect `db.Where(...).Find(...)` ignoring returned error
-- [ ] **PERF-200**: `gorm` N+1 query — detect related model access without `Preload`
-- [ ] **PERF-201**: `gorm` missing transaction — detect multiple writes outside transaction
-- [ ] **PERF-202**: `gorm` large batch without chunking — detect unbounded `Find` on large tables
-- [ ] **PERF-205**: Redis pipeline not used for batch operations — detect sequential Redis commands vs pipeline
-- [ ] **PERF-206**: Redis connection leak — detect missing `conn.Close()` in defer
-- [ ] **PERF-207**: Redis `EXPIRE` missing on key — detect SET without TTL
-- [ ] **PERF-210**: Fiber middleware anti-patterns — detect middleware not calling `c.Next()`
-- [ ] **PERF-212**: Prometheus metric registration inside handler — detect `prometheus.MustRegister` in request path
+- [ ] **PERF-134**: `io.Copy` vs manual `Read`/`Write` loop — detect custom copy when `io.Copy` would suffice. Needs control-flow analysis to detect `for` loop with `n, err := r.Read(buf)` followed by `w.Write(buf[:n])`.
+- [ ] **PERF-139**: Closure allocates due to variable escape — detect `go func() { ... }` or `defer func() { ... }` that captures a large variable by reference. Needs escape analysis.
+- [ ] **PERF-150**: Large stack frame from local variables — flag functions with total local variable declarations exceeding a threshold (e.g. > 1 KiB of local byte/struct allocations). Needs size heuristics.
+- [ ] **PERF-151**: Non-inlinable function on hot path — flag functions in request handlers that are too complex to inline (function body > budget, contain closures, contain loops). Needs inlinability heuristics.
 
-### 4.2 Rules needing type inference or structural analysis
+### 4.2 Rules needing handler-scope heuristic redesign
 
-- [ ] **PERF-134**: `io.Copy` detection (needs to confirm both params implement `io.Reader`/`io.Writer`)
-- [ ] **PERF-167**: `sync.Pool` detection (needs to detect allocation-heavy types in hot path)
-- [ ] **PERF-169**: read/write ratio in mutex-guarded block (needs to count reads vs writes)
-- [ ] **PERF-172**: reflection detection (needs to check argument type against expected concrete type)
+- [ ] **PERF-172**: `wg.Wait` blocking serving goroutine — needs handler-scope heuristic that doesn't collide with PERF-70's safe pattern. Previous implementation fired on PERF-70 safe fixtures. Smart approach: only fire when `wg.Wait()` is followed by response write, or when no cancellation pattern exists in window.
 
 ### 4.3 Infrastructure dependencies
 
-- [ ] Share call-graph construction with P2.1 Phase F (see `01-taint-tracking-remaining.md`)
-- [ ] Expose `GoPerfFacts` with enough type info to determine `io.Reader`/`io.Writer` compliance
-- [ ] Add per-function `detect_high_alloc_regions()` helper used by PERF-167, PERF-175
+- [ ] Share call-graph construction with P2.1 Phase F for PERF-134 (see `01-taint-tracking-remaining.md`)
+- [ ] Expose `GoPerfFacts` with enough type info to determine `io.Reader`/`io.Writer` compliance (PERF-134)
+- [ ] Add per-function stack-size heuristic for PERF-150 (count local byte/struct allocation sizes)
 
 ---
 
 ## Phase 5 — Fixture Completion
 
-> **Status:** ❌ Not started for remaining rules. 60 pairs exist for shipped rules.
-> **Effort:** 1–2 days
+> **Status:** ✅ **204 fixture pairs exist** (100 original + 104 new). Only the 5 remaining unimplemented rules lack fixtures.
+> **Effort:** Tied to Phase 4 implementation
 
-### 5.1 Fixtures for Category B rules
+### 5.1 Fixtures for Category B rules — all done
 
-- [ ] Create `tests/fixtures/go/perf/PERF-NNN-vulnerable.txt` and `-safe.txt` for each Category B rule as it ships (tracked per-batch above)
-- [ ] Register in `tests/fixtures/manifest.toml`
-- [ ] Ensure fixture naming follows the existing convention
+- [x] `PERF-102-{vulnerable,safe}.txt` — batch 6
+- [x] `PERF-108-{vulnerable,safe}.txt` — batch 6
+- [x] `PERF-109-{vulnerable,safe}.txt` — batch 8
+- [x] `PERF-133-{vulnerable,safe}.txt` — batch 6
+- [x] `PERF-137-{vulnerable,safe}.txt` — batch 6
+- [x] `PERF-138-{vulnerable,safe}.txt` — batch 7
+- [x] `PERF-141-{vulnerable,safe}.txt` — batch 6
+- [x] `PERF-142-{vulnerable,safe}.txt` — batch 8
+- [x] `PERF-143-{vulnerable,safe}.txt` — batch 9
+- [x] `PERF-144-{vulnerable,safe}.txt` — batch 8
+- [x] `PERF-148-{vulnerable,safe}.txt` — batch 8
+- [x] `PERF-149-{vulnerable,safe}.txt` — batch 6
+- [x] `PERF-152-{vulnerable,safe}.txt` — batch 8
+- [x] `PERF-153-{vulnerable,safe}.txt` — batch 8
+- [x] `PERF-154-{vulnerable,safe}.txt` — batch 8
+- [x] `PERF-155-{vulnerable,safe}.txt` — batch 9
+- [x] `PERF-159-{vulnerable,safe}.txt` — batch 7
+- [x] `PERF-160-{vulnerable,safe}.txt` — batch 8
+- [x] `PERF-161-{vulnerable,safe}.txt` — batch 6
+- [x] `PERF-162-{vulnerable,safe}.txt` — batch 8
+- [x] `PERF-163-{vulnerable,safe}.txt` — batch 6
+- [x] `PERF-164-{vulnerable,safe}.txt` — batch 8
+- [x] `PERF-167-{vulnerable,safe}.txt` — batch 7
+- [x] `PERF-169-{vulnerable,safe}.txt` — batch 7
+- [x] `PERF-170-{vulnerable,safe}.txt` — batch 6
+- [x] `PERF-173-{vulnerable,safe}.txt` — batch 7
+- [x] `PERF-174-{vulnerable,safe}.txt` — batch 7
+- [x] `PERF-175-{vulnerable,safe}.txt` — batch 7
+- [x] `PERF-176-{vulnerable,safe}.txt` — batch 6
+- [x] `PERF-178-{vulnerable,safe}.txt` — batch 7
+- [x] `PERF-179-{vulnerable,safe}.txt` — batch 7
+- [x] `PERF-180-{vulnerable,safe}.txt` — batch 7
+- [x] `PERF-183-{vulnerable,safe}.txt` — batch 7
+- [x] `PERF-184-{vulnerable,safe}.txt` — batch 7
+- [x] `PERF-185-{vulnerable,safe}.txt` — batch 7
+- [x] `PERF-186-{vulnerable,safe}.txt` — batch 7
+- [x] `PERF-187-{vulnerable,safe}.txt` — batch 7
+- [x] `PERF-188-{vulnerable,safe}.txt` — batch 7
+- [x] `PERF-189-{vulnerable,safe}.txt` — batch 8
+- [x] `PERF-191-{vulnerable,safe}.txt` — batch 8
+- [x] `PERF-193-{vulnerable,safe}.txt` — batch 7
+- [x] `PERF-194-{vulnerable,safe}.txt` — batch 7
+- [x] `PERF-195-{vulnerable,safe}.txt` — batch 6
+- [x] `PERF-196-{vulnerable,safe}.txt` — batch 9
+- [x] `PERF-197-{vulnerable,safe}.txt` — batch 8
+- [x] `PERF-199-{vulnerable,safe}.txt` — batch 9
+- [x] `PERF-200-{vulnerable,safe}.txt` — batch 9
+- [x] `PERF-201-{vulnerable,safe}.txt` — batch 9
+- [x] `PERF-202-{vulnerable,safe}.txt` — batch 7
+- [x] `PERF-203-{vulnerable,safe}.txt` — batch 8
+- [x] `PERF-205-{vulnerable,safe}.txt` — batch 8
+- [x] `PERF-206-{vulnerable,safe}.txt` — batch 8
+- [x] `PERF-207-{vulnerable,safe}.txt` — batch 7
+- [x] `PERF-210-{vulnerable,safe}.txt` — batch 7
+- [x] `PERF-212-{vulnerable,safe}.txt` — batch 7
+
+All registered in `tests/fixtures/manifest.toml`.
 
 ### 5.2 Fixtures for Category C rules
 
-- [ ] Create fixtures that require multiple functions (e.g. `funcA`, `funcB`, `sink`)
-- [ ] For call-graph-dependent rules, ensure the fixture captures the cross-function pattern in a single file (intra-file cross-function is the first step)
-- [ ] For multi-file rules (e.g. Redis pool config at init), create multi-file fixture directories with `.go.mod`
+- [ ] Create `PERF-134-{vulnerable,safe}.txt` — manual io.Read/Write loop
+- [ ] Create `PERF-139-{vulnerable,safe}.txt` — closure escape
+- [ ] Create `PERF-150-{vulnerable,safe}.txt` — large stack frame
+- [ ] Create `PERF-151-{vulnerable,safe}.txt` — non-inlinable function
+- [ ] Create `PERF-172-{vulnerable,safe}.txt` — wg.Wait in handler (with context escape)
 
 ### 5.3 Negative fixture gaps
 
-- [ ] For each Category B/C rule, consider edge cases where the pattern is "almost but not quite" and verify the detector is silent
+- [ ] For each Category C rule, consider edge cases where the pattern is "almost but not quite" and verify the detector is silent
 
 ---
 
 ## Phase 6 — Performance Verification
 
-> **Status:** ❌ Not started. Benchmarks exist but with no speed assertions.
-> **Effort:** 2 days
+> **Status:** 🟡 Smoke test budget holds at 0.56s (well under 1.1s limit). Criterion bench regression still uninvestigated.
+> **Effort:** 1 day
 
-- [ ] After each batch, run `cargo bench --bench scan_throughput` and confirm no regression beyond the budget in `tests/perf_regression.rs`
-- [ ] After Category C rules land, run `cargo bench --bench incremental_scan` and document cold vs warm ratio
-- [ ] If any Category C rule adds significant per-file overhead (>5%), add a `--no-perf-category-c` flag or make it opt-in
+- [ ] After final Category C rules land, run `cargo bench --bench scan_throughput` and confirm no regression beyond the budget in `tests/perf_regression.rs`
 - [ ] Investigate the criterion bench regression noted in P2.4 batch 3: verify cold/warm/partial/in-memory benchmarks are within 20% of the saved local baseline
+- [ ] If any Category C rule adds significant per-file overhead (>5%), add a `--no-perf-category-c` flag or make it opt-in
 
 ---
 
@@ -222,18 +318,18 @@ These rules detect patterns that span function or package boundaries:
 
 | Phase | Items | Rules affected | Effort | Dependencies |
 |-------|-------|---------------|--------|-------------|
-| 1 — Registry stubs | ~52 stub entries | All 52 pending | 1d | — |
-| 2 — Domain migration | ~60 rule moves | All 60 shipped | 1d | — |
-| 3B1 — Category B batch 1 | ~13 detectors | 104, 142–144, 152–155, 160, 162, 164 | 4–5d | Function-scope walking |
-| 3B2 — Category B batch 2 | ~12 detectors | 109, 150, 151, 159, 167, 172–175, 178–180 | 4–5d | String/slice heuristics |
-| 3B3 — Category B batch 3 | ~13 detectors | 138, 139, 148, 169, 183–188, 191, 193, 194 | 4–5d | Concurrency patterns |
-| 4 — Category C | ~15 detectors | 134, 189, 196, 197, 199–202, 205–207, 210, 212 | 2–3w | Call-graph infra (P2.1) |
-| 5 — Fixtures | ~52 pairs | All pending rules | 1–2d | Per-batch |
-| 6 — Performance verification | Bench + regression | All rules | 2d | After batches |
+| 1 — Registry stubs | ✅ Complete | 104/112 shipped | Done | — |
+| 2 — Domain migration | ~104 rule moves | All shipped | 1d | — |
+| 3 — Category B | ✅ Complete | ~40 rules shipped | Done | — |
+| 4C — Category C tail | 5 detectors | 134, 139, 150, 151, 172 | 1w | Control-flow/escape analysis |
+| 5 — Fixtures | 5 pairs | 134, 139, 150, 151, 172 | Tied to Phase 4 | After Phase 4 |
+| 6 — Performance verification | Bench + regression | All rules | 1d | After Category C |
 
-## Dropped rules
+## Dropped / excluded rules
 
 | Rule | Reason | Alternative |
 |------|--------|-------------|
+| PERF-104 | Covered by existing `detect_perf_102` (WriteHeader duplicate detection) | No action needed |
 | PERF-136 | Cannot reliably detect loop-invariant first arg without type inference | Re-evaluate if type inference MCP is added |
-| PERF-208 | Overlaps with existing PERF-99 | Remove from registry, document overlap |
+| PERF-172 | Removed — conflicts with existing PERF-70 safe fixtures (wg.Wait in handler) | Revisit with smarter handler-scope heuristic if needed |
+| PERF-208 | Overlaps with existing PERF-99 (Prometheus label cardinality) | No action needed |
