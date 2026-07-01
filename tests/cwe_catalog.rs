@@ -6,7 +6,7 @@ use slopguard::cwe::{
 #[test]
 fn catalog_has_expected_entries() {
     let ids: Vec<u32> = CWE_CATALOG.iter().map(|c| c.id).collect();
-    // Catalog is now generated from golang.json — contains all CWE entries
+    // Catalog is now generated from chunked ruleset JSON — contains all CWE entries
     assert!(
         ids.len() > 100,
         "expected >100 CWE entries, got {}",
@@ -32,7 +32,7 @@ fn ref_slices_have_correct_lengths() {
 #[test]
 fn default_ruleset_path_is_under_workspace() {
     let p = default_ruleset_path();
-    assert!(p.ends_with("ruleset/golang/golang.json"));
+    assert!(p.ends_with("ruleset/golang/chunks"));
 }
 
 #[test]

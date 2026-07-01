@@ -1,7 +1,7 @@
 # P2.5 — Ruleset Split + PERF-213–224 Implementation
 
 > **Parent:** `plans/v2.0.0/` — post-catalog-extension implementation
-> **Status:** Analysis complete, not yet started
+> **Status:** Phase 1 complete: PERF-100 nesting fixed, chunked ruleset loading landed, downstream consumers updated, and Phase 1 validation is green. Phase 2+ not started from this plan file.
 > **Estimated effort:** Ruleset split ~3h, PERF-106 extension ~2h, 12 detectors ~4h, fixtures/tests ~4h
 
 ---
@@ -32,9 +32,9 @@ Two independent workstreams that share the `golang.json` ruleset:
 
 The nested `"PERF-101"`–`"PERF-224"` fields inside `PERF-100`'s object (lines ~4873–5406) must be removed. These entries already exist as top-level keys; the nesting is dead bloat.
 
-- [ ] Script: extract all nested keys from `PERF-100` that start with `"PERF-"` and verify they are reachable at top level
-- [ ] Remove `"PERF-101"` through `"PERF-224"` as fields of `PERF-100`'s JSON object
-- [ ] Verify `python3 -c "import json; json.load(open(...))"` succeeds and produces 399 top-level keys
+- [x] Script: extract all nested keys from `PERF-100` that start with `"PERF-"` and verify they are reachable at top level
+- [x] Remove `"PERF-101"` through `"PERF-224"` as fields of `PERF-100`'s JSON object
+- [x] Verify `python3 -c "import json; json.load(open(...))"` succeeds and produces 399 top-level keys
 
 **Risk:** Minimal — `parse_rules()` in `build/parse.rs` only reads top-level keys, and `serde_json` ignores unknown fields. The nesting is purely cosmetic bloat, not a correctness bug. Removing the nested keys reduces file size by ~500 lines.
 
@@ -54,9 +54,9 @@ Split the flat JSON into 7–8 files under `ruleset/golang/chunks/`:
 | `ruleset/golang/chunks/perf-151-200.json` | PERF-151..PERF-200 | 50 | ~800 |
 | `ruleset/golang/chunks/perf-201-224.json` | PERF-201..PERF-224 | 24 | ~400 |
 
-- [ ] Write `scripts/split-ruleset.py` or use `jq` to extract each chunk
-- [ ] Each chunk file is a valid JSON object with the same structure as the current `golang.json` — `{ "CWE-15": {...}, "CWE-22": {...} }`
-- [ ] Each chunk file asserts its rule IDs are within the expected range
+- [x] Write `scripts/split-ruleset.py` to clean `golang.json` and extract each chunk
+- [x] Each chunk file is a valid JSON object with the same structure as the current `golang.json` — `{ "CWE-15": {...}, "CWE-22": {...} }`
+- [x] Each chunk file asserts its rule IDs are within the expected range
 
 ### 1.3 Keep `golang.json` as a Meta-Index
 
@@ -71,7 +71,8 @@ Option B — **`golang.json` imports chunks via `$ref`**:
 Option C — **`golang.json` is an index**:
 - `golang.json` becomes `{ "chunks": ["chunks/cwe-*.json", "chunks/perf-*.json"] }`
 
-**Decision:** Option A (simplest, no schema changes). Update `build.rs` to:
+**Decision:** Option A (simplest, no schema changes). Implemented with `build.rs` loading `ruleset/golang/chunks/*.json` directly, while keeping a cleaned flat `golang.json` as a compatibility artifact and regeneration source.
+
 ```rust
 let mut rules = Vec::new();
 for entry in glob("ruleset/golang/chunks/*.json")? {
@@ -81,20 +82,19 @@ for entry in glob("ruleset/golang/chunks/*.json")? {
 ```
 
 ### 1.4 Update Downstream Consumers
-
-- [ ] `build.rs` — replace the single `golang.json` read with chunk directory glob
-- [ ] `src/cwe/catalog/description.rs:66` — hardcodes `golang.json` path; update to resolve chunks directory
-- [ ] `tests/cwe_catalog.rs:35` — asserts path ends in `golang.json`; update assertion
-- [ ] `tests/go_perf_ruleset_audit.rs:3` — reads `golang.json`; update to read chunks or keep as cross-check
-- [ ] `cargo:rerun-if-changed` — add `ruleset/golang/chunks/` directory watch
-- [ ] `cargo check -q --lib` — verify no build breakage
+- [x] `build.rs` — replace the single `golang.json` read with chunk directory load
+- [x] `src/cwe/catalog/description.rs:66` — hardcodes `golang.json` path; update to resolve chunks directory
+- [x] `tests/cwe_catalog.rs:35` — asserts path ends in `golang.json`; update assertion
+- [x] `tests/go_perf_ruleset_audit.rs:3` — reads `golang.json`; update to read chunks or keep as cross-check
+- [x] `cargo:rerun-if-changed` — add `ruleset/golang/chunks/` directory watch
+- [x] `cargo check -q --lib` — verify no build breakage
 
 ### 1.5 Verify Output
 
-- [ ] `cargo check -q --lib` — clean
-- [ ] `cargo test --test go_perf_detector_integration` — all old tests still pass (fixtures unchanged)
-- [ ] `cargo test --test cwe_catalog` — passes with new chunk loading
-- [ ] `cargo test --test go_perf_ruleset_audit` — passes
+- [x] `cargo check -q --lib` — clean
+- [x] `cargo test --test go_perf_detector_integration` — all old tests still pass (fixtures unchanged)
+- [x] `cargo test --test cwe_catalog` — passes with new chunk loading
+- [x] `cargo test --test go_perf_ruleset_audit` — passes
 
 ---
 

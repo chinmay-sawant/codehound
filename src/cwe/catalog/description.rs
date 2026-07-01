@@ -1,8 +1,9 @@
-//! Rich per-rule description loaded from `ruleset/golang/golang.json` (or a
+//! Rich per-rule description loaded from `ruleset/golang/chunks/` (or a
 //! custom path). Optional — when absent, callers fall back to the const
 //! `META_CWE_*` metadata.
 
 use std::collections::HashMap;
+use std::fs;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Deserializer, Serialize};
@@ -52,18 +53,44 @@ pub struct RuleDescription {
 /// not valid JSON for the expected schema.
 #[must_use = "rule catalogue load failures must be handled"]
 pub fn load_rule_descriptions(path: &Path) -> Result<HashMap<String, RuleDescription>, Error> {
+    if path.is_dir() {
+        let mut merged = HashMap::new();
+        let mut entries: Vec<_> = fs::read_dir(path)
+            .map_err(Error::from)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(Error::from)?;
+        entries.sort_by_key(|entry| entry.path());
+
+        for entry in entries {
+            let entry_path = entry.path();
+            if entry_path.extension().is_none_or(|ext| ext != "json") {
+                continue;
+            }
+            let chunk = load_rule_descriptions(&entry_path)?;
+            for (rule_id, rule) in chunk {
+                if merged.insert(rule_id.clone(), rule).is_some() {
+                    return Err(Error::Io(std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        format!("duplicate rule id across ruleset chunks: {rule_id}"),
+                    )));
+                }
+            }
+        }
+        return Ok(merged);
+    }
+
     let text = std::fs::read_to_string(path).map_err(Error::from)?;
     serde_json::from_str(&text).map_err(Error::from)
 }
 
-/// Default location of the Go ruleset, relative to the workspace root.
+/// Default location of the Go ruleset chunks, relative to the workspace root.
 ///
 /// In development this resolves via `CARGO_MANIFEST_DIR` (obtained at compile
 /// time from `env!`). At install time — when the ruleset JSON file is not
 /// shipped alongside the binary — callers such as `--explain` fall back to
 /// the compiled-in catalogue produced by `build.rs`.
 pub fn default_ruleset_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ruleset/golang/golang.json")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ruleset/golang/chunks")
 }
 
 include!(concat!(env!("OUT_DIR"), "/rule_catalogue.rs"));

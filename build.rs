@@ -18,6 +18,38 @@ use std::path::PathBuf;
 
 use types::{PerfRegistryFile, RegistryFile};
 
+fn read_ruleset_value(path: &Path) -> serde_json::Value {
+    let text = fs::read_to_string(path)
+        .unwrap_or_else(|e| panic!("Failed to read ruleset chunk {}: {e}", path.display()));
+    serde_json::from_str(&text)
+        .unwrap_or_else(|e| panic!("Failed to parse ruleset chunk {} as JSON: {e}", path.display()))
+}
+
+fn read_ruleset_chunks(dir: &Path) -> serde_json::Value {
+    let mut merged = serde_json::Map::new();
+    let mut entries: Vec<_> = fs::read_dir(dir)
+        .unwrap_or_else(|e| panic!("read ruleset chunk dir {}: {e}", dir.display()))
+        .map(|entry| entry.unwrap_or_else(|e| panic!("read entry in {}: {e}", dir.display())))
+        .filter(|entry| entry.path().extension().is_some_and(|ext| ext == "json"))
+        .collect();
+    entries.sort_by_key(|entry| entry.path());
+
+    for entry in entries {
+        let path = entry.path();
+        let value = read_ruleset_value(&path);
+        let obj = value
+            .as_object()
+            .unwrap_or_else(|| panic!("ruleset chunk {} must be a JSON object", path.display()));
+        for (key, value) in obj {
+            if merged.insert(key.clone(), value.clone()).is_some() {
+                panic!("duplicate rule id {key} across ruleset chunks");
+            }
+        }
+    }
+
+    serde_json::Value::Object(merged)
+}
+
 fn read_registry_entries(dir_or_file: &str) -> Vec<types::RegistryDetector> {
     let path = Path::new(dir_or_file);
     let mut entries = Vec::new();
@@ -79,17 +111,14 @@ fn read_perf_registry_entries(dir_or_file: &str) -> Vec<types::PerfRegistryDetec
 }
 
 fn main() {
-    let json_path = PathBuf::from("ruleset/golang/golang.json");
-    println!("cargo:rerun-if-changed={}", json_path.display());
+    let chunk_dir = PathBuf::from("ruleset/golang/chunks");
+    println!("cargo:rerun-if-changed={}", chunk_dir.display());
     println!("cargo:rerun-if-changed=src/lang/go/detectors/cwe/registry");
     println!("cargo:rerun-if-changed=src/lang/go/detectors/cwe/domains");
     println!("cargo:rerun-if-changed=src/lang/go/detectors/perf/registry");
     println!("cargo:rerun-if-changed=src/lang/go/detectors/perf/domains");
 
-    let parsed: serde_json::Value = serde_json::from_str(
-        &fs::read_to_string(&json_path).expect("Failed to read ruleset/golang/golang.json"),
-    )
-    .expect("Failed to parse ruleset/golang/golang.json as JSON");
+    let parsed = read_ruleset_chunks(&chunk_dir);
 
     let cwe_registry_entries = read_registry_entries("src/lang/go/detectors/cwe/registry");
     let perf_registry_entries = read_perf_registry_entries("src/lang/go/detectors/perf/registry");

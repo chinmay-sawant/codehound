@@ -28,7 +28,7 @@ pub const CWE_1336: CweRef = CweRef::new(
     "https://cwe.mitre.org/data/definitions/1336.html",
 );
 
-// -- auto-generated entries from golang.json follow --
+// -- auto-generated entries from ruleset/golang/chunks/*.json follow --
 include!(concat!(env!("OUT_DIR"), "/cwe_catalog_generated.rs"));
 
 /// Curated CWE entries referenced by SlopGuard rules.
