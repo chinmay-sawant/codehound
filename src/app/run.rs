@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use anyhow::{Context, Result};
@@ -9,6 +9,7 @@ use slopguard::engine::{
     resolve_language_filter,
 };
 use slopguard::export::{ExportOptions, ExportSummary, export_findings};
+use slopguard::fixture::{FIXTURE_EXTENSION, materialize_fixture, parse_fixture};
 use slopguard::reporting;
 
 use super::cache::{cache_directory, open_cache_store};
@@ -93,7 +94,8 @@ fn run_scan(cli: Cli) -> Result<ExitCode> {
         return run_prune_cache(&cli, &registry, &lang_filter, &path_filters, cache_store);
     }
 
-    let mut result = match analyzer.analyze_paths(&cli.paths, cache_store.as_mut()) {
+    let scan_paths = resolve_scan_paths(&cli.paths)?;
+    let mut result = match analyzer.analyze_paths(&scan_paths, cache_store.as_mut()) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("internal error during scan: {e:#}");
@@ -149,6 +151,26 @@ fn rebuild_cache_if_requested(
         eprintln!("Purged cache at {}", dir.display());
     }
     *cache_store = open_cache_store(cli, config);
+}
+
+fn resolve_scan_paths(paths: &[String]) -> Result<Vec<PathBuf>> {
+    paths.iter().map(|path| resolve_scan_path(path)).collect()
+}
+
+fn resolve_scan_path(path: &str) -> Result<PathBuf> {
+    let path = PathBuf::from(path);
+    if path.extension().and_then(|ext| ext.to_str()) != Some(FIXTURE_EXTENSION) || !path.is_file() {
+        return Ok(path);
+    }
+
+    let Ok(text) = std::fs::read_to_string(&path) else {
+        return Ok(path);
+    };
+    if parse_fixture(&text, &path).is_err() {
+        return Ok(path);
+    }
+
+    materialize_fixture(&path)
 }
 
 fn run_prune_cache(
@@ -365,5 +387,45 @@ fn scan_exit_code(result: &AnalysisResult, fail_policy: slopguard::core::FailPol
         ExitCode::from(EXIT_FAILING)
     } else {
         ExitCode::from(EXIT_CLEAN)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{resolve_scan_path, resolve_scan_paths};
+    use std::fs;
+    use std::path::PathBuf;
+
+    #[test]
+    fn resolve_scan_path_materializes_text_fixture_inputs() {
+        let resolved = resolve_scan_path("tests/fixtures/go/perf/PERF-213-vulnerable.txt")
+            .expect("materialize fixture path");
+        assert_eq!(resolved.extension().and_then(|ext| ext.to_str()), Some("go"));
+        assert!(resolved.exists(), "materialized file should exist: {}", resolved.display());
+    }
+
+    #[test]
+    fn resolve_scan_path_leaves_plain_text_files_unchanged() {
+        let temp_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("target")
+            .join("resolve-scan-path-plain.txt");
+        fs::write(&temp_path, "plain text, not a fixture").expect("write temp text file");
+
+        let resolved = resolve_scan_path(temp_path.to_str().expect("utf8 temp path"))
+            .expect("resolve plain text path");
+        assert_eq!(resolved, temp_path);
+    }
+
+    #[test]
+    fn resolve_scan_paths_preserves_path_order() {
+        let resolved = resolve_scan_paths(&[
+            "tests/fixtures/go/perf/PERF-213-safe.txt".to_string(),
+            "src/app/run.rs".to_string(),
+        ])
+        .expect("resolve paths");
+
+        assert_eq!(resolved.len(), 2);
+        assert_eq!(resolved[0].extension().and_then(|ext| ext.to_str()), Some("go"));
+        assert_eq!(resolved[1], PathBuf::from("src/app/run.rs"));
     }
 }

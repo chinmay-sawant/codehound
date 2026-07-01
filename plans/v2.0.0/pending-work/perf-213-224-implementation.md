@@ -1,7 +1,7 @@
 # P2.5 Batch 5 — PERF-106 Extension + PERF-213–224 Implementation
 
 > **Parent:** `plans/v2.0.0/pending-work/` — post-catalog-extension implementation
-> **Status:** Detector logic landed for PERF-106 extension and PERF-213–224. Fixture pairs and manifest entries are in place. `cargo test --test go_perf_detector_integration`, `cargo test --test fixture_manifest_integration_inventory`, `cargo check -q --lib`, `cargo check -q --all-targets`, and `cargo test` are green.
+> **Status:** Detector logic landed for PERF-106 extension and PERF-213–224. Fixture pairs and manifest entries are in place. `cargo test --test go_perf_detector_integration`, `cargo test --test fixture_manifest_integration_inventory`, `cargo check -q --lib`, `cargo check -q --all-targets`, and `cargo test` are green. The CLI scan path now materializes `.txt` fixtures before analysis, and `go_perf_detector_integration` now enforces both the in-process materialized path and the raw `.txt` CLI path across the full PERF fixture inventory.
 > **Estimated effort:** 12 detectors × ~1h each + PERF-106 extension + validation = ~3–4 days, plus optional follow-on detector design after Batch 5 lands
 
 ---
@@ -242,6 +242,7 @@ For each PERF-213–224, create `tests/fixtures/go/perf/PERF-{ID}-safe.txt`:
 ### 4.2 Integration Test
 
 - [x] Run `cargo test --test go_perf_detector_integration` — all PERF-106 fixtures pass
+- [x] Extend `cargo test --test go_perf_detector_integration` so it also runs the compiled `slopguard` binary against every `tests/fixtures/go/perf/PERF-*-{safe,vulnerable}.txt` file
 - [x] Run `cargo test --test fixture_manifest_integration` — manifest well-formed
 
 ---
@@ -261,15 +262,20 @@ For each PERF-213–224, create `tests/fixtures/go/perf/PERF-{ID}-safe.txt`:
 
 ### 5.3 Manual Validation
 
-- [ ] For each new detector, manually verify the vulnerable fixture produces a finding:
+- [x] For each new detector, manually verify the vulnerable fixture produces a finding:
   ```
   cargo run -- scan tests/fixtures/go/perf/PERF-213-vulnerable.txt
   ```
-- [ ] Verify the safe fixture produces no PERF-213 finding:
+- [x] Verify the safe fixture produces no PERF-213 finding:
   ```
   cargo run -- scan tests/fixtures/go/perf/PERF-213-safe.txt
   ```
-- [ ] Verify PERF-106 catches unbounded cache variant
+- [x] Verify PERF-106 catches the unbounded cache variant on the CLI path (`PERF-213-vulnerable.txt` currently emits both `PERF-106` and `PERF-213`)
+- [x] Record fixture-overlap behavior from the CLI sweep:
+  - `PERF-213-vulnerable.txt` emits `PERF-106` and `PERF-213`
+  - `PERF-223-vulnerable.txt` emits `PERF-219` and `PERF-223`
+  - `PERF-224-vulnerable.txt` emits `PERF-191` and `PERF-224`
+- [x] Promote the raw `.txt` CLI sweep into automated integration coverage so future regressions are caught by `cargo test --test go_perf_detector_integration`
 
 ### 5.4 Regression Budget
 
