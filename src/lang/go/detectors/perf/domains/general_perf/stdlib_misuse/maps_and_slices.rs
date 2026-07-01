@@ -1,6 +1,6 @@
 //! PERF-106, 110, 123, 128, 129, 192: maps, slices, and sync.Pool.
 
-use super::common::{is_simple_ident, method_name};
+use super::common::{cache_has_eviction_bound, is_simple_ident, method_name, package_level_caches};
 use super::ranges_and_types::word_appears_in;
 use super::strings_bytes::{intermediate, intervening_read};
 use crate::core::ParsedUnit;
@@ -15,39 +15,132 @@ pub(crate) fn detect_perf_106(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    if !facts.source_index.has("sync.Map") {
+    let mut writes = 0usize;
+    let mut reads = 0usize;
+    if facts.source_index.has("sync.Map") {
+        for call in &facts.calls {
+            let method = method_name(call.callee.as_ref());
+            match method {
+                "Store" | "Swap" | "LoadAndDelete" | "Delete" | "CompareAndSwap"
+                | "CompareAndDelete" => {
+                    writes += 1;
+                }
+                "Load" | "LoadOrStore" | "Range" => {
+                    reads += 1;
+                }
+                _ => {}
+            }
+        }
+    }
+
+    if reads > 0 && writes > reads {
+        let (line, col) = sync_map_location(source, unit);
+        emit::push_finding(
+            &META_PERF_106,
+            file,
+            line,
+            col,
+            "sync.Map is write-heavy; use a plain map guarded by sync.Mutex instead",
+            out,
+        );
         return;
     }
 
-    let mut writes = 0usize;
-    let mut reads = 0usize;
-    for call in &facts.calls {
-        let method = method_name(call.callee.as_ref());
-        match method {
-            "Store" | "Swap" | "LoadAndDelete" | "Delete" | "CompareAndSwap"
-            | "CompareAndDelete" => {
-                writes += 1;
-            }
-            "Load" | "LoadOrStore" | "Range" => {
-                reads += 1;
-            }
-            _ => {}
+    for cache in package_level_caches(source) {
+        let usage = package_level_cache_usage(source, facts, &cache.name, cache.is_sync_map);
+        if usage.reads == 0 || usage.writes == 0 {
+            continue;
         }
-    }
-    // Need at least one read for the count to be meaningful and
-    // writes must strictly outnumber reads.
-    if reads == 0 || writes <= reads {
+        if cache_has_eviction_bound(source, &cache.name) {
+            continue;
+        }
+        let (line, col) = unit.line_col(cache.byte);
+        emit::push_finding(
+            &META_PERF_106,
+            file,
+            line,
+            col,
+            "package-level cache without eviction bounds; it will grow unbounded under concurrent load",
+            out,
+        );
         return;
     }
-    let (line, col) = sync_map_location(source, unit);
-    emit::push_finding(
-        &META_PERF_106,
-        file,
-        line,
-        col,
-        "sync.Map is write-heavy; use a plain map guarded by sync.Mutex instead",
-        out,
-    );
+}
+
+struct CacheUsage {
+    reads: usize,
+    writes: usize,
+}
+
+fn package_level_cache_usage(
+    source: &str,
+    facts: &GoPerfFacts,
+    name: &str,
+    is_sync_map: bool,
+) -> CacheUsage {
+    if is_sync_map {
+        let mut reads = 0usize;
+        let mut writes = 0usize;
+        for call in &facts.calls {
+            if !call.callee.starts_with(&format!("{name}.")) {
+                continue;
+            }
+            match method_name(call.callee.as_ref()) {
+                "Store" | "Swap" | "Delete" | "LoadAndDelete" | "CompareAndSwap"
+                | "CompareAndDelete" => {
+                    writes += 1;
+                }
+                "Load" | "Range" => {
+                    reads += 1;
+                }
+                "LoadOrStore" => {
+                    reads += 1;
+                    writes += 1;
+                }
+                _ => {}
+            }
+        }
+        return CacheUsage { reads, writes };
+    }
+
+    let mut reads = 0usize;
+    let mut writes = 0usize;
+    for assignment in &facts.assignments {
+        if assignment
+            .text
+            .trim_start()
+            .starts_with(&format!("{name}["))
+        {
+            writes += 1;
+        }
+    }
+
+    for line in source.lines() {
+        let trimmed = line.trim();
+        if !trimmed.contains(&format!("{name}[")) {
+            continue;
+        }
+        if trimmed.starts_with(&format!("{name}["))
+            && (trimmed.contains(" = ") || trimmed.contains("="))
+        {
+            writes += 1;
+            continue;
+        }
+        if trimmed.contains(&format!(":= {name}["))
+            || trimmed.contains(&format!("= {name}["))
+            || trimmed.contains(&format!("return {name}["))
+            || (trimmed.starts_with("if ") && trimmed.contains(&format!("{name}[")))
+            || trimmed.starts_with(&format!("_ = {name}["))
+        {
+            reads += 1;
+        }
+    }
+
+    if source.contains(&format!("delete({name},")) {
+        writes += 1;
+    }
+
+    CacheUsage { reads, writes }
 }
 
 fn sync_map_location(source: &str, unit: &ParsedUnit) -> (usize, usize) {
@@ -55,6 +148,55 @@ fn sync_map_location(source: &str, unit: &ParsedUnit) -> (usize, usize) {
     // at any call site.
     let byte = source.find("sync.Map").unwrap_or(0);
     unit.line_col(byte)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::package_level_cache_usage;
+    use crate::lang::go::detectors::perf::facts::{CallFact, GoPerfFacts};
+    use std::sync::Arc;
+
+    #[test]
+    fn package_level_cache_usage_detects_plain_map_reads_and_writes() {
+        let source = r#"
+var renderCache = map[string]int{}
+
+func lookup(key string) int {
+    if v, ok := renderCache[key]; ok {
+        return v
+    }
+    renderCache[key] = len(key)
+    return renderCache[key]
+}
+"#;
+        let usage = package_level_cache_usage(source, &GoPerfFacts::default(), "renderCache", false);
+        assert!(usage.reads >= 1);
+        assert!(usage.writes >= 1);
+    }
+
+    #[test]
+    fn package_level_cache_usage_detects_sync_map_reads_and_writes() {
+        let facts = GoPerfFacts {
+            calls: vec![
+                CallFact {
+                    callee: Arc::from("renderCache.Load"),
+                    arguments: Box::new([Arc::from("key")]),
+                    start_byte: 0,
+                    enclosing_loop: None,
+                },
+                CallFact {
+                    callee: Arc::from("renderCache.Store"),
+                    arguments: Box::new([Arc::from("key"), Arc::from("value")]),
+                    start_byte: 10,
+                    enclosing_loop: None,
+                },
+            ],
+            ..GoPerfFacts::default()
+        };
+        let usage = package_level_cache_usage("", &facts, "renderCache", true);
+        assert_eq!(usage.reads, 1);
+        assert_eq!(usage.writes, 1);
+    }
 }
 
 /// PERF-110: `sync.Pool` whose `New` function returns a value type

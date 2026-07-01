@@ -18,6 +18,5 @@ func UseMap() {
 		m.Store(Entry{Key: "k", Value: i}, i)
 		m.Delete("k")
 	}
-	// Single read at the end; the loop body is all writes.
 	_ = m.Load("k")
 }

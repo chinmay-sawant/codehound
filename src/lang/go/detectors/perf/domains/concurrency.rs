@@ -3,7 +3,9 @@
 //! PERF-148, PERF-167, PERF-172, PERF-173, PERF-174, PERF-175, PERF-183, PERF-193, PERF-194
 
 use crate::core::ParsedUnit;
-use crate::lang::go::detectors::perf::common::{char_boundary, file_has_handler, is_handler_shaped, is_in_loop};
+use crate::lang::go::detectors::perf::common::{
+    char_boundary, file_has_handler, is_handler_shaped, is_in_loop,
+};
 use crate::lang::go::detectors::perf::facts::GoPerfFacts;
 use crate::lang::go::detectors::perf::metadata::*;
 use crate::rules::{Finding, emit};
@@ -369,7 +371,8 @@ pub(crate) fn detect_perf_193(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         // The loop body must NOT contain a `t.Reset(` or
         // `timer.Reset(` to be a finding. We approximate with a
         // 1 KiB scan around the call.
-        let window = &source[call.start_byte..char_boundary(source, (call.start_byte + 1024).min(source.len()))];
+        let window = &source
+            [call.start_byte..char_boundary(source, (call.start_byte + 1024).min(source.len()))];
         if window.contains(".Reset(") {
             continue;
         }

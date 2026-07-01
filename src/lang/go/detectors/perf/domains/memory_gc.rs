@@ -3,7 +3,9 @@
 //! PERF-134, PERF-138, PERF-139, PERF-150, PERF-151, PERF-169, PERF-191
 
 use crate::core::ParsedUnit;
-use crate::lang::go::detectors::perf::common::{char_boundary, file_has_handler, is_handler_shaped, is_in_loop};
+use crate::lang::go::detectors::perf::common::{
+    char_boundary, file_has_handler, is_handler_shaped, is_in_loop,
+};
 use crate::lang::go::detectors::perf::facts::GoPerfFacts;
 use crate::lang::go::detectors::perf::metadata::*;
 use crate::rules::{Finding, emit};

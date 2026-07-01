@@ -1,0 +1,22 @@
+# PERF-222 negative: concrete function in loop
+lang: go
+file: PERF-222-safe.go
+variant: stdlib
+---
+package sample
+
+type Row struct {
+	Value int
+}
+
+func formatRow(v Row) int {
+	return 1
+}
+
+func Render(rows []Row) int {
+	total := 0
+	for _, row := range rows {
+		total += formatRow(row)
+	}
+	return total
+}

@@ -3,7 +3,9 @@
 //! PERF-109, PERF-142, PERF-143, PERF-144, PERF-152, PERF-153, PERF-154, PERF-155, PERF-160, PERF-162, PERF-164, PERF-180, PERF-184, PERF-185, PERF-187, PERF-188, PERF-189, PERF-196, PERF-197, PERF-199, PERF-200, PERF-201, PERF-202, PERF-205, PERF-206, PERF-207, PERF-210, PERF-212
 
 use crate::core::ParsedUnit;
-use crate::lang::go::detectors::perf::common::{char_boundary, file_has_handler, is_handler_shaped, is_in_loop};
+use crate::lang::go::detectors::perf::common::{
+    char_boundary, file_has_handler, is_handler_shaped, is_in_loop,
+};
 use crate::lang::go::detectors::perf::facts::GoPerfFacts;
 use crate::lang::go::detectors::perf::metadata::*;
 use crate::rules::{Finding, emit};
@@ -932,8 +934,8 @@ pub(crate) fn detect_perf_207(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         }
         // The 1 KiB window around the call must NOT contain a
         // Cache-Control / ETag / Last-Modified set.
-        let window =
-            &source[char_boundary(source, call.start_byte.saturating_sub(512))..char_boundary(source, (call.start_byte + 512).min(source.len()))];
+        let window = &source[char_boundary(source, call.start_byte.saturating_sub(512))
+            ..char_boundary(source, (call.start_byte + 512).min(source.len()))];
         if window.contains("Cache-Control")
             || window.contains("ETag")
             || window.contains("Last-Modified")
