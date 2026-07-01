@@ -19,7 +19,7 @@ pub fn run_scan_with_cache(root: &Path, cache: Option<&mut CacheStore>) -> Vec<F
         .scan_context(ScanContext::default())
         .build();
     analyzer
-        .analyze_paths([root], cache)
+        .analyze_paths(&[root], cache)
         .expect("scan should succeed")
         .findings
 }

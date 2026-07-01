@@ -1,7 +1,7 @@
 # P2.5 Batch 5 — PERF-106 Extension + PERF-213–224 Implementation
 
 > **Parent:** `plans/v2.0.0/pending-work/` — post-catalog-extension implementation
-> **Status:** Detector logic landed for PERF-106 extension and PERF-213–224. Fixture pairs and manifest entries are in place. `cargo test --test go_perf_detector_integration`, `cargo test --test fixture_manifest_integration_inventory`, and `cargo check -q --lib` are green. `cargo check -q --all-targets` is still blocked by pre-existing bench compile errors outside this batch.
+> **Status:** Detector logic landed for PERF-106 extension and PERF-213–224. Fixture pairs and manifest entries are in place. `cargo test --test go_perf_detector_integration`, `cargo test --test fixture_manifest_integration_inventory`, `cargo check -q --lib`, `cargo check -q --all-targets`, and `cargo test` are green.
 > **Estimated effort:** 12 detectors × ~1h each + PERF-106 extension + validation = ~3–4 days, plus optional follow-on detector design after Batch 5 lands
 
 ---
@@ -215,7 +215,7 @@ For each PERF-213–224, create `tests/fixtures/go/perf/PERF-{ID}-safe.txt`:
 ### 3.3 Update Manifest
 
 - [x] Add 24 entries (12 vulnerable + 12 safe) to `tests/fixtures/manifest.toml`
-- [ ] Format:
+- [x] Format:
   ```toml
   [[fixture]]
   lang = "go"
@@ -251,13 +251,13 @@ For each PERF-213–224, create `tests/fixtures/go/perf/PERF-{ID}-safe.txt`:
 ### 5.1 Compilation
 
 - [x] `cargo check -q --lib` — clean, no warnings
-- [ ] `cargo check -q --all-targets` — blocked by pre-existing bench errors in `benches/scan_throughput.rs`, `benches/common/mod.rs`, and `benches/incremental_scan.rs`
+- [x] `cargo check -q --all-targets` — clean after updating stale benchmark call sites and cache-store constructors
 
 ### 5.2 Integration Tests
 
 - [x] `cargo test --test go_perf_detector_integration` — all 12 new fixtures + all existing pass
 - [x] `cargo test --test fixture_manifest_integration` — manifest is well-formed
-- [ ] `cargo test` — full suite green
+- [x] `cargo test` — full suite green
 
 ### 5.3 Manual Validation
 

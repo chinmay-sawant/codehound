@@ -15,7 +15,7 @@ fn bench_cold(c: &mut Criterion) {
     let cache_dir = unique_cache_dir("cold");
     c.bench_function("incremental_cold", |b| {
         b.iter(|| {
-            let mut cache = CacheStore::open(cache_dir.clone()).unwrap();
+            let mut cache = CacheStore::open_with_capacity(cache_dir.clone(), 0).unwrap();
             let _ = run_scan_with_cache(root, Some(&mut cache));
         });
     });
@@ -26,12 +26,12 @@ fn bench_warm(c: &mut Criterion) {
     let root = materialized_root();
     let cache_dir = unique_cache_dir("warm");
     {
-        let mut cache = CacheStore::open(cache_dir.clone()).unwrap();
+        let mut cache = CacheStore::open_with_capacity(cache_dir.clone(), 0).unwrap();
         let _ = run_scan_with_cache(root, Some(&mut cache));
     }
     c.bench_function("incremental_warm", |b| {
         b.iter(|| {
-            let mut cache = CacheStore::open(cache_dir.clone()).unwrap();
+            let mut cache = CacheStore::open_with_capacity(cache_dir.clone(), 0).unwrap();
             let _ = run_scan_with_cache(root, Some(&mut cache));
         });
     });

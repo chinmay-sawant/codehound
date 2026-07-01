@@ -15,13 +15,13 @@ fn bench_partial(c: &mut Criterion) {
     let root = materialized_root();
     let cache_dir = unique_cache_dir("partial");
     {
-        let mut cache = CacheStore::open(cache_dir.clone()).unwrap();
+        let mut cache = CacheStore::open_with_capacity(cache_dir.clone(), 0).unwrap();
         let _ = run_scan_with_cache(root, Some(&mut cache));
     }
     let registry = slopguard::engine::Registry::default();
     let (entries, _skipped) = collect_entries(
         &registry,
-        [&root],
+        &[&root],
         &slopguard::engine::LanguageFilter::default(),
         &Default::default(),
     )
@@ -44,7 +44,7 @@ fn bench_partial(c: &mut Criterion) {
                     std::fs::write(p, &body).unwrap();
                 }
             }
-            let mut cache = CacheStore::open(cache_dir.clone()).unwrap();
+            let mut cache = CacheStore::open_with_capacity(cache_dir.clone(), 0).unwrap();
             let _ = run_scan_with_cache(root, Some(&mut cache));
             for (p, body) in &originals {
                 if changed_paths.contains(p) {
@@ -59,7 +59,7 @@ fn bench_partial(c: &mut Criterion) {
 fn bench_cache_hit_in_process(c: &mut Criterion) {
     materialize_tree(Path::new("tests/fixtures")).expect("materialize fixtures");
     let root = materialized_root();
-    let mut cache = CacheStore::open(unique_cache_dir("hit-in-mem")).unwrap();
+    let mut cache = CacheStore::open_with_capacity(unique_cache_dir("hit-in-mem"), 0).unwrap();
     let _ = run_scan_with_cache(root, Some(&mut cache));
     c.bench_function("incremental_warm_in_memory", |b| {
         b.iter(|| {
