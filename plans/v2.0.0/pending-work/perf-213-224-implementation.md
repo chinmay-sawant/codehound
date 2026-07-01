@@ -1,7 +1,7 @@
 # P2.5 Batch 5 — PERF-106 Extension + PERF-213–224 Implementation
 
 > **Parent:** `plans/v2.0.0/pending-work/` — post-catalog-extension implementation
-> **Status:** Detector logic landed for PERF-106 extension and PERF-213–224. Fixture pairs and manifest entries are in place. `cargo test --test go_perf_detector_integration`, `cargo test --test fixture_manifest_integration_inventory`, `cargo check -q --lib`, `cargo check -q --all-targets`, and `cargo test` are green. The CLI scan path now materializes `.txt` fixtures before analysis, and `go_perf_detector_integration` now enforces both the in-process materialized path and the raw `.txt` CLI path across the full PERF fixture inventory.
+> **Status:** Detector logic landed for PERF-106 extension and PERF-213–224. Fixture pairs and manifest entries are in place. `cargo test --test go_perf_detector_integration`, `cargo test --test fixture_manifest_integration_inventory`, `cargo check -q --lib`, `cargo check -q --all-targets`, `cargo test --test perf_regression`, and `cargo test` are green. The CLI scan path now materializes `.txt` fixtures before analysis, `go_perf_detector_integration` enforces both the in-process materialized path and the raw `.txt` CLI path across the full PERF fixture inventory, and the follow-on candidate set has been triaged into A/B promote-first vs. C/D defer.
 > **Estimated effort:** 12 detectors × ~1h each + PERF-106 extension + validation = ~3–4 days, plus optional follow-on detector design after Batch 5 lands
 
 ---
@@ -279,7 +279,7 @@ For each PERF-213–224, create `tests/fixtures/go/perf/PERF-{ID}-safe.txt`:
 
 ### 5.4 Regression Budget
 
-- [ ] Check `tests/perf_regression.rs` budget — bump if needed (currently 1.1s / 1.0s ceiling)
+- [x] Check `tests/perf_regression.rs` budget — no bump needed after rerunning `cargo test --test perf_regression`; current 1.5s / 2.0s ceilings are still green
 
 ---
 
@@ -287,16 +287,16 @@ For each PERF-213–224, create `tests/fixtures/go/perf/PERF-{ID}-safe.txt`:
 
 ### 6.1 Changelog
 
-- [ ] Update `CHANGELOG.md` Unreleased section:
+- [x] Update `CHANGELOG.md` Unreleased section:
   - Extended PERF-106 heuristic to detect unbounded caches without eviction
   - Added 12 new PERF detectors (PERF-213 through PERF-224): caching discipline, buffer management, allocation patterns, hot-path concerns
   - Total PERF rules: 212 → 224
 
 ### 6.2 Remaining Work
 
-- [ ] Update `plans/p2-remaining-work.md` — tick off new batch
-- [ ] Update perf-category-breakdown.md if needed
-- [ ] Refresh P2 implementation progress footer
+- [x] Update `plans/p2-remaining-work.md` — tick off new batch and record that PERF-213–224 shipped as the post-212 catalog extension batch
+- [x] Update `plans/perf-category-breakdown.md` with a historical note that it covers PERF-101..212 only and that PERF-213–224 shipped later as a separate post-catalog batch
+- [x] Refresh P2 implementation progress footer / status surfaces (`plans/p2.md`, `plans/p2-implementation/README.md`) so they no longer claim only the first 11 PERF detectors shipped
 
 ---
 
@@ -346,29 +346,30 @@ For each PERF-213–224, create `tests/fixtures/go/perf/PERF-{ID}-safe.txt`:
 
 These are the checked optimization themes from the gopdfsuit dedupe file that do **not** map cleanly to an existing Go PERF rule today. They are the next detector candidates after PERF-213–224, if we want the ruleset to reflect the optimization campaign more completely.
 
-- [ ] **Gap candidate:** mutable pooled buffer or byte slice stored into a long-lived cache without defensive clone / freeze semantics
+- [x] **Gap candidate:** mutable pooled buffer or byte slice stored into a long-lived cache without defensive clone / freeze semantics
   - gopdfsuit example class: shared-row cache needed copy-on-store so pooled row buffers could not alias cached values
   - current nearest rules: `PERF-213`, `PERF-219`, `PERF-223`
   - why still missing: current rules cover unbounded caches and bad pool returns, but not **cacheing mutable pooled backing storage**
 
-- [ ] **Gap candidate:** hot path materializes a full intermediate buffer / `[]byte` only to immediately stream, compress, or write it onward
+- [x] **Gap candidate:** hot path materializes a full intermediate buffer / `[]byte` only to immediately stream, compress, or write it onward
   - gopdfsuit example class: avoiding `contentStream.Bytes()`-style intermediate materialization in favor of direct streaming into compression / final writer
   - current nearest rules: `PERF-016`, `PERF-027`, `PERF-176`, `PERF-215`
   - why still missing: current rules cover reuse and pre-sizing, but not the **extra full-buffer materialization hop**
 
-- [ ] **Gap candidate:** repeated reverse lookup / secondary scan for object IDs or references when the derived ID could be stored at creation time
+- [x] **Gap candidate:** repeated reverse lookup / secondary scan for object IDs or references when the derived ID could be stored at creation time
   - gopdfsuit example class: storing annotation object IDs on link struct elements instead of rescanning later
   - current nearest rules: `PERF-109`, `PERF-220`
   - why still missing: current rules cover recomputation and repeated scans in simpler forms, but not **persisting derived linkage to avoid later reverse traversal**
 
-- [ ] **Gap candidate:** shared pool mixes very different capacity classes and recirculates large objects into small-object traffic even when outright oversized objects are capped
+- [x] **Gap candidate:** shared pool mixes very different capacity classes and recirculates large objects into small-object traffic even when outright oversized objects are capped
   - gopdfsuit example class: splitting PDF buffer pools by capacity class so large HFT buffers do not poison smaller workloads
   - current nearest rules: `PERF-218`, `PERF-219`
   - why still missing: current rules cover contention and oversize discard, but not **capacity-class segregation as a separate anti-pattern**
 
 ### 7.3 Triage note
 
-- [ ] Decide after PERF-213–224 whether all four gaps deserve new rule IDs, or whether only the first two are generic enough for stable detectorization
+- [x] Decide after PERF-213–224 whether all four gaps deserve new rule IDs, or whether only the first two are generic enough for stable detectorization
+  - Decision: **Candidate A** and **Candidate B** are the only promote-first follow-ons. **Candidate C** and **Candidate D** stay documented but unnumbered until another repo-grounded example exists.
 
 ---
 
@@ -380,47 +381,47 @@ This phase is intentionally downstream of Batch 5. Do not start these until PERF
 
 **Working scope:** storing a pooled `[]byte`, `bytes.Buffer`, or similar mutable backing storage into a longer-lived cache without cloning or freezing it first.
 
-- [ ] Decide whether this deserves a new PERF id or should remain documented under PERF-213 notes only
-- [ ] If promoted, detector should flag `cache.Store/Put` style writes where the stored value is a pooled mutable buffer/slice and no defensive clone/copy is visible
-- [ ] Bias toward patterns like:
+- [x] Decide whether this deserves a new PERF id or should remain documented under PERF-213 notes only
+- [x] If promoted, detector should flag `cache.Store/Put` style writes where the stored value is a pooled mutable buffer/slice and no defensive clone/copy is visible
+- [x] Bias toward patterns like:
   ```go
   buf := pool.Get().([]byte)
   cache[key] = buf
   pool.Put(buf)
   ```
-- [ ] Safe pattern should require explicit clone/freeze semantics before cache insertion
-- [ ] Fixture idea: pooled row/render buffer copied into a cache only in the safe case
+- [x] Safe pattern should require explicit clone/freeze semantics before cache insertion
+- [x] Fixture idea: pooled row/render buffer copied into a cache only in the safe case
 
 ### 8.2 Candidate B — Full Intermediate Buffer Before Immediate Stream / Compress / Write
 
 **Working scope:** building a whole `[]byte`/buffer snapshot only to immediately pass it into compression, writer, or stream output.
 
-- [ ] Decide whether this deserves a new PERF id or can be folded into broader buffer-allocation guidance
-- [ ] If promoted, detector should flag patterns like:
+- [x] Decide whether this deserves a new PERF id or can be folded into broader buffer-allocation guidance
+- [x] If promoted, detector should flag patterns like:
   - materialize `buf.Bytes()` / `[]byte(...)`
   - immediately feed it into compressor / writer / stream
   - no reuse or need for random access afterwards
-- [ ] Safe pattern should be direct streaming or writer chaining
-- [ ] Fixture idea: build a page/content buffer then immediately compress/write it versus direct writer pipeline
+- [x] Safe pattern should be direct streaming or writer chaining
+- [x] Fixture idea: build a page/content buffer then immediately compress/write it versus direct writer pipeline
 
 ### 8.3 Candidate C — Reverse Lookup / Secondary Scan Instead of Persisted Derived Link
 
 **Working scope:** repeated rescans or reverse lookups for IDs/references that could be stored when the object is created.
 
-- [ ] Keep this as a low-confidence candidate until there is a generic detection shape beyond the gopdfsuit-specific annotation/object-id example
-- [ ] Only promote if we can define a stable heuristic that is not tied to one codebase’s naming
-- [ ] Current recommendation: do **not** assign a new PERF id yet
+- [x] Keep this as a low-confidence candidate until there is a generic detection shape beyond the gopdfsuit-specific annotation/object-id example
+- [x] Only promote if we can define a stable heuristic that is not tied to one codebase’s naming
+- [x] Current recommendation: do **not** assign a new PERF id yet
 
 ### 8.4 Candidate D — Mixed Capacity-Class Pool Pollution
 
 **Working scope:** one shared pool serving objects from very different capacity bands, causing large retained objects to recirculate into small-object traffic even when hard oversize discard exists.
 
-- [ ] Keep this as a medium-confidence candidate pending more examples outside gopdfsuit
-- [ ] If promoted later, detector should focus on one pool serving clearly divergent buffer caps with no class split
-- [ ] Current recommendation: do **not** assign a new PERF id until we have at least one more repo-grounded example
+- [x] Keep this as a medium-confidence candidate pending more examples outside gopdfsuit
+- [x] If promoted later, detector should focus on one pool serving clearly divergent buffer caps with no class split
+- [x] Current recommendation: do **not** assign a new PERF id until we have at least one more repo-grounded example
 
 ### 8.5 Promotion Gate
 
-- [ ] Only promote Candidate A/B/C/D into numbered rules after Batch 5 implementation is green
-- [ ] Require at least one real-world example and one fixture pair per promoted candidate
-- [ ] Prefer promoting A and B first if we need only the highest-confidence follow-on work
+- [x] Only promote Candidate A/B/C/D into numbered rules after Batch 5 implementation is green
+- [x] Require at least one real-world example and one fixture pair per promoted candidate
+- [x] Prefer promoting A and B first if we need only the highest-confidence follow-on work

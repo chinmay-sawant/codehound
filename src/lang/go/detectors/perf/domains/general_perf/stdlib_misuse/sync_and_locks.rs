@@ -271,10 +271,6 @@ pub(crate) fn detect_perf_131(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         let unlock_end = unlock_start + ".Unlock()".len();
         let after_lock = start + ".Lock()".len();
         let body = &source[after_lock..unlock_start];
-        eprintln!(
-            "[PERF-131] body={body:?} is_counter={}",
-            is_simple_counter_body(body)
-        );
         if is_simple_counter_body(body) {
             let (line, col) = unit.line_col(start);
             emit::push_finding(

@@ -3,7 +3,7 @@
 > **Scope:** Consolidated list of every unimplemented item across P2.1, P2.3, P2.4, and P2.5 — including items deferred during this session, items still unchecked in the individual plan files, and items that shipped in design-only form.
 > **Format:** Plain checklist. Each item is small enough to be a single PR.
 > **Source:** Cross-referenced from `plans/p2-implementation/{01,03,04,05}-*.md` and the parent `plans/p2.md`.
-> **Last updated:** post-Category-C-completion. 109 / 112 PERF detectors shipped across 9+ batches; 0 unimplemented, 3 intentionally dropped (PERF-104, 136, 208). Category C ✅ (PERF-134, 139, 150, 151, 172). 13 / 13 BP MVP rules shipped with full fixture coverage; taint Phases A+B done; cache Phases 1-7 done with LRU eviction.
+> **Last updated:** post-PERF-213..224 batch completion. 109 / 112 PERF-101..212 detectors shipped across 9+ batches; 0 unimplemented, 3 intentionally dropped (PERF-104, 136, 208). Post-catalog PERF-213..224 is also shipped as a separate 12-rule batch, alongside the PERF-106 unbounded-cache heuristic extension. Category C ✅ (PERF-134, 139, 150, 151, 172). 13 / 13 BP MVP rules shipped with full fixture coverage; taint Phases A+B done; cache Phases 1-7 done with LRU eviction.
 > **Detailed breakdown:** See `plans/v2.0.0/pending-work/` for individual per-workstream plans.
 
 ---
@@ -118,6 +118,7 @@
 - [x] **Batch 7 (22):** PERF-138, 159, 167, 169, 173, 174, 175, 178, 179, 180, 183, 184, 185, 186, 187, 188, 193, 194, 202, 207, 210, 212. Migrated from `hot_path_misc.rs` to domain modules. See `plans/v2.0.0/reports/domain-migration-review.md`.
 - [x] **Batch 8 (16):** PERF-109, 142, 144, 148, 152, 153, 154, 160, 162, 164, 189, 191, 197, 203, 205, 206. Migrated from `hot_path_misc.rs` to domain modules.
 - [x] **Batch 9 (6):** PERF-143, 155, 196, 199, 200, 201. PERF-172 reimplemented with smarter heuristic. All migrated to domain modules.
+- [x] **Post-catalog batch (12):** PERF-213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224. All shipped with `.txt` vulnerable/safe fixtures, manifest entries, CLI-path integration coverage, and `PERF-106` overlap validation where applicable.
 - [ ] **Real-project positive smoke fixture** — *deferred* to a dedicated test file. Need a small Go file in `tests/fixtures/go/perf_real_world/` (HTTP server, request handler, etc.) that fires at least one shipped detector on non-synthetic code, plus a clean companion file. Crosses into E.4.
 - [x] **PERF-126's `is_canonical_header` list** is hardcoded; should be verified against `net/http`'s `textproto.CanonicalMIMEHeaderKey` behavior, especially for less-common headers. Verified with unit coverage for canonical spellings including `Etag`, `Www-Authenticate`, `X-Csrf-Token`, and fixed exact-case matching so non-canonical spellings like `ETag` are not flagged as redundant.
 - [x] **PERF-122 / PERF-127 substring heuristics** are coarse; a real implementation would parse the source window properly. Trade-off documented in `detection_notes` and detector comments.

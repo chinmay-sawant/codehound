@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **PERF-106 extension + PERF-213..224 batch.** Extended `PERF-106` beyond
+  write-heavy `sync.Map` usage to also catch package-level cache shapes with
+  reads+writes but no eviction bound. Added 12 new PERF detectors:
+  `PERF-213` through `PERF-224`, covering cache eviction discipline, volatile
+  cache keys, missing buffer pre-sizing, hot-path struct allocation, static
+  computation rebuilt per operation, unsharded pools, oversized pool returns,
+  repeated scans over the same data, dense integer maps, generic calls on hot
+  paths, pool backing-array discard, and recursive hot-path tree walks.
+- **Chunk-only Go ruleset loading.** Build-time and runtime ruleset loading now
+  merge `ruleset/golang/chunks/*.json`; the flat `ruleset/golang/golang.json`
+  file is no longer used as the source of truth.
+
 - **Incremental analysis cache (P2.3).** Per-file cache keyed by content hash,
   stored under `.slopguard-cache/` at the project root. Cache hits skip
   parsing and detection; cache misses repopulate the entry. Transitive
@@ -83,6 +95,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   heuristic vs. full AST walk).
 
 ### Fixed
+
+- The CLI `scan` path now materializes SlopGuard `.txt` fixtures before
+  analysis, so `cargo run -- scan tests/fixtures/.../*.txt` matches the same
+  fixture behavior exercised by the integration tests.
 
 - `slopguard-ignore-file` directives are now applied on cache hits, so
   adding an ignore after the first scan suppresses the cached finding on

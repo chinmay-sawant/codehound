@@ -14,8 +14,8 @@ Root: `plans/p2.md`
 > **P2.1 status:** Intra-procedural taint analysis is implemented behind `[taint] enabled = true`. CWE-78/89/22/79 use taint paths when enabled and fall back to substring detectors when disabled. Inter-procedural analysis is deferred.
 | P2.2 | Baseline / Ignore-Once Mechanism | [`02-baseline-ignore.md`](./02-baseline-ignore.md) | ✅ Complete | 1-2 weeks |
 | P2.3 | Incremental Analysis | [`03-incremental-analysis.md`](./03-incremental-analysis.md) | ✅ Phase 1+2+3+4.1+4.2+4.3+5+6.1 complete | 2-3 weeks |
-| P2.4 | PERF Ruleset Detector Implementation | [`04-perf-detector-implementation.md`](./04-perf-detector-implementation.md) | 🚧 11 of 112 detectors shipped (PERF-103..127 Category A batch) | 6-8 weeks |
-| P2.5 | Bad Practices Detection (Scope & Design) | [`05-bad-practices-detection.md`](./05-bad-practices-detection.md) | 📝 Scope/design complete; implementation deferred | 1-2 weeks |
+| P2.4 | PERF Ruleset Detector Implementation | [`04-perf-detector-implementation.md`](./04-perf-detector-implementation.md) | ✅ PERF-101..212 complete except 3 intentional drops; post-catalog PERF-213..224 also shipped | 6-8 weeks |
+| P2.5 | Bad Practices Detection (Scope & Design) | [`05-bad-practices-detection.md`](./05-bad-practices-detection.md) | ✅ MVP shipped (BP-1..BP-11, BP-13, BP-15); expansion deferred | 1-2 weeks |
 
 ## Missing Architecture Items (5 plans)
 
@@ -36,9 +36,9 @@ Root: `plans/p2.md`
 5. **Missing E Observability** ✅ — Needed to debug incremental + taint performance
 6. **Missing C Detector Output Model** ✅ — Foundation for richer findings pre-taint
 7. **P2.1 Taint Tracking** ⬜ — Phase 1 (intra-procedural) only; defer inter-procedural
-8. **P2.4 PERF Detectors** 🚧 — First batch (PERF-103..127) shipped; remaining 101 detectors deferred
+8. **P2.4 PERF Detectors** ✅ — PERF-101..212 shipped except 3 intentional drops; PERF-213..224 shipped separately as a follow-on batch
 9. **Missing D Rule-Pack Extensibility** 📝 — Defer implementation, execute design
-10. **P2.5 Bad Practices** 📝 — Scope/design complete; implementation deferred
+10. **P2.5 Bad Practices** ✅/📝 — MVP shipped; further category expansion deferred
 
 ## P2.3 Notes
 

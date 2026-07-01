@@ -1,5 +1,10 @@
 # PERF-101..212 Category Breakdown
 
+> **Historical note:** this breakdown is the original rollout plan for the
+> PERF-101..212 expansion only. A later post-catalog batch shipped
+> `PERF-213` through `PERF-224` separately; see
+> `plans/v2.0.0/pending-work/perf-213-224-implementation.md` for that scope.
+
 > Source: `ruleset/golang/golang.json` entries `PERF-101` through `PERF-212` and current detector coverage in `src/lang/go/detectors/perf/registry.toml`.
 > Purpose: close P2.4 Phase 1.1-1.3 planning by making the remaining PERF rollout explicit before adding more detectors.
 
