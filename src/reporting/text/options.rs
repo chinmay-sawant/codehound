@@ -9,6 +9,7 @@ use super::render::write_with_options;
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct TextOptions {
+    pub color: bool,
     pub suppress_snippet: bool,
     pub show_fingerprint: bool,
     pub verbose: bool,
@@ -22,7 +23,13 @@ pub struct TextOptions {
 /// Returns [`Error`] when formatting or stdout write fails.
 #[must_use = "I/O errors from writing text output must be handled"]
 pub fn print(result: &AnalysisResult) -> Result<(), Error> {
-    print_with_options(result, TextOptions::default())
+    print_with_options(
+        result,
+        TextOptions {
+            color: true,
+            ..TextOptions::default()
+        },
+    )
 }
 
 /// Write a human-readable finding report with custom formatting options.

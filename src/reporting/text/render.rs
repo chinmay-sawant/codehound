@@ -18,17 +18,17 @@ pub fn write_with_options(
     options: TextOptions,
 ) -> Result<(), Error> {
     if result.findings.is_empty() {
-        writeln!(out, "{}", style::green_bold("no slop detected"))?;
+        writeln!(out, "{}", styled_green_bold("no slop detected", options.color))?;
         write_summary(out, result, options)?;
         return Ok(());
     }
 
     for f in &result.findings {
-        let sev_colored = style::severity(f.severity);
+        let sev_colored = styled_severity(f.severity, options.color);
         let head = format!(
             "{}  {}  {}:{}:{}",
             sev_colored,
-            style::rule_id(f.rule_id),
+            styled_rule_id(f.rule_id, options.color),
             f.file,
             f.line,
             f.column
@@ -55,7 +55,7 @@ pub fn write_with_options(
         if !options.suppress_snippet {
             if let Some(snip) = &f.snippet {
                 for line in snip.lines() {
-                    writeln!(out, "    {}", style::dimmed(line))?;
+                    writeln!(out, "    {}", styled_dimmed(line, options.color))?;
                 }
             }
         }
@@ -68,12 +68,12 @@ pub fn write_with_options(
                     .map(|c| format!("CWE-{} ({})", c.id, c.name))
                     .collect::<Vec<_>>()
                     .join(", ");
-                writeln!(out, "  ↳ {}", style::dimmed(&list))?;
+                writeln!(out, "  ↳ {}", styled_dimmed(&list, options.color))?;
             }
         }
         if let Some(fix) = &f.fix {
             if !fix.is_empty() {
-                writeln!(out, "  fix: {}", style::cyan(fix))?;
+                writeln!(out, "  fix: {}", styled_cyan(fix, options.color))?;
             }
         }
         writeln!(out)?;
@@ -90,6 +90,46 @@ pub fn write_with_options(
     }
 
     Ok(())
+}
+
+fn styled_severity(severity: crate::rules::Severity, color: bool) -> String {
+    if color {
+        style::severity(severity).to_string()
+    } else {
+        severity.as_str().to_string()
+    }
+}
+
+fn styled_rule_id(rule_id: &str, color: bool) -> String {
+    if color {
+        style::rule_id(rule_id).to_string()
+    } else {
+        rule_id.to_string()
+    }
+}
+
+fn styled_dimmed(text: &str, color: bool) -> String {
+    if color {
+        style::dimmed(text).to_string()
+    } else {
+        text.to_string()
+    }
+}
+
+fn styled_green_bold(text: &str, color: bool) -> String {
+    if color {
+        style::green_bold(text).to_string()
+    } else {
+        text.to_string()
+    }
+}
+
+fn styled_cyan(text: &str, color: bool) -> String {
+    if color {
+        style::cyan(text).to_string()
+    } else {
+        text.to_string()
+    }
 }
 
 pub(super) fn evidence_summary(evidence: &DetectorEvidence) -> String {

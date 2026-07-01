@@ -284,6 +284,7 @@ fn emit_output(
             OutputFormat::Text => reporting::text::print_with_options(
                 result,
                 reporting::text::TextOptions {
+                    color: true,
                     suppress_snippet: cli.no_snippet,
                     show_fingerprint: cli.show_fingerprint,
                     verbose: cli.verbose,

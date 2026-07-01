@@ -76,3 +76,18 @@ fn text_output_can_show_fingerprint() {
         "{rendered}"
     );
 }
+
+#[cfg(feature = "terminal-output")]
+#[test]
+fn default_text_output_is_plain_even_when_color_is_forced() {
+    colored::control::set_override(true);
+
+    let r = one_finding_result();
+    let mut out = Vec::new();
+    write_with_options(&mut out, &r, TextOptions::default()).unwrap();
+    let rendered = String::from_utf8(out).unwrap();
+
+    colored::control::unset_override();
+
+    assert!(!rendered.contains("\u{1b}["), "{rendered:?}");
+}
