@@ -211,8 +211,8 @@ pub const fn fix_for(id: u32) -> Option<&'static str> {
         100 => Some("Move heavy RunE work into a function and reuse flag registration via a pre-built flag.FlagSet."),
         // PERF-102: Multiple WriteHeader
         102 => Some("WriteHeader can only be called once per response; set the status via WriteHeader(status) before the first Write."),
-        // PERF-106: sync.Map write-heavy
-        106 => Some("Replace sync.Map with a plain map guarded by a sync.Mutex when the workload is write-heavy; sync.Map's read/dirty dual-map structure only pays off for read-heavy, key-stable workloads."),
+        // PERF-106: sync.Map write-heavy + cache bounding
+        106 => Some("Replace sync.Map with a plain map guarded by a sync.Mutex when the workload is write-heavy; sync.Map's read/dirty dual-map structure only pays off for read-heavy, key-stable workloads. If used as a cache, add eviction bounds: entry cap, byte cap, or TTL to prevent unbounded growth under concurrent load."),
         // PERF-108: sort.Search in loop
         108 => Some("Hoist sort.Search out of the loop; if the search space changes per iteration, cache the index instead."),
         // PERF-110: sync.Pool pointer type
@@ -285,6 +285,30 @@ pub const fn fix_for(id: u32) -> Option<&'static str> {
         209 => Some("Move shared initialization out of PersistentPreRunE into a sync.Once in the parent command, or into a setup function called once at startup."),
         // PERF-211: GORM Not/NotIn → positive list
         211 => Some("Replace db.Not() / NOT IN with an explicit positive list (WHERE id IN (?)) so the query planner can use the index."),
+        // PERF-213: Cache bounding/eviction
+        213 => Some("Add an eviction boundary to the cache: limit entries (max N), limit retained bytes (max M), or add TTL-based expiry so the cache cannot grow unbounded under load."),
+        // PERF-214: Cache key volatility
+        214 => Some("Remove volatile fields (pointer addresses, request IDs, coordinates) from the cache key. Key only on fields that are stable across repeated identical calls."),
+        // PERF-215: Buffer pre-sizing
+        215 => Some("Pre-size the bytes.Buffer or strings.Builder by calling Grow(expectedSize) when the final content size is known or can be estimated from input parameters."),
+        // PERF-216: Arena/slab allocation
+        216 => Some("Replace individual per-element heap allocations in the hot path with a slab or arena allocator that pre-allocates contiguous blocks for the struct type."),
+        // PERF-217: Static computation caching
+        217 => Some("Cache the deterministic computation result in a package-level variable computed at init(); the output never changes per request."),
+        // PERF-218: Per-CPU pool sharding
+        218 => Some("Replace the single contended sync.Pool with per-CPU shards (e.g., a [runtime.NumCPU()]sync.Pool array) to reduce lock contention under high concurrency."),
+        // PERF-219: Oversized pool discard
+        219 => Some("Guard the Put call: if cap(obj) > maxSize { return } to discard oversized buffers instead of returning them to the pool."),
+        // PERF-220: Double-scan merge
+        220 => Some("Merge the consecutive loops over the same data into a single pass that does all required work, eliminating the redundant iteration overhead."),
+        // PERF-221: map[int] → []T
+        221 => Some("Replace map[int]T with []T when the integer keys are dense and sequential (e.g., ObjectIDs, page numbers). Use make([]T, maxKey+1) and direct index access."),
+        // PERF-222: Generics in hot path
+        222 => Some("Replace the generic function on the measured hot path with a concrete type or use code generation. Shape-based dispatch prevents inlining and adds call overhead."),
+        // PERF-223: Pool backing array retention
+        223 => Some("Retain backing array capacity on pool return: use obj.Reset() (obj.Slice = obj.Slice[:0]) instead of obj.Slice = nil so the backing array is reused on next acquire."),
+        // PERF-224: Iterative tree walk
+        224 => Some("Replace the recursive tree walk with an iterative loop over the existing flat pre-ordered representation of the same data."),
         _ => None,
     }
 }

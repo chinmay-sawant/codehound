@@ -4961,12 +4961,12 @@
         "golang"
       ],
       "go_relevance": "Medium",
-      "detection_notes": "Match sync.Map declarations where Store/LoadAndDelete calls outnumber Load calls in the same scope."
+      "detection_notes": "Match sync.Map declarations where Store/LoadAndDelete calls outnumber Load calls in the same scope. Additionally flag sync.Map or map caches used without entry count limit, byte size cap, or TTL-based eviction when they persist for the process lifetime."
     },
     "PERF-107": {
       "id": 107,
       "name": "encoding/binary Write Or Read Inside Loop",
-      "description": "Uses encoding/binary.Write or binary.Read inside a loop. These functions use reflection to determine the size and layout of the target type on every call. For fixed-size types, manual BigEndian.PutUint32 or LittleEndian.Uint32 methods avoid reflection and are 10-20x faster.",
+      "description": "Uses sync.Map for workloads dominated by writes (Store) and updates. sync.Map is optimized for read-heavy, key-stable workloads with its internal read/dirty dual-map structure. Under frequent writes, the dirty map promotion cost outweighs the concurrency benefits compared to a plain map with sync.Mutex. Additionally, any map or sync.Map used as a cache without eviction bounds (entry cap, byte cap, or TTL) can cause unbounded memory growth under concurrent load, leading to process OOM. Always pair caches with an eviction strategy and validate memory usage under concurrent load, not only in-process micro-benchmarks.",
       "original_description": "Detect binary.Read or binary.Write inside loop bodies where manual endian methods would avoid reflection",
       "weakness_abstraction": "Base",
       "status": "Draft",
@@ -6545,8 +6545,175 @@
       ],
       "go_relevance": "High",
       "detection_notes": "Match db.Find(&slice) without a preceding .Limit() call; suppress for lookup tables known to be small."
-    }
-  },
+    },
+    "PERF-213": {
+      "id": 213,
+      "name": "Cache Without Eviction or Bounding",
+      "description": "A map, sync.Map, or other cache data structure is allocated at package scope or reused across requests without any eviction mechanism (entry count cap, byte size cap, or TTL). Under concurrent load, an unbounded cache grows until it exhausts available memory, causing process OOM or server hang. Every cache persisted across requests must have a reachable eviction boundary.",
+      "original_description": "Detect unbounded caches used across requests without eviction bounds (entry cap, byte cap, or TTL)",
+      "weakness_abstraction": "Base",
+      "status": "Draft",
+      "category": "Performance",
+      "applicable_to": [
+        "golang"
+      ],
+      "go_relevance": "High",
+      "detection_notes": "Match package-level map or sync.Map reassigned across requests without size-limiting code (len check, cap check, TTL) in the same compilation unit. Flag sync.Map used as a cache without a bounding wrapper."
+    },
+    "PERF-214": {
+      "id": 214,
+      "name": "Cache Key Includes Volatile Request-Scoped Fields",
+      "description": "A cache key incorporates fields that change on every request or invocation (e.g., pointer addresses, request IDs, coordinates, iteration variables). When the key changes every call, the cache has zero hit rate while still accumulating entries, wasting memory. Every cache key must consist only of fields that are stable across repeated identical calls.",
+      "original_description": "Detect cache keys that include volatile fields (pointer, request ID, coordinates) causing zero hit rate",
+      "weakness_abstraction": "Base",
+      "status": "Draft",
+      "category": "Performance",
+      "applicable_to": [
+        "golang"
+      ],
+      "go_relevance": "Medium",
+      "detection_notes": "Flag map/sync.Map keys that incorporate pointer addresses, request IDs, or coordinate fields known to vary per call. Check if a Store is always preceded by a Load that misses."
+    },
+    "PERF-215": {
+      "id": 215,
+      "name": "bytes.Buffer or strings.Builder Without Pre-Sizing",
+      "description": "A bytes.Buffer or strings.Builder is created or reused without calling Grow() when the final content size is knowable or estimable upfront. Without pre-sizing, the underlying buffer grows geometrically via reallocation+copy (bytes.growSlice), causing excessive memory churn and CPU time in memmove. Pre-size with Grow(expectedSize) when the output size is known or can be bounded.",
+      "original_description": "Detect bytes.Buffer or strings.Builder used without Grow() when final size is knowable",
+      "weakness_abstraction": "Base",
+      "status": "Draft",
+      "category": "Performance",
+      "applicable_to": [
+        "golang"
+      ],
+      "go_relevance": "High",
+      "detection_notes": "Match bytes.Buffer or strings.Builder declarations or resets (via Reset) without a preceding Grow() call when the function has access to the output size via len(), known fields, or calculations."
+    },
+    "PERF-216": {
+      "id": 216,
+      "name": "Hot-Path Struct Allocation Without Slab Arena",
+      "description": "Hot-path structures (e.g., tree nodes, table rows, linked-list elements) are individually heap-allocated inside tight loops or high-frequency code paths. Each allocation adds GC scan pressure and allocator overhead. For structures with bounded lifetime and known type, use a slab or arena allocator (pre-allocated contiguous blocks) to batch allocations and reduce GC work.",
+      "original_description": "Detect individual struct allocations in hot paths where a slab/arena allocator would reduce GC pressure",
+      "weakness_abstraction": "Base",
+      "status": "Draft",
+      "category": "Performance",
+      "applicable_to": [
+        "golang"
+      ],
+      "go_relevance": "Medium",
+      "detection_notes": "Flag T{} or &T{} allocations inside measured hot functions or tight loops where the struct type is allocated more than a threshold number of times per operation."
+    },
+    "PERF-217": {
+      "id": 217,
+      "name": "Static Computation Rebuilt Per Operation",
+      "description": "A deterministic computation (ICC profile generation, metadata serialization, color space construction, font object generation) that always produces the same output is executed on every request or operation instead of once at startup. Hoist the computation to package init time or cache the result for the process lifetime. Each rebuild wastes CPU and allocation for identical results.",
+      "original_description": "Detect deterministic computations (ICC profiles, metadata, font objects) rebuilt per request instead of cached at init",
+      "weakness_abstraction": "Base",
+      "status": "Draft",
+      "category": "Performance",
+      "applicable_to": [
+        "golang"
+      ],
+      "go_relevance": "Medium",
+      "detection_notes": "Flag repeated calls to expensive pure functions (math.Pow loops, zlib compress of static data, serialization of constant templates) inside request handler call trees where the input does not vary."
+    },
+    "PERF-218": {
+      "id": 218,
+      "name": "sync.Pool or Cache Without Per-CPU Sharding",
+      "description": "A single sync.Pool or shared cache structure is contended across many goroutines (e.g., 48+ concurrent workers on 24 cores). Under high concurrency, a single pool becomes a contention bottleneck as goroutines compete for the same underlying data structure. Use per-CPU or per-P sharding, or partition the pool by capacity class, to reduce lock contention.",
+      "original_description": "Detect high-contention sync.Pool or shared cache without per-CPU sharding",
+      "weakness_abstraction": "Base",
+      "status": "Draft",
+      "category": "Performance",
+      "applicable_to": [
+        "golang"
+      ],
+      "go_relevance": "Medium",
+      "detection_notes": "Flag sync.Pool.Get/Put callers in hot paths where GOMAXPROCS > 4 and the pool is the single bottleneck in CPU profiles. Look for contention via runtime profiling hints."
+    },
+    "PERF-219": {
+      "id": 219,
+      "name": "Oversized Object Returned to sync.Pool",
+      "description": "A buffer or large object is returned to sync.Pool after use without checking whether its capacity exceeds a sensible threshold. When oversized objects (e.g., 8 MB buffers) are returned to the pool, subsequent acquire calls from other goroutines receive these oversized objects, wasting memory across workers. Discard objects that exceed a capacity threshold instead of returning them to the pool.",
+      "original_description": "Detect oversized buffers/objects returned to sync.Pool without capacity check",
+      "weakness_abstraction": "Base",
+      "status": "Draft",
+      "category": "Performance",
+      "applicable_to": [
+        "golang"
+      ],
+      "go_relevance": "Medium",
+      "detection_notes": "Match Put() calls where the argument is a buffer or slice and there is no preceding cap() check discarding the value when oversized."
+    },
+    "PERF-220": {
+      "id": 220,
+      "name": "Sequential Scans Over Identical Data",
+      "description": "The same data structure (slice, map, tree) is iterated multiple times sequentially in the same function or call chain, performing the same or related work on each pass. Repeated scanning multiplies CPU time proportional to the data size times the number of passes. Merge the passes into a single iteration that does all required work in one go.",
+      "original_description": "Detect sequential loops over the same data that could be merged into a single pass",
+      "weakness_abstraction": "Base",
+      "status": "Draft",
+      "category": "Performance",
+      "applicable_to": [
+        "golang"
+      ],
+      "go_relevance": "Medium",
+      "detection_notes": "Flag consecutive for/range loops over the same slice or map variable in the same function scope where loop bodies operate on the same elements. Look for MarkCharsUsed-style double-scan patterns."
+    },
+    "PERF-221": {
+      "id": 221,
+      "name": "map[int]T for Dense Sequential Integer Keys",
+      "description": "A map[int]T or map[int64]T is used to store values keyed by dense sequential integers (e.g., ObjectIDs, page numbers, array indices). For sequential integer keys, a []T slice provides O(1) access with no hashing overhead, better cache locality, and no per-entry heap allocation for key/value pairs. Replace map[int]T with []T when keys are sequential or can be made sequential.",
+      "original_description": "Detect map[int]T used with sequential integer keys where []T would be faster",
+      "weakness_abstraction": "Base",
+      "status": "Draft",
+      "category": "Performance",
+      "applicable_to": [
+        "golang"
+      ],
+      "go_relevance": "Medium",
+      "detection_notes": "Flag map[int]T or map[int64]T where entries are inserted in order with sequentially incrementing keys (i.e., the key is a counter or index)."
+    },
+    "PERF-222": {
+      "id": 222,
+      "name": "Generic Function on Measured Hot Path",
+      "description": "A generic function (func[T any] or func[T constraint]) is called on a measured hot path. Go generics use shape-based dispatch: each unique type instantiation generates a separate function, but the call still goes through a dictionary, defeating inlining and adding call overhead. For measured hot paths, prefer concrete types or code generation over generics.",
+      "original_description": "Detect Go generic functions on hot paths where shape-based dispatch prevents inlining",
+      "weakness_abstraction": "Base",
+      "status": "Draft",
+      "category": "Performance",
+      "applicable_to": [
+        "golang"
+      ],
+      "go_relevance": "Medium",
+      "detection_notes": "Flag calls to generic functions (with type parameters) inside hot loop bodies or request handler call trees. Check if the generic function is called with multiple different type instantiations from the same callsite."
+    },
+    "PERF-223": {
+      "id": 223,
+      "name": "sync.Pool Backing Array Discarded on Return",
+      "description": "A slice or struct containing a backing array is returned to sync.Pool after being set to nil or zeroed, discarding the pre-allocated backing array capacity. On subsequent acquire, the pool returns an object with no backing capacity, forcing a fresh allocation. When objects returned to a pool are expected to be reused, retain the backing array by using Reset() (s = s[:0]) instead of Release() (s = nil).",
+      "original_description": "Detect pool return that discards backing array (nil slice) instead of retaining capacity ([:0])",
+      "weakness_abstraction": "Base",
+      "status": "Draft",
+      "category": "Performance",
+      "applicable_to": [
+        "golang"
+      ],
+      "go_relevance": "Medium",
+      "detection_notes": "Match Put() calls where the argument is a slice that has been nilled (s = nil) or a struct whose slice fields have been nilled, when the pool is known to be reused in a hot path."
+    },
+    "PERF-224": {
+      "id": 224,
+      "name": "Recursive Tree Walk on Hot Execution Path",
+      "description": "A deeply nested tree or graph is traversed using recursive function calls (walk, visit, assign) on a hot execution path. Recursive traversal adds per-call overhead for function frames, parameter passing, and return handling. For trees where the structure is already available in a flat pre-ordered slice, replace the recursive walk with an iterative loop over the flat representation.",
+      "original_description": "Detect recursive tree traversal on hot paths where iterative replacement would be faster",
+      "weakness_abstraction": "Base",
+      "status": "Draft",
+      "category": "Performance",
+      "applicable_to": [
+        "golang"
+      ],
+      "go_relevance": "Medium",
+      "detection_notes": "Flag recursive function calls in measured hot functions where the recursion depth is proportional to input size and a flat pre-ordered representation of the same data exists."
+    }  },
   "PERF-101": {
     "id": 101,
     "name": "HTTP Server Timeouts Not Configured",
@@ -6629,7 +6796,7 @@
   "PERF-106": {
     "id": 106,
     "name": "sync.Map Used For Write-Heavy Workload",
-    "description": "Uses sync.Map for workloads dominated by writes (Store) and updates. sync.Map is optimized for read-heavy, key-stable workloads with its internal read/dirty dual-map structure. Under frequent writes, a plain map with sync.Mutex outperforms sync.Map.",
+    "description": "Uses sync.Map for workloads dominated by writes (Store) and updates. sync.Map is optimized for read-heavy, key-stable workloads with its internal read/dirty dual-map structure. Under frequent writes, a plain map with sync.Mutex outperforms sync.Map. Additionally, any map or sync.Map used as a cache without eviction bounds (entry cap, byte cap, or TTL) can cause unbounded memory growth under concurrent load, leading to process OOM. Always pair caches with an eviction strategy and validate memory usage under concurrent load, not only in-process micro-benchmarks.",
     "original_description": "sync.Map in write-heavy patterns where plain map + mutex is faster",
     "weakness_abstraction": "Base",
     "status": "Draft",
@@ -6638,7 +6805,7 @@
       "golang"
     ],
     "go_relevance": "Medium",
-    "detection_notes": "Match sync.Map declarations where Store/LoadAndDelete calls outnumber Load calls in the same scope."
+    "detection_notes": "Match sync.Map declarations where Store/LoadAndDelete calls outnumber Load calls in the same scope. Additionally flag sync.Map or map caches used without entry count limit, byte size cap, or TTL-based eviction when they persist for the process lifetime."
   },
   "PERF-107": {
     "id": 107,
@@ -8227,5 +8394,172 @@
     ],
     "go_relevance": "High",
     "detection_notes": "Match db.Find(&slice) without a preceding .Limit() call; suppress for lookup tables known to be small."
-  }
-}
+  },
+  "PERF-213": {
+    "id": 213,
+    "name": "Cache Without Eviction or Bounding",
+    "description": "A map, sync.Map, or other cache data structure is allocated at package scope or reused across requests without any eviction mechanism (entry count cap, byte size cap, or TTL). Under concurrent load, an unbounded cache grows until it exhausts available memory, causing process OOM or server hang. Every cache persisted across requests must have a reachable eviction boundary.",
+    "original_description": "Detect unbounded caches used across requests without eviction bounds (entry cap, byte cap, or TTL)",
+    "weakness_abstraction": "Base",
+    "status": "Draft",
+    "category": "Performance",
+    "applicable_to": [
+      "golang"
+    ],
+    "go_relevance": "High",
+    "detection_notes": "Match package-level map or sync.Map reassigned across requests without size-limiting code (len check, cap check, TTL) in the same compilation unit. Flag sync.Map used as a cache without a bounding wrapper."
+  },
+  "PERF-214": {
+    "id": 214,
+    "name": "Cache Key Includes Volatile Request-Scoped Fields",
+    "description": "A cache key incorporates fields that change on every request or invocation (e.g., pointer addresses, request IDs, coordinates, iteration variables). When the key changes every call, the cache has zero hit rate while still accumulating entries, wasting memory. Every cache key must consist only of fields that are stable across repeated identical calls.",
+    "original_description": "Detect cache keys that include volatile fields (pointer, request ID, coordinates) causing zero hit rate",
+    "weakness_abstraction": "Base",
+    "status": "Draft",
+    "category": "Performance",
+    "applicable_to": [
+      "golang"
+    ],
+    "go_relevance": "Medium",
+    "detection_notes": "Flag map/sync.Map keys that incorporate pointer addresses, request IDs, or coordinate fields known to vary per call. Check if a Store is always preceded by a Load that misses."
+  },
+  "PERF-215": {
+    "id": 215,
+    "name": "bytes.Buffer or strings.Builder Without Pre-Sizing",
+    "description": "A bytes.Buffer or strings.Builder is created or reused without calling Grow() when the final content size is knowable or estimable upfront. Without pre-sizing, the underlying buffer grows geometrically via reallocation+copy (bytes.growSlice), causing excessive memory churn and CPU time in memmove. Pre-size with Grow(expectedSize) when the output size is known or can be bounded.",
+    "original_description": "Detect bytes.Buffer or strings.Builder used without Grow() when final size is knowable",
+    "weakness_abstraction": "Base",
+    "status": "Draft",
+    "category": "Performance",
+    "applicable_to": [
+      "golang"
+    ],
+    "go_relevance": "High",
+    "detection_notes": "Match bytes.Buffer or strings.Builder declarations or resets (via Reset) without a preceding Grow() call when the function has access to the output size via len(), known fields, or calculations."
+  },
+  "PERF-216": {
+    "id": 216,
+    "name": "Hot-Path Struct Allocation Without Slab Arena",
+    "description": "Hot-path structures (e.g., tree nodes, table rows, linked-list elements) are individually heap-allocated inside tight loops or high-frequency code paths. Each allocation adds GC scan pressure and allocator overhead. For structures with bounded lifetime and known type, use a slab or arena allocator (pre-allocated contiguous blocks) to batch allocations and reduce GC work.",
+    "original_description": "Detect individual struct allocations in hot paths where a slab/arena allocator would reduce GC pressure",
+    "weakness_abstraction": "Base",
+    "status": "Draft",
+    "category": "Performance",
+    "applicable_to": [
+      "golang"
+    ],
+    "go_relevance": "Medium",
+    "detection_notes": "Flag T{} or &T{} allocations inside measured hot functions or tight loops where the struct type is allocated more than a threshold number of times per operation."
+  },
+  "PERF-217": {
+    "id": 217,
+    "name": "Static Computation Rebuilt Per Operation",
+    "description": "A deterministic computation (ICC profile generation, metadata serialization, color space construction, font object generation) that always produces the same output is executed on every request or operation instead of once at startup. Hoist the computation to package init time or cache the result for the process lifetime. Each rebuild wastes CPU and allocation for identical results.",
+    "original_description": "Detect deterministic computations (ICC profiles, metadata, font objects) rebuilt per request instead of cached at init",
+    "weakness_abstraction": "Base",
+    "status": "Draft",
+    "category": "Performance",
+    "applicable_to": [
+      "golang"
+    ],
+    "go_relevance": "Medium",
+    "detection_notes": "Flag repeated calls to expensive pure functions (math.Pow loops, zlib compress of static data, serialization of constant templates) inside request handler call trees where the input does not vary."
+  },
+  "PERF-218": {
+    "id": 218,
+    "name": "sync.Pool or Cache Without Per-CPU Sharding",
+    "description": "A single sync.Pool or shared cache structure is contended across many goroutines (e.g., 48+ concurrent workers on 24 cores). Under high concurrency, a single pool becomes a contention bottleneck as goroutines compete for the same underlying data structure. Use per-CPU or per-P sharding, or partition the pool by capacity class, to reduce lock contention.",
+    "original_description": "Detect high-contention sync.Pool or shared cache without per-CPU sharding",
+    "weakness_abstraction": "Base",
+    "status": "Draft",
+    "category": "Performance",
+    "applicable_to": [
+      "golang"
+    ],
+    "go_relevance": "Medium",
+    "detection_notes": "Flag sync.Pool.Get/Put callers in hot paths where GOMAXPROCS > 4 and the pool is the single bottleneck in CPU profiles. Look for contention via runtime profiling hints."
+  },
+  "PERF-219": {
+    "id": 219,
+    "name": "Oversized Object Returned to sync.Pool",
+    "description": "A buffer or large object is returned to sync.Pool after use without checking whether its capacity exceeds a sensible threshold. When oversized objects (e.g., 8 MB buffers) are returned to the pool, subsequent acquire calls from other goroutines receive these oversized objects, wasting memory across workers. Discard objects that exceed a capacity threshold instead of returning them to the pool.",
+    "original_description": "Detect oversized buffers/objects returned to sync.Pool without capacity check",
+    "weakness_abstraction": "Base",
+    "status": "Draft",
+    "category": "Performance",
+    "applicable_to": [
+      "golang"
+    ],
+    "go_relevance": "Medium",
+    "detection_notes": "Match Put() calls where the argument is a buffer or slice and there is no preceding cap() check discarding the value when oversized."
+  },
+  "PERF-220": {
+    "id": 220,
+    "name": "Sequential Scans Over Identical Data",
+    "description": "The same data structure (slice, map, tree) is iterated multiple times sequentially in the same function or call chain, performing the same or related work on each pass. Repeated scanning multiplies CPU time proportional to the data size times the number of passes. Merge the passes into a single iteration that does all required work in one go.",
+    "original_description": "Detect sequential loops over the same data that could be merged into a single pass",
+    "weakness_abstraction": "Base",
+    "status": "Draft",
+    "category": "Performance",
+    "applicable_to": [
+      "golang"
+    ],
+    "go_relevance": "Medium",
+    "detection_notes": "Flag consecutive for/range loops over the same slice or map variable in the same function scope where loop bodies operate on the same elements. Look for MarkCharsUsed-style double-scan patterns."
+  },
+  "PERF-221": {
+    "id": 221,
+    "name": "map[int]T for Dense Sequential Integer Keys",
+    "description": "A map[int]T or map[int64]T is used to store values keyed by dense sequential integers (e.g., ObjectIDs, page numbers, array indices). For sequential integer keys, a []T slice provides O(1) access with no hashing overhead, better cache locality, and no per-entry heap allocation for key/value pairs. Replace map[int]T with []T when keys are sequential or can be made sequential.",
+    "original_description": "Detect map[int]T used with sequential integer keys where []T would be faster",
+    "weakness_abstraction": "Base",
+    "status": "Draft",
+    "category": "Performance",
+    "applicable_to": [
+      "golang"
+    ],
+    "go_relevance": "Medium",
+    "detection_notes": "Flag map[int]T or map[int64]T where entries are inserted in order with sequentially incrementing keys (i.e., the key is a counter or index)."
+  },
+  "PERF-222": {
+    "id": 222,
+    "name": "Generic Function on Measured Hot Path",
+    "description": "A generic function (func[T any] or func[T constraint]) is called on a measured hot path. Go generics use shape-based dispatch: each unique type instantiation generates a separate function, but the call still goes through a dictionary, defeating inlining and adding call overhead. For measured hot paths, prefer concrete types or code generation over generics.",
+    "original_description": "Detect Go generic functions on hot paths where shape-based dispatch prevents inlining",
+    "weakness_abstraction": "Base",
+    "status": "Draft",
+    "category": "Performance",
+    "applicable_to": [
+      "golang"
+    ],
+    "go_relevance": "Medium",
+    "detection_notes": "Flag calls to generic functions (with type parameters) inside hot loop bodies or request handler call trees. Check if the generic function is called with multiple different type instantiations from the same callsite."
+  },
+  "PERF-223": {
+    "id": 223,
+    "name": "sync.Pool Backing Array Discarded on Return",
+    "description": "A slice or struct containing a backing array is returned to sync.Pool after being set to nil or zeroed, discarding the pre-allocated backing array capacity. On subsequent acquire, the pool returns an object with no backing capacity, forcing a fresh allocation. When objects returned to a pool are expected to be reused, retain the backing array by using Reset() (s = s[:0]) instead of Release() (s = nil).",
+    "original_description": "Detect pool return that discards backing array (nil slice) instead of retaining capacity ([:0])",
+    "weakness_abstraction": "Base",
+    "status": "Draft",
+    "category": "Performance",
+    "applicable_to": [
+      "golang"
+    ],
+    "go_relevance": "Medium",
+    "detection_notes": "Match Put() calls where the argument is a slice that has been nilled (s = nil) or a struct whose slice fields have been nilled, when the pool is known to be reused in a hot path."
+  },
+  "PERF-224": {
+    "id": 224,
+    "name": "Recursive Tree Walk on Hot Execution Path",
+    "description": "A deeply nested tree or graph is traversed using recursive function calls (walk, visit, assign) on a hot execution path. Recursive traversal adds per-call overhead for function frames, parameter passing, and return handling. For trees where the structure is already available in a flat pre-ordered slice, replace the recursive walk with an iterative loop over the flat representation.",
+    "original_description": "Detect recursive tree traversal on hot paths where iterative replacement would be faster",
+    "weakness_abstraction": "Base",
+    "status": "Draft",
+    "category": "Performance",
+    "applicable_to": [
+      "golang"
+    ],
+    "go_relevance": "Medium",
+    "detection_notes": "Flag recursive function calls in measured hot functions where the recursion depth is proportional to input size and a flat pre-ordered representation of the same data exists."
+  }}

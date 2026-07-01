@@ -20,7 +20,7 @@
 | 7 | PERF-171 | Channel Used As Mutex | `make(chan struct{}, 1)` or `make(chan bool, 1)` used for acquire/release | easy |
 | 8 | PERF-181 | `json.Decoder` `UseNumber` Missing | `json.NewDecoder(...)` without a subsequent `.UseNumber()` call | easy |
 | 9 | PERF-182 | `bufio.Writer` Default Buffer Undersized | `bufio.NewWriter(w)` without an explicit size followed by a `Write` of a large slice | easy |
-| 10 | PERF-106 | `sync.Map` Used For Write-Heavy Workload | `sync.Map` declaration in a file where `Store` / `LoadAndDelete` outnumber `Load` | medium (needs a count heuristic) |
+| 10 | PERF-106 | `sync.Map` Used For Write-Heavy Workload | `sync.Map` declaration in a file where `Store` / `LoadAndDelete` outnumber `Load`; also flag sync.Map or map used as cache without eviction bounds (entry cap, byte cap, or TTL) | medium (needs a count heuristic + cache-bounding analysis) |
 
 ## Out of scope (deferred)
 
@@ -49,6 +49,7 @@ The following Category-A detectors are explicitly **not** in this batch; they we
 - [x] `detect_perf_181` — flag `json.NewDecoder(...)` when a subsequent `.UseNumber()` call is not in the same file scope
 - [x] `detect_perf_182` — flag `bufio.NewWriter(w)` (single-arg) when a follow-up `Write` or `WriteString` passes a large string literal
 - [x] `detect_perf_106` — count `sync.Map.Store` / `LoadAndDelete` vs `Load` calls in the file; flag if writes > reads
+- [x] **Cache-bounding extension** (2026-07): updated description and detection to also flag sync.Map or map used as cache without eviction bounds (entry cap, byte cap, or TTL), since unbounded caches cause OOM under concurrent load (see gopdfsuit sharedRowRenderCache k6 regression)
 
 ### 2. Registry + metadata
 
