@@ -37,7 +37,7 @@ fn bench_collect_entries_only(c: &mut Criterion) {
 
     c.bench_function("collect_entries_materialized", |b| {
         b.iter(|| {
-            collect_entries(&registry, &[&root], &filter, &Default::default())
+            collect_entries(&registry, [&root], &filter, &Default::default())
                 .expect("collect entries");
         });
     });

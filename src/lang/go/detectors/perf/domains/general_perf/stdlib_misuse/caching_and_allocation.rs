@@ -474,17 +474,14 @@ fn looks_like_static_builder(callee: &str) -> bool {
         || lower.contains("generate")
 }
 
-fn loop_target<'a>(source: &'a str, start: usize, end: usize) -> &'a str {
+fn loop_target(source: &str, start: usize, end: usize) -> &str {
     let end = char_boundary(source, (end + 64).min(source.len()));
     let text = &source[start..end];
     let Some(range_idx) = text.find("range") else {
         return "";
     };
     let rest = text[range_idx + "range".len()..].trim_start();
-    rest.split(|c: char| c == '{' || c == '\n')
-        .next()
-        .unwrap_or("")
-        .trim()
+    rest.split(['{', '\n']).next().unwrap_or("").trim()
 }
 
 fn recursive_functions(source: &str) -> Vec<String> {

@@ -21,7 +21,7 @@ fn bench_partial(c: &mut Criterion) {
     let registry = slopguard::engine::Registry::default();
     let (entries, _skipped) = collect_entries(
         &registry,
-        &[&root],
+        [&root],
         &slopguard::engine::LanguageFilter::default(),
         &Default::default(),
     )

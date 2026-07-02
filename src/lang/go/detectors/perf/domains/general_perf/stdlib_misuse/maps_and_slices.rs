@@ -150,56 +150,6 @@ fn sync_map_location(source: &str, unit: &ParsedUnit) -> (usize, usize) {
     unit.line_col(byte)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::package_level_cache_usage;
-    use crate::lang::go::detectors::perf::facts::{CallFact, GoPerfFacts};
-    use std::sync::Arc;
-
-    #[test]
-    fn package_level_cache_usage_detects_plain_map_reads_and_writes() {
-        let source = r#"
-var renderCache = map[string]int{}
-
-func lookup(key string) int {
-    if v, ok := renderCache[key]; ok {
-        return v
-    }
-    renderCache[key] = len(key)
-    return renderCache[key]
-}
-"#;
-        let usage =
-            package_level_cache_usage(source, &GoPerfFacts::default(), "renderCache", false);
-        assert!(usage.reads >= 1);
-        assert!(usage.writes >= 1);
-    }
-
-    #[test]
-    fn package_level_cache_usage_detects_sync_map_reads_and_writes() {
-        let facts = GoPerfFacts {
-            calls: vec![
-                CallFact {
-                    callee: Arc::from("renderCache.Load"),
-                    arguments: Box::new([Arc::from("key")]),
-                    start_byte: 0,
-                    enclosing_loop: None,
-                },
-                CallFact {
-                    callee: Arc::from("renderCache.Store"),
-                    arguments: Box::new([Arc::from("key"), Arc::from("value")]),
-                    start_byte: 10,
-                    enclosing_loop: None,
-                },
-            ],
-            ..GoPerfFacts::default()
-        };
-        let usage = package_level_cache_usage("", &facts, "renderCache", true);
-        assert_eq!(usage.reads, 1);
-        assert_eq!(usage.writes, 1);
-    }
-}
-
 /// PERF-110: `sync.Pool` whose `New` function returns a value type
 /// instead of a pointer. Each `Put` boxes the value into an `eface`
 /// on the pool's internal queue, and each `Get` unboxes it; returning
@@ -444,5 +394,55 @@ pub(crate) fn detect_perf_192(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
             "make(map[K]V) without a size hint; pass len(src) to avoid map growth",
             out,
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::package_level_cache_usage;
+    use crate::lang::go::detectors::perf::facts::{CallFact, GoPerfFacts};
+    use std::sync::Arc;
+
+    #[test]
+    fn package_level_cache_usage_detects_plain_map_reads_and_writes() {
+        let source = r#"
+var renderCache = map[string]int{}
+
+func lookup(key string) int {
+    if v, ok := renderCache[key]; ok {
+        return v
+    }
+    renderCache[key] = len(key)
+    return renderCache[key]
+}
+"#;
+        let usage =
+            package_level_cache_usage(source, &GoPerfFacts::default(), "renderCache", false);
+        assert!(usage.reads >= 1);
+        assert!(usage.writes >= 1);
+    }
+
+    #[test]
+    fn package_level_cache_usage_detects_sync_map_reads_and_writes() {
+        let facts = GoPerfFacts {
+            calls: vec![
+                CallFact {
+                    callee: Arc::from("renderCache.Load"),
+                    arguments: Box::new([Arc::from("key")]),
+                    start_byte: 0,
+                    enclosing_loop: None,
+                },
+                CallFact {
+                    callee: Arc::from("renderCache.Store"),
+                    arguments: Box::new([Arc::from("key"), Arc::from("value")]),
+                    start_byte: 10,
+                    enclosing_loop: None,
+                },
+            ],
+            ..GoPerfFacts::default()
+        };
+        let usage = package_level_cache_usage("", &facts, "renderCache", true);
+        assert_eq!(usage.reads, 1);
+        assert_eq!(usage.writes, 1);
     }
 }
