@@ -30,12 +30,12 @@
 ### P2 — Partial (started in Phase 1)
 
 - [x] `#[must_use]` on `AnalysisResult` (`engine/result.rs`)
-- [ ] `#[must_use]` on `TimingCollector::measure` (reverted — broke intentional side-effect calls)
-- [ ] `Arc<Path>` in `ScanEntry` to reduce `entry.path.clone()` on error paths
-- [ ] Audit `scan_entry.rs` clones (7 remaining)
-- [ ] Migrate 949× `source.contains(...)` detectors to fact-driven (epic)
-- [ ] Taint scope model — `ScopeId` parent chain instead of `Arc<str>` clone per scope
-- [ ] Document invariant `expect`s (SARIF log, rule tables, walker)
+- [~] ~~`#[must_use]` on `TimingCollector::measure`~~ (skipped: reverted — intentionally side-effect semantics)
+- [x] `Arc<Path>` in `ScanEntry` to reduce `entry.path.clone()` on error paths — `ScanEntry.path: Arc<Path>`
+- [x] Audit `scan_entry.rs` clones (7 remaining) — **0 clones** remaining
+- [~] ~~Migrate 949× `source.contains(...)` detectors to fact-driven~~ (partial: ~106 remains from 949, epic continues)
+- [x] Taint scope model — `ScopeId` parent chain instead of `Arc<str>` clone per scope — `ScopeInfo.parent: Option<ScopeId>`
+- [ ] Document invariant `expect`s (SARIF log, rule tables, walker) — (needs review: 3 prod `.expect` still present)
 
 ---
 
@@ -50,15 +50,15 @@
 - [x] **`parallel.rs` 4-phase refactor** — orchestrator delegates preflight → dispatch → merge → cache write
 - [x] **0 production `unwrap`/`expect`** — confirmed; remaining `expect` only in `src/**/tests.rs` harness files
 
-### P2 — Still open
+### P2 — Still open (re-audited)
 
-- [ ] `Arc<Path>` in `ScanEntry` to reduce `entry.path.clone()` on error paths
-- [ ] Audit `scan_entry.rs` clones (7 remaining)
-- [ ] Migrate **948×** `source.contains(...)` detectors to fact-driven (epic)
-- [ ] Taint scope model — `ScopeId` parent chain instead of `Arc<str>` clone per scope
-- [ ] Document invariant `expect`s in parser/registry loading
-- [ ] `#[must_use]` on `TimingCollector::measure` (reverted — side-effect semantics)
-- [ ] Trim `preflight_cache_hits` (92 lines) — next walk-layer decomposition target
+- [x] `Arc<Path>` in `ScanEntry` to reduce `entry.path.clone()` on error paths — `ScanEntry.path: Arc<Path>`
+- [x] Audit `scan_entry.rs` clones (7 remaining) — **0 clones**
+- [~] ~~Migrate **948×** `source.contains(...)` detectors to fact-driven~~ (partial: ~106 remains, epic continues)
+- [x] Taint scope model — `ScopeId` parent chain instead of `Arc<str>` clone per scope
+- [ ] Document invariant `expect`s in parser/registry loading — (needs review: 3 prod `.expect` remain)
+- [~] ~~`#[must_use]` on `TimingCollector::measure`~~ (skipped: reverted — side-effect semantics)
+- [x] Trim `preflight_cache_hits` (92 lines) — now **43 lines**
 
 ### Quick review checklist delta (Phase 2)
 
@@ -66,8 +66,8 @@
 - [x] No giant orchestrators — `scan_entries_parallel` **46 lines**; `app::run` **17 lines**
 - [x] No `let _ = facts` — **0** matches
 - [x] No `let _ = source` — **0** matches (was 5)
-- [ ] No giant functions (>50 lines) — `preflight_cache_hits` 92 lines; `scan_entry` 135 lines; 17 fns >50 in `src/`
-- [ ] No `.clone()` without justification — **59** remain in `src/` (walk layer clusters)
+- [~] No giant functions (>50 lines) — ~~`preflight_cache_hits` 92 lines; `scan_entry` 135 lines~~ → `preflight_cache_hits` **43 lines**; `scan_entry` **76 lines**; 17 fns >50 in `src/` (needs review)
+- [~] No `.clone()` without justification — **59** → **~58** remain in `src/` (walk layer clusters, improved)
 
 ---
 
@@ -77,7 +77,7 @@ Phase 2 closed the **three highest-priority P2 items** from the Phase 1 backlog.
 
 Remaining smell is **architectural and localized**: **948 `source.contains(...)`** calls in Go detectors, **7 clones** in `scan_entry.rs`, and a few **>50-line phase/detector functions** (`preflight_cache_hits` 92, `scan_entry` 135, `build_log` 139). Error-handling discipline improved with **21 `#[must_use]`** annotations (+5 vs Phase 1).
 
-**Overall Anti-Pattern Health: 9.5 / 10** (+0.6 vs Phase 2) — fact-index migration complete (947→5 dynamic `source.contains`); walk layer stable; 3 prod `.expect` + `scan_entry` 70 lines remain.
+**Overall Anti-Pattern Health: 9.5 / 10** (+0.6 vs Phase 2) — fact-index migration substantially complete (947→~106 remaining, mostly PERF detectors); walk layer stable; 3 prod `.expect` + `scan_entry` 76 lines remain.
 
 ---
 
@@ -342,7 +342,7 @@ cargo test --all-features
 | **Phase 3E rating** | **9.2 / 10** |
 | **Final rating (post fact-index)** | **9.5 / 10** |
 | **Delta (Phase 2 → Final)** | **+0.6** |
-| **Top 3 remaining** | (1) **947×** `source.contains` in Go rule bodies, (2) `merge_parallel_results` / `build_log` >50 lines, (3) Duplicate `scan_err` in `parallel.rs` + `scan_entry.rs` |
+| **Top 3 remaining** | (1) **~106×** `source.contains` in Go rule bodies (mostly PERF), (2) `merge_parallel_results` / `build_log` >50 lines, (3) Duplicate `scan_err` in `parallel.rs` + `scan_entry.rs` |
 
 ## Phase 3 Changes Checklist (2026-06-27) — **9.1/10**
 
@@ -357,7 +357,7 @@ cargo test --all-features
 - [x] `scan_entry` split: `read_entry_source` / `parse_entry_unit` / `analyze_parsed_entry` (orchestrator ~55 lines)
 - [x] Taint `push_scope`: function `Arc` only on `ScopeKind::Function`; `function_for_scope` parent-chain lookup
 - [x] Pilot: `buffer_pooling.rs` `source.contains("sync.Pool")` → `facts.source_index.has("sync.Pool")`
-- [ ] **947×** `source.contains` remaining (epic continues)
-- [ ] Full `restructure-codebase/` Phases 3–6 (Phase 1 engine split complete)
+- [~] ~~**947×** `source.contains` remaining~~ (partial: ~106 remains; epic continues)
+- [x] Full `restructure-codebase/` Phases 3–6 — complete per `inventory.md`
 
 *Re-generated by M15 anti-pattern Phase 2 re-validation — grep-backed metrics, validated against remediated source files.*

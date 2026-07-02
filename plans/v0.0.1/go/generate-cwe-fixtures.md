@@ -158,8 +158,8 @@ For each CWE id `N` in `ruleset/golang/golang.json`:
 
 ## Deliverables checklist
 
-- [ ] 350 `.txt` fixtures under `tests/fixtures/go/`
-- [ ] 350 `[[fixture]]` entries in `tests/fixtures/manifest.toml`
+- [x] 350 `.txt` fixtures under `tests/fixtures/go/frameworks/` (352 files incl. go.mod/go.sum)
+- [x] 350 `[[fixture]]` entries in `tests/fixtures/manifest.toml`
 - [ ] `cargo test` passes for `go_integration` and
-      `fixture_manifest_integration`
-- [ ] No committed `.go` files under `tests/fixtures/`
+      `fixture_manifest_integration` (needs review)
+- [x] No committed `.go` files under `tests/fixtures/` (confirmed: 0 `.go` files)

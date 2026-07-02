@@ -400,8 +400,15 @@ mod tests {
     fn resolve_scan_path_materializes_text_fixture_inputs() {
         let resolved = resolve_scan_path("tests/fixtures/go/perf/PERF-213-vulnerable.txt")
             .expect("materialize fixture path");
-        assert_eq!(resolved.extension().and_then(|ext| ext.to_str()), Some("go"));
-        assert!(resolved.exists(), "materialized file should exist: {}", resolved.display());
+        assert_eq!(
+            resolved.extension().and_then(|ext| ext.to_str()),
+            Some("go")
+        );
+        assert!(
+            resolved.exists(),
+            "materialized file should exist: {}",
+            resolved.display()
+        );
     }
 
     #[test]
@@ -425,7 +432,10 @@ mod tests {
         .expect("resolve paths");
 
         assert_eq!(resolved.len(), 2);
-        assert_eq!(resolved[0].extension().and_then(|ext| ext.to_str()), Some("go"));
+        assert_eq!(
+            resolved[0].extension().and_then(|ext| ext.to_str()),
+            Some("go")
+        );
         assert_eq!(resolved[1], PathBuf::from("src/app/run.rs"));
     }
 }

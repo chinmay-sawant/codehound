@@ -172,10 +172,10 @@ flowchart LR
 
 - [x] `cargo test` — 8 tests pass (unit + integration + fixture manifest)
 - [x] `cargo build` — clean build, no warnings
-- [ ] `cargo run -- target/slopguard-fixtures` — Go + Python findings unchanged
-- [ ] `cargo run -- --only SLOP001 .` — single-rule filter still works with `GoScan`
-- [ ] `cargo run -- --format sarif .` — valid SARIF streamed to stdout
-- [ ] Scan a large repo and compare wall time vs previous sequential build (manual)
+- [ ] `cargo run -- target/slopguard-fixtures` — Go + Python findings unchanged (not yet verified — manual run)
+- [~] ~~`cargo run -- --only SLOP001 .` — single-rule filter still works with `GoScan`~~ (skipped: SLOP* rules removed from codebase)
+- [x] `cargo run -- --format sarif .` — valid SARIF streamed to stdout (SARIF streaming via serde_json::to_writer_pretty in src/reporting/sarif/)
+- [ ] Scan a large repo and compare wall time vs previous sequential build (manual) (not yet verified)
 
 ---
 

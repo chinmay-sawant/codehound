@@ -207,4 +207,4 @@ show_paths = false      # emit the taint path in JSON/SARIF for debugging
 - [x] Performance budget vs. cache invalidation hooks
 - [x] Risk register with mitigations
 - [x] Configuration design (experimental flag + per-CWE fallback)
-- [ ] Defer to `P2.1-A` kickoff: actual implementation
+- [x] Defer to `P2.1-A` kickoff: actual implementation (`src/lang/go/detectors/cwe/taint/`)

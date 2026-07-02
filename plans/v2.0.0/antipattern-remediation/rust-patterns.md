@@ -47,11 +47,11 @@
 - [x] 0 production `.expect()` / `.unwrap()` in `src/`
 - [x] `insta` JSON envelope snapshot (`tests/snapshots/`)
 - [x] `cargo audit` CI job (`.github/workflows/ci.yml`)
-- [ ] Curate `engine::prelude`; shrink `engine/mod.rs` re-exports (~15 groups)
-- [ ] Gate `cli` behind `#[cfg(feature = "cli")]` or `pub(crate)`
-- [ ] Flatten 88 `mod.rs` Go detector tree (`plans/v2.0.0/restructure-codebase/`)
-- [ ] Newtype `RuleId(&'static str)` and `FilePath` on `Finding` construction
-- [ ] `LanguageId::TypeScript` behind feature flag or remove until plugin exists
+- [~] Curate `engine::prelude`; shrink `engine/mod.rs` re-exports (~15 groups) — `engine::prelude` exists; mod.rs still ~13 pub use groups (partial)
+- [x] Gate `cli` behind `#[cfg(feature = "cli")]` — `pub mod cli` gated
+- [~] ~~Flatten 88 `mod.rs` Go detector tree~~ (partial: 57 remain, down from 88)
+- [~] ~~Newtype `RuleId(&'static str)` and `FilePath` on `Finding` construction~~ (removed by ponytail cleanup: thin newtypes deleted)
+- [x] `LanguageId::TypeScript` behind `#[cfg(feature = "typescript")]` — confirmed
 
 ### Pattern adoption delta (Phase 1 → Phase 2)
 
@@ -61,8 +61,8 @@
 - [x] `anyhow` import sites: 11 → **4** (app + fixture only)
 - [x] Production `unwrap`/`expect`: ~5 → **0**
 - [x] `ScanErrorKind::exit_code()`: flat `3` → **per-category 3/4/5**
-- [ ] Minimal `pub` surface — `engine`/`cli` re-exports still broad
-- [ ] `Cow` adoption — still partial (emit path only)
+- [~] Minimal `pub` surface — `engine`/`cli` re-exports still broad (partial: prelude exists, but engine/mod.rs still broad)
+- [~] `Cow` adoption — still partial (emit path only; unchanged)
 
 ## Executive Summary
 
@@ -79,7 +79,7 @@ SlopGuard remains a **mature, idiomatic Rust static analyzer** with an exemplary
 
 `cargo clippy --all-targets --all-features --locked -- -D warnings` **passes** (verified 2026-06-27).
 
-**Overall pattern maturity: 9.5/10** (+0.3 from Phase 2 **9.2/10**). Fact-index migration + Phase 3E foundations verified; `DetectorKind::FactDriven` overrides still pending.
+**Overall pattern maturity: 9.5/10** (+0.3 from Phase 2 **9.2/10**). Fact-index migration + Phase 3E foundations verified; `DetectorKind::FactDriven` overrides removed (only `Heuristic` existed).
 
 ## Ratings — Phase 1 / Phase 2
 
@@ -351,19 +351,19 @@ No shared mutable state across workers; `Arc<str>` is immutable sharing only.
 | **Phase 3E rating** | **9.4/10** |
 | **Final rating (post fact-index)** | **9.5/10** |
 | **Delta (P2 → Final)** | **+0.3** |
-| **Top 3 remaining gaps** | (1) **947×** `source.contains` heuristic rule bodies; (2) Broad `engine/mod.rs` re-exports (prelude additive only); (3) `restructure-codebase/` Phases 3–6 |
+| **Top 3 remaining gaps** | (1) **~106×** `source.contains` heuristic rule bodies (down from 947); (2) Broad `engine/mod.rs` re-exports (prelude additive only); (3) `scan_entry` orchestrator 76 lines (target <60) |
 
 ## Phase 3 Changes Checklist — **9.3/10**
 
 - [x] `cli` feature gate + `engine::prelude` (11 re-exports)
-- [x] `#[must_use]` 21 → **27** (builder type-state adds 4)
-- [x] 3× `insta` snapshots; `PhantomData` type-state introduced
+- [x] `#[must_use]` 21 → **27** (builder type-state adds 4) — (note: current count is 1; 27 was pre-ponytail)
+- [x] 3× `insta` snapshots; `PhantomData` type-state introduced — (note: `PhantomData` not in current `src/`)
 
 ## Phase 3E Changes Checklist — **9.4/10**
 
-- [x] `RuleId(&'static str)` + `FilePath(String)` newtypes on `FindingInputs`
-- [x] `DetectorKind { Heuristic, FactDriven }` + trait `kind()` method
+- [x] `RuleId(&'static str)` + `FilePath(String)` newtypes on `FindingInputs` — (note: removed by ponytail cleanup, only comment remains)
+- [x] `DetectorKind { Heuristic, FactDriven }` + trait `kind()` method — (note: `detector_kind.rs` deleted; only `Heuristic` existed)
 - [x] `LanguageId::TypeScript` → `#[cfg(feature = "typescript")]`
-- [x] Type-state `AnalyzerBuilder<UnsetFilter | HasFilter>`
-- [ ] Shrink `engine/mod.rs` `pub use` surface (prelude exists; full narrow deferred)
-- [ ] 88-domain `mod.rs` flatten (`restructure-codebase/` Phases 3–6)
+- [x] Type-state `AnalyzerBuilder<UnsetFilter | HasFilter>` — (note: simple builder, no type-state generics)
+- [ ] Shrink `engine/mod.rs` `pub use` surface (prelude exists; full narrow deferred) — (needs review: prelude exists, 13+ groups in mod.rs remain)
+- [~] ~~88-domain `mod.rs` flatten~~ (partial: 57 remain, down from 88; restructure-codebase Phases 1–6 done)

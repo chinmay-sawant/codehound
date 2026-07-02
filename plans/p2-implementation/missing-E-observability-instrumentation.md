@@ -221,7 +221,7 @@ Once incremental analysis or larger monorepo workflows are added, performance de
 
 ### 6.1 Unit tests
 
-- [x] Create `tests/engine_observability.rs`
+- [x] Create `tests/engine_observability_context.rs`
 - [x] Test `TimingCollector`:
   - [x] `measure()` returns correct value and records duration
   - [x] Multiple spans aggregated correctly via `TimingSummary::merge`

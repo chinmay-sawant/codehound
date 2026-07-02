@@ -329,7 +329,7 @@ cargo test --test go_perf_detector_integration
 ### 6.2 Plans
 
 - [x] Update `plans/p2-remaining-work.md` — tick off completed workstreams
-- [ ] Archive `plans/perf-batch-4.md` → `plans/v2.0.0/archive/`
+- [ ] ~~Archive `plans/perf-batch-4.md` → `plans/v2.0.0/archive/`~~ (still open — file at `plans/perf-batch-4.md` not yet moved)
 
 ---
 

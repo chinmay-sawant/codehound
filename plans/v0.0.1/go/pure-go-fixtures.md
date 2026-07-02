@@ -192,12 +192,12 @@ framework set rule.
 
 ## Deliverables checklist
 
-- [ ] 350 new `.txt` fixtures under `tests/fixtures/go/stdlib/`
-- [ ] All new fixtures declare `file: ...pure.go` and `variant: pure-go`
-- [ ] 350 new `[[fixture]]` entries in `tests/fixtures/manifest.toml`
-- [ ] Forbidden-import grep returns zero matches
-- [ ] No filename collisions with the framework set at materialization
-- [ ] Pre-existing off-by-one in `tests/fixtures/go/` ↔ manifest resolved
-- [ ] `cargo test --test go_integration` passes
-- [ ] `cargo test --test fixture_manifest_integration` passes
-- [ ] No committed `.go` files (all under `target/slopguard-fixtures/`)
+- [x] 350 new `.txt` fixtures under `tests/fixtures/go/stdlib/` (351 total — 350 CWE + 1 extra)
+- [x] All new fixtures declare `file: ...pure.go` and `variant: pure-go` (confirmed via grep)
+- [x] 350 new `[[fixture]]` entries in `tests/fixtures/manifest.toml` (350 stdlib entries)
+- [x] Forbidden-import grep returns zero matches (confirmed: 0 matches)
+- [x] No filename collisions with the framework set at materialization (`.pure.go` suffix)
+- [ ] Pre-existing off-by-one in `tests/fixtures/go/` ↔ manifest resolved (needs review)
+- [ ] `cargo test --test go_integration` passes (needs review)
+- [ ] `cargo test --test fixture_manifest_integration` passes (needs review)
+- [x] No committed `.go` files (confirmed: 0 `.go` files under `tests/fixtures/`)

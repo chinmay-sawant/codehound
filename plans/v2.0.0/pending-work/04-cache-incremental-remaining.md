@@ -139,7 +139,7 @@ Currently every file under ~4 MiB is cached; the threshold is implicit (based on
 
 ### 4.1 Fix `docs/incremental-cache.md` claims
 
-- [ ] Update line 99–100 which states "Size-based LRU eviction (`max_size_mb`) is wired in config but not yet enforced on `flush()`." — this is **incorrect**; `evict_to_size()` IS implemented and called from `flush()`. Change to: "Size-based LRU eviction (`max_size_mb`) is enforced on `flush()`. See `store_flush.rs:40`."
+- [x] Update line 99–100 which states "Size-based LRU eviction (`max_size_mb`) is wired in config but not yet enforced on `flush()`." — this is **incorrect**; `evict_to_size()` IS implemented and called from `flush()`. Change to: "Size-based LRU eviction (`max_size_mb`) is enforced on `flush()`. See `store_flush.rs:40`." **Already fixed** in current `docs/incremental-cache.md:99-100`
 - [ ] Add a note that `evict_target_ratio` (default 0.9) controls how aggressively the cache prunes (once Phase 1.1 lands)
 - [ ] Add a note that `max_file_size_mb` (default 4) controls per-file caching threshold (once Phase 1.2 lands)
 

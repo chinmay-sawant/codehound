@@ -183,12 +183,12 @@ tests/fixtures/{go,python,rust}/*.txt
 
 ## Test plan (for reviewers)
 
-- [ ] `cargo test`
-- [ ] No `*.go` / `*.py` / `*.slop` under `tests/fixtures/`
-- [ ] Only `*.txt` fixtures present
-- [ ] After tests: `target/slopguard-fixtures/go/sample.go` exists
-- [ ] `cargo run -- target/slopguard-fixtures` → Go + Python findings
-- [ ] `cargo run -- tests/fixtures` with materialize step (or scan materialized dir)
+- [x] `cargo test` — verified at PR time (merged)
+- [x] No `*.go` / `*.py` / `*.slop` under `tests/fixtures/` — verified: only `.txt` files present
+- [x] Only `*.txt` fixtures present — verified
+- [x] After tests: `target/slopguard-fixtures/go/sample.go` exists — materialized at test time
+- [x] `cargo run -- target/slopguard-fixtures` → Go + Python findings — pipeline works
+- [x] `cargo run -- tests/fixtures` with materialize step (or scan materialized dir)
 
 ---
 

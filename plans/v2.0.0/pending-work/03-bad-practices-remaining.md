@@ -39,20 +39,13 @@ Bad Practices (BP) detection is a rule category beyond CWE (security) and PERF (
 
 ### 1.1 Detector kind
 
-- [ ] Override `Detector::kind()` on `GoBadPracticeScan` to return `FactDriven` (currently defaults to `Heuristic`). The BP detector uses `SourceIndex` fact extraction, matching the CWE/PERF pattern.
-
-  File: `src/lang/go/detectors/bad_practices/mod.rs`
-  ```rust
-  fn kind(&self) -> DetectorKind {
-      DetectorKind::FactDriven
-  }
-  ```
+- [~] ~~Override `Detector::kind()` on `GoBadPracticeScan` to return `FactDriven`~~ `(skipped: DetectorKind enum removed in ponytail audit — only Heuristic variant existed, `kind()` trait method no longer exists)`
 
 ### 1.2 Wire `check_no_prod_expect.sh`
 
-- [ ] Audit `src/lang/go/detectors/bad_practices/` for any `expect()` or `unwrap()` calls in production code (outside `#[cfg(test)]`). The plan notes 3 calls still exist in walker/registry.
-- [ ] Fix them to use proper error propagation or `?`.
-- [ ] Verify `scripts/check_no_prod_expect.sh` passes against the BP module.
+- [x] Audit `src/lang/go/detectors/bad_practices/` for any `expect()` or `unwrap()` calls in production code — **0 found**, BP module is clean
+- [x] Fix them to use proper error propagation — nothing to fix
+- [x] Verify `scripts/check_no_prod_expect.sh` passes against the BP module — confirmed clean
 
 ### 1.3 Dedicated integration test file
 
@@ -70,7 +63,7 @@ Bad Practices (BP) detection is a rule category beyond CWE (security) and PERF (
 
 ### 1.4 Negative fixtures
 
-- [ ] For each MVP rule (BP-1..BP-11, BP-13, BP-15), create a negative fixture that exercises the "almost but not quite" pattern:
+- [x] For each MVP rule (BP-1..BP-11, BP-13, BP-15), create a negative fixture that exercises the "almost but not quite" pattern:
   - BP-1: `_ = doSomething()` where `doSomething()` returns `void` (not `error`) — should not fire
   - BP-3: `panic()` in `init()` function — should fire (init is outside main/test)
   - BP-5: `defer file.Close()` — should not fire (deferred close is correct pattern)
@@ -79,7 +72,7 @@ Bad Practices (BP) detection is a rule category beyond CWE (security) and PERF (
   - BP-11: `defer` in straight-line code (not in loop) — should not fire
   - BP-13: `context.Background()` in `main()` — should not fire
   - BP-15: `sync.Once.Do()` with non-recursive closure — should not fire
-- [ ] Register in `tests/fixtures/manifest.toml` with `required_rules = []`
+- [x] Register in `tests/fixtures/manifest.toml` with `required_rules = []`
 
 ### 1.5 BP-15 regression test
 

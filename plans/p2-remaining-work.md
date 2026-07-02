@@ -94,7 +94,7 @@
   - [x] `tests/go_perf_registry_generation.rs` compares generated runtime PERF rule IDs against `registry.toml`.
 - [x] **Phase 3.2 — Category B (~40 context-aware rules)** — mostly shipped across batches 6-9. The HTTP/database rules (PERF-102, 108, 109, 141-144, 160-164, 189, 205, 207, 212) are all implemented and tested.
 - [ ] **Phase 3.3 — Category C (~32 multi-file / semantic rules)** — not started. The remaining 5 unimplemented rules (PERF-134, 139, 150, 151) need Category C treatment. Overlaps with P2.1 taint tracking; many need the inter-procedural work from P2.1 Phase F.
-- [ ] **Phase 4 — Test fixtures (`vulnerable_perf_N.txt` + `safe_perf_N.txt`) for PERF-101..212**
+- [x] **Phase 4 — Test fixtures (`vulnerable_perf_N.txt` + `safe_perf_N.txt`) for PERF-101..212**
   - [x] First batch (PERF-103/105/107/111/112/115-118/120/122/123/124/126-127) fixtures created and registered (15 detectors).
   - [x] Second registry/fixture batch (PERF-101/113/146/147/157/190/198) created and registered (7 detectors).
   - [x] Third registry/fixture batch (PERF-114/119/125/129/156/177/192) created and registered (7 Category-A detectors).
@@ -254,7 +254,7 @@ See **§ P2.1** above for detailed status: Phase A (Foundation) and Phase B (Int
 ### E.6 Missing / deferred from P2.3 plan (originally flagged but not done)
 
 - [ ] **Add a size threshold above which source is not cached** (Phase 6.1 of the P2.3 plan). Today every file under 4 MiB is cached; the threshold is implicit. Make it a config field (`cache.max_file_size_mb`, default 4) so very large generated files can be excluded.
-- [ ] **A `HashMap`-based "fallback" `file_cache`** — superseded by `Missing A source cache population` and the P2.3 cache, but the plan checkbox is still unchecked. **Mark as superseded** in the plan; the P2.3 cache is the source of truth.
+- [~] ~~**A `HashMap`-based "fallback" `file_cache`** — superseded by `Missing A source cache population` and the P2.3 cache, but the plan checkbox is still unchecked. **Mark as superseded** in the plan; the P2.3 cache is the source of truth.~~ (superseded by P2.3 incremental cache)
 - [x] **Re-key the dependency to its absolute form** in the analyzer's invalidation hook — done.
 - [x] **Cache invalidation hook in the analyzer** to cascade — done.
 

@@ -18,7 +18,11 @@ pub fn write_with_options(
     options: TextOptions,
 ) -> Result<(), Error> {
     if result.findings.is_empty() {
-        writeln!(out, "{}", styled_green_bold("no slop detected", options.color))?;
+        writeln!(
+            out,
+            "{}",
+            styled_green_bold("no slop detected", options.color)
+        )?;
         write_summary(out, result, options)?;
         return Ok(());
     }

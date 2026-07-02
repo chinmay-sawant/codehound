@@ -88,7 +88,7 @@ Single `pub const fn fix_for(id: u32) -> Option<&'static str>` with 99+ arms, pl
 
 ### Option B — split by id-range (not implemented — Option A chosen)
 
-- [ ] Create 10 files `p1_loop_allocations.rs` through `p10_stdlib_c.rs`, each exporting a `pub(super) const FIX_FOR_TABLE: &[(u32, &str)]`. The top-level `fix_for` becomes a small lookup loop in `mod.rs`.
+- [~] ~~Create 10 files `p1_loop_allocations.rs` through `p10_stdlib_c.rs`, each exporting a `pub(super) const FIX_FOR_TABLE: &[(u32, &str)]`. The top-level `fix_for` becomes a small lookup loop in `mod.rs`.~~ (skipped: Option A chosen — content-based comments, no range split)
 
 ### Caveat
 

@@ -54,17 +54,17 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 
 ### Option B — split by CWE id range (not implemented — Option A chosen)
 
-- [ ] Create `src/lang/go/detectors/cwe/metadata_overrides/mod.rs` with `pub const fn severity_for` fan-out + `pub const fn fix_for` fan-out (~300 chars)
-- [ ] Create `src/lang/go/detectors/cwe/metadata_overrides/severity_15_199.rs` — `severity_for` for ids 15..=199 (~600 chars)
-- [ ] Create `src/lang/go/detectors/cwe/metadata_overrides/severity_200_599.rs` — ids 200..=599 (~600 chars)
-- [ ] Create `src/lang/go/detectors/cwe/metadata_overrides/severity_600_1392.rs` — ids 600..=1392 (~600 chars)
-- [ ] Create `src/lang/go/detectors/cwe/metadata_overrides/fix_15_199.rs` — `fix_for` for 15..=199 (~3 500 chars)
-- [ ] Create `src/lang/go/detectors/cwe/metadata_overrides/fix_200_399.rs` — ids 200..=399 (~3 500 chars)
-- [ ] Create `src/lang/go/detectors/cwe/metadata_overrides/fix_400_599.rs` — ids 400..=599 (~3 500 chars)
-- [ ] Create `src/lang/go/detectors/cwe/metadata_overrides/fix_600_999.rs` — ids 600..=999 (~3 500 chars)
-- [ ] Create `src/lang/go/detectors/cwe/metadata_overrides/fix_1000_1392.rs` — ids 1000..=1392 (~3 500 chars)
-- [ ] Each `fix_NNN_MMM.rs` exports `pub(super) const fn fix_for(id: u32) -> Option<&'static str>` that returns `None` for ids outside its range. The fan-out in `mod.rs` is a `const`-compatible `match`.
-- [ ] In `metadata.rs`, change `include!("metadata_overrides.rs")` → `pub(super) mod metadata_overrides;` (textual include becomes a real module).
+- [~] ~~Create `src/lang/go/detectors/cwe/metadata_overrides/mod.rs` with `pub const fn severity_for` fan-out + `pub const fn fix_for` fan-out (~300 chars)~~ (skipped: Option A chosen — kept flat with comments)
+- [~] ~~Create `src/lang/go/detectors/cwe/metadata_overrides/severity_15_199.rs` — `severity_for` for ids 15..=199 (~600 chars)~~ (skipped: Option A chosen)
+- [~] ~~Create `src/lang/go/detectors/cwe/metadata_overrides/severity_200_599.rs` — ids 200..=599 (~600 chars)~~ (skipped: Option A chosen)
+- [~] ~~Create `src/lang/go/detectors/cwe/metadata_overrides/severity_600_1392.rs` — ids 600..=1392 (~600 chars)~~ (skipped: Option A chosen)
+- [~] ~~Create `src/lang/go/detectors/cwe/metadata_overrides/fix_15_199.rs` — `fix_for` for 15..=199 (~3 500 chars)~~ (skipped: Option A chosen)
+- [~] ~~Create `src/lang/go/detectors/cwe/metadata_overrides/fix_200_399.rs` — ids 200..=399 (~3 500 chars)~~ (skipped: Option A chosen)
+- [~] ~~Create `src/lang/go/detectors/cwe/metadata_overrides/fix_400_599.rs` — ids 400..=599 (~3 500 chars)~~ (skipped: Option A chosen)
+- [~] ~~Create `src/lang/go/detectors/cwe/metadata_overrides/fix_600_999.rs` — ids 600..=999 (~3 500 chars)~~ (skipped: Option A chosen)
+- [~] ~~Create `src/lang/go/detectors/cwe/metadata_overrides/fix_1000_1392.rs` — ids 1000..=1392 (~3 500 chars)~~ (skipped: Option A chosen)
+- [~] ~~Each `fix_NNN_MMM.rs` exports `pub(super) const fn fix_for(id: u32) -> Option<&'static str>` that returns `None` for ids outside its range. The fan-out in `mod.rs` is a `const`-compatible `match`.~~ (skipped: Option A — kept flat)
+- [~] ~~In `metadata.rs`, change `include!("metadata_overrides.rs")` → `pub(super) mod metadata_overrides;` (textual include becomes a real module).~~ (skipped: Option A — kept flat)
 
 ### Caveat
 
@@ -73,7 +73,7 @@ Split every oversized file under `src/lang/go/detectors/cwe/metadata_overrides.r
 ### Recommendation
 
 - [x] **Option A** if the goal is to preserve the `include!` flow. **Chosen** — kept flat with comments.
-- [ ] **Option B** if the 30k char cap is strict. Not implemented (const-fn split requires MSRV bump).
+- [~] ~~**Option B** if the 30k char cap is strict. Not implemented (const-fn split requires MSRV bump).~~ (skipped: Option A chosen)
 
 ---
 

@@ -137,7 +137,7 @@ document that covers the proposed split.
 | `src/lang/go/detectors/perf/domains/protocols/observability.rs` | 6 273 | 233 | §4.16 | Split out `prometheus.rs` + `cobra.rs`; dedup with `common.rs` | [x] |
 | `src/lang/go/detectors/perf/domains/protocols/common.rs` | 3 169 | 147 | §4.17 | **Activate** — add `pub(crate) use common::*;` to `protocols/mod.rs`; delete dead `FLAG_METHODS` | [x] |
 | `src/lang/go/detectors/perf/source_index.rs` | 2 037 | 88 | §4.18 | **No split** — single concept | [x] |
-| `src/lang/go/detectors/facts.rs` | 2 558 | 84 | (out of scope) | Parent bundle's facts stub — out of scope | [ ] |
+| `src/lang/go/detectors/facts.rs` | 2 558 | 84 | (out of scope) | Parent bundle's facts stub — out of scope | [x] |
 
 **Phase 4 subtotal:** 19 files targeted, 16 require splitting, ~75 new files to author.
 

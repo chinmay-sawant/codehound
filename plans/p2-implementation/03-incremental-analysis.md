@@ -257,7 +257,7 @@ Cache parsed ASTs and extracted facts to disk. On re-run, only parse files whose
 
 - [x] When emitting cached findings, re-validate each finding against current `ScanContext`:
   - [x] Apply `ctx.allows(rule_id)` — rule might be skipped in this run (via `--skip` or config)
-  - [ ] Apply inline ignore comments (deferred — source is re-read on every cache hit for the hash check, so re-parsing is effectively free; storing the ignore set in the entry is unnecessary complexity today)
+  - [~] ~~Apply inline ignore comments~~ (skipped: intentionally deferred — source is re-read on every cache hit for the hash check, so re-parsing is effectively free; storing the ignore set in the entry is unnecessary complexity today)
   - [x] If finding is filtered out by current context, don't emit it
 
 ### 4.3 Cache invalidation logic
@@ -360,9 +360,9 @@ Cache parsed ASTs and extracted facts to disk. On re-run, only parse files whose
 
 - [x] Implement `CacheStore::total_size() -> u64` — sum of all cache entry files
 - [x] Add config option `cache.max_size_mb: u64` (default: 500)
-- [ ] On `flush()`, if total_size > max_size_mb:
-  - [ ] Remove oldest entries (by `cached_at` timestamp) until under limit
-  - [ ] Log warning about cache pruning
+- [x] On `flush()`, if total_size > max_size_mb (implemented in `src/engine/cache/store_flush.rs`):
+  - [x] Remove oldest entries (by `cached_at` timestamp) until under limit (via `evict_to_size()`)
+  - [x] Log warning about cache pruning
 
 ---
 
@@ -442,10 +442,10 @@ Cache parsed ASTs and extracted facts to disk. On re-run, only parse files whose
 ### 8.3 Performance benchmarking
 
 - [x] Add benchmark: `benches/incremental_scan.rs` (created; specific 10× assertion left to final benchmarking pass)
-  - [ ] First-run scan (no cache) → measure baseline time
-  - [ ] Second-run scan (all cache hits) → measure cached time
-  - [ ] Assert cached time is at least 10× faster than baseline
-- [ ] Add benchmark: mixed run (50% changed files) → measure partial invalidation perf
+  - [x] First-run scan (no cache) → measure baseline time (`bench_cold` in `benches/incremental_scan.rs`)
+  - [x] Second-run scan (all cache hits) → measure cached time (`bench_warm` in `benches/incremental_scan.rs`)
+  - [ ] Assert cached time is at least 10× faster than baseline (left to final benchmarking pass)
+- [x] Add benchmark: mixed run (50% changed files) → measure partial invalidation perf (`benches/incremental_partial_scan.rs`)
 
 ### 8.4 Robustness tests
 

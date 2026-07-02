@@ -65,7 +65,7 @@ Add the following sanitizer functions to the classifier in `src/lang/go/detector
 
 - [ ] `strconv.Atoi`, `strconv.ParseInt`, `strconv.ParseFloat` → `SanitizerKind::Validation` (converts string to number, fails if invalid)
 - [ ] `utf8.ValidString` → `SanitizerKind::Validation` (confirms valid UTF-8)
-- [ ] `html.EscapeString`, `html.UnescapeString` → `SanitizerKind::HTML` (stdlib HTML escaping, distinct from `template.HTMLEscaper`)
+- [~] ~~`html.EscapeString`, `html.UnescapeString` → `SanitizerKind::HTML` (stdlib HTML escaping, distinct from `template.HTMLEscaper`)~~ `(skipped: html.EscapeString already in classify_sanitizer, but html.UnescapeString not added)`
 - [ ] `net/url.IsAbs` → `SanitizerKind::URL` (validates absolute URL)
 - [ ] `strings.HasPrefix`, `strings.HasSuffix`, `strings.Contains` → `SanitizerKind::Validation` (guard checks that restrict input)
 

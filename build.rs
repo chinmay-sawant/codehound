@@ -21,8 +21,12 @@ use types::{PerfRegistryFile, RegistryFile};
 fn read_ruleset_value(path: &Path) -> serde_json::Value {
     let text = fs::read_to_string(path)
         .unwrap_or_else(|e| panic!("Failed to read ruleset chunk {}: {e}", path.display()));
-    serde_json::from_str(&text)
-        .unwrap_or_else(|e| panic!("Failed to parse ruleset chunk {} as JSON: {e}", path.display()))
+    serde_json::from_str(&text).unwrap_or_else(|e| {
+        panic!(
+            "Failed to parse ruleset chunk {} as JSON: {e}",
+            path.display()
+        )
+    })
 }
 
 fn read_ruleset_chunks(dir: &Path) -> serde_json::Value {

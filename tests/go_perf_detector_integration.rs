@@ -20,7 +20,10 @@ fn reported_rule_ids(stdout: &str) -> Vec<&str> {
         .lines()
         .filter_map(|line| {
             let trimmed = line.trim_start();
-            if trimmed.is_empty() || trimmed.starts_with("severity:") || trimmed.starts_with("top rules:") {
+            if trimmed.is_empty()
+                || trimmed.starts_with("severity:")
+                || trimmed.starts_with("top rules:")
+            {
                 return None;
             }
             let mut parts = trimmed.split_whitespace();
@@ -78,7 +81,9 @@ fn go_perf_text_fixtures_also_work_via_cli_scan_path() {
             .unwrap_or_else(|e| panic!("run {vulnerable}: {e}"));
         let vulnerable_stdout = String::from_utf8_lossy(&vulnerable_run.stdout);
         let vulnerable_ids = reported_rule_ids(&vulnerable_stdout);
-        if vulnerable_run.status.code() != Some(1) || !vulnerable_ids.contains(&expected_rule.as_str()) {
+        if vulnerable_run.status.code() != Some(1)
+            || !vulnerable_ids.contains(&expected_rule.as_str())
+        {
             failures.push(format!(
                 "{vulnerable}: expected exit 1 and {expected_rule}, got status {:?}, ids {:?}, stdout:\n{}",
                 vulnerable_run.status.code(),

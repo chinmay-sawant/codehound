@@ -182,6 +182,8 @@ The goal is to collapse repeated optimization themes across those docs into one 
 
 ---
 
+> **Note:** This checklist documents the **gopdfsuit** project's optimization status (not slopguard). Items below cannot be validated against the slopguard codebase; they remain as documented by the original analysis.
+
 ## Phase 3: Dedupe of Work Still Open / Repeatedly Deferred
 
 ### 3.1 Still-open engine and HFT items

@@ -158,8 +158,8 @@ This plan consolidates all cross-cutting items that don't fit neatly into a sing
 
 > Also tracked in `03-bad-practices-remaining.md` Phase 1.4.
 
-- [ ] Create negative fixtures for all 13 MVP BP rules (see `03-bad-practices-remaining.md` for detailed list)
-- [ ] Register in `tests/fixtures/manifest.toml`
+- [x] Create negative fixtures for all 13 MVP BP rules (see `03-bad-practices-remaining.md` for detailed list) — safe fixtures exist for all 13 MVP rules
+- [x] Register in `tests/fixtures/manifest.toml` — all 13 pairs registered
 
 ---
 

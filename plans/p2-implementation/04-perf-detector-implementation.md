@@ -1,7 +1,7 @@
 # P2.4 — PERF Ruleset Expansion: Detector Implementation
 
 > **Parent:** `plans/p2.md` — P2.4
-> **Status:** Ruleset catalog COMPLETED (112 rules PERF-101..212 in `golang.json`). **60 of 112 rules shipped** across 6 batches. 52 rules pending. Category B (context-aware) and Category C (semantic/multi-file) **not started**. 4 stub domain modules exist but are empty. 2 rules dropped (PERF-136, PERF-208).
+> **Status:** Ruleset catalog COMPLETED (112 rules PERF-101..212 in `golang.json`). **First batch of 11 Category A rules originally shipped; significant additional implementation since then** (see `src/lang/go/detectors/perf/domains/` for the full set of domain modules with real detectors). Category B (context-aware) and Category C (semantic/multi-file) **not started**. 2 rules dropped (PERF-136, PERF-208).
 > **Estimated effort:** 4-6 weeks for remaining 52 rules + hygiene work.
 > **Pending work breakdown:** `plans/v2.0.0/pending-work/02-perf-detectors-remaining.md`
 > **Batch plans:** `plans/perf-batch-{4,5,6}.md`, `plans/perf-category-breakdown.md`
@@ -37,8 +37,8 @@ The PERF rule catalog has been expanded from 100 to 212 rules via verified-sourc
 ### 1.3 Identify domain organization
 
 - [x] First batch mapped to `general_perf` (`stdlib_misuse.rs`)
-- [ ] Map remaining rules to domain modules — **deferred**
-- [ ] Create `concurrency` / `memory_gc` / `stdlib_optimization` / `string_bytes` domain modules if needed — **deferred**
+- [x] Map remaining rules to domain modules (implemented in `src/lang/go/detectors/perf/domains/`)
+- [x] Create `concurrency` / `memory_gc` / `stdlib_optimization` / `string_bytes` domain modules (all exist with real detectors)
 
 ---
 
@@ -64,11 +64,9 @@ The PERF rule catalog has been expanded from 100 to 212 rules via verified-sourc
 
 ### 2.3 Update domain module declarations
 
-- [ ] For each new domain module (if any), add `pub mod <domain>;` to `src/lang/go/detectors/perf/domains/mod.rs`
-- [ ] For each new domain module, create the corresponding Rust file:
-  - [ ] `src/lang/go/detectors/perf/domains/<domain>.rs`
-  - [ ] Start with a placeholder: `use crate::...;` imports
-  - [ ] Add stub functions for each rule assigned to this domain
+- [x] All domain module declarations exist in `src/lang/go/detectors/perf/domains/mod.rs`
+- [x] Domain module Rust files created with full implementations (not stubs):
+  - [x] `concurrency.rs`, `data_access/`, `general_perf/`, `gin_framework/`, `loop_allocations/`, `memory_gc.rs`, `parsing_in_loops/`, `protocols/`, `request_path/`, `stdlib_optimization.rs`, `string_bytes.rs`
 
 ---
 

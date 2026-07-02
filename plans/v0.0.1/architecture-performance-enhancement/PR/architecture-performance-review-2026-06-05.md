@@ -298,6 +298,6 @@ That is a respectable score. It is not a generous score.
 
 ### Still open (not part of the above batch)
 
-- [ ] Callee-indexed rule scheduling to skip rules when sinks are absent.
-- [ ] Incremental tree-sitter parse / file-hash cache.
-- [ ] Further shrink `general_security` hot paths beyond `SourceIndex` (tree-sitter queries).
+- [ ] Callee-indexed rule scheduling to skip rules when sinks are absent. (not yet implemented — not found in src/)
+- [ ] Incremental tree-sitter parse / file-hash cache. (not yet implemented — file-hash finding cache (CacheStore) exists, but no incremental AST tree reuse)
+- [ ] Further shrink `general_security` hot paths beyond `SourceIndex` (tree-sitter queries). (not yet implemented — no tree-sitter queries found in general_security modules)

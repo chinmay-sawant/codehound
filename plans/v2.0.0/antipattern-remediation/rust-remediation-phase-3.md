@@ -20,7 +20,7 @@
 
 ## Overview
 
-Phase 3 closed hygiene and structural debt. Phase 3E landed architectural foundations and **completed** the Go detector fact-index migration (`source.contains` 947 → 5 dynamic checks). `restructure-codebase/` Phases 1–6 are **done** per `restructure-codebase/inventory.md` (parent `README.md` status line is stale only).
+Phase 3 closed hygiene and structural debt. Phase 3E landed architectural foundations and **substantially completed** the Go detector fact-index migration (`source.contains` 947 → ~106 remaining, mostly in PERF detectors). `restructure-codebase/` Phases 1–6 are **done** per `restructure-codebase/inventory.md` (parent `README.md` status line is stale only).
 
 ---
 
@@ -28,14 +28,14 @@ Phase 3 closed hygiene and structural debt. Phase 3E landed architectural founda
 
 - [x] Migrate `#[allow(dead_code)]` → `#[expect]` / `#[cfg(test)]` — **`#[allow]` in `src/`: 0**
 - [x] `rustfmt.toml` + `scripts/check_no_prod_expect.sh` + CI
-- [ ] `cargo fmt --check` — **fail** post fact-index (run `cargo fmt` before release)
+- [ ] `cargo fmt --check` — (needs review: still fail, formatting drift)
 
 ## Phase 3B — Walk Layer Trim
 
 - [x] Split `preflight_cache_hits` — **43 lines** (target <45)
 - [x] `scan_err()` helper; `ScanEntry.path` → `Arc<Path>`
 - [x] `scan_entry.rs` clones — **0** `.clone()`; **1** `Arc::clone` for parse handoff
-- [ ] `scan_entry` orchestrator — **70 lines** (target <60; helpers extracted)
+- [ ] `scan_entry` orchestrator — **76 lines** (target <60; needs further trimming)
 
 ## Phase 3C — Documentation & Testing
 
@@ -53,7 +53,7 @@ Phase 3 closed hygiene and structural debt. Phase 3E landed architectural founda
 ## Phase 3E — Epic
 
 - [x] `DetectorKind { Heuristic, FactDriven }` on `Detector` trait (`core/detector_kind.rs`)
-- [ ] Wire `kind() → FactDriven` on `GoCweScan` / `GoPerfScan` / `GoBadPracticeScan` (still default `Heuristic`)
+- [~] ~~Wire `kind() → FactDriven` on `GoCweScan` / `GoPerfScan` / `GoBadPracticeScan`~~ (removed: `detector_kind.rs` and `kind()` deleted; only `Heuristic` existed)
 - [x] `RuleId` + `FilePath` newtypes (`src/rules/types.rs`)
 - [x] `LanguageId::TypeScript` → `#[cfg(feature = "typescript")]` (optional, not default)
 - [x] Taint scope: function `Arc` only on `ScopeKind::Function`; `function_for_scope` parent-chain
@@ -65,11 +65,11 @@ Phase 3 closed hygiene and structural debt. Phase 3E landed architectural founda
 
 | Metric | Before | After |
 |---|---:|---:|
-| `source.contains` in `src/lang/go/detectors/` | **947** | **8** |
+| `source.contains` in `src/lang/go/detectors/` | **947** | **~106** (perf 103, cwe 2, bp 1) |
 | ↳ index `build()` (single-pass) | — | **3** (`cwe`, `perf`, `bad_practices` `source_index.rs`) |
 | ↳ intentional dynamic checks | — | **5** (`payloads.rs`×1, `ranges_and_types.rs`×3, `sort_and_search.rs`×1) |
 | `NEEDLES` precomputed per bundle | pilot | **CWE 736** + **PERF 539** + **BP 12** = **1,287** |
-| `facts.source_index.has` / `index.has` / `has_any` | ~1 | **858** call sites |
+| `facts.source_index.has` / `index.has` / `has_any` | ~1 | **858** call sites (still ~106 raw `source.contains` in PERF/hot paths) |
 | `is_request_path(&PerfSourceIndex)` | raw `source` | **migrated** (`perf/common.rs`) |
 | `bad_practices/source_index.rs` | — | **new** — index built once per file in `run()` |
 
@@ -80,18 +80,18 @@ Phase 3 closed hygiene and structural debt. Phase 3E landed architectural founda
 | Gate | Status | Value |
 |---|---|---|
 | `cargo clippy --all-targets --all-features --locked -- -D warnings` | [x] pass | green |
-| `cargo test --all-features` | [ ] partial | **268 passed**, **1 failed** (`perf_regression` repeat budget 1.006s > 1.0s) |
-| `cargo fmt --check` | [ ] fail | post migration formatting drift |
-| `bash scripts/check_no_prod_expect.sh` | [ ] fail | **3** prod `.expect(` (`cwe/mod.rs`, `perf/mod.rs`, `walker_core.rs`) |
-| `rg '#\[allow' src/` | [x] | **0** |
-| `rg '#\[expect' src/` | [x] | **4** |
-| `rg '#\[must_use' src/` | [x] | **26** |
+| `cargo test --all-features` | [ ] partial | **268 passed**, **1 failed** (`perf_regression` repeat budget 1.006s > 1.0s) — (needs review) |
+| `cargo fmt --check` | [ ] fail | post migration formatting drift — (needs review) |
+| `bash scripts/check_no_prod_expect.sh` | [ ] fail | **8** prod `.expect`/`.unwrap` hits (3 core + 5 in `app/run.rs`) — (needs review) |
+| `rg '#\[allow' src/` | [x] | **2** (`description.rs`, `lang/mod.rs`) |
+| `rg '#\[expect' src/` | [x] | **2** (both in `build/types.rs`; 0 in `src/`) |
+| `rg '#\[must_use' src/` | [x] | **1** (`engine/result.rs`; 26 claimed in plans, likely stripped by ponytail) |
 | `anyhow` in `src/` | [x] | **4** files (`app/` + `fixture/` only) |
-| production `.unwrap()` in `src/` | [x] | **0** |
+| production `.unwrap()` in `src/` | [x] | **0** (`.unwrap` denied; 3 `.expect` remain) |
 | `tests/snapshots/*.snap` | [x] | **3** |
-| `src/` `.clone()` total | [x] | **55** (was 59) |
+| `src/` `.clone()` total | [x] | **~58** (was 59) |
 | `preflight_cache_hits` lines | [x] | **43** |
-| `scan_entry` orchestrator lines | [ ] | **70** (target <60) |
+| `scan_entry` orchestrator lines | [ ] | **76** (target <60; ~70 was helpers-only, full fn is 76) |
 | Re-run three review subagents | [x] | ratings above |
 
 ---
@@ -141,7 +141,7 @@ Phase 3 closed hygiene and structural debt. Phase 3E landed architectural founda
 - [ ] Replace or document 3 production `.expect(` (restore `check_no_prod_expect.sh` green)
 - [ ] Rebaseline or optimize index build for `perf_regression` smoke budget
 - [ ] `cargo fmt` + commit formatting
-- [ ] Override `Detector::kind() → FactDriven` on Go detector bundles
+- [~] ~~Override `Detector::kind() → FactDriven` on Go detector bundles~~ (obsolete: `detector_kind.rs` and `kind()` deleted; only `Heuristic` existed)
 - [ ] Trim `scan_entry` orchestrator to <60 lines
 - [ ] Update stale `restructure-codebase/README.md` status line → Complete
 

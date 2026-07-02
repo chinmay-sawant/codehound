@@ -94,7 +94,7 @@ The following 8 PERF rules have **no registry entry** in any `registry.*.toml` f
 - [x] PERF-169 — atomic.Value frequent store allocation
 - [x] PERF-191 — Slice of pointers for small structs
 - [x] PERF-197 — Multiple io.ReadAll on request body
-- [ ] **PERF-139** — Closure allocates due to variable escape
+- [x] **PERF-139** — Closure allocates due to variable escape (fixture + registry entry + implementation in `memory_gc.rs` confirmed)
 
 - [x] All 104 shipped rules have registry entries and implementations
 - [x] `cargo build --all-features` succeeds

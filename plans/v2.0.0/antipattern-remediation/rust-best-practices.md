@@ -44,15 +44,15 @@
 ### P2 — Partial (Phase 1 scope)
 
 - [x] `anyhow` reduced 26 → 11 `src/` files (−57%)
-- [ ] `anyhow` confined to `app/` + `fixture/` only — **completed in Phase 2**
-- [ ] Migrate remaining 7 `src/` `#[allow]` → `#[expect]` with justification — **partial in Phase 2**
-- [ ] Production `.expect()` reduced to 0 — **completed in Phase 2**
-- [ ] `#![warn(missing_docs)]` enabled on `lib.rs` — **still deferred**
-- [ ] `# Errors` on remaining public APIs — **expanded in Phase 2**
-- [ ] Runnable doc-test for `lib.rs` quick-start — **still deferred**
-- [ ] `insta` snapshot tests — **started in Phase 2 (1 snapshot)**
-- [ ] Split multi-assertion integration tests — **still deferred**
-- [ ] Type-state `AnalyzerBuilder` — **still deferred**
+- [x] `anyhow` confined to `app/` + `fixture/` only — confirmed: 4 files (app/ + fixture/)
+- [~] ~~Migrate remaining 7 `src/` `#[allow]` → `#[expect]`~~ (partial: 2 `#[allow]` remain in src/; 2 `#[expect]` in build/types.rs)
+- [ ] Production `.expect()` reduced to 0 — (needs review: 3 prod `.expect` remain in cwe/mod.rs, perf/mod.rs, walker_core.rs)
+- [ ] `#![warn(missing_docs)]` enabled on `lib.rs` — (needs review: still deferred, not on lib.rs; only on rules/mod.rs)
+- [x] `# Errors` on remaining public APIs — 15 sections across src/
+- [ ] Runnable doc-test for `lib.rs` quick-start — (needs review: still `#no_run`)
+- [x] `insta` snapshot tests — 3 snapshots (JSON, SARIF, text)
+- [ ] Split multi-assertion integration tests — (needs review: still deferred)
+- [ ] Type-state `AnalyzerBuilder` — (needs review: simple builder, no PhantomData/type-state)
 
 ## Phase 2 Changes Checklist (Remediation — 2026-06-27)
 
@@ -81,26 +81,26 @@
 - [x] Each extracted function <80 lines
 - [x] `parallel.rs` `#[allow(dead_code)]` → `#[expect(dead_code)]` on `Cached.language`
 - [x] `parallel.rs` uses `findings.to_vec()` in cache write (was `f.clone()`)
-- [ ] `scan_entry.rs` clone audit (7 clones remain — deferred)
-- [ ] `ScanEntry.path` → `Arc<Path>` (deferred)
+- [x] `scan_entry.rs` clone audit (7 clones remain) — **0 clones** remaining (was 7)
+- [x] `ScanEntry.path` → `Arc<Path>` — `pub path: Arc<Path>` in entry.rs
 
 ### Phase 2C — Documentation & testing maturity
 
 - [x] `# Errors` on `LanguagePlugin::parse_with` / `configure_parser`
 - [x] `# Errors` on config loaders and `collect_entries`
 - [x] JSON envelope `insta` snapshot — `tests/reporting_json_envelope_snapshot.rs` (version redacted)
-- [ ] `#![warn(missing_docs)]` on `lib.rs` (deferred — 500+ warnings)
-- [ ] `# Errors` on reporting `print*` and `export::write_context_files`
-- [ ] Runnable doc-test for `lib.rs` quick-start (still `#no_run`)
-- [ ] SARIF / text `insta` snapshots
-- [ ] Split multi-assertion envelope / SARIF tests
-- [ ] `pretty_assertions` adoption
+- [ ] `#![warn(missing_docs)]` on `lib.rs` — (needs review: still deferred; missing_docs on rules/mod.rs only)
+- [x] `# Errors` on reporting `print*` and `export::write_context_files` — confirmed
+- [ ] Runnable doc-test for `lib.rs` quick-start — (needs review: still `#no_run`)
+- [x] SARIF / text `insta` snapshots — 3 committed (JSON, SARIF, text)
+- [ ] Split multi-assertion envelope / SARIF tests — (needs review: still deferred)
+- [ ] `pretty_assertions` adoption — (needs review: dep in Cargo.toml, 0 usages)
 
 ### Phase 2D — CI tooling
 
 - [x] `cargo audit` job in `.github/workflows/ci.yml`
-- [ ] `engine::prelude` + `#[cfg(feature = "cli")]` gate (deferred)
-- [ ] `rustfmt.toml` with explicit `edition = "2024"` (deferred)
+- [x] `engine::prelude` + `#[cfg(feature = "cli")]` gate — both confirmed
+- [x] `rustfmt.toml` with explicit `edition = "2024"` — confirmed
 
 ## Executive Summary
 
@@ -133,7 +133,7 @@ Structural wins: `scan_entries_parallel` decomposed into three focused helpers (
 
 | Metric | Value |
 |---|---:|
-| `source.contains` (detectors) | **947 → 8** (5 dynamic + 3 index build) |
+| `source.contains` (detectors) | **947 → ~106** (perf 103, cwe 2, bp 1) |
 | `NEEDLES` (CWE/PERF/BP) | **736 / 539 / 12** |
 | `#[must_use]` | **26** |
 | `#[allow]` in `src/` | **0** |
@@ -165,8 +165,8 @@ Structural wins: `scan_entries_parallel` decomposed into three focused helpers (
 - [x] Taint scope: function name stored only on `ScopeKind::Function`; parent-chain `function_for_scope`
 - [x] Split `scan_entry` into `read_entry_source` / `parse_entry_unit` / `analyze_parsed_entry`
 - [x] Pilot fact migration: `sync.Pool` → `PerfSourceIndex` (`buffer_pooling.rs`)
-- [ ] Remaining **947×** `source.contains` in Go rule bodies (3E epic continues)
-- [ ] `restructure-codebase/` Phases 3–6 (Phase 1 engine split **complete** per plan)
+- [~] ~~Remaining **947×** `source.contains` in Go rule bodies~~ (partial: ~106 remains, down from 947; epic continues)
+- [x] `restructure-codebase/` Phases 3–6 — complete per `inventory.md`
 
 ## Before / After Ratings (through Phase 3E)
 

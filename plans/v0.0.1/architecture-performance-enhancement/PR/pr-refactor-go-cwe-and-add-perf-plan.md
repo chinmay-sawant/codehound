@@ -188,11 +188,11 @@ fixture_manifest_integration: passed
 
 ## Reviewer checklist
 
-- [ ] Behavior matches summary and test plan
-- [ ] No unrelated changes in diff
-- [ ] New planning docs match the current Go ruleset scope
-- [ ] Go `CWE-*` detector behavior is unchanged after the split
-- [ ] No secrets or generated artifacts committed
+- [x] Behavior matches summary and test plan (Go CWE split into domains/ + taint/, PERF detectors live, typed registry.toml)
+- [ ] No unrelated changes in diff (needs review — PR diff check)
+- [x] New planning docs match the current Go ruleset scope (perf-heuristics-and-sarif.md exists, PERF detectors implemented)
+- [x] Go `CWE-*` detector behavior is unchanged after the split (GoCweScan dispatch via mod.rs + include! from build.rs gen)
+- [ ] No secrets or generated artifacts committed (needs review — security check)
 
 ---
 

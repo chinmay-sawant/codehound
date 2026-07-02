@@ -169,7 +169,8 @@ func lookup(key string) int {
     return renderCache[key]
 }
 "#;
-        let usage = package_level_cache_usage(source, &GoPerfFacts::default(), "renderCache", false);
+        let usage =
+            package_level_cache_usage(source, &GoPerfFacts::default(), "renderCache", false);
         assert!(usage.reads >= 1);
         assert!(usage.writes >= 1);
     }
