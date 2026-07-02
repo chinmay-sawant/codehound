@@ -28,10 +28,7 @@ impl Detector for GoBadPracticeScan {
     }
 
     fn metadata_for(&self, rule_id: &str) -> Option<&'static RuleMetadata> {
-        dispatch::BAD_PRACTICE_RULES
-            .iter()
-            .find(|(id, _, _)| *id == rule_id)
-            .map(|(_, _, meta)| *meta)
+        metadata::metadata_for(rule_id)
     }
 
     fn run(&self, ctx: &ScanContext, unit: &ParsedUnit, out: &mut Vec<Finding>) {
@@ -39,7 +36,7 @@ impl Detector for GoBadPracticeScan {
             return;
         }
         let index = source_index::SourceIndex::build(unit.source.as_ref());
-        for (rule_id, detector, _) in dispatch::BAD_PRACTICE_RULES {
+        for (rule_id, detector) in dispatch::BAD_PRACTICE_RULES {
             if ctx.allows(rule_id) {
                 let start = out.len();
                 detector(unit, &index, out);

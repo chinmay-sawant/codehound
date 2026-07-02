@@ -2,6 +2,8 @@
 mod escape;
 #[path = "build/gen_catalogue.rs"]
 mod gen_catalogue;
+#[path = "build/gen_bp.rs"]
+mod gen_bp;
 #[path = "build/gen_cwe.rs"]
 mod gen_cwe;
 #[path = "build/gen_perf.rs"]
@@ -116,13 +118,16 @@ fn read_perf_registry_entries(dir_or_file: &str) -> Vec<types::PerfRegistryDetec
 
 fn main() {
     let chunk_dir = PathBuf::from("ruleset/golang/chunks");
+    let bad_practices_path = PathBuf::from("ruleset/golang/bad-practices.json");
     println!("cargo:rerun-if-changed={}", chunk_dir.display());
+    println!("cargo:rerun-if-changed={}", bad_practices_path.display());
     println!("cargo:rerun-if-changed=src/lang/go/detectors/cwe/registry");
     println!("cargo:rerun-if-changed=src/lang/go/detectors/cwe/domains");
     println!("cargo:rerun-if-changed=src/lang/go/detectors/perf/registry");
     println!("cargo:rerun-if-changed=src/lang/go/detectors/perf/domains");
 
     let parsed = read_ruleset_chunks(&chunk_dir);
+    let bp_parsed = read_ruleset_value(&bad_practices_path);
 
     let cwe_registry_entries = read_registry_entries("src/lang/go/detectors/cwe/registry");
     let perf_registry_entries = read_perf_registry_entries("src/lang/go/detectors/perf/registry");
@@ -157,11 +162,16 @@ fn main() {
     let cwe_catalog_out = out_dir.join("cwe_catalog_generated.rs");
     let cwe_registry_out = out_dir.join("go_cwe_registry.rs");
     let perf_metadata_path = out_dir.join("go_perf_metadata.rs");
+    let bp_metadata_path = out_dir.join("go_bp_metadata.rs");
     let perf_registry_out = out_dir.join("go_perf_registry.rs");
 
     let rules = parse::parse_rules(&parsed);
+    let bp_rules = parse::parse_rules(&bp_parsed);
     let cwe_rule_map = parse::build_cwe_rule_map(&rules);
     let perf_rule_map = parse::build_perf_rule_map(&rules);
+    let bp_rule_map = parse::build_bp_rule_map(&bp_rules);
+    let mut bp_ids: Vec<u32> = bp_rule_map.keys().copied().collect();
+    bp_ids.sort_unstable();
 
     fs::write(
         &catalogue_path,
@@ -188,6 +198,11 @@ fn main() {
         gen_perf::generate_go_perf_metadata_code(&perf_rule_map, &perf_ids),
     )
     .expect("Failed to write go_perf_metadata.rs");
+    fs::write(
+        &bp_metadata_path,
+        gen_bp::generate_go_bp_metadata_code(&bp_rule_map, &bp_ids),
+    )
+    .expect("Failed to write go_bp_metadata.rs");
     fs::write(
         &perf_registry_out,
         gen_perf::generate_go_perf_registry_code(&perf_registry_entries),

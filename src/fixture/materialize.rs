@@ -64,6 +64,9 @@ fn write_fixture_at(root: &Path, fixture: &TextFixture) -> Result<PathBuf> {
     let out_dir = root.join(fixture.language.as_str());
     fs::create_dir_all(&out_dir)?;
     let out_path = out_dir.join(&fixture.filename);
+    if let Some(parent) = out_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
     fs::write(&out_path, &fixture.source)
         .with_context(|| format!("writing materialized {}", out_path.display()))?;
     Ok(out_path)

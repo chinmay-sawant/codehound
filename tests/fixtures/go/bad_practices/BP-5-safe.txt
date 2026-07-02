@@ -10,6 +10,7 @@ import (
 	"os"
 )
 
+// Save writes data and checks every cleanup error on the way out.
 func Save(path string, data []byte) error {
 	f, err := os.Create(path)
 	if err != nil {

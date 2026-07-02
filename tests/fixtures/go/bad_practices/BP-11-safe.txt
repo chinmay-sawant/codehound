@@ -10,6 +10,7 @@ import (
 	"os"
 )
 
+// OpenMany closes files after the loop instead of deferring inside it.
 func OpenMany(paths []string) error {
 	var files []*os.File
 	for _, p := range paths {

@@ -7,6 +7,7 @@ package sample
 
 import "os"
 
+// WriteFile persists data and returns any write failure.
 func WriteFile(path string, data []byte) error {
 	return os.WriteFile(path, data, 0644)
 }

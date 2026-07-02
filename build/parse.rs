@@ -18,6 +18,10 @@ pub fn parse_perf_number(id: &str) -> Option<u32> {
     id.strip_prefix("PERF-").unwrap_or(id).parse::<u32>().ok()
 }
 
+pub fn parse_bp_number(id: &str) -> Option<u32> {
+    id.strip_prefix("BP-").unwrap_or(id).parse::<u32>().ok()
+}
+
 pub fn parse_rules(parsed: &serde_json::Value) -> Vec<JsonRule> {
     let obj = parsed.as_object().expect("JSON root must be an object");
     let mut rules = Vec::new();
@@ -52,6 +56,10 @@ pub fn parse_rules(parsed: &serde_json::Value) -> Vec<JsonRule> {
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string();
+        let severity = value
+            .get("severity")
+            .and_then(|v| v.as_str())
+            .map(ToString::to_string);
 
         rules.push(JsonRule {
             id,
@@ -60,6 +68,7 @@ pub fn parse_rules(parsed: &serde_json::Value) -> Vec<JsonRule> {
             original_description,
             category,
             detection_notes,
+            severity,
         });
     }
 
@@ -78,5 +87,12 @@ pub fn build_perf_rule_map(rules: &[JsonRule]) -> BTreeMap<u32, JsonRule> {
     rules
         .iter()
         .filter_map(|rule| parse_perf_number(&rule.id).map(|id| (id, rule.clone())))
+        .collect()
+}
+
+pub fn build_bp_rule_map(rules: &[JsonRule]) -> BTreeMap<u32, JsonRule> {
+    rules
+        .iter()
+        .filter_map(|rule| parse_bp_number(&rule.id).map(|id| (id, rule.clone())))
         .collect()
 }

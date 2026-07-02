@@ -6,8 +6,9 @@ mod helpers;
 #[test]
 fn file_ignore_suppresses_all_findings() {
     let root = helpers::unique_temp_root("file-ignore-all");
-    std::fs::create_dir_all(&root).unwrap();
-    let source_path = root.join("sample.go");
+    let source_dir = root.join("sample");
+    std::fs::create_dir_all(&source_dir).unwrap();
+    let source_path = source_dir.join("sample.go");
     helpers::write_go_source(&source_path, "// slopguard-ignore-file\n");
 
     let output = Command::new(env!("CARGO_BIN_EXE_slopguard"))
@@ -36,8 +37,9 @@ fn file_ignore_suppresses_all_findings() {
 #[test]
 fn file_ignore_rule_list_suppresses_matching_finding() {
     let root = helpers::unique_temp_root("file-ignore-rule-list");
-    std::fs::create_dir_all(&root).unwrap();
-    let source_path = root.join("sample.go");
+    let source_dir = root.join("sample");
+    std::fs::create_dir_all(&source_dir).unwrap();
+    let source_path = source_dir.join("sample.go");
     helpers::write_go_source(&source_path, "// slopguard-ignore-file: CWE-78\n");
 
     let output = Command::new(env!("CARGO_BIN_EXE_slopguard"))
@@ -66,8 +68,9 @@ fn file_ignore_rule_list_suppresses_matching_finding() {
 #[test]
 fn show_ignored_reports_file_ignored_finding_as_info() {
     let root = helpers::unique_temp_root("file-ignore-show");
-    std::fs::create_dir_all(&root).unwrap();
-    let source_path = root.join("sample.go");
+    let source_dir = root.join("sample");
+    std::fs::create_dir_all(&source_dir).unwrap();
+    let source_path = source_dir.join("sample.go");
     helpers::write_go_source(&source_path, "// slopguard-ignore-file: all\n");
 
     let output = Command::new(env!("CARGO_BIN_EXE_slopguard"))

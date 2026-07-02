@@ -1,0 +1,14 @@
+# BP-37 negative: no mutable package-level variable
+lang: go
+file: BP-37-safe.go
+variant: stdlib
+---
+package sample
+
+const defaultCount = 1
+
+func bump() int {
+	counter := defaultCount
+	counter++
+	return counter
+}

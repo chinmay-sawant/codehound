@@ -1,10 +1,20 @@
+mod api_design;
+mod code_organization;
+mod dependency_hygiene;
 mod error_handling;
 mod helpers;
 mod loops;
 mod panics;
+mod production_hardening;
 mod sync;
+mod testing;
 
+pub(crate) use api_design::*;
+pub(crate) use code_organization::*;
+pub(crate) use dependency_hygiene::*;
 pub(crate) use error_handling::*;
 pub(crate) use loops::*;
 pub(crate) use panics::*;
+pub(crate) use production_hardening::*;
 pub(crate) use sync::*;
+pub(crate) use testing::*;

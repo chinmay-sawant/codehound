@@ -1,5 +1,7 @@
 //! BP-3, BP-13, BP-15 — panic, context, and sync.Once detectors.
 
+use std::collections::{HashMap, HashSet};
+
 use tree_sitter::Node;
 
 use super::super::source_index::SourceIndex;
@@ -134,27 +136,144 @@ pub(crate) fn detect_bp_15_recursive_once_do(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
-    let source = unit.source.as_ref();
-    let Some(do_pos) = source.find(".Do(func()") else {
-        return;
+    let src = unit.source.as_bytes();
+    let function_facts = collect_function_facts(unit.tree.root_node(), src);
+
+    fn walk(
+        node: Node,
+        src: &[u8],
+        unit: &ParsedUnit,
+        function_facts: &HashMap<String, CallFacts>,
+        out: &mut Vec<Finding>,
+    ) {
+        if node.kind() == "call_expression"
+            && let Some(once_name) = called_once_receiver(node, src)
+            && let Some(closure) = find_func_literal(node)
+        {
+            let closure_facts = collect_call_facts(closure, src);
+            let recursive = closure_facts
+                .once_receivers
+                .iter()
+                .any(|receiver| receiver == once_name)
+                || closure_facts.local_calls.iter().any(|callee| {
+                    closure_reaches_same_once(callee, once_name, function_facts, &mut HashSet::new())
+                });
+
+            if recursive {
+                push_at(
+                    unit,
+                    out,
+                    &crate::lang::go::detectors::bad_practices::BP_15_META,
+                    node.start_byte(),
+                    "sync.Once.Do closure recursively calls the same Once",
+                );
+            }
+        }
+
+        let mut cursor = node.walk();
+        for child in node.named_children(&mut cursor) {
+            walk(child, src, unit, function_facts, out);
+        }
+    }
+
+    walk(unit.tree.root_node(), src, unit, &function_facts, out);
+}
+
+#[derive(Default)]
+struct CallFacts {
+    local_calls: Vec<String>,
+    once_receivers: Vec<String>,
+}
+
+fn collect_function_facts(root: Node, src: &[u8]) -> HashMap<String, CallFacts> {
+    let mut facts = HashMap::new();
+
+    fn walk(node: Node, src: &[u8], facts: &mut HashMap<String, CallFacts>) {
+        if matches!(node.kind(), "function_declaration" | "method_declaration")
+            && let Some(name) = node
+                .child_by_field_name("name")
+                .and_then(|child| child.utf8_text(src).ok())
+        {
+            facts.insert(name.to_string(), collect_call_facts(node, src));
+        }
+
+        let mut cursor = node.walk();
+        for child in node.named_children(&mut cursor) {
+            walk(child, src, facts);
+        }
+    }
+
+    walk(root, src, &mut facts);
+    facts
+}
+
+fn collect_call_facts(node: Node, src: &[u8]) -> CallFacts {
+    let mut facts = CallFacts::default();
+
+    fn walk(node: Node, src: &[u8], facts: &mut CallFacts) {
+        if node.kind() == "call_expression"
+            && let Some(function) = node.child_by_field_name("function")
+            && let Ok(text) = function.utf8_text(src)
+        {
+            if let Some(receiver) = text.strip_suffix(".Do") {
+                facts.once_receivers.push(receiver.to_string());
+            } else if is_local_function_name(text) {
+                facts.local_calls.push(text.to_string());
+            }
+        }
+
+        let mut cursor = node.walk();
+        for child in node.named_children(&mut cursor) {
+            walk(child, src, facts);
+        }
+    }
+
+    walk(node, src, &mut facts);
+    facts
+}
+
+fn called_once_receiver<'a>(node: Node, src: &'a [u8]) -> Option<&'a str> {
+    let function = node.child_by_field_name("function")?;
+    let text = function.utf8_text(src).ok()?;
+    let receiver = text.strip_suffix(".Do")?;
+    is_local_function_name(receiver).then_some(receiver)
+}
+
+fn find_func_literal(node: Node) -> Option<Node> {
+    if node.kind() == "func_literal" {
+        return Some(node);
+    }
+
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        if let Some(found) = find_func_literal(child) {
+            return Some(found);
+        }
+    }
+    None
+}
+
+fn closure_reaches_same_once(
+    function_name: &str,
+    once_name: &str,
+    function_facts: &HashMap<String, CallFacts>,
+    visiting: &mut HashSet<String>,
+) -> bool {
+    if !visiting.insert(function_name.to_string()) {
+        return false;
+    }
+    let Some(facts) = function_facts.get(function_name) else {
+        return false;
     };
-    let prefix = &source[..do_pos];
-    let once_name = prefix
-        .rsplit(|c: char| !(c.is_ascii_alphanumeric() || c == '_'))
-        .next()
-        .unwrap_or("");
-    if once_name.is_empty() {
-        return;
-    }
-    let body = &source[do_pos..];
-    let recursive_call = format!("{once_name}.Do(");
-    if body.contains(&recursive_call) {
-        push_at(
-            unit,
-            out,
-            &crate::lang::go::detectors::bad_practices::BP_15_META,
-            do_pos,
-            "sync.Once.Do closure recursively calls the same Once",
-        );
-    }
+
+    facts.once_receivers.iter().any(|receiver| receiver == once_name)
+        || facts.local_calls.iter().any(|callee| {
+            closure_reaches_same_once(callee, once_name, function_facts, visiting)
+        })
+}
+
+fn is_local_function_name(name: &str) -> bool {
+    let mut chars = name.chars();
+    matches!(chars.next(), Some(first) if first.is_ascii_alphabetic() || first == '_')
+        && chars.all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
 }

@@ -145,22 +145,6 @@ fn legacy_json_consumers_ignore_structured_fields() {
 }
 
 #[test]
-fn json_finding_includes_bad_practice_category() {
-    let finding = Finding::new(FindingInputs::new(
-        "BP-1",
-        "Discarded Error Return",
-        "bad.go",
-        LineCol { line: 3, column: 2 },
-        "discarded error",
-        Severity::Low,
-        Cow::Borrowed(&[]),
-    ));
-    let value = serde_json::to_value(FindingJson::from(&finding)).unwrap();
-
-    assert_eq!(value["category"], "bad_practice");
-}
-
-#[test]
 fn cwe_id_serialized_as_cwe_n_string() {
     let r = sample_with_cwe();
     let env = Envelope::from(&r);

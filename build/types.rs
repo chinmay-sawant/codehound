@@ -36,4 +36,5 @@ pub struct JsonRule {
     pub original_description: String,
     pub category: String,
     pub detection_notes: String,
+    pub severity: Option<String>,
 }

@@ -7,6 +7,7 @@ package sample
 
 import "log"
 
+// Guard recovers a panic and logs the recovered value.
 func Guard(fn func()) {
 	defer func() {
 		if value := recover(); value != nil {

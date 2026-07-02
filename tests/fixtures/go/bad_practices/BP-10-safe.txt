@@ -7,6 +7,7 @@ package sample
 
 import "time"
 
+// Poll reuses one ticker across loop iterations.
 func Poll(stop <-chan struct{}) {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()

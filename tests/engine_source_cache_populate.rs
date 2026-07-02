@@ -83,16 +83,18 @@ fn analyze_paths_populates_source_cache_for_empty_files() {
 #[test]
 fn analyze_paths_populates_source_cache_for_mixed_language_scan() {
     let root = unique_temp_root("source-cache-mixed-language");
-    let go_path = root.join("safe.go");
+    let go_dir = root.join("sample");
+    let go_path = go_dir.join("safe.go");
     let py_path = root.join("sample.py");
-    let go_source = r#"package sample
+    let go_source = r#"// Package sample exercises mixed-language source caching.
+package sample
 
 func add(a int, b int) int {
 	return a + b
 }
 "#;
     let py_source = "import re\n\nfor item in items:\n    re.compile(item)\n";
-    std::fs::create_dir_all(&root).unwrap();
+    std::fs::create_dir_all(&go_dir).unwrap();
     std::fs::write(&go_path, go_source).unwrap();
     std::fs::write(&py_path, py_source).unwrap();
 

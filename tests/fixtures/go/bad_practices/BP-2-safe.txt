@@ -10,6 +10,7 @@ import (
 	"os"
 )
 
+// Load reads a file and wraps any read failure with path context.
 func Load(path string) ([]byte, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {

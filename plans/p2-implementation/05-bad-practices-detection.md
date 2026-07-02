@@ -1,8 +1,8 @@
 # P2.5 — Bad Practices Detection (Implementation Status)
 
 > **Parent:** `plans/p2.md` — P2.5
-> **Status:** ✅ **MVP implemented** (v2.0.0 remediation). Phases 2–4 (Testing, API Design, Code Org, Production Hardening, Dependency Hygiene) **not started**.
-> **Estimated effort:** MVP was ~1 week. Remaining phases ~6 weeks total.
+> **Status:** ✅ **MVP + Phase 4.4 implemented.** Phase 4.5 is now partially implemented with Production Hardening and Dependency Hygiene coverage for BP-46, BP-47, BP-48, BP-49, BP-50, BP-51, BP-56, BP-58, BP-59, BP-60, BP-64, and BP-65. BP-52..BP-55, BP-57, and BP-61..BP-63 remain open; BP-12/BP-14 still remain reserved.
+> **Estimated effort:** MVP was ~1 week. Remaining phases ~3-4 weeks total.
 > **See also:** `plans/v2.0.0/antipattern-remediation/bad-practices-scope.md` (original scoping doc), `plans/v2.0.0/rust-remediation-phase-3.md` (remediation tracking)
 > **Pending work breakdown:** `plans/v2.0.0/pending-work/03-bad-practices-remaining.md`
 
@@ -18,8 +18,12 @@ Bad Practices detection is a new rule category beyond CWE (security) and PERF (p
 
 - **13 rules implemented** across 4 domain modules: `error_handling`, `sync`, `loops`, `panics`.
 - **Architecture:** Single `GoBadPracticeScan` detector (Option A) with a `SourceIndex` fact pre-filter and per-rule dispatch table — mirrors the CWE/PERF pattern.
-- **Gaps vs. original plan:** No `ruleset/golang/bad-practices.json` (metadata is inline), no `build.rs` codegen, no `BadPracticeCategory` enum (uses `category_for_rule_id()` string matching), no `--bp-only` flag (uses `--only BP-*`).
-- **Remaining:** 5 sub-categories not started (Testing, API Design, Code Org, Production Hardening, Dependency Hygiene). BP-12 and BP-14 (goroutine leak detection) still reserved for taint-driven implementation.
+- **Metadata refactor landed:** BP metadata now comes from `ruleset/golang/bad-practices.json`, `build.rs` generates `go_bp_metadata.rs`, and `BadPracticeCategory` owns BP sub-category mapping before reporters collapse back to `"bad_practice"`.
+- **Hygiene landed:** Dedicated BP integration coverage now exercises fixture scans, CLI scans, config/reporting hooks, and an indirect `BP-15` regression.
+- **Testing heuristics landed:** `BP-16..BP-25` now have detector implementations in `rules/testing.rs`, fixture coverage, and CLI/manifest validation that explicitly scans `_test.go` materializations.
+- **Phase 4.4 landed:** `rules/api_design.rs` and `rules/code_organization.rs` now cover all BP-26..BP-45 rules, including package-aware heuristics for BP-30, BP-31, and BP-41 plus nested-path fixture materialization for path-sensitive cases.
+- **Phase 4.5 slice landed:** `rules/production_hardening.rs` and `rules/dependency_hygiene.rs` now cover BP-46, BP-47, BP-48, BP-49, BP-50, BP-51, BP-56, BP-58, BP-59, BP-60, BP-64, and BP-65 with both per-file fixtures and dedicated project-root fixture directories.
+- **Remaining:** BP-52..BP-55, BP-57, and BP-61..BP-63 are still pending implementation. BP-12 and BP-14 (goroutine leak detection) still reserved for taint-driven implementation.
 
 ---
 
@@ -42,11 +46,11 @@ Bad Practices detection is a new rule category beyond CWE (security) and PERF (p
 
 - [x] **Error Handling** — BP-1..BP-5 (MVP)
 - [x] **Concurrency** — BP-6..BP-15, BP-12/BP-14 reserved (MVP)
-- [ ] **Testing** — BP-16..BP-25 (not started)
-- [ ] **API Design** — BP-26..BP-35 (not started)
-- [ ] **Code Organization** — BP-36..BP-45 (not started)
-- [ ] **Production Hardening** — BP-46..BP-55 (not started)
-- [ ] **Dependency Hygiene** — BP-56..BP-65 (not started)
+- [x] **Testing** — BP-16..BP-25 (implemented in Phase 4.3)
+- [x] **API Design** — BP-26..BP-35 (implemented in Phase 4.4)
+- [x] **Code Organization** — BP-36..BP-45 (implemented in Phase 4.4)
+- [x] **Production Hardening** — BP-46, BP-47, BP-48, BP-49, BP-50, BP-51 implemented; BP-52..BP-55 pending
+- [x] **Dependency Hygiene** — BP-56, BP-58, BP-59, BP-60, BP-64, BP-65 implemented; BP-57, BP-61..BP-63 pending
 
 ### 1.3 Scope criteria applied
 
@@ -73,9 +77,9 @@ Bad Practices detection is a new rule category beyond CWE (security) and PERF (p
 
 ### 2.2 Rule metadata
 
-- [x] Inline `RuleMetadata` constants in `src/lang/go/detectors/bad_practices/metadata.rs`
-- [ ] `ruleset/golang/bad-practices.json` — **not created** (metadata is source-level only)
-- [ ] `build.rs` codegen for BP metadata — **not implemented** (inline constants used instead)
+- [x] Generated `RuleMetadata` constants now come from `src/lang/go/detectors/bad_practices/metadata.rs` via `include!(concat!(env!("OUT_DIR"), "/go_bp_metadata.rs"))`
+- [x] `ruleset/golang/bad-practices.json` exists with implemented rules plus planned placeholders
+- [x] `build.rs` invokes BP metadata codegen through `build/gen_bp.rs`
 
 ### 2.3 Detection approach per sub-category (MVP)
 
@@ -94,9 +98,9 @@ Bad Practices detection is a new rule category beyond CWE (security) and PERF (p
 - [x] BP-10: AST walk for `time.After()` inside loop — `loops.rs:11`
 - [x] BP-11: AST walk for `defer_statement` inside loop — `loops.rs:48`
 - [x] BP-13: AST function-stack for `context.Background()` in library — `panics.rs:67`
-- [x] BP-15: Source scan for recursive `sync.Once.Do` — `panics.rs:132`
-- [ ] BP-12: Unbuffered channel send from multiple goroutines — **reserved** (needs taint)
-- [ ] BP-14: Goroutine without ctx.Done select — **reserved** (needs taint)
+- [x] BP-15: AST-assisted same-file call-chain walk for recursive `sync.Once.Do` — `panics.rs:134`
+- Pending: BP-12: Unbuffered channel send from multiple goroutines — **reserved** (needs taint)
+- Pending: BP-14: Goroutine without ctx.Done select — **reserved** (needs taint)
 
 ### 2.4 Fact extraction
 
@@ -119,13 +123,13 @@ Bad Practices detection is a new rule category beyond CWE (security) and PERF (p
 ### 3.2 Ruleset integration
 
 - [x] Rule descriptions as inline `RuleMetadata` constants in `metadata.rs`
-- [ ] `ruleset/golang/bad-practices.json` — **not created** (no build.rs codegen)
+- [x] `ruleset/golang/bad-practices.json` feeds generated BP metadata
 - [x] `--list-rules` shows BP rules via existing `Rule::metadata()` path
-- [x] `--explain BP-1` works via `metadata_for()` dispatch table
+- [x] `--explain BP-1` works via generated BP metadata lookup
 
 ### 3.3 CLI integration
 
-- [x] `--no-bp` flag disables entire category (`engine_config_cli_filters.rs:43`)
+- [x] `--no-bp` flag disables entire category (`tests/go_bad_practice_integration.rs`)
 - [x] `--only BP-*` / `--skip BP-1` works via existing `--only`/`--skip` mechanism
 - [x] `RuleCategory::BadPractice` filter in `cli/enums.rs:48`
 - [x] `--bp-only` shorthand flag — **implemented** in `src/cli/args.rs:52-53` and wired in `src/cli/args_impl.rs:27`. (Plan was stale — code was ahead of docs.)
@@ -144,16 +148,17 @@ Bad Practices detection is a new rule category beyond CWE (security) and PERF (p
 
 ### 3.5 Reporting integration
 
-- [x] `category_for_rule_id()` maps `BP-*` → `"bad_practice"` (`category.rs:2`)
+- [x] `BadPracticeCategory` maps `BP-*` ids to sub-categories and `category_for_rule_id()` still emits `"bad_practice"` for reporters
 - [x] JSON reporter includes `"category": "bad_practice"` per finding
 - [x] SARIF reporter maps BP rules to `security-severity: 5.0` with `properties.category`
 - [x] Text reporter renders BP findings with existing formatting
 
 ### 3.6 Test fixtures
 
-- [x] 26 test fixture files in `tests/fixtures/go/bad_practices/` (13 vulnerable + 13 safe pairs — one per MVP rule)
-- [ ] **No dedicated `tests/go_bad_practice_integration.rs`** yet (BP tests share generic config-filter tests)
-- [x] Integration tests in `tests/engine_config_cli_filters.rs`, `tests/engine_config_parsing.rs`, `tests/reporting_json_finding.rs`, `tests/reporting_sarif_structured.rs`
+- [x] 28 test fixture files in `tests/fixtures/go/bad_practices/` (14 vulnerable + 14 safe pairs, including indirect `BP-15`)
+- [x] Dedicated `tests/go_bad_practice_integration.rs` covers fixture scans, CLI scans, config filters, JSON reporting, and SARIF reporting
+- [x] Supporting helper `tests/helpers/go_bp_cases.rs` keeps BP fixture discovery in sync with the directory
+- [x] Remaining generic coverage still lives in `tests/engine_config_parsing.rs`, `tests/reporting_json_finding.rs`, and `tests/reporting_sarif_core.rs`
 
 ---
 
@@ -165,11 +170,11 @@ Bad Practices detection is a new rule category beyond CWE (security) and PERF (p
 | Phase | Scope | Rules | Effort | Status |
 |---|---|---|---|---|
 | **MVP** | BP-1..BP-15 (13 rules) | 13 | 1 week | ✅ **DONE** |
-| **Phase 1 — Hygiene** | Integration tests, BP-15 regression | 4 items | 2-3 days | ⏳ **In progress** |
-| **Phase 2 — Metadata Refactor** | BadPracticeCategory enum, JSON, codegen | 4 items | 2-3 days | ❌ Not started |
-| **Phase 3 (P2.5-B)** | Testing anti-patterns | BP-16..BP-25 (10 rules) | 1 week | ❌ Not started |
-| **Phase 4 (P2.5-C)** | API Design + Code Organization | BP-26..BP-45 (20 rules) | 2 weeks | ❌ Not started |
-| **Phase 5 (P2.5-D)** | Production Hardening + Dep Hygiene | BP-46..BP-65 (20 rules) | 2 weeks | ❌ Not started |
+| **Phase 1 — Hygiene** | Integration tests, BP-15 regression | 4 items | 2-3 days | ✅ **DONE** |
+| **Phase 2 — Metadata Refactor** | BadPracticeCategory enum, JSON, codegen | 4 items | 2-3 days | ✅ **DONE** |
+| **Phase 3 (P2.5-B)** | Testing anti-patterns | BP-16..BP-25 (10 rules) | 1 week | ✅ **DONE** |
+| **Phase 4 (P2.5-C)** | API Design + Code Organization | BP-26..BP-45 (20 rules) | 2 weeks | ✅ **DONE** |
+| **Phase 5 (P2.5-D)** | Production Hardening + Dep Hygiene | BP-46..BP-65 (20 rules) | 2 weeks | 🚧 Partial (12/20 shipped) |
 | **Reserve** | Goroutine leak detection (taint) | BP-12, BP-14 | -- | ⏳ Pending P2.1 |
 
 ---
@@ -178,14 +183,14 @@ Bad Practices detection is a new rule category beyond CWE (security) and PERF (p
 
 ### 4.1.1 Dedicated integration test file
 
-- [ ] Create `tests/go_bad_practice_integration.rs` with fixture-driven tests mirroring `tests/go_perf_detector_integration.rs`
+- [x] Create `tests/go_bad_practice_integration.rs` with fixture-driven tests mirroring `tests/go_perf_detector_integration.rs`
   - For each BP fixture: materialize vulnerable → assert BP-N fires, materialize safe → assert no finding
-- [ ] Create `tests/helpers/go_bp_cases.rs` helper for fixture discovery
-- [ ] Remove BP-specific checks from generic tests (`tests/engine_config_cli_filters.rs`, `tests/reporting_json_finding.rs`)
+- [x] Create `tests/helpers/go_bp_cases.rs` helper for fixture discovery
+- [x] Remove BP-specific checks from generic tests (`tests/engine_config_cli_filters.rs`, `tests/reporting_json_finding.rs`)
 
 ### 4.1.2 BP-15 regression test
 
-- [ ] Add fixture where recursive `sync.Once.Do()` is in a separate function (not just direct closure) — the harder case requiring call-chain walking
+- [x] Add fixture where recursive `sync.Once.Do()` is in a separate function (not just direct closure) — the harder case requiring call-chain walking
 
 ---
 
@@ -193,33 +198,33 @@ Bad Practices detection is a new rule category beyond CWE (security) and PERF (p
 
 ### 4.2.1 Create BadPracticeCategory enum
 
-- [ ] Add `BadPracticeCategory` enum in `src/rules/bp_category.rs`:
+- [x] Add `BadPracticeCategory` enum in `src/rules/bp_category.rs`:
   ```rust
   pub enum BadPracticeCategory {
       ErrorHandling, Concurrency, Panics, Testing,
       ApiDesign, CodeOrganization, ProductionHardening, DependencyHygiene,
   }
   ```
-- [ ] Map each BP rule ID to its category
-- [ ] Replace `category_for_rule_id()` string matching in `src/rules/category.rs` with the enum
-- [ ] Ensure reporters continue to emit `"category": "bad_practice"` (enum is for internal dispatch)
+- [x] Map each BP rule ID to its category
+- [x] Replace `category_for_rule_id()` string matching in `src/rules/category.rs` with the enum
+- [x] Ensure reporters continue to emit `"category": "bad_practice"` (enum is for internal dispatch)
 
 ### 4.2.2 Create ruleset/golang/bad-practices.json
 
-- [ ] Create `ruleset/golang/bad-practices.json` with per-rule entries: `id`, `title`, `description`, `detection_notes`, `severity`, `category`
-- [ ] Include all 13 MVP rules + placeholders for BP-16..BP-65
+- [x] Create `ruleset/golang/bad-practices.json` with per-rule entries: `id`, `title`, `description`, `detection_notes`, `severity`, `category`
+- [x] Include all 13 MVP rules + placeholders for BP-16..BP-65
 
 ### 4.2.3 Codegen from bad-practices.json
 
-- [ ] Add `gen_bp.rs` in `build/` that generates `META_BP_N` constants from the JSON
-- [ ] Update `build.rs` to invoke BP codegen
-- [ ] Replace inline constants in `metadata.rs` with `include!` of generated code
+- [x] Add `gen_bp.rs` in `build/` that generates `META_BP_N` constants from the JSON
+- [x] Update `build.rs` to invoke BP codegen
+- [x] Replace inline constants in `metadata.rs` with `include!` of generated code
 
 ### 4.2.4 Verify --list-rules and --explain for BP
 
-- [ ] `--list-rules` shows BP rules with proper category grouping
-- [ ] `--explain BP-1` pulls from generated metadata
-- [ ] Remove inline `metadata_for()` dispatch table if redundant
+- [x] `--list-rules` shows BP rules with proper category grouping
+- [x] `--explain BP-1` pulls from generated metadata
+- [x] Remove inline `metadata_for()` dispatch table if redundant
 
 ---
 
@@ -229,30 +234,30 @@ Bad Practices detection is a new rule category beyond CWE (security) and PERF (p
 
 ### 4.3.1 Rule definitions
 
-- [ ] **BP-16**: `time.Sleep` in test (not in retry loop) — AST walk for `time.Sleep()` in `*_test.go` outside for/range
-- [ ] **BP-17**: `t.Error` followed by `t.Fatal` (redundant) — line scan for consecutive calls
-- [ ] **BP-18**: `t.Error`/`t.Errorf` without `t.FailNow`/`return` — AST check within same block
-- [ ] **BP-19**: Missing `t.Helper()` on test helper functions — function called from test without `t.Helper()` as first statement
-- [ ] **BP-20**: Table-driven test without `t.Run` — detect monolithic for vs `for _, tc := range tests { t.Run(...) }`
-- [ ] **BP-21**: `t.Parallel()` missing in table-driven subtest — detect `t.Run` body without `t.Parallel()`
-- [ ] **BP-22**: TestMain without `os.Exit` — AST scan for `func TestMain(m *testing.M)` body missing `os.Exit`
-- [ ] **BP-23**: `testing.Short()` not checked — heuristic: `t.Run` body > 20 lines with no guard
-- [ ] **BP-24**: Test file without test functions — `*_test.go` with zero `func Test*` declarations
-- [ ] **BP-25**: Test helper returns error instead of `t.Fatal` — helper returns `error` but always checks `t.Fatal`
+- [x] **BP-16**: `time.Sleep` in test (not in retry loop) — `time.Sleep()` in `*_test.go` outside loop ancestry
+- [x] **BP-17**: `t.Error` followed by `t.Fatal` (redundant) — consecutive-line test failure escalation
+- [x] **BP-18**: `t.Error`/`t.Errorf` without `t.FailNow`/`return` — line-based continuation check
+- [x] **BP-19**: Missing `t.Helper()` on test helper functions — helper body first non-empty line must be `t.Helper()`
+- [x] **BP-20**: Table-driven test without `t.Run` — loop in `Test*` body without `t.Run`
+- [x] **BP-21**: `t.Parallel()` missing in table-driven subtest — `t.Run` closure inside loop without `t.Parallel()`
+- [x] **BP-22**: TestMain without `os.Exit` — `func TestMain(m *testing.M)` body missing `os.Exit`
+- [x] **BP-23**: `testing.Short()` not checked — long `Test*` body without `testing.Short()`
+- [x] **BP-24**: Test file without test functions — `*_test.go` with zero `func Test*` declarations
+- [x] **BP-25**: Test helper returns error instead of `t.Fatal` — helper with `*testing.T` parameter and `error` result
 
 ### 4.3.2 Detection approach
 
-- [ ] Add BP-16..BP-25 detection functions to a new `rules/testing.rs`
-- [ ] Use `unit.path.ends_with("_test.go")` for file-name pre-filter
-- [ ] Register in `BAD_PRACTICE_RULES` in `dispatch.rs`
-- [ ] Add metadata constants for BP-16..BP-25
+- [x] Add BP-16..BP-25 detection functions to `rules/testing.rs`
+- [x] Use `unit.display_path.ends_with("_test.go")` for file-name pre-filter
+- [x] Register in `BAD_PRACTICE_RULES` in `dispatch.rs`
+- [x] Generated metadata constants cover BP-16..BP-25 from `bad-practices.json`
 
 ### 4.3.3 Test fixtures
 
-- [ ] Create 20 fixture files (10 vulnerable + 10 safe) in `tests/fixtures/go/bad_practices/`
-- [ ] Vulnerable fixtures use `_test.go` suffix
-- [ ] Register in `tests/fixtures/manifest.toml`
-- [ ] Verify via `tests/go_bad_practice_integration.rs`
+- [x] Create 20 fixture files (10 vulnerable + 10 safe) in `tests/fixtures/go/bad_practices/`
+- [x] Vulnerable fixtures use `_test.go` suffix
+- [x] Register in `tests/fixtures/manifest.toml`
+- [x] Verify via `tests/go_bad_practice_integration.rs` and `tests/fixture_manifest_integration_manifest.rs`
 
 ---
 
@@ -262,91 +267,94 @@ Bad Practices detection is a new rule category beyond CWE (security) and PERF (p
 
 ### 4.4.1 API Design (BP-26..BP-35)
 
-- [ ] **BP-26**: Context not first parameter — AST check `ctx context.Context` is first param
-- [ ] **BP-27**: Exported function returns unexported type — `func FuncName(...)` returns lowercase type
-- [ ] **BP-28**: Interface with single method — should be function type instead
-- [ ] **BP-29**: Interface bloat (>5 methods)
-- [ ] **BP-30**: Exported interface without documented implementation in same package
-- [ ] **BP-31**: Function returns concrete type instead of interface (heuristic)
-- [ ] **BP-32**: Error type as `string` instead of `struct` — `type X string` with `func (x X) Error() string`
-- [ ] **BP-33**: Sentinel error without `Is` method
-- [ ] **BP-34**: Error wrapping without `%w` — `fmt.Errorf("msg: %v", err)` vs `%w`
-- [ ] **BP-35**: Package name != directory name
+- [x] **BP-26**: Context not first parameter — exported function/method params containing `context.Context` now require it to be first
+- [x] **BP-27**: Exported function returns unexported type — exported APIs returning lowercase local result types now flag
+- [x] **BP-28**: Interface with single method — single-method `interface` declarations now flag
+- [x] **BP-29**: Interface bloat (>5 methods) — multi-line interfaces above the threshold now flag
+- [x] **BP-30**: Exported interface without documented implementation in same package — same-package implementation scan now flags exported interfaces with no local concrete implementer
+- [x] **BP-31**: Function returns concrete type instead of interface (heuristic) — exported constructors returning local concrete types now flag when the package already exposes a matching interface
+- [x] **BP-32**: Error type as `string` instead of `struct` — `type X string` + `Error() string` now flags
+- [x] **BP-33**: Sentinel error without `Is` method — sentinel-style custom error vars now require `Is(error) bool`
+- [x] **BP-34**: Error wrapping without `%w` — `fmt.Errorf(..., err)` using `%v`/`%s` now flags
+- [x] **BP-35**: Package name != directory name — path-sensitive package-vs-directory mismatch now flags, with flat fixture materializations excluded
 
 ### 4.4.2 Code Organization (BP-36..BP-45)
 
-- [ ] **BP-36**: `init()` with side effects — AST walk for non-variable statements in `init()`
-- [ ] **BP-37**: Package-level mutable global variable — `var x = ...` at package level, not in tests
-- [ ] **BP-38**: Unexported helper with no internal callers in same package
-- [ ] **BP-39**: Exported function without doc comment
-- [ ] **BP-40**: Package-level block with unrelated constants (heuristic: name prefixes differ)
-- [ ] **BP-41**: File header missing package doc comment
-- [ ] **BP-42**: Import alias not used consistently — alias appears only once
-- [ ] **BP-43**: Dot import outside test files
-- [ ] **BP-44**: Blank import without justification (not driver/image pattern)
-- [ ] **BP-45**: Receiver name inconsistent across methods — `(t *T)` vs `(this *T)` on same type
+- [x] **BP-36**: `init()` with side effects — `init()` bodies containing calls / goroutines / defers now flag
+- [x] **BP-37**: Package-level mutable global variable — top-level `var` declarations now flag, excluding sentinel `Err*` globals
+- [x] **BP-38**: Unexported helper with no internal callers in same package — helper-like private functions with zero same-file callers now flag
+- [x] **BP-39**: Exported function without doc comment — exported functions and methods on exported receiver types now require doc comments
+- [x] **BP-40**: Package-level block with unrelated constants (heuristic: name prefixes differ)
+- [x] **BP-41**: File header missing package doc comment — package anchor files now require a `// Package <name>` doc comment somewhere in the same package
+- [x] **BP-42**: Import alias not used consistently — alias appears only once
+- [x] **BP-43**: Dot import outside test files
+- [x] **BP-44**: Blank import without justification (not driver/image pattern)
+- [x] **BP-45**: Receiver name inconsistent across methods — `(t *T)` vs `(this *T)` on same type
 
 ### 4.4.3 Detection approach
 
-- [ ] Create `rules/api_design.rs` (BP-26..BP-35) and `rules/code_organization.rs` (BP-36..BP-45)
-- [ ] Use tree-sitter queries for `interface_type`, `type_spec`, `method_declaration`, `var_declaration`
-- [ ] Register in `BAD_PRACTICE_RULES` in `dispatch.rs`
+- [x] Created `rules/api_design.rs` (BP-26..BP-35) and `rules/code_organization.rs` (BP-36..BP-45)
+- [x] Registered implemented rules in `BAD_PRACTICE_RULES` in `dispatch.rs`
+- [x] Extended fixture materialization to support nested output paths so directory-sensitive BP fixtures can be expressed in `.txt` form
+- [x] Added bounded package-aware scans for BP-30, BP-31, and BP-41 by reading same-directory package files without promoting the whole detector to a global package-analysis pass
 
 ### 4.4.4 Test fixtures
 
-- [ ] Create 40 fixture files (20 vulnerable + 20 safe) in `tests/fixtures/go/bad_practices/`
-- [ ] Register in `tests/fixtures/manifest.toml`
+- [x] Created 40 fixture files (20 vulnerable + 20 safe) in `tests/fixtures/go/bad_practices/` for BP-26..BP-45
+- [x] Registered the new fixtures in `tests/fixtures/manifest.toml`
+- [x] Added dedicated nested-path fixtures for BP-30, BP-31, and BP-41 so package-aware heuristics can be exercised without cross-fixture contamination
 
 ---
 
 ## Phase 4.5: Production Hardening + Dependency Hygiene — BP-46..BP-65 (2 weeks)
 
-> Co-developed with P2.1 taint for some rules. BP-56..BP-65 need go.mod parsing.
+> Co-developed with P2.1 taint for some rules. A bounded Phase 4.5 slice is now implemented; remaining rules still need deeper semantic or ecosystem-aware analysis.
 
 ### 4.5.1 Production Hardening (BP-46..BP-55)
 
-- [ ] **BP-46**: HTTP server without `ReadTimeout`/`WriteTimeout`
-- [ ] **BP-47**: No graceful shutdown (`Shutdown` not called)
-- [ ] **BP-48**: `log.Fatal`/`os.Exit` in non-main function
-- [ ] **BP-49**: Deferred function without error handling
-- [ ] **BP-50**: No signal handling for SIGTERM/SIGINT in long-running process
-- [ ] **BP-51**: Panic recovery without re-panic in library code
-- [ ] **BP-52**: Integer overflow in arithmetic (heuristic: multiplication without bounds check)
-- [ ] **BP-53**: `encoding/gob` registered types not matching
-- [ ] **BP-54**: No rate limiting on public HTTP endpoint
-- [ ] **BP-55**: Missing RequestID propagation in middleware chain
+- [x] **BP-46**: HTTP server without `ReadTimeout`/`WriteTimeout` — `http.Server` literals now require both timeout fields
+- [x] **BP-47**: No graceful shutdown (`Shutdown` not called) — project-root scan now flags server-style binaries that never call `Shutdown`
+- [x] **BP-48**: `log.Fatal`/`os.Exit` in non-main function — non-main code paths now flag process-terminating exits
+- [x] **BP-49**: Deferred function without error handling — deferred `.Close()`, `.Flush()`, and `.Sync()` calls now require explicit error handling
+- [x] **BP-50**: No signal handling for SIGTERM/SIGINT in long-running process — project-root scan now requires `os/signal` handling for long-running servers
+- [x] **BP-51**: Panic recovery without re-panic in library code — recover blocks in non-main code now flag unless they clearly log/escalate
+- Pending: **BP-52**: Integer overflow in arithmetic (heuristic: multiplication without bounds check)
+- Pending: **BP-53**: `encoding/gob` registered types not matching
+- Pending: **BP-54**: No rate limiting on public HTTP endpoint
+- Pending: **BP-55**: Missing RequestID propagation in middleware chain
 
 ### 4.5.2 Dependency Hygiene (BP-56..BP-65)
 
-- [ ] **BP-56**: Deprecated stdlib package used (ioutil, golang.org/x/net/context)
-- [ ] **BP-57**: Old Go version in go.mod (>2 minor versions behind latest)
-- [ ] **BP-58**: Unpinned dependency version (v1.x instead of v1.2.3)
-- [ ] **BP-59**: Direct dependency not used in any import — project-level scan
-- [ ] **BP-60**: Test dependency in main go.mod
-- [ ] **BP-61**: Indirect dependency not listed in go.mod (missing `// indirect`)
-- [ ] **BP-62**: Dependency used only in one file, could be internalized
-- [ ] **BP-63**: Dependency with known CVE not updated
-- [ ] **BP-64**: Replace directive pointing to local filesystem
-- [ ] **BP-65**: go.sum missing entries
+- [x] **BP-56**: Deprecated stdlib package used (ioutil, golang.org/x/net/context)
+- Pending: **BP-57**: Old Go version in go.mod (>2 minor versions behind latest)
+- [x] **BP-58**: Unpinned dependency version (v1.x instead of v1.2.3) — project-level `go.mod` scan now flags major/minor-only pins
+- [x] **BP-59**: Direct dependency not used in any import — project-level import reconciliation now flags unused direct requirements
+- [x] **BP-60**: Test dependency in main go.mod — project-level scan now flags requirements imported only from `_test.go`
+- Pending: **BP-61**: Indirect dependency not listed in go.mod (missing `// indirect`)
+- Pending: **BP-62**: Dependency used only in one file, could be internalized
+- Pending: **BP-63**: Dependency with known CVE not updated
+- [x] **BP-64**: Replace directive pointing to local filesystem — local path `replace` directives now flag
+- [x] **BP-65**: go.sum missing entries — missing or empty `go.sum` now flags
 
 ### 4.5.3 Detection approach
 
-- [ ] Create `rules/production_hardening.rs` and `rules/dependency_hygiene.rs`
-- [ ] BP-56..BP-65 need go.mod parsing — integrate with `src/engine/dependencies/` infrastructure
-- [ ] BP-57, BP-58, BP-61, BP-64, BP-65 are project-level scans
-- [ ] Register per-file rules in `BAD_PRACTICE_RULES`; add project-level BP detector for project-wide rules
+- [x] Created `rules/production_hardening.rs` and `rules/dependency_hygiene.rs`
+- [x] Added bounded `go.mod` / `go.sum` parsing heuristics for BP-56, BP-58, BP-59, BP-60, BP-64, and BP-65 without waiting on a broader dependency-graph refactor
+- [x] Implemented project-level anchor scans for BP-47, BP-50, BP-58, BP-59, BP-60, BP-64, and BP-65, with materialized text fixtures explicitly excluded to avoid repo-root bleed-through
+- [x] Registered shipped per-file rules in `BAD_PRACTICE_RULES` and added dedicated project-fixture integration coverage for project-wide rules
+Pending: BP-52..BP-55, BP-57, and BP-61..BP-63 still need deeper semantic, version-awareness, or ecosystem-backed checks.
 
 ### 4.5.4 Test fixtures
 
-- [ ] Per-file rules: create fixture files in `tests/fixtures/go/bad_practices/`
-- [ ] Project-level rules: create fixture directories with go.mod + .go files
-- [ ] Register in `tests/fixtures/manifest.toml`
+- [x] Added per-file fixture files in `tests/fixtures/go/bad_practices/` for BP-46, BP-48, BP-49, BP-51, and BP-56
+- [x] Added project-level fixture directories in `tests/fixtures/go/bad_practices_projects/` for BP-47, BP-50, BP-58, BP-59, BP-60, BP-64, and BP-65
+- [x] Registered the new per-file fixtures in `tests/fixtures/manifest.toml` and added `tests/go_bad_practice_project_integration.rs` for project-root cases
 
 ---
 
 ## Phase 4.6: Documentation
 
-- [ ] Create `docs/bad-practices.md` — one paragraph per BP rule with rationale and canonical fix
+- Pending: Create `docs/bad-practices.md` — one paragraph per BP rule with rationale and canonical fix
 
 ---
 
@@ -354,8 +362,8 @@ Bad Practices detection is a new rule category beyond CWE (security) and PERF (p
 
 > Taint-driven; depends on P2.1 Phase F (inter-procedural taint).
 
-- [ ] **BP-12**: Unbuffered channel send from multiple goroutines without adequate receivers
-- [ ] **BP-14**: Goroutine without `ctx.Done` select
+- Pending: **BP-12**: Unbuffered channel send from multiple goroutines without adequate receivers
+- Pending: **BP-14**: Goroutine without `ctx.Done` select
 
 These ship with P2.1 Phase 2 (inter-procedural taint), tracked in `plans/v2.0.0/pending-work/01-taint-tracking-remaining.md`.
 
@@ -366,11 +374,11 @@ These ship with P2.1 Phase 2 (inter-procedural taint), tracked in `plans/v2.0.0/
 | Workstream | Items | Rules | Effort | Priority | Status |
 |---|---|---|---|---|---|
 | MVP | Architecture + 13 rules | BP-1..BP-15 | 1w | P0 | ✅ |
-| Phase 1 — Hygiene | Integration tests, BP-15 regression | 4 items | 2-3d | P1 | ⏳ |
-| Phase 2 — Metadata refactor | Category enum, JSON, codegen | 4 items | 2-3d | P2 | ❌ |
-| Phase 3 — Testing | Test anti-patterns | BP-16..BP-25 (10) | 1w | P3 | ❌ |
-| Phase 4 — API + Code Org | API design + code structure | BP-26..BP-45 (20) | 2w | P4 | ❌ |
-| Phase 5 — Prod + Dep | Production hardening + deps | BP-46..BP-65 (20) | 2w | P5 | ❌ |
+| Phase 1 — Hygiene | Integration tests, BP-15 regression | 4 items | 2-3d | P1 | ✅ |
+| Phase 2 — Metadata refactor | Category enum, JSON, codegen | 4 items | 2-3d | P2 | ✅ |
+| Phase 3 — Testing | Test anti-patterns | BP-16..BP-25 (10) | 1w | P3 | ✅ |
+| Phase 4 — API + Code Org | API design + code structure | BP-26..BP-45 (20) | 2w | P4 | ✅ |
+| Phase 5 — Prod + Dep | Production hardening + deps | BP-46..BP-65 (20) | 2w | P5 | 🚧 |
 | Documentation | docs/bad-practices.md | 1 doc | 1d | P5 | ❌ |
 | Reserved | Goroutine leak (taint) | BP-12, BP-14 | -- | -- | ⏳ |
 
@@ -392,9 +400,8 @@ These ship with P2.1 Phase 2 (inter-procedural taint), tracked in `plans/v2.0.0/
 ## Verification
 
 ```bash
-cargo test --all-features
-# 268+ passed, 1 ignored (perf_regression budget)
-
-cargo clippy --all-targets --all-features --locked -- -D warnings
-# pass
+cargo test -q --test go_bad_practice_integration
+cargo test -q --test go_bad_practice_project_integration --test fixture_manifest_integration_manifest
+cargo test -q --test perf_regression
+cargo test -q
 ```

@@ -7,6 +7,7 @@ package sample
 
 import "sync"
 
+// LockOriginal operates on the original mutex via pointer.
 func LockOriginal(mu *sync.Mutex) {
 	mu.Lock()
 	defer mu.Unlock()

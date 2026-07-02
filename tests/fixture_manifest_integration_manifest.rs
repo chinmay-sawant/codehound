@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use slopguard::core::ScanContext;
-use slopguard::engine::Analyzer;
+use slopguard::engine::{Analyzer, PathFilters};
 
 #[path = "helpers/mod.rs"]
 mod helpers;
@@ -41,7 +41,22 @@ fn manifest_entries_exist_and_fire() {
         let analyzer = Analyzer::builder()
             .with_default_filter()
             .scan_context(ctx)
+            .path_filters(PathFilters {
+                exclude_tests: !fixture_materializes_test_file(&entry.path),
+                ..Default::default()
+            })
             .build();
         helpers::assert_fixture_rules(&entry.path, &rules, &analyzer);
     }
+}
+
+fn fixture_materializes_test_file(txt_path: &str) -> bool {
+    std::fs::read_to_string(txt_path)
+        .ok()
+        .and_then(|text| {
+            text.lines()
+                .find_map(|line| line.strip_prefix("file: ").map(str::trim))
+                .map(|file| file.ends_with("_test.go"))
+        })
+        .unwrap_or(false)
 }

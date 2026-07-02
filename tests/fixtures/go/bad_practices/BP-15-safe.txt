@@ -7,9 +7,9 @@ package sample
 
 import "sync"
 
-var once sync.Once
-
+// Init runs setup once without recursively calling the same sync.Once.
 func Init() {
+	var once sync.Once
 	once.Do(func() {
 		setup()
 	})
