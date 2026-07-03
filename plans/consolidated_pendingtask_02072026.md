@@ -89,13 +89,19 @@ tier and phase within each workstream.
 ## P1 — Taint Tracking: Phases C–F
 
 > **Parent:** `plans/v2.0.0/pending-work/01-taint-tracking-remaining.md`
-> **Status:** Phases A/B shipped. C–F not started.
+> **Status:** Phase C/E shipped (2026-07-03). D/F not started.
 
-### Phase C — Remove substring fallback (blocked on Phase E)
+### Phase C — Remove substring fallback ✅ SHIPPED
 
-- [ ] **BLOCKED**: Land Phase E (CLI flags) so users can discover and enable taint without editing `slopguard.toml`
-- [ ] Flip default `slopguard.taint.enabled` from `false` to `true`
-- [ ] Remove the `if facts.taint_graph.is_some() { taint } else { fallback }` pattern in CWE-22/78/79/89
+- [x] Land Phase E (CLI flags) so users can discover and enable taint without editing `slopguard.toml`
+- [x] Flip default `slopguard.taint.enabled` from `false` to `true`
+  - Also fixed `build_scan_context` hardcoded default (was `false`, now `true`)
+  - Also fixed `TaintConfig.enabled` from `bool` to `Option<bool>` so config absence doesn't override
+- [x] Remove substring fallback in CWE-22/78/79/89:
+  - CWE-78/79/89: removed entirely, delegate straight to taint
+  - CWE-22: kept `if taint_graph.is_some() { taint } else { fallback }` as safety net when taint is explicitly disabled
+- [x] Fixed taint graph sink wiring for compound args (`"prefix" + var` — `build.rs`)
+- [x] Added `os.ReadFile`, `ioutil.ReadFile` to taint sink classifier (CWE-22 regression)
 - [ ] Add a `cargo test --all-features` run with taint enabled to CI
 
 ### Phase D — Extended sanitizer coverage
@@ -110,16 +116,16 @@ tier and phase within each workstream.
 - [ ] Name-based heuristic: functions matching `/^(sanitize|clean|escape|validate|purify)/i`
 - [ ] Test fixtures for each new sanitizer
 
-### Phase E — CLI flags + docs (highest leverage)
+### Phase E — CLI flags + docs ✅ SHIPPED
 
-- [ ] `--taint` flag: enable taint tracking from CLI
-- [ ] `--no-taint` flag: disable taint even if config enables it
-- [ ] `--taint-show-paths` flag: emit taint-path evidence in JSON/SARIF/text output
+- [x] `--taint` flag: enable taint tracking from CLI
+- [x] `--no-taint` flag: disable taint even if config enables it
+- [x] `--taint-show-paths` flag: emit taint-path evidence in JSON/SARIF/text output
 - [ ] Wire `taint_show_paths` in JSON reporter (`evidence.taint_path`)
 - [ ] Wire `taint_show_paths` in SARIF reporter (`properties` bag)
 - [ ] Wire `taint_show_paths` in text reporter (print path in output)
-- [ ] Create `docs/taint.md` — overview, enabling, model, limitations, output, custom sanitizers
-- [ ] Update `templates/slopguard.toml` with commented-out `[slopguard.taint]` block
+- [x] Create `docs/taint.md` — overview, enabling, model, limitations, output, custom sanitizers
+- [x] Update `templates/slopguard.toml` with commented-out `[slopguard.taint]` block
 
 ### Phase F — Inter-procedural taint tracking
 
@@ -272,8 +278,8 @@ tier and phase within each workstream.
 
 ## P4 — Cross-Cutting
 
-- [ ] Add `--taint` / `--no-taint` / `--taint-show-paths` to CLI (Phase E prerequisite for C and P0)
-- [ ] Create `docs/taint.md`
+- [x] Add `--taint` / `--no-taint` / `--taint-show-paths` to CLI (Phase E prerequisite for C and P0)
+- [x] Create `docs/taint.md`
 - [ ] Create `docs/bad-practices.md`
 - [ ] Create `docs/perf-detector-development.md`
 - [ ] Add CWE-90/91 fixtures to `tests/fixtures/manifest.toml`

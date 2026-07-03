@@ -26,6 +26,15 @@ impl Cli {
         if self.no_bp {
             ctx.bad_practices_enabled = false;
         }
+        if self.taint {
+            ctx.taint_enabled = true;
+        }
+        if self.no_taint {
+            ctx.taint_enabled = false;
+        }
+        if self.taint_show_paths {
+            ctx.taint_show_paths = true;
+        }
         ctx.show_ignored = self.show_ignored;
         ctx
     }

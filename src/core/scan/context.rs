@@ -37,7 +37,7 @@ impl Default for ScanContext {
             show_ignored: false,
             debug_timing: false,
             diagnostics: false,
-            taint_enabled: false,
+            taint_enabled: true,
             taint_show_paths: false,
             bad_practices_enabled: true,
             bad_practice_severity: None,

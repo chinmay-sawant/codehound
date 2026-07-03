@@ -87,11 +87,12 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
             argument_index: sink.argument_index,
             byte_range: sink.byte_range.clone(),
         });
-        // Wire any identifier argument to its declaring variable.
+        // Wire any identifier argument (including inside compound expressions
+        // like `"prefix" + tainted`) to its declaring variable.
         for (idx, arg) in sink.all_arguments.iter().enumerate() {
-            if let Some(arg_var) = as_simple_identifier(arg) {
+            for name in referenced_identifiers(arg) {
                 if let Some(source_id) =
-                    resolve_variable(&decl_nodes, &scope_by_id, sink.byte_range.start, arg_var)
+                    resolve_variable(&decl_nodes, &scope_by_id, sink.byte_range.start, name)
                 {
                     graph.add_edge(source_id, id, EdgeKind::Argument(idx));
                 }

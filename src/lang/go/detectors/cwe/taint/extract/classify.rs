@@ -55,7 +55,9 @@ pub(super) fn classify_sink(
     if call_name == "os.Create"
         || call_name == "os.Open"
         || call_name == "os.OpenFile"
+        || call_name == "os.ReadFile"
         || call_name == "os.WriteFile"
+        || call_name == "ioutil.ReadFile"
         || call_name == "ioutil.WriteFile"
     {
         return Some((SinkKind::FileOpen, 0));

@@ -16,6 +16,8 @@ use clap::Parser;
         slopguard ./cmd/foo.go               # scan a single file\n  \
         slopguard --only CWE-22,CWE-89       # only the named rules\n  \
         slopguard --format sarif > out.sarif # SARIF for CI\n  \
+        slopguard --taint                    # enable experimental taint tracking\n  \
+        slopguard --taint-show-paths         # emit taint-path evidence\n  \
         slopguard --list-rules               # show every registered rule\n  \
         slopguard --explain CWE-89           # details for a specific rule\n  \
         slopguard init                       # write a starter slopguard.toml"
@@ -55,6 +57,18 @@ pub struct Cli {
     /// Disable all bad-practice rules (`BP-*`).
     #[arg(long)]
     pub no_bp: bool,
+
+    /// Enable experimental taint-tracking engine for CWE-22/78/79/89.
+    #[arg(long)]
+    pub taint: bool,
+
+    /// Disable taint tracking even if config enables it.
+    #[arg(long)]
+    pub no_taint: bool,
+
+    /// Emit taint-path evidence in finding output (JSON/SARIF/text).
+    #[arg(long)]
+    pub taint_show_paths: bool,
 
     /// Exit policy for findings.
     #[command(flatten)]

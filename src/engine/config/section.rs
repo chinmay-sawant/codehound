@@ -37,8 +37,12 @@ impl SlopguardConfig {
                 ctx.fail_policy = super::discover::fail_on_to_policy(fail_on);
             }
         }
-        ctx.taint_enabled = self.slopguard.taint.enabled;
-        ctx.taint_show_paths = self.slopguard.taint.show_paths;
+        if let Some(enabled) = self.slopguard.taint.enabled {
+            ctx.taint_enabled = enabled;
+        }
+        if let Some(show_paths) = self.slopguard.taint.show_paths {
+            ctx.taint_show_paths = show_paths;
+        }
         ctx.bad_practices_enabled = self.slopguard.bad_practices.enabled;
         ctx.bad_practice_severity = self.slopguard.bad_practices.severity;
         ctx
