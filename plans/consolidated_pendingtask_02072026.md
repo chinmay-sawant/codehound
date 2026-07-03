@@ -20,7 +20,7 @@ tier and phase within each workstream.
 | CWE-90/91 Taint Rewrite | P0 | ✅ Complete | 0 | Taint-gated CWE-90/91 detectors |
 | Taint Phase C–F | P1 | Phase D complete, F not started | 3–5 weeks | CLI flags, sanitizers, inter-procedural |
 | PERF Detectors | P2 | 109/112 shipped, hygiene only | 1 week | Benchmark regression, docs |
-| Bad Practices (BP) | P3 | 13/63 shipped | 6 weeks | BP-16..BP-65, metadata refactor |
+| Bad Practices (BP) | P3 | ✅ Complete (65/63 shipped) | 0 | All 65 BP rules shipped |
 | Cross-cutting | P4 | Partial | 2 weeks | Docs, CI gates, schema updates |
 
 ---
@@ -160,95 +160,95 @@ tier and phase within each workstream.
 > **Status:** 13/63 rules shipped (MVP). 50 rules not started. Metadata refactor pending.
 > 2 rules reserved for taint.
 
-### Phase 1 — MVP Hygiene (2–3 days)
+### Phase 1 — MVP Hygiene (2–3 days) ✅
 
-- [ ] Add dedicated `tests/go_bad_practice_integration.rs` with fixture-driven tests
-- [ ] Create `tests/helpers/go_bp_cases.rs` helper for fixture discovery
-- [ ] Remove BP-specific checks from generic tests (`engine_config_cli_filters.rs`, `reporting_json_finding.rs`)
-- [ ] Add BP-15 regression test: recursive `sync.Once.Do()` via separate function (not just direct closure)
+- [x] Add dedicated `tests/go_bad_practice_integration.rs` with fixture-driven tests
+- [x] Create `tests/helpers/go_bp_cases.rs` helper for fixture discovery
+- [x] Remove BP-specific checks from generic tests (`engine_config_cli_filters.rs`, `reporting_json_finding.rs`)
+- [x] Add BP-15 regression test: recursive `sync.Once.Do()` via separate function (not just direct closure)
 
-### Phase 2 — Metadata Refactor (2–3 days)
+### Phase 2 — Metadata Refactor (2–3 days) ✅
 
-- [ ] Create `BadPracticeCategory` enum in `src/rules/bp_category.rs`
-- [ ] Create `ruleset/golang/bad-practices.json` with same structure as `golang.json`
-- [ ] Add `gen_bp.rs` in `build/` for BP codegen
-- [ ] Replace inline constants in `metadata.rs` with `include!` of generated code
+- [x] Create `BadPracticeCategory` enum in `src/rules/bp_category.rs`
+- [x] Create `ruleset/golang/bad-practices.json` with same structure as `golang.json`
+- [x] Add `gen_bp.rs` in `build/` for BP codegen
+- [x] Replace inline constants in `metadata.rs` with `include!` of generated code
 
-### Phase 3 — Testing Anti-Patterns: BP-16..BP-25 (1 week)
+### Phase 3 — Testing Anti-Patterns: BP-16..BP-25 (1 week) ✅
 
 > All rules fire only in `*_test.go` files.
 
-- [ ] **BP-16**: `time.Sleep` in test (not in retry loop)
-- [ ] **BP-17**: `t.Error` followed by `t.Fatal` (redundant)
-- [ ] **BP-18**: `t.Error` / `t.Errorf` without `t.FailNow` / `return`
-- [ ] **BP-19**: Missing `t.Helper()` on test helper functions
-- [ ] **BP-20**: Table-driven test without `t.Run`
-- [ ] **BP-21**: `t.Parallel()` missing in table-driven subtest
-- [ ] **BP-22**: TestMain without `os.Exit`
-- [ ] **BP-23**: `testing.Short()` not checked for long tests
-- [ ] **BP-24**: Test file without any test functions
-- [ ] **BP-25**: Test helper returns error instead of calling `t.Fatal`
-- [ ] Create `rules/testing.rs` with detection functions
-- [ ] Create 20 fixture files (10 vulnerable + 10 safe, using `_test.go` suffix)
-- [ ] Register in `BAD_PRACTICE_RULES` in `dispatch.rs`
+- [x] **BP-16**: `time.Sleep` in test (not in retry loop)
+- [x] **BP-17**: `t.Error` followed by `t.Fatal` (redundant)
+- [x] **BP-18**: `t.Error` / `t.Errorf` without `t.FailNow` / `return`
+- [x] **BP-19**: Missing `t.Helper()` on test helper functions
+- [x] **BP-20**: Table-driven test without `t.Run`
+- [x] **BP-21**: `t.Parallel()` missing in table-driven subtest
+- [x] **BP-22**: TestMain without `os.Exit`
+- [x] **BP-23**: `testing.Short()` not checked for long tests
+- [x] **BP-24**: Test file without any test functions
+- [x] **BP-25**: Test helper returns error instead of calling `t.Fatal`
+- [x] Create `rules/testing.rs` with detection functions
+- [x] Create 20 fixture files (10 vulnerable + 10 safe, using `_test.go` suffix)
+- [x] Register in `BAD_PRACTICE_RULES` in `dispatch.rs`
 
-### Phase 4 — API Design + Code Organization: BP-26..BP-45 (2 weeks)
+### Phase 4 — API Design + Code Organization: BP-26..BP-45 (2 weeks) ✅
 
 > Requires tree-sitter queries for `interface_type`, `type_spec`, `method_declaration`.
 
-- [ ] **BP-26**: Context not first parameter
-- [ ] **BP-27**: Exported function returns unexported type
-- [ ] **BP-28**: Interface with single method (should be func type)
-- [ ] **BP-29**: Interface bloat (>5 methods)
-- [ ] **BP-30**: Exported interface without documented implementation
-- [ ] **BP-31**: Function returns concrete type instead of interface
-- [ ] **BP-32**: Error type as `string` instead of `struct`
-- [ ] **BP-33**: Sentinel error without `Is` method
-- [ ] **BP-34**: Error wrapping without `%w`
-- [ ] **BP-35**: Package name != directory name
-- [ ] **BP-36**: `init()` with side effects
-- [ ] **BP-37**: Package-level mutable global variable
-- [ ] **BP-38**: Unexported helper with no internal callers
-- [ ] **BP-39**: Exported function without doc comment
-- [ ] **BP-40**: Package-level block with unrelated constants
-- [ ] **BP-41**: File header missing package doc comment
-- [ ] **BP-42**: Import alias not used consistently
-- [ ] **BP-43**: Dot import outside test files
-- [ ] **BP-44**: Blank import without justification
-- [ ] **BP-45**: Receiver name inconsistent across methods
-- [ ] Create `rules/api_design.rs` and `rules/code_organization.rs`
-- [ ] Create 40 fixture files (20 vulnerable + 20 safe)
+- [x] **BP-26**: Context not first parameter
+- [x] **BP-27**: Exported function returns unexported type
+- [x] **BP-28**: Interface with single method (should be func type)
+- [x] **BP-29**: Interface bloat (>5 methods)
+- [x] **BP-30**: Exported interface without documented implementation
+- [x] **BP-31**: Function returns concrete type instead of interface
+- [x] **BP-32**: Error type as `string` instead of `struct`
+- [x] **BP-33**: Sentinel error without `Is` method
+- [x] **BP-34**: Error wrapping without `%w`
+- [x] **BP-35**: Package name != directory name
+- [x] **BP-36**: `init()` with side effects
+- [x] **BP-37**: Package-level mutable global variable
+- [x] **BP-38**: Unexported helper with no internal callers
+- [x] **BP-39**: Exported function without doc comment
+- [x] **BP-40**: Package-level block with unrelated constants
+- [x] **BP-41**: File header missing package doc comment
+- [x] **BP-42**: Import alias not used consistently
+- [x] **BP-43**: Dot import outside test files
+- [x] **BP-44**: Blank import without justification
+- [x] **BP-45**: Receiver name inconsistent across methods
+- [x] Create `rules/api_design.rs` and `rules/code_organization.rs`
+- [x] Create 40 fixture files (20 vulnerable + 20 safe)
 
-### Phase 5 — Production Hardening + Dependency Hygiene: BP-46..BP-65 (2 weeks)
+### Phase 5 — Production Hardening + Dependency Hygiene: BP-46..BP-65 (2 weeks) ✅
 
 > Some rules co-developed with P2.1 taint.
 
-- [ ] **BP-46**: HTTP server without `ReadTimeout`/`WriteTimeout`
-- [ ] **BP-47**: No graceful shutdown
-- [ ] **BP-48**: `log.Fatal`/`os.Exit` in non-main function
-- [ ] **BP-49**: Deferred function without error handling
-- [ ] **BP-50**: No signal handling for `SIGTERM`/`SIGINT`
-- [ ] **BP-51**: Panic recovery without re-panic in library code
-- [ ] **BP-52**: Integer overflow in arithmetic (heuristic)
-- [ ] **BP-53**: `encoding/gob` registered types not matching
-- [ ] **BP-54**: No rate limiting on public HTTP endpoint
-- [ ] **BP-55**: Missing `RequestID` propagation in middleware chain
-- [ ] **BP-56**: Deprecated stdlib package used
-- [ ] **BP-57**: Old Go version in `go.mod`
-- [ ] **BP-58**: Unpinned dependency version
-- [ ] **BP-59**: Direct dependency not used in any import
-- [ ] **BP-60**: Test dependency in main `go.mod`
-- [ ] **BP-61**: Indirect dependency not listed in `go.mod`
-- [ ] **BP-62**: Dependency used only in one file
-- [ ] **BP-63**: Dependency with known CVE not updated
-- [ ] **BP-64**: Replace directive pointing to local filesystem
-- [ ] **BP-65**: `go.sum` missing entries
-- [ ] Create `rules/production_hardening.rs` and `rules/dependency_hygiene.rs`
-- [ ] Create fixture files + fixture directories (for project-level rules)
+- [x] **BP-46**: HTTP server without `ReadTimeout`/`WriteTimeout`
+- [x] **BP-47**: No graceful shutdown
+- [x] **BP-48**: `log.Fatal`/`os.Exit` in non-main function
+- [x] **BP-49**: Deferred function without error handling
+- [x] **BP-50**: No signal handling for `SIGTERM`/`SIGINT`
+- [x] **BP-51**: Panic recovery without re-panic in library code
+- [x] **BP-52**: Integer overflow in arithmetic (heuristic)
+- [x] **BP-53**: `encoding/gob` registered types not matching
+- [x] **BP-54**: No rate limiting on public HTTP endpoint
+- [x] **BP-55**: Missing `RequestID` propagation in middleware chain
+- [x] **BP-56**: Deprecated stdlib package used
+- [x] **BP-57**: Old Go version in `go.mod`
+- [x] **BP-58**: Unpinned dependency version
+- [x] **BP-59**: Direct dependency not used in any import
+- [x] **BP-60**: Test dependency in main `go.mod`
+- [x] **BP-61**: Indirect dependency not listed in `go.mod`
+- [x] **BP-62**: Dependency used only in one file
+- [x] **BP-63**: Dependency with known CVE not updated
+- [x] **BP-64**: Replace directive pointing to local filesystem
+- [x] **BP-65**: `go.sum` missing entries
+- [x] Create `rules/production_hardening.rs` and `rules/dependency_hygiene.rs`
+- [x] Create fixture files + fixture directories (for project-level rules)
 
-### Phase 6 — Documentation
+### Phase 6 — Documentation ✅
 
-- [ ] Create `docs/bad-practices.md` — one paragraph per BP rule with rationale and canonical fix
+- [x] Create `docs/bad-practices.md` — one paragraph per BP rule with rationale and canonical fix
 
 ---
 
@@ -300,14 +300,9 @@ P4 (cross-cutting)
 |----------|-----------|-------|--------|------------|
 | **P0** | CWE-90/91 taint rewrite | 2 rules | ✅ Complete | — |
 | **P1-C** | Taint: remove substring fallback | 4 CWEs | ✅ Complete | — |
-| **P1-D** | Taint: extended sanitizers | ~10 matchers | 1–2d | — |
+| **P1-D** | Taint: extended sanitizers | ~10 matchers | ✅ Complete | — |
 | **P1-E** | Taint: CLI flags + docs | 3 flags + 1 doc | ✅ Complete | — |
 | **P1-F** | Taint: inter-procedural | — | 3–4w | Sub-plan |
-| **P2** | PERF hygiene | 209 fixtures | 1w | — |
-| **P3-1** | BP hygiene | 4 items | 2–3d | — |
-| **P3-2** | BP metadata refactor | 4 items | 2–3d | — |
-| **P3-3** | BP testing patterns | 10 rules | 1w | — |
-| **P3-4** | BP API + code org | 20 rules | 2w | Tree-sitter queries |
-| **P3-5** | BP prod hardening + dep | 20 rules | 2w | Taint (partial) |
-| **P3-6** | BP documentation | 1 doc | 1d | — |
-| **P4** | Cross-cutting docs | 3 docs + CI | 2w | Feature completion |
+| **P2** | PERF hygiene (bench reg, docs) | — | 1w | — |
+| **P3** | Bad Practices (all phases) | 65 rules | ✅ Complete | — |
+| **P4** | Cross-cutting docs + CI | `perf-detector-dev.md` + CI | 1w | — |
