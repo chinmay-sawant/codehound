@@ -1,8 +1,8 @@
 # P2.5 — Bad Practices Detection (Implementation Status)
 
 > **Parent:** `plans/p2.md` — P2.5
-> **Status:** ✅ **MVP + Phase 4.4 implemented.** Phase 4.5 is now partially implemented with Production Hardening and Dependency Hygiene coverage for BP-46, BP-47, BP-48, BP-49, BP-50, BP-51, BP-56, BP-58, BP-59, BP-60, BP-64, and BP-65. BP-52..BP-55, BP-57, and BP-61..BP-63 remain open; BP-12/BP-14 still remain reserved.
-> **Estimated effort:** MVP was ~1 week. Remaining phases ~3-4 weeks total.
+> **Status:** ✅ **All planned BP phases implemented.** BP-1..BP-65 now have shipped detector coverage, fixture coverage, and documentation, including bounded heuristic implementations for the formerly reserved BP-12 and BP-14 rules.
+> **Estimated effort:** MVP was ~1 week. Follow-on phases are now complete.
 > **See also:** `plans/v2.0.0/antipattern-remediation/bad-practices-scope.md` (original scoping doc), `plans/v2.0.0/rust-remediation-phase-3.md` (remediation tracking)
 > **Pending work breakdown:** `plans/v2.0.0/pending-work/03-bad-practices-remaining.md`
 
@@ -22,8 +22,9 @@ Bad Practices detection is a new rule category beyond CWE (security) and PERF (p
 - **Hygiene landed:** Dedicated BP integration coverage now exercises fixture scans, CLI scans, config/reporting hooks, and an indirect `BP-15` regression.
 - **Testing heuristics landed:** `BP-16..BP-25` now have detector implementations in `rules/testing.rs`, fixture coverage, and CLI/manifest validation that explicitly scans `_test.go` materializations.
 - **Phase 4.4 landed:** `rules/api_design.rs` and `rules/code_organization.rs` now cover all BP-26..BP-45 rules, including package-aware heuristics for BP-30, BP-31, and BP-41 plus nested-path fixture materialization for path-sensitive cases.
-- **Phase 4.5 slice landed:** `rules/production_hardening.rs` and `rules/dependency_hygiene.rs` now cover BP-46, BP-47, BP-48, BP-49, BP-50, BP-51, BP-56, BP-58, BP-59, BP-60, BP-64, and BP-65 with both per-file fixtures and dedicated project-root fixture directories.
-- **Remaining:** BP-52..BP-55, BP-57, and BP-61..BP-63 are still pending implementation. BP-12 and BP-14 (goroutine leak detection) still reserved for taint-driven implementation.
+- **Phase 4.5 landed:** `rules/production_hardening.rs` and `rules/dependency_hygiene.rs` now cover BP-46..BP-65, including bounded heuristics for gob registration mismatches, missing indirect annotations, and curated vulnerable-module checks.
+- **Concurrency reserve closed:** BP-12 and BP-14 now ship as bounded heuristics in `rules/sync.rs`, with the taint engine remaining an optional future precision upgrade rather than a blocker.
+- **Documentation landed:** `docs/bad-practices.md` now records rationale and canonical fixes for every shipped BP rule.
 
 ---
 
@@ -45,12 +46,12 @@ Bad Practices detection is a new rule category beyond CWE (security) and PERF (p
 ### 1.2 Sub-categories defined
 
 - [x] **Error Handling** — BP-1..BP-5 (MVP)
-- [x] **Concurrency** — BP-6..BP-15, BP-12/BP-14 reserved (MVP)
+- [x] **Concurrency** — BP-6..BP-15 (implemented, including BP-12/BP-14)
 - [x] **Testing** — BP-16..BP-25 (implemented in Phase 4.3)
 - [x] **API Design** — BP-26..BP-35 (implemented in Phase 4.4)
 - [x] **Code Organization** — BP-36..BP-45 (implemented in Phase 4.4)
-- [x] **Production Hardening** — BP-46, BP-47, BP-48, BP-49, BP-50, BP-51 implemented; BP-52..BP-55 pending
-- [x] **Dependency Hygiene** — BP-56, BP-58, BP-59, BP-60, BP-64, BP-65 implemented; BP-57, BP-61..BP-63 pending
+- [x] **Production Hardening** — BP-46..BP-55 implemented
+- [x] **Dependency Hygiene** — BP-56..BP-65 implemented
 
 ### 1.3 Scope criteria applied
 
@@ -64,7 +65,7 @@ Bad Practices detection is a new rule category beyond CWE (security) and PERF (p
 
 - [x] Prefix: `BP-N` (Bad Practice)
 - [x] Sequential numbering within each sub-category block
-- [x] Implemented: BP-1..BP-11, BP-13, BP-15 (gaps at BP-12, BP-14 — reserved)
+- [x] Implemented: BP-1..BP-15
 
 ---
 
@@ -98,9 +99,9 @@ Bad Practices detection is a new rule category beyond CWE (security) and PERF (p
 - [x] BP-10: AST walk for `time.After()` inside loop — `loops.rs:11`
 - [x] BP-11: AST walk for `defer_statement` inside loop — `loops.rs:48`
 - [x] BP-13: AST function-stack for `context.Background()` in library — `panics.rs:67`
+- [x] BP-12: Line-scan heuristic for unbuffered channel sends from multiple goroutines without visible coordinated receivers — `sync.rs`
+- [x] BP-14: Line-scan heuristic for long-running goroutines that ignore `ctx.Done()` — `sync.rs`
 - [x] BP-15: AST-assisted same-file call-chain walk for recursive `sync.Once.Do` — `panics.rs:134`
-- Pending: BP-12: Unbuffered channel send from multiple goroutines — **reserved** (needs taint)
-- Pending: BP-14: Goroutine without ctx.Done select — **reserved** (needs taint)
 
 ### 2.4 Fact extraction
 
@@ -174,8 +175,8 @@ Bad Practices detection is a new rule category beyond CWE (security) and PERF (p
 | **Phase 2 — Metadata Refactor** | BadPracticeCategory enum, JSON, codegen | 4 items | 2-3 days | ✅ **DONE** |
 | **Phase 3 (P2.5-B)** | Testing anti-patterns | BP-16..BP-25 (10 rules) | 1 week | ✅ **DONE** |
 | **Phase 4 (P2.5-C)** | API Design + Code Organization | BP-26..BP-45 (20 rules) | 2 weeks | ✅ **DONE** |
-| **Phase 5 (P2.5-D)** | Production Hardening + Dep Hygiene | BP-46..BP-65 (20 rules) | 2 weeks | 🚧 Partial (12/20 shipped) |
-| **Reserve** | Goroutine leak detection (taint) | BP-12, BP-14 | -- | ⏳ Pending P2.1 |
+| **Phase 5 (P2.5-D)** | Production Hardening + Dep Hygiene | BP-46..BP-65 (20 rules) | 2 weeks | ✅ **DONE** |
+| **Concurrency Reserve Closure** | Former taint-reserved heuristics | BP-12, BP-14 | -- | ✅ **DONE** |
 
 ---
 
@@ -318,54 +319,51 @@ Bad Practices detection is a new rule category beyond CWE (security) and PERF (p
 - [x] **BP-49**: Deferred function without error handling — deferred `.Close()`, `.Flush()`, and `.Sync()` calls now require explicit error handling
 - [x] **BP-50**: No signal handling for SIGTERM/SIGINT in long-running process — project-root scan now requires `os/signal` handling for long-running servers
 - [x] **BP-51**: Panic recovery without re-panic in library code — recover blocks in non-main code now flag unless they clearly log/escalate
-- Pending: **BP-52**: Integer overflow in arithmetic (heuristic: multiplication without bounds check)
-- Pending: **BP-53**: `encoding/gob` registered types not matching
-- Pending: **BP-54**: No rate limiting on public HTTP endpoint
-- Pending: **BP-55**: Missing RequestID propagation in middleware chain
+- [x] **BP-52**: Integer overflow in arithmetic (heuristic: multiplication without bounds check) — `make(...)` allocation multiplications now require an obvious overflow guard marker
+- [x] **BP-53**: `encoding/gob` registered types not matching — nearby `gob.Register` and `Encode`/`Decode` payloads must line up on the same local type
+- [x] **BP-54**: No rate limiting on public HTTP endpoint — project-root server scans now require a visible rate-limiter marker on public handlers
+- [x] **BP-55**: Missing RequestID propagation in middleware chain — project-root request-path logging scans now require visible request-id propagation markers
 
 ### 4.5.2 Dependency Hygiene (BP-56..BP-65)
 
 - [x] **BP-56**: Deprecated stdlib package used (ioutil, golang.org/x/net/context)
-- Pending: **BP-57**: Old Go version in go.mod (>2 minor versions behind latest)
+- [x] **BP-57**: Old Go version in go.mod (>2 minor versions behind latest) — project-level `go.mod` scans now flag majors outside the current two-release support window
 - [x] **BP-58**: Unpinned dependency version (v1.x instead of v1.2.3) — project-level `go.mod` scan now flags major/minor-only pins
 - [x] **BP-59**: Direct dependency not used in any import — project-level import reconciliation now flags unused direct requirements
 - [x] **BP-60**: Test dependency in main go.mod — project-level scan now flags requirements imported only from `_test.go`
-- Pending: **BP-61**: Indirect dependency not listed in go.mod (missing `// indirect`)
-- Pending: **BP-62**: Dependency used only in one file, could be internalized
-- Pending: **BP-63**: Dependency with known CVE not updated
+- [x] **BP-61**: Indirect dependency not listed in go.mod (missing `// indirect`) — non-imported requirements now require an explicit `// indirect` marker
+- [x] **BP-62**: Dependency used only in one file, could be internalized — multi-file projects now flag direct dependencies imported from exactly one non-test file
+- [x] **BP-63**: Dependency with known CVE not updated — project-level scans now compare requirements against the curated advisory snapshot in `ruleset/golang/go_module_advisories.csv`
 - [x] **BP-64**: Replace directive pointing to local filesystem — local path `replace` directives now flag
 - [x] **BP-65**: go.sum missing entries — missing or empty `go.sum` now flags
 
 ### 4.5.3 Detection approach
 
 - [x] Created `rules/production_hardening.rs` and `rules/dependency_hygiene.rs`
-- [x] Added bounded `go.mod` / `go.sum` parsing heuristics for BP-56, BP-58, BP-59, BP-60, BP-64, and BP-65 without waiting on a broader dependency-graph refactor
-- [x] Implemented project-level anchor scans for BP-47, BP-50, BP-58, BP-59, BP-60, BP-64, and BP-65, with materialized text fixtures explicitly excluded to avoid repo-root bleed-through
+- [x] Added bounded `go.mod` / `go.sum` parsing heuristics for BP-56..BP-65, including indirect-annotation checks and curated vulnerable-version matching
+- [x] Implemented project-level anchor scans for BP-47, BP-50, BP-54, BP-55, BP-57, BP-58, BP-59, BP-60, BP-61, BP-62, BP-63, BP-64, and BP-65, with materialized text fixtures explicitly excluded to avoid repo-root bleed-through
 - [x] Registered shipped per-file rules in `BAD_PRACTICE_RULES` and added dedicated project-fixture integration coverage for project-wide rules
-Pending: BP-52..BP-55, BP-57, and BP-61..BP-63 still need deeper semantic, version-awareness, or ecosystem-backed checks.
 
 ### 4.5.4 Test fixtures
 
-- [x] Added per-file fixture files in `tests/fixtures/go/bad_practices/` for BP-46, BP-48, BP-49, BP-51, and BP-56
-- [x] Added project-level fixture directories in `tests/fixtures/go/bad_practices_projects/` for BP-47, BP-50, BP-58, BP-59, BP-60, BP-64, and BP-65
+- [x] Added per-file fixture files in `tests/fixtures/go/bad_practices/` for BP-12, BP-14, BP-46, BP-48, BP-49, BP-51, BP-52, BP-53, and BP-56
+- [x] Added project-level fixture directories in `tests/fixtures/go/bad_practices_projects/` for BP-47, BP-50, BP-54, BP-55, BP-57, BP-58, BP-59, BP-60, BP-61, BP-62, BP-63, BP-64, and BP-65
 - [x] Registered the new per-file fixtures in `tests/fixtures/manifest.toml` and added `tests/go_bad_practice_project_integration.rs` for project-root cases
 
 ---
 
 ## Phase 4.6: Documentation
 
-- Pending: Create `docs/bad-practices.md` — one paragraph per BP rule with rationale and canonical fix
+- [x] Created `docs/bad-practices.md` — one paragraph per BP rule with rationale and canonical fix
 
 ---
 
-## Reserved — BP-12, BP-14 (Goroutine Leak Detection)
+## Former Reserve — BP-12, BP-14
 
-> Taint-driven; depends on P2.1 Phase F (inter-procedural taint).
+> The original plan reserved BP-12 and BP-14 for a future taint phase. The current implementation ships bounded heuristics in `rules/sync.rs`; future taint work can still improve precision, but it is no longer required for baseline detector coverage.
 
-- Pending: **BP-12**: Unbuffered channel send from multiple goroutines without adequate receivers
-- Pending: **BP-14**: Goroutine without `ctx.Done` select
-
-These ship with P2.1 Phase 2 (inter-procedural taint), tracked in `plans/v2.0.0/pending-work/01-taint-tracking-remaining.md`.
+- [x] **BP-12**: Unbuffered channel send from multiple goroutines without adequate receivers
+- [x] **BP-14**: Goroutine without `ctx.Done` select
 
 ---
 
@@ -378,9 +376,9 @@ These ship with P2.1 Phase 2 (inter-procedural taint), tracked in `plans/v2.0.0/
 | Phase 2 — Metadata refactor | Category enum, JSON, codegen | 4 items | 2-3d | P2 | ✅ |
 | Phase 3 — Testing | Test anti-patterns | BP-16..BP-25 (10) | 1w | P3 | ✅ |
 | Phase 4 — API + Code Org | API design + code structure | BP-26..BP-45 (20) | 2w | P4 | ✅ |
-| Phase 5 — Prod + Dep | Production hardening + deps | BP-46..BP-65 (20) | 2w | P5 | 🚧 |
-| Documentation | docs/bad-practices.md | 1 doc | 1d | P5 | ❌ |
-| Reserved | Goroutine leak (taint) | BP-12, BP-14 | -- | -- | ⏳ |
+| Phase 5 — Prod + Dep | Production hardening + deps | BP-46..BP-65 (20) | 2w | P5 | ✅ |
+| Documentation | docs/bad-practices.md | 1 doc | 1d | P5 | ✅ |
+| Former Reserve | Goroutine leak heuristics | BP-12, BP-14 | -- | -- | ✅ |
 
 ---
 

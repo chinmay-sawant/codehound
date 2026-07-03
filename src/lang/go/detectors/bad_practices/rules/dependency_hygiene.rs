@@ -31,6 +31,33 @@ pub(crate) fn detect_bp_56_deprecated_package_used(
     }
 }
 
+pub(crate) fn detect_bp_57_stale_go_version_in_go_mod(
+    unit: &ParsedUnit,
+    _index: &SourceIndex,
+    out: &mut Vec<Finding>,
+) {
+    let Some(go_mod) = read_go_mod(unit) else {
+        return;
+    };
+    if is_materialized_fixture(unit) || !is_project_anchor(unit) {
+        return;
+    }
+    // ponytail: tracks Go's two-release support window as of 2026-07-03.
+    const MIN_SUPPORTED_GO_MINOR: u64 = 25;
+    let Some((major, minor)) = parse_go_version(&go_mod.text) else {
+        return;
+    };
+    if major == 1 && minor < MIN_SUPPORTED_GO_MINOR {
+        push_at(
+            unit,
+            out,
+            &crate::lang::go::detectors::bad_practices::BP_57_META,
+            0,
+            "go.mod targets an out-of-support Go major release; update to a currently supported baseline",
+        );
+    }
+}
+
 pub(crate) fn detect_bp_58_unpinned_dependency_version(
     unit: &ParsedUnit,
     _index: &SourceIndex,
@@ -123,6 +150,105 @@ pub(crate) fn detect_bp_60_test_only_dependency_in_main_go_mod(
     }
 }
 
+pub(crate) fn detect_bp_61_indirect_dependency_missing_annotation(
+    unit: &ParsedUnit,
+    _index: &SourceIndex,
+    out: &mut Vec<Finding>,
+) {
+    let Some(go_mod) = read_go_mod(unit) else {
+        return;
+    };
+    if is_materialized_fixture(unit) || !is_project_anchor(unit) {
+        return;
+    }
+    let imports = collect_project_imports(go_mod.root.as_path());
+    for require in parse_requires(&go_mod.text) {
+        if require.indirect {
+            continue;
+        }
+        let used_directly = imports
+            .all
+            .iter()
+            .any(|import| import == &require.module || import.starts_with(&(require.module.clone() + "/")));
+        if !used_directly {
+            push_at(
+                unit,
+                out,
+                &crate::lang::go::detectors::bad_practices::BP_61_META,
+                0,
+                "requirement is not directly imported; mark it `// indirect` or remove it",
+            );
+            break;
+        }
+    }
+}
+
+pub(crate) fn detect_bp_62_dependency_used_in_one_file(
+    unit: &ParsedUnit,
+    _index: &SourceIndex,
+    out: &mut Vec<Finding>,
+) {
+    let Some(go_mod) = read_go_mod(unit) else {
+        return;
+    };
+    if is_materialized_fixture(unit) || !is_project_anchor(unit) {
+        return;
+    }
+    let requires = parse_requires(&go_mod.text);
+    let project_files = collect_non_test_go_files(go_mod.root.as_path());
+    if project_files.len() < 2 {
+        return;
+    }
+    let usage = collect_project_module_usage(go_mod.root.as_path(), &requires);
+    for require in requires {
+        if require.indirect {
+            continue;
+        }
+        let Some(files) = usage.get(&require.module) else {
+            continue;
+        };
+        if files.len() == 1 {
+            push_at(
+                unit,
+                out,
+                &crate::lang::go::detectors::bad_practices::BP_62_META,
+                0,
+                "external dependency is only used in one non-test file; consider internalizing or narrowing the dependency",
+            );
+            break;
+        }
+    }
+}
+
+pub(crate) fn detect_bp_63_dependency_with_known_cve_not_updated(
+    unit: &ParsedUnit,
+    _index: &SourceIndex,
+    out: &mut Vec<Finding>,
+) {
+    let Some(go_mod) = read_go_mod(unit) else {
+        return;
+    };
+    if is_materialized_fixture(unit) || !is_project_anchor(unit) {
+        return;
+    }
+    let advisories = parse_advisories();
+    for require in parse_requires(&go_mod.text) {
+        let Some(advisory) = advisories.get(&require.module) else {
+            continue;
+        };
+        if advisory.version_matches(&require.version) {
+            push_at(
+                unit,
+                out,
+                &crate::lang::go::detectors::bad_practices::BP_63_META,
+                0,
+                "dependency version matches a curated vulnerable advisory snapshot; upgrade or replace the module",
+            );
+            break;
+        }
+    }
+}
+
 pub(crate) fn detect_bp_64_replace_directive_local_filesystem(
     unit: &ParsedUnit,
     _index: &SourceIndex,
@@ -192,6 +318,10 @@ struct ProjectImports {
     test_only: BTreeSet<String>,
 }
 
+struct Advisory {
+    introduced_through: Option<String>,
+}
+
 fn collect_import_paths(unit: &ParsedUnit) -> Vec<(usize, String)> {
     let mut imports = Vec::new();
     fn walk(node: Node, src: &[u8], imports: &mut Vec<(usize, String)>) {
@@ -259,6 +389,42 @@ fn parse_requires(go_mod: &str) -> Vec<Require> {
     requires
 }
 
+fn parse_go_version(go_mod: &str) -> Option<(u64, u64)> {
+    let line = go_mod
+        .lines()
+        .map(str::trim)
+        .find(|line| line.starts_with("go "))?;
+    let version = line.strip_prefix("go ")?.trim();
+    let mut parts = version.split('.');
+    let major = parts.next()?.parse().ok()?;
+    let minor = parts.next()?.parse().ok()?;
+    Some((major, minor))
+}
+
+fn parse_advisories() -> BTreeMap<String, Advisory> {
+    let mut advisories = BTreeMap::new();
+    let text = include_str!("../../../../../../ruleset/golang/go_module_advisories.csv");
+    for line in text.lines().skip(1) {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        let mut parts = trimmed.split(',');
+        let module = parts.next().unwrap_or("").trim();
+        let introduced_through = parts.next().map(str::trim).filter(|v| !v.is_empty());
+        if module.is_empty() {
+            continue;
+        }
+        advisories.insert(
+            module.to_string(),
+            Advisory {
+                introduced_through: introduced_through.map(|v| v.to_string()),
+            },
+        );
+    }
+    advisories
+}
+
 fn parse_replace_targets(go_mod: &str) -> Vec<String> {
     let mut targets = Vec::new();
     let mut in_block = false;
@@ -295,6 +461,39 @@ fn version_missing_patch(version: &str) -> bool {
     segments.len() < 3 && segments.iter().all(|segment| segment.parse::<u64>().is_ok())
 }
 
+fn parse_semver_like(version: &str) -> Option<Vec<u64>> {
+    let normalized = version
+        .trim()
+        .trim_start_matches('v')
+        .split_once('+')
+        .map_or(version.trim().trim_start_matches('v'), |(head, _)| head)
+        .split_once('-')
+        .map_or(version.trim().trim_start_matches('v'), |(head, _)| head);
+    let mut out = Vec::new();
+    for part in normalized.split('.') {
+        out.push(part.parse().ok()?);
+    }
+    Some(out)
+}
+
+fn semver_lte(left: &str, right: &str) -> bool {
+    let mut left = parse_semver_like(left).unwrap_or_default();
+    let mut right = parse_semver_like(right).unwrap_or_default();
+    let width = left.len().max(right.len());
+    left.resize(width, 0);
+    right.resize(width, 0);
+    left <= right
+}
+
+impl Advisory {
+    fn version_matches(&self, version: &str) -> bool {
+        let Some(through) = self.introduced_through.as_deref() else {
+            return false;
+        };
+        semver_lte(version, through)
+    }
+}
+
 fn is_project_anchor(unit: &ParsedUnit) -> bool {
     let root = discover_project_root(&unit.path);
     let mut files: Vec<PathBuf> = WalkDir::new(root)
@@ -307,6 +506,57 @@ fn is_project_anchor(unit: &ParsedUnit) -> bool {
         .collect();
     files.sort();
     files.first().is_some_and(|path| path == &unit.path)
+}
+
+fn collect_project_module_usage(
+    root: &Path,
+    requires: &[Require],
+) -> BTreeMap<String, BTreeSet<PathBuf>> {
+    let mut usage = BTreeMap::<String, BTreeSet<PathBuf>>::new();
+    for entry in WalkDir::new(root).into_iter().filter_map(Result::ok) {
+        let path = entry.path();
+        if !entry.file_type().is_file() {
+            continue;
+        }
+        if path.extension().and_then(|ext| ext.to_str()) != Some("go")
+            || path.to_string_lossy().ends_with("_test.go")
+        {
+            continue;
+        }
+        let Ok(text) = fs::read_to_string(path) else {
+            continue;
+        };
+        let imports = extract_imports_from_text(&text);
+        for require in requires {
+            if imports.iter().any(|import| {
+                import == &require.module || import.starts_with(&(require.module.clone() + "/"))
+            }) {
+                usage
+                    .entry(require.module.clone())
+                    .or_default()
+                    .insert(path.to_path_buf());
+            }
+        }
+    }
+    usage
+}
+
+fn collect_non_test_go_files(root: &Path) -> Vec<PathBuf> {
+    let mut files = Vec::new();
+    for entry in WalkDir::new(root).into_iter().filter_map(Result::ok) {
+        let path = entry.path();
+        if !entry.file_type().is_file() {
+            continue;
+        }
+        if path.extension().and_then(|ext| ext.to_str()) != Some("go")
+            || path.to_string_lossy().ends_with("_test.go")
+        {
+            continue;
+        }
+        files.push(path.to_path_buf());
+    }
+    files.sort();
+    files
 }
 
 fn collect_project_imports(root: &Path) -> ProjectImports {

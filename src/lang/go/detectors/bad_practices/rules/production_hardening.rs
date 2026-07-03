@@ -183,6 +183,154 @@ pub(crate) fn detect_bp_51_recover_without_repanic_in_library(
     });
 }
 
+pub(crate) fn detect_bp_52_unchecked_integer_multiplication(
+    unit: &ParsedUnit,
+    _index: &SourceIndex,
+    out: &mut Vec<Finding>,
+) {
+    if is_test_file(unit) || !unit.source.contains("make(") || !unit.source.contains('*') {
+        return;
+    }
+    walk_call_expressions(unit, |call, src| {
+        if function_text(call, src) != Some("make") {
+            return None;
+        }
+        let call_text = node_text(call, src)?;
+        if !call_text.contains('*') {
+            return None;
+        }
+        let scope = enclosing_func_literal_or_function(call)?;
+        let scope_text = node_text(scope, src)?;
+        let has_guard = scope_text.contains("MaxInt")
+            || scope_text.contains("MaxUint")
+            || scope_text.contains("overflow")
+            || scope_text.contains("/")
+            || scope_text.contains("bits.Mul")
+            || scope_text.contains("checkedMul")
+            || scope_text.contains("checked_mul");
+        (!has_guard).then_some((
+            call.start_byte(),
+            "multiplication used in an allocation path without an obvious overflow guard",
+        ))
+    })
+    .into_iter()
+    .for_each(|(byte, message)| {
+        push_at(
+            unit,
+            out,
+            &crate::lang::go::detectors::bad_practices::BP_52_META,
+            byte,
+            message,
+        );
+    });
+}
+
+pub(crate) fn detect_bp_53_gob_registration_mismatch(
+    unit: &ParsedUnit,
+    _index: &SourceIndex,
+    out: &mut Vec<Finding>,
+) {
+    let source = unit.source.as_ref();
+    if is_test_file(unit) || !source.contains("gob.Register(") {
+        return;
+    }
+    let registered = collect_call_targets(source, "gob.Register(");
+    if registered.is_empty() {
+        return;
+    }
+    let encoded = collect_call_targets(source, ".Encode(");
+    let decoded = collect_call_targets(source, ".Decode(");
+    let known_types = collect_local_type_hints(source);
+    let mut matched = false;
+    for value in encoded.iter().chain(decoded.iter()) {
+        let normalized = normalize_identifier(value);
+        if let Some(ty) = known_types.get(&normalized)
+            && registered.iter().any(|candidate| normalize_type_name(candidate) == *ty)
+        {
+            matched = true;
+            break;
+        }
+    }
+    if !matched {
+        push_at(
+            unit,
+            out,
+            &crate::lang::go::detectors::bad_practices::BP_53_META,
+            source.find("gob.Register(").unwrap_or(0),
+            "gob.Register uses a type that does not line up with the nearby Encode/Decode payloads",
+        );
+    }
+}
+
+pub(crate) fn detect_bp_54_public_http_endpoint_without_rate_limiting(
+    unit: &ParsedUnit,
+    _index: &SourceIndex,
+    out: &mut Vec<Finding>,
+) {
+    if is_materialized_fixture(unit) || !is_project_anchor(unit) {
+        return;
+    }
+    let project = read_project_texts(unit);
+    if !project.iter().any(|(_, text)| contains_server_start(text))
+        || !project.iter().any(|(_, text)| contains_public_route(text))
+    {
+        return;
+    }
+    let has_rate_limiting = project.iter().any(|(_, text)| {
+        text.contains("rate.NewLimiter(")
+            || text.contains("rate.Limiter")
+            || text.contains("tollbooth")
+            || text.contains("httprate")
+            || text.contains("Throttle(")
+    });
+    if !has_rate_limiting {
+        push_at(
+            unit,
+            out,
+            &crate::lang::go::detectors::bad_practices::BP_54_META,
+            0,
+            "public HTTP handlers should enforce a rate-limiting guard",
+        );
+    }
+}
+
+pub(crate) fn detect_bp_55_missing_request_id_propagation(
+    unit: &ParsedUnit,
+    _index: &SourceIndex,
+    out: &mut Vec<Finding>,
+) {
+    if is_materialized_fixture(unit) || !is_project_anchor(unit) {
+        return;
+    }
+    let project = read_project_texts(unit);
+    if !project.iter().any(|(_, text)| contains_server_start(text))
+        || !project.iter().any(|(_, text)| contains_public_route(text))
+        || !project
+            .iter()
+            .any(|(_, text)| text.contains("log.") || text.contains("logger.") || text.contains("slog."))
+    {
+        return;
+    }
+    let has_request_id = project.iter().any(|(_, text)| {
+        text.contains("Request-ID")
+            || text.contains("Request-Id")
+            || text.contains("X-Request-ID")
+            || text.contains("X-Request-Id")
+            || text.contains("requestid")
+            || text.contains("request_id")
+            || text.contains("RequestID")
+    });
+    if !has_request_id {
+        push_at(
+            unit,
+            out,
+            &crate::lang::go::detectors::bad_practices::BP_55_META,
+            0,
+            "request-handling code logs traffic without a visible request-id propagation path",
+        );
+    }
+}
+
 fn is_test_file(unit: &ParsedUnit) -> bool {
     unit.display_path.ends_with("_test.go")
 }
@@ -345,6 +493,80 @@ fn contains_server_start(text: &str) -> bool {
         || text.contains(".ListenAndServe(")
         || text.contains(".Serve(")
         || text.contains("http.Serve(")
+}
+
+fn contains_public_route(text: &str) -> bool {
+    text.contains("HandleFunc(")
+        || text.contains(".HandleFunc(")
+        || text.contains(".Handle(")
+        || text.contains(".GET(")
+        || text.contains(".POST(")
+        || text.contains(".PUT(")
+        || text.contains(".DELETE(")
+        || text.contains(".PATCH(")
+}
+
+fn collect_call_targets(source: &str, needle: &str) -> Vec<String> {
+    let mut values = Vec::new();
+    let mut start = 0usize;
+    while let Some(offset) = source[start..].find(needle) {
+        let idx = start + offset + needle.len();
+        if let Some(end) = source[idx..].find(')') {
+            values.push(source[idx..idx + end].trim().to_string());
+            start = idx + end + 1;
+        } else {
+            break;
+        }
+    }
+    values
+}
+
+fn collect_local_type_hints(source: &str) -> std::collections::BTreeMap<String, String> {
+    let mut types = std::collections::BTreeMap::new();
+    for line in source.lines() {
+        let trimmed = line.trim();
+        if let Some((name, value)) = trimmed.split_once(":=") {
+            let rhs = value.trim();
+            if let Some((ty, _)) = rhs.split_once('{') {
+                let ident = ty.trim().trim_start_matches('&').trim_start_matches('*');
+                if !ident.is_empty() {
+                    types.insert(name.trim().to_string(), ident.to_string());
+                }
+            }
+        } else if let Some(rest) = trimmed.strip_prefix("var ") {
+            let mut parts = rest.split_whitespace();
+            let name = parts.next().unwrap_or("");
+            let ty = parts.next().unwrap_or("");
+            if !name.is_empty() && !ty.is_empty() {
+                types.insert(name.to_string(), ty.trim_start_matches('*').to_string());
+            }
+        }
+    }
+    types
+}
+
+fn normalize_identifier(value: &str) -> String {
+    value.trim()
+        .trim_start_matches('&')
+        .trim_start_matches('*')
+        .trim_matches(|c: char| c == ')' || c == '(')
+        .to_string()
+}
+
+fn normalize_type_name(value: &str) -> String {
+    let value = value.trim();
+    if let Some((ty, _)) = value.split_once('{') {
+        return normalize_identifier(ty);
+    }
+    if value.contains("nil") {
+        return value
+            .trim_matches(|c: char| c == '(' || c == ')' || c == '*')
+            .split_whitespace()
+            .next()
+            .unwrap_or(value)
+            .to_string();
+    }
+    normalize_identifier(value)
 }
 
 fn is_project_anchor(unit: &ParsedUnit) -> bool {

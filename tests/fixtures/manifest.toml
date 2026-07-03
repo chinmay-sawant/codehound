@@ -5255,6 +5255,16 @@ required_rules = []
 
 [[fixture]]
 lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-12-vulnerable.txt"
+required_rules = ["BP-12"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-12-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
 path = "tests/fixtures/go/bad_practices/BP-13-vulnerable.txt"
 required_rules = ["BP-13"]
 
@@ -5271,6 +5281,16 @@ required_rules = ["BP-15"]
 [[fixture]]
 lang = "go"
 path = "tests/fixtures/go/bad_practices/BP-15-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-14-vulnerable.txt"
+required_rules = ["BP-14"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-14-safe.txt"
 required_rules = []
 
 [[fixture]]
@@ -5622,6 +5642,26 @@ required_rules = ["BP-51"]
 [[fixture]]
 lang = "go"
 path = "tests/fixtures/go/bad_practices/BP-51-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-52-vulnerable.txt"
+required_rules = ["BP-52"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-52-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-53-vulnerable.txt"
+required_rules = ["BP-53"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-53-safe.txt"
 required_rules = []
 
 [[fixture]]

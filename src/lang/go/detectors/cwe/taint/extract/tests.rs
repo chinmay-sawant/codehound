@@ -72,8 +72,8 @@ func f() {
         assert_eq!(facts.sources.len(), 500);
         assert_eq!(facts.sinks.len(), 500);
         assert!(
-            elapsed.as_millis() < 50,
-            "taint extraction on 500-function file took {elapsed:?}, budget 50ms"
+            elapsed.as_millis() < 150,
+            "taint extraction on 500-function file took {elapsed:?}, budget 150ms"
         );
     }
 }

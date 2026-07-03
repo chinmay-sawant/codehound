@@ -20,16 +20,19 @@ use slopguard::fixture::{materialize_tree, materialized_root};
 /// tighter to catch sustained regressions.
 /// Bumped to 12s after the Phase 4.4/4.5 BP expansion materially increased
 /// the fixture surface and added package-aware scans over the Go bad-practice
-/// corpus. This remains a smoke ceiling, not a throughput benchmark.
-const MAX_FULL_SCAN: Duration = Duration::from_millis(12000);
+/// corpus. Bumped again to 16s after the next Phase 4.5 slice (project-level
+/// Go-version and HTTP-hardening checks) pushed the measured smoke run to
+/// roughly 14.7s on this environment. This remains a smoke ceiling, not a
+/// throughput benchmark.
+const MAX_FULL_SCAN: Duration = Duration::from_millis(16000);
 
 /// Collect + scan should stay well under the full-scan ceiling. Bumped from
 /// 500ms to cover the function-context post-pass added for enclosing-function
 /// resolution. Bumped again to 1s to cover the new PERF detectors. Bumped to
-/// 12s alongside `MAX_FULL_SCAN` after the expanded BP fixture corpus and
+/// 16s alongside `MAX_FULL_SCAN` after the expanded BP fixture corpus and
 /// package-aware heuristics changed the steady-state cost of scanning the full
 /// materialized integration tree.
-const MAX_COLLECT_AND_SCAN: Duration = Duration::from_millis(12000); // ponytail: smoke ceiling tracks fixture-surface growth
+const MAX_COLLECT_AND_SCAN: Duration = Duration::from_millis(16000); // ponytail: smoke ceiling tracks fixture-surface growth
 
 #[test]
 fn materialized_fixture_scan_within_smoke_budget() {
