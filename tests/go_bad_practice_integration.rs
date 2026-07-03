@@ -204,7 +204,10 @@ fn cli_list_rules_prints_only_bp_rules_for_bad_practice_filter() {
     let stdout = String::from_utf8_lossy(&run.stdout);
 
     assert!(run.status.success(), "stdout:\n{stdout}");
-    assert!(stdout.contains("category: bad_practice"), "stdout:\n{stdout}");
+    assert!(
+        stdout.contains("category: bad_practice"),
+        "stdout:\n{stdout}"
+    );
     assert!(stdout.contains("BP-1"), "stdout:\n{stdout}");
     assert!(!stdout.contains("PERF-"), "stdout:\n{stdout}");
     assert!(!stdout.contains("CWE-"), "stdout:\n{stdout}");
@@ -221,7 +224,10 @@ fn cli_explain_bp_1_uses_generated_metadata() {
 
     assert!(run.status.success(), "stdout:\n{stdout}");
     assert!(stdout.contains("BP-1"), "stdout:\n{stdout}");
-    assert!(stdout.contains("Discarded Error Return"), "stdout:\n{stdout}");
+    assert!(
+        stdout.contains("Discarded Error Return"),
+        "stdout:\n{stdout}"
+    );
     assert!(
         stdout.contains("A returned error is assigned to `_`, suppressing error handling."),
         "stdout:\n{stdout}"

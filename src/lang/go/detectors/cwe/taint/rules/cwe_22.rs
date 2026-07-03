@@ -7,7 +7,10 @@ use crate::lang::go::detectors::cwe::metadata::META_CWE_22;
 use crate::rules::emit;
 use crate::rules::{DetectorEvidence, Finding, TaintSinkInfo};
 
-use super::super::{EdgeKind, SanitizerKind, SinkKind, SourceKind, TaintGraph, TaintNode, TaintPath, find_taint_paths};
+use super::super::{
+    EdgeKind, SanitizerKind, SinkKind, SourceKind, TaintGraph, TaintNode, TaintPath,
+    find_taint_paths,
+};
 use super::evidence::source_info;
 
 pub fn detect_cwe_22_taint(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
@@ -77,10 +80,11 @@ pub fn detect_cwe_22_taint(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec
 fn is_first_arg_tainted(graph: &TaintGraph, path: &TaintPath) -> bool {
     for node_id in &path.node_ids {
         for edge in &graph.edges {
-            if edge.from == *node_id && edge.to == path.sink_id {
-                if matches!(edge.kind, EdgeKind::Argument(0)) {
-                    return true;
-                }
+            if edge.from == *node_id
+                && edge.to == path.sink_id
+                && matches!(edge.kind, EdgeKind::Argument(0))
+            {
+                return true;
             }
         }
     }

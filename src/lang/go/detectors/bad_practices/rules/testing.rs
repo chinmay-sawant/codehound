@@ -298,7 +298,11 @@ pub(crate) fn detect_bp_25_test_helper_returns_error(
         let Some(result) = function.child_by_field_name("result") else {
             return;
         };
-        if result.utf8_text(src).ok().is_some_and(|text| text.contains("error")) {
+        if result
+            .utf8_text(src)
+            .ok()
+            .is_some_and(|text| text.contains("error"))
+        {
             push_at(
                 unit,
                 out,
@@ -387,7 +391,9 @@ fn is_test_function(node: Node, src: &[u8]) -> bool {
 }
 
 fn looks_like_test_helper(name: &str, node: Node, src: &[u8]) -> bool {
-    name.chars().next().is_some_and(|ch| ch.is_ascii_lowercase())
+    name.chars()
+        .next()
+        .is_some_and(|ch| ch.is_ascii_lowercase())
         && node
             .child_by_field_name("parameters")
             .and_then(|params| params.utf8_text(src).ok())

@@ -24,9 +24,7 @@ pub(super) fn classify_source(func_text: &str) -> Option<SourceKind> {
     if call == "os.Getenv" || call == "os.LookupEnv" {
         return Some(SourceKind::EnvVar);
     }
-    if call == "io.ReadAll"
-        || call.contains(".Scanner.Text")
-        || call.contains(".Reader.ReadString")
+    if call == "io.ReadAll" || call.contains(".Scanner.Text") || call.contains(".Reader.ReadString")
     {
         return Some(SourceKind::File);
     }
@@ -214,7 +212,6 @@ fn is_sink_call_by_name(func_text: &str) -> bool {
         || n.ends_with(".Execute")
         || n.ends_with(".ExecuteTemplate")
         || n == "fmt.Fprintf"
-
         || n == "xml.Unmarshal"
         || n.ends_with(".DecodeElement")
         || n == "json.Unmarshal"

@@ -156,7 +156,12 @@ pub(crate) fn detect_bp_15_recursive_once_do(
                 .iter()
                 .any(|receiver| receiver == once_name)
                 || closure_facts.local_calls.iter().any(|callee| {
-                    closure_reaches_same_once(callee, once_name, function_facts, &mut HashSet::new())
+                    closure_reaches_same_once(
+                        callee,
+                        once_name,
+                        function_facts,
+                        &mut HashSet::new(),
+                    )
                 });
 
             if recursive {
@@ -266,10 +271,14 @@ fn closure_reaches_same_once(
         return false;
     };
 
-    facts.once_receivers.iter().any(|receiver| receiver == once_name)
-        || facts.local_calls.iter().any(|callee| {
-            closure_reaches_same_once(callee, once_name, function_facts, visiting)
-        })
+    facts
+        .once_receivers
+        .iter()
+        .any(|receiver| receiver == once_name)
+        || facts
+            .local_calls
+            .iter()
+            .any(|callee| closure_reaches_same_once(callee, once_name, function_facts, visiting))
 }
 
 fn is_local_function_name(name: &str) -> bool {

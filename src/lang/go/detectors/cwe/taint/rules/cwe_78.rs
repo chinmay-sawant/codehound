@@ -45,9 +45,7 @@ pub fn detect_cwe_78_taint(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec
 
         // ponytail: exec.Command with direct argv (no shell) can't inject shell
         // commands — only flag when first two args are "sh"/"bash" and "-c".
-        if sink_fn.as_ref() == "exec.Command"
-            && !has_shell_args(source, sink_range)
-        {
+        if sink_fn.as_ref() == "exec.Command" && !has_shell_args(source, sink_range) {
             continue;
         }
 

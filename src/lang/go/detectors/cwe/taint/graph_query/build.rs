@@ -213,5 +213,3 @@ fn is_go_keyword(token: &str) -> bool {
             | "nil"
     )
 }
-
-

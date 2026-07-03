@@ -36,15 +36,16 @@ pub fn fixture_path(case: &str, vulnerable: bool) -> String {
 }
 
 pub fn is_sorted_and_deduplicated(cases: &[String]) -> bool {
-    cases.windows(2)
+    cases
+        .windows(2)
         .all(|window| compare_bp_case_names(&window[0], &window[1]).is_lt())
 }
 
 fn compare_bp_case_names(left: &str, right: &str) -> Ordering {
     match (parse_bp_case_name(left), parse_bp_case_name(right)) {
-        (Some(left_parts), Some(right_parts)) => left_parts
-            .cmp(&right_parts)
-            .then_with(|| left.cmp(right)),
+        (Some(left_parts), Some(right_parts)) => {
+            left_parts.cmp(&right_parts).then_with(|| left.cmp(right))
+        }
         _ => left.cmp(right),
     }
 }

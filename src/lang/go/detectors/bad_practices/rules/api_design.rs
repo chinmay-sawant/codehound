@@ -20,9 +20,7 @@ pub(crate) fn detect_bp_26_context_not_first_parameter(
         return;
     }
     walk_functions_and_methods(unit, |function, src| {
-        let Some(name) = declaration_name(function, src) else {
-            return None;
-        };
+        let name = declaration_name(function, src)?;
         if !is_exported_api(function, src, name) {
             return None;
         }
@@ -35,9 +33,9 @@ pub(crate) fn detect_bp_26_context_not_first_parameter(
         if declarations.is_empty() {
             return None;
         }
-        let has_context = declarations
-            .iter()
-            .any(|param| node_text(*param, src).is_some_and(|text| text.contains("context.Context")));
+        let has_context = declarations.iter().any(|param| {
+            node_text(*param, src).is_some_and(|text| text.contains("context.Context"))
+        });
         let first_is_context = declarations
             .first()
             .and_then(|param| node_text(*param, src))
@@ -72,9 +70,7 @@ pub(crate) fn detect_bp_27_exported_function_returns_unexported_type(
         return;
     }
     walk_functions_and_methods(unit, |function, src| {
-        let Some(name) = declaration_name(function, src) else {
-            return None;
-        };
+        let name = declaration_name(function, src)?;
         if !is_exported_api(function, src, name) {
             return None;
         }
@@ -417,7 +413,9 @@ fn walk_type_specs(
         findings: &mut Vec<(usize, &'static str)>,
         visit: &mut impl FnMut(Node, &[u8]) -> Option<(usize, &'static str)>,
     ) {
-        if node.kind() == "type_spec" && let Some(finding) = visit(node, src) {
+        if node.kind() == "type_spec"
+            && let Some(finding) = visit(node, src)
+        {
             findings.push(finding);
         }
         let mut cursor = node.walk();
@@ -447,7 +445,9 @@ fn walk_call_expressions(
         findings: &mut Vec<(usize, &'static str)>,
         visit: &mut impl FnMut(Node, &[u8]) -> Option<(usize, &'static str)>,
     ) {
-        if node.kind() == "call_expression" && let Some(finding) = visit(node, src) {
+        if node.kind() == "call_expression"
+            && let Some(finding) = visit(node, src)
+        {
             findings.push(finding);
         }
         let mut cursor = node.walk();
@@ -544,7 +544,10 @@ fn collect_named_method_receivers(root: Node, src: &[u8], method_name: &str) -> 
     receivers
 }
 
-fn collect_sentinel_error_types(unit: &ParsedUnit, error_receivers: &HashSet<String>) -> Vec<(String, usize)> {
+fn collect_sentinel_error_types(
+    unit: &ParsedUnit,
+    error_receivers: &HashSet<String>,
+) -> Vec<(String, usize)> {
     let source = unit.source.as_ref();
     let mut found = Vec::new();
     for error_type in error_receivers {
@@ -556,7 +559,10 @@ fn collect_sentinel_error_types(unit: &ParsedUnit, error_receivers: &HashSet<Str
                 continue;
             }
             if trimmed.contains(&needle) || trimmed.contains(&constructor) {
-                found.push((error_type.clone(), super::helpers::line_start_byte(source, line_no)));
+                found.push((
+                    error_type.clone(),
+                    super::helpers::line_start_byte(source, line_no),
+                ));
                 break;
             }
         }
@@ -628,7 +634,10 @@ fn looks_like_unexported_local_type(name: &str) -> bool {
 
 fn looks_like_error_expr(text: &str) -> bool {
     let trimmed = text.trim();
-    trimmed == "err" || trimmed.ends_with(".Err") || trimmed.ends_with(".err") || trimmed.contains("error")
+    trimmed == "err"
+        || trimmed.ends_with(".Err")
+        || trimmed.ends_with(".err")
+        || trimmed.contains("error")
 }
 
 fn package_name(unit: &ParsedUnit) -> Option<String> {
@@ -656,7 +665,9 @@ fn package_name(unit: &ParsedUnit) -> Option<String> {
 }
 
 fn is_exported(name: &str) -> bool {
-    name.chars().next().is_some_and(|ch| ch.is_ascii_uppercase())
+    name.chars()
+        .next()
+        .is_some_and(|ch| ch.is_ascii_uppercase())
 }
 
 fn looks_like_constructor(name: &str) -> bool {
@@ -722,7 +733,11 @@ fn collect_method_sets_from_text(source: &str, out: &mut HashMap<String, HashSet
             continue;
         };
         let receiver = trimmed["func (".len()..receiver_end].trim();
-        let receiver_type = receiver.split_whitespace().last().unwrap_or("").trim_start_matches('*');
+        let receiver_type = receiver
+            .split_whitespace()
+            .last()
+            .unwrap_or("")
+            .trim_start_matches('*');
         let rest = trimmed[receiver_end + 1..].trim();
         let Some(method_name) = rest.split('(').next().map(str::trim) else {
             continue;
@@ -782,7 +797,10 @@ fn interface_method_names(text: &str) -> HashSet<String> {
         }
         if let Some(name) = trimmed.split('(').next().map(str::trim)
             && !name.is_empty()
-            && name.chars().next().is_some_and(|ch| ch.is_ascii_alphabetic())
+            && name
+                .chars()
+                .next()
+                .is_some_and(|ch| ch.is_ascii_alphabetic())
         {
             methods.insert(name.to_string());
         }

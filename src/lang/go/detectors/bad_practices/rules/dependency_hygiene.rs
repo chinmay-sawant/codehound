@@ -99,11 +99,9 @@ pub(crate) fn detect_bp_59_unused_direct_dependency(
         if require.indirect {
             continue;
         }
-        if !imports
-            .all
-            .iter()
-            .any(|import| import == &require.module || import.starts_with(&(require.module.clone() + "/")))
-        {
+        if !imports.all.iter().any(|import| {
+            import == &require.module || import.starts_with(&(require.module.clone() + "/"))
+        }) {
             push_at(
                 unit,
                 out,
@@ -129,14 +127,12 @@ pub(crate) fn detect_bp_60_test_only_dependency_in_main_go_mod(
     }
     let imports = collect_project_imports(go_mod.root.as_path());
     for require in parse_requires(&go_mod.text) {
-        let used_in_tests = imports
-            .test_only
-            .iter()
-            .any(|import| import == &require.module || import.starts_with(&(require.module.clone() + "/")));
-        let used_in_main = imports
-            .non_test
-            .iter()
-            .any(|import| import == &require.module || import.starts_with(&(require.module.clone() + "/")));
+        let used_in_tests = imports.test_only.iter().any(|import| {
+            import == &require.module || import.starts_with(&(require.module.clone() + "/"))
+        });
+        let used_in_main = imports.non_test.iter().any(|import| {
+            import == &require.module || import.starts_with(&(require.module.clone() + "/"))
+        });
         if used_in_tests && !used_in_main {
             push_at(
                 unit,
@@ -166,10 +162,9 @@ pub(crate) fn detect_bp_61_indirect_dependency_missing_annotation(
         if require.indirect {
             continue;
         }
-        let used_directly = imports
-            .all
-            .iter()
-            .any(|import| import == &require.module || import.starts_with(&(require.module.clone() + "/")));
+        let used_directly = imports.all.iter().any(|import| {
+            import == &require.module || import.starts_with(&(require.module.clone() + "/"))
+        });
         if !used_directly {
             push_at(
                 unit,
@@ -262,7 +257,9 @@ pub(crate) fn detect_bp_64_replace_directive_local_filesystem(
     }
     if parse_replace_targets(&go_mod.text)
         .into_iter()
-        .any(|target| target.starts_with('.') || target.starts_with('/') || target.starts_with(".."))
+        .any(|target| {
+            target.starts_with('.') || target.starts_with('/') || target.starts_with("..")
+        })
     {
         push_at(
             unit,
@@ -378,7 +375,9 @@ fn parse_requires(go_mod: &str) -> Vec<Require> {
         };
         let mut parts = payload.split_whitespace();
         let Some(module) = parts.next() else { continue };
-        let Some(version) = parts.next() else { continue };
+        let Some(version) = parts.next() else {
+            continue;
+        };
         let indirect = payload.contains("// indirect");
         requires.push(Require {
             module: module.to_string(),
@@ -446,7 +445,7 @@ fn parse_replace_targets(go_mod: &str) -> Vec<String> {
             continue;
         };
         if let Some((_, target)) = payload.split_once("=>") {
-            targets.push(target.trim().split_whitespace().next().unwrap_or("").to_string());
+            targets.push(target.split_whitespace().next().unwrap_or("").to_string());
         }
     }
     targets
@@ -458,7 +457,10 @@ fn version_missing_patch(version: &str) -> bool {
     }
     let numeric = &version[1..];
     let segments: Vec<&str> = numeric.split('.').collect();
-    segments.len() < 3 && segments.iter().all(|segment| segment.parse::<u64>().is_ok())
+    segments.len() < 3
+        && segments
+            .iter()
+            .all(|segment| segment.parse::<u64>().is_ok())
 }
 
 fn parse_semver_like(version: &str) -> Option<Vec<u64>> {

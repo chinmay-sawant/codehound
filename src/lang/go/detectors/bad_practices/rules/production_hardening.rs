@@ -67,7 +67,10 @@ pub(crate) fn detect_bp_48_process_exit_in_library_code(
     }
     walk_call_expressions(unit, |call, src| {
         let callee = function_text(call, src)?;
-        if !matches!(callee, "log.Fatal" | "log.Fatalf" | "log.Fatalln" | "os.Exit") {
+        if !matches!(
+            callee,
+            "log.Fatal" | "log.Fatalf" | "log.Fatalln" | "os.Exit"
+        ) {
             return None;
         }
         (!inside_main_or_testmain(call, src)).then_some((
@@ -245,7 +248,9 @@ pub(crate) fn detect_bp_53_gob_registration_mismatch(
     for value in encoded.iter().chain(decoded.iter()) {
         let normalized = normalize_identifier(value);
         if let Some(ty) = known_types.get(&normalized)
-            && registered.iter().any(|candidate| normalize_type_name(candidate) == *ty)
+            && registered
+                .iter()
+                .any(|candidate| normalize_type_name(candidate) == *ty)
         {
             matched = true;
             break;
@@ -305,9 +310,9 @@ pub(crate) fn detect_bp_55_missing_request_id_propagation(
     let project = read_project_texts(unit);
     if !project.iter().any(|(_, text)| contains_server_start(text))
         || !project.iter().any(|(_, text)| contains_public_route(text))
-        || !project
-            .iter()
-            .any(|(_, text)| text.contains("log.") || text.contains("logger.") || text.contains("slog."))
+        || !project.iter().any(|(_, text)| {
+            text.contains("log.") || text.contains("logger.") || text.contains("slog.")
+        })
     {
         return;
     }
@@ -379,7 +384,9 @@ fn walk_call_expressions(
         findings: &mut Vec<(usize, &'static str)>,
         visit: &mut impl FnMut(Node, &[u8]) -> Option<(usize, &'static str)>,
     ) {
-        if node.kind() == "call_expression" && let Some(finding) = visit(node, src) {
+        if node.kind() == "call_expression"
+            && let Some(finding) = visit(node, src)
+        {
             findings.push(finding);
         }
         let mut cursor = node.walk();
@@ -407,7 +414,9 @@ fn walk_defer_statements(
         findings: &mut Vec<(usize, &'static str)>,
         visit: &mut impl FnMut(Node, &[u8]) -> Option<(usize, &'static str)>,
     ) {
-        if node.kind() == "defer_statement" && let Some(finding) = visit(node, src) {
+        if node.kind() == "defer_statement"
+            && let Some(finding) = visit(node, src)
+        {
             findings.push(finding);
         }
         let mut cursor = node.walk();
@@ -436,7 +445,9 @@ fn inside_main_or_testmain(node: Node, src: &[u8]) -> bool {
     let mut current = Some(node);
     while let Some(cursor) = current {
         if matches!(cursor.kind(), "function_declaration" | "method_declaration")
-            && let Some(name) = cursor.child_by_field_name("name").and_then(|n| n.utf8_text(src).ok())
+            && let Some(name) = cursor
+                .child_by_field_name("name")
+                .and_then(|n| n.utf8_text(src).ok())
         {
             return matches!(name, "main" | "TestMain");
         }
@@ -546,7 +557,8 @@ fn collect_local_type_hints(source: &str) -> std::collections::BTreeMap<String, 
 }
 
 fn normalize_identifier(value: &str) -> String {
-    value.trim()
+    value
+        .trim()
         .trim_start_matches('&')
         .trim_start_matches('*')
         .trim_matches(|c: char| c == ')' || c == '(')

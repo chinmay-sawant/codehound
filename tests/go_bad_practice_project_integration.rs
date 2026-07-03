@@ -15,7 +15,11 @@ fn discover_project_cases() -> Vec<String> {
         if !path.is_dir() {
             continue;
         }
-        let name = path.file_name().and_then(|name| name.to_str()).unwrap().to_string();
+        let name = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap()
+            .to_string();
         if let Some(case) = name.strip_suffix("-vulnerable") {
             cases.push(case.to_string());
         }
@@ -42,7 +46,11 @@ fn go_bad_practice_project_fixtures_fire_vulnerable_and_silence_safe() {
         let vulnerable_result = analyzer
             .analyze_paths(&[Path::new(&vulnerable)], None)
             .unwrap_or_else(|e| panic!("analyze {vulnerable}: {e:#}"));
-        let vulnerable_ids: Vec<&str> = vulnerable_result.findings.iter().map(|f| f.rule_id).collect();
+        let vulnerable_ids: Vec<&str> = vulnerable_result
+            .findings
+            .iter()
+            .map(|f| f.rule_id)
+            .collect();
         if !vulnerable_ids.contains(&expected_rule.as_str()) {
             failures.push(format!(
                 "{vulnerable}: expected {expected_rule}, got {vulnerable_ids:?}"
@@ -58,5 +66,8 @@ fn go_bad_practice_project_fixtures_fire_vulnerable_and_silence_safe() {
         }
     }
 
-    assert!(failures.is_empty(), "project BP fixture failures: {failures:#?}");
+    assert!(
+        failures.is_empty(),
+        "project BP fixture failures: {failures:#?}"
+    );
 }

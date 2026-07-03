@@ -1,9 +1,9 @@
 #[path = "build/escape.rs"]
 mod escape;
-#[path = "build/gen_catalogue.rs"]
-mod gen_catalogue;
 #[path = "build/gen_bp.rs"]
 mod gen_bp;
+#[path = "build/gen_catalogue.rs"]
+mod gen_catalogue;
 #[path = "build/gen_cwe.rs"]
 mod gen_cwe;
 #[path = "build/gen_perf.rs"]

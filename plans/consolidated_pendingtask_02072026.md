@@ -83,6 +83,7 @@ tier and phase within each workstream.
 
 ### Phase D — Extended sanitizer coverage
 
+- [x] Run `make lint` / `make fmt` and fix all 7 clippy errors + formatting (2026-07-03)
 - [ ] `strconv.Atoi`, `strconv.ParseInt`, `strconv.ParseFloat` → `SanitizerKind::Validation`
 - [ ] `utf8.ValidString` → `SanitizerKind::Validation`
 - [ ] `html.UnescapeString` → `SanitizerKind::HTML` (EscapeString already done)

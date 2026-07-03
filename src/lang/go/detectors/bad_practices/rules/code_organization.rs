@@ -24,7 +24,11 @@ pub(crate) fn detect_bp_36_init_with_side_effects(
             return None;
         }
         let body = function.child_by_field_name("body")?;
-        contains_kind(body, &["call_expression", "go_statement", "defer_statement"]).then_some((
+        contains_kind(
+            body,
+            &["call_expression", "go_statement", "defer_statement"],
+        )
+        .then_some((
             function.start_byte(),
             "init() performs side effects beyond simple package setup",
         ))
@@ -103,9 +107,7 @@ pub(crate) fn detect_bp_39_exported_function_without_doc_comment(
         return;
     }
     for (byte, message) in walk_functions_and_methods(unit, |function, src| {
-        let Some(name) = declaration_name(function, src) else {
-            return None;
-        };
+        let name = declaration_name(function, src)?;
         if !is_exported_api(function, src, name) || has_doc_comment(unit, function, name) {
             return None;
         }
@@ -236,7 +238,9 @@ pub(crate) fn detect_bp_44_blank_import_without_justification(
         return;
     }
     let source = unit.source.as_ref();
-    for (byte, path, line_no) in collect_blank_imports(unit.tree.root_node(), unit.source.as_bytes()) {
+    for (byte, path, line_no) in
+        collect_blank_imports(unit.tree.root_node(), unit.source.as_bytes())
+    {
         if is_allowed_blank_import(&path) || has_blank_import_justification(source, line_no) {
             continue;
         }
@@ -415,7 +419,9 @@ fn node_text<'a>(node: Node<'a>, src: &'a [u8]) -> Option<&'a str> {
 }
 
 fn is_exported(name: &str) -> bool {
-    name.chars().next().is_some_and(|ch| ch.is_ascii_uppercase())
+    name.chars()
+        .next()
+        .is_some_and(|ch| ch.is_ascii_uppercase())
 }
 
 fn is_exported_api(node: Node, src: &[u8], name: &str) -> bool {
@@ -542,7 +548,9 @@ fn collect_declared_names(node: Node, src: &[u8], wanted_spec: &str) -> Vec<Stri
         if node.kind() == wanted_spec {
             let mut cursor = node.walk();
             for child in node.named_children(&mut cursor) {
-                if child.kind() == "identifier" && let Ok(text) = child.utf8_text(src) {
+                if child.kind() == "identifier"
+                    && let Ok(text) = child.utf8_text(src)
+                {
                     names.push(text.to_string());
                 }
             }

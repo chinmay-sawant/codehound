@@ -133,7 +133,7 @@ pub(crate) fn detect_bp_12_unbuffered_channel_send_from_multiple_goroutines(
             || source.contains(&format!("<-{channel}"))
             || source.contains(&format!("case <-{channel}"));
         if send_count >= 2 && !has_receiver_fan_in {
-            let byte = source.find(&format!("make(chan")).unwrap_or(0);
+            let byte = source.find("make(chan").unwrap_or(0);
             push_at(
                 unit,
                 out,

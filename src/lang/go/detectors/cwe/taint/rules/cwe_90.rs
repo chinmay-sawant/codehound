@@ -25,7 +25,8 @@ pub fn detect_cwe_90_taint(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec
             continue;
         }
         let Some(TaintNode::Source {
-            function: source_fn, ..
+            function: source_fn,
+            ..
         }) = graph.nodes.get(path.source_id)
         else {
             continue;
