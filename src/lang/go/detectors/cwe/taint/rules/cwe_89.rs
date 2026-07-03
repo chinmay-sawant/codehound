@@ -14,6 +14,7 @@ pub fn detect_cwe_89_taint(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec
         return;
     };
     let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
 
     let paths = find_taint_paths(
         graph,
@@ -34,6 +35,15 @@ pub fn detect_cwe_89_taint(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec
         else {
             continue;
         };
+
+        // ponytail: parameterized queries (literal SQL string as first arg)
+        // are safe. Only flag when the SQL string is dynamically constructed.
+        // Upgrade: trace which argument carries the taint through the graph
+        // edge labels instead of source scanning.
+        if is_parameterized_query(source, sink_range) {
+            continue;
+        }
+
         let (line, col) = unit.line_col(sink_range.start);
         emit::push_finding_with_evidence(
             &META_CWE_89,
@@ -53,4 +63,35 @@ pub fn detect_cwe_89_taint(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec
             out,
         );
     }
+}
+
+/// Heuristic: if the first argument of the SQL call is a raw string literal,
+/// the query uses parameterized arguments (safe).
+fn is_parameterized_query(source: &str, range: &std::ops::Range<usize>) -> bool {
+    let call = &source[range.start..range.end];
+    let body = match call.find('(') {
+        Some(p) => &call[p + 1..],
+        None => return false,
+    };
+    // Walk to find the end of the first top-level argument.
+    let mut depth = 0;
+    let mut end = 0;
+    for (i, ch) in body.char_indices() {
+        match ch {
+            '(' => depth += 1,
+            ')' if depth == 0 => {
+                end = i;
+                break;
+            }
+            ')' => depth -= 1,
+            ',' if depth == 0 => {
+                end = i;
+                break;
+            }
+            _ => {}
+        }
+    }
+    let first = body[..end].trim();
+    // A raw string literal as first argument → parameterized query
+    first.starts_with('"') || first.starts_with('`')
 }

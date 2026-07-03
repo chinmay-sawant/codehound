@@ -20,6 +20,7 @@ pub use model::{
 
 pub use rules::{
     detect_cwe_22_taint, detect_cwe_78_taint, detect_cwe_79_taint, detect_cwe_89_taint,
+    detect_cwe_90_taint, detect_cwe_91_taint,
 };
 
 pub use graph_query::{TaintPath, build_taint_graph, find_taint_paths};

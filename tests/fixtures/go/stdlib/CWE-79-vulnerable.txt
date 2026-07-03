@@ -1,4 +1,4 @@
-# CWE-79 positive: reflected HTML without escaping (pure stdlib)
+# CWE-79 positive: reflected XSS via text/template (pure stdlib)
 lang: go
 file: CWE-79-vulnerable.pure.go
 variant: pure-go
@@ -6,12 +6,13 @@ variant: pure-go
 package sample
 
 import (
-	"fmt"
 	"net/http"
+	"text/template"
 )
 
 // CWE-79 Improper Neutralization of Input During Web Page Generation
-// Vulnerable line: writes raw query value into HTML response.
+// Vulnerable line: user input rendered into HTML template without escaping
+// (text/template doesn't auto-escape unlike html/template).
 func ShowWelcome(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method", http.StatusMethodNotAllowed)
@@ -21,9 +22,6 @@ func ShowWelcome(w http.ResponseWriter, r *http.Request) {
 	if visitor == "" {
 		visitor = "guest"
 	}
-	title := "Visitor Greeting"
-	page := fmt.Sprintf("<html><head><title>%s</title></head><body><p>Welcome, %s!</p></body></html>", title, visitor)
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(page))
+	tmpl := template.Must(template.New("page").Parse("<html><body><p>Welcome, {{.}}!</p></body></html>"))
+	tmpl.Execute(w, visitor)
 }

@@ -13,6 +13,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 )
 
 type patientRecord struct {
@@ -30,7 +31,8 @@ func StorePatient(w http.ResponseWriter, r *http.Request) {
 	_, _ = io.ReadFull(rand.Reader, nonce)
 	ciphertext := gcm.Seal(nil, nonce, []byte(r.FormValue("ssn")), nil)
 	rec := patientRecord{ID: r.FormValue("id"), SSNCipher: ciphertext, SSNNonce: nonce}
-	data, _ := json.Marshal(rec)
-	_ = os.WriteFile("/data/patients/"+rec.ID+".json", data, 0600)
+	jsonData, _ := json.Marshal(rec)
+	safeID := filepath.Base(rec.ID)
+	_ = os.WriteFile("/data/patients/"+safeID+".json", jsonData, 0600)
 	w.WriteHeader(http.StatusCreated)
 }

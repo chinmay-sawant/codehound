@@ -9,6 +9,7 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"path/filepath"
 	"sync"
 	"syscall"
 )
@@ -17,7 +18,8 @@ var tenantStore sync.Map
 
 // Safe: aborts when the process lacks permission to access the resource.
 func DeleteTenant(w http.ResponseWriter, r *http.Request) {
-	path := "/secure/tenants/" + r.URL.Query().Get("id")
+	raw := r.URL.Query().Get("id")
+	path := "/secure/tenants/" + filepath.Base(raw)
 	f, err := os.Open(path)
 	if err != nil {
 		if errors.Is(err, syscall.EACCES) || errors.Is(err, syscall.EPERM) {

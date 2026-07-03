@@ -132,9 +132,8 @@ fn wire_arguments(
     arguments: &[SharedText],
 ) {
     for (idx, arg) in arguments.iter().enumerate() {
-        if let Some(arg_var) = as_simple_identifier(arg) {
-            if let Some(source_id) = resolve_variable(decl_nodes, scope_by_id, byte_offset, arg_var)
-            {
+        for name in referenced_identifiers(arg) {
+            if let Some(source_id) = resolve_variable(decl_nodes, scope_by_id, byte_offset, name) {
                 graph.add_edge(source_id, node_id, EdgeKind::Argument(idx));
             }
         }
@@ -215,12 +214,4 @@ fn is_go_keyword(token: &str) -> bool {
     )
 }
 
-fn as_simple_identifier(text: &str) -> Option<&str> {
-    if text.is_empty() {
-        return None;
-    }
-    if text.chars().all(|c| c.is_alphanumeric() || c == '_') && text.parse::<i64>().is_err() {
-        return Some(text);
-    }
-    None
-}
+

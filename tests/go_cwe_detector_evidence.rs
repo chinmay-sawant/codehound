@@ -21,10 +21,10 @@ fn cwe_78_finding_includes_dangerous_call_evidence() {
 
     assert!(matches!(
         finding.evidence,
-        Some(DetectorEvidence::DangerousCall {
-            ref function,
-            argument_index: Some(2),
-        }) if function == "exec.Command"
+        Some(DetectorEvidence::TaintFlow {
+            ref sink,
+            ..
+        }) if sink.function == "exec.Command"
     ));
 }
 
@@ -43,10 +43,10 @@ fn cwe_22_finding_includes_dangerous_call_evidence() {
 
     assert!(matches!(
         finding.evidence,
-        Some(DetectorEvidence::DangerousCall {
-            ref function,
-            argument_index: _,
-        }) if is_path_traversal_sink(function)
+        Some(DetectorEvidence::TaintFlow {
+            ref sink,
+            ..
+        }) if is_path_traversal_sink(&sink.function)
     ));
 }
 
@@ -65,10 +65,10 @@ fn cwe_89_finding_includes_dangerous_call_evidence() {
 
     assert!(matches!(
         finding.evidence,
-        Some(DetectorEvidence::DangerousCall {
-            ref function,
-            argument_index: _,
-        }) if is_sql_sink(function)
+        Some(DetectorEvidence::TaintFlow {
+            ref sink,
+            ..
+        }) if is_sql_sink(&sink.function)
     ));
 }
 

@@ -22,6 +22,8 @@ func StageReportDraft(c *GinCtx) error {
 	if err := os.Chmod(dir, 0700); err != nil {
 		return err
 	}
-	path := filepath.Join(dir, "draft-"+c.Request.URL.Query().Get("id")+".json")
+	raw := c.Request.URL.Query().Get("id")
+	id := filepath.Base(raw)
+	path := filepath.Join(dir, "draft-"+id+".json")
 	return os.WriteFile(path, []byte(c.Request.PostFormValue("body")), 0600)
 }

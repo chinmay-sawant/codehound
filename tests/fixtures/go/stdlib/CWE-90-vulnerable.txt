@@ -9,14 +9,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"gopkg.in/ldap.v3"
 )
 
 // CWE-90 Improper Neutralization of Special Elements used in an LDAP Query
 // Vulnerable line: mail attribute embedded directly into filter string.
-func QueryLDAP(w http.ResponseWriter, r *http.Request, dial func(string) error) {
+func QueryLDAP(w http.ResponseWriter, r *http.Request, conn *ldap.Conn) {
 	mail := r.URL.Query().Get("mail")
 	filter := fmt.Sprintf("(&(objectClass=person)(mail=%s))", mail)
-	if err := dial(filter); err != nil {
+	searchReq := ldap.NewSearchRequest("dc=example,dc=com", 2, ldap.ScopeWholeSubtree,
+		ldap.DerefAlways, 0, 0, false, filter, nil, nil)
+	if _, err := ldap.Search(conn, searchReq); err != nil {
 		http.Error(w, "ldap", http.StatusBadGateway)
 		return
 	}

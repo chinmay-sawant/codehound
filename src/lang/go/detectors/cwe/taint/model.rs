@@ -38,6 +38,10 @@ pub enum SinkKind {
     HTTPWrite,
     /// Deserialization: `json.Unmarshal`, `xml.Unmarshal`, `gob.NewDecoder`.
     Deserialization,
+    /// LDAP queries: `ldap.Dial`, `ldap.Search`, `ldap.SearchByAttribute`, `ldap.NewSearchRequest`.
+    LDAPQuery,
+    /// XML queries / unmarshalling: `xml.Unmarshal`, `(*Decoder).Decode`, `(*Decoder).DecodeElement`.
+    XMLQuery,
 }
 
 /// Classification of a sanitizer.
@@ -55,6 +59,10 @@ pub enum SanitizerKind {
     Validation,
     /// Bounded slicing: `len(...) < N` then `s[:N]`.
     Bounded,
+    /// LDAP escaping: `ldap.EscapeFilter`.
+    LDAP,
+    /// XML escaping: `xml.EscapeText`.
+    XML,
 }
 
 /// One node in the taint graph.

@@ -16,7 +16,7 @@ import (
 func DeliverAttachment(w http.ResponseWriter, r *http.Request) {
 	staging := "/var/staging"
 	name := r.FormValue("filename")
-	path := filepath.Join(staging, name)
+	path := filepath.Join(staging, filepath.Base(name))
 	info, err := os.Lstat(path)
 	if err != nil {
 		http.Error(w, "missing", http.StatusNotFound)

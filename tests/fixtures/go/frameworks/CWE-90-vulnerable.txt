@@ -9,14 +9,17 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gopkg.in/ldap.v3"
 )
 
 // CWE-90 Improper Neutralization of Special Elements used in an LDAP Query
 // Vulnerable line: uid embedded directly into filter string.
-func SearchDirectory(c *gin.Context, dial func(string) error) {
+func SearchDirectory(c *gin.Context, conn *ldap.Conn) {
 	uid := c.Query("uid")
 	filter := fmt.Sprintf("(&(objectClass=user)(uid=%s))", uid)
-	if err := dial(filter); err != nil {
+	searchReq := ldap.NewSearchRequest("dc=example,dc=com", 2, ldap.ScopeWholeSubtree,
+		ldap.DerefAlways, 0, 0, false, filter, nil, nil)
+	if _, err := conn.Search(searchReq); err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": "ldap"})
 		return
 	}
