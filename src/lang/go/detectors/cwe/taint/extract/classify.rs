@@ -119,6 +119,7 @@ pub(super) fn classify_sanitizer(func_text: &str) -> Option<SanitizerKind> {
     if call == "html.EscapeString"
         || call.contains("template.HTMLEscaper")
         || call.contains("template.JSEscaper")
+        || call == "html.UnescapeString"
     {
         return Some(SanitizerKind::HTML);
     }
@@ -126,6 +127,13 @@ pub(super) fn classify_sanitizer(func_text: &str) -> Option<SanitizerKind> {
         return Some(SanitizerKind::URL);
     }
     if call.starts_with("regexp.") && call.contains(".MatchString") {
+        return Some(SanitizerKind::Validation);
+    }
+    if call == "strconv.Atoi"
+        || call == "strconv.ParseInt"
+        || call == "strconv.ParseFloat"
+        || call == "strconv.ParseUint"
+    {
         return Some(SanitizerKind::Validation);
     }
     if call == "len" {
@@ -140,6 +148,21 @@ pub(super) fn classify_sanitizer(func_text: &str) -> Option<SanitizerKind> {
     // Prepared statements are handled by the SQL sanitizer path.
     if call.ends_with(".Prepare") {
         return Some(SanitizerKind::SQL);
+    }
+    // ponytail: name-based heuristic catches user-defined sanitize/clean/escape/
+    // validate/purify functions. Imprecise — may match unrelated functions with
+    // these prefixes. Upgrade: use type info or call-graph to verify the function
+    // actually sanitizes user input.
+    if let Some(name) = call.rsplit('.').next().or(Some(call)) {
+        let lower = name.to_lowercase();
+        if lower.starts_with("sanitize")
+            || lower.starts_with("clean")
+            || lower.starts_with("escape")
+            || lower.starts_with("validate")
+            || lower.starts_with("purify")
+        {
+            return Some(SanitizerKind::Validation);
+        }
     }
     None
 }
@@ -230,6 +253,7 @@ const KNOWN_SANITIZER_CALLS: &[(&str, &str)] = &[
     ("path.Clean(", "path"),
     ("filepath.Base(", "path"),
     ("html.EscapeString(", "html"),
+    ("html.UnescapeString(", "html"),
     ("ldap.EscapeFilter(", "ldap"),
     ("xml.EscapeText(", "xml"),
     ("xml.Marshal(", "xml"),

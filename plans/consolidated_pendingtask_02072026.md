@@ -18,7 +18,7 @@ tier and phase within each workstream.
 | Workstream | Priority | Status | Remaining Effort | Key Deliverable |
 |------------|----------|--------|-----------------|-----------------|
 | CWE-90/91 Taint Rewrite | P0 | ✅ Complete | 0 | Taint-gated CWE-90/91 detectors |
-| Taint Phase C–F | P1 | Not started | 4–6 weeks | CLI flags, sanitizers, inter-procedural |
+| Taint Phase C–F | P1 | Phase D complete, F not started | 3–5 weeks | CLI flags, sanitizers, inter-procedural |
 | PERF Detectors | P2 | 109/112 shipped, hygiene only | 1 week | Benchmark regression, docs |
 | Bad Practices (BP) | P3 | 13/63 shipped | 6 weeks | BP-16..BP-65, metadata refactor |
 | Cross-cutting | P4 | Partial | 2 weeks | Docs, CI gates, schema updates |
@@ -84,15 +84,13 @@ tier and phase within each workstream.
 ### Phase D — Extended sanitizer coverage
 
 - [x] Run `make lint` / `make fmt` and fix all 7 clippy errors + formatting (2026-07-03)
-- [ ] `strconv.Atoi`, `strconv.ParseInt`, `strconv.ParseFloat` → `SanitizerKind::Validation`
-- [ ] `utf8.ValidString` → `SanitizerKind::Validation`
-- [ ] `html.UnescapeString` → `SanitizerKind::HTML` (EscapeString already done)
-- [ ] `net/url.IsAbs` → `SanitizerKind::URL`
-- [ ] `strings.HasPrefix`, `strings.HasSuffix`, `strings.Contains` → `SanitizerKind::Validation`
-- [ ] Gin framework sanitizers: `c.ShouldBind`, `c.ShouldBindJSON`, `c.ShouldBindQuery`
-- [ ] Echo framework sanitizers: `c.Bind`, `c.BindWith`
-- [ ] Name-based heuristic: functions matching `/^(sanitize|clean|escape|validate|purify)/i`
-- [ ] Test fixtures for each new sanitizer
+- [x] `strconv.Atoi`, `strconv.ParseInt`, `strconv.ParseFloat`, `strconv.ParseUint` → `SanitizerKind::Validation`
+- [x] `html.UnescapeString` → `SanitizerKind::HTML`
+- [x] Name-based heuristic: functions matching `/^(sanitize|clean|escape|validate|purify)/i` → `SanitizerKind::Validation`
+- [ ] ~~`utf8.ValidString` → `Validation`~~ (skipped: returns bool, no sanitized value produced for taint graph)
+- [ ] ~~`net/url.IsAbs` → `URL`~~ (skipped: returns bool)
+- [ ] ~~`strings.HasPrefix`/`HasSuffix`/`Contains` → `Validation`~~ (skipped: return bools, control-flow not modeled by taint graph)
+- [ ] ~~Gin/Echo framework bind sanitizers~~ (skipped: side-effect pattern, sanitized data in pointer arg not return value)
 
 ### Phase E — CLI flags + docs ✅ SHIPPED
 
