@@ -18,7 +18,7 @@ tier and phase within each workstream.
 | Workstream | Priority | Status | Remaining Effort | Key Deliverable |
 |------------|----------|--------|-----------------|-----------------|
 | CWE-90/91 Taint Rewrite | P0 | ✅ Complete | 0 | Taint-gated CWE-90/91 detectors |
-| Taint Phase C–F | P1 | Phase D complete, F not started | 3–5 weeks | CLI flags, sanitizers, inter-procedural |
+| Taint Phase C–F | P1 | Phases C/D/E complete, F sub-plan ready | 3–4 weeks | Inter-procedural taint tracking |
 | PERF Detectors | P2 | ✅ Complete | 0 | Benchmark regression, docs, fixture audit, edge-case hardening |
 | Bad Practices (BP) | P3 | ✅ Complete (65/63 shipped) | 0 | All 65 BP rules shipped |
 | Cross-cutting | P4 | Partial | 2 weeks | Docs, CI gates, schema updates |
@@ -105,14 +105,15 @@ tier and phase within each workstream.
 
 ### Phase F — Inter-procedural taint tracking
 
-> Separate workstream, ~3–4 weeks. Requires dedicated sub-plan.
+> **Sub-plan:** `plans/p1f-inter-procedural-taint.md` — 6 phases, ~46 detailed checklist items.
+> **Estimated effort:** 3–4 weeks.
 
-- [ ] Build per-file call graph from tree-sitter
-- [ ] Define `TaintSummary` struct for function summaries
-- [ ] Compute summaries via intra-procedural propagation
-- [ ] Cross-function propagation at call sites
-- [ ] Handle recursion (cap depth at 5)
-- [ ] Expanded source/sink coverage
+- [ ] Phase 1: Call graph construction (per-file + project-level merge)
+- [ ] Phase 2: Function summary computation (`TaintSummary` struct)
+- [ ] Phase 3: Cross-function propagation (call-site wiring, fixed-point iteration)
+- [ ] Phase 4: Evidence and reporting (multi-hop path display)
+- [ ] Phase 5: Tests and fixtures (10+ inter-procedural fixture pairs)
+- [ ] Phase 6: Edge-case handling (recursion, pointers, maps, goroutines, deferred calls)
 
 ---
 
@@ -302,7 +303,7 @@ P4 (cross-cutting)
 | **P1-C** | Taint: remove substring fallback | 4 CWEs | ✅ Complete | — |
 | **P1-D** | Taint: extended sanitizers | ~10 matchers | ✅ Complete | — |
 | **P1-E** | Taint: CLI flags + docs | 3 flags + 1 doc | ✅ Complete | — |
-| **P1-F** | Taint: inter-procedural | — | 3–4w | Sub-plan |
+| **P1-F** | Taint: inter-procedural | — | 3–4w | Sub-plan at `plans/p1f-inter-procedural-taint.md` |
 | **P2** | PERF hygiene (bench reg, docs, audit) | — | ✅ Complete | — |
 | **P3** | Bad Practices (all phases) | 65 rules | ✅ Complete | — |
 | **P4** | Cross-cutting docs + CI | `perf-detector-dev.md` + CI | 1w | — |
