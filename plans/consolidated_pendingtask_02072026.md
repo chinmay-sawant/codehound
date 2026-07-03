@@ -121,36 +121,36 @@ tier and phase within each workstream.
 > **Parent:** `plans/p2-implementation/04-perf-detector-implementation.md`
 > **Status:** 109/112 rules shipped. 3 intentionally dropped. All Category A/B/C done.
 > Only hygiene items remain.
+> **Sub-plan:** `plans/p2-hygiene-subplan.md` — detailed breakdown with per-phase checklists
 
 ### Phase 1 — Benchmark regression investigation
 
-- [ ] Investigate criterion bench regression noted in P2.4 batch 3
-- [ ] Verify cold/warm/partial/in-memory benchmarks are within 20% of saved local baseline
-- [ ] Document findings in `docs/architecture-performance.md` if regression is structural
+- [ ] Investigate criterion bench regression noted in P2.4 batch 3 (see sub-plan §1.3)
+- [ ] Verify cold/warm/partial/in-memory benchmarks are within 20% of saved local baseline (see sub-plan §1.1)
+- [ ] Document findings in `docs/architecture-performance.md` if regression is structural (see sub-plan §1.4)
 
 ### Phase 2 — Diagnostic docs
 
-- [ ] Create `docs/perf-detector-development.md` — guidance for adding new PERF rules
+- [ ] Create `docs/perf-detector-development.md` (see sub-plan §2.1 for detailed structure)
   - Registry TOML format, domain module layout, function-pointer dispatch
   - Fixture creation pattern, `manifest.toml` registration
-  - How to run `cargo build` to regenerate dispatch code
+  - Build.rs codegen and testing
+- [ ] Self-verify the guide by tracing a hypothetical PERF-213 rule end-to-end (see sub-plan §2.2)
 
 ### Phase 3 — Test fixture hygiene
 
-- [ ] Audit all 209 fixture pairs for consistency
+- [ ] Audit all 209 fixture pairs for consistency (see sub-plan §3.1–3.4):
   - Every fixture has a proper `lang:` header and `---` separator
   - Every fixture is registered in `tests/fixtures/manifest.toml`
   - No stale `.txt` fixture files without corresponding rule implementation
+  - Vulnerable-safe pair completeness
 - [ ] Fix any inconsistencies found
 
 ### Phase 4 — Edge-case hardening for selected rules
 
-- [ ] PERF-172: verify `wg.Wait` suppression works for bounded concurrency patterns
-  - Create additional safe fixture: bounded worker pool with `semaphore.Weighted`
-- [ ] PERF-150: verify large stack frame detection doesn't fire on type declarations
-  - Add safe fixture: `type BigStruct struct { buf [1024]byte }`
-- [ ] PERF-139: verify closure escape detection handles `go func()` in non-handler contexts
-  - Add safe fixture: background worker with `go func() { db.Query(...) }()`
+- [ ] PERF-172: verify `wg.Wait` suppression for bounded concurrency — add `semaphore.Weighted` safe fixture (see sub-plan §4.1)
+- [ ] PERF-150: verify large stack frame detection doesn't fire on type declarations — add `type BigStruct` safe fixture (see sub-plan §4.2)
+- [ ] PERF-139: verify closure escape in non-handler contexts — add background worker safe fixture (see sub-plan §4.3)
 
 ---
 
