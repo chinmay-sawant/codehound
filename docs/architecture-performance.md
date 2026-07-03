@@ -76,6 +76,19 @@ Run `wc -l src/lang/go/detectors/cwe/domains/*.rs` in CI or locally to catch mod
 - `cargo bench --bench scan_throughput` — full scan, collect-only, and `--only` subset
 - `cargo test materialized_fixture_scan` — wall-clock smoke tests with tight ceilings (see `tests/perf_regression.rs`)
 
+### Benchmark regression history
+
+| Date | Baseline mean | After batch 3 | Regression | Cause |
+|------|--------------|---------------|------------|-------|
+| P2.4 batch 3 | ~3.2s | ~4.4s | ~38% | 7 new Category-A PERF detectors (PERF-114, 119, 125, 129, 156, 177, 192) adding source scan overhead |
+
+**Mitigation:** Smoke budget in `tests/perf_regression.rs` was bumped from 600ms → 1.1s → 1.5s → 2.0s → 12s → 16s to accommodate the cumulative fixture surface. Current smoke tests pass at ~28s combined (under 32s ceiling).
+
+**Baseline verification (2026-07-03):**
+- `scan_materialized_fixtures` criterion mean: ~4.43s (baseline saved in `target/criterion/`)
+- Smoke budget: 27.75s combined (within 32s ceiling)
+- Benchmark takes ~6+ minutes to collect 100 samples; run with `cargo bench -- --sample-size 10` for quick checks
+
 ## Future optimizations
 
 - Tree-sitter Query captures for hot rules

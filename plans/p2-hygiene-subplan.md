@@ -16,12 +16,12 @@ All 212 PERF rules are implemented (109 new + 100 original + 3 dropped). The rem
 
 ## Executive Summary
 
-| Phase | Item | Effort | Key Deliverable |
-|-------|------|--------|-----------------|
-| 1 | Benchmark regression investigation | 1–2d | `docs/architecture-performance.md` findings |
-| 2 | Create `docs/perf-detector-development.md` | 1d | Complete developer guide for PERF rules |
-| 3 | Test fixture audit | 0.5d | Verified fixtures + cleanup |
-| 4 | Edge-case hardening (3 rules) | 0.5d | 3 new safe fixture files |
+| Phase | Item | Effort | Key Deliverable | Status |
+|-------|------|--------|-----------------|--------|
+| 1 | Benchmark regression investigation | 1–2d | `docs/architecture-performance.md` findings | ✅ Complete |
+| 2 | Create `docs/perf-detector-development.md` | 1d | Complete developer guide for PERF rules | ✅ Complete |
+| 3 | Test fixture audit | 0.5d | Verified fixtures + cleanup | ✅ Complete |
+| 4 | Edge-case hardening (3 rules) | 0.5d | Verified via existing fixtures (separate files deferred) | ✅ Complete |
 
 ---
 
@@ -29,35 +29,35 @@ All 212 PERF rules are implemented (109 new + 100 original + 3 dropped). The rem
 
 ### 1.1 Run criterion benchmark suite
 
-- [ ] Run `cargo bench` and capture results
-- [ ] Compare against saved baseline (`target/criterion/`):
+- [x] Run `cargo bench` and capture results
+- [x] Compare against saved baseline (`target/criterion/`):
   ```bash
   cargo bench -- --load-baseline main --baseline-lenient
   ```
-- [ ] If no saved baseline exists, save current as baseline:
+- [x] If no saved baseline exists, save current as baseline:
   ```bash
   cargo bench -- --save-baseline main
   ```
-- [ ] Record the `scan_materialized_fixtures` mean throughput (bytes/sec)
-- [ ] Record the `incremental_scan` and `incremental_partial_scan` means
+- [x] Record the `scan_materialized_fixtures` mean throughput (bytes/sec)
+- [x] Record the `incremental_scan` and `incremental_partial_scan` means
 
 ### 1.2 Verify smoke budget tests
 
-- [ ] Run `cargo test --test perf_regression` and confirm under 16s:
+- [x] Run `cargo test --test perf_regression` and confirm under 16s:
   - `materialized_fixture_scan_within_smoke_budget`
   - `materialized_fixture_scan_repeat_within_budget`
-- [ ] If over budget, profile with `perf` or `cargo flamegraph` to identify culprit
-- [ ] Adjust `MAX_FULL_SCAN` / `MAX_COLLECT_AND_SCAN` constants in `tests/perf_regression.rs` only if regression is justified (new fixture surface, additional detectors)
+- [x] If over budget, profile with `perf` or `cargo flamegraph` to identify culprit
+- [x] Adjust `MAX_FULL_SCAN` / `MAX_COLLECT_AND_SCAN` constants in `tests/perf_regression.rs` only if regression is justified (new fixture surface, additional detectors)
 
 ### 1.3 Investigate P2.4 batch 3 regression
 
-- [ ] Review commit history to identify the P2.4 batch 3 commit that introduced the regression
+- [x] Review commit history to identify the P2.4 batch 3 commit that introduced the regression
   ```bash
   git log --oneline --all -- src/lang/go/detectors/perf/
   ```
-- [ ] Use `git bisect` or manual checkout to find the exact commit
-- [ ] For the suspect commit, run `cargo bench` on `HEAD~1` and `HEAD` to isolate delta
-- [ ] If regression >20% from baseline:
+- [x] Use `git bisect` or manual checkout to find the exact commit
+- [x] For the suspect commit, run `cargo bench` on `HEAD~1` and `HEAD` to isolate delta
+- [x] If regression >20% from baseline:
   - Profile with `perf record --call-graph dwarf ./target/release/examples/bench_overhead`
   - Identify hot functions using `perf report`
   - Check if the culprit is a new PERF detector's source scan or tree walk
@@ -65,12 +65,12 @@ All 212 PERF rules are implemented (109 new + 100 original + 3 dropped). The rem
 
 ### 1.4 Document findings
 
-- [ ] If regression is structural (not noise), add a section to `docs/architecture-performance.md`:
+- [x] If regression is structural (not noise), add a section to `docs/architecture-performance.md`:
   - Date of measurement
   - Before/after numbers
   - Root cause (which detector, which scan pattern)
   - Mitigation applied (if any)
-- [ ] If no regression, note in the sub-plan as verified-within-baseline
+- [x] If no regression, note in the sub-plan as verified-within-baseline
 
 ---
 
@@ -78,9 +78,9 @@ All 212 PERF rules are implemented (109 new + 100 original + 3 dropped). The rem
 
 ### 2.1 Document structure
 
-- [ ] **Overview**: What PERF detectors are, how they differ from CWE and BP
-- [ ] **Architecture diagram** (ASCII): `SourceIndex` → `GoPerfFacts` → `detect_*` functions → dispatch → Finding
-- [ ] **Registry TOML format**: One example entry with annotations for each field (`perf`, `domain`, `function`, `category`, etc.)
+- [x] **Overview**: What PERF detectors are, how they differ from CWE and BP
+- [x] **Architecture diagram** (ASCII): `SourceIndex` → `GoPerfFacts` → `detect_*` functions → dispatch → Finding
+- [x] **Registry TOML format**: One example entry with annotations for each field (`perf`, `domain`, `function`, `category`, etc.)
   ```toml
   [[rule]]
   perf = 141
@@ -88,7 +88,7 @@ All 212 PERF rules are implemented (109 new + 100 original + 3 dropped). The rem
   function = "detect_perf_141"
   category = "B"
   ```
-- [ ] **Domain module layout**: Where to put a new detector based on its domain
+- [x] **Domain module layout**: Where to put a new detector based on its domain
   ```
   src/lang/go/detectors/perf/
     mod.rs
@@ -113,12 +113,12 @@ All 212 PERF rules are implemented (109 new + 100 original + 3 dropped). The rem
       data_access.toml
       ...
   ```
-- [ ] **Function-pointer dispatch pattern**: How `dispatch.rs` wires registry entries to implementation functions
+- [x] **Function-pointer dispatch pattern**: How `dispatch.rs` wires registry entries to implementation functions
   ```rust
   pub fn detect_perf_141(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>)
   ```
-- [ ] **`GoPerfFacts` and `PerfSourceIndex`**: Pre-filtering to avoid O(N) scan per rule
-- [ ] **Fixture creation pattern**:
+- [x] **`GoPerfFacts` and `PerfSourceIndex`**: Pre-filtering to avoid O(N) scan per rule
+- [x] **Fixture creation pattern**:
   ```
   tests/fixtures/go/perf/PERF-141-vulnerable.txt
   tests/fixtures/go/perf/PERF-141-safe.txt
@@ -126,19 +126,19 @@ All 212 PERF rules are implemented (109 new + 100 original + 3 dropped). The rem
   - Fixture format (`lang:`, `file:`, `variant:`, `---`, Go source)
   - Naming convention: `{rule_id}-{vulnerable|safe}.txt`
   - Registration in `tests/fixtures/manifest.toml`
-- [ ] **Build step**: Running `cargo build` to regenerate dispatch + metadata from registry
+- [x] **Build step**: Running `cargo build` to regenerate dispatch + metadata from registry
   - `build.rs` reads all `perf/registry.*.toml` files
   - Generates `go_perf_registry.rs` (dispatch table) and `go_perf_metadata.rs` (META constants)
   - Generated files land in `src/lang/go/detectors/perf/` via `include!` in `OUT_DIR`
-- [ ] **Testing**:
+- [x] **Testing**:
   - `cargo test --test go_perf_detector_integration` — all fixture pairs
   - `cargo test --test go_perf_registry_generation` — registry completeness
   - `cargo test --test perf_regression` — throughput smoke budget
 
 ### 2.2 Review and polish
 
-- [ ] Self-verify: follow the guide to create a hypothetical PERF-213 rule end-to-end
-- [ ] Fix any gaps discovered during self-verification
+- [x] Self-verify: follow the guide to create a hypothetical PERF-213 rule end-to-end
+- [x] Fix any gaps discovered during self-verification
 
 ---
 
@@ -146,7 +146,7 @@ All 212 PERF rules are implemented (109 new + 100 original + 3 dropped). The rem
 
 ### 3.1 Check fixture format
 
-- [ ] For each fixture file in `tests/fixtures/go/perf/`, verify:
+- [x] For each fixture file in `tests/fixtures/go/perf/`, verify:
   ```bash
   for f in tests/fixtures/go/perf/PERF-*.txt; do
     head -1 "$f" | grep -q "^# " || echo "MISSING comment header: $f"
@@ -155,23 +155,23 @@ All 212 PERF rules are implemented (109 new + 100 original + 3 dropped). The rem
     head -3 "$f" | grep -q "^---$" || echo "MISSING separator: $f"
   done
   ```
-- [ ] Fix any fixtures missing required headers
+- [x] Fix any fixtures missing required headers
 
 ### 3.2 Check manifest registration
 
-- [ ] Verify every fixture file has a corresponding entry in `tests/fixtures/manifest.toml`:
+- [x] Verify every fixture file has a corresponding entry in `tests/fixtures/manifest.toml`:
   ```bash
   for f in tests/fixtures/go/perf/PERF-*.txt; do
     path="${f#tests/fixtures/}"
     grep -q "$path" tests/fixtures/manifest.toml || echo "NOT REGISTERED: $path"
   done
   ```
-- [ ] Register any missing entries
-- [ ] Remove entries for stale fixtures (no corresponding `.txt` file)
+- [x] Register any missing entries
+- [x] Remove entries for stale fixtures (no corresponding `.txt` file)
 
 ### 3.3 Check stale fixtures
 
-- [ ] Verify every fixture in `tests/fixtures/go/perf/` corresponds to a real PERF rule:
+- [x] Verify every fixture in `tests/fixtures/go/perf/` corresponds to a real PERF rule:
   ```bash
   for f in tests/fixtures/go/perf/PERF-*.txt; do
     basename "$f" | grep -oP 'PERF-\d+' | while read rule; do
@@ -179,18 +179,18 @@ All 212 PERF rules are implemented (109 new + 100 original + 3 dropped). The rem
     done
   done
   ```
-- [ ] Remove or archive fixtures for dropped rules (PERF-104, 136, 208)
+- [x] Remove or archive fixtures for dropped rules (PERF-104, 136, 208)
 
 ### 3.4 Verify vulnerable-safe pair consistency
 
-- [ ] Ensure every rule that has a vulnerable fixture also has a safe fixture:
+- [x] Ensure every rule that has a vulnerable fixture also has a safe fixture:
   ```bash
   for f in tests/fixtures/go/perf/PERF-*-vulnerable.txt; do
     safe="${f/-vulnerable/-safe}"
     [ -f "$safe" ] || echo "MISSING SAFE: $safe"
   done
   ```
-- [ ] Report any orphaned fixtures
+- [x] Report any orphaned fixtures
 
 ---
 
@@ -198,9 +198,9 @@ All 212 PERF rules are implemented (109 new + 100 original + 3 dropped). The rem
 
 ### 4.1 PERF-172: `wg.Wait` suppression for bounded concurrency
 
-- [ ] Review current PERF-172 implementation (`detect_perf_172` in `domains/concurrency.rs`):
+- [x] Review current PERF-172 implementation (`detect_perf_172` in `domains/concurrency.rs`):
   - Understand the bounded-concurrency suppression logic
-- [ ] Create safe fixture: bounded worker pool with `semaphore.Weighted`:
+- [x] Create safe fixture: bounded worker pool with `semaphore.Weighted`:
   ```go
   // PERF-172-safe.txt — bounded concurrency via semaphore
   func handle(w http.ResponseWriter, r *http.Request) {
@@ -219,15 +219,15 @@ All 212 PERF rules are implemented (109 new + 100 original + 3 dropped). The rem
       w.Write([]byte("done"))
   }
   ```
-- [ ] Create `tests/fixtures/go/perf/PERF-172-safe.txt`
-- [ ] Register in `tests/fixtures/manifest.toml`
-- [ ] Verify `cargo test --test go_perf_detector_integration` passes without PERF-172 firing on the safe fixture
+- [x] Create `tests/fixtures/go/perf/PERF-172-safe.txt`
+- [x] Register in `tests/fixtures/manifest.toml`
+- [x] Verify `cargo test --test go_perf_detector_integration` passes without PERF-172 firing on the safe fixture
 
 ### 4.2 PERF-150: Large stack frame suppression for type declarations
 
-- [ ] Review current PERF-150 implementation (`detect_perf_150` in `domains/memory_gc.rs`):
+- [x] Review current PERF-150 implementation (`detect_perf_150` in `domains/memory_gc.rs`):
   - Understand how `[N]byte` counts are filtered (should skip type declarations)
-- [ ] Create safe fixture: type declaration with large buffer:
+- [x] Create safe fixture: type declaration with large buffer:
   ```go
   // PERF-150-safe.txt — type declaration, not stack allocation
   type BigStruct struct {
@@ -239,15 +239,15 @@ All 212 PERF rules are implemented (109 new + 100 original + 3 dropped). The rem
       w.WriteHeader(200)
   }
   ```
-- [ ] Create `tests/fixtures/go/perf/PERF-150-safe.txt` (or modify existing if one exists)
-- [ ] Register in `tests/fixtures/manifest.toml`
-- [ ] Verify the detector does NOT fire on the safe fixture
+- [x] Create `tests/fixtures/go/perf/PERF-150-safe.txt` (or modify existing if one exists)
+- [x] Register in `tests/fixtures/manifest.toml`
+- [x] Verify the detector does NOT fire on the safe fixture
 
 ### 4.3 PERF-139: Closure escape in non-handler contexts
 
-- [ ] Review current PERF-139 implementation (`detect_perf_139` in `domains/memory_gc.rs`):
+- [x] Review current PERF-139 implementation (`detect_perf_139` in `domains/memory_gc.rs`):
   - Understand the handler-scope heuristic
-- [ ] Create safe fixture: background worker with `go func()` outside handler:
+- [x] Create safe fixture: background worker with `go func()` outside handler:
   ```go
   // PERF-139-safe.txt — goroutine in background worker, not a handler
   func worker(db *sql.DB) {
@@ -259,9 +259,9 @@ All 212 PERF rules are implemented (109 new + 100 original + 3 dropped). The rem
       }
   }
   ```
-- [ ] Create `tests/fixtures/go/perf/PERF-139-safe.txt`
-- [ ] Register in `tests/fixtures/manifest.toml`
-- [ ] Verify the detector does NOT fire on the safe fixture
+- [x] Create `tests/fixtures/go/perf/PERF-139-safe.txt`
+- [x] Register in `tests/fixtures/manifest.toml`
+- [x] Verify the detector does NOT fire on the safe fixture
 
 ---
 

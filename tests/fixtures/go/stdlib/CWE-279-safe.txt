@@ -8,6 +8,7 @@ package sample
 import (
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 )
 
@@ -23,7 +24,7 @@ func StoreArtifact(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing name", http.StatusBadRequest)
 		return
 	}
-	path := "/data/uploads/" + name
+	path := "/data/uploads/" + filepath.Base(name)
 	_ = os.WriteFile(path, []byte(r.FormValue("body")), os.FileMode(mode))
 	w.WriteHeader(http.StatusOK)
 }

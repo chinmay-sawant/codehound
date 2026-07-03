@@ -6283,3 +6283,4 @@ required_rules = ["PERF-224"]
 lang = "go"
 path = "tests/fixtures/go/perf/PERF-224-safe.txt"
 required_rules = []
+
