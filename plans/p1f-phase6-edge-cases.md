@@ -1,7 +1,7 @@
 # P1-F Phase 6 — Edge-Case Handling (Follow-up)
 
 > **Parent:** `plans/p1f-inter-procedural-taint.md` — Phase 6 (deferred)
-> **Status:** All items except Track B done. 20/20 fixtures active.
+> **Status:** All items done. 21/21 fixtures active.
 > **Estimated effort:** 3–4 days
 > **Depends on:** Phase 3 (cross-function propagation) ✅ Complete
 
@@ -53,7 +53,7 @@ pointer variable so taint flows through the deserialized result.
 `decoder.Decode(&target)` deferred — the receiver-based taint origin needs
 type inference.
 
-### Track B: Full pointer aliasing ([ ] deferred)
+### Track B: Full pointer aliasing ✅ (MVP done, future items deferred)
 
 ```go
 func caller() {
@@ -66,10 +66,12 @@ func mutate(p *string) {
 }
 ```
 
-- [ ] Track `&var` expressions in call arguments
-- [ ] If callee writes `*p = expr`, propagate taint back to caller's variable
-- [ ] **Heuristic:** only handle common case (`*p = expr`), skip struct field mutations
-- [ ] Requires basic type inference: detect `*T` parameter patterns in callee declarations
+- [x] Track `&var` expression in call arguments (strip `&` prefix)
+- [x] `TaintSummary.output_pointer_params` — params with `*param = source()` patterns
+- [x] In `finalize()`: for `&var` at output pointer positions, check if `var` reaches a sink
+- [x] IP-011 fixture added (21/21 fixtures active)
+- [ ] **Future:** struct field mutations (`(*p).field = source()`) — deferred
+- [ ] **Future:** `*p = tainted_var` (callee writes a tainted variable, not a direct source call) — needs RHS taint detection
 
 ---
 

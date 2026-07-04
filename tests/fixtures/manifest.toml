@@ -5254,6 +5254,17 @@ lang = "go"
 path = "tests/fixtures/go/taint/IP-010-safe.txt"
 required_rules = []
 
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/IP-011-vulnerable.txt"
+required_rules = ["CWE-22"]
+taint = true
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/IP-011-safe.txt"
+required_rules = []
+
 # Go Bad Practice detector fixtures (P2.5-A MVP)
 [[fixture]]
 lang = "go"

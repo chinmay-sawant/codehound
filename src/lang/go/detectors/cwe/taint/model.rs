@@ -295,6 +295,10 @@ pub struct TaintSummary {
     pub param_sanitizers: Vec<(usize, SanitizerKind)>,
     pub has_direct_sink: bool,
     pub sink_kinds: Vec<SinkKind>,
+    /// Parameter indices that are `*T` pointers written to via `*p = source()`
+    /// in the function body. Taint written through these params leaks back
+    /// to the caller's variable (passed via `&x`).
+    pub output_pointer_params: Vec<usize>,
 }
 
 /// Cross-file call graph, built by merging per-file CallGraphs.

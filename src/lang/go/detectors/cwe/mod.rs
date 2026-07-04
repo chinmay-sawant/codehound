@@ -202,6 +202,21 @@ impl Detector for GoCweScan {
                         &result_var, ctx, out,
                     );
                 }
+
+                // 3) Output pointer params: callee writes tainted data through
+                //    a `*T` parameter (`*p = source()`).  If the caller passed
+                //    `&var`, check if `var` reaches a sink in the caller.
+                for &out_idx in &callee_summary.output_pointer_params {
+                    let Some(arg_text) = site.arguments.get(out_idx) else { continue; };
+                    let var_name = arg_text.strip_prefix('&').unwrap_or(arg_text).trim();
+                    let reached_sinks = sink_kinds_reached_by_var(caller_graph, var_name);
+                    if reached_sinks.is_empty() { continue; }
+                    emit_inter_procedural_finding(
+                        caller_path, caller_source, caller_graph,
+                        &callee_name, site, &reached_sinks,
+                        var_name, ctx, out,
+                    );
+                }
             }
         }
 

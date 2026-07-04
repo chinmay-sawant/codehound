@@ -127,12 +127,17 @@ fn compute_summary_for(
     // referenced variable has a taint path from a source.
     let return_sources = compute_return_sources(graph, annotations, source, func_name);
 
+    // Check output pointer params: `*T` params written to via `*p = source()`.
+    let output_pointer_params =
+        compute_output_pointer_params(annotations, source, func_name, params);
+
     TaintSummary {
         param_sources,
         return_sources,
         param_sanitizers,
         has_direct_sink,
         sink_kinds,
+        output_pointer_params,
     }
 }
 
@@ -182,4 +187,45 @@ fn compute_return_sources(
     }
 
     vec![false]
+}
+
+/// Detect `*T` parameters that are written to via `*p = source_call()` in the
+/// function body. These are "output pointer params" — taint written through
+/// them leaks back to the caller's variable.
+// ponytail: text-based `*param =` detection.  No type inference needed for
+// the common case.  Full `*T` type detection + RHS source-call parsing could
+// eliminate false positives on `*p = 42` (non-source write); add if needed.
+fn compute_output_pointer_params(
+    annotations: &TaintAnnotations,
+    source: &str,
+    func_name: &str,
+    params: &[Arc<str>],
+) -> Vec<usize> {
+    let range = match annotations.function_ranges.get(func_name) {
+        Some(r) => r.clone(),
+        None => return Vec::new(),
+    };
+    let end = range.end.min(source.len());
+    let start = range.start.min(end);
+    let body = &source[start..end];
+
+    // Check if the function body contains any source call at all.
+    let has_source = annotations.sources.iter().any(|s| {
+        s.byte_range.start >= range.start && s.byte_range.end <= range.end
+    });
+    if !has_source {
+        return Vec::new();
+    }
+
+    let mut out = Vec::new();
+    for (i, param) in params.iter().enumerate() {
+        let name = param.as_ref();
+        // Look for `*{name} =` or `*{name}=` (dereference assignment).
+        let needle1 = format!("*{name} =");
+        let needle2 = format!("*{name}=");
+        if body.contains(&needle1) || body.contains(&needle2) {
+            out.push(i);
+        }
+    }
+    out
 }
