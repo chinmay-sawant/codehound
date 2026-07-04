@@ -8,7 +8,7 @@ use super::super::{
     AssignmentDetail, ScopeId, ScopeInfo, ScopeKind, SharedText, TaintAnnotations,
     TaintSanitizerAnnotation, TaintSinkAnnotation, TaintSourceAnnotation,
 };
-use super::walker_records::{record_assignment, record_call};
+use super::walker_records::{record_assignment, record_call, record_send};
 
 /// Extract taint annotations from a parsed Go source unit.
 pub fn extract_taint_facts(unit: &ParsedUnit) -> TaintAnnotations {
@@ -151,6 +151,9 @@ pub(super) fn walk_node(
         }
         "call_expression" => {
             record_call(node, state);
+        }
+        "send_statement" => {
+            record_send(node, state);
         }
         "assignment_statement" | "short_var_declaration" => {
             record_assignment(node, state);

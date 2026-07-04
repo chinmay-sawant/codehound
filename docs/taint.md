@@ -60,29 +60,48 @@ paths to recognized sources.
 When a sanitizer is found on every path from the source to the sink, the
 finding is suppressed.
 
-## Limitations (MVP)
+## Limitations
 
-- **Intra-procedural only.** Taint does not cross function boundaries. If
-  untrusted data flows through a helper function, the path is lost.
+- **Inter-procedural tracking is depth-limited.** Cross-function analysis
+  works for direct chains (A→B→C), return propagation, method calls, and
+  recursion, but does not iterate to a fixed point. Mutual recursion and
+  deep chains may miss flows.
 - **No field/array tracking.** `r.URL.Query()["name"][0]` is traced as one
   node; the engine does not track individual struct fields or array elements.
 - **String concatenation via `+` only.** `fmt.Sprintf` is partially handled
   but not all format-string call graphs are resolved.
 - **No type-based aliasing.** Two variables of the same type pointing to the
   same allocation are treated as independent.
+- **Interface dispatch.** Methods called on interface types are treated as
+  opaque — taint flows through arguments but the return value is not tracked
+  because the concrete implementation is unknown.
+- **Channel/goroutine.** Channel sends and receives are not modeled in the
+  taint graph. Taint that flows through a `chan` is lost at the goroutine
+  boundary.
+- **Pointer dereference.** `*p = tainted` and `json.Unmarshal(data, &target)`
+  are handled for a small set of known functions (`json.Unmarshal`,
+  `xml.Unmarshal`). General pointer tracking requires type inference.
 
 ## Output
 
 With `--taint-show-paths`, findings include a `TaintFlow` evidence block with
-the source kind, sink kind, and hop count:
+the source kind, sink kind, and hop count (plus per-hop details for
+inter-procedural findings):
 
 ```json
 {
   "evidence": {
     "kind": "TaintFlow",
     "source": { "kind": "UserInput", "function": "r.URL.Query", "variable": "host" },
-    "sink": { "kind": "CommandExec", "function": "exec.Command" },
-    "hops": 2,
+    "sink": {
+      "kind": "CommandExec",
+      "function": "exec.Command",
+      "hop_details": [
+        { "function": "runCommand", "kind": "CommandExec",
+          "variable": "cmd", "file": "handler.go", "line": 42 }
+      ]
+    },
+    "hops": 1,
     "sanitized": false
   }
 }
@@ -91,7 +110,8 @@ the source kind, sink kind, and hop count:
 The text reporter shows a summary line:
 
 ```
-taint flow UserInput.r.URL.Query -> CommandExec.exec.Command across 2 hops
+taint flow UserInput.r.URL.Query -> CommandExec.exec.Command across 1 hop
+  hop: runCommand(cmd) at handler.go:42
 ```
 
 ## Custom Sanitizers

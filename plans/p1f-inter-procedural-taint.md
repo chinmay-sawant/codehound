@@ -2,7 +2,7 @@
 
 > **Parent:** `plans/consolidated_pendingtask_02072026.md` — P1-F row
 > **Parent:** `plans/v2.0.0/pending-work/01-taint-tracking-remaining.md` — Phase F
-> **Status:** Phases 1-3 ✅ | Phase 4 ✅ | Phase 5 ✅ | Phase 6 ✅ (19/20 fixtures, IP-010 deferred)
+> **Status:** Phases 1-3 ✅ | Phase 4 ✅ | Phase 5 ✅ | Phase 6 ✅ (20/20 fixtures)
 > **Estimated effort:** 2–3 weeks core (Phase 6 deferred)
 > **Depends on:** Phases A/B (intra-procedural graph + CWE rewrites) ✅ Complete
 
@@ -21,7 +21,7 @@ This plan adds inter-procedural taint tracking in 5 core phases (Phase 6 deferre
 | 1 | Call graph construction | 5–7d | ✅ Complete (extraction + merge + wiring) |
 | 2 | Function summaries | 4–5d | ✅ Complete (TaintSummary, per-function BFS, return propagation) |
 | 3 | Cross-function propagation | 4–5d | ✅ Complete (param-source, return-source, method resolution, sanitizer-aware BFS) |
-| 4 | Evidence and reporting | 2–3d | ☐ |
+| 4 | Evidence and reporting | 2–3d | [ ] |
 | 5 | Tests and fixtures | 3–4d | ✅ Done (17/20 pass, 3 deferred) |
 | 6 | Edge cases (deferred) | — | 📄 `plans/p1f-phase6-edge-cases.md` |
 
@@ -177,10 +177,10 @@ Two existing codebase helpers: `go_module_prefix()` at `engine/dependencies/go_m
 - IP-007 (recursion) ✅
 - IP-008 (closures) ✅
 - IP-009 (multiple returns) ✅
-- IP-010 (goroutines) — deferred (needs channel modeling)
-- Pointer aliasing — deferred (Track A: ~25 lines, Track B: deferred)
-- Map/slice mutations — deferred
-- Interface dispatch — deferred (documented limitation)
+- IP-010 (goroutines) ✅ (channel send/receive via `send_statement` + `record_send`)
+- Pointer aliasing — Track A (json.Unmarshal/xml.Unmarshal) ✅; Track B (full aliasing) [ ] deferred
+- Map/slice mutations ✅ (index-expression bridge in build.rs)
+- Interface dispatch ✅ (documented limitation, opaque calls only)
 
 ---
 

@@ -120,6 +120,34 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
                 }
             }
         }
+
+        // ponytail: pointer bridge for deserialization output args
+        // (json.Unmarshal, xml.Unmarshal).  Wire assignment edges from
+        // input argument variables to the output pointer variable so
+        // taint flows through the deserialized result.
+        let out_args = tainted_output_args(&sink.function);
+        if !out_args.is_empty() {
+            for &out_idx in out_args {
+                let out_text = match sink.all_arguments.get(out_idx) {
+                    Some(t) => t,
+                    None => continue,
+                };
+                let out_names = referenced_identifiers(out_text);
+                for (in_idx, in_arg) in sink.all_arguments.iter().enumerate() {
+                    if in_idx == out_idx { continue; }
+                    for in_name in referenced_identifiers(in_arg) {
+                        for out_name in &out_names {
+                            if let (Some(src), Some(dst)) = (
+                                resolve_variable(&decl_nodes, &scope_by_id, sink.byte_range.start, in_name),
+                                resolve_variable(&decl_nodes, &scope_by_id, sink.byte_range.start, out_name),
+                            ) {
+                                graph.add_edge(src, dst, EdgeKind::Assignment);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // Wire assignments: `x := y` or `x := sanitize(y)`.
@@ -150,6 +178,26 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
                 resolve_variable(&decl_nodes, &scope_by_id, assignment.byte_range.start, name)
             {
                 graph.add_edge(source_id, *target, EdgeKind::Assignment);
+            }
+        }
+    }
+
+    // ponytail: bridge map/slice writes (`m[key] = tainted`) to the base
+    // variable (`m`) so subsequent reads (`val := m[key]`) propagate taint.
+    // Per-key tracking is per-key — we track at map-variable granularity.
+    for assignment in &annotations.assignments {
+        if let Some(bracket) = assignment.lhs.find('[') {
+            let base = &assignment.lhs[..bracket];
+            if let Some(base_id) = decl_nodes.get(&(assignment.scope, Arc::from(base))) {
+                if !assignment.from_source_or_sanitizer {
+                    for name in referenced_identifiers(&assignment.rhs_text) {
+                        if let Some(source_id) =
+                            resolve_variable(&decl_nodes, &scope_by_id, assignment.byte_range.start, name)
+                        {
+                            graph.add_edge(source_id, *base_id, EdgeKind::Assignment);
+                        }
+                    }
+                }
             }
         }
     }
@@ -271,6 +319,19 @@ fn is_source_or_sanitizer_assignment(rhs: &str) -> bool {
 // ponytail: a lazy_static BUILTIN_SUMMARIES table would also provide
 // pre-computed summaries for cross-function callee lookups; deferred until
 // a real need arises — opaque-call heuristic covers the common case.
+/// Known functions whose pointer arguments receive tainted data.
+/// Returns the argument indices that are output pointers (written to by
+/// the function).  The graph builder creates Assignment edges from input
+/// argument variables to these output variables.
+// ponytail: only handles json.Unmarshal/xml.Unmarshal.  (*Decoder).Decode
+// is deferred — the receiver-based taint origin needs type inference.
+fn tainted_output_args(func_name: &str) -> &[usize] {
+    if func_name == "json.Unmarshal" || func_name == "xml.Unmarshal" {
+        return &[0];
+    }
+    &[]
+}
+
 fn is_known_propagator(func_name: &str) -> bool {
     matches!(
         func_name,

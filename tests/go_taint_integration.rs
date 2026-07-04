@@ -29,7 +29,7 @@ fn taint_analyzer() -> &'static Analyzer {
 }
 
 /// Fixtures deferred to Phase 6 (goroutines require channel modeling).
-const DEFERRED: &[&str] = &["IP-010"];
+const DEFERRED: &[&str] = &[];
 
 #[test]
 fn inter_procedural_taint_fixtures_fire_vulnerable_and_silence_safe() {

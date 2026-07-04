@@ -99,6 +99,29 @@ pub(super) fn record_assignment(node: tree_sitter::Node, state: &mut ExtractionS
     }
 }
 
+pub(super) fn record_send(node: tree_sitter::Node, state: &mut ExtractionState<'_>) {
+    let Some(channel) = node.child_by_field_name("channel") else { return };
+    let Some(value) = node.child_by_field_name("value") else { return };
+    let ch_text = match channel.utf8_text(state.src_bytes) {
+        Ok(t) => t.trim(),
+        Err(_) => return,
+    };
+    let val_text = match value.utf8_text(state.src_bytes) {
+        Ok(t) => t,
+        Err(_) => return,
+    };
+    let scope = state.current_scope();
+    let byte_range = node.start_byte()..node.end_byte();
+    let from_call = is_source_or_sanitizer_call(val_text);
+    state.assignments.push(AssignmentDetail {
+        lhs: Arc::from(ch_text),
+        rhs_text: Arc::from(val_text),
+        scope,
+        byte_range,
+        from_source_or_sanitizer: from_call,
+    });
+}
+
 pub(super) fn result_variable_of_call<'a>(
     call: tree_sitter::Node,
     src: &'a [u8],
@@ -108,9 +131,14 @@ pub(super) fn result_variable_of_call<'a>(
     let mut parent = call.parent()?;
     while !matches!(
         parent.kind(),
-        "assignment_statement" | "short_var_declaration"
+        "assignment_statement" | "short_var_declaration" | "send_statement"
     ) {
         parent = parent.parent()?;
+    }
+    if parent.kind() == "send_statement" {
+        return parent
+            .child_by_field_name("channel")
+            .and_then(|n| n.utf8_text(src).ok().map(str::trim));
     }
     let left = parent.child_by_field_name("left")?;
     left.utf8_text(src).ok().map(str::trim)
