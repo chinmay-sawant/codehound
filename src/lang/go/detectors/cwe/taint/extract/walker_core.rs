@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::ops::Range;
 use std::sync::Arc;
 
@@ -24,6 +25,8 @@ pub fn extract_taint_facts(unit: &ParsedUnit) -> TaintAnnotations {
         sanitizers: state.sanitizers,
         assignments: state.assignments,
         scopes: state.scopes,
+        function_params: state.function_params,
+        function_ranges: state.function_ranges,
     }
 }
 
@@ -37,6 +40,8 @@ pub(super) struct ExtractionState<'a> {
     pub(super) sinks: Vec<TaintSinkAnnotation>,
     pub(super) sanitizers: Vec<TaintSanitizerAnnotation>,
     pub(super) assignments: Vec<AssignmentDetail>,
+    pub(super) function_params: HashMap<SharedText, Vec<SharedText>>,
+    pub(super) function_ranges: HashMap<SharedText, Range<usize>>,
 }
 
 impl<'a> ExtractionState<'a> {
@@ -51,6 +56,8 @@ impl<'a> ExtractionState<'a> {
             sinks: Vec::new(),
             sanitizers: Vec::new(),
             assignments: Vec::new(),
+            function_params: HashMap::new(),
+            function_ranges: HashMap::new(),
         }
     }
 
@@ -97,10 +104,14 @@ pub(super) fn walk_node(
                 .unwrap_or("<anonymous>");
             let func_name: SharedText = Arc::from(func_name);
             state.current_function = Some(func_name.clone());
+            // Extract parameter names for TaintSummary computation.
+            let params = extract_param_names(node, src);
+            state.function_params.insert(func_name.clone(), params);
+            state.function_ranges.insert(func_name.clone(), node.start_byte()..node.end_byte());
             entered_scope = Some((
                 ScopeKind::Function,
                 node.start_byte()..node.end_byte(),
-                Some(func_name),
+                Some(func_name.clone()),
             ));
         }
         "block" => {
@@ -168,6 +179,22 @@ pub(super) fn walk_node(
             state.current_function = None;
         }
     }
+}
+
+/// Extract parameter names from a function/method declaration node.
+fn extract_param_names(node: tree_sitter::Node, src: &[u8]) -> Vec<SharedText> {
+    let Some(params) = node.child_by_field_name("parameters") else {
+        return Vec::new();
+    };
+    let mut cursor = params.walk();
+    params
+        .named_children(&mut cursor)
+        .filter_map(|p| {
+            p.child_by_field_name("name")
+                .and_then(|n| n.utf8_text(src).ok())
+                .map(|s| Arc::from(s))
+        })
+        .collect()
 }
 
 pub(super) fn is_chained_call(func_node: tree_sitter::Node) -> bool {

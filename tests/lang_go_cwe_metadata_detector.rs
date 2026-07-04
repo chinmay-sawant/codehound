@@ -18,7 +18,7 @@ fn canonicalize_rule_id(id: &str) -> String {
 #[test]
 fn go_cwe_metadata_runtime_stays_aligned() {
     let fixture_ids = go_cwe_cases::discover_go_cwe_cases();
-    let detector = GoCweScan;
+    let detector = GoCweScan::new();
     let detector_ids = detector
         .rule_ids()
         .iter()

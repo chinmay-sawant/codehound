@@ -2,6 +2,7 @@
 
 mod build;
 mod query;
+mod summary;
 #[cfg(test)]
 mod tests;
 
@@ -17,4 +18,5 @@ pub struct TaintPath {
 }
 
 pub use build::build_taint_graph;
-pub use query::find_taint_paths;
+pub use query::{find_taint_paths, find_taint_paths_from_nodes};
+pub use summary::compute_all_summaries;

@@ -6,7 +6,7 @@ pub mod perf;
 
 pub fn all() -> Vec<Box<dyn crate::core::Detector>> {
     vec![
-        Box::new(cwe::GoCweScan),
+        Box::new(cwe::GoCweScan::new()),
         Box::new(perf::GoPerfScan),
         Box::new(bad_practices::GoBadPracticeScan),
     ]

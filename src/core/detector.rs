@@ -18,4 +18,9 @@ pub trait Detector: Rule + Send + Sync {
     }
 
     fn run(&self, ctx: &ScanContext, unit: &ParsedUnit, out: &mut Vec<Finding>);
+
+    /// Optional: called once after all units have been analyzed.
+    /// Detectors can use this to emit cross-file findings.
+    /// Default implementation does nothing.
+    fn finalize(&self, _ctx: &ScanContext, _out: &mut Vec<Finding>) {}
 }

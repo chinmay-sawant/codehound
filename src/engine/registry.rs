@@ -51,6 +51,11 @@ impl Registry {
             .unwrap_or(&[])
     }
 
+    /// All detector indices, for project-level finalize passes.
+    pub fn detector_indices_for_project(&self) -> Vec<usize> {
+        (0..self.detectors.len()).collect()
+    }
+
     pub fn detector(&self, index: usize) -> &dyn Detector {
         self.detectors[index].as_ref()
     }

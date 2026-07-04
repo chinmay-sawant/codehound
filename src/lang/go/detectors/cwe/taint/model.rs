@@ -195,6 +195,10 @@ pub struct TaintAnnotations {
     pub sanitizers: Vec<TaintSanitizerAnnotation>,
     pub assignments: Vec<AssignmentDetail>,
     pub scopes: Vec<ScopeInfo>,
+    /// Function name → parameter names, for computing TaintSummary.
+    pub function_params: HashMap<SharedText, Vec<SharedText>>,
+    /// Function name → byte range of the function declaration.
+    pub function_ranges: HashMap<SharedText, Range<usize>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -281,6 +285,16 @@ impl CallGraph {
             .push(idx);
         self.sites.push(site);
     }
+}
+
+/// Summary of a function's taint behavior for inter-procedural propagation.
+#[derive(Debug, Clone, Default)]
+pub struct TaintSummary {
+    pub param_sources: Vec<Option<bool>>,
+    pub return_sources: Vec<bool>,
+    pub param_sanitizers: Vec<(usize, SanitizerKind)>,
+    pub has_direct_sink: bool,
+    pub sink_kinds: Vec<SinkKind>,
 }
 
 /// Cross-file call graph, built by merging per-file CallGraphs.

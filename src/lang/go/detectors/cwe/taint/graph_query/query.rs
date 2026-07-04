@@ -34,6 +34,23 @@ pub fn find_taint_paths(
     paths
 }
 
+/// Find taint paths from arbitrary start node IDs to sinks of `sink_kind`.
+pub fn find_taint_paths_from_nodes(
+    graph: &TaintGraph,
+    start_ids: &[TaintNodeId],
+    sink_kind: SinkKind,
+    allowed_sanitizers: &[SanitizerKind],
+) -> Vec<TaintPath> {
+    let sink_ids: Vec<TaintNodeId> = graph.by_sink.get(&sink_kind).cloned().unwrap_or_default();
+    let mut paths = Vec::new();
+    for sink_id in sink_ids {
+        if let Some(path) = bfs_path(graph, start_ids, sink_id, allowed_sanitizers) {
+            paths.push(path);
+        }
+    }
+    paths
+}
+
 fn bfs_path(
     graph: &TaintGraph,
     source_ids: &[TaintNodeId],

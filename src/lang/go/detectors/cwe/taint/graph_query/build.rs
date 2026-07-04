@@ -4,7 +4,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use super::super::{
-    EdgeKind, ScopeId, ScopeInfo, SharedText, TaintAnnotations, TaintGraph, TaintNode, TaintNodeId,
+    EdgeKind, ScopeId, ScopeInfo, ScopeKind, SharedText, TaintAnnotations, TaintGraph, TaintNode,
+    TaintNodeId,
 };
 
 /// Build a `TaintGraph` from raw annotations.
@@ -19,6 +20,27 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
     // Index scopes by id for parent lookups.
     let scope_by_id: HashMap<ScopeId, &ScopeInfo> =
         annotations.scopes.iter().map(|s| (s.id, s)).collect();
+
+    // Create variable nodes for function parameters.
+    for (_func_name, params) in &annotations.function_params {
+        let func_scope = annotations.scopes.iter().find(|s| {
+            s.kind == ScopeKind::Function
+                && s.function.as_ref().is_some_and(|f| f.as_ref() == _func_name.as_ref())
+        });
+        let Some(func_scope) = func_scope else {
+            continue;
+        };
+        for param in params {
+            let node = TaintNode::Variable {
+                name: Arc::clone(param),
+                type_hint: None,
+                scope: func_scope.id,
+                decl_byte: func_scope.byte_range.start,
+            };
+            let id = graph.add_node(node);
+            decl_nodes.insert((func_scope.id, Arc::clone(param)), id);
+        }
+    }
 
     // Create variable nodes for every assignment.
     for assignment in &annotations.assignments {
@@ -109,6 +131,20 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
             // The source/sanitizer node already has an edge to the target.
             continue;
         }
+
+        // ponytail: skip assignment edges when RHS is an opaque function call
+        // (e.g. `safe := callee(x)`).  These create false edges from argument
+        // variables to result variables, incorrectly propagating taint through
+        // functions whose semantics we don't know.  Known sources, sinks, and
+        // sanitizers are handled via their own nodes above.
+        let call_name = assignment.rhs_text.split('(').next().map(str::trim).unwrap_or("");
+        let is_opaque_call = assignment.rhs_text.contains('(')
+            && !is_source_or_sanitizer_assignment(&assignment.rhs_text)
+            && !is_known_propagator(call_name);
+        if is_opaque_call {
+            continue;
+        }
+
         for name in referenced_identifiers(&assignment.rhs_text) {
             if let Some(source_id) =
                 resolve_variable(&decl_nodes, &scope_by_id, assignment.byte_range.start, name)
@@ -175,6 +211,76 @@ fn referenced_identifiers(expr: &str) -> Vec<&str> {
         }
     }
     out
+}
+
+/// Check if the RHS text represents a call to a known source or sanitizer.
+fn is_source_or_sanitizer_assignment(rhs: &str) -> bool {
+    let call_name = rhs.split('(').next().map(str::trim).unwrap_or("");
+    if call_name.is_empty() {
+        return false;
+    }
+    let is_source = call_name.contains(".URL.Query")
+        || call_name.contains(".FormValue")
+        || call_name.contains(".PostForm")
+        || call_name.contains(".Header.Get")
+        || call_name.contains(".GetRawData")
+        || call_name.ends_with(".PathValue")
+        || call_name.ends_with(".Param")
+        || call_name == "c.Query"
+        || call_name == "c.DefaultQuery"
+        || call_name == "c.QueryArray"
+        || call_name == "os.Args"
+        || call_name == "flag.Args"
+        || call_name == "flag.String"
+        || call_name == "os.Getenv"
+        || call_name == "os.LookupEnv"
+        || call_name == "io.ReadAll";
+    if is_source {
+        return true;
+    }
+    let is_sanitizer = call_name == "filepath.Clean"
+        || call_name == "path.Clean"
+        || call_name == "filepath.Base"
+        || call_name == "html.EscapeString"
+        || call_name == "html.UnescapeString"
+        || call_name == "url.QueryEscape"
+        || call_name == "url.PathEscape"
+        || call_name == "ldap.EscapeFilter"
+        || call_name == "xml.EscapeText"
+        || call_name == "xml.Marshal"
+        || call_name.ends_with(".Prepare");
+    if is_sanitizer {
+        return true;
+    }
+    if let Some(name) = call_name.rsplit('.').next() {
+        let lower = name.to_lowercase();
+        if lower.starts_with("sanitize")
+            || lower.starts_with("clean")
+            || lower.starts_with("escape")
+            || lower.starts_with("validate")
+            || lower.starts_with("purify")
+        {
+            return true;
+        }
+    }
+    false
+}
+
+/// Known taint propagators — functions that pass taint from arguments to
+/// return values without sanitizing.  These should NOT be treated as opaque.
+fn is_known_propagator(func_name: &str) -> bool {
+    matches!(
+        func_name,
+        "filepath.Join"
+            | "strings.Join"
+            | "strings.Replace"
+            | "strings.Repeat"
+            | "strings.Trim"
+            | "strings.TrimSpace"
+            | "fmt.Sprintf"
+            | "fmt.Errorf"
+            | "path.Join"
+    )
 }
 
 fn is_go_keyword(token: &str) -> bool {

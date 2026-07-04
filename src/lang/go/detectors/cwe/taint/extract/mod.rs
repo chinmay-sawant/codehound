@@ -9,5 +9,5 @@ mod walker_records;
 #[cfg(test)]
 mod tests;
 
-pub use call_graph::extract_call_graph;
+pub use call_graph::{extract_call_graph, merge_call_graphs};
 pub use walker_core::extract_taint_facts;

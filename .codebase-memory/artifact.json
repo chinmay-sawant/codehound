@@ -1,11 +1,11 @@
 {
     "schema_version": 1,
-    "commit": "c39cb476eb7862710a03e1604cf895091b31c202",
-    "indexed_at": "2026-07-04T06:21:28Z",
+    "commit": "aa804d17c5e4f399899e6a8de5b8d5433250ec4f",
+    "indexed_at": "2026-07-04T07:31:20Z",
     "project": "home-chinmay-ChinmayPersonalProjects-slopguard",
-    "nodes": 6639,
-    "edges": 23122,
-    "original_size": 23003136,
-    "compressed_size": 3391937,
+    "nodes": 6683,
+    "edges": 23228,
+    "original_size": 23199744,
+    "compressed_size": 3424129,
     "compression_level": 3
 }

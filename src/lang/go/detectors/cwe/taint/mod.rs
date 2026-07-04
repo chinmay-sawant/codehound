@@ -10,12 +10,13 @@ mod kinds;
 mod model;
 pub mod rules;
 
-pub use extract::{extract_call_graph, extract_taint_facts};
+pub use extract::{extract_call_graph, merge_call_graphs, extract_taint_facts};
 pub use kinds::{ScopeId, SharedText, TaintNodeId};
 pub use model::{
     AssignmentDetail, CallGraph, CallSite, EdgeKind, FunctionDecl, ProjectCallGraph,
     SanitizerKind, ScopeInfo, ScopeKind, SinkKind, SourceKind, TaintAnnotations, TaintEdge,
     TaintGraph, TaintNode, TaintSanitizerAnnotation, TaintSinkAnnotation, TaintSourceAnnotation,
+    TaintSummary,
 };
 
 pub use rules::{
@@ -23,4 +24,7 @@ pub use rules::{
     detect_cwe_90_taint, detect_cwe_91_taint,
 };
 
-pub use graph_query::{TaintPath, build_taint_graph, find_taint_paths};
+pub use graph_query::{
+    TaintPath, build_taint_graph, compute_all_summaries, find_taint_paths,
+    find_taint_paths_from_nodes,
+};

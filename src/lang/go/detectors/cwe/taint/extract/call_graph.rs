@@ -1,8 +1,9 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::core::ParsedUnit;
 
-use super::super::{CallGraph, CallSite, FunctionDecl, SharedText};
+use super::super::{CallGraph, CallSite, FunctionDecl, ProjectCallGraph, SharedText};
 
 pub fn extract_call_graph(unit: &ParsedUnit) -> CallGraph {
     let src = unit.source.as_bytes();
@@ -124,6 +125,28 @@ fn enclosing_function<'a>(node: tree_sitter::Node, src: &'a [u8]) -> SharedText 
         parent = p.parent();
     }
     Arc::from("<top-level>")
+}
+
+/// Merge per-file `CallGraph`s into a project-level `ProjectCallGraph`.
+pub fn merge_call_graphs<'a>(
+    units: impl IntoIterator<Item = (&'a str, &'a CallGraph)>,
+) -> ProjectCallGraph {
+    let mut calls: HashMap<String, Vec<CallSite>> = HashMap::new();
+    let mut declarations: HashMap<String, FunctionDecl> = HashMap::new();
+    for (_path, cg) in units {
+        for (name, decl) in &cg.declarations {
+            declarations.insert(name.to_string(), decl.clone());
+        }
+        for (caller, indices) in &cg.by_caller {
+            let entry = calls.entry(caller.to_string()).or_default();
+            for &idx in indices {
+                if let Some(site) = cg.sites.get(idx) {
+                    entry.push(site.clone());
+                }
+            }
+        }
+    }
+    ProjectCallGraph { calls, declarations }
 }
 
 fn argument_texts(call: tree_sitter::Node, src: &[u8]) -> Box<[SharedText]> {

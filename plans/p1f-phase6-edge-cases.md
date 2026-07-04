@@ -1,7 +1,7 @@
 # P1-F Phase 6 — Edge-Case Handling (Follow-up)
 
 > **Parent:** `plans/p1f-inter-procedural-taint.md` — Phase 6 (deferred)
-> **Status:** Not started
+> **Status:** Fixture files exist (written Day 1 of P1-F). Core Phases 1-3 ✅. Implementation not started.
 > **Estimated effort:** 3–4 days
 > **Depends on:** Phase 3 (cross-function propagation) ✅ Complete
 
@@ -37,7 +37,7 @@ func caller() {
 - [ ] Cap recursion depth at 5 hops (configurable via `--max-taint-depth`)
 - [ ] When recursive cycle detected, use summary from previous iteration (widening)
 - [ ] Mark recursive paths with `recursive: true` flag in evidence
-- [ ] Create `tests/fixtures/go/taint/IP-007-vulnerable.txt` and `IP-007-safe.txt`
+- [x] Fixture files created (IP-007-vulnerable.txt and IP-007-safe.txt exist)
 - [ ] Enable IP-007 in `tests/go_taint_integration.rs`
 
 ---
@@ -136,7 +136,7 @@ func caller() {
 - [ ] When `go func() { ... }()` encountered, analyze closure body
 - [ ] If body references tainted variables from enclosing scope, propagate taint into goroutine
 - [ ] Wire goroutine closure into call graph with `goroutine: true` flag
-- [ ] Create `tests/fixtures/go/taint/IP-010-vulnerable.txt` and `IP-010-safe.txt` (files already exist, register in test runner)
+- [x] Fixture files created (IP-010-vulnerable.txt and IP-010-safe.txt exist)
 - [ ] Enable IP-010 in `tests/go_taint_integration.rs`
 
 ---
@@ -156,6 +156,7 @@ func caller() {
 ```
 
 - [ ] Implement closure variable capture tracking
+- [x] Fixture files created (IP-008-vulnerable.txt and IP-008-safe.txt exist)
 - [ ] Enable IP-008 in test runner
 
 ### Multiple returns — IP-009
@@ -170,6 +171,7 @@ func lookup() (string, error) {
 }
 ```
 
+- [x] Fixture files created (IP-009-vulnerable.txt and IP-009-safe.txt exist)
 - [ ] Handle multi-return taint propagation through `TaintSummary.return_sources`
 - [ ] Enable IP-009 in test runner
 
