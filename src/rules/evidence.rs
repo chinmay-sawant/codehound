@@ -35,6 +35,29 @@ pub struct TaintSourceInfo {
 pub struct TaintSinkInfo {
     pub kind: String,
     pub function: String,
+    /// ponytail: per-hop details, only populated when --taint-show-paths
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub hop_details: Vec<TaintHop>,
+}
+
+impl TaintSinkInfo {
+    pub fn new(kind: impl Into<String>, function: impl Into<String>) -> Self {
+        Self {
+            kind: kind.into(),
+            function: function.into(),
+            hop_details: Vec::new(),
+        }
+    }
+}
+
+/// One step in a taint propagation path.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TaintHop {
+    pub function: String,
+    pub kind: String,
+    pub variable: String,
+    pub file: String,
+    pub line: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

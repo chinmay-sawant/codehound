@@ -3,6 +3,7 @@
 mod assignments;
 mod call_graph;
 mod classify;
+mod imports;
 mod walker_core;
 mod walker_records;
 
@@ -10,4 +11,5 @@ mod walker_records;
 mod tests;
 
 pub use call_graph::{extract_call_graph, merge_call_graphs};
+pub use imports::build_import_map;
 pub use walker_core::extract_taint_facts;

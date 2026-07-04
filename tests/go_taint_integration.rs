@@ -28,8 +28,8 @@ fn taint_analyzer() -> &'static Analyzer {
     })
 }
 
-/// Fixtures deferred to Phase 6 (edge cases: recursion, multiple returns, goroutines).
-const DEFERRED: &[&str] = &["IP-006", "IP-007", "IP-008", "IP-009", "IP-010"];
+/// Fixtures deferred to Phase 6 (goroutines require channel modeling).
+const DEFERRED: &[&str] = &["IP-010"];
 
 #[test]
 fn inter_procedural_taint_fixtures_fire_vulnerable_and_silence_safe() {

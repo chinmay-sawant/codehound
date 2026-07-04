@@ -52,10 +52,7 @@ pub fn detect_cwe_90_taint(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec
                     function: source_fn.to_string(),
                     variable: variable_name_at(graph, path.source_id).unwrap_or_default(),
                 },
-                sink: TaintSinkInfo {
-                    kind: "LDAPQuery".to_string(),
-                    function: sink_fn.to_string(),
-                },
+                sink: TaintSinkInfo::new("LDAPQuery", sink_fn.to_string()),
                 hops: path.node_ids.len().saturating_sub(1),
                 sanitized: false,
             },

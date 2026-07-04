@@ -268,6 +268,9 @@ fn is_source_or_sanitizer_assignment(rhs: &str) -> bool {
 
 /// Known taint propagators — functions that pass taint from arguments to
 /// return values without sanitizing.  These should NOT be treated as opaque.
+// ponytail: a lazy_static BUILTIN_SUMMARIES table would also provide
+// pre-computed summaries for cross-function callee lookups; deferred until
+// a real need arises — opaque-call heuristic covers the common case.
 fn is_known_propagator(func_name: &str) -> bool {
     matches!(
         func_name,
@@ -280,6 +283,10 @@ fn is_known_propagator(func_name: &str) -> bool {
             | "fmt.Sprintf"
             | "fmt.Errorf"
             | "path.Join"
+            | "append"
+            | "json.Marshal"
+            | "strconv.Itoa"
+            | "strconv.FormatInt"
     )
 }
 

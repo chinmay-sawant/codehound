@@ -64,10 +64,7 @@ pub fn detect_cwe_22_taint(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec
             "user-controlled input reaches a file-open sink without path sanitization",
             DetectorEvidence::TaintFlow {
                 source: source_info(graph, &path),
-                sink: TaintSinkInfo {
-                    kind: "FileOpen".to_string(),
-                    function: sink_fn.to_string(),
-                },
+                sink: TaintSinkInfo::new("FileOpen", sink_fn.to_string()),
                 hops: path.node_ids.len().saturating_sub(1),
                 sanitized: false,
             },

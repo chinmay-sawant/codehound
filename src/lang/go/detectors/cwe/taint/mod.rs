@@ -10,7 +10,7 @@ mod kinds;
 mod model;
 pub mod rules;
 
-pub use extract::{extract_call_graph, merge_call_graphs, extract_taint_facts};
+pub use extract::{build_import_map, extract_call_graph, merge_call_graphs, extract_taint_facts};
 pub use kinds::{ScopeId, SharedText, TaintNodeId};
 pub use model::{
     AssignmentDetail, CallGraph, CallSite, EdgeKind, FunctionDecl, ProjectCallGraph,

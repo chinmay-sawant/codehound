@@ -43,10 +43,7 @@ pub fn detect_cwe_79_taint(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec
             "user-controlled input reaches a template execution sink without HTML escaping",
             DetectorEvidence::TaintFlow {
                 source: source_info(graph, &path),
-                sink: TaintSinkInfo {
-                    kind: "Template".to_string(),
-                    function: sink_fn.to_string(),
-                },
+                sink: TaintSinkInfo::new("Template", sink_fn.to_string()),
                 hops: path.node_ids.len().saturating_sub(1),
                 sanitized: false,
             },

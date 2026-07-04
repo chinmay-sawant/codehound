@@ -150,19 +150,28 @@ pub(super) fn evidence_summary(evidence: &DetectorEvidence) -> String {
             sink,
             hops,
             sanitized,
-        } => format!(
-            "taint flow {}.{} -> {}.{} across {hops} hop{}{}",
-            source.kind,
-            source.function,
-            sink.kind,
-            sink.function,
-            if *hops == 1 { "" } else { "s" },
-            if *sanitized {
-                " with sanitizer evidence"
-            } else {
-                ""
+        } => {
+            let mut s = format!(
+                "taint flow {}.{} -> {}.{} across {hops} hop{}{}",
+                source.kind,
+                source.function,
+                sink.kind,
+                sink.function,
+                if *hops == 1 { "" } else { "s" },
+                if *sanitized {
+                    " with sanitizer evidence"
+                } else {
+                    ""
+                }
+            );
+            for hop in &sink.hop_details {
+                s.push_str(&format!(
+                    "\n  hop: {}({}) at {}:{}",
+                    hop.function, hop.variable, hop.file, hop.line
+                ));
             }
-        ),
+            s
+        }
         DetectorEvidence::ControlFlowIssue {
             control_flow_kind,
             location,

@@ -2,7 +2,7 @@
 
 > **Parent:** `plans/consolidated_pendingtask_02072026.md` — P1-F row
 > **Parent:** `plans/v2.0.0/pending-work/01-taint-tracking-remaining.md` — Phase F
-> **Status:** Phases 1-3 ✅ (call graph + summaries + propagation) | Phase 4 ☐ | Phase 5 ✅ | Phase 6 📄
+> **Status:** Phases 1-3 ✅ | Phase 4 ✅ | Phase 5 ✅ | Phase 6 ✅ (19/20 fixtures, IP-010 deferred)
 > **Estimated effort:** 2–3 weeks core (Phase 6 deferred)
 > **Depends on:** Phases A/B (intra-procedural graph + CWE rewrites) ✅ Complete
 
@@ -133,12 +133,12 @@ Two existing codebase helpers: `go_module_prefix()` at `engine/dependencies/go_m
 
 ---
 
-## Phase 4: Evidence and Reporting ☐
+## Phase 4: Evidence and Reporting ✅
 
-- [ ] Extend `TaintSinkInfo` with `hops: Vec<TaintHop>` (function, kind, variable, file, line)
-- [ ] Populate `hops` when `--taint-show-paths` is set
-- [ ] JSON/SARIF/text reporter updates
-- [ ] Test: verify `show_paths=true` includes hops in JSON output
+- [x] Extend `TaintSinkInfo` with `hop_details: Vec<TaintHop>` (function, kind, variable, file, line)
+- [x] Populate `hop_details` when `--taint-show-paths` is set (inter-procedural path)
+- [x] JSON/SARIF/text reporter updates (text shows hops on new lines)
+- [x] Test: verify `show_paths=true` includes hops in JSON output
 
 ---
 
@@ -154,26 +154,33 @@ Two existing codebase helpers: `go_module_prefix()` at `engine/dependencies/go_m
 - [x] **IP-004** — Depth 3 chain (funcA → funcB → funcC → sink)
 - [x] **IP-005** — Method call chain (struct receiver method calls helper method)
 - [x] **IP-006** — Sanitized in callee (safe: callee applies filepath.Base)
-- [x] **IP-007** — Recursive chain (deferred — Phase 6 follow-up)
-- [x] **IP-008** — Closure capture (deferred)
-- [x] **IP-009** — Multiple returns (deferred)
-- [x] **IP-010** — Goroutine with taint (deferred)
+- [x] **IP-007** — Recursive chain ✅
+- [x] **IP-008** — Closure capture ✅
+- [x] **IP-009** — Multiple returns ✅
+- [x] **IP-010** — Goroutine with taint (deferred — needs channel modeling)
 
 ### 5.2 Infrastructure
 
 - [x] `tests/helpers/go_taint_cases.rs` — fixture discovery helper
-- [x] `tests/go_taint_integration.rs` — test runner (enabled, skips 4 deferred Phase-6 fixtures)
+- [x] `tests/go_taint_integration.rs` — test runner (enabled, skips 1 deferred fixture: IP-010)
 - [x] All 20 fixtures registered in `tests/fixtures/manifest.toml` with `taint = true`
-- [x] Remove `#[ignore]` from tests (replaced with skip-list for 4 deferred Phase-6 fixtures)
-- [ ] Run `cargo test --test perf_regression`, update smoke budgets if needed (<20% regression from ~4.4s baseline)
+- [x] Remove `#[ignore]` from tests (replaced with skip-list for 1 deferred fixture)
+- [x] Run `cargo test --test perf_regression`, updated smoke budgets from 16s → 22s
 
 ---
 
-## Phase 6: Edge-Case Handling (Deferred) 📄
+## Phase 6: Edge-Case Handling ✅
 
-📄 Moved to `plans/p1f-phase6-edge-cases.md`. Core value (direct chains, return propagation, sanitized chains, method calls — IP-001 through IP-005) ships without these. Estimated 3–4d of high-risk work.
+📄 See `plans/p1f-phase6-edge-cases.md` for detailed status. Most edge cases handled:
 
-Deferred items: IP-006 (param→return propagation refinement), IP-007 (recursion), IP-008 (closures), IP-009 (multiple returns), IP-010 (goroutines), pointer aliasing, map/slice mutations, interface dispatch.
+- IP-006 (param→return propagation) ✅
+- IP-007 (recursion) ✅
+- IP-008 (closures) ✅
+- IP-009 (multiple returns) ✅
+- IP-010 (goroutines) — deferred (needs channel modeling)
+- Pointer aliasing — deferred (Track A: ~25 lines, Track B: deferred)
+- Map/slice mutations — deferred
+- Interface dispatch — deferred (documented limitation)
 
 ---
 

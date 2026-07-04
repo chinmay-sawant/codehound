@@ -1,7 +1,7 @@
 # P1-F Phase 6 — Edge-Case Handling (Follow-up)
 
 > **Parent:** `plans/p1f-inter-procedural-taint.md` — Phase 6 (deferred)
-> **Status:** Fixture files exist (written Day 1 of P1-F). Core Phases 1-3 ✅. Implementation not started.
+> **Status:** IP-006/007/008/009 ✅. IP-010 ☐ (deferred — needs channel modeling). Track A/B, map/slice, and interface dispatch remain ☐.
 > **Estimated effort:** 3–4 days
 > **Depends on:** Phase 3 (cross-function propagation) ✅ Complete
 
@@ -15,7 +15,7 @@ Phases 1-3 of P1-F must be complete before starting this work.
 
 ---
 
-## Phase 6.1: Recursion — IP-007
+## Phase 6.1: Recursion — IP-007 ✅
 
 ### Fixture
 
@@ -33,12 +33,9 @@ func caller() {
 
 ### Checklist
 
-- [ ] Detect recursive calls in call graph (direct: `A→A`, mutual: `A→B→A`)
-- [ ] Cap recursion depth at 5 hops (configurable via `--max-taint-depth`)
-- [ ] When recursive cycle detected, use summary from previous iteration (widening)
-- [ ] Mark recursive paths with `recursive: true` flag in evidence
-- [x] Fixture files created (IP-007-vulnerable.txt and IP-007-safe.txt exist)
-- [ ] Enable IP-007 in `tests/go_taint_integration.rs`
+- [x] Works without explicit recursion handling — `process` has a direct param→sink path, so `param_sources[0] = true` is computed from the direct `os.Open(s)` call. The recursive self-call is opaque, but the direct path is sufficient.
+- [x] Enable IP-007 in `tests/go_taint_integration.rs`
+- [ ] **ponytail:** Depth cap, widening, and `recursive: true` evidence flag skipped — the direct param→sink path handles the common case. Add if mutual recursion causes issues.
 
 ---
 
@@ -120,7 +117,7 @@ func caller() {
 
 ---
 
-## Phase 6.5: Goroutine Closures — IP-010
+## Phase 6.5: Goroutine Closures — IP-010 ☐
 
 ```go
 func caller() {
@@ -136,30 +133,31 @@ func caller() {
 - [ ] When `go func() { ... }()` encountered, analyze closure body
 - [ ] If body references tainted variables from enclosing scope, propagate taint into goroutine
 - [ ] Wire goroutine closure into call graph with `goroutine: true` flag
+- [ ] Model channel sends (`ch <- x`) and receives (`s := <-ch`) in the taint graph
 - [x] Fixture files created (IP-010-vulnerable.txt and IP-010-safe.txt exist)
-- [ ] Enable IP-010 in `tests/go_taint_integration.rs`
+- [ ] Enable IP-010 in `tests/go_taint_integration.rs` (deferred — needs channel modeling)
 
 ---
 
-## Phase 6.6: Additional Deferred Fixtures
+## Phase 6.6: Additional Deferred Fixtures ✅
 
-### Closure capture — IP-008
+### Closure capture — IP-008 ✅
 
 ```go
 func caller() {
     x := r.URL.Query().Get("input")
     fn := func() {
-        os.Open(x)  // should fire CWE-22 (captured)
+        os.Open(x)
     }
     fn()
 }
 ```
 
-- [ ] Implement closure variable capture tracking
+- [x] Works via intra-procedural analysis — closure body shares the same taint graph as the enclosing function, so `x` → `os.Open(x)` is resolved within the single file's graph.
 - [x] Fixture files created (IP-008-vulnerable.txt and IP-008-safe.txt exist)
-- [ ] Enable IP-008 in test runner
+- [x] Enable IP-008 in test runner
 
-### Multiple returns — IP-009
+### Multiple returns — IP-009 ✅
 
 ```go
 func caller() {
@@ -172,8 +170,8 @@ func lookup() (string, error) {
 ```
 
 - [x] Fixture files created (IP-009-vulnerable.txt and IP-009-safe.txt exist)
-- [ ] Handle multi-return taint propagation through `TaintSummary.return_sources`
-- [ ] Enable IP-009 in test runner
+- [x] Handle multi-return taint propagation — `result_variable_of_call` updated to accept `ret_idx` and parse comma-separated LHS
+- [x] Enable IP-009 in test runner
 
 ---
 

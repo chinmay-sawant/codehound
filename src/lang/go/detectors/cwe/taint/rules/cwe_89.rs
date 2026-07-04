@@ -53,10 +53,7 @@ pub fn detect_cwe_89_taint(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec
             "user-controlled input reaches an SQL execution sink",
             DetectorEvidence::TaintFlow {
                 source: source_info(graph, &path),
-                sink: TaintSinkInfo {
-                    kind: "SQLQuery".to_string(),
-                    function: sink_fn.to_string(),
-                },
+                sink: TaintSinkInfo::new("SQLQuery", sink_fn.to_string()),
                 hops: path.node_ids.len().saturating_sub(1),
                 sanitized: false,
             },

@@ -13,10 +13,12 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use crate::core::{Detector, LanguageId, ParsedUnit, ScanContext};
-use crate::rules::{Finding, Rule, RuleMetadata};
+use crate::rules::{
+    DetectorEvidence, Finding, Rule, RuleMetadata, TaintHop, TaintSinkInfo, TaintSourceInfo,
+};
 use domains::*;
 use facts::{GoUnitFacts, build_go_unit_facts, build_taint_graph_for_facts};
-use taint::{CallGraph, SinkKind, TaintAnnotations, TaintGraph, TaintNode, TaintNodeId};
+use taint::{build_import_map, CallGraph, SinkKind, TaintAnnotations, TaintGraph, TaintNode, TaintNodeId};
 
 use crate::rules::emit;
 
@@ -35,6 +37,7 @@ struct ProjectUnit {
     source: Arc<str>,
     call_graph: CallGraph,
     annotations: TaintAnnotations,
+    import_map: HashMap<String, String>,
 }
 
 /// Shared state accumulated across all files in a scan.
@@ -102,6 +105,7 @@ impl Detector for GoCweScan {
                 source: Arc::clone(&unit.source),
                 call_graph: facts.call_graph.clone().unwrap_or_default(),
                 annotations: facts.taint.clone(),
+                import_map: build_import_map(unit),
             });
         }
 
@@ -152,6 +156,19 @@ impl Detector for GoCweScan {
 
             for site in sites {
                 let raw_callee = site.callee.as_ref();
+                // ponytail: skip external package calls when we can resolve
+                // the import prefix — prevents matching user-defined functions
+                // that share a name with a stdlib function.
+                if site.is_method_call {
+                    if let Some(dot) = raw_callee.rfind('.') {
+                        let prefix = &raw_callee[..dot];
+                        let is_imported = state.units.iter().any(|u| u.import_map.contains_key(prefix));
+                        let is_internal = func_to_file.contains_key(&raw_callee[dot + 1..]);
+                        if is_imported && !is_internal {
+                            continue;
+                        }
+                    }
+                }
                 let callee_name = resolve_callee_name(raw_callee, site.is_method_call);
                 let callee_summary = find_callee_summary(&per_file, raw_callee)
                     .or_else(|| find_callee_summary(&per_file, &callee_name));
@@ -166,21 +183,23 @@ impl Detector for GoCweScan {
                     }
                     emit_inter_procedural_finding(
                         caller_path, caller_source, caller_graph,
-                        &callee_name, site, &callee_summary.sink_kinds, ctx, out,
+                        &callee_name, site, &callee_summary.sink_kinds,
+                        arg_text.as_ref(), ctx, out,
                     );
                 }
 
                 // 2) Return sources: callee returns tainted data → check if
                 //    the result variable reaches a sink in the caller.
-                for (_ret_idx, is_ret_source) in callee_summary.return_sources.iter().enumerate() {
+                for (ret_idx, is_ret_source) in callee_summary.return_sources.iter().enumerate() {
                     if !is_ret_source { continue; }
-                    let result_var = result_variable_of_call(caller_source, site.byte_range.start);
+                    let result_var = result_variable_of_call(caller_source, site.byte_range.start, ret_idx);
                     let Some(result_var) = result_var else { continue; };
                     let reached_sinks = sink_kinds_reached_by_var(caller_graph, &result_var);
                     if reached_sinks.is_empty() { continue; }
                     emit_inter_procedural_finding(
                         caller_path, caller_source, caller_graph,
-                        &callee_name, site, &reached_sinks, ctx, out,
+                        &callee_name, site, &reached_sinks,
+                        &result_var, ctx, out,
                     );
                 }
             }
@@ -208,6 +227,7 @@ fn find_callee_summary<'a>(
 /// Check if any identifier text in a TaintGraph has an **unsanitized** taint
 /// path from any source.
 fn is_identifier_tainted(graph: &TaintGraph, name: &str) -> bool {
+    // Check 1: Variable nodes with this name have taint paths.
     let var_ids: Vec<TaintNodeId> = graph
         .nodes
         .iter()
@@ -215,16 +235,32 @@ fn is_identifier_tainted(graph: &TaintGraph, name: &str) -> bool {
         .filter(|(_, n)| matches!(n, TaintNode::Variable { name: n2, .. } if n2.as_ref() == name))
         .map(|(id, _)| id)
         .collect();
-    if var_ids.is_empty() {
-        return false;
-    }
-    for (_sk, source_ids) in &graph.by_source {
-        for source_id in source_ids {
-            if bfs_sanitized_reaches(graph, *source_id, &var_ids, &[]) {
-                return true;
+    if !var_ids.is_empty() {
+        for (_sk, source_ids) in &graph.by_source {
+            for source_id in source_ids {
+                if bfs_sanitized_reaches(graph, *source_id, &var_ids, &[]) {
+                    return true;
+                }
             }
         }
     }
+
+    // ponytail: Check 2 — the name might be a direct source call expression
+    // (e.g. `f(r.URL.Query().Get("input"))`).  Extract the function name from
+    // the call and check against known sources.
+    let call_func = name.split('(').next().unwrap_or("").trim();
+    if !call_func.is_empty() {
+        for (_sk, source_ids) in &graph.by_source {
+            for source_id in source_ids {
+                if let Some(TaintNode::Source { function, .. }) = graph.nodes.get(*source_id) {
+                    if function.as_ref() == call_func {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
     false
 }
 
@@ -305,24 +341,31 @@ fn resolve_callee_name(callee: &str, is_method_call: bool) -> String {
 }
 
 /// Find the variable that a call expression's result is assigned to.
-fn result_variable_of_call(source: &str, call_byte: usize) -> Option<String> {
+/// For multi-return (`a, b := f()`), `ret_idx` selects which return value's
+/// variable to return.
+fn result_variable_of_call(source: &str, call_byte: usize, ret_idx: usize) -> Option<String> {
     let end = call_byte.min(source.len());
     let before = &source[..end];
-    if let Some(colon_eq) = before.rfind(":=") {
-        let lhs = before[..colon_eq].trim();
-        let var = lhs.split(|c: char| c.is_whitespace()).last()?;
-        if !var.is_empty() && var.chars().all(|c| c.is_alphanumeric() || c == '_') {
-            return Some(var.to_string());
-        }
-    }
-    if let Some(eq) = before.rfind('=') {
-        if !before[..eq].ends_with(':') {
-            let lhs = before[..eq].trim();
-            let var = lhs.split(|c: char| c.is_whitespace()).last()?;
-            if !var.is_empty() && var.chars().all(|c| c.is_alphanumeric() || c == '_') {
-                return Some(var.to_string());
-            }
-        }
+    // Look for `:=` or `=` at the end of the prefix, skipping `==` and `!=`.
+    let assign = before
+        .char_indices()
+        .rev()
+        .find(|&(i, c)| {
+            if c != '=' { return false; }
+            if i == 0 { return false; }
+            let prev = before[..i].chars().last().unwrap();
+            // Skip `==`, `!=`, `<=`, `>=` — only actual assignments.
+            prev != '=' && prev != '!' && prev != '<' && prev != '>'
+        })
+        .map(|(i, _)| i)?;
+    // Extract the LHS of the assignment from the current line.
+    let line_start = before[..assign].rfind('\n').map(|i| i + 1).unwrap_or(0);
+    let lhs = before[line_start..assign].trim_end_matches(':').trim();
+    // Split on `,` to handle multi-return.
+    let vars: Vec<&str> = lhs.split(',').map(|v| v.trim()).collect();
+    let var = vars.get(ret_idx).or_else(|| vars.last())?;
+    if !var.is_empty() && var.chars().all(|c| c.is_alphanumeric() || c == '_') {
+        return Some(var.to_string());
     }
     None
 }
@@ -381,6 +424,7 @@ fn emit_inter_procedural_finding(
     _callee_name: &str,
     site: &taint::CallSite,
     sink_kinds: &[SinkKind],
+    arg_text: &str,
     ctx: &ScanContext,
     out: &mut Vec<Finding>,
 ) {
@@ -397,6 +441,39 @@ fn emit_inter_procedural_finding(
             "tainted data reaches {} via call crossing function boundary",
             meta.title
         );
-        emit::push_finding(meta, file, line, col, &msg, out);
+        let sink_kind_str = format!("{sk:?}");
+        let hop_details = if ctx.taint_show_paths {
+            vec![TaintHop {
+                function: site.callee.to_string(),
+                kind: sink_kind_str,
+                variable: arg_text.to_string(),
+                file: file.to_string(),
+                line,
+            }]
+        } else {
+            Vec::new()
+        };
+        emit::push_finding_with_evidence(
+            meta,
+            file,
+            line,
+            col,
+            &msg,
+            DetectorEvidence::TaintFlow {
+                source: TaintSourceInfo {
+                    kind: "UserInput".to_string(),
+                    function: "unknown".to_string(),
+                    variable: arg_text.to_string(),
+                },
+                sink: TaintSinkInfo {
+                    kind: format!("{sk:?}"),
+                    function: site.callee.to_string(),
+                    hop_details,
+                },
+                hops: 1,
+                sanitized: false,
+            },
+            out,
+        );
     }
 }
