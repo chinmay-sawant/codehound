@@ -18,7 +18,9 @@ use crate::rules::{
 };
 use domains::*;
 use facts::{GoUnitFacts, build_go_unit_facts, build_taint_graph_for_facts};
-use taint::{build_import_map, CallGraph, SinkKind, TaintAnnotations, TaintGraph, TaintNode, TaintNodeId};
+use taint::{
+    CallGraph, SinkKind, TaintAnnotations, TaintGraph, TaintNode, TaintNodeId, build_import_map,
+};
 
 use crate::rules::emit;
 
@@ -99,7 +101,7 @@ impl Detector for GoCweScan {
 
         // Accumulate state for project-level analysis.
         {
-            let mut state = self.state.lock().unwrap();
+            let mut state = self.state.lock().expect("lock CweDetector state");
             state.units.push(ProjectUnit {
                 path: unit.display_path.clone(),
                 source: Arc::clone(&unit.source),
@@ -121,15 +123,14 @@ impl Detector for GoCweScan {
             return;
         }
 
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.state.lock().expect("lock CweDetector state");
         if state.units.is_empty() {
             return;
         }
 
         // Phase 1.3: Merge per-file call graphs.
-        let project_cg = taint::merge_call_graphs(
-            state.units.iter().map(|u| (u.path.as_str(), &u.call_graph)),
-        );
+        let project_cg =
+            taint::merge_call_graphs(state.units.iter().map(|u| (u.path.as_str(), &u.call_graph)));
 
         // Pre-build per-file taint graphs and summaries.
         let mut per_file: Vec<(&str, TaintGraph, HashMap<String, taint::TaintSummary>)> =
@@ -162,7 +163,10 @@ impl Detector for GoCweScan {
                 if site.is_method_call {
                     if let Some(dot) = raw_callee.rfind('.') {
                         let prefix = &raw_callee[..dot];
-                        let is_imported = state.units.iter().any(|u| u.import_map.contains_key(prefix));
+                        let is_imported = state
+                            .units
+                            .iter()
+                            .any(|u| u.import_map.contains_key(prefix));
                         let is_internal = func_to_file.contains_key(&raw_callee[dot + 1..]);
                         if is_imported && !is_internal {
                             continue;
@@ -172,34 +176,57 @@ impl Detector for GoCweScan {
                 let callee_name = resolve_callee_name(raw_callee, site.is_method_call);
                 let callee_summary = find_callee_summary(&per_file, raw_callee)
                     .or_else(|| find_callee_summary(&per_file, &callee_name));
-                let Some(callee_summary) = callee_summary else { continue; };
+                let Some(callee_summary) = callee_summary else {
+                    continue;
+                };
 
                 // 1) Param sources: argument[i] is tainted → callee passes to sink.
                 for (i, is_source) in callee_summary.param_sources.iter().enumerate() {
                     let Some(true) = is_source else { continue };
-                    let Some(arg_text) = site.arguments.get(i) else { continue };
+                    let Some(arg_text) = site.arguments.get(i) else {
+                        continue;
+                    };
                     if !is_identifier_tainted(caller_graph, arg_text) {
                         continue;
                     }
                     emit_inter_procedural_finding(
-                        caller_path, caller_source, caller_graph,
-                        &callee_name, site, &callee_summary.sink_kinds,
-                        arg_text.as_ref(), ctx, out,
+                        caller_path,
+                        caller_source,
+                        caller_graph,
+                        &callee_name,
+                        site,
+                        &callee_summary.sink_kinds,
+                        arg_text.as_ref(),
+                        ctx,
+                        out,
                     );
                 }
 
                 // 2) Return sources: callee returns tainted data → check if
                 //    the result variable reaches a sink in the caller.
                 for (ret_idx, is_ret_source) in callee_summary.return_sources.iter().enumerate() {
-                    if !is_ret_source { continue; }
-                    let result_var = result_variable_of_call(caller_source, site.byte_range.start, ret_idx);
-                    let Some(result_var) = result_var else { continue; };
+                    if !is_ret_source {
+                        continue;
+                    }
+                    let result_var =
+                        result_variable_of_call(caller_source, site.byte_range.start, ret_idx);
+                    let Some(result_var) = result_var else {
+                        continue;
+                    };
                     let reached_sinks = sink_kinds_reached_by_var(caller_graph, &result_var);
-                    if reached_sinks.is_empty() { continue; }
+                    if reached_sinks.is_empty() {
+                        continue;
+                    }
                     emit_inter_procedural_finding(
-                        caller_path, caller_source, caller_graph,
-                        &callee_name, site, &reached_sinks,
-                        &result_var, ctx, out,
+                        caller_path,
+                        caller_source,
+                        caller_graph,
+                        &callee_name,
+                        site,
+                        &reached_sinks,
+                        &result_var,
+                        ctx,
+                        out,
                     );
                 }
 
@@ -207,14 +234,24 @@ impl Detector for GoCweScan {
                 //    a `*T` parameter (`*p = source()`).  If the caller passed
                 //    `&var`, check if `var` reaches a sink in the caller.
                 for &out_idx in &callee_summary.output_pointer_params {
-                    let Some(arg_text) = site.arguments.get(out_idx) else { continue; };
+                    let Some(arg_text) = site.arguments.get(out_idx) else {
+                        continue;
+                    };
                     let var_name = arg_text.strip_prefix('&').unwrap_or(arg_text).trim();
                     let reached_sinks = sink_kinds_reached_by_var(caller_graph, var_name);
-                    if reached_sinks.is_empty() { continue; }
+                    if reached_sinks.is_empty() {
+                        continue;
+                    }
                     emit_inter_procedural_finding(
-                        caller_path, caller_source, caller_graph,
-                        &callee_name, site, &reached_sinks,
-                        var_name, ctx, out,
+                        caller_path,
+                        caller_source,
+                        caller_graph,
+                        &callee_name,
+                        site,
+                        &reached_sinks,
+                        var_name,
+                        ctx,
+                        out,
                     );
                 }
             }
@@ -251,7 +288,7 @@ fn is_identifier_tainted(graph: &TaintGraph, name: &str) -> bool {
         .map(|(id, _)| id)
         .collect();
     if !var_ids.is_empty() {
-        for (_sk, source_ids) in &graph.by_source {
+        for source_ids in graph.by_source.values() {
             for source_id in source_ids {
                 if bfs_sanitized_reaches(graph, *source_id, &var_ids, &[]) {
                     return true;
@@ -265,7 +302,7 @@ fn is_identifier_tainted(graph: &TaintGraph, name: &str) -> bool {
     // the call and check against known sources.
     let call_func = name.split('(').next().unwrap_or("").trim();
     if !call_func.is_empty() {
-        for (_sk, source_ids) in &graph.by_source {
+        for source_ids in graph.by_source.values() {
             for source_id in source_ids {
                 if let Some(TaintNode::Source { function, .. }) = graph.nodes.get(*source_id) {
                     if function.as_ref() == call_func {
@@ -300,11 +337,8 @@ fn bfs_sanitized_reaches(
     visited[start] = true;
 
     while let Some((current, was_sanitized)) = queue.pop_front() {
-        let sanitized = was_sanitized
-            || matches!(
-                graph.nodes.get(current),
-                Some(TaintNode::Sanitizer { .. })
-            );
+        let sanitized =
+            was_sanitized || matches!(graph.nodes.get(current), Some(TaintNode::Sanitizer { .. }));
 
         if targets.contains(&current) && !sanitized {
             return true;
@@ -366,9 +400,16 @@ fn result_variable_of_call(source: &str, call_byte: usize, ret_idx: usize) -> Op
         .char_indices()
         .rev()
         .find(|&(i, c)| {
-            if c != '=' { return false; }
-            if i == 0 { return false; }
-            let prev = before[..i].chars().last().unwrap();
+            if c != '=' {
+                return false;
+            }
+            if i == 0 {
+                return false;
+            }
+            let prev = before[..i]
+                .chars()
+                .last()
+                .expect("i > 0 so before[..i] is non-empty");
             // Skip `==`, `!=`, `<=`, `>=` — only actual assignments.
             prev != '=' && prev != '!' && prev != '<' && prev != '>'
         })
@@ -398,9 +439,18 @@ fn sink_kinds_reached_by_var(graph: &TaintGraph, var_name: &str) -> Vec<SinkKind
         return Vec::new();
     }
     let mut reached = Vec::new();
-    for &sk in [SinkKind::FileOpen, SinkKind::CommandExec, SinkKind::SQLQuery,
-                SinkKind::Template, SinkKind::HTTPWrite, SinkKind::LDAPQuery,
-                SinkKind::XMLQuery, SinkKind::Deserialization].iter() {
+    for &sk in [
+        SinkKind::FileOpen,
+        SinkKind::CommandExec,
+        SinkKind::SQLQuery,
+        SinkKind::Template,
+        SinkKind::HTTPWrite,
+        SinkKind::LDAPQuery,
+        SinkKind::XMLQuery,
+        SinkKind::Deserialization,
+    ]
+    .iter()
+    {
         if let Some(sink_ids) = graph.by_sink.get(&sk) {
             if bfs_reaches_set(graph, &var_ids, sink_ids) {
                 reached.push(sk);
@@ -418,9 +468,15 @@ fn bfs_reaches_set(graph: &TaintGraph, starts: &[TaintNodeId], targets: &[TaintN
     }
     let mut visited = vec![false; graph.nodes.len()];
     let mut stack: Vec<TaintNodeId> = starts.to_vec();
-    for &s in starts { if s < visited.len() { visited[s] = true; } }
+    for &s in starts {
+        if s < visited.len() {
+            visited[s] = true;
+        }
+    }
     while let Some(current) = stack.pop() {
-        if targets.contains(&current) { return true; }
+        if targets.contains(&current) {
+            return true;
+        }
         for &next in adj.get(&current).into_iter().flatten() {
             if next < visited.len() && !visited[next] {
                 visited[next] = true;
@@ -432,6 +488,7 @@ fn bfs_reaches_set(graph: &TaintGraph, starts: &[TaintNodeId], targets: &[TaintN
 }
 
 /// Emit findings for a cross-function taint flow.
+#[allow(clippy::too_many_arguments)]
 fn emit_inter_procedural_finding(
     file: &str,
     source: &str,

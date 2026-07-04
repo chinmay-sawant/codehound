@@ -42,11 +42,7 @@ fn walk_imports(
     }
 }
 
-fn collect_imports(
-    node: tree_sitter::Node,
-    src: &[u8],
-    map: &mut HashMap<String, String>,
-) {
+fn collect_imports(node: tree_sitter::Node, src: &[u8], map: &mut HashMap<String, String>) {
     let mut cursor = node.walk();
     if !cursor.goto_first_child() {
         return;
@@ -85,12 +81,16 @@ fn collect_imports(
 
 fn import_spec_entry(node: tree_sitter::Node, src: &[u8]) -> Option<(String, String)> {
     let path_node = node.child_by_field_name("path")?;
-    let Ok(path_text) = path_node.utf8_text(src) else { return None };
+    let Ok(path_text) = path_node.utf8_text(src) else {
+        return None;
+    };
     let path = path_text.trim_matches('"').trim_matches('`').to_string();
 
     // Check for explicit alias, blank import, or dot import.
     if let Some(name_node) = node.child_by_field_name("name") {
-        let Ok(name) = name_node.utf8_text(src) else { return None };
+        let Ok(name) = name_node.utf8_text(src) else {
+            return None;
+        };
         let name = name.trim();
         match name {
             "_" | "." => return None,
@@ -109,8 +109,6 @@ mod tests {
     use crate::core::{LanguageId, ParsedUnit};
     use std::path::PathBuf;
     use std::sync::Arc;
-    use tree_sitter::Tree;
-
     fn parse_go(source: &str) -> ParsedUnit {
         let mut parser = tree_sitter::Parser::new();
         parser
@@ -144,9 +142,7 @@ mod tests {
 
     #[test]
     fn import_map_block() {
-        let unit = parse_go(
-            r#"package main; import ( "fmt"; "strings"; mydb "database/sql" )"#,
-        );
+        let unit = parse_go(r#"package main; import ( "fmt"; "strings"; mydb "database/sql" )"#);
         let map = build_import_map(&unit);
         assert_eq!(map.get("fmt").map(String::as_str), Some("fmt"));
         assert_eq!(map.get("strings").map(String::as_str), Some("strings"));
@@ -155,9 +151,7 @@ mod tests {
 
     #[test]
     fn import_map_excludes_blank_and_dot() {
-        let unit = parse_go(
-            r#"package main; import ( _ "unsafe"; . "math"; "os" )"#,
-        );
+        let unit = parse_go(r#"package main; import ( _ "unsafe"; . "math"; "os" )"#);
         let map = build_import_map(&unit);
         assert!(!map.contains_key("_"));
         assert!(!map.contains_key("."));

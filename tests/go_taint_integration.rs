@@ -78,7 +78,10 @@ fn inter_procedural_taint_fixture_inventory_is_sorted_and_contiguous() {
     let cases = go_taint_cases::discover_inter_procedural_cases();
     assert!(!cases.is_empty(), "expected at least one IP fixture");
 
-    let eligible: Vec<_> = cases.iter().filter(|c| !DEFERRED.contains(&c.as_str())).collect();
+    let eligible: Vec<_> = cases
+        .iter()
+        .filter(|c| !DEFERRED.contains(&c.as_str()))
+        .collect();
     let mut prev = 0u32;
     for ip_id in &eligible {
         let Some(num_str) = ip_id.strip_prefix("IP-") else {

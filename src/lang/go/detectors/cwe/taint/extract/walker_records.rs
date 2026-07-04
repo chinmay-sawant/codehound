@@ -100,8 +100,12 @@ pub(super) fn record_assignment(node: tree_sitter::Node, state: &mut ExtractionS
 }
 
 pub(super) fn record_send(node: tree_sitter::Node, state: &mut ExtractionState<'_>) {
-    let Some(channel) = node.child_by_field_name("channel") else { return };
-    let Some(value) = node.child_by_field_name("value") else { return };
+    let Some(channel) = node.child_by_field_name("channel") else {
+        return;
+    };
+    let Some(value) = node.child_by_field_name("value") else {
+        return;
+    };
     let ch_text = match channel.utf8_text(state.src_bytes) {
         Ok(t) => t.trim(),
         Err(_) => return,

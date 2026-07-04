@@ -131,7 +131,9 @@ impl Analyzer {
         // Project-level analysis: let detectors emit cross-file findings.
         let det_idx = timing.start("detector_finalize");
         for idx in self.registry.detector_indices_for_project() {
-            self.registry.detector(idx).finalize(&self.ctx, &mut findings);
+            self.registry
+                .detector(idx)
+                .finalize(&self.ctx, &mut findings);
         }
         timing.stop(det_idx);
 

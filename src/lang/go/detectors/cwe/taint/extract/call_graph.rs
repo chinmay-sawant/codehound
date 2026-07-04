@@ -23,8 +23,12 @@ fn walk_call_graph(
 ) {
     match node.kind() {
         "function_declaration" => {
-            let Some(name_node) = node.child_by_field_name("name") else { return };
-            let Ok(name) = name_node.utf8_text(src) else { return };
+            let Some(name_node) = node.child_by_field_name("name") else {
+                return;
+            };
+            let Ok(name) = name_node.utf8_text(src) else {
+                return;
+            };
             let params = node.child_by_field_name("parameters");
             let param_count = params.map_or(0, |p| p.named_child_count());
 
@@ -38,8 +42,12 @@ fn walk_call_graph(
             );
         }
         "method_declaration" => {
-            let Some(name_node) = node.child_by_field_name("name") else { return };
-            let Ok(name) = name_node.utf8_text(src) else { return };
+            let Some(name_node) = node.child_by_field_name("name") else {
+                return;
+            };
+            let Ok(name) = name_node.utf8_text(src) else {
+                return;
+            };
             let params = node.child_by_field_name("parameters");
             let param_count = params.map_or(0, |p| p.named_child_count());
             let receiver = node
@@ -78,8 +86,12 @@ fn walk_call_graph(
 }
 
 fn record_call_site(node: tree_sitter::Node, src: &[u8], cg: &mut CallGraph) {
-    let Some(func) = node.child_by_field_name("function") else { return };
-    let Ok(callee) = func.utf8_text(src) else { return };
+    let Some(func) = node.child_by_field_name("function") else {
+        return;
+    };
+    let Ok(callee) = func.utf8_text(src) else {
+        return;
+    };
 
     let caller_name = enclosing_function(node, src);
     let is_method_call = func.kind() == "selector_expression";
@@ -97,7 +109,7 @@ fn record_call_site(node: tree_sitter::Node, src: &[u8], cg: &mut CallGraph) {
     });
 }
 
-fn enclosing_function<'a>(node: tree_sitter::Node, src: &'a [u8]) -> SharedText {
+fn enclosing_function(node: tree_sitter::Node, src: &[u8]) -> SharedText {
     let mut parent = node.parent();
     while let Some(p) = parent {
         match p.kind() {
@@ -146,7 +158,10 @@ pub fn merge_call_graphs<'a>(
             }
         }
     }
-    ProjectCallGraph { calls, declarations }
+    ProjectCallGraph {
+        calls,
+        declarations,
+    }
 }
 
 fn argument_texts(call: tree_sitter::Node, src: &[u8]) -> Box<[SharedText]> {

@@ -107,11 +107,13 @@ pub(super) fn walk_node(
             // Extract parameter names for TaintSummary computation.
             let params = extract_param_names(node, src);
             state.function_params.insert(func_name.clone(), params);
-            state.function_ranges.insert(func_name.clone(), node.start_byte()..node.end_byte());
+            state
+                .function_ranges
+                .insert(func_name.clone(), node.start_byte()..node.end_byte());
             entered_scope = Some((
                 ScopeKind::Function,
                 node.start_byte()..node.end_byte(),
-                Some(func_name.clone()),
+                Some(func_name),
             ));
         }
         "block" => {
@@ -195,7 +197,7 @@ fn extract_param_names(node: tree_sitter::Node, src: &[u8]) -> Vec<SharedText> {
         .filter_map(|p| {
             p.child_by_field_name("name")
                 .and_then(|n| n.utf8_text(src).ok())
-                .map(|s| Arc::from(s))
+                .map(Arc::from)
         })
         .collect()
 }

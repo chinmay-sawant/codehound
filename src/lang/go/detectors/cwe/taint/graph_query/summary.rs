@@ -14,6 +14,7 @@ use super::super::{
     SanitizerKind, SinkKind, SourceKind, TaintAnnotations, TaintGraph, TaintNode, TaintNodeId,
     TaintSummary,
 };
+use super::query::find_taint_paths_from_nodes_to_sink_argument;
 use super::{build_taint_graph, find_taint_paths_from_nodes};
 
 /// Build per-function taint summaries for all functions annotated in the
@@ -80,7 +81,17 @@ fn compute_summary_for(
             if ids.is_empty() {
                 continue;
             }
-            let paths = find_taint_paths_from_nodes(graph, ids, sink_kind, allowed_sanitizers);
+            let paths = if sink_kind == SinkKind::SQLQuery {
+                find_taint_paths_from_nodes_to_sink_argument(
+                    graph,
+                    ids,
+                    sink_kind,
+                    0,
+                    allowed_sanitizers,
+                )
+            } else {
+                find_taint_paths_from_nodes(graph, ids, sink_kind, allowed_sanitizers)
+            };
             if !paths.is_empty() {
                 reaches_sink = true;
                 if !sink_kinds.contains(&sink_kind) {
@@ -114,7 +125,12 @@ fn compute_summary_for(
             if !sink_kinds.contains(&sink_kind) {
                 // Check if source nodes reach any sink directly.
                 if let Some(source_ids) = graph.by_source.get(&SourceKind::UserInput) {
-                    let paths = find_taint_paths_from_nodes(graph, source_ids, sink_kind, allowed_sanitizers);
+                    let paths = find_taint_paths_from_nodes(
+                        graph,
+                        source_ids,
+                        sink_kind,
+                        allowed_sanitizers,
+                    );
                     if !paths.is_empty() && !sink_kinds.contains(&sink_kind) {
                         sink_kinds.push(sink_kind);
                     }
@@ -151,7 +167,7 @@ fn has_any_source(graph: &TaintGraph) -> bool {
 /// Returns true if the function has a source within its body, OR if the
 /// function returns one of its parameters (parameter-to-return propagation).
 fn compute_return_sources(
-    graph: &TaintGraph,
+    _graph: &TaintGraph,
     annotations: &TaintAnnotations,
     source: &str,
     func_name: &str,
@@ -163,9 +179,10 @@ fn compute_return_sources(
     };
 
     // Check 1: Does the function have a source within its body?
-    let has_source_in_func = annotations.sources.iter().any(|src| {
-        src.byte_range.start >= range.start && src.byte_range.end <= range.end
-    });
+    let has_source_in_func = annotations
+        .sources
+        .iter()
+        .any(|src| src.byte_range.start >= range.start && src.byte_range.end <= range.end);
     if has_source_in_func {
         return vec![true];
     }
@@ -210,9 +227,10 @@ fn compute_output_pointer_params(
     let body = &source[start..end];
 
     // Check if the function body contains any source call at all.
-    let has_source = annotations.sources.iter().any(|s| {
-        s.byte_range.start >= range.start && s.byte_range.end <= range.end
-    });
+    let has_source = annotations
+        .sources
+        .iter()
+        .any(|s| s.byte_range.start >= range.start && s.byte_range.end <= range.end);
     if !has_source {
         return Vec::new();
     }

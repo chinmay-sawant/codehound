@@ -25,7 +25,9 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
     for (_func_name, params) in &annotations.function_params {
         let func_scope = annotations.scopes.iter().find(|s| {
             s.kind == ScopeKind::Function
-                && s.function.as_ref().is_some_and(|f| f.as_ref() == _func_name.as_ref())
+                && s.function
+                    .as_ref()
+                    .is_some_and(|f| f.as_ref() == _func_name.as_ref())
         });
         let Some(func_scope) = func_scope else {
             continue;
@@ -134,12 +136,24 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
                 };
                 let out_names = referenced_identifiers(out_text);
                 for (in_idx, in_arg) in sink.all_arguments.iter().enumerate() {
-                    if in_idx == out_idx { continue; }
+                    if in_idx == out_idx {
+                        continue;
+                    }
                     for in_name in referenced_identifiers(in_arg) {
                         for out_name in &out_names {
                             if let (Some(src), Some(dst)) = (
-                                resolve_variable(&decl_nodes, &scope_by_id, sink.byte_range.start, in_name),
-                                resolve_variable(&decl_nodes, &scope_by_id, sink.byte_range.start, out_name),
+                                resolve_variable(
+                                    &decl_nodes,
+                                    &scope_by_id,
+                                    sink.byte_range.start,
+                                    in_name,
+                                ),
+                                resolve_variable(
+                                    &decl_nodes,
+                                    &scope_by_id,
+                                    sink.byte_range.start,
+                                    out_name,
+                                ),
                             ) {
                                 graph.add_edge(src, dst, EdgeKind::Assignment);
                             }
@@ -165,7 +179,12 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
         // variables to result variables, incorrectly propagating taint through
         // functions whose semantics we don't know.  Known sources, sinks, and
         // sanitizers are handled via their own nodes above.
-        let call_name = assignment.rhs_text.split('(').next().map(str::trim).unwrap_or("");
+        let call_name = assignment
+            .rhs_text
+            .split('(')
+            .next()
+            .map(str::trim)
+            .unwrap_or("");
         let is_opaque_call = assignment.rhs_text.contains('(')
             && !is_source_or_sanitizer_assignment(&assignment.rhs_text)
             && !is_known_propagator(call_name);
@@ -191,9 +210,12 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
             if let Some(base_id) = decl_nodes.get(&(assignment.scope, Arc::from(base))) {
                 if !assignment.from_source_or_sanitizer {
                     for name in referenced_identifiers(&assignment.rhs_text) {
-                        if let Some(source_id) =
-                            resolve_variable(&decl_nodes, &scope_by_id, assignment.byte_range.start, name)
-                        {
+                        if let Some(source_id) = resolve_variable(
+                            &decl_nodes,
+                            &scope_by_id,
+                            assignment.byte_range.start,
+                            name,
+                        ) {
                             graph.add_edge(source_id, *base_id, EdgeKind::Assignment);
                         }
                     }
@@ -247,9 +269,21 @@ fn resolve_variable(
 
 /// Naive identifier extraction from an RHS expression.
 fn referenced_identifiers(expr: &str) -> Vec<&str> {
-    // Split on non-identifier characters and return plausible identifiers.
     let mut out = Vec::new();
-    for token in expr.split(|c: char| !c.is_alphanumeric() && c != '_') {
+    let mut token_start: Option<usize> = None;
+    let mut quote: Option<char> = None;
+    let mut escaped = false;
+
+    fn push_token<'a>(
+        expr: &'a str,
+        token_start: &mut Option<usize>,
+        end: usize,
+        out: &mut Vec<&'a str>,
+    ) {
+        let Some(start) = token_start.take() else {
+            return;
+        };
+        let token = &expr[start..end];
         if !token.is_empty()
             && token.parse::<i64>().is_err()
             && !is_go_keyword(token)
@@ -258,6 +292,35 @@ fn referenced_identifiers(expr: &str) -> Vec<&str> {
             out.push(token);
         }
     }
+
+    for (idx, ch) in expr.char_indices() {
+        if let Some(active_quote) = quote {
+            match active_quote {
+                '`' if ch == '`' => quote = None,
+                '"' | '\'' if escaped => escaped = false,
+                '"' | '\'' if ch == '\\' => escaped = true,
+                q if ch == q => quote = None,
+                _ => {}
+            }
+            continue;
+        }
+
+        match ch {
+            '"' | '\'' | '`' => {
+                push_token(expr, &mut token_start, idx, &mut out);
+                quote = Some(ch);
+                escaped = false;
+            }
+            ch if ch.is_alphanumeric() || ch == '_' => {
+                if token_start.is_none() {
+                    token_start = Some(idx);
+                }
+            }
+            _ => push_token(expr, &mut token_start, idx, &mut out),
+        }
+    }
+
+    push_token(expr, &mut token_start, expr.len(), &mut out);
     out
 }
 
@@ -386,4 +449,28 @@ fn is_go_keyword(token: &str) -> bool {
             | "false"
             | "nil"
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::referenced_identifiers;
+
+    #[test]
+    fn referenced_identifiers_ignores_string_literals() {
+        let ids = referenced_identifiers(r#"[]byte(`{"db":"up"}`)"#);
+        assert!(
+            !ids.contains(&"db"),
+            "string literals should not create taint edges: {ids:?}"
+        );
+    }
+
+    #[test]
+    fn referenced_identifiers_keeps_real_identifiers() {
+        let ids = referenced_identifiers(r#"fmt.Sprintf("user=%s", userID) + suffix"#);
+        assert!(ids.contains(&"fmt"));
+        assert!(ids.contains(&"Sprintf"));
+        assert!(ids.contains(&"userID"));
+        assert!(ids.contains(&"suffix"));
+        assert!(!ids.contains(&"user"));
+    }
 }

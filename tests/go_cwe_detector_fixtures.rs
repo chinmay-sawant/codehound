@@ -90,3 +90,24 @@ fn taint_cwe_fixtures_fire_vulnerable_and_silence_safe() {
         );
     }
 }
+
+#[test]
+fn framework_cwe_393_safe_does_not_false_positive_cwe_89() {
+    let ctx = ScanContext {
+        taint_enabled: true,
+        ..ScanContext::default()
+    };
+    let analyzer = Analyzer::builder()
+        .with_default_filter()
+        .scan_context(ctx)
+        .build();
+    let safe =
+        helpers::assert_fixture_materializes("tests/fixtures/go/frameworks/CWE-393-safe.txt");
+
+    let result = analyzer.analyze_paths(&[&safe], None).unwrap();
+    assert!(
+        !result.findings.iter().any(|f| f.rule_id == "CWE-89"),
+        "framework CWE-393 safe fixture should not emit CWE-89, got {:?}",
+        result.findings
+    );
+}
