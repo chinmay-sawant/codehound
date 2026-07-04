@@ -81,6 +81,19 @@
               "type": "integer",
               "minimum": 0,
               "default": 500
+            },
+            "evict_target_ratio": {
+              "description": "Fraction of max_size_mb to retain after eviction. Values outside 0.1-0.99 fall back to 0.9.",
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 0.99,
+              "default": 0.9
+            },
+            "max_file_size_mb": {
+              "description": "Skip reading and writing cache entries for files larger than this many MiB. Default: 4. Set to 0 to disable.",
+              "type": "integer",
+              "minimum": 0,
+              "default": 4
             }
           }
         },

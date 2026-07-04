@@ -72,10 +72,24 @@ pub struct CacheConfig {
     /// Set to `0` to disable the size limit.
     #[serde(default = "default_max_size_mb")]
     pub max_size_mb: u64,
+    /// Evict down to this fraction of `max_size_mb` once the limit is exceeded.
+    #[serde(default = "default_evict_target_ratio")]
+    pub evict_target_ratio: Option<f64>,
+    /// Skip reading/writing cache entries for files larger than this size in MiB.
+    #[serde(default = "default_max_file_size_mb")]
+    pub max_file_size_mb: Option<u64>,
 }
 
 fn default_max_size_mb() -> u64 {
     500
+}
+
+fn default_evict_target_ratio() -> Option<f64> {
+    Some(0.9)
+}
+
+fn default_max_file_size_mb() -> Option<u64> {
+    Some(4)
 }
 
 impl Default for CacheConfig {
@@ -84,6 +98,8 @@ impl Default for CacheConfig {
             enabled: true,
             path: None,
             max_size_mb: default_max_size_mb(),
+            evict_target_ratio: default_evict_target_ratio(),
+            max_file_size_mb: default_max_file_size_mb(),
         }
     }
 }

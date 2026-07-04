@@ -2,14 +2,22 @@
 
 #[path = "helpers/mod.rs"]
 mod helpers;
-use helpers::{unique_temp_root, write_go_source};
+use helpers::{assert_fixture_materializes, unique_temp_root, write_go_source};
 
+use std::fs;
+use std::path::Path;
 use std::path::PathBuf;
 
 use slopguard::core::ScanContext;
 use slopguard::engine::{
     Analyzer, CacheStore, DEFAULT_CACHE_DIR, content_hash, discover_cache_dir,
 };
+
+fn copy_fixture_into_root(fixture: &str, root: &Path, output_name: &str) {
+    fs::create_dir_all(root).unwrap();
+    let source = assert_fixture_materializes(fixture);
+    fs::copy(source, root.join(output_name)).unwrap();
+}
 
 fn scan_with_cache(root: &std::path::Path, cache: Option<&mut CacheStore>) -> Vec<String> {
     scan_with_context(root, cache, ScanContext::default())
@@ -138,4 +146,31 @@ fn discover_cache_dir_finds_existing_dir() {
     assert_eq!(found, Some(cache_dir));
 
     std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn oversized_files_are_scanned_but_not_cached() {
+    let root = unique_temp_root("oversized-skip-cache");
+    let source = root.join("sample.go");
+    copy_fixture_into_root(
+        "tests/fixtures/go/heuristics/cache/oversized-command-injection.txt",
+        &root,
+        "sample.go",
+    );
+
+    let mut body = fs::read_to_string(&source).unwrap();
+    body.push_str(&"// pad\n".repeat(220_000));
+    fs::write(&source, body).unwrap();
+
+    let cache_dir = root.join(DEFAULT_CACHE_DIR);
+    let mut cache = CacheStore::open_with_limits(cache_dir, 500, 0.9, 1).unwrap();
+    let findings = scan_with_cache(&root, Some(&mut cache));
+
+    assert!(
+        !findings.is_empty(),
+        "oversized file should still be scanned"
+    );
+    assert!(cache.is_empty(), "oversized file should not be cached");
+
+    fs::remove_dir_all(root).unwrap();
 }

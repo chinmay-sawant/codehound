@@ -200,10 +200,10 @@ pub(crate) fn scan_entry(
         &mut timing,
         &mut stats,
     )?;
+    let dependencies = extract_dependencies(&unit, project_root, module_prefix);
 
     let file_ignore = parse_file_ignore(unit.source.as_ref());
     if !ctx.show_ignored && file_ignore.as_ref().is_some_and(IgnoreDirective::is_all) {
-        let dependencies = extract_dependencies(&unit, project_root, module_prefix);
         stats.record_file(file_stats.bytes, file_stats.lines);
         return Ok((
             Vec::new(),
@@ -225,7 +225,6 @@ pub(crate) fn scan_entry(
         &mut stats,
         file_stats,
     );
-    let dependencies = extract_dependencies(&unit, project_root, module_prefix);
 
     Ok((
         findings,

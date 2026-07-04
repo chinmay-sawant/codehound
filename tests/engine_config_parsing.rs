@@ -198,6 +198,8 @@ fn cache_config_is_parsed_from_toml() {
 [slopguard.cache]
 enabled = false
 path = "/tmp/custom-cache"
+evict_target_ratio = 0.75
+max_file_size_mb = 16
 "#;
     let cfg: SlopguardConfig = toml::from_str(toml).unwrap();
     assert!(!cfg.slopguard.cache.enabled);
@@ -205,6 +207,8 @@ path = "/tmp/custom-cache"
         cfg.slopguard.cache.path,
         Some(PathBuf::from("/tmp/custom-cache"))
     );
+    assert_eq!(cfg.slopguard.cache.evict_target_ratio, Some(0.75));
+    assert_eq!(cfg.slopguard.cache.max_file_size_mb, Some(16));
 }
 
 #[test]

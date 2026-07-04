@@ -17,8 +17,11 @@ pub(crate) fn open_cache_store(cli: &Cli, config: Option<&SlopguardConfig>) -> O
         }
     }
     let dir = cache_directory(cli, config)?;
-    let max_size_mb = config.map(|c| c.slopguard.cache.max_size_mb).unwrap_or(500);
-    match CacheStore::open_with_capacity(dir, max_size_mb) {
+    let cache_cfg = config.map(|c| &c.slopguard.cache);
+    let max_size_mb = cache_cfg.map(|c| c.max_size_mb).unwrap_or(500);
+    let evict_target_ratio = cache_cfg.and_then(|c| c.evict_target_ratio).unwrap_or(0.9);
+    let max_file_size_mb = cache_cfg.and_then(|c| c.max_file_size_mb).unwrap_or(4);
+    match CacheStore::open_with_limits(dir, max_size_mb, evict_target_ratio, max_file_size_mb) {
         Ok(s) => Some(s),
         Err(e) => {
             if !cli.quiet {

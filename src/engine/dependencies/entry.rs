@@ -37,15 +37,13 @@ pub fn extract_dependencies(
     let mut out: Vec<String> = Vec::new();
     match unit.language {
         LanguageId::Go => {
-            if let Some(prefix) = module_prefix {
-                go_imports::extract(
-                    &unit.tree.root_node(),
-                    &unit.source,
-                    project_root,
-                    prefix,
-                    &mut out,
-                );
-            }
+            go_imports::extract(
+                &unit.tree.root_node(),
+                &unit.source,
+                project_root,
+                module_prefix.unwrap_or(""),
+                &mut out,
+            );
         }
         LanguageId::Python => {
             python_imports::extract(

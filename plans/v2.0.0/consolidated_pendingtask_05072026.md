@@ -95,26 +95,26 @@ All detectors exist. No structured patches. Add policy/precondition gate:
 
 ### Config Fields
 
-- [ ] Add `evict_target_ratio: Option<f64>` to `CacheConfig` (default 0.9)
-- [ ] Wire through `CacheStore::open_with_capacity()` and use in `evict_to_size()`
-- [ ] Validate range (0.1–0.99) with `tracing::warn!` on out-of-range (clamp to 0.9)
-- [ ] Add `max_file_size_mb: Option<u64>` to `CacheConfig` (default 4)
-- [ ] In scan preflight/cache-lookup, skip caching for files larger than threshold
-- [ ] Log `tracing::debug!` when file skipped due to size
-- [ ] Update `slopguard.schema.json` with both new fields
-- [ ] Update `docs/incremental-cache.md` with both new config options
+- [x] Add `evict_target_ratio: Option<f64>` to `CacheConfig` (default 0.9)
+- [x] Wire through `CacheStore::open_with_capacity()` and use in `evict_to_size()`
+- [x] Validate range (0.1–0.99) with `tracing::warn!` on out-of-range (clamp to 0.9)
+- [x] Add `max_file_size_mb: Option<u64>` to `CacheConfig` (default 4)
+- [x] In scan preflight/cache-lookup, skip caching for files larger than threshold
+- [x] Log `tracing::debug!` when file skipped due to size
+- [x] Update `slopguard.schema.json` with both new fields
+- [x] Update `docs/incremental-cache.md` with both new config options
 
 ### Eviction Logging
 
-- [ ] In `CacheStore::evict_to_size()`, emit `tracing::info!` with `entries_evicted`, `bytes_freed`, `current_size_mb`, `target_size_mb`
+- [x] In `CacheStore::evict_to_size()`, emit `tracing::info!` with `entries_evicted`, `bytes_freed`, `current_size_mb`, `target_size_mb`
 
 ### Missing Tests
 
-- [ ] Concurrent scans test (`tests/engine_cache_concurrent.rs`)
-- [ ] Transitive invalidation without `go.mod` (cwd fallback path)
-- [ ] Tool version mismatch (code handles it, no test)
-- [ ] Corrupt entry file (code handles it, no test)
-- [ ] `clean_orphans()` dedicated test
+- [x] Concurrent scans test (`tests/engine_cache_concurrent.rs`)
+- [x] Transitive invalidation without `go.mod` (cwd fallback path)
+- [x] Tool version mismatch (code handles it, no test)
+- [x] Corrupt entry file (code handles it, no test)
+- [x] `clean_orphans()` dedicated test
 
 ---
 
@@ -124,8 +124,8 @@ All detectors exist. No structured patches. Add policy/precondition gate:
 > **Status:** CLI flag exists (`--taint-show-paths`), text reporter wired, JSON and SARIF not.
 > **Estimated effort:** 2–3 days
 
-- [ ] Wire `taint_show_paths` into JSON reporter (`src/reporting/json/entry.rs`)
-- [ ] Wire `taint_show_paths` into SARIF reporter (`properties` bag)
+- [x] Wire `taint_show_paths` into JSON reporter (`src/reporting/json/entry.rs`)
+- [x] Wire `taint_show_paths` into SARIF reporter (`properties` bag)
 
 ---
 

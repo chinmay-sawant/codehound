@@ -37,11 +37,27 @@ impl Analyzer {
         mut cache: Option<&mut CacheStore>,
     ) -> Result<AnalysisResult, Error> {
         let mut timing = TimingCollector::new(self.collect_stats);
+        let scan_root = paths
+            .first()
+            .map(|p| {
+                let path = p.as_ref();
+                if path.is_file() {
+                    path.parent().unwrap_or(path).to_path_buf()
+                } else {
+                    path.to_path_buf()
+                }
+            })
+            .unwrap_or_else(|| self.project_root.clone());
         let project_root = paths
             .first()
             .map(|p| discover_project_root(p.as_ref()))
             .unwrap_or_else(|| self.project_root.clone());
         let module_prefix = go_module_prefix(&project_root).or_else(|| self.module_prefix.clone());
+        let dependency_root = if module_prefix.is_some() {
+            project_root.clone()
+        } else {
+            scan_root
+        };
 
         let (entries, files_skipped) = timing.measure("file_walk", || {
             collect_entries(
@@ -80,7 +96,7 @@ impl Analyzer {
                 &self.ctx,
                 chunk,
                 cache.as_deref_mut(),
-                &project_root,
+                &dependency_root,
                 module_prefix.as_deref(),
             ) {
                 Ok(chunk) => chunk,

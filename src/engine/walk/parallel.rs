@@ -171,6 +171,10 @@ fn preflight_cache_hits(
     };
 
     for (i, entry) in entries.iter().enumerate() {
+        if !cache.should_cache_path(entry.path.as_ref()) {
+            to_scan_indices.push(i);
+            continue;
+        }
         let (source, rel) = match read_entry_utf8(entry) {
             Ok(v) => v,
             Err(e) => {
@@ -337,6 +341,10 @@ fn write_cache_on_miss(
     let Some(cache) = cache.as_deref_mut() else {
         return;
     };
+    if !cache.should_cache_bytes(source.len() as u64) {
+        cache.invalidate_file(cache_key);
+        return;
+    }
     let hash = content_hash(source);
     let mtime = mtime_of(cache_key);
     let prior_hash = cache

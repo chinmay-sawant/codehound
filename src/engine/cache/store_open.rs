@@ -16,6 +16,17 @@ impl CacheStore {
     /// the size limit.
     #[must_use = "callers must handle cache open failures"]
     pub fn open_with_capacity(cache_dir: PathBuf, max_size_mb: u64) -> Result<Self, CacheError> {
+        Self::open_with_limits(cache_dir, max_size_mb, 0.9, 4)
+    }
+
+    /// Open the cache with explicit eviction and per-file size settings.
+    #[must_use = "callers must handle cache open failures"]
+    pub fn open_with_limits(
+        cache_dir: PathBuf,
+        max_size_mb: u64,
+        evict_target_ratio: f64,
+        max_file_size_mb: u64,
+    ) -> Result<Self, CacheError> {
         let files_dir = cache_dir.join(FILES_SUBDIR);
         fs::create_dir_all(&files_dir)?;
 
@@ -63,7 +74,32 @@ impl CacheStore {
             manifest,
             dirty: false,
             max_size_bytes: max_size_mb.saturating_mul(1024 * 1024),
+            evict_target_ratio: normalize_evict_target_ratio(evict_target_ratio),
+            max_file_size_bytes: max_file_size_mb.saturating_mul(1024 * 1024),
         })
+    }
+
+    pub fn should_cache_path(&self, path: &Path) -> bool {
+        if self.max_file_size_bytes == 0 {
+            return true;
+        }
+        let Ok(meta) = fs::metadata(path) else {
+            return true;
+        };
+        if meta.len() <= self.max_file_size_bytes {
+            return true;
+        }
+        tracing::debug!(
+            path = %path.display(),
+            file_size_mb = meta.len() as f64 / (1024.0 * 1024.0),
+            max_file_size_mb = self.max_file_size_bytes as f64 / (1024.0 * 1024.0),
+            "skipping cache for file larger than configured max_file_size_mb"
+        );
+        false
+    }
+
+    pub fn should_cache_bytes(&self, size_bytes: u64) -> bool {
+        self.max_file_size_bytes == 0 || size_bytes <= self.max_file_size_bytes
     }
 
     fn empty_manifest(_cache_dir: &Path) -> CacheManifest {
@@ -140,5 +176,17 @@ impl CacheStore {
     /// diagnostics output.
     pub fn manifest(&self) -> &CacheManifest {
         &self.manifest
+    }
+}
+
+fn normalize_evict_target_ratio(value: f64) -> f64 {
+    if value.is_finite() && (0.1..=0.99).contains(&value) {
+        value
+    } else {
+        tracing::warn!(
+            evict_target_ratio = value,
+            "cache.evict_target_ratio must be between 0.1 and 0.99; falling back to 0.9"
+        );
+        0.9
     }
 }

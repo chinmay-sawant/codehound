@@ -2,7 +2,10 @@ use std::borrow::Cow;
 
 use slopguard::engine::AnalysisResult;
 use slopguard::reporting::json::{Envelope, FindingJson};
-use slopguard::rules::{DetectorEvidence, Finding, FindingInputs, LineCol, Severity};
+use slopguard::rules::{
+    DetectorEvidence, Finding, FindingInputs, LineCol, Severity, TaintHop, TaintSinkInfo,
+    TaintSourceInfo,
+};
 
 #[path = "helpers/mod.rs"]
 mod helpers;
@@ -104,6 +107,45 @@ fn json_emits_structured_fields_when_set() {
     assert_eq!(value["confidence"], 0.75);
     assert_eq!(value["tags"][0], "needs-review");
     assert_eq!(value["remediation"], "Use an allowlisted command.");
+}
+
+#[test]
+fn json_marks_taint_show_paths_when_taint_hops_are_present() {
+    let finding = Finding::new(FindingInputs::new(
+        "CWE-78",
+        "Command injection",
+        "cmd.go",
+        LineCol {
+            line: 10,
+            column: 3,
+        },
+        "command uses user input",
+        Severity::High,
+        Cow::Borrowed(&[]),
+    ))
+    .with_evidence(DetectorEvidence::TaintFlow {
+        source: TaintSourceInfo {
+            kind: "UserInput".into(),
+            function: "r.URL.Query".into(),
+            variable: "host".into(),
+        },
+        sink: TaintSinkInfo {
+            kind: "CommandExec".into(),
+            function: "exec.Command".into(),
+            hop_details: vec![TaintHop {
+                function: "exec.Command".into(),
+                kind: "CommandExec".into(),
+                variable: "host".into(),
+                file: "cmd.go".into(),
+                line: 10,
+            }],
+        },
+        hops: 1,
+        sanitized: false,
+    });
+    let value = serde_json::to_value(FindingJson::from(&finding)).unwrap();
+
+    assert_eq!(value["taint_show_paths"], true);
 }
 
 #[test]

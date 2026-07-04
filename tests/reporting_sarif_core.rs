@@ -2,7 +2,10 @@ use std::borrow::Cow;
 
 use slopguard::engine::AnalysisResult;
 use slopguard::reporting::sarif::render_to_string;
-use slopguard::rules::{DetectorEvidence, Finding, FindingInputs, LineCol, Severity};
+use slopguard::rules::{
+    DetectorEvidence, Finding, FindingInputs, LineCol, Severity, TaintHop, TaintSinkInfo,
+    TaintSourceInfo,
+};
 
 #[path = "helpers/mod.rs"]
 mod helpers;
@@ -189,6 +192,37 @@ fn finding_tags_are_included_in_properties_tags() {
     assert!(tags_section.contains("\"needs-review\""), "got: {log}");
     assert!(
         tags_section.contains("\"false-positive-risk\""),
+        "got: {log}"
+    );
+}
+
+#[test]
+fn taint_show_paths_sets_sarif_property_flag() {
+    let mut r = sample_result();
+    r.findings[0].evidence = Some(DetectorEvidence::TaintFlow {
+        source: TaintSourceInfo {
+            kind: "UserInput".into(),
+            function: "r.URL.Query".into(),
+            variable: "host".into(),
+        },
+        sink: TaintSinkInfo {
+            kind: "CommandExec".into(),
+            function: "exec.Command".into(),
+            hop_details: vec![TaintHop {
+                function: "exec.Command".into(),
+                kind: "CommandExec".into(),
+                variable: "host".into(),
+                file: "a.go".into(),
+                line: 1,
+            }],
+        },
+        hops: 1,
+        sanitized: false,
+    });
+
+    let log = render_to_string(&r).expect("render SARIF");
+    assert!(
+        log.contains("\"slopguardTaintShowPaths\": true"),
         "got: {log}"
     );
 }

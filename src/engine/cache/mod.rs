@@ -25,4 +25,8 @@ pub struct CacheStore {
     pub(super) dirty: bool,
     /// Maximum total size of `files/` in bytes. `0` disables the limit.
     pub(super) max_size_bytes: u64,
+    /// Fraction of `max_size_bytes` to retain after eviction.
+    pub(super) evict_target_ratio: f64,
+    /// Maximum file size eligible for cache reads/writes. `0` disables the limit.
+    pub(super) max_file_size_bytes: u64,
 }

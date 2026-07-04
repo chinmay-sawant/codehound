@@ -129,7 +129,7 @@ fn resolve_and_add(
 /// and a known short name; third-party imports contain a `.` in
 /// the first segment (e.g. `github.com/...`).
 fn is_local_import(import_path: &str, module_prefix: &str) -> bool {
-    if import_path.starts_with(module_prefix) {
+    if !module_prefix.is_empty() && import_path.starts_with(module_prefix) {
         return true;
     }
     // go.mod-less projects: any path containing a `/` is treated

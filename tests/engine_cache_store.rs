@@ -165,6 +165,42 @@ fn corrupt_manifest_falls_back_to_empty() {
 }
 
 #[test]
+fn tool_version_mismatch_is_tolerated() {
+    let root = unique_temp_root("tool-version-mismatch");
+    let manifest = serde_json::json!({
+        "schema_version": 1,
+        "tool_version": "0.0.0-test",
+        "files": {}
+    });
+    std::fs::create_dir_all(root.join("files")).unwrap();
+    std::fs::write(
+        root.join("manifest.json"),
+        serde_json::to_string_pretty(&manifest).unwrap(),
+    )
+    .unwrap();
+
+    let mut store = CacheStore::open_with_capacity(root.clone(), 500).unwrap();
+    let entry = CacheEntry {
+        schema_version: slopguard::engine::CACHE_VERSION,
+        file: "versioned.go".to_string(),
+        content_hash: content_hash("versioned"),
+        mtime_secs: 0,
+        mtime_nanos: 0,
+        language: "go".to_string(),
+        findings: vec![],
+        dependencies: Vec::new(),
+        cached_at: "2026-06-10T00:00:00Z".to_string(),
+    };
+    store.put(entry).unwrap();
+    store.flush().unwrap();
+
+    let reopened = CacheStore::open_with_capacity(root.clone(), 500).unwrap();
+    assert!(reopened.get("versioned.go").is_some());
+
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn schema_mismatch_returns_error() {
     let root = unique_temp_root("schema-mismatch");
     let manifest = serde_json::json!({
@@ -185,6 +221,40 @@ fn schema_mismatch_returns_error() {
         Err(e) => format!("{e:#}"),
     };
     assert!(err.contains("unsupported cache schema version"));
+
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn corrupt_entry_file_is_treated_as_cache_miss() {
+    let root = unique_temp_root("corrupt-entry");
+    let mut store = CacheStore::open_with_capacity(root.clone(), 500).unwrap();
+    let entry = CacheEntry {
+        schema_version: slopguard::engine::CACHE_VERSION,
+        file: "x.go".to_string(),
+        content_hash: content_hash("body"),
+        mtime_secs: 0,
+        mtime_nanos: 0,
+        language: "go".to_string(),
+        findings: vec![],
+        dependencies: Vec::new(),
+        cached_at: "2026-06-10T00:00:00Z".to_string(),
+    };
+    store.put(entry).unwrap();
+    store.flush().unwrap();
+
+    let cache_key = store.manifest().files["x.go"].cache_key.clone();
+    std::fs::write(
+        root.join("files").join(format!("{cache_key}.json")),
+        "{not json",
+    )
+    .unwrap();
+
+    assert!(matches!(
+        store.lookup("x.go", &content_hash("body")),
+        CacheLookup::Stale
+    ));
+    assert!(store.get("x.go").is_none());
 
     std::fs::remove_dir_all(root).unwrap();
 }
@@ -217,6 +287,33 @@ fn prune_removes_orphaned_entries() {
     assert!(store.get("a.go").is_some());
     assert!(store.get("b.go").is_none());
     assert!(store.get("c.go").is_none());
+
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn clean_orphans_removes_untracked_entry_files() {
+    let root = unique_temp_root("clean-orphans");
+    let mut store = CacheStore::open_with_capacity(root.clone(), 500).unwrap();
+    let entry = CacheEntry {
+        schema_version: slopguard::engine::CACHE_VERSION,
+        file: "tracked.go".to_string(),
+        content_hash: content_hash("tracked"),
+        mtime_secs: 0,
+        mtime_nanos: 0,
+        language: "go".to_string(),
+        findings: vec![],
+        dependencies: Vec::new(),
+        cached_at: "2026-06-10T00:00:00Z".to_string(),
+    };
+    store.put(entry).unwrap();
+    store.flush().unwrap();
+
+    std::fs::write(root.join("files").join("orphan.json"), "{}").unwrap();
+    let removed = store.clean_orphans().unwrap();
+    assert_eq!(removed, 1);
+    assert!(!root.join("files").join("orphan.json").exists());
+    assert!(store.get("tracked.go").is_some());
 
     std::fs::remove_dir_all(root).unwrap();
 }

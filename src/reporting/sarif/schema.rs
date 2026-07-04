@@ -105,6 +105,11 @@ pub struct SarifProperties {
     pub slopguard_evidence: Option<Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub remediation: Option<String>,
+    #[serde(
+        rename = "slopguardTaintShowPaths",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub taint_show_paths: Option<bool>,
 }
 
 #[derive(Serialize)]

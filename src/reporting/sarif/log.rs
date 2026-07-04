@@ -3,6 +3,7 @@
 use std::collections::BTreeMap;
 
 use crate::engine::AnalysisResult;
+use crate::rules::DetectorEvidence;
 use crate::rules::category_for_rule_id;
 
 use super::schema::{
@@ -113,6 +114,11 @@ pub(super) fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
                     security_severity: severity_score,
                     slopguard_evidence,
                     remediation: f.remediation.clone(),
+                    taint_show_paths: matches!(
+                        f.evidence.as_ref(),
+                        Some(DetectorEvidence::TaintFlow { sink, .. }) if !sink.hop_details.is_empty()
+                    )
+                    .then_some(true),
                 },
             })
         })

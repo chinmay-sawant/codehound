@@ -34,10 +34,10 @@ impl CacheStore {
     }
 
     /// Remove the oldest cache entries until the total on-disk size is
-    /// below `max_size_bytes`. The target is 90% of the limit to avoid
+    /// below `max_size_bytes`. The target ratio is configurable to avoid
     /// repeated eviction on every small write.
     pub(super) fn evict_to_size(&mut self) -> Result<(), Error> {
-        let target = (self.max_size_bytes * 9) / 10;
+        let target = ((self.max_size_bytes as f64) * self.evict_target_ratio).floor() as u64;
         let mut current = self.total_size();
         if current <= target {
             return Ok(());
@@ -45,6 +45,7 @@ impl CacheStore {
 
         // Collect entries with their cached_at timestamp and on-disk size.
         let mut entries: Vec<(String, String, u64)> = Vec::new();
+        let start_size = current;
         for (file, meta) in &self.manifest.files {
             let path = self.files_dir.join(format!("{}.json", meta.cache_key));
             let size = if let Ok(m) = fs::metadata(&path) {
@@ -65,12 +66,24 @@ impl CacheStore {
         // Sort oldest first. ISO8601 UTC timestamps sort lexicographically.
         entries.sort_by(|a, b| a.1.cmp(&b.1));
 
+        let mut entries_evicted = 0usize;
         for (file, _, size) in entries {
             if current <= target {
                 break;
             }
             self.remove(&file)?;
             current = current.saturating_sub(size);
+            entries_evicted += 1;
+        }
+
+        if entries_evicted > 0 {
+            tracing::info!(
+                entries_evicted,
+                bytes_freed = start_size.saturating_sub(current),
+                current_size_mb = current as f64 / (1024.0 * 1024.0),
+                target_size_mb = target as f64 / (1024.0 * 1024.0),
+                "evicted cache entries to stay under size limit"
+            );
         }
 
         // Mark dirty so flush() writes the updated manifest.

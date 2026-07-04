@@ -5,8 +5,32 @@ mod helpers;
 use helpers::cache::dep_helpers;
 use helpers::unique_temp_root;
 
+use std::fs;
+use std::path::Path;
+
 use slopguard::core::ScanContext;
 use slopguard::engine::{Analyzer, CacheStore, DEFAULT_CACHE_DIR, go_module_prefix};
+use slopguard::fixture::{materialize_tree, materialized_root};
+
+fn copy_materialized_tree(src: &Path, dst: &Path) {
+    fs::create_dir_all(dst).unwrap();
+    for entry in walkdir::WalkDir::new(src)
+        .into_iter()
+        .filter_map(Result::ok)
+    {
+        let path = entry.path();
+        let rel = path.strip_prefix(src).unwrap();
+        let target = dst.join(rel);
+        if entry.file_type().is_dir() {
+            fs::create_dir_all(&target).unwrap();
+        } else {
+            if let Some(parent) = target.parent() {
+                fs::create_dir_all(parent).unwrap();
+            }
+            fs::copy(path, target).unwrap();
+        }
+    }
+}
 
 // ---- Dependency extraction + transitive invalidation -------------------
 
@@ -178,4 +202,53 @@ func Handle() { db.Run() }
     // discover_cache_dir should locate the existing cache root.
     let found = discover_cache_dir(&root.join("pkg"));
     assert_eq!(found, Some(root.join(DEFAULT_CACHE_DIR)));
+}
+
+#[test]
+fn transitive_invalidation_works_without_go_mod_using_cwd_fallback_paths() {
+    let root = unique_temp_root("transitive-no-go-mod");
+    materialize_tree(Path::new("tests/fixtures/go/heuristics/cache")).unwrap();
+    let fixture_root = materialized_root().join("go/cache/no_go_mod");
+    copy_materialized_tree(&fixture_root, &root);
+
+    let cache_dir = root.join(DEFAULT_CACHE_DIR);
+    let mut cache = CacheStore::open_with_capacity(cache_dir.clone(), 500).unwrap();
+    let analyzer = Analyzer::builder()
+        .with_default_filter()
+        .scan_context(ScanContext::default())
+        .build();
+    let _ = analyzer.analyze_paths(&[&root], Some(&mut cache)).unwrap();
+    cache.flush().unwrap();
+
+    let handler_meta = cache
+        .manifest()
+        .files
+        .iter()
+        .find(|(k, _)| k.ends_with("pkg/handler.go"))
+        .map(|(_, v)| v.clone())
+        .expect("handler.go tracked");
+    assert!(
+        handler_meta
+            .dependencies
+            .iter()
+            .any(|d| d.ends_with("pkg/db/db.go")),
+        "expected local dependency without go.mod, got {:?}",
+        handler_meta.dependencies
+    );
+
+    let mut db_src = std::fs::read_to_string(root.join("pkg/db/db.go")).unwrap();
+    db_src.push_str("// touch\n");
+    std::fs::write(root.join("pkg/db/db.go"), db_src).unwrap();
+
+    let mut cache2 = CacheStore::open_with_capacity(cache_dir, 500).unwrap();
+    let _ = analyzer.analyze_paths(&[&root], Some(&mut cache2)).unwrap();
+    assert!(
+        cache2
+            .manifest()
+            .files
+            .keys()
+            .find(|k| k.ends_with("pkg/handler.go"))
+            .is_none(),
+        "handler.go should have been invalidated after db.go changed"
+    );
 }

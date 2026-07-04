@@ -36,6 +36,8 @@ Add the optional `[slopguard.cache]` block to `slopguard.toml`:
 enabled = true
 path = ".slopguard-cache"      # custom directory
 max_size_mb = 500              # size limit (LRU eviction TBD)
+evict_target_ratio = 0.9       # evict down to 90% of max_size_mb
+max_file_size_mb = 4           # skip cache for files larger than 4 MiB
 ```
 
 CLI flags override config values.
@@ -97,5 +99,7 @@ suppressions is essentially free.
   manifest. Individual entry files are written atomically, and a torn manifest
   is detected on the next `open()` and falls back to an empty manifest.
 - Size-based LRU eviction (`max_size_mb`) is enforced on `flush()` via
-  `CacheStore::evict_to_size()`. The eviction target ratio is hardcoded at 90%
-  of max_size_mb; a configurable `evict_target_ratio` field is planned.
+  `CacheStore::evict_to_size()`. `evict_target_ratio` controls how far the
+  cache is trimmed once the limit is exceeded.
+- Files larger than `max_file_size_mb` still scan normally, but SlopGuard skips
+  cache lookups and cache writes for them to avoid bloating the on-disk store.
