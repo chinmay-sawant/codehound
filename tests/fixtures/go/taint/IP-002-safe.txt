@@ -1,0 +1,22 @@
+# IP-002: Sanitized call chain — safe (sanitizer before cross-function call)
+lang: go
+file: IP-002-safe.go
+variant: taint
+---
+package sample
+
+import (
+    "net/http"
+    "os"
+    "path/filepath"
+)
+
+func caller() {
+    x := r.URL.Query().Get("input")
+    safe := filepath.Clean(x)
+    callee(safe)
+}
+
+func callee(s string) {
+    os.Open(s)
+}

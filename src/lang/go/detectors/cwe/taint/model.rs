@@ -1,4 +1,4 @@
-//! Taint-analysis data model: kinds, nodes, edges, scopes, annotations.
+//! Taint-analysis data model: kinds, nodes, edges, scopes, annotations, call graph.
 
 use std::collections::HashMap;
 use std::ops::Range;
@@ -236,4 +236,56 @@ pub struct AssignmentDetail {
     /// True when the RHS is a direct source or sanitizer call; identifier
     /// references inside it should not create extra assignment edges.
     pub from_source_or_sanitizer: bool,
+}
+
+// --- Call Graph ---
+
+/// A function declaration that can serve as a callee.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FunctionDecl {
+    pub param_count: usize,
+    pub is_method: bool,
+    pub receiver_type: Option<SharedText>,
+}
+
+/// One call-expression in the source.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CallSite {
+    pub caller: SharedText,
+    pub callee: SharedText,
+    pub byte_range: Range<usize>,
+    pub arguments: Box<[SharedText]>,
+    pub is_method_call: bool,
+    pub is_closure: bool,
+}
+
+/// Per-file call graph: flat sites + pre-built indexes.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct CallGraph {
+    pub sites: Vec<CallSite>,
+    pub by_caller: HashMap<SharedText, Vec<usize>>,
+    pub by_callee: HashMap<SharedText, Vec<usize>>,
+    pub declarations: HashMap<SharedText, FunctionDecl>,
+}
+
+impl CallGraph {
+    pub fn add_site(&mut self, site: CallSite) {
+        let idx = self.sites.len();
+        self.by_caller
+            .entry(site.caller.clone())
+            .or_default()
+            .push(idx);
+        self.by_callee
+            .entry(site.callee.clone())
+            .or_default()
+            .push(idx);
+        self.sites.push(site);
+    }
+}
+
+/// Cross-file call graph, built by merging per-file CallGraphs.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct ProjectCallGraph {
+    pub calls: HashMap<String, Vec<CallSite>>,
+    pub declarations: HashMap<String, FunctionDecl>,
 }

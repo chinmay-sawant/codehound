@@ -5142,6 +5142,118 @@ lang = "go"
 path = "tests/fixtures/go/taint/CWE-79-safe.txt"
 required_rules = []
 
+# Inter-procedural taint fixtures (P1-F)
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/IP-001-vulnerable.txt"
+required_rules = ["CWE-22"]
+taint = true
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/IP-001-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/IP-002-vulnerable.txt"
+required_rules = ["CWE-22"]
+taint = true
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/IP-002-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/IP-003-vulnerable.txt"
+required_rules = ["CWE-22"]
+taint = true
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/IP-003-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/IP-004-vulnerable.txt"
+required_rules = ["CWE-22"]
+taint = true
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/IP-004-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/IP-005-vulnerable.txt"
+required_rules = ["CWE-22"]
+taint = true
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/IP-005-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/IP-006-vulnerable.txt"
+required_rules = ["CWE-22"]
+taint = true
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/IP-006-safe.txt"
+required_rules = []
+
+# Deferred inter-procedural fixtures (P1-F Phase 6 follow-up)
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/IP-007-vulnerable.txt"
+required_rules = ["CWE-22"]
+taint = true
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/IP-007-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/IP-008-vulnerable.txt"
+required_rules = ["CWE-22"]
+taint = true
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/IP-008-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/IP-009-vulnerable.txt"
+required_rules = ["CWE-22"]
+taint = true
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/IP-009-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/IP-010-vulnerable.txt"
+required_rules = ["CWE-22"]
+taint = true
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/IP-010-safe.txt"
+required_rules = []
+
 # Go Bad Practice detector fixtures (P2.5-A MVP)
 [[fixture]]
 lang = "go"

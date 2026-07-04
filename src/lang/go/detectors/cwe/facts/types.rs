@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use super::super::source_index::SourceIndex;
-use super::super::taint::{TaintAnnotations, TaintGraph};
+use super::super::taint::{CallGraph, TaintAnnotations, TaintGraph};
 
 pub type SharedText = Arc<str>;
 
@@ -44,4 +44,6 @@ pub struct GoUnitFacts {
     pub taint: TaintAnnotations,
     /// Built only when `[taint] enabled = true`.
     pub taint_graph: Option<TaintGraph>,
+    /// Call graph extracted from tree-sitter CST (always built).
+    pub call_graph: Option<CallGraph>,
 }

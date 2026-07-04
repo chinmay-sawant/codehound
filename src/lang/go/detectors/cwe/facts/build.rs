@@ -5,7 +5,7 @@ use crate::core::ParsedUnit;
 use crate::lang::go::CALL_ASSIGN_NODE_KINDS;
 
 use super::super::source_index::SourceIndex;
-use super::super::taint::{build_taint_graph, extract_taint_facts};
+use super::super::taint::{build_taint_graph, extract_call_graph, extract_taint_facts};
 use super::interner::{SharedTextInterner, record_assignment_fact, record_call_fact};
 use super::types::GoUnitFacts;
 
@@ -31,6 +31,7 @@ pub fn build_go_unit_facts(unit: &ParsedUnit) -> GoUnitFacts {
 
     facts.source_index = SourceIndex::build(unit.source.as_ref());
     facts.taint = extract_taint_facts(unit);
+    facts.call_graph = Some(extract_call_graph(unit));
     facts
 }
 
