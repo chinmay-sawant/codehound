@@ -128,6 +128,14 @@
               "description": "Optional severity override for BP-* findings.",
               "type": "string",
               "enum": ["info", "low", "medium", "high", "critical"]
+            },
+            "severity_overrides": {
+              "description": "Per-rule severity overrides for BP-* rules. Keys are rule IDs (e.g. BP-1), values are severity levels.",
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "enum": ["info", "low", "medium", "high", "critical"]
+              }
             }
           }
         }

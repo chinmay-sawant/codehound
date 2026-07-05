@@ -13,6 +13,7 @@ pub fn build_scan_context(
     cli_set_fail_policy: bool,
     debug_timing: bool,
     diagnostics: bool,
+    diagnostics_summary: bool,
 ) -> ScanContext {
     let mut ctx = ScanContext {
         only: if only.is_empty() {
@@ -25,6 +26,7 @@ pub fn build_scan_context(
         show_ignored: false,
         debug_timing,
         diagnostics,
+        diagnostics_summary,
         taint_enabled: true,
         taint_show_paths: false,
         bad_practices_enabled: true,

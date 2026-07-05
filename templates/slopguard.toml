@@ -34,6 +34,14 @@
 # enabled = true
 # path = ".slopguard-cache"
 # max_size_mb = 500  # evict oldest entries when the cache exceeds this size
+# evict_target_ratio = 0.9  # fraction of max_size_mb to retain after eviction
+# max_file_size_mb = 4  # skip caching for files larger than this (MiB)
+
+# Bad-practice rule configuration.
+# [slopguard.bad_practices]
+# enabled = true
+# severity = "medium"  # optional severity override for all BP-* findings
+# severity_overrides = { "BP-1" = "high", "BP-10" = "low" }  # per-rule overrides
 
 # Experimental taint-tracking engine for CWE-22/78/79/89.
 # [slopguard.taint]

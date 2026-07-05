@@ -17,6 +17,8 @@ pub struct ScanContext {
     /// When true, the run produces a machine-readable diagnostics file.
     /// Also implies stats and phase timing collection.
     pub diagnostics: bool,
+    /// When true, print a compact scan summary to stderr.
+    pub diagnostics_summary: bool,
     /// When true, use the experimental taint-tracking engine for the
     /// supported CWE rules (CWE-22/78/89/79).
     pub taint_enabled: bool,
@@ -37,6 +39,7 @@ impl Default for ScanContext {
             show_ignored: false,
             debug_timing: false,
             diagnostics: false,
+            diagnostics_summary: false,
             taint_enabled: true,
             taint_show_paths: false,
             bad_practices_enabled: true,
@@ -83,7 +86,7 @@ impl ScanContext {
     /// True if the run should collect scan statistics, phase timings, and
     /// per-detector timings.
     pub fn collect_stats(&self) -> bool {
-        self.debug_timing || self.diagnostics
+        self.debug_timing || self.diagnostics || self.diagnostics_summary
     }
     // ponytail: collect_detector_timing was identical to collect_stats — merged.
     // Callers migrated to collect_stats().

@@ -11,9 +11,9 @@ The CWE catalog has 175+ entries auto-generated from a central sink registry,
 providing comprehensive coverage of known weakness patterns across file I/O,
 SQL, command injection, link resolution, and configuration sinks.
 
-A **PERF** (performance) rule catalog with 212 rules is also included; the first
-batch of detectors (PERF-103, 107, 115-118, 120, 122, 124, 126-127) is
-implemented, with the remaining detectors tracked in [`plans/p2.md`](./plans/p2.md).
+A **PERF** (performance) rule catalog with 224 rules is also included; over 60
+detectors are shipped covering common performance anti-patterns in Go. See
+[`docs/perf-rules.md`](./docs/perf-rules.md) for the full catalog.
 
 It is designed to **complement** existing language tooling with repository-local
 heuristics, reusable fact extraction, and machine-readable findings.
@@ -107,6 +107,26 @@ are documented in [`docs/output-formats.md`](./docs/output-formats.md#sarif-210)
 Look for SARIF
 compatibility notes in [`plans/v0.0.1/go/perf-heuristics-and-sarif.md`](./plans/v0.0.1/go/perf-heuristics-and-sarif.md)
 (perf-rule-specific SARIF metadata is in progress).
+
+### Diagnostics Summary
+
+Pass `--diagnostics-summary` to print a compact scan summary to stderr:
+
+```
+scanned 238 files | 195 cached | 43 fresh | 1250.3ms | slowest: PERF-141
+```
+
+### Taint Tracking
+
+SlopGuard includes an experimental intra-procedural taint-tracking engine for
+CWE-22, CWE-78, CWE-79, and CWE-89. See [`docs/taint.md`](./docs/taint.md)
+for details.
+
+### Bad Practices
+
+65 Go bad-practice rules (`BP-*`) are shipped covering error handling,
+concurrency, testing, API design, code organization, production hardening, and
+dependency hygiene. See [`docs/bad-practices.md`](./docs/bad-practices.md).
 
 ### Configuration file (`slopguard.toml`)
 

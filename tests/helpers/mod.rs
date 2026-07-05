@@ -36,7 +36,7 @@ pub fn assert_fixture_materializes(txt_path: &str) -> std::path::PathBuf {
 /// `required_rules == []` branch of `assert_fixture_rules` only enforces
 /// silence on the class the test cares about.
 fn infer_rule_class(txt_path: &str) -> &'static str {
-    if txt_path.contains("/perf/") {
+    if txt_path.contains("/perf/") || txt_path.contains("/perf_real_world/") {
         "PERF-"
     } else if txt_path.contains("/bad_practices/") {
         "BP-"

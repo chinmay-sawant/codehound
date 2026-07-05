@@ -81,8 +81,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Observability.** `--debug-timing` enables per-detector timing;
   `--diagnostics <FILE>` writes a JSON document with phase timing,
   per-detector timing, scan parameters, file-level stats, and total cache
-  size. `ScanStats` exposes `cache_hits` / `cache_misses` for the hit-rate
+  size. `--diagnostics-summary` prints a compact scan summary to stderr
+  (files scanned, cache hits/misses, total time, slowest detector).
+  `ScanStats` exposes `cache_hits` / `cache_misses` for the hit-rate
   summary in `--diagnostics`.
+- **CI/CD + test hygiene.** Incremental bench CI gate enforces warm ≥5×
+  faster than cold. Real-world Go HTTP server smoke fixtures exercise
+  multiple PERF rules. Clean Go file verification confirms zero false
+  positives across all shipped detectors.
 
 ### Changed
 

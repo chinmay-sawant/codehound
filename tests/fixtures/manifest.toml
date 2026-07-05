@@ -6407,3 +6407,18 @@ lang = "go"
 path = "tests/fixtures/go/perf/PERF-224-safe.txt"
 required_rules = []
 
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf_real_world/http_server-vulnerable.txt"
+required_rules = ["PERF-101", "PERF-141", "PERF-124"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf_real_world/http_server-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf_real_world/clean_go_file.txt"
+required_rules = []
+

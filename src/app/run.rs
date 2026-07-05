@@ -125,6 +125,7 @@ fn run_scan(cli: Cli) -> Result<ExitCode> {
     )?;
     merge_app_timing(&mut result, &app_timing, collect_stats);
     write_diagnostics(&cli, &result)?;
+    write_diagnostics_summary(&cli, &result);
 
     Ok(scan_exit_code(&result, analyzer.ctx.fail_policy))
 }
@@ -372,6 +373,28 @@ fn write_diagnostics(cli: &Cli, result: &AnalysisResult) -> Result<()> {
     serde_json::to_writer_pretty(file, &diagnostics)
         .with_context(|| format!("writing diagnostics file {}", diagnostics_path.display()))?;
     Ok(())
+}
+
+fn write_diagnostics_summary(cli: &Cli, result: &AnalysisResult) {
+    if !cli.diagnostics_summary {
+        return;
+    }
+    let Some(stats) = result.stats.as_ref() else {
+        return;
+    };
+    let slowest = stats.timing.as_ref().and_then(|t| {
+        t.phases.iter().max_by_key(|p| p.duration).map(|p| p.name)
+    });
+    let total_ms = stats
+        .timing
+        .as_ref()
+        .map(|t| t.total_wall_time.as_secs_f64() * 1000.0)
+        .unwrap_or(0.0);
+    let slowest_str = slowest.unwrap_or("-");
+    eprintln!(
+        "scanned {} files | {} cached | {} fresh | {:.1}ms | slowest: {}",
+        stats.files_scanned, stats.cache_hits, stats.cache_misses, total_ms, slowest_str,
+    );
 }
 
 fn scan_exit_code(result: &AnalysisResult, fail_policy: slopguard::core::FailPolicy) -> ExitCode {

@@ -18,6 +18,7 @@ use clap::Parser;
         slopguard --format sarif > out.sarif # SARIF for CI\n  \
         slopguard --taint                    # enable experimental taint tracking\n  \
         slopguard --taint-show-paths         # emit taint-path evidence\n  \
+        slopguard --diagnostics-summary      # compact scan stats\n  \
         slopguard --list-rules               # show every registered rule\n  \
         slopguard --explain CWE-89           # details for a specific rule\n  \
         slopguard init                       # write a starter slopguard.toml"
@@ -120,6 +121,12 @@ pub struct Cli {
     /// Write machine-readable scan diagnostics to FILE.
     #[arg(long, value_name = "FILE")]
     pub diagnostics: Option<PathBuf>,
+
+    /// Print a compact scan summary (files scanned, cache hits/misses,
+    /// slowest detector, total time) to stderr. Works with both scan
+    /// and --list-rules.
+    #[arg(long)]
+    pub diagnostics_summary: bool,
 
     /// Number of findings per chunk file.
     #[arg(long, default_value_t = 25)]

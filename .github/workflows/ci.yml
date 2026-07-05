@@ -96,3 +96,7 @@ jobs:
         run: cargo bench --bench scan_throughput -- --output-format bencher 2>&1 | tee bench_output.txt
       - name: Check perf budget
         run: bash scripts/check_bench_budget.sh
+      - name: Run incremental bench
+        run: cargo bench --bench incremental_scan -- --output-format bencher 2>&1 | tee bench_incremental_output.txt
+      - name: Check incremental bench budget
+        run: bash scripts/check_incremental_bench_budget.sh

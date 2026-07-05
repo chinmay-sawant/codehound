@@ -18,6 +18,7 @@ impl Cli {
             cli_set_fail_policy,
             self.debug_timing,
             self.diagnostics.is_some(),
+            self.diagnostics_summary,
         );
         if self.bp_only {
             ctx.only = Some(["BP-*".to_string()].into_iter().collect());
