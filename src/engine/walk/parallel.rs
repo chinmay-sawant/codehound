@@ -13,6 +13,7 @@ use crate::engine::ignore::{
     IgnoreDirective, apply_file_ignore, apply_inline_ignores, parse_file_ignore,
     parse_inline_ignores,
 };
+use crate::core::ParsedUnit;
 use crate::engine::parse_pool::ParsePool;
 use crate::engine::registry::Registry;
 use crate::engine::result::{ScanError, ScanErrorKind};
@@ -55,10 +56,17 @@ pub(crate) enum ScanOutcome {
     Err(ScanError),
 }
 
+struct CachedFileInfo {
+    source: Arc<str>,
+    display_path: String,
+    language: LanguageId,
+}
+
 struct PreflightResult {
     to_scan_indices: Vec<usize>,
     cached_outcomes: Vec<ScanOutcome>,
     cache_hit_count: usize,
+    cached_files: Vec<CachedFileInfo>,
 }
 
 struct MergedScan {
@@ -100,6 +108,12 @@ pub(crate) fn scan_entries_parallel(
         preflight.cache_hit_count,
         total,
     );
+
+    // Accumulate cross-file detector state for cache-hit files
+    // so finalize() can emit the same findings regardless of cache.
+    if !preflight.cached_files.is_empty() {
+        accumulate_state_for_cached(registry, ctx, &preflight.cached_files);
+    }
 
     tracing::debug!(
         findings = merged.findings.len(),
@@ -167,9 +181,11 @@ fn preflight_cache_hits(
             to_scan_indices,
             cached_outcomes,
             cache_hit_count,
+            cached_files: Vec::new(),
         };
     };
 
+    let mut cached_files = Vec::new();
     for (i, entry) in entries.iter().enumerate() {
         if !cache.should_cache_path(entry.path.as_ref()) {
             to_scan_indices.push(i);
@@ -186,7 +202,12 @@ fn preflight_cache_hits(
         match cache.lookup(&rel, &hash) {
             CacheLookup::Hit(cached) => {
                 cache_hit_count += 1;
-                cached_outcomes.push(process_cache_hit(ctx, cached, source, entry.language));
+                cached_outcomes.push(process_cache_hit(ctx, cached, source.clone(), entry.language));
+                cached_files.push(CachedFileInfo {
+                    source,
+                    display_path: rel,
+                    language: entry.language,
+                });
             }
             _ => to_scan_indices.push(i),
         }
@@ -196,6 +217,47 @@ fn preflight_cache_hits(
         to_scan_indices,
         cached_outcomes,
         cache_hit_count,
+        cached_files,
+    }
+}
+
+/// Re-parse cache-hit files and run detectors to populate cross-file
+/// detector state (e.g. call graphs for taint analysis) that `finalize()`
+/// needs. The generated per-file findings are discarded — cached findings
+/// are used instead.
+fn accumulate_state_for_cached(
+    registry: &Registry,
+    ctx: &ScanContext,
+    files: &[CachedFileInfo],
+) {
+    let mut pool = ParsePool::new();
+    for info in files {
+        let Some(plugin) = registry.plugin_for_id(info.language) else {
+            continue;
+        };
+        let parser = match pool.parser_for(plugin) {
+            Ok(p) => p,
+            Err(_) => continue,
+        };
+        let tree = match parser.parse(info.source.as_bytes(), None) {
+            Some(t) => t,
+            None => continue,
+        };
+        let unit = ParsedUnit {
+            language: info.language,
+            path: std::path::PathBuf::from(&info.display_path),
+            display_path: info.display_path.clone(),
+            source: info.source.clone(),
+            tree,
+            line_starts: crate::ast::compute_line_starts(&info.source),
+            function_spans: Vec::new(),
+        };
+        // Run only `accumulate_state` (no per-file rule execution) so
+        // cross-file analysis in `finalize()` has the same state regardless
+        // of cache status.
+        for &idx in registry.detector_indices(info.language) {
+            registry.detector(idx).accumulate_state(ctx, &unit);
+        }
     }
 }
 

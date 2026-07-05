@@ -90,6 +90,24 @@ impl Detector for GoCweScan {
             .map(|(_, _, meta)| *meta)
     }
 
+    fn accumulate_state(&self, ctx: &ScanContext, unit: &ParsedUnit) {
+        if !self.rule_ids().iter().any(|id| ctx.allows(id)) {
+            return;
+        }
+        let mut facts = build_go_unit_facts(unit);
+        if ctx.taint_enabled {
+            build_taint_graph_for_facts(&mut facts);
+        }
+        let mut state = self.state.lock().expect("lock CweDetector state");
+        state.units.push(ProjectUnit {
+            path: unit.display_path.clone(),
+            source: Arc::clone(&unit.source),
+            call_graph: facts.call_graph.clone().unwrap_or_default(),
+            annotations: facts.taint.clone(),
+            import_map: build_import_map(unit),
+        });
+    }
+
     fn run(&self, ctx: &ScanContext, unit: &ParsedUnit, out: &mut Vec<Finding>) {
         if !self.rule_ids().iter().any(|id| ctx.allows(id)) {
             return;

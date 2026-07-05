@@ -139,6 +139,11 @@ fn analyze_parsed_entry(
     let det_idx = timing.start("detector_execution");
     let (mut findings, rules_executed) = analyze_parsed_unit(registry, ctx, unit, timing);
     timing.stop(det_idx);
+    // per-finding rule filter — consistent with cache hit path (filter_cached_findings)
+    findings.retain(|f| ctx.allows(&f.rule_id));
+    for f in &mut findings {
+        ctx.apply_finding_overrides(f);
+    }
     attach_function_context(&mut findings, plugin, unit);
     let mut suppressed_count =
         apply_file_ignore(&mut findings, file_ignore.as_ref(), ctx.show_ignored);
