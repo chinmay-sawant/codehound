@@ -1,104 +1,101 @@
-# Deferred Items — Agent 3 Anti-Pattern Review
+# D3 — Anti-Pattern & Review Deferred
 
-> **Source:** Audit of 8 plan files under `plans/v2.0.0/`
-> **Date:** 2026-07-05
-> **Total deferred:** 22 items (after deduplication)
-
----
-
-## Production `.expect()` not eliminated
-
-| Source file | Item |
-|---|---|
-| `m15-anti-pattern.md` | Document invariant `expect`s (SARIF log, rule tables, walker) — 3+ prod `.expect` remain in `cwe/mod.rs`, `perf/mod.rs`, `walker_core.rs` |
-| `m15-anti-pattern.md` | Document invariant `expect`s in parser/registry loading |
-| `rust-best-practices.md` | Production `.expect()` reduced to 0 |
-| `rust-remediation-phase-3.md` | Replace or document 3 production `.expect(` (restore `check_no_prod_expect.sh` green) |
+> **Parent:** `plans/v2.0.0/antipattern-remediation/`, `plans/v2.0.0/code-review/`, `plans/v2.0.0/ponytail/`
+> **Status:** 22 items deferred to v3.0.0, 5 resolved since initial audit
+> **Estimated effort:** TBD
 
 ---
 
-## `#![warn(missing_docs)]` not enabled on `lib.rs`
+## Overview
 
-| Source file | Item |
-|---|---|
-| `rust-best-practices.md` | `#![warn(missing_docs)]` enabled on `lib.rs` (x2) |
-| `rust-remediation-phase-2.md` | Enable `#![warn(missing_docs)]` on `src/lib.rs` |
-| `rust-remediation-phase-2.md` | `#![deny(missing_docs)]` ratchet on one module |
+Deferred anti-pattern remediation, code review, and audit items from Agent 3 review of 8 plan files under `plans/v2.0.0/`.
 
 ---
 
-## Runnable doc-test not converted from `#no_run`
+## Phase 1: Runtime Safety
 
-| Source file | Item |
-|---|---|
-| `rust-best-practices.md` | Runnable doc-test for `lib.rs` quick-start (x2) |
-| `rust-remediation-phase-2.md` | Runnable doc-test for `lib.rs` quick-start |
+### 1.1 Production `.expect()` elimination
 
----
-
-## Multi-assertion tests not split
-
-| Source file | Item |
-|---|---|
-| `rust-best-practices.md` | Split multi-assertion integration tests (x2) |
-| `rust-best-practices.md` | Split multi-assertion envelope / SARIF tests |
-| `rust-remediation-phase-2.md` | Split multi-assert envelope tests |
-| `rust-remediation-phase-2.md` | Split SARIF log tests |
+- [ ] Document invariant expects in SARIF log, rule tables, walker (3+ prod `.expect` remain in `cwe/mod.rs`, `perf/mod.rs`, `walker_core.rs`) — `m15-anti-pattern.md`
+- [ ] Document invariant expects in parser/registry loading — `m15-anti-pattern.md`
+- [ ] Production `.expect()` reduced to 0 — `rust-best-practices.md`
+- [ ] Replace or document 3 production `.expect(` — restore `check_no_prod_expect.sh` green — `rust-remediation-phase-3.md`
 
 ---
 
-## Testing hygiene
+## Phase 2: Documentation & Hygiene
 
-| Source file | Item |
-|---|---|
-| `rust-best-practices.md` | `pretty_assertions` adoption (dep present, 0 usages) |
-| `rust-remediation-phase-2.md` | `pretty_assertions` still unused |
-| `rust-remediation-phase-2.md` | `cargo insta test` CI step not configured |
-| `rust-remediation-phase-2.md` | Naming convention audit |
+### 2.1 `#![warn(missing_docs)]` on `lib.rs`
 
----
+- [ ] Enable `#![warn(missing_docs)]` on `src/lib.rs` — `rust-best-practices.md`, `rust-remediation-phase-2.md`
+- [ ] `#![deny(missing_docs)]` ratchet on one module — `rust-remediation-phase-2.md`
 
-## Module visibility & exports
+### 2.2 Runnable doc-test
 
-| Source file | Item |
-|---|---|
-| `rust-patterns.md` | Shrink `engine/mod.rs` `pub use` surface (13+ groups remain) |
-| `rust-remediation-phase-2.md` | Deprecate direct `engine::*` re-exports |
-| `rust-remediation-phase-2.md` | Update `src/main.rs` to use `slopguard::cli` via feature gate (now implemented) |
+- [ ] Convert `#![no_run]` to runnable doc-test for `lib.rs` quick-start — `rust-best-practices.md`, `rust-remediation-phase-2.md`
+
+### 2.3 Heuristic rule documentation
+
+- [ ] Document heuristic-only rules in registry TOML comment — `rust-remediation-phase-2.md`
 
 ---
 
-## Builder / `#[must_use]` gaps
+## Phase 3: Testing
 
-| Source file | Item |
-|---|---|
-| `rust-best-practices.md` | Type-state `AnalyzerBuilder` (replaced by ponytail with simple builder) (now implemented) |
-| `rust-remediation-phase-2.md` | `Registry::default` / builder methods — `#[must_use]` not added (now implemented) |
-| `rust-remediation-phase-2.md` | Type-state `AnalyzerBuilder<HasRegistry, HasFilter>` (now implemented) |
+### 3.1 Multi-assertion test splitting
 
----
+- [ ] Split multi-assertion integration tests — `rust-best-practices.md`
+- [ ] Split multi-assertion envelope / SARIF tests — `rust-best-practices.md`
+- [ ] Split multi-assert envelope tests — `rust-remediation-phase-2.md`
+- [ ] Split SARIF log tests — `rust-remediation-phase-2.md`
 
-## Documentation / heuristic rules
+### 3.2 Testing hygiene
 
-| Source file | Item |
-|---|---|
-| `rust-remediation-phase-2.md` | Document heuristic-only rules in registry TOML comment |
-
----
-
-## Code formatting & size
-
-| Source file | Item |
-|---|---|
-| `rust-remediation-phase-3.md` | `cargo fmt --check` (still failing) |
-| `rust-remediation-phase-3.md` | `cargo fmt` + commit formatting |
-| `rust-remediation-phase-3.md` | `scan_entry` orchestrator — 76 lines (target <60) |
-| `rust-remediation-phase-3.md` | Trim `scan_entry` orchestrator to <60 lines |
+- [ ] Adopt `pretty_assertions` (dep present, 0 usages) — `rust-best-practices.md`, `rust-remediation-phase-2.md`
+- [ ] Configure `cargo insta test` CI step — `rust-remediation-phase-2.md`
+- [ ] Naming convention audit — `rust-remediation-phase-2.md`
 
 ---
 
-## Performance budget
+## Phase 4: API Surface
 
-| Source file | Item |
-|---|---|
-| `rust-remediation-phase-3.md` | Rebaseline or optimize index build for `perf_regression` smoke budget (now implemented) |
+### 4.1 Module visibility & exports
+
+- [ ] Shrink `engine/mod.rs` `pub use` surface (13+ groups remain) — `rust-patterns.md`
+- [ ] Deprecate direct `engine::*` re-exports — `rust-remediation-phase-2.md`
+- [x] Update `src/main.rs` to use `slopguard::cli` via feature gate — `rust-remediation-phase-2.md`
+
+---
+
+## Phase 5: Code Quality
+
+### 5.1 Code formatting & size
+
+- [ ] `cargo fmt --check` (still failing) — `rust-remediation-phase-3.md`
+- [ ] `cargo fmt` + commit formatting — `rust-remediation-phase-3.md`
+- [ ] `scan_entry` orchestrator — 76 lines (target <60) — `rust-remediation-phase-3.md`
+- [ ] Trim `scan_entry` orchestrator to <60 lines — `rust-remediation-phase-3.md`
+
+---
+
+## Resolved Since Audit
+
+### Builder / `#[must_use]` gaps
+
+- [x] Type-state `AnalyzerBuilder` replaced by ponytail with simple builder — `rust-best-practices.md`
+- [x] `Registry::default` / builder methods — `#[must_use]` added — `rust-remediation-phase-2.md`
+- [x] Type-state `AnalyzerBuilder<HasRegistry, HasFilter>` — `rust-remediation-phase-2.md`
+
+### Performance
+
+- [x] Rebaseline or optimize index build for `perf_regression` smoke budget — `rust-remediation-phase-3.md`
+
+---
+
+## Count
+
+| Status | Count |
+|--------|-------|
+| Not Implemented `[ ]` | 22 |
+| Resolved `[x]` | 5 |
+| **Total** | **27** |
