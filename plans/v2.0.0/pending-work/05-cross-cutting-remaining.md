@@ -37,7 +37,7 @@ This plan consolidates all cross-cutting items that don't fit neatly into a sing
 
 > Also tracked in `01-taint-tracking-remaining.md` Phase E 3.3.
 
-- [ ] Create `docs/taint.md` covering:
+- [x] Create `docs/taint.md` covering:
   - Overview: what taint tracking is (intra-procedural data-flow analysis)
   - Which CWE rules use it: CWE-22, CWE-78, CWE-79, CWE-89
   - Enabling: via `[slopguard.taint] enabled = true` in config, or `--taint` CLI flag
@@ -46,13 +46,13 @@ This plan consolidates all cross-cutting items that don't fit neatly into a sing
   - Reading output: `evidence.taint_path` in JSON output (source → hops → sink)
   - Custom sanitizers: name-based heuristic detection (`sanitize*`, `clean*`, etc.)
   - Performance: extraction always performed, graph-building lazy
-- [ ] Add reference from `README.md` to `docs/taint.md`
+- [x] Add reference from `README.md` to `docs/taint.md`
 
 ### 1.2 `docs/bad-practices.md`
 
 > Also tracked in `03-bad-practices-remaining.md` (documentation section).
 
-- [ ] Create `docs/bad-practices.md` covering:
+- [x] Create `docs/bad-practices.md` covering:
   - Overview: what Bad Practices detection catches (beyond CWE/PERF)
   - Per-rule index: one paragraph per BP rule with rationale and canonical fix
   - Source: adapted from `plans/v2.0.0/antipattern-remediation/bad-practices-scope.md`
@@ -60,14 +60,14 @@ This plan consolidates all cross-cutting items that don't fit neatly into a sing
   - For each: rule ID, title, brief description, fix example (code snippet), severity
   - Category grouping: Error Handling, Concurrency/Sync, Loops, Panics
   - How to enable/disable: `--no-bp`, `--bp-only`, `[bad_practices]` config block
-- [ ] Update with each new phase (BP-16..BP-25, BP-26..BP-45, BP-46..BP-65) as they ship
-- [ ] Add reference from `README.md` to `docs/bad-practices.md`
+- [x] Update with each new phase (BP-16..BP-25, BP-26..BP-45, BP-46..BP-65) as they ship
+- [x] Add reference from `README.md` to `docs/bad-practices.md`
 
 ### 1.3 `docs/perf-rules.md`
 
 > Also tracked in `02-perf-detectors-remaining.md` (plan mentions this as B.3).
 
-- [ ] Create `docs/perf-rules.md` covering:
+- [x] Create `docs/perf-rules.md` covering:
   - Overview: what PERF rules detect (performance anti-patterns)
   - Per-rule index: one paragraph per shipped PERF rule with fix suggestion and example
   - Source: the current `--explain` output and `golang.json` `detection_notes` fields
@@ -75,8 +75,8 @@ This plan consolidates all cross-cutting items that don't fit neatly into a sing
   - For each: rule ID, title, brief description, fix example (code snippet), detection notes
   - Domain grouping: loop allocations, parsing, request path, Gin framework, data access, protocols, general performance
   - How to enable/disable: `--only PERF-*`, `--skip PERF-*`, `--rule-category performance`
-- [ ] Update with each new PERF batch as rules ship
-- [ ] Add reference from `README.md` to `docs/perf-rules.md`
+- [x] Update with each new PERF batch as rules ship
+- [x] Add reference from `README.md` to `docs/perf-rules.md`
 
 ---
 
@@ -89,30 +89,30 @@ This plan consolidates all cross-cutting items that don't fit neatly into a sing
 
 > Also tracked in `01-taint-tracking-remaining.md` Phase E 3.1.
 
-- [ ] `--taint` flag: shorthand to enable taint tracking.
+- [x] `--taint` flag: shorthand to enable taint tracking.
   - File: `src/cli/args.rs`
   - Wiring: `src/cli/args_impl.rs::scan_context()` — sets `ctx.taint_enabled = true`
   - Precedence: CLI `--taint` overrides config `[slopguard.taint] enabled = false`
-- [ ] `--no-taint` flag: disable taint tracking even if config enables it.
+- [x] `--no-taint` flag: disable taint tracking even if config enables it.
   - Precedence: `--no-taint` overrides both config and `--taint`
-- [ ] `--taint-show-paths` flag: include taint propagation paths in evidence output.
+- [x] `--taint-show-paths` flag: include taint propagation paths in evidence output.
   - Sets `ctx.taint_show_paths = true`
   - Consumption: wire into JSON reporter (`src/reporting/json/entry.rs`) and SARIF reporter (`src/reporting/sarif/entry.rs`)
   - Text reporter: print path when flag is set
 
 ### 2.2 `--diagnostics-summary` flag
 
-- [ ] Add `--diagnostics-summary` CLI flag (no argument, unlike `--diagnostics <FILE>`)
+- [x] Add `--diagnostics-summary` CLI flag (no argument, unlike `--diagnostics <FILE>`)
   - Output (to stdout): single line with `Files: N, Cache hits: N, Cache misses: N, Cache hit rate: XX%, Slowest detector: NAME (Nms), Total time: Nms`
   - Source data: `ScanStats` from `src/engine/stats/scan.rs` (has `cache_hits`, `cache_misses`, `files_scanned`, `timing`)
   - Implementation: after scan completes, before exit, print the summary if the flag is set
   - Example output: `📊 Scan summary: 152 files, 89 cache hits / 10 misses (89.9%), slowest detector: CWE-089 (12.3ms), total 1.24s`
-- [ ] Ensure it works with both `scan` and `--list-rules` subcommands
-- [ ] Add to `--help` output
+- [x] Ensure it works with both `scan` and `--list-rules` subcommands
+- [x] Add to `--help` output
 
 ### 2.3 Update `CHANGELOG.md`
 
-- [ ] Add entries for new CLI flags under Unreleased section
+- [x] Add entries for new CLI flags under Unreleased section
 
 ---
 
@@ -123,36 +123,36 @@ This plan consolidates all cross-cutting items that don't fit neatly into a sing
 
 ### 3.1 Real-project PERF positive smoke fixture
 
-- [ ] Create `tests/fixtures/go/perf_real_world/` directory
-- [ ] Create `main.go` with a realistic HTTP server (or similar) that contains at least 3 patterns that fire shipped PERF detectors:
+- [x] Create `tests/fixtures/go/perf_real_world/` directory
+- [x] Create `main.go` with a realistic HTTP server (or similar) that contains at least 3 patterns that fire shipped PERF detectors:
   - Example: `http.ListenAndServe` without timeouts → PERF-120
   - Example: `fmt.Sprintf` in hot path → PERF-150
   - Example: `time.After` in loop → matches an existing BP or PERF rule
-- [ ] Create `safe_main.go` with the idiomatic fixes — verify no findings
-- [ ] Add integration test: `perf_real_world_fixtures_fire_on_non_synthetic_code` in `tests/go_perf_detector_integration.rs`
-- [ ] Register in `tests/fixtures/manifest.toml`
+- [x] Create `safe_main.go` with the idiomatic fixes — verify no findings
+- [x] Add integration test: `perf_real_world_fixtures_fire_on_non_synthetic_code` in `tests/go_perf_detector_integration.rs`
+- [x] Register in `tests/fixtures/manifest.toml`
 
 ### 3.2 Non-trivial clean Go file verification
 
-- [ ] Pick or create a clean Go file (~50–100 lines) that uses stdlib correctly:
+- [x] Pick or create a clean Go file (~50–100 lines) that uses stdlib correctly:
   - HTTP handler with timeouts, proper error handling, correct sync patterns
   - Slice operations, string building, context usage
-- [ ] Run all shipped PERF + BP + CWE detectors against it
-- [ ] Verify zero false positives
-- [ ] Add as `tests/fixtures/go/perf_real_world/clean_go_file.txt`
-- [ ] Register in manifest with `required_rules = []`
+- [x] Run all shipped PERF + BP + CWE detectors against it
+- [x] Verify zero false positives
+- [x] Add as `tests/fixtures/go/perf_real_world/clean_go_file.txt`
+- [x] Register in manifest with `required_rules = []`
 
 ### 3.3 Incremental benchmark CI gate
 
 > Also tracked in `04-cache-incremental-remaining.md` (observability section).
 
-- [ ] Add `cargo bench --bench incremental_scan` to `.github/workflows/ci.yml`
-- [ ] Create `scripts/check_incremental_bench_budget.sh` (analogous to `check_bench_budget.sh`):
+- [x] Add `cargo bench --bench incremental_scan` to `.github/workflows/ci.yml`
+- [x] Create `scripts/check_incremental_bench_budget.sh` (analogous to `check_bench_budget.sh`):
   - Parse `incremental_cold` and `incremental_warm` times from bench output
   - Assert warm is at least 5× faster than cold (not 10×, allowing for baseline overhead)
   - Threshold configurable via environment variable
-- [ ] Add to CI bench job after the existing `scan_throughput` bench
-- [ ] Document in `benchmarks.md`
+- [x] Add to CI bench job after the existing `scan_throughput` bench
+- [x] Document in `benchmarks.md`
 
 ### 3.4 BP negative fixtures
 
@@ -170,15 +170,15 @@ This plan consolidates all cross-cutting items that don't fit neatly into a sing
 
 ### 4.1 Per-detector timing on cache hit path
 
-- [ ] Currently per-detector timing is emitted only for files that get parsed and scanned. On a cache hit, the saved time is not measured.
-- [ ] Add a `TimingSpan` for the cache-hit path that records:
+- [~] Currently per-detector timing is emitted only for files that get parsed and scanned. On a cache hit, the saved time is not measured.
+- [~] Add a `TimingSpan` for the cache-hit path that records:
   - File read time (for hash check)
   - Filter-cached-findings time (`ctx.allows()` re-application)
   - Inline-ignore re-application time (if any)
   - The original parse+detect time that was **saved** (from the cache entry's `cached_at` or a new `original_detect_duration` field)
-- [ ] Emit these in `--diagnostics` output and `--debug-timing` output
-- [ ] New field in `CacheEntry`: `original_detect_duration_ms: u64` (populated at cache write time)
-- [ ] Show in `--diagnostics-summary`: "Cache hit saved: Nms total"
+- [~] Emit these in `--diagnostics` output and `--debug-timing` output
+- [~] New field in `CacheEntry`: `original_detect_duration_ms: u64` (populated at cache write time)
+- [~] Show in `--diagnostics-summary`: "Cache hit saved: Nms total"
 
 ### 4.2 `CacheStore::evict_to_size` logging
 
@@ -186,7 +186,7 @@ This plan consolidates all cross-cutting items that don't fit neatly into a sing
 
 ### 4.3 `cache_hits` / `cache_misses` in `--diagnostics-summary`
 
-- [ ] Once `--diagnostics-summary` lands (Phase 2.2), ensure cache hit/miss counts are included
+- [x] `--diagnostics-summary` lands (Phase 2.2) and includes cache hit/miss counts
 
 ---
 
@@ -197,35 +197,35 @@ This plan consolidates all cross-cutting items that don't fit neatly into a sing
 
 ### 5.1 Schema adds
 
-- [ ] `cache.evict_target_ratio`: float (0.0–1.0, default 0.9) in `slopguard.schema.json`
+- [x] `cache.evict_target_ratio`: float (0.0–1.0, default 0.9) in `slopguard.schema.json`
   - Also tracked in `04-cache-incremental-remaining.md` Phase 1.1
-- [ ] `cache.max_file_size_mb`: integer (default 4) in `slopguard.schema.json`
+- [x] `cache.max_file_size_mb`: integer (default 4) in `slopguard.schema.json`
   - Also tracked in `04-cache-incremental-remaining.md` Phase 1.2
-- [ ] `bad_practices.severity_overrides`: map of rule ID → severity string in `slopguard.schema.json`
+- [x] `bad_practices.severity_overrides`: map of rule ID → severity string in `slopguard.schema.json`
   - Also tracked in `03-bad-practices-remaining.md` Phase 1 (MVP hygiene)
 
 ### 5.2 Config struct updates
 
-- [ ] Add fields to `CacheConfig` in `src/engine/config/types.rs` (evict_target_ratio, max_file_size_mb)
-- [ ] Add `severity_overrides: Option<HashMap<String, Severity>>` to `BadPracticesConfig`
-- [ ] Wire into `ScanContext.apply_finding_overrides()` for BP rules
+- [x] Add fields to `CacheConfig` in `src/engine/config/types.rs` (evict_target_ratio, max_file_size_mb)
+- [~] Add `severity_overrides: Option<HashMap<String, Severity>>` to `BadPracticesConfig` — only `enabled` + `severity` exist in `BadPracticesConfig`; `severity_overrides` is in schema/template but not in Rust struct
+- [~] Wire into `ScanContext.apply_finding_overrides()` for BP rules
 
 ### 5.3 Template updates
 
-- [ ] Add commented-out `[slopguard.taint]` block to `templates/slopguard.toml`:
+- [x] Add commented-out `[slopguard.taint]` block to `templates/slopguard.toml`:
   ```toml
   # [slopguard.taint]
   # enabled = false
   # show_paths = false
   ```
-- [ ] Add commented-out `[slopguard.bad_practices]` with `severity_overrides` example:
+- [x] Add commented-out `[slopguard.bad_practices]` with `severity_overrides` example:
   ```toml
   # [slopguard.bad_practices]
   # enabled = true
   # severity = "medium"
   # severity_overrides = { "BP-5" = "high" }
   ```
-- [ ] Ensure cache config in template is up-to-date with `evict_target_ratio` and `max_file_size_mb` fields
+- [x] Ensure cache config in template is up-to-date with `evict_target_ratio` and `max_file_size_mb` fields
 
 ---
 
@@ -236,9 +236,9 @@ This plan consolidates all cross-cutting items that don't fit neatly into a sing
 
 ### 6.1 HTML reporter
 
-- [ ] The HTML reporter is explicitly deferred in the plan (`plans/p2-remaining-work.md` C.3):
+- [~] The HTML reporter is explicitly deferred in the plan (`plans/p2-remaining-work.md` C.3):
   > "deferred until the HTML reporter is added at all; today only text/JSON/SARIF exist."
-- [ ] Action: no work planned
+- [~] Action: no work planned `(deferred → see plans/v3.0.0/)`
 
 ---
 

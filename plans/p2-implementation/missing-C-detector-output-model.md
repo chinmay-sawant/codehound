@@ -145,7 +145,7 @@ The `Finding` struct currently carries only a plain-text `message` plus metadata
   }
   ```
   - [x] Added `evidence`, `confidence`, `tags`, `suppressed`, and `remediation`
-  - [ ] Add cached `fingerprint_str` if profiling shows repeated fingerprint computation matters (deferred)
+  - [~] Add cached `fingerprint_str` if profiling shows repeated fingerprint computation matters (deferred) (deferred → see plans/v3.0.0/)
 - [x] Review: do NOT remove existing fields — this is additive
 - [x] All new fields use `#[serde(skip_serializing_if = "...")]` for backward compatibility
 - [x] JSON output will include new fields when present; absent when not set (backward-compatible for existing consumers)
@@ -191,16 +191,16 @@ The `Finding` struct currently carries only a plain-text `message` plus metadata
 ### 3.3 Update detector functions to use new API
 
 - [x] For Category A detectors (simple pattern match):
-  - [ ] Optionally add `PatternMatch` evidence (deferred)
-  - [x] Continue using existing `push_finding()` if no structured evidence needed
+- [~] Optionally add `PatternMatch` evidence (deferred → see plans/v3.0.0/)
+- [x] Continue using existing `push_finding()` if no structured evidence needed
 - [x] For Category B/C detectors (context-aware):
   - [x] Add structured evidence for the specific pattern
     - [x] CWE-78 emits `DangerousCall { function: "exec.Command", argument_index: Some(2) }`
     - [x] CWE-22 emits `DangerousCall` with the path-traversal sink
     - [x] CWE-89 emits `DangerousCall` with the SQL sink
     - [x] PERF-1 emits `ControlFlowIssue { LoopBodyAllocation, ... }`
-  - [ ] Set `confidence` if heuristic (deferred)
-  - [ ] Set `tags` for known false-positive risks (deferred)
+- [~] Set `confidence` if heuristic (deferred → see plans/v3.0.0/)
+- [~] Set `tags` for known false-positive risks (deferred → see plans/v3.0.0/)
 - [x] Start with a few detectors as exemplars, document the pattern, then expand
   - [x] First exemplar: CWE-78 command injection
   - [x] Expanded exemplars: CWE-22, CWE-89, PERF-1
@@ -222,7 +222,7 @@ The `Finding` struct currently carries only a plain-text `message` plus metadata
 - [x] Map `DetectorEvidence` variants to SARIF fields:
   - [x] All variants serialize as JSON in `result.properties.slopguardEvidence`
   - [x] `DangerousCall` → function/argumentIndex surfaced in evidence JSON
-  - [ ] `TaintFlow` → map to SARIF `graphTraversal` or `codeFlow` sections (deferred)
+  - [~] `TaintFlow` → map to SARIF `graphTraversal` or `codeFlow` sections (deferred → see plans/v3.0.0/)
   - [x] `PatternMatch` / `MissingConfig` / `ControlFlowIssue` / `Other` → evidence JSON in properties
 - [x] Map `confidence` to SARIF result `rank` (0.0-1.0 maps to 0.0-100.0)
 - [x] Map `tags` to SARIF `result.properties.tags`
@@ -260,7 +260,7 @@ The `Finding` struct currently carries only a plain-text `message` plus metadata
 
 - [x] SARIF spec allows additional `properties` — new fields go there by default
 - [x] Existing SARIF consumers should handle gracefully
-- [ ] Test: SARIF output is valid against SARIF 2.1.0 schema (deferred to schema-validation task)
+- [~] Test: SARIF output is valid against SARIF 2.1.0 schema (deferred to schema-validation task) (deferred → see plans/v3.0.0/)
 
 ### 5.3 Text output backward compatibility
 
@@ -288,17 +288,16 @@ The `Finding` struct currently carries only a plain-text `message` plus metadata
   - [x] CWE-22 (path traversal) → `DangerousCall` evidence
   - [x] CWE-89 (SQL injection) → `DangerousCall` evidence
   - [x] PERF-1 (loop allocation) → `ControlFlowIssue` evidence
-  - [ ] A complePatternMatch → `PatternMatch` evidence (deferred)
+  - [~] PatternMatch evidence (deferred → see plans/v3.0.0/)
 - [x] Verify test fixtures still pass after evidence addition
 - [x] Verify JSON output includes `evidence` field
 
 ### 6.3 Serialization round-trip tests
 
-- [ ] For each reporter (JSON, SARIF):
-  - [ ] Create a Finding with all optional fields populated
-  - [ ] Serialize to output
-  - [ ] Deserialize/parse the output
-  - [ ] Verify all fields round-trip correctly
+- [~] For each reporter (JSON, SARIF): round-trip test with all optional fields — not implemented (deferred → see plans/v3.0.0/)
+- [~] Create a Finding with all optional fields populated (deferred → see plans/v3.0.0/)
+- [~] Serialize/deserialize round-trip (deferred → see plans/v3.0.0/)
+- [~] Verify all fields round-trip correctly (deferred → see plans/v3.0.0/)
 
 ---
 

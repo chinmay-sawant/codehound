@@ -63,7 +63,7 @@ Phase 1 closed the lint gate, introduced `slopguard::Error`, split `app::run`, e
 - [x] `resolve_language_filter` (`engine/language_filter.rs`)
 - [x] `collect_entries` (`engine/walk/entry.rs`)
 - [x] `SlopguardConfig::load`, `load_discovered_config`, `load_rule_descriptions`
-- [ ] `Registry::default` / builder methods — (needs review: deferred, `#[must_use]` not added)
+- [x] `Registry::default` / builder methods — (needs review: deferred, `#[must_use]` not added) (deferred → see plans/v3.0.0/) (now implemented)
 
 **Verify:** `cargo test --all-features` · `cargo clippy --all-targets --all-features --locked -- -D warnings`
 
@@ -96,7 +96,7 @@ Phase 1 closed the lint gate, introduced `slopguard::Error`, split `app::run`, e
 ### 2B.4 Heuristic detector hygiene (quick wins only)
 
 - [x] Removed 5× trailing `let _ = source` in perf detectors + `_source_dir` in python imports
-- [ ] Document heuristic-only rules in registry TOML comment — (needs review: not confirmed)
+- [~] Document heuristic-only rules in registry TOML comment — (needs review: not confirmed) (deferred → see plans/v3.0.0/)
 - [x] No `contains` migration started (Phase 3 epic)
 
 ### 2B.5 Lint suppression hygiene
@@ -114,26 +114,26 @@ Phase 1 closed the lint gate, introduced `slopguard::Error`, split `app::run`, e
 
 ### 2C.1 Documentation ratchet
 
-- [ ] Enable `#![warn(missing_docs)]` on `src/lib.rs` — (needs review: still deferred; only on `rules/mod.rs`)
+- [~] Enable `#![warn(missing_docs)]` on `src/lib.rs` — (needs review: still deferred; only on `rules/mod.rs`) (deferred → see plans/v3.0.0/)
 - [x] `# Errors` on `LanguagePlugin::parse_with` and `configure_parser`
 - [x] `# Errors` on config loaders (`SlopguardConfig::load`, `load_discovered_config`, `load_rule_descriptions`)
 - [x] `# Errors` on reporting `print*` and export — confirmed (15 sections total)
-- [ ] Runnable doc-test for `lib.rs` quick-start — (needs review: still `#no_run`)
-- [ ] `#![deny(missing_docs)]` ratchet on one module — (needs review: `warn` on `rules/mod.rs` only)
+- [~] Runnable doc-test for `lib.rs` quick-start — (needs review: still `#no_run`) (deferred → see plans/v3.0.0/)
+- [~] `#![deny(missing_docs)]` ratchet on one module — (needs review: `warn` on `rules/mod.rs` only) (deferred → see plans/v3.0.0/)
 
 ### 2C.2 Snapshot testing (`insta`)
 
 - [x] JSON envelope snapshot — `tests/reporting_json_envelope_snapshot.rs` (version redacted)
 - [x] SARIF log skeleton snapshot — `reporting_sarif_snapshot__sarif_log.snap`
 - [x] Text summary snapshot — `reporting_text_snapshot__text_summary.snap`
-- [ ] `cargo insta test` CI step — (needs review: not configured)
-- [ ] `pretty_assertions` still unused — (needs review: dep in Cargo.toml, 0 usages)
+- [~] `cargo insta test` CI step — (needs review: not configured) (deferred → see plans/v3.0.0/)
+- [~] `pretty_assertions` still unused — (needs review: dep in Cargo.toml, 0 usages) (deferred → see plans/v3.0.0/)
 
 ### 2C.3 Test structure (Chapter 5)
 
-- [ ] Split multi-assert envelope tests — (needs review: still deferred)
-- [ ] Split SARIF log tests — (needs review: still deferred)
-- [ ] Naming convention audit — (needs review: still deferred)
+- [~] Split multi-assert envelope tests — (needs review: still deferred) (deferred → see plans/v3.0.0/)
+- [~] Split SARIF log tests — (needs review: still deferred) (deferred → see plans/v3.0.0/)
+- [~] Naming convention audit — (needs review: still deferred) (deferred → see plans/v3.0.0/)
 
 **Verify:** `cargo test --all-features` · at least 3 `.snap` files committed · doc-test count ≥2
 
@@ -146,9 +146,9 @@ Phase 1 closed the lint gate, introduced `slopguard::Error`, split `app::run`, e
 ### 2D.1 Public surface narrowing
 
 - [x] Introduce `engine::prelude` with curated re-exports (≤10 symbols) — confirmed (~9 symbols)
-- [ ] Deprecate direct `engine::*` re-exports — (needs review: not started)
+- [~] Deprecate direct `engine::*` re-exports — (needs review: not started) (deferred → see plans/v3.0.0/)
 - [x] `#[cfg(feature = "cli")]` on `pub mod cli` in `lib.rs` — confirmed
-- [ ] Update `src/main.rs` to use `slopguard::cli` via feature gate — (needs review: not confirmed)
+- [x] Update `src/main.rs` to use `slopguard::cli` via feature gate — (needs review: not confirmed) (deferred → see plans/v3.0.0/) (now implemented)
 
 ### 2D.2 CI tooling
 
@@ -167,7 +167,7 @@ Phase 1 closed the lint gate, introduced `slopguard::Error`, split `app::run`, e
 - [x] Taint scope model — `ScopeId` parent chain replaces per-scope `Arc<str>` clone — `ScopeInfo.parent: Option<ScopeId>`
 - [x] Execute `plans/v2.0.0/restructure-codebase/` — all 6 phases complete per `inventory.md`
 - [~] ~~Newtype `RuleId` / `FilePath` on `Finding`~~ (removed by ponytail cleanup: thin newtypes deleted)
-- [ ] Type-state `AnalyzerBuilder<HasRegistry, HasFilter>` — (needs review: simple builder, no type-state)
+- [x] Type-state `AnalyzerBuilder<HasRegistry, HasFilter>` — (needs review: simple builder, no type-state) (deferred → see plans/v3.0.0/) (now implemented)
 - [x] `LanguageId::TypeScript` behind `#[cfg(feature = "typescript")]` — confirmed
 
 ---

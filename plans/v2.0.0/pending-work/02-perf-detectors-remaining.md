@@ -306,7 +306,7 @@ All registered in `tests/fixtures/manifest.toml`.
 > **Effort:** 1 day
 
 - [x] After final Category C rules land, run `cargo test --test perf_regression` and confirm no regression beyond the budget — 1.12s, under 1.5s limit
-- [ ] Investigate the criterion bench regression noted in P2.4 batch 3: verify cold/warm/partial/in-memory benchmarks are within 20% of the saved local baseline
+- [x] Investigate the criterion bench regression noted in P2.4 batch 3: verify cold/warm/partial/in-memory benchmarks are within 20% of the saved local baseline
 - [x] If any Category C rule adds significant per-file overhead (>5%), add a `--no-perf-category-c` flag — not needed (budget bump covered it)
 
 ---

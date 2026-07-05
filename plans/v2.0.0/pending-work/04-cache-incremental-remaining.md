@@ -37,7 +37,7 @@ Currently the LRU eviction prunes to a hardcoded 90% of `max_size_bytes`:
 let target = (self.max_size_bytes as f64 * 9.0 / 10.0) as u64; // hardcoded 0.9
 ```
 
-- [ ] Add `evict_target_ratio: f64` to `CacheConfig` in `src/engine/config/types.rs`:
+- [x] Add `evict_target_ratio: f64` to `CacheConfig` in `src/engine/config/types.rs`:
   ```rust
   pub struct CacheConfig {
       pub enabled: Option<bool>,
@@ -46,22 +46,22 @@ let target = (self.max_size_bytes as f64 * 9.0 / 10.0) as u64; // hardcoded 0.9
       pub evict_target_ratio: Option<f64>,  // 0.0–1.0, default 0.9
   }
   ```
-- [ ] Add default 0.9 in `CacheConfig::apply_defaults()` or wherever defaults are set
-- [ ] Wire through `CacheStore::open_with_capacity()` and use in `evict_to_size()`
-- [ ] Validate range (0.1–0.99) with a `tracing::warn!` on out-of-range values (clamp to 0.9)
-- [ ] Update `slopguard.schema.json` with `cache.evict_target_ratio` field
-- [ ] Update `docs/incremental-cache.md` with the new config option
-- [ ] Add a test: `flush_evicts_to_configured_ratio` in `tests/engine_cache_store.rs`
+- [x] Add default 0.9 in `CacheConfig::apply_defaults()` or wherever defaults are set
+- [x] Wire through `CacheStore::open_with_capacity()` and use in `evict_to_size()`
+- [x] Validate range (0.1–0.99) with a `tracing::warn!` on out-of-range values (clamp to 0.9)
+- [x] Update `slopguard.schema.json` with `cache.evict_target_ratio` field
+- [x] Update `docs/incremental-cache.md` with the new config option
+- [~] Add a test: `flush_evicts_to_configured_ratio` in `tests/engine_cache_store.rs`
 
 ### 1.2 `max_file_size_mb` config field
 
 Currently every file under ~4 MiB is cached; the threshold is implicit (based on in-memory buffer sizes).
 
-- [ ] Add `max_file_size_mb: Option<u64>` to `CacheConfig` (default 4)
-- [ ] In the scan preflight / cache-lookup step, skip caching for files larger than this threshold
-- [ ] Log a `tracing::debug!` when a file is skipped due to size
-- [ ] Update `slopguard.schema.json` with `cache.max_file_size_mb`
-- [ ] Update `docs/incremental-cache.md`
+- [x] Add `max_file_size_mb: Option<u64>` to `CacheConfig` (default 4)
+- [x] In the scan preflight / cache-lookup step, skip caching for files larger than this threshold
+- [x] Log a `tracing::debug!` when a file is skipped due to size
+- [x] Update `slopguard.schema.json` with `cache.max_file_size_mb`
+- [x] Update `docs/incremental-cache.md`
 
 ---
 
@@ -72,7 +72,7 @@ Currently every file under ~4 MiB is cached; the threshold is implicit (based on
 
 ### 2.1 Logging on LRU eviction
 
-- [ ] In `CacheStore::evict_to_size()` (`src/engine/cache/store_flush.rs`), after removing entries, emit a `tracing::info!` summary:
+- [x] In `CacheStore::evict_to_size()` (`src/engine/cache/store_flush.rs`), after removing entries, emit a `tracing::info!` summary:
   ```rust
   tracing::info!(
       entries_evicted = evicted.len(),
@@ -82,12 +82,12 @@ Currently every file under ~4 MiB is cached; the threshold is implicit (based on
       "cache LRU eviction completed"
   );
   ```
-- [ ] Also emit a `tracing::debug!` for each individual evicted entry (file path + size) for detailed debugging
-- [ ] Add a test that verifies the log message is emitted (use `tracing_test::span` or similar)
+- [~] Also emit a `tracing::debug!` for each individual evicted entry (file path + size) for detailed debugging
+- [~] Add a test that verifies the log message is emitted (use `tracing_test::span` or similar)
 
 ### 2.2 Logging on transitive invalidation cascade
 
-- [ ] In `src/engine/analyzer/scan.rs`, the transitive invalidation already logs at `tracing::info!` when count > 0 (wired in E.5 per previous work). Verify the format includes the number of cascaded files and the triggering file.
+- [x] In `src/engine/analyzer/scan.rs`, the transitive invalidation already logs at `tracing::info!` when count > 0 (wired in E.5 per previous work). Verify the format includes the number of cascaded files and the triggering file.
 
 ---
 
@@ -98,37 +98,37 @@ Currently every file under ~4 MiB is cached; the threshold is implicit (based on
 
 ### 3.1 Concurrent scans test (Phase 8.4)
 
-- [ ] Create `tests/engine_cache_concurrent.rs`:
+- [x] Create `tests/engine_cache_concurrent.rs`:
   - Spawn two `std::process::Command` processes running `cargo run -- scan` against the same cache dir
   - Verify both complete successfully and neither loses entries (or manifest falls back gracefully)
   - Use a temp dir with a known Go fixture as the scan target
   - Mark as `#[ignore]` if it proves flaky on CI (documented as non-portable in the plan)
-- [ ] Update `docs/incremental-cache.md` limitations section to mention this test exists
+- [~] Update `docs/incremental-cache.md` limitations section to mention this test exists
 
 ### 3.2 Transitive invalidation test without `go.mod` (Phase 8.2)
 
-- [ ] Add a test variant that creates a synthetic temp dir **without** a `go.mod` file, where dependency paths are resolved via the analyzer's fallback (`cwd` inference).
+- [x] Add a test variant that creates a synthetic temp dir **without** a `go.mod` file, where dependency paths are resolved via the analyzer's fallback (`cwd` inference).
   - Currently `transitive_invalidation_clears_dependents` requires a real `go.mod` on disk
   - The new test should verify that `no_go_mod_path_inference_falls_back_to_cwd` works and that transitive invalidation still fires
 
 ### 3.3 Tool version mismatch test
 
-- [ ] Add a test that writes a manifest with `tool_version: "0.0.0-old"`, opens the cache, and verifies:
+- [x] Add a test that writes a manifest with `tool_version: "0.0.0-old"`, opens the cache, and verifies:
   - A warning is logged (`tracing::warn!` about version mismatch)
   - The cache is still usable (lazy rewrite on next entry touch)
-- [ ] Verify that a file cached under the old version is re-cached when touched (content hash check passes, but entry is rewritten)
+- [x] Verify that a file cached under the old version is re-cached when touched (content hash check passes, but entry is rewritten)
 
 ### 3.4 Corrupt entry file test
 
-- [ ] Add a test that writes a malformed JSON entry file in `files/<sha256>.json`, opens the cache, and verifies:
+- [x] Add a test that writes a malformed JSON entry file in `files/<sha256>.json`, opens the cache, and verifies:
   - The corrupt entry is **not** treated as a cache hit (falls back to `CacheStatus::Miss`)
   - A `tracing::warn!` is emitted for the corrupt entry
-- [ ] Verify the manifest still works for other (non-corrupt) entries
+- [x] Verify the manifest still works for other (non-corrupt) entries
 
 ### 3.5 `CacheStore::clean_orphans()` test
 
-- [ ] Add a test that creates an orphaned `.json` file in the `files/` directory (no matching manifest entry), runs `clean_orphans()`, and verifies the orphan is deleted
-- [ ] Verify the manifest file is not affected
+- [x] Add a test that creates an orphaned `.json` file in the `files/` directory (no matching manifest entry), runs `clean_orphans()`, and verifies the orphan is deleted
+- [x] Verify the manifest file is not affected
 
 ---
 
@@ -140,13 +140,13 @@ Currently every file under ~4 MiB is cached; the threshold is implicit (based on
 ### 4.1 Fix `docs/incremental-cache.md` claims
 
 - [x] Update line 99–100 which states "Size-based LRU eviction (`max_size_mb`) is wired in config but not yet enforced on `flush()`." — this is **incorrect**; `evict_to_size()` IS implemented and called from `flush()`. Change to: "Size-based LRU eviction (`max_size_mb`) is enforced on `flush()`. See `store_flush.rs:40`." **Already fixed** in current `docs/incremental-cache.md:99-100`
-- [ ] Add a note that `evict_target_ratio` (default 0.9) controls how aggressively the cache prunes (once Phase 1.1 lands)
-- [ ] Add a note that `max_file_size_mb` (default 4) controls per-file caching threshold (once Phase 1.2 lands)
+- [x] Add a note that `evict_target_ratio` (default 0.9) controls how aggressively the cache prunes (once Phase 1.1 lands)
+- [x] Add a note that `max_file_size_mb` (default 4) controls per-file caching threshold (once Phase 1.2 lands)
 
 ### 4.2 Update `docs/architecture-performance.md`
 
-- [ ] Ensure the cache architecture section reflects the current state: `files/<sha256>.json` format, manifest, LRU eviction, dependency extraction
-- [ ] Add a note about the `--prune-cache` flag (was added after the doc was written)
+- [x] Ensure the cache architecture section reflects the current state: `files/<sha256>.json` format, manifest, LRU eviction, dependency extraction
+- [x] Add a note about the `--prune-cache` flag (was added after the doc was written)
 
 ---
 

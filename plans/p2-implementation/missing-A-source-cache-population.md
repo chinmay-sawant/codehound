@@ -89,10 +89,10 @@ Assuming **Option D** is selected:
 
 - [x] In `export_findings()` (line 28):
   - [x] Accept `source_cache: &HashMap<String, Arc<str>>` as a parameter
-  - [ ] In `finding_context_lines()` (line 120):
+  - [x] In `finding_context_lines()` (line 120):
     - [x] First check `source_cache.get(&finding.file)` (already did this; now the cache is populated)
     - [x] Only fall back to `file_cache` (HashMap-based disk read) if not in `source_cache`
-    - [ ] Remove the `file_cache` fallback entirely if we can guarantee `source_cache` is complete
+    - [~] Remove the `file_cache` fallback entirely if we can guarantee `source_cache` is complete — `file_cache` still present in `export/entry.rs:30` (deferred → see plans/v3.0.0/)
   - [x] Regression test: verify no second disk read is needed during export for successfully scanned files by deleting source before export
 - [x] In `src/app.rs::run()` (line 81-114):
   - [x] Pass `result.source_cache` to `export_findings()`
@@ -133,9 +133,9 @@ Assuming **Option D** is selected:
 
 ### 4.2 Performance check
 
-- [ ] Measure total scan time with and without source_cache population
-  - [ ] Current in-tree code only has the populated-cache path; run a branch-to-branch benchmark or feature flag if exact before/after timing is required.
-- [ ] Memory usage: track peak memory for a large codebase
+- [~] Measure total scan time with and without source_cache population — not benchmarked (deferred → see plans/v3.0.0/)
+- [~] Current in-tree code only has the populated-cache path; run a branch-to-branch benchmark (deferred → see plans/v3.0.0/)
+- [~] Memory usage: track peak memory for a large codebase — `source_cache_bytes()` exists but no peak-memory tracking (deferred → see plans/v3.0.0/)
   - [x] Added `AnalysisResult::source_cache_bytes()` to report retained source-text bytes for a scan.
 - [x] `Arc<str>` avoids deep copies — verify no clone overhead in hot path
 
@@ -145,7 +145,7 @@ Assuming **Option D** is selected:
   - [x] Decision: Omit files that can't be read or decoded as UTF-8 (they produce `ScanError`, not `ParsedUnit`)
 - [x] Very large files (10MB+ source): `Arc<str>` keeps entire file in memory
   - [x] Is this acceptable? Document memory budget.
-  - [ ] Future: add a size threshold above which source is not cached
+  - [~] Future: add a size threshold above which source is not cached (deferred → see plans/v3.0.0/)
 - [x] Empty files: empty string in cache
 
 ---
@@ -155,22 +155,15 @@ Assuming **Option D** is selected:
 ### 5.1 Make `source_cache` available to future passes
 
 - [x] Ensure `AnalysisResult` is the canonical carrier of in-memory source
-- [ ] Future P2.2 (Baseline): baseline saving needs source_cache? (probably not — findings are enough)
-- [ ] Future P2.3 (Incremental): cache entries may include source text; `source_cache` should feed that
-- [ ] Future P2.1 (Taint): taint analysis may need source text for snippet generation — already available
+- [~] Future P2.2 (Baseline): baseline saving needs source_cache? — not needed (deferred → see plans/v3.0.0/)
+- [~] Future P2.3 (Incremental): cache entries may include source text — not implemented (deferred → see plans/v3.0.0/)
+- [x] Future P2.1 (Taint): taint analysis may need source text — already available via ParsedUnit
 
 ### 5.2 Consider a `ScanArtifact` type
 
-- [ ] Evaluate whether `AnalysisResult` is getting too heavy
-- [ ] If `source_cache` + findings + errors + baseline + taint paths all live on one struct, consider refactoring:
-  ```rust
-  struct ScanArtifacts {
-      analysis: AnalysisResult,
-      source_cache: HashMap<String, Arc<str>>,
-      baseline: Option<Baseline>,
-  }
-  ```
-- [ ] Defer this decision — not needed for this implementation, but keep in mind for maintainability
+- [~] Evaluate whether `AnalysisResult` is getting too heavy — deferred (deferred → see plans/v3.0.0/)
+- [~] Consider `ScanArtifact` refactoring — deferred (deferred → see plans/v3.0.0/)
+- [x] Defer this decision — not needed for this implementation, but keep in mind for maintainability
 
 ---
 

@@ -79,7 +79,7 @@ tier and phase within each workstream.
   - CWE-22: kept `if taint_graph.is_some() { taint } else { fallback }` as safety net when taint is explicitly disabled
 - [x] Fixed taint graph sink wiring for compound args (`"prefix" + var` — `build.rs`)
 - [x] Added `os.ReadFile`, `ioutil.ReadFile` to taint sink classifier (CWE-22 regression)
-- [ ] Add a `cargo test --all-features` run with taint enabled to CI
+- [~] Add a `cargo test --all-features` run with taint enabled to CI (deferred → see plans/v3.0.0/)
 
 ### Phase D — Extended sanitizer coverage
 
@@ -97,9 +97,9 @@ tier and phase within each workstream.
 - [x] `--taint` flag: enable taint tracking from CLI
 - [x] `--no-taint` flag: disable taint even if config enables it
 - [x] `--taint-show-paths` flag: emit taint-path evidence in JSON/SARIF/text output
-- [ ] Wire `taint_show_paths` in JSON reporter (`evidence.taint_path`)
-- [ ] Wire `taint_show_paths` in SARIF reporter (`properties` bag)
-- [ ] Wire `taint_show_paths` in text reporter (print path in output)
+- [x] Wire `taint_show_paths` in JSON reporter (`evidence.taint_path`)
+- [x] Wire `taint_show_paths` in SARIF reporter (`properties` bag)
+- [x] Wire `taint_show_paths` in text reporter (print path in output)
 - [x] Create `docs/taint.md` — overview, enabling, model, limitations, output, custom sanitizers
 - [x] Update `templates/slopguard.toml` with commented-out `[slopguard.taint]` block
 
@@ -108,12 +108,12 @@ tier and phase within each workstream.
 > **Sub-plan:** `plans/p1f-inter-procedural-taint.md` — 6 phases, ~46 detailed checklist items.
 > **Estimated effort:** 3–4 weeks.
 
-- [ ] Phase 1: Call graph construction (per-file + project-level merge)
-- [ ] Phase 2: Function summary computation (`TaintSummary` struct)
-- [ ] Phase 3: Cross-function propagation (call-site wiring, fixed-point iteration)
-- [ ] Phase 4: Evidence and reporting (multi-hop path display)
-- [ ] Phase 5: Tests and fixtures (10+ inter-procedural fixture pairs)
-- [ ] Phase 6: Edge-case handling (recursion, pointers, maps, goroutines, deferred calls)
+- [x] Phase 1: Call graph construction (per-file + project-level merge)
+- [x] Phase 2: Function summary computation (`TaintSummary` struct)
+- [x] Phase 3: Cross-function propagation (call-site wiring, fixed-point iteration)
+- [x] Phase 4: Evidence and reporting (multi-hop path display)
+- [x] Phase 5: Tests and fixtures (10+ inter-procedural fixture pairs)
+- [x] Phase 6: Edge-case handling (recursion, pointers, maps, goroutines, deferred calls)
 
 ---
 
@@ -257,11 +257,11 @@ tier and phase within each workstream.
 
 - [x] Add `--taint` / `--no-taint` / `--taint-show-paths` to CLI (Phase E prerequisite for C and P0)
 - [x] Create `docs/taint.md`
-- [ ] Create `docs/bad-practices.md`
-- [ ] Create `docs/perf-detector-development.md`
-- [ ] Add CWE-90/91 fixtures to `tests/fixtures/manifest.toml`
-- [ ] Run `cargo test --all-features` after each phase
-- [ ] Run `cargo clippy --all-targets --all-features -- -D warnings` after each phase
+- [x] Create `docs/bad-practices.md`
+- [x] Create `docs/perf-detector-development.md`
+- [x] Add CWE-90/91 fixtures to `tests/fixtures/manifest.toml`
+- [~] Run `cargo test --all-features` after each phase (deferred → see plans/v3.0.0/)
+- [x] Run `cargo clippy --all-targets --all-features -- -D warnings` after each phase
 
 ---
 

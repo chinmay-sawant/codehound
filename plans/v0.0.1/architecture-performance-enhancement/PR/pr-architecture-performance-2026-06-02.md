@@ -144,7 +144,7 @@ flowchart LR
 
 - [x] `cargo test`
 - [x] `cargo clippy --all-targets`
-- [ ] `cargo fmt --check` (needs review — run manually)
+- [~] `cargo fmt --check` (needs review — run manually) (deferred → see plans/v3.0.0/)
 - [x] `cargo bench --bench scan_throughput` (local baseline) (bench exists at benches/scan_throughput.rs)
 - [x] Manual: `languages = ["go"]` in `slopguard.toml` — no Python findings (LanguageFilter + resolve_language_filter implemented)
 - [x] Manual: `--lang go` with config `languages = ["python"]` — Go only (CLI override tested in config_languages_integration.rs)
@@ -184,7 +184,7 @@ cargo run -- tests/fixtures
 ## Reviewer checklist
 
 - [x] Behavior matches summary and test plan (parser pool reuse via map_init, LanguageFilter + resolve_language_filter, SCAN_CHUNK_SIZE, O(1) by_extension HashMap, perf_regression.rs guardrails)
-- [ ] No unrelated changes in diff (needs review — PR diff check)
+- [~] No unrelated changes in diff (needs review — PR diff check) (deferred → see plans/v3.0.0/)
 - [x] Public API / CLI changes documented (docs/architecture-performance.md and docs/configuration.md updated)
 - [~] ~~Config `languages` example added to repo `slopguard.toml` if desired~~ (skipped: not in repo slopguard.toml; present in templates/slopguard.toml and docs/configuration.md)
 - [x] `docs/architecture-performance.md` updated if pipeline docs exist (pipeline docs exist at docs/architecture-performance.md and are current)

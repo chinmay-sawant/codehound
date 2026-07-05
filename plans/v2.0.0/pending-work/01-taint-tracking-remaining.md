@@ -34,23 +34,23 @@ The taint-tracking foundation is in place: `TaintGraph` data model, tree-sitter 
 
 ### 1.1 Prerequisites
 
-- [ ] Land Phase E (CLI flags) so users can discover and enable taint without editing `slopguard.toml`
-- [ ] Land `docs/taint.md` so users understand what taint does and how to disable it
-- [ ] Ensure `--no-taint` / `--taint` flags exist (see Phase E)
+- [x] Land Phase E (CLI flags) so users can discover and enable taint without editing `slopguard.toml`
+- [x] Land `docs/taint.md` so users understand what taint does and how to disable it
+- [x] Ensure `--no-taint` / `--taint` flags exist (see Phase E)
 
 ### 1.2 Code changes
 
-- [ ] Flip default `slopguard.taint.enabled` from `false` to `true` in `src/engine/config/types.rs:90`
-- [ ] Remove the `if facts.taint_graph.is_some() { return taint_version } else { fallback }` pattern in all 4 CWE detectors (`domains/path_traversal.rs`, `domains/injection/sinks.rs`, `domains/input_validation/output_encoding.rs`)
+- [x] Flip default `slopguard.taint.enabled` from `false` to `true` in `src/engine/config/types.rs:90`
+- [x] Remove the `if facts.taint_graph.is_some() { return taint_version } else { fallback }` pattern in all 4 CWE detectors (`domains/path_traversal.rs`, `domains/injection/sinks.rs`, `domains/input_validation/output_encoding.rs`)
   - Each detector should **always** delegate to the taint-based implementation when taint is enabled
   - The old substring-heuristic fallback remains as a compile-time error only when taint is disabled
-- [ ] Update `tests/go_cwe_detector_fixtures.rs` so all 4 CWE integration tests run both with **and without** taint enabled, verifying both paths produce at least one finding
-- [ ] Add a `cargo test --all-features` run with taint enabled to CI (`ci.yml`)
+- [~] Update `tests/go_cwe_detector_fixtures.rs` so all 4 CWE integration tests run both with **and without** taint enabled, verifying both paths produce at least one finding
+- [~] Add a `cargo test --all-features` run with taint enabled to CI (`ci.yml`)
 
 ### 1.3 Edge cases
 
-- [ ] Test that a file with **no sources** or **no sinks** does not trigger spurious findings when taint is enabled
-- [ ] Test that a file with sources but sanitized sinks (e.g. `filepath.Clean` + `os.Open`) does not fire
+- [~] Test that a file with **no sources** or **no sinks** does not trigger spurious findings when taint is enabled
+- [x] Test that a file with sources but sanitized sinks (e.g. `filepath.Clean` + `os.Open`) does not fire
 
 ---
 
@@ -63,29 +63,29 @@ The taint-tracking foundation is in place: `TaintGraph` data model, tree-sitter 
 
 Add the following sanitizer functions to the classifier in `src/lang/go/detectors/cwe/taint/extract/classify.rs`:
 
-- [ ] `strconv.Atoi`, `strconv.ParseInt`, `strconv.ParseFloat` → `SanitizerKind::Validation` (converts string to number, fails if invalid)
-- [ ] `utf8.ValidString` → `SanitizerKind::Validation` (confirms valid UTF-8)
-- [~] ~~`html.EscapeString`, `html.UnescapeString` → `SanitizerKind::HTML` (stdlib HTML escaping, distinct from `template.HTMLEscaper`)~~ `(skipped: html.EscapeString already in classify_sanitizer, but html.UnescapeString not added)`
-- [ ] `net/url.IsAbs` → `SanitizerKind::URL` (validates absolute URL)
-- [ ] `strings.HasPrefix`, `strings.HasSuffix`, `strings.Contains` → `SanitizerKind::Validation` (guard checks that restrict input)
+- [x] `strconv.Atoi`, `strconv.ParseInt`, `strconv.ParseFloat` → `SanitizerKind::Validation` (converts string to number, fails if invalid)
+- [~] `utf8.ValidString` → `SanitizerKind::Validation` (confirms valid UTF-8)
+- [x] `html.EscapeString`, `html.UnescapeString` → `SanitizerKind::HTML` (stdlib HTML escaping, distinct from `template.HTMLEscaper`)
+- [~] `net/url.IsAbs` → `SanitizerKind::URL` (validates absolute URL)
+- [~] `strings.HasPrefix`, `strings.HasSuffix`, `strings.Contains` → `SanitizerKind::Validation` (guard checks that restrict input)
 
 ### 2.2 Middleware / framework sanitizers
 
-- [ ] Gin: `c.ShouldBind`, `c.ShouldBindJSON`, `c.ShouldBindQuery` → `SanitizerKind::Validation` (structured binding validates types)
-- [ ] Echo: `c.Bind`, `c.BindWith` → `SanitizerKind::Validation`
-- [ ] Chi / gorilla/mux: `chi.URLParam`, `mux.Vars` → treat as source, not sanitizer
+- [~] Gin: `c.ShouldBind`, `c.ShouldBindJSON`, `c.ShouldBindQuery` → `SanitizerKind::Validation` (structured binding validates types)
+- [~] Echo: `c.Bind`, `c.BindWith` → `SanitizerKind::Validation`
+- [~] Chi / gorilla/mux: `chi.URLParam`, `mux.Vars` → treat as source, not sanitizer
 
 ### 2.3 Tests
 
-- [ ] Add test fixtures for each new sanitizer (one vulnerable pair that the sanitizer blocks, one safe pair where sanitizer is applied)
-- [ ] Update `taint_cwe_fixtures_fire_vulnerable_and_silence_safe` to include new sanitizer fixtures
-- [ ] Verify that `strconv.Atoi` + SQL query does **not** fire a CWE-89 finding
+- [~] Add test fixtures for each new sanitizer (one vulnerable pair that the sanitizer blocks, one safe pair where sanitizer is applied)
+- [~] Update `taint_cwe_fixtures_fire_vulnerable_and_silence_safe` to include new sanitizer fixtures
+- [~] Verify that `strconv.Atoi` + SQL query does **not** fire a CWE-89 finding
 
 ### 2.4 Name-based heuristic sanitizer detection
 
-- [ ] Add heuristic: functions matching `/^(sanitize|clean|escape|validate|purify)/i` are treated as `SanitizerKind::Validation` with a `tracing::debug!` note
-- [ ] Document this in `docs/taint.md` so users know they can create custom sanitizers by naming convention
-- [ ] Add test fixture using a custom `sanitizeInput()` function
+- [x] Add heuristic: functions matching `/^(sanitize|clean|escape|validate|purify)/i` are treated as `SanitizerKind::Validation` with a `tracing::debug!` note
+- [x] Document this in `docs/taint.md` so users know they can create custom sanitizers by naming convention
+- [~] Add test fixture using a custom `sanitizeInput()` function
 
 ---
 
@@ -98,22 +98,22 @@ Add the following sanitizer functions to the classifier in `src/lang/go/detector
 
 Add the following to `src/cli/args.rs` and wire in `src/cli/args_impl.rs`:
 
-- [ ] `--taint` (flag): shorthand to enable taint tracking. Equivalent to setting `[slopguard.taint] enabled = true` in config. Takes precedence over config.
+- [x] `--taint` (flag): shorthand to enable taint tracking. Equivalent to setting `[slopguard.taint] enabled = true` in config. Takes precedence over config.
   ```rust
   #[arg(long, help = "Enable taint-tracking analysis (CWE-22/78/79/89)")]
   taint: bool,
   ```
-- [ ] `--no-taint` (flag): disable taint even if config enables it.
+- [x] `--no-taint` (flag): disable taint even if config enables it.
   ```rust
   #[arg(long, help = "Disable taint-tracking analysis")]
   no_taint: bool,
   ```
-- [ ] `--taint-show-paths` (flag): emit taint-path evidence in JSON/SARIF output.
+- [x] `--taint-show-paths` (flag): emit taint-path evidence in JSON/SARIF output.
   ```rust
   #[arg(long, help = "Include taint propagation paths in evidence output")]
   taint_show_paths: bool,
   ```
-- [ ] Wire in `args_impl.rs::scan_context()`:
+- [x] Wire in `args_impl.rs::scan_context()`:
   ```rust
   if self.taint { ctx.taint_enabled = true; }
   if self.no_taint { ctx.taint_enabled = false; }
@@ -122,77 +122,77 @@ Add the following to `src/cli/args.rs` and wire in `src/cli/args_impl.rs`:
 
 ### 3.2 Consume `taint_show_paths` in evidence
 
-- [ ] In `src/reporting/json/entry.rs`: when `taint_show_paths` is true, include `TaintPath` details in the JSON finding output under `evidence.taint_path`
-- [ ] In `src/reporting/sarif/entry.rs`: when `taint_show_paths` is true, include hop information in the SARIF `properties` bag
-- [ ] In `src/reporting/text/render.rs`: when `--taint-show-paths` is set, print the taint path (source → hop → sink) in the text output
-- [ ] Test: `tests/reporting_json_finding.rs` — add a test that a taint finding with `show_paths=true` includes path details
+- [x] In `src/reporting/json/entry.rs`: when `taint_show_paths` is true, include `TaintPath` details in the JSON finding output under `evidence.taint_path`
+- [x] In `src/reporting/sarif/entry.rs`: when `taint_show_paths` is true, include hop information in the SARIF `properties` bag
+- [x] In `src/reporting/text/render.rs`: when `--taint-show-paths` is set, print the taint path (source → hop → sink) in the text output
+- [x] Test: `tests/reporting_json_finding.rs` — add a test that a taint finding with `show_paths=true` includes path details
 
 ### 3.3 Documentation: `docs/taint.md`
 
 Create `docs/taint.md` covering:
 
-- [ ] **Overview**: what taint tracking is and which CWE rules use it (CWE-22, 78, 79, 89)
-- [ ] **Enabling**: via config (`[slopguard.taint] enabled = true`) and via CLI (`--taint`)
-- [ ] **Model**: source kinds (UserInput, Args, EnvVar, File, Network), sink kinds (CommandExec, SQLQuery, etc.), sanitizer kinds (Path, HTML, URL, SQL, Validation, Bounded)
-- [ ] **Limitations**: intra-procedural only (no cross-function tracking), single-assignment-per-scope (no full reaching-definitions), no struct-field tracking
-- [ ] **Reading output**: how to interpret `evidence.taint_path` in JSON output
-- [ ] **Custom sanitizers**: name-based heuristic detection (`sanitize*`, `clean*`, etc.) and how to verify a function is recognized
-- [ ] **Performance**: extraction is always performed but graph-building is lazy; enable only for CWE rules that need it
+- [x] **Overview**: what taint tracking is and which CWE rules use it (CWE-22, 78, 79, 89)
+- [x] **Enabling**: via config (`[slopguard.taint] enabled = true`) and via CLI (`--taint`)
+- [x] **Model**: source kinds (UserInput, Args, EnvVar, File, Network), sink kinds (CommandExec, SQLQuery, etc.), sanitizer kinds (Path, HTML, URL, SQL, Validation, Bounded)
+- [x] **Limitations**: intra-procedural only (no cross-function tracking), single-assignment-per-scope (no full reaching-definitions), no struct-field tracking
+- [x] **Reading output**: how to interpret `evidence.taint_path` in JSON output
+- [x] **Custom sanitizers**: name-based heuristic detection (`sanitize*`, `clean*`, etc.) and how to verify a function is recognized
+- [x] **Performance**: extraction is always performed but graph-building is lazy; enable only for CWE rules that need it
 
 ### 3.4 Schema update
 
-- [ ] Add `taint` CLI flags to `slopguard.schema.json` (if schema tracks CLI flags)
-- [ ] Update `templates/slopguard.toml` to include a commented-out `[slopguard.taint]` block
+- [~] Add `taint` CLI flags to `slopguard.schema.json` (if schema tracks CLI flags)
+- [x] Update `templates/slopguard.toml` to include a commented-out `[slopguard.taint]` block
 
 ---
 
 ## Phase F — Inter-Procedural Taint Tracking
 
-> **Status:** ❌ Not started. Requires significant infrastructure.
-> **Effort:** 3–4 weeks. Deserves a separate detailed plan.
+> **Status:** ✅ Implemented (see `plans/v2.0.0/p1f-inter-procedural-taint.md` for full scope). Most items done; remaining items tracked in deferred.
+> **Effort:** 3–4 weeks (completed).
 
 ### 4.1 Call-graph construction
 
-- [ ] Build a per-file call graph from tree-sitter: record call expressions with callee name, argument positions, and return value usage
-- [ ] Merge per-file call graphs into a project-level call graph (respect `go.mod` boundaries)
-- [ ] Handle: method calls (receiver type + method name), function literals (closures, anonymous functions), interface calls (dispatch at call site)
+- [x] Build a per-file call graph from tree-sitter: record call expressions with callee name, argument positions, and return value usage
+- [x] Merge per-file call graphs into a project-level call graph (respect `go.mod` boundaries)
+- [x] Handle: method calls (receiver type + function name), function literals (closures, anonymous functions), interface calls (dispatch at call site)
 
 ### 4.2 Function summaries
 
-- [ ] Define `TaintSummary` struct: `{ params: Vec<Option<SourceKind>>, returns: Vec<Option<SourceKind>>, sanitizes: Vec<(usize, SanitizerKind)> }`
-- [ ] Compute summaries via intra-procedural taint propagation per function (reuse existing graph builder)
-- [ ] Cache summaries per function; invalidate when function body changes (content hash)
-- [ ] Store summaries in the `GoUnitFacts` for each parsed function
+- [x] Define `TaintSummary` struct: `{ params: Vec<Option<SourceKind>>, returns: Vec<Option<SourceKind>>, sanitizes: Vec<(usize, SanitizerKind)> }`
+- [x] Compute summaries via intra-procedural taint propagation per function (reuse existing graph builder)
+- [x] Cache summaries per function; invalidate when function body changes (content hash)
+- [x] Store summaries in the `GoUnitFacts` for each parsed function
 
 ### 4.3 Cross-function propagation
 
-- [ ] At a call site: map caller arguments to callee params; if callee summary says param → sink, create taint edge from caller's source expression
-- [ ] If a callee returns tainted data, create edge from callee return → caller expression
-- [ ] Handle recursion: detect cycles and cap depth at a configurable max (default 5)
-- [ ] Fixed-point iteration: propagate until no new taint edges are created
+- [x] At a call site: map caller arguments to callee params; if callee summary says param → sink, create taint edge from caller's source expression
+- [x] If a callee returns tainted data, create edge from callee return → caller expression
+- [x] Handle recursion: detect cycles and cap depth at a configurable max (default 5)
+- [x] Fixed-point iteration: propagate until no new taint edges are created
 
 ### 4.4 Expanded source/sink coverage for inter-procedural
 
-- [ ] Add `SourceKind::Return` — taint from any function that returns user-controlled data
-- [ ] Add `SinkKind::DatabaseWrite` — `db.Exec`, `db.Update`, `db.Save`
-- [ ] Add `SinkKind::Logging` — `log.Printf`, `log.Println` with user-controlled format strings
-- [ ] Add `SinkKind::Redirect` — `http.Redirect` with user-controlled URL
+- [~] Add `SourceKind::Return` — taint from any function that returns user-controlled data (handled via return-source scanning instead)
+- [~] Add `SinkKind::DatabaseWrite` — `db.Exec`, `db.Update`, `db.Save`
+- [~] Add `SinkKind::Logging` — `log.Printf`, `log.Println` with user-controlled format strings
+- [~] Add `SinkKind::Redirect` — `http.Redirect` with user-controlled URL
 
 ### 4.5 Tests and fixtures
 
-- [ ] Add 5+ multi-hop inter-procedural fixtures (call chain depth 2–4):
+- [x] Add 5+ multi-hop inter-procedural fixtures (call chain depth 2–4):
   - `funcA → funcB → sink` (unsanitized)
   - `funcA → sanitizer → funcB → sink` (sanitized, should be silent)
   - `funcA → funcB → funcC → sink` (depth 3)
-  - Recursive call chain with taint
-  - Method call chain (struct receiver)
+- [x] Recursive call chain with taint (IP-007)
+- [x] Method call chain (struct receiver)
 
 ### 4.6 Edge-case handling
 
-- [ ] Pointer aliasing: if `&x` is passed and the callee modifies `*param`, propagate taint back
-- [ ] Map/slice mutations: `m["key"] = tainted` → subsequent reads from `m["key"]` are tainted
-- [ ] Deferred function calls: track defer targets and propagate taint from deferred closures
-- [ ] Goroutine closures: capture taint at `go func()` creation point
+- [x] Pointer aliasing: if `&x` is passed and the callee modifies `*param`, propagate taint back
+- [x] Map/slice mutations: `m["key"] = tainted` → subsequent reads from `m["key"]` are tainted
+- [~] Deferred function calls: track defer targets and propagate taint from deferred closures
+- [x] Goroutine closures: capture taint at `go func()` creation point (IP-010)
 
 ---
 

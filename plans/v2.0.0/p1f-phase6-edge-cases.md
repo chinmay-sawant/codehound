@@ -35,7 +35,7 @@ func caller() {
 
 - [x] Works without explicit recursion handling — `process` has a direct param→sink path, so `param_sources[0] = true` is computed from the direct `os.Open(s)` call. The recursive self-call is opaque, but the direct path is sufficient.
 - [x] Enable IP-007 in `tests/go_taint_integration.rs`
-- [ ] **ponytail:** Depth cap, widening, and `recursive: true` evidence flag skipped — the direct param→sink path handles the common case. Add if mutual recursion causes issues.
+- [~] **ponytail:** Depth cap, widening, and `recursive: true` evidence flag skipped — the direct param→sink path handles the common case. Add if mutual recursion causes issues. (deferred → see plans/v3.0.0/)
 
 ---
 
@@ -70,8 +70,8 @@ func mutate(p *string) {
 - [x] `TaintSummary.output_pointer_params` — params with `*param = source()` patterns
 - [x] In `finalize()`: for `&var` at output pointer positions, check if `var` reaches a sink
 - [x] IP-011 fixture added (21/21 fixtures active)
-- [ ] **Future:** struct field mutations (`(*p).field = source()`) — deferred
-- [ ] **Future:** `*p = tainted_var` (callee writes a tainted variable, not a direct source call) — needs RHS taint detection
+- [~] **Future:** struct field mutations (`(*p).field = source()`) — deferred (deferred → see plans/v3.0.0/)
+- [~] **Future:** `*p = tainted_var` (callee writes a tainted variable, not a direct source call) — needs RHS taint detection (deferred → see plans/v3.0.0/)
 
 ---
 

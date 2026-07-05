@@ -188,22 +188,22 @@ The goal is to collapse repeated optimization themes across those docs into one 
 
 ### 3.1 Still-open engine and HFT items
 
-- [ ] PERF: Further reduce `bytes.growSlice` and peak heap on compliant x10 runs.
-- [ ] PERF: Continue Phase B / C Zerodha 15K work around pdfBuffer zero-grow, page-stream caps, arena sizing, row-stream direct append, and deeper HFT TD/TR batching.
-- [ ] PERF: Keep reducing `drawTable` / shared-layout row replay cost on HFT-heavy paths.
-- [ ] PERF: Continue retail signature-path cleanup beyond the buffer-pooling work already landed.
-- [ ] PERF: Continue xref / slice / glyph-dedupe / batch-emit work where the 15K checklist still shows open gates.
+- [~] PERF: Further reduce `bytes.growSlice` and peak heap on compliant x10 runs. `(deferred → see plans/v3.0.0/)`
+- [~] PERF: Continue Phase B / C Zerodha 15K work around pdfBuffer zero-grow, page-stream caps, arena sizing, row-stream direct append, and deeper HFT TD/TR batching. `(deferred → see plans/v3.0.0/)`
+- [~] PERF: Keep reducing `drawTable` / shared-layout row replay cost on HFT-heavy paths. `(deferred → see plans/v3.0.0/)`
+- [~] PERF: Continue retail signature-path cleanup beyond the buffer-pooling work already landed. `(deferred → see plans/v3.0.0/)`
+- [~] PERF: Continue xref / slice / glyph-dedupe / batch-emit work where the 15K checklist still shows open gates. `(deferred → see plans/v3.0.0/)`
 
 ### 3.2 Still-open HTTP / Gin items
 
-- [ ] PERF: Weighted Gin 1,500 req/s is still open; HFT tail, flate cost, and JSON ingress remain the main ceiling.
-- [ ] PERF: Optional codegen / alternate Sonic decode improvements remain documented as possible next steps.
+- [~] PERF: Weighted Gin 1,500 req/s is still open; HFT tail, flate cost, and JSON ingress remain the main ceiling. `(deferred → see plans/v3.0.0/)`
+- [~] PERF: Optional codegen / alternate Sonic decode improvements remain documented as possible next steps. `(deferred → see plans/v3.0.0/)`
 
 ### 3.3 Still-open Python / API-contract items
 
-- [ ] PERF: Large further gains for PyPDFSuit require Go-boundary or API-contract changes, not just more Python serializer cleanup.
-- [ ] PERF: Handle/batch/service-mode style APIs are still the main path if Python needs a much higher ceiling than the current honest no-cache band.
-- [ ] PERF: HFT-specific Go-side profile harnessing remains relevant if Python-to-Go boundary work becomes allowed.
+- [~] PERF: Large further gains for PyPDFSuit require Go-boundary or API-contract changes, not just more Python serializer cleanup. `(deferred → see plans/v3.0.0/)`
+- [~] PERF: Handle/batch/service-mode style APIs are still the main path if Python needs a much higher ceiling than the current honest no-cache band. `(deferred → see plans/v3.0.0/)`
+- [~] PERF: HFT-specific Go-side profile harnessing remains relevant if Python-to-Go boundary work becomes allowed. `(deferred → see plans/v3.0.0/)`
 
 ---
 
@@ -211,19 +211,19 @@ The goal is to collapse repeated optimization themes across those docs into one 
 
 ### 4.1 Reverted because they hurt end-to-end performance or stability
 
-- [ ] PERF revert: parallel structure-tree build (`G3`) regressed end-to-end throughput and was removed.
-- [ ] PERF revert: template PDF cache (`G4`) was removed because it made the benchmark misleading and did not represent unique-PDF production work.
-- [ ] PERF revert: aggressive Gin Phase 12 experiments such as CRC32 fingerprinting, in-place signature hex work, and store-uncompressed page experiments did not give enough real throughput gain.
-- [ ] PERF revert: generic structure-writer abstraction regressed performance versus the concrete hot path.
-- [ ] PERF revert: aggressive buffer-retention / large-cap pool experiments increased heap and were not kept.
-- [ ] PERF revert: specific compress-cache/store ordering experiments were not stable wins and were not kept.
+- [~] PERF revert: parallel structure-tree build (`G3`) regressed end-to-end throughput and was removed. `(deferred → see plans/v3.0.0/)`
+- [~] PERF revert: template PDF cache (`G4`) was removed because it made the benchmark misleading and did not represent unique-PDF production work. `(deferred → see plans/v3.0.0/)`
+- [~] PERF revert: aggressive Gin Phase 12 experiments such as CRC32 fingerprinting, in-place signature hex work, and store-uncompressed page experiments did not give enough real throughput gain. `(deferred → see plans/v3.0.0/)`
+- [~] PERF revert: generic structure-writer abstraction regressed performance versus the concrete hot path. `(deferred → see plans/v3.0.0/)`
+- [~] PERF revert: aggressive buffer-retention / large-cap pool experiments increased heap and were not kept. `(deferred → see plans/v3.0.0/)`
+- [~] PERF revert: specific compress-cache/store ordering experiments were not stable wins and were not kept. `(deferred → see plans/v3.0.0/)`
 
 ### 4.2 Reverted because they violated the intended benchmark semantics or memory budget
 
-- [ ] PERF reject: HFT TR->TD collapse produced faster numbers but invalid compliant output, so it was rejected.
-- [ ] PERF reject: expanding key-based shared-row caches beyond the bounded safe version was rejected because it caused k6/OOM failure modes.
-- [ ] PERF revert: large per-SM struct-element arena slabs created unacceptable live-heap pressure across 48 workers.
-- [ ] PERF reject: Python JSON-cache benchmark numbers were removed from the main benchmark surface because they bypassed real per-call serialization.
+- [~] PERF reject: HFT TR->TD collapse produced faster numbers but invalid compliant output, so it was rejected. `(deferred → see plans/v3.0.0/)`
+- [~] PERF reject: expanding key-based shared-row caches beyond the bounded safe version was rejected because it caused k6/OOM failure modes. `(deferred → see plans/v3.0.0/)`
+- [~] PERF revert: large per-SM struct-element arena slabs created unacceptable live-heap pressure across 48 workers. `(deferred → see plans/v3.0.0/)`
+- [~] PERF reject: Python JSON-cache benchmark numbers were removed from the main benchmark surface because they bypassed real per-call serialization. `(deferred → see plans/v3.0.0/)`
 
 ---
 

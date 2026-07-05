@@ -35,7 +35,7 @@
 - [x] Audit `scan_entry.rs` clones (7 remaining) — **0 clones** remaining
 - [~] ~~Migrate 949× `source.contains(...)` detectors to fact-driven~~ (partial: ~106 remains from 949, epic continues)
 - [x] Taint scope model — `ScopeId` parent chain instead of `Arc<str>` clone per scope — `ScopeInfo.parent: Option<ScopeId>`
-- [ ] Document invariant `expect`s (SARIF log, rule tables, walker) — (needs review: 3 prod `.expect` still present)
+- [~] Document invariant `expect`s (SARIF log, rule tables, walker) — (needs review: 3 prod `.expect` still present) (deferred → see plans/v3.0.0/)
 
 ---
 
@@ -56,7 +56,7 @@
 - [x] Audit `scan_entry.rs` clones (7 remaining) — **0 clones**
 - [~] ~~Migrate **948×** `source.contains(...)` detectors to fact-driven~~ (partial: ~106 remains, epic continues)
 - [x] Taint scope model — `ScopeId` parent chain instead of `Arc<str>` clone per scope
-- [ ] Document invariant `expect`s in parser/registry loading — (needs review: 3 prod `.expect` remain)
+- [~] Document invariant `expect`s in parser/registry loading — (needs review: 3 prod `.expect` remain) (deferred → see plans/v3.0.0/)
 - [~] ~~`#[must_use]` on `TimingCollector::measure`~~ (skipped: reverted — side-effect semantics)
 - [x] Trim `preflight_cache_hits` (92 lines) — now **43 lines**
 

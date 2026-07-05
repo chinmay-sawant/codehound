@@ -199,9 +199,9 @@ Enable adoption on legacy codebases: first-run baseline captures all current fin
 - [x] Parse `// slopguard-ignore-file` at the top of a file (within first N lines, e.g., 20)
 - [x] Parse `// slopguard-ignore-file: CWE-22, CWE-78` for file-level rule-specific suppression
 - [x] Parse `// slopguard-ignore-file: all` for all-rule file suppression
-- [ ] In `scan_entry()`, skip analysis for suppressed rules entirely (performance win)
-  - [x] Fast-path `// slopguard-ignore-file` / `// slopguard-ignore-file: all` when `--show-ignored` is off, returning before detector execution (does not compute per-finding suppressed count)
-  - [ ] Rule-specific detector masking while preserving suppressed-count and `--show-ignored` semantics
+- [~] In `scan_entry()`, skip analysis for suppressed rules entirely (performance win) — only `all` fast-path implemented (deferred → see plans/v3.0.0/)
+  - [x] Fast-path `// slopguard-ignore-file` / `// slopguard-ignore-file: all` when `--show-ignored` is off, returning before detector execution
+  - [~] Rule-specific detector masking while preserving suppressed-count and `--show-ignored` semantics (deferred → see plans/v3.0.0/)
 - [x] Store `file_ignores` in `ScanContext` or a per-run map — not needed; file-level directives are parsed per source file in `scan_entry()` and applied immediately.
 
 ### 4.5 Reporting suppressed-by-comment findings

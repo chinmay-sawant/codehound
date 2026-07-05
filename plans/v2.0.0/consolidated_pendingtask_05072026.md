@@ -37,53 +37,53 @@ Items marked "not started" in plan documents that are actually implemented are e
 
 ### Phase 0 — Rule/Detector Integrity (before engine build)
 
-- [ ] Add schema/coverage test that fails on: extra fields, mixed id formats (string vs int), duplicate IDs, missing registry entries, stale "Draft" status on PERF-101..212, fixture-metadata mismatch
-- [ ] Normalize PERF id representation (PERF-001 string, PERF-101 integer — pick one)
-- [ ] Update stale statuses (Draft → Implemented) for PERF-101..212
-- [ ] Mark 3 intentionally-unregistered PERF rules explicitly (PERF-104, 136, 208)
+- [~] Add schema/coverage test that fails on: extra fields, mixed id formats (string vs int), duplicate IDs, missing registry entries, stale "Draft" status on PERF-101..212, fixture-metadata mismatch (deferred → see plans/v3.0.0/)
+- [~] Normalize PERF id representation (PERF-001 string, PERF-101 integer — pick one) (deferred → see plans/v3.0.0/)
+- [~] Update stale statuses (Draft → Implemented) for PERF-101..212 (deferred → see plans/v3.0.0/)
+- [~] Mark 3 intentionally-unregistered PERF rules explicitly (PERF-104, 136, 208) (deferred → see plans/v3.0.0/)
 
 ### Phase 1 — Minimal Safe Edit Engine
 
-- [ ] Add `Applicability` enum (`MachineApplicable`, `RequiresReview`) and `SourceEdit` struct
-- [ ] Add `--fix` CLI flag (`src/cli/args.rs`)
-- [ ] Add `--fix-dry-run` CLI flag
-- [ ] Wire fix-mode incompatibility with `--baseline`, `--list-rules`, `--explain`, cache-pruning
-- [ ] Force fresh uncached scan in fix mode
-- [ ] Implement source hash validation, dedup, conflict detection, offset-sorted application
-- [ ] Implement in-memory apply + gofmt + reparse + atomic write
-- [ ] Promote `write_atomic` from `pub(super)` in `src/engine/cache/io.rs` to general-use
-- [ ] Implement deterministic import insertion/removal with alias detection
-- [ ] Report: files changed, edits applied/skipped, conflicts, findings remaining
-- [ ] Compute exit code from post-fix rescan
+- [~] Add `Applicability` enum (`MachineApplicable`, `RequiresReview`) and `SourceEdit` struct (deferred → see plans/v3.0.0/)
+- [~] Add `--fix` CLI flag (`src/cli/args.rs`) (deferred → see plans/v3.0.0/)
+- [~] Add `--fix-dry-run` CLI flag (deferred → see plans/v3.0.0/)
+- [~] Wire fix-mode incompatibility with `--baseline`, `--list-rules`, `--explain`, cache-pruning (deferred → see plans/v3.0.0/)
+- [~] Force fresh uncached scan in fix mode (deferred → see plans/v3.0.0/)
+- [~] Implement source hash validation, dedup, conflict detection, offset-sorted application (deferred → see plans/v3.0.0/)
+- [~] Implement in-memory apply + gofmt + reparse + atomic write (deferred → see plans/v3.0.0/)
+- [~] Promote `write_atomic` from `pub(super)` in `src/engine/cache/io.rs` to general-use (deferred → see plans/v3.0.0/)
+- [~] Implement deterministic import insertion/removal with alias detection (deferred → see plans/v3.0.0/)
+- [~] Report: files changed, edits applied/skipped, conflicts, findings remaining (deferred → see plans/v3.0.0/)
+- [~] Compute exit code from post-fix rescan (deferred → see plans/v3.0.0/)
 
 ### Phase 2 — 38 Safe Default Fixers
 
 All detectors exist. Fixers need structured `SourceEdit` output:
 
-- [ ] **Hoisting/reuse (11):** PERF-001, 016, 024, 044, 096, 109, 141, 153, 179, 192, 203
-- [ ] **Stdlib substitution (12):** PERF-042, 111, 115, 116, 117, 120, 124, 126, 127, 146, 147, 178
-- [ ] **Syntax/control-flow rewrite (15):** PERF-103, 113, 114, 119, 121, 122, 123, 128, 129, 130, 133, 158, 167, 173
-- [ ] **BP safe fixer (1):** BP-6 — WaitGroup Add Inside Goroutine
+- [~] **Hoisting/reuse (11):** PERF-001, 016, 024, 044, 096, 109, 141, 153, 179, 192, 203 (deferred → see plans/v3.0.0/)
+- [~] **Stdlib substitution (12):** PERF-042, 111, 115, 116, 117, 120, 124, 126, 127, 146, 147, 178 (deferred → see plans/v3.0.0/)
+- [~] **Syntax/control-flow rewrite (15):** PERF-103, 113, 114, 119, 121, 122, 123, 128, 129, 130, 133, 158, 167, 173 (deferred → see plans/v3.0.0/)
+- [~] **BP safe fixer (1):** BP-6 — WaitGroup Add Inside Goroutine (deferred → see plans/v3.0.0/)
 
 ### Phase 3 — 138 Review-Required Patch Candidates
 
 All detectors exist. No structured patches. Add policy/precondition gate:
 
-- [ ] 91 PERF review-required (5 groups)
-- [ ] 40 CWE review-required (CWE-78, 79, 89, 93, 178…1392)
-- [ ] 7 BP review-required (BP-2, 4, 5, 7, 10, 11, 13)
+- [~] 91 PERF review-required (5 groups) (deferred → see plans/v3.0.0/)
+- [~] 40 CWE review-required (CWE-78, 79, 89, 93, 178…1392) (deferred → see plans/v3.0.0/)
+- [~] 7 BP review-required (BP-2, 4, 5, 7, 10, 11, 13) (deferred → see plans/v3.0.0/)
 
 ### Phase 4 — Verification
 
-- [ ] Golden transformed-source fixtures per fixer
-- [ ] Refusal fixtures (non-applicable patterns produce no edit)
-- [ ] Parse+gofmt check on every transformed output
-- [ ] Rescan assertion (post-fix findings drop to zero for the fixed rule)
-- [ ] Idempotence test (running fix twice produces same result)
-- [ ] Go compilation test on transformed output
-- [ ] Edit-engine test categories (overlapping edits, dedup, hash rejection, UTF-8, CRLF, formatter failure, atomic-write failure, dry-run, filters, baseline incompatibility)
-- [ ] Benchmark normal scans before/after edit payload support
-- [ ] Document `--fix`, `--fix-dry-run`, safety guarantees
+- [~] Golden transformed-source fixtures per fixer (deferred → see plans/v3.0.0/)
+- [~] Refusal fixtures (non-applicable patterns produce no edit) (deferred → see plans/v3.0.0/)
+- [~] Parse+gofmt check on every transformed output (deferred → see plans/v3.0.0/)
+- [~] Rescan assertion (post-fix findings drop to zero for the fixed rule) (deferred → see plans/v3.0.0/)
+- [~] Idempotence test (running fix twice produces same result) (deferred → see plans/v3.0.0/)
+- [~] Go compilation test on transformed output (deferred → see plans/v3.0.0/)
+- [~] Edit-engine test categories (overlapping edits, dedup, hash rejection, UTF-8, CRLF, formatter failure, atomic-write failure, dry-run, filters, baseline incompatibility) (deferred → see plans/v3.0.0/)
+- [~] Benchmark normal scans before/after edit payload support (deferred → see plans/v3.0.0/)
+- [~] Document `--fix`, `--fix-dry-run`, safety guarantees (deferred → see plans/v3.0.0/)
 
 ---
 
@@ -186,9 +186,9 @@ All detectors exist. No structured patches. Add policy/precondition gate:
 
 ### Per-Detector Timing on Cache Hit *(still pending — needs CacheEntry struct changes)*
 
-- [ ] Add `original_detect_duration_ms` to `CacheEntry` struct
-- [ ] Add `TimingSpan` for cache-hit path (file read, filter, ignore re-apply, saved time)
-- [ ] Emit in `--diagnostics` and `--debug-timing` output
+- [~] Add `original_detect_duration_ms` to `CacheEntry` struct (deferred → see plans/v3.0.0/)
+- [~] Add `TimingSpan` for cache-hit path (file read, filter, ignore re-apply, saved time) (deferred → see plans/v3.0.0/)
+- [~] Emit in `--diagnostics` and `--debug-timing` output (deferred → see plans/v3.0.0/)
 
 ---
 
@@ -198,7 +198,7 @@ All detectors exist. No structured patches. Add policy/precondition gate:
 > **Status:** All 65 detectors + fixtures + tests implemented. `fix_for()` only covers BP-1..BP-15.
 > **Estimated effort:** 1 day
 
-- [ ] Add `fix_for()` prose suggestions for BP-16 through BP-65 in `metadata_overrides.rs`
+- [~] Add `fix_for()` prose suggestions for BP-16 through BP-65 in `metadata_overrides.rs` (deferred → see plans/v3.0.0/)
 
 ---
 
@@ -209,9 +209,9 @@ All detectors exist. No structured patches. Add policy/precondition gate:
 > **Status:** ❌ Not started. No confidence scoring, hop-count-based decay, or severity downgrading exists.
 > **Estimated effort:** 2–3 weeks
 
-- [ ] `confidence: f32` on `Finding`
-- [ ] Hop-count-based confidence decay in taint BFS
-- [ ] Severity downgrading for long/speculative paths
+- [x] `confidence: f32` on `Finding`
+- [~] Hop-count-based confidence decay in taint BFS (deferred → see plans/v3.0.0/)
+- [~] Severity downgrading for long/speculative paths (deferred → see plans/v3.0.0/)
 
 ### Rule-Pack Extensibility
 
@@ -219,17 +219,17 @@ All detectors exist. No structured patches. Add policy/precondition gate:
 > **Status:** Scoping complete. Zero implementation.
 > **Estimated effort:** TBD
 
-- [ ] External rule-pack loading (metadata-only packs, registry TOML + fixtures, WASM detectors)
-- [ ] CLI flag for pack directory
-- [ ] Sandboxed evaluation
+- [~] External rule-pack loading (metadata-only packs, registry TOML + fixtures, WASM detectors) (deferred → see plans/v3.0.0/)
+- [~] CLI flag for pack directory (deferred → see plans/v3.0.0/)
+- [~] Sandboxed evaluation (deferred → see plans/v3.0.0/)
 
 ### Public Surface Narrowing
 
 > **Parent:** `plans/v2.0.0/antipattern-remediation/rust-remediation-phase-2.md` §2D.1
 > **Status:** ❌ Not started.
 
-- [ ] Deprecate direct `engine::*` re-exports
-- [ ] Update `src/main.rs` to use `slopguard::cli` via feature gate
+- [~] Deprecate direct `engine::*` re-exports (deferred → see plans/v3.0.0/)
+- [x] Update `src/main.rs` to use `slopguard::cli` via feature gate
 
 ---
 

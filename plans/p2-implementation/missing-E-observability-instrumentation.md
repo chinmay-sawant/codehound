@@ -65,7 +65,7 @@ Once incremental analysis or larger monorepo workflows are added, performance de
 - [x] In `scan_entries_parallel()` (`src/engine/walk.rs`):
   - [x] Phase 2a: `"file_read"` -- cumulative time reading files from disk
   - [x] Phase 2b: `"tree_sitter_parse"` -- cumulative time parsing with tree-sitter
-  - [x] Phase 2c: `"fact_extraction"` -- (deferred; fact extraction currently runs inline with detection)
+  - [~] Phase 2c: `"fact_extraction"` -- deferred; fact extraction currently runs inline with detection (deferred → see plans/v3.0.0/)
   - [x] Phase 2d: `"detector_execution"` -- cumulative time running all detectors
 - [x] In `app.rs::run()`:
   - [x] Phase 4: `"export"` -- exporting context/chunk files
@@ -194,8 +194,8 @@ Once incremental analysis or larger monorepo workflows are added, performance de
 - [x] `--diagnostics` file can be consumed by CI pipelines:
   - [x] Plot findings-over-time charts
   - [x] Alert on scan time regressions
-  - [ ] Track cache hit rate degradation (deferred to P2.3)
-- [ ] Document the diagnostics schema in `docs/diagnostics.md` (deferred)
+  - [~] Track cache hit rate degradation (deferred to P2.3) (deferred → see plans/v3.0.0/)
+- [~] Document the diagnostics schema in `docs/diagnostics.md` — not created (deferred → see plans/v3.0.0/)
 
 ---
 
@@ -212,8 +212,8 @@ Once incremental analysis or larger monorepo workflows are added, performance de
 
 ### 5.2 Benchmark
 
-- [ ] Add benchmark: scan with instrumentation disabled (default) vs enabled (`--debug-timing`)
-- [ ] Target: <1% overhead when disabled, <5% when enabled (only timing, no per-detector)
+- [~] Add benchmark: scan with instrumentation disabled vs enabled — not created (deferred → see plans/v3.0.0/)
+- [~] Target: <1% overhead when disabled, <5% when enabled (deferred → see plans/v3.0.0/)
 
 ---
 
@@ -245,9 +245,9 @@ Once incremental analysis or larger monorepo workflows are added, performance de
 
 ### 7.1 With P2.3 (Incremental Analysis)
 
-- [ ] `ScanStats.files_cached` -- populated by incremental analysis cache hits (deferred)
-- [ ] `diagnostics.cache` section -- hit rate, miss count (deferred)
-- [ ] Timing phases: add `"cache_check"` phase (deferred)
+- [x] `ScanStats.files_cached` -- populated as `cache_hits`/`cache_misses` in `stats/scan.rs:18-19`, wired in `parallel.rs:86` via `preflight_cache_hits`
+- [x] `diagnostics.cache` section -- included in `diagnostics/build.rs:45-46` as `files_cached` / `files_fresh`
+- [~] Timing phases: add `"cache_check"` phase (deferred → see plans/v3.0.0/)
 
 ### 7.2 With P2.2 (Baseline)
 
@@ -256,8 +256,8 @@ Once incremental analysis or larger monorepo workflows are added, performance de
 
 ### 7.3 With P2.1 (Taint Tracking)
 
-- [ ] Timing phases: add `"taint_analysis"` phase when taint tracking is enabled (deferred)
-- [ ] Diagnostics: add taint-specific stats (paths found, sources identified, sinks matched) (deferred)
+- [~] Timing phases: add `"taint_analysis"` phase (deferred → see plans/v3.0.0/)
+- [~] Diagnostics: add taint-specific stats (deferred → see plans/v3.0.0/)
 
 ---
 

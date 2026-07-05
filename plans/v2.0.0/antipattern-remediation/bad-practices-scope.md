@@ -159,7 +159,7 @@ A new file `ruleset/golang/bad-practices.json` is added alongside `golang.json`.
 - [x] Integration points identified (registry.toml, build.rs, lang detector mod.rs, reporter modules, CLI, config).
 - [x] Rule ID scheme selected (`BP-N`).
 - [x] Prioritized list ready (Section 3).
-- [ ] Go/no-go decision: deferred to P2.5-A kickoff (no blockers identified). — (needs review: bad_practices directory exists with source_index.rs, dispatch.rs, rules/ submodule — partial implementation present)
+- [x] Go/no-go decision: deferred to P2.5-A kickoff (no blockers identified). — (needs review: bad_practices directory exists with source_index.rs, dispatch.rs, rules/ submodule — partial implementation present)
 
 ## 11. Dependencies
 

@@ -46,13 +46,13 @@
 - [x] `anyhow` reduced 26 → 11 `src/` files (−57%)
 - [x] `anyhow` confined to `app/` + `fixture/` only — confirmed: 4 files (app/ + fixture/)
 - [~] ~~Migrate remaining 7 `src/` `#[allow]` → `#[expect]`~~ (partial: 2 `#[allow]` remain in src/; 2 `#[expect]` in build/types.rs)
-- [ ] Production `.expect()` reduced to 0 — (needs review: 3 prod `.expect` remain in cwe/mod.rs, perf/mod.rs, walker_core.rs)
-- [ ] `#![warn(missing_docs)]` enabled on `lib.rs` — (needs review: still deferred, not on lib.rs; only on rules/mod.rs)
+- [~] Production `.expect()` reduced to 0 — (needs review: 3 prod `.expect` remain in cwe/mod.rs, perf/mod.rs, walker_core.rs) (deferred → see plans/v3.0.0/)
+- [~] `#![warn(missing_docs)]` enabled on `lib.rs` — (needs review: still deferred, not on lib.rs; only on rules/mod.rs) (deferred → see plans/v3.0.0/)
 - [x] `# Errors` on remaining public APIs — 15 sections across src/
-- [ ] Runnable doc-test for `lib.rs` quick-start — (needs review: still `#no_run`)
+- [~] Runnable doc-test for `lib.rs` quick-start — (needs review: still `#no_run`) (deferred → see plans/v3.0.0/)
 - [x] `insta` snapshot tests — 3 snapshots (JSON, SARIF, text)
-- [ ] Split multi-assertion integration tests — (needs review: still deferred)
-- [ ] Type-state `AnalyzerBuilder` — (needs review: simple builder, no PhantomData/type-state)
+- [~] Split multi-assertion integration tests — (needs review: still deferred) (deferred → see plans/v3.0.0/)
+- [x] Type-state `AnalyzerBuilder` — (needs review: simple builder, no PhantomData/type-state) (deferred → see plans/v3.0.0/) (now implemented)
 
 ## Phase 2 Changes Checklist (Remediation — 2026-06-27)
 
@@ -89,12 +89,12 @@
 - [x] `# Errors` on `LanguagePlugin::parse_with` / `configure_parser`
 - [x] `# Errors` on config loaders and `collect_entries`
 - [x] JSON envelope `insta` snapshot — `tests/reporting_json_envelope_snapshot.rs` (version redacted)
-- [ ] `#![warn(missing_docs)]` on `lib.rs` — (needs review: still deferred; missing_docs on rules/mod.rs only)
+- [~] `#![warn(missing_docs)]` on `lib.rs` — (needs review: still deferred; missing_docs on rules/mod.rs only) (deferred → see plans/v3.0.0/)
 - [x] `# Errors` on reporting `print*` and `export::write_context_files` — confirmed
-- [ ] Runnable doc-test for `lib.rs` quick-start — (needs review: still `#no_run`)
+- [~] Runnable doc-test for `lib.rs` quick-start — (needs review: still `#no_run`) (deferred → see plans/v3.0.0/)
 - [x] SARIF / text `insta` snapshots — 3 committed (JSON, SARIF, text)
-- [ ] Split multi-assertion envelope / SARIF tests — (needs review: still deferred)
-- [ ] `pretty_assertions` adoption — (needs review: dep in Cargo.toml, 0 usages)
+- [~] Split multi-assertion envelope / SARIF tests — (needs review: still deferred) (deferred → see plans/v3.0.0/)
+- [~] `pretty_assertions` adoption — (needs review: dep in Cargo.toml, 0 usages) (deferred → see plans/v3.0.0/)
 
 ### Phase 2D — CI tooling
 

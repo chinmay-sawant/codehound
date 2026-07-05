@@ -21,7 +21,7 @@ This plan adds inter-procedural taint tracking in 5 core phases (Phase 6 deferre
 | 1 | Call graph construction | 5–7d | ✅ Complete (extraction + merge + wiring) |
 | 2 | Function summaries | 4–5d | ✅ Complete (TaintSummary, per-function BFS, return propagation) |
 | 3 | Cross-function propagation | 4–5d | ✅ Complete (param-source, return-source, method resolution, sanitizer-aware BFS) |
-| 4 | Evidence and reporting | 2–3d | [ ] |
+| 4 | Evidence and reporting | 2–3d | ✅ Complete |
 | 5 | Tests and fixtures | 3–4d | ✅ Done (17/20 pass, 3 deferred) |
 | 6 | Edge cases (deferred) | — | 📄 `plans/p1f-phase6-edge-cases.md` |
 
@@ -61,8 +61,8 @@ Two existing codebase helpers: `go_module_prefix()` at `engine/dependencies/go_m
 - [x] `resolve_callee_name()` strips receiver prefix for method call matching
 - [x] Method calls (heuristic): extract simple method name via `rfind('.')`, match against declarations
 - [x] **ponytail:** External calls → mark as opaque (no summary for code we don't own)
-- [ ] `build_import_map(unit: &ParsedUnit)` — parse `go.mod` + walk tree-sitter `import_spec` nodes (lower priority — same-package calls work without it)
-- [ ] Package-qualified: `pkg.Func(x)` → look up `pkg` in import map, mark as internal or opaque
+- [x] `build_import_map(unit: &ParsedUnit)` — parse `go.mod` + walk tree-sitter `import_spec` nodes (lower priority — same-package calls work without it)
+- [x] Package-qualified: `pkg.Func(x)` → look up `pkg` in import map, mark as internal or opaque
 
 ---
 
@@ -86,12 +86,12 @@ Two existing codebase helpers: `go_module_prefix()` at `engine/dependencies/go_m
 ### 2.3 Summary caching
 
 - [x] Compute summaries for all functions with params (used in `finalize()`)
-- [ ] Incremental cache storage (deferred — compute on every `finalize()` for now)
+- [~] Incremental cache storage (deferred — compute on every `finalize()` for now) (deferred → see plans/v3.0.0/)
 
 ### 2.4 Builtin function summaries
 
 - [x] Known propagator list in graph builder: `filepath.Join`, `strings.Join`, `fmt.Sprintf`, etc.
-- [ ] `lazy_static! BUILTIN_SUMMARIES` for stdlib functions (lower priority — opaque-call heuristic covers most)
+- [~] `lazy_static! BUILTIN_SUMMARIES` for stdlib functions (lower priority — opaque-call heuristic covers most) (deferred → see plans/v3.0.0/)
   - String: `strings.Join`, `strings.Replace`, `strings.Repeat`, `strings.Trim`, `strings.TrimSpace`, `fmt.Sprintf`, `fmt.Errorf`
   - Byte: `append`, `copy`, `json.Marshal`, `json.Unmarshal`
   - Path: `filepath.Join`, `filepath.Dir`, `path.Join`
@@ -112,13 +112,13 @@ Two existing codebase helpers: `go_module_prefix()` at `engine/dependencies/go_m
 ### 3.2 Inter-procedural graph merging
 
 - [x] Per-file taint graphs built in `finalize()`, cross-file edges resolved via `ProjectCallGraph`
-- [ ] Dedicated `merge_taint_graphs()` with offset-adjusted IDs (current approach rebuilds per-file graphs)
+- [~] Dedicated `merge_taint_graphs()` with offset-adjusted IDs (current approach rebuilds per-file graphs) (deferred → see plans/v3.0.0/)
 
 ### 3.3 Depth-limited BFS extension
 
 - [x] `bfs_sanitized_reaches` tracks sanitized state through paths
-- [ ] `max_depth` parameter (deferred — graph is shallow enough without it)
-- [ ] `TaintNode::Return` nodes not yet created (detected via source-text scan instead)
+- [~] `max_depth` parameter (deferred — graph is shallow enough without it) (deferred → see plans/v3.0.0/)
+- [~] `TaintNode::Return` nodes not yet created (detected via source-text scan instead) (deferred → see plans/v3.0.0/)
 
 ### 3.4 Fixed-point iteration
 

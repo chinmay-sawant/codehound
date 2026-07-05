@@ -365,5 +365,5 @@ No shared mutable state across workers; `Arc<str>` is immutable sharing only.
 - [x] `DetectorKind { Heuristic, FactDriven }` + trait `kind()` method — (note: `detector_kind.rs` deleted; only `Heuristic` existed)
 - [x] `LanguageId::TypeScript` → `#[cfg(feature = "typescript")]`
 - [x] Type-state `AnalyzerBuilder<UnsetFilter | HasFilter>` — (note: simple builder, no type-state generics)
-- [ ] Shrink `engine/mod.rs` `pub use` surface (prelude exists; full narrow deferred) — (needs review: prelude exists, 13+ groups in mod.rs remain)
+- [~] Shrink `engine/mod.rs` `pub use` surface (prelude exists; full narrow deferred) — (needs review: prelude exists, 13+ groups in mod.rs remain) (deferred → see plans/v3.0.0/)
 - [~] ~~88-domain `mod.rs` flatten~~ (partial: 57 remain, down from 88; restructure-codebase Phases 1–6 done)

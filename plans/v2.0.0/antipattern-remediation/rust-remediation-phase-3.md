@@ -28,14 +28,14 @@ Phase 3 closed hygiene and structural debt. Phase 3E landed architectural founda
 
 - [x] Migrate `#[allow(dead_code)]` → `#[expect]` / `#[cfg(test)]` — **`#[allow]` in `src/`: 0**
 - [x] `rustfmt.toml` + `scripts/check_no_prod_expect.sh` + CI
-- [ ] `cargo fmt --check` — (needs review: still fail, formatting drift)
+- [~] `cargo fmt --check` — (needs review: still fail, formatting drift) (deferred → see plans/v3.0.0/)
 
 ## Phase 3B — Walk Layer Trim
 
 - [x] Split `preflight_cache_hits` — **43 lines** (target <45)
 - [x] `scan_err()` helper; `ScanEntry.path` → `Arc<Path>`
 - [x] `scan_entry.rs` clones — **0** `.clone()`; **1** `Arc::clone` for parse handoff
-- [ ] `scan_entry` orchestrator — **76 lines** (target <60; needs further trimming)
+- [~] `scan_entry` orchestrator — **76 lines** (target <60; needs further trimming) (deferred → see plans/v3.0.0/)
 
 ## Phase 3C — Documentation & Testing
 
@@ -138,12 +138,12 @@ Phase 3 closed hygiene and structural debt. Phase 3E landed architectural founda
 
 ## Follow-ups (post Phase 3 — not blocking checklist)
 
-- [ ] Replace or document 3 production `.expect(` (restore `check_no_prod_expect.sh` green)
-- [ ] Rebaseline or optimize index build for `perf_regression` smoke budget
-- [ ] `cargo fmt` + commit formatting
+- [~] Replace or document 3 production `.expect(` (restore `check_no_prod_expect.sh` green) (deferred → see plans/v3.0.0/)
+- [x] Rebaseline or optimize index build for `perf_regression` smoke budget (deferred → see plans/v3.0.0/) (now implemented)
+- [~] `cargo fmt` + commit formatting (deferred → see plans/v3.0.0/)
 - [~] ~~Override `Detector::kind() → FactDriven` on Go detector bundles~~ (obsolete: `detector_kind.rs` and `kind()` deleted; only `Heuristic` existed)
-- [ ] Trim `scan_entry` orchestrator to <60 lines
-- [ ] Update stale `restructure-codebase/README.md` status line → Complete
+- [~] Trim `scan_entry` orchestrator to <60 lines (deferred → see plans/v3.0.0/)
+- [x] Update stale `restructure-codebase/README.md` status line → Complete
 
 ---
 

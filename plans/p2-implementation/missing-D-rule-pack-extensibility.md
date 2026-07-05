@@ -98,59 +98,40 @@ SlopGuard has a strong plugin-like internal structure (detectors implement a tra
   paths = ["./my-rules", "/usr/local/share/slopguard/rules/my-pack"]
   enabled = true
   ```
-- [ ] Add fields to `SlopguardConfig` struct in `src/engine/config.rs`
-- [ ] Update `slopguard.schema.json`
+- [~] Add fields to `SlopguardConfig` struct — not implemented (deferred → see plans/v3.0.0/)
+- [~] Update `slopguard.schema.json` — not implemented (deferred → see plans/v3.0.0/)
 
 ### 2.3 Implement pack discovery and loading
 
-- [ ] Create `src/engine/pack.rs`
-- [ ] `PackLoader` struct:
-  - [ ] `pack_paths: Vec<PathBuf>`
-  - [ ] `loaded_packs: Vec<RulePack>`
-- [ ] `RulePack` struct:
-  - [ ] `manifest: PackManifest`
-  - [ ] `rules: Vec<ExternalRule>`
-  - [ ] `registry: Vec<ExternalRegistryEntry>`
-- [ ] `ExternalRule` struct:
-  - [ ] `rule_id: String`
-  - [ ] `description: RuleDescription` (reuse from `cwe::catalog`)
-- [ ] `ExternalRegistryEntry` struct:
-  - [ ] `rule_id: String`
-  - [ ] `pattern: DetectionPattern`
-- [ ] `DetectionPattern` struct:
-  - [ ] `import_path: Option<String>`: e.g., "database/sql"
-  - [ ] `function_selector: Option<String>`: e.g., "(*sql.DB).Query"
-  - [ ] `argument_constraints: Vec<ArgConstraint>`
-  - [ ] `message_template: String`
-  - [ ] `severity: Severity`
-- [ ] `ArgConstraint` enum:
-  - [ ] `ContainsPlus` -- argument contains string concatenation
-  - [ ] `ContainsFormat` -- argument contains `fmt.Sprintf`
-  - [ ] `IsUserInput` -- argument comes from user input source
-  - [ ] `IsVariable` -- argument is a non-literal variable
-- [ ] `PackLoader::load_all() -> Result<Vec<RulePack>>`
-  - [ ] Read `pack.toml` from each path
-  - [ ] Validate version compatibility
-  - [ ] Parse `rules.json`, validate against schema
-  - [ ] Parse `registry.toml`, validate patterns
-- [ ] Register `pack.rs` in `src/engine/mod.rs`
+- [~] Create `src/engine/pack.rs` — not implemented (deferred → see plans/v3.0.0/)
+- [~] `PackLoader` struct — not implemented (deferred → see plans/v3.0.0/)
+- [~] `pack_paths`, `loaded_packs` (deferred → see plans/v3.0.0/)
+- [~] `RulePack` struct (deferred → see plans/v3.0.0/)
+- [~] `ExternalRule` struct (deferred → see plans/v3.0.0/)
+- [~] `ExternalRegistryEntry` struct (deferred → see plans/v3.0.0/)
+- [~] `DetectionPattern` struct (deferred → see plans/v3.0.0/)
+- [~] `ArgConstraint` enum (deferred → see plans/v3.0.0/)
+- [~] `PackLoader::load_all()` (deferred → see plans/v3.0.0/)
+- [~] Validate version compatibility (deferred → see plans/v3.0.0/)
+- [~] Parse/validate `rules.json` (deferred → see plans/v3.0.0/)
+- [~] Parse/validate `registry.toml` (deferred → see plans/v3.0.0/)
+- [~] Register `pack.rs` in `src/engine/mod.rs` (deferred → see plans/v3.0.0/)
 
 ### 2.4 Integrate into scan pipeline
 
-- [ ] In `app.rs::run()`:
-  - [ ] Load external packs after config loading
-  - [ ] Merge external rules into rule catalogue at runtime
-  - [ ] Register external detector entries with the generic pattern matcher
-- [ ] Create `GenericPatternDetector` in `src/lang/go/detectors/`:
-  - [ ] Implements `Detector` trait
-  - [ ] `rule_ids()` returns dynamically registered rule IDs
-  - [ ] `run()` iterates patterns, checks each, emits findings
-- [ ] Generic pattern check logic:
-  1. [ ] Check import exists (if specified): source contains `"<import_path>"`
-  2. [ ] Find call expressions matching `function_selector`
-  3. [ ] For each argument with constraints, validate constraints
-  4. [ ] If all match, emit finding with `message_template` populated
-- [ ] Wire into Go plugin: add `GenericPatternDetector` to `src/lang/go/detectors/mod.rs::all()`
+- [~] In `app.rs::run()`: load external packs — not implemented (deferred → see plans/v3.0.0/)
+- [~] Merge external rules into rule catalogue at runtime (deferred → see plans/v3.0.0/)
+- [~] Register external detector entries (deferred → see plans/v3.0.0/)
+- [~] Create `GenericPatternDetector` — not implemented (deferred → see plans/v3.0.0/)
+- [~] Implements `Detector` trait (deferred → see plans/v3.0.0/)
+- [~] `rule_ids()` returns dynamically registered IDs (deferred → see plans/v3.0.0/)
+- [~] `run()` iterates patterns (deferred → see plans/v3.0.0/)
+- [~] Generic pattern check logic (deferred → see plans/v3.0.0/)
+1. [~] Check import exists — not implemented (deferred → see plans/v3.0.0/)
+2. [~] Find call expressions matching `function_selector` (deferred → see plans/v3.0.0/)
+3. [~] For each argument with constraints, validate constraints (deferred → see plans/v3.0.0/)
+4. [~] If all match, emit finding (deferred → see plans/v3.0.0/)
+- [~] Wire into Go plugin (deferred → see plans/v3.0.0/)
 
 ### 2.5 Limitations (MVP -- document clearly)
 
@@ -167,24 +148,21 @@ SlopGuard has a strong plugin-like internal structure (detectors implement a tra
 
 ### 3.1 Pattern DSL (Type 2)
 
-- [ ] Design a declarative YAML/TOML DSL for detection rules
-- [ ] Support: import checks, call pattern matching, regex on source, AST node matching
-- [ ] Compile DSL to internal pattern matcher at load time
-- [ ] Estimated effort: 4-6 weeks
+- [~] Design a declarative YAML/TOML DSL for detection rules — future extensibility (deferred → see plans/v3.0.0/)
+- [~] Support: import checks, call pattern matching, regex on source, AST node matching (deferred → see plans/v3.0.0/)
+- [~] Compile DSL to internal pattern matcher at load time (deferred → see plans/v3.0.0/)
 
 ### 3.2 WASM detector packs (Type 3)
 
-- [ ] Embed a WASM runtime (`wasmtime` or `wasmer`)
-- [ ] Define a stable WASM interface that mirrors the Detector trait
-- [ ] Sandbox execution: no filesystem, no network, time budget per invocation
-- [ ] Estimated effort: 8-12 weeks
+- [~] Embed a WASM runtime (`wasmtime` or `wasmer`) — future extensibility (deferred → see plans/v3.0.0/)
+- [~] Define a stable WASM interface that mirrors the Detector trait (deferred → see plans/v3.0.0/)
+- [~] Sandbox execution: no filesystem, no network, time budget per invocation (deferred → see plans/v3.0.0/)
 
 ### 3.3 Script-based packs (Type 4)
 
-- [ ] Embed Rhai or Starlark runtime
-- [ ] Expose safe API: `query_ast()`, `search_source(pattern)`, `emit_finding()`
-- [ ] Sandbox: pure functions only, no I/O
-- [ ] Estimated effort: 4-6 weeks
+- [~] Embed Rhai or Starlark runtime — future extensibility (deferred → see plans/v3.0.0/)
+- [~] Expose safe API: `query_ast()`, `search_source(pattern)`, `emit_finding()` (deferred → see plans/v3.0.0/)
+- [~] Sandbox: pure functions only, no I/O (deferred → see plans/v3.0.0/)
 
 ---
 
@@ -217,26 +195,26 @@ SlopGuard has a strong plugin-like internal structure (detectors implement a tra
 
 ### 5.1 Unit tests
 
-- [ ] Test `PackLoader::load_all()` with a valid pack directory
-- [ ] Test pack with invalid `pack.toml` -- graceful error
-- [ ] Test pack with missing `rules.json` -- graceful error
-- [ ] Test pack with malformed patterns -- graceful error
-- [ ] Test pack with rule ID collision -- error
-- [ ] Test pack with version mismatch -- warning or error
+- [~] Test `PackLoader::load_all()` with a valid pack directory — not implemented (deferred → see plans/v3.0.0/)
+- [~] Test pack with invalid `pack.toml` (deferred → see plans/v3.0.0/)
+- [~] Test pack with missing `rules.json` (deferred → see plans/v3.0.0/)
+- [~] Test pack with malformed patterns (deferred → see plans/v3.0.0/)
+- [~] Test pack with rule ID collision (deferred → see plans/v3.0.0/)
+- [~] Test pack with version mismatch (deferred → see plans/v3.0.0/)
 
 ### 5.2 Integration tests
 
-- [ ] Create a test rule pack in `tests/fixtures/packs/valid-pack/`
-- [ ] Scan a project with the external pack loaded
-- [ ] Assert external rule findings appear alongside builtin findings
-- [ ] Test `--only` and `--skip` with external rule IDs
-- [ ] Test `--explain <external-rule-id>` works
+- [~] Create a test rule pack in `tests/fixtures/packs/valid-pack/` — not implemented (deferred → see plans/v3.0.0/)
+- [~] Scan a project with the external pack loaded (deferred → see plans/v3.0.0/)
+- [~] Assert external rule findings appear (deferred → see plans/v3.0.0/)
+- [~] Test `--only` and `--skip` with external rule IDs (deferred → see plans/v3.0.0/)
+- [~] Test `--explain <external-rule-id>` (deferred → see plans/v3.0.0/)
 
 ### 5.3 Configuration tests
 
-- [ ] Test config `rule_packs.paths` with multiple packs
-- [ ] Test config `rule_packs.enabled = false` -- packs not loaded
-- [ ] Test CLI `--rule-pack-path` overrides config paths
+- [~] Test config `rule_packs.paths` with multiple packs — not implemented (deferred → see plans/v3.0.0/)
+- [~] Test config `rule_packs.enabled = false` (deferred → see plans/v3.0.0/)
+- [~] Test CLI `--rule-pack-path` overrides config paths (deferred → see plans/v3.0.0/)
 
 ---
 
@@ -255,13 +233,14 @@ SlopGuard has a strong plugin-like internal structure (detectors implement a tra
   pub no_rule_packs: bool,
   ```
 - [x] Config precedence: CLI paths add to config paths (union), `--no-rule-packs` disables all
-- [ ] Implement flags in `src/cli/mod.rs`
+- [~] Implement `--rule-pack-path` flag — not implemented (deferred → see plans/v3.0.0/)
+- [~] Implement `--no-rule-packs` flag — not implemented (deferred → see plans/v3.0.0/)
 
 ### 6.2 Configuration schema (design complete, implementation pending)
 
 - [x] Design `slopguard.schema.json` updates with `rule_packs` properties
 - [x] Design `templates/slopguard.toml` commented-out example
-- [ ] Apply schema and template updates
+- [~] Apply schema and template updates — not implemented (deferred → see plans/v3.0.0/)
 
 ---
 
