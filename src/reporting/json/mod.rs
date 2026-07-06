@@ -10,3 +10,22 @@ mod types;
 
 pub use entry::{print, print_envelope};
 pub use types::{Envelope, FindingJson};
+
+use crate::engine::AnalysisResult;
+use crate::reporting::OutputReporter;
+use crate::Error;
+
+/// Reporter that serializes findings as NDJSON or a JSON envelope.
+pub struct JsonReporter {
+    pub envelope: bool,
+}
+
+impl OutputReporter for JsonReporter {
+    fn report(&self, result: &AnalysisResult) -> Result<(), Error> {
+        if self.envelope {
+            print_envelope(result)
+        } else {
+            print(result)
+        }
+    }
+}

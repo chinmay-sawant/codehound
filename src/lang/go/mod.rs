@@ -1,7 +1,6 @@
 //! Go language plugin.
 
 pub mod detectors;
-mod parser;
 
 const FUNCTION_NODE_KINDS: &[&str] = &["function_declaration", "method_declaration"];
 const LOOP_NODE_KINDS: &[&str] = &["for_statement"];
@@ -18,13 +17,14 @@ pub(crate) const CALL_ASSIGN_NODE_KINDS: &[&str] = &[
 ];
 
 use crate::core::LanguageId;
-use crate::lang::plugin::lang_plugin;
+use crate::lang::plugin::tree_sitter_lang;
 
-pub struct GoPlugin;
-
-lang_plugin!(
+tree_sitter_lang!(
+    GoLang,
     GoPlugin,
     LanguageId::Go,
+    tree_sitter_go::LANGUAGE.into(),
+    "tree-sitter-go",
     &["go"],
     detectors::all(),
     FUNCTION_NODE_KINDS,

@@ -82,8 +82,8 @@ pub enum CacheLookup {
 }
 
 /// Errors specific to the cache layer. `CacheStore` never panics on a
-/// corrupted entry — it surfaces a [`CacheError::Corrupt`] and the
-/// caller can treat the entry as a miss.
+/// corrupted entry — it returns `None` from [`CacheBackend::load_entry`]
+/// and logs the error.
 #[derive(Debug, thiserror::Error)]
 pub enum CacheError {
     #[error(transparent)]
@@ -91,4 +91,9 @@ pub enum CacheError {
 
     #[error("unsupported cache schema version: {found}, expected {expected}")]
     SchemaMismatch { found: u32, expected: u32 },
+
+    /// The on-disk entry file exists but is corrupt (invalid JSON or
+    /// schema version mismatch). Treated as a cache miss by the caller.
+    #[error("corrupt cache entry: {0}")]
+    Corrupt(String),
 }

@@ -18,21 +18,12 @@ use crate::engine::parse_pool::ParsePool;
 use crate::engine::registry::Registry;
 use crate::engine::result::{ScanError, ScanErrorKind};
 use crate::engine::stats::ScanStats;
-use crate::engine::timing::TimingCollector;
 use crate::rules::Finding;
 
 use super::entry::ScanEntry;
-use super::scan_entry::{read_entry_utf8, scan_entry, scan_err};
+use super::scan_entry::{read_entry_utf8, scan_entry, scan_err, ScanEntryResult};
 
-type ParallelScanResult = (
-    Vec<Finding>,
-    Vec<ScanError>,
-    HashMap<String, Arc<str>>,
-    usize,
-    ScanStats,
-    TimingCollector,
-    Vec<(String, bool)>,
-);
+
 
 /// Per-file outcome from a parallel scan: either findings or a structured error.
 #[derive(Debug)]
@@ -45,7 +36,6 @@ pub(crate) enum ScanOutcome {
         suppressed_count: usize,
         stats: ScanStats,
         dependencies: Vec<String>,
-        timing: TimingCollector,
     },
     Cached {
         findings: Vec<Finding>,
@@ -69,14 +59,13 @@ struct PreflightResult {
     cached_files: Vec<CachedFileInfo>,
 }
 
-struct MergedScan {
-    findings: Vec<Finding>,
-    errors: Vec<ScanError>,
-    source_cache: HashMap<String, Arc<str>>,
-    suppressed_count: usize,
-    stats: ScanStats,
-    timing: TimingCollector,
-    rescan_files: Vec<(String, bool)>,
+pub(crate) struct MergedScan {
+    pub findings: Vec<Finding>,
+    pub errors: Vec<ScanError>,
+    pub source_cache: HashMap<String, Arc<str>>,
+    pub suppressed_count: usize,
+    pub stats: ScanStats,
+    pub rescan_files: Vec<(String, bool)>,
 }
 
 /// Parallel scan orchestrator: cache preflight → Rayon dispatch → merge.
@@ -87,9 +76,8 @@ pub(crate) fn scan_entries_parallel(
     mut cache: Option<&mut CacheStore>,
     project_root: &Path,
     module_prefix: Option<&str>,
-) -> Result<ParallelScanResult, Error> {
+) -> Result<MergedScan, Error> {
     let total = entries.len();
-    let collect_stats = ctx.collect_stats();
 
     let preflight = preflight_cache_hits(ctx, entries, cache.as_deref());
     let scan_outcomes = dispatch_parallel_scan(
@@ -104,7 +92,6 @@ pub(crate) fn scan_entries_parallel(
         scan_outcomes,
         preflight.cached_outcomes,
         &mut cache,
-        collect_stats,
         preflight.cache_hit_count,
         total,
     );
@@ -122,15 +109,7 @@ pub(crate) fn scan_entries_parallel(
         "scan chunk complete"
     );
 
-    Ok((
-        merged.findings,
-        merged.errors,
-        merged.source_cache,
-        merged.suppressed_count,
-        merged.stats,
-        merged.timing,
-        merged.rescan_files,
-    ))
+    Ok(merged)
 }
 
 fn apply_cached_ignores(ctx: &ScanContext, source: &str, findings: &mut Vec<Finding>) {
@@ -278,15 +257,14 @@ fn dispatch_parallel_scan(
             }));
             match unwind {
                 Ok(res) => match res {
-                    Ok((
+                    Ok(ScanEntryResult {
                         findings,
                         cache_key,
                         source,
                         suppressed_count,
                         stats,
                         dependencies,
-                        timing,
-                    )) => ScanOutcome::Ok {
+                    }) => ScanOutcome::Ok {
                         findings,
                         cache_key,
                         source,
@@ -294,7 +272,6 @@ fn dispatch_parallel_scan(
                         suppressed_count,
                         stats,
                         dependencies,
-                        timing,
                     },
                     Err(e) => ScanOutcome::Err(e),
                 },
@@ -316,7 +293,6 @@ fn merge_parallel_results(
     scan_outcomes: Vec<ScanOutcome>,
     cached_outcomes: Vec<ScanOutcome>,
     cache: &mut Option<&mut CacheStore>,
-    collect_stats: bool,
     cache_hit_count: usize,
     total: usize,
 ) -> MergedScan {
@@ -326,7 +302,6 @@ fn merge_parallel_results(
         source_cache: HashMap::with_capacity(total),
         suppressed_count: 0,
         stats: ScanStats::default(),
-        timing: TimingCollector::new(collect_stats),
         rescan_files: Vec::new(),
     };
 
@@ -340,7 +315,6 @@ fn merge_parallel_results(
                 suppressed_count: ignored,
                 stats: file_stats,
                 dependencies,
-                timing: file_timing,
             } => {
                 write_cache_on_miss(
                     cache,
@@ -355,7 +329,6 @@ fn merge_parallel_results(
                 merged.source_cache.insert(cache_key, source);
                 merged.suppressed_count += ignored;
                 merged.stats.merge(&file_stats);
-                merged.timing.merge(&file_timing);
             }
             ScanOutcome::Err(e) => {
                 merged.errors.push(e);

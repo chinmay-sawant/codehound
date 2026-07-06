@@ -303,22 +303,24 @@ fn emit_output(
     export_summary: &ExportSummary,
 ) -> Result<()> {
     if !cli.no_terminal && !cli.quiet {
-        app_timing.measure("reporting", || match cli.format {
-            OutputFormat::Text => reporting::text::print_with_options(
-                result,
-                reporting::text::TextOptions {
+        let reporter: Box<dyn reporting::OutputReporter> = match cli.format {
+            OutputFormat::Text => Box::new(reporting::TextReporter {
+                options: reporting::text::TextOptions {
                     color: true,
                     suppress_snippet: cli.no_snippet,
                     show_fingerprint: cli.show_fingerprint,
                     verbose: cli.verbose,
                     debug_timing: cli.debug_timing,
                 },
-            ),
-            OutputFormat::Json if cli.json_envelope => reporting::json::print_envelope(result),
-            OutputFormat::Json => reporting::json::print(result),
-            OutputFormat::Sarif if cli.no_snippet => reporting::sarif::print_compact(result),
-            OutputFormat::Sarif => reporting::sarif::print(result),
-        })?;
+            }),
+            OutputFormat::Json => Box::new(reporting::JsonReporter {
+                envelope: cli.json_envelope,
+            }),
+            OutputFormat::Sarif => Box::new(reporting::SarifReporter {
+                compact: cli.no_snippet,
+            }),
+        };
+        app_timing.measure("reporting", || reporter.report(result))?;
     } else {
         let mut parts = Vec::new();
         if export_options.export_context {

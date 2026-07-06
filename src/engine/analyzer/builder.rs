@@ -4,6 +4,7 @@ use crate::core::ScanContext;
 use crate::engine::config::PathFilters;
 use crate::engine::language_filter::LanguageFilter;
 use crate::engine::registry::Registry;
+use crate::engine::walk::EntrySource;
 
 use super::types::Analyzer;
 
@@ -13,6 +14,7 @@ struct BuilderFields {
     lang_filter: LanguageFilter,
     path_filters: PathFilters,
     collect_stats: bool,
+    entry_source: Option<Box<dyn EntrySource>>,
 }
 
 /// Configures an [`Analyzer`].
@@ -30,6 +32,7 @@ impl AnalyzerBuilder {
                 lang_filter: LanguageFilter::default(),
                 path_filters: PathFilters::default(),
                 collect_stats: false,
+                entry_source: None,
             },
         }
     }
@@ -65,6 +68,13 @@ impl AnalyzerBuilder {
         self
     }
 
+    /// Inject a custom entry source (e.g. [`ListEntrySource`] for tests).
+    /// When not set, the default [`FilesystemWalker`] is used.
+    pub fn entry_source(mut self, source: Box<dyn EntrySource>) -> Self {
+        self.fields.entry_source = Some(source);
+        self
+    }
+
     pub fn build(self) -> Analyzer {
         Analyzer {
             registry: self.fields.registry,
@@ -74,6 +84,7 @@ impl AnalyzerBuilder {
             collect_stats: self.fields.collect_stats,
             project_root: std::path::PathBuf::default(),
             module_prefix: None,
+            entry_source: self.fields.entry_source,
         }
     }
 }

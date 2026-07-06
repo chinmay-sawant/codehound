@@ -1,6 +1,9 @@
 //! Walk paths and collect supported source files.
+//!
+//! The [`EntrySource`] trait allows injecting a pre-built entry list for
+//! tests, avoiding filesystem I/O.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use ignore::WalkBuilder;
@@ -17,6 +20,107 @@ use crate::engine::registry::Registry;
 pub struct ScanEntry {
     pub path: Arc<Path>,
     pub language: LanguageId,
+}
+
+/// Pluggable source of [`ScanEntry`] items. Used by [`Analyzer`] to
+/// decouple file discovery from analysis.
+///
+/// # Seam
+///
+/// Two adapters exist: [`FilesystemWalker`] (the default, walks real
+/// directories) and [`ListEntrySource`] (accepts a pre-built vector,
+/// suitable for tests).
+pub trait EntrySource: Send + Sync + std::fmt::Debug {
+    /// Walk or retrieve the list of files to scan. Returns `(entries,
+    /// skipped_count)`.
+    fn collect(
+        &self,
+        registry: &Registry,
+        lang_filter: &LanguageFilter,
+        path_filters: &PathFilters,
+        paths: &[&Path],
+    ) -> Result<(Vec<ScanEntry>, usize), Error>;
+}
+
+/// Default [`EntrySource`] that walks the filesystem using
+/// `ignore::WalkBuilder`.
+#[derive(Debug, Default)]
+pub struct FilesystemWalker;
+
+impl EntrySource for FilesystemWalker {
+    fn collect(
+        &self,
+        registry: &Registry,
+        lang_filter: &LanguageFilter,
+        path_filters: &PathFilters,
+        paths: &[&Path],
+    ) -> Result<(Vec<ScanEntry>, usize), Error> {
+        let mut entries = Vec::new();
+        let mut skipped = 0usize;
+
+        for path in paths {
+            let matcher = RootPathMatcher::new(path, path_filters)?;
+            let mut builder = WalkBuilder::new(path);
+            builder
+                .standard_filters(true)
+                .add_custom_ignore_filename(".slopguardignore");
+            for entry in builder.build().filter_map(Result::ok) {
+                if !entry.file_type().is_some_and(|t| t.is_file()) {
+                    continue;
+                }
+                if !matcher.allows(entry.path()) {
+                    skipped += 1;
+                    continue;
+                }
+                let Some(plugin) = registry.plugin_for_path(entry.path()) else {
+                    skipped += 1;
+                    continue;
+                };
+                let language = plugin.id();
+                if !lang_filter.allows(language) {
+                    skipped += 1;
+                    continue;
+                }
+                entries.push(ScanEntry {
+                    path: Arc::from(entry.path()),
+                    language,
+                });
+            }
+        }
+
+        Ok((entries, skipped))
+    }
+}
+
+/// [`EntrySource`] that returns a pre-built list. Useful for tests that
+/// want to verify pipeline behaviour without walking the filesystem.
+#[allow(dead_code)]
+#[derive(Debug, Clone)]
+pub struct ListEntrySource {
+    entries: Vec<ScanEntry>,
+    skipped: usize,
+}
+
+impl ListEntrySource {
+    pub fn new(entries: Vec<ScanEntry>) -> Self {
+        Self { entries, skipped: 0 }
+    }
+
+    pub fn with_skipped(entries: Vec<ScanEntry>, skipped: usize) -> Self {
+        Self { entries, skipped }
+    }
+}
+
+impl EntrySource for ListEntrySource {
+    fn collect(
+        &self,
+        _registry: &Registry,
+        _lang_filter: &LanguageFilter,
+        _path_filters: &PathFilters,
+        _paths: &[&Path],
+    ) -> Result<(Vec<ScanEntry>, usize), Error> {
+        Ok((self.entries.clone(), self.skipped))
+    }
 }
 
 /// Walk paths and collect supported source files (no I/O beyond directory walk).
@@ -41,41 +145,9 @@ where
     I: IntoIterator<Item = P>,
     P: AsRef<Path>,
 {
-    let mut entries = Vec::new();
-    let mut skipped = 0usize;
-
-    for path in paths {
-        let path = path.as_ref();
-        let matcher = RootPathMatcher::new(path, path_filters)?;
-        let mut builder = WalkBuilder::new(path);
-        builder
-            .standard_filters(true)
-            .add_custom_ignore_filename(".slopguardignore");
-        for entry in builder.build().filter_map(Result::ok) {
-            if !entry.file_type().is_some_and(|t| t.is_file()) {
-                continue;
-            }
-            if !matcher.allows(entry.path()) {
-                skipped += 1;
-                continue;
-            }
-            let Some(plugin) = registry.plugin_for_path(entry.path()) else {
-                skipped += 1;
-                continue;
-            };
-            let language = plugin.id();
-            if !lang_filter.allows(language) {
-                skipped += 1;
-                continue;
-            }
-            entries.push(ScanEntry {
-                path: Arc::from(entry.path()),
-                language,
-            });
-        }
-    }
-
-    Ok((entries, skipped))
+    let owned: Vec<PathBuf> = paths.into_iter().map(|p| p.as_ref().to_path_buf()).collect();
+    let refs: Vec<&Path> = owned.iter().map(|p| p.as_path()).collect();
+    FilesystemWalker.collect(registry, lang_filter, path_filters, &refs)
 }
 
 #[derive(Debug)]

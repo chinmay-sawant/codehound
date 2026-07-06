@@ -2,7 +2,7 @@
 
 use crate::core::{ParsedUnit, ScanContext};
 use crate::engine::registry::Registry;
-use crate::engine::timing::TimingCollector;
+use crate::engine::timing;
 use crate::rules::Finding;
 
 use super::scan_entry::attach_function_context;
@@ -10,12 +10,12 @@ use super::scan_entry::attach_function_context;
 /// Run enabled detectors on an already-parsed unit.
 ///
 /// Returns the findings and the number of detector invocations that actually
-/// executed (used for scan statistics).
+/// executed (used for scan statistics). Per-detector timing is recorded via
+/// the global timing collector.
 pub fn analyze_parsed_unit(
     registry: &Registry,
     ctx: &ScanContext,
     unit: &ParsedUnit,
-    timing: &mut TimingCollector,
 ) -> (Vec<Finding>, usize) {
     let mut findings = Vec::new();
     let mut rules_executed = 0;
@@ -28,9 +28,9 @@ pub fn analyze_parsed_unit(
         rules_executed += 1;
         if collect_detector_timing {
             let name = det.rule_ids().first().copied().unwrap_or("detector");
-            let span = timing.start(name);
+            let span = timing::global_start(name);
             det.run(ctx, unit, &mut findings);
-            timing.stop(span);
+            timing::global_stop(span);
         } else {
             det.run(ctx, unit, &mut findings);
         }
@@ -46,8 +46,7 @@ pub fn analyze_parsed_unit_with_context(
     ctx: &ScanContext,
     unit: &ParsedUnit,
 ) -> Vec<Finding> {
-    let mut timing = TimingCollector::new(false);
-    let (mut findings, _rules) = analyze_parsed_unit(registry, ctx, unit, &mut timing);
+    let (mut findings, _rules) = analyze_parsed_unit(registry, ctx, unit);
     if let Some(plugin) = registry.plugin_for_id(unit.language) {
         attach_function_context(&mut findings, plugin, unit);
     }

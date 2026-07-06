@@ -7,6 +7,6 @@ mod scan_entry;
 mod scratch;
 
 pub use analyze::{analyze_parsed_unit, analyze_parsed_unit_with_context};
-pub use entry::collect_entries;
-pub(crate) use parallel::scan_entries_parallel;
+pub use entry::{EntrySource, FilesystemWalker, collect_entries};
+pub(crate) use parallel::{MergedScan, scan_entries_parallel};
 pub use scratch::scratch_contains;

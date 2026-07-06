@@ -2,13 +2,10 @@
 //! `invalidate_file`, `invalidate_dependent`, plus the `read_entry` helper
 //! that backs `lookup`/`get`.
 
-use std::fs;
-
 use crate::Error;
 
 use super::CacheStore;
 use super::hash::cache_key_for_path;
-use super::io::write_atomic;
 use super::types::{CacheEntry, FileCacheMeta};
 
 impl CacheStore {
@@ -16,8 +13,9 @@ impl CacheStore {
     /// the store dirty so [`flush`](Self::flush) writes to disk.
     pub fn put(&mut self, entry: CacheEntry) -> Result<(), Error> {
         let cache_key = cache_key_for_path(&entry.file);
-        let entry_path = self.files_dir.join(format!("{cache_key}.json"));
-        write_atomic(&entry_path, &entry)?;
+        self.backend.store_entry(&cache_key, &entry).map_err(|e| {
+            Error::Walk(format!("storing cache entry {cache_key}: {e}"))
+        })?;
         let meta = FileCacheMeta {
             cache_key,
             content_hash: entry.content_hash.clone(),
@@ -35,12 +33,9 @@ impl CacheStore {
     /// when `file` is not tracked.
     pub fn remove(&mut self, file: &str) -> Result<(), Error> {
         if let Some(meta) = self.manifest.files.remove(file) {
-            let path = self.files_dir.join(format!("{}.json", meta.cache_key));
-            if path.is_file() {
-                fs::remove_file(&path).map_err(|e| {
-                    Error::Walk(format!("removing cache entry {}: {e}", path.display()))
-                })?;
-            }
+            self.backend.delete_entry(&meta.cache_key).map_err(|e| {
+                Error::Walk(format!("removing cache entry {}: {e}", meta.cache_key))
+            })?;
             self.dirty = true;
         }
         Ok(())
@@ -72,32 +67,15 @@ impl CacheStore {
     /// manifest is torn (e.g. concurrent writes). Returns the number
     /// of files removed.
     pub fn clean_orphans(&self) -> Result<usize, Error> {
-        if !self.files_dir.is_dir() {
-            return Ok(0);
-        }
         let active_keys: std::collections::HashSet<&str> = self
             .manifest
             .files
             .values()
             .map(|m| m.cache_key.as_str())
             .collect();
-        let mut removed = 0;
-        for entry in std::fs::read_dir(&self.files_dir)? {
-            let entry = entry?;
-            let fname = entry.file_name();
-            let name = fname.to_string_lossy();
-            let Some(key) = name.strip_suffix(".json") else {
-                continue;
-            };
-            if active_keys.contains(key) {
-                continue;
-            }
-            if entry.file_type().is_ok_and(|t| t.is_file()) {
-                std::fs::remove_file(entry.path())?;
-                removed += 1;
-            }
-        }
-        Ok(removed)
+        self.backend.clean_orphans(&active_keys).map_err(|e| {
+            Error::Walk(format!("cleaning cache orphans: {e}"))
+        })
     }
 
     /// Lazily invalidate the entry for `file`. Equivalent to
@@ -137,41 +115,8 @@ impl CacheStore {
     }
 }
 
-/// Free-function `read_entry` for the `CacheStore` impl. The `lookup`
-/// and `get` methods call this through `CacheStore::read_entry`.
+/// Delegate to the backend to load an entry. The `lookup` and `get`
+/// methods call this through `CacheStore::read_entry`.
 pub(super) fn read_entry(store: &CacheStore, cache_key: &str) -> Option<CacheEntry> {
-    let path = store.files_dir.join(format!("{cache_key}.json"));
-    if !path.is_file() {
-        tracing::warn!(cache_key, "cache entry file missing on disk");
-        return None;
-    }
-    let bytes = match fs::read(&path) {
-        Ok(b) => b,
-        Err(e) => {
-            tracing::warn!(path = %path.display(), error = %e, "failed to read cache entry");
-            return None;
-        }
-    };
-    match serde_json::from_slice::<CacheEntry>(&bytes) {
-        Ok(e) => {
-            if e.schema_version != super::types::CACHE_VERSION {
-                tracing::warn!(
-                    cache_key,
-                    found = e.schema_version,
-                    expected = super::types::CACHE_VERSION,
-                    "cache entry schema mismatch; treating as miss"
-                );
-                return None;
-            }
-            Some(e)
-        }
-        Err(err) => {
-            tracing::warn!(
-                path = %path.display(),
-                error = %err,
-                "corrupt cache entry; treating as miss"
-            );
-            None
-        }
-    }
+    store.backend.load_entry(cache_key)
 }

@@ -17,6 +17,10 @@ impl CacheStore {
         if !self.dirty {
             return Ok(());
         }
+        if self.ephemeral {
+            self.dirty = false;
+            return Ok(());
+        }
         if self.max_size_bytes > 0 {
             self.evict_to_size()?;
         }
@@ -93,20 +97,7 @@ impl CacheStore {
     /// Sum the sizes of all `files/<key>.json` entries in bytes.
     /// Useful for capacity checks and `--diagnostics`.
     pub fn total_size(&self) -> u64 {
-        if !self.files_dir.is_dir() {
-            return 0;
-        }
-        let mut total = 0u64;
-        if let Ok(entries) = std::fs::read_dir(&self.files_dir) {
-            for entry in entries.flatten() {
-                if entry.file_type().is_ok_and(|t| t.is_file()) {
-                    if let Ok(meta) = entry.metadata() {
-                        total += meta.len();
-                    }
-                }
-            }
-        }
-        total
+        self.backend.total_size()
     }
 }
 

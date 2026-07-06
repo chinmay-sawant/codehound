@@ -5,7 +5,7 @@ mod t {
     use crate::lang::go::detectors::cwe::taint::{ScopeKind, SinkKind, SourceKind};
 
     fn parse(source: &str) -> ParsedUnit {
-        crate::lang::go::parser::parse_go(source).expect("valid Go")
+        crate::lang::parser::parse_go(source).expect("valid Go")
     }
 
     #[test]

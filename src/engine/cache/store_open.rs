@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use super::CacheStore;
+use super::{CacheStore, DiskBackend, InMemoryBackend};
 use super::io::mtime_of_file;
 use super::types::FILES_SUBDIR;
 use super::types::{
@@ -69,14 +69,38 @@ impl CacheStore {
         };
 
         Ok(Self {
-            cache_dir,
-            files_dir,
+            cache_dir: cache_dir.clone(),
+            files_dir: files_dir.clone(),
             manifest,
             dirty: false,
             max_size_bytes: max_size_mb.saturating_mul(1024 * 1024),
             evict_target_ratio: normalize_evict_target_ratio(evict_target_ratio),
             max_file_size_bytes: max_file_size_mb.saturating_mul(1024 * 1024),
+            backend: Box::new(DiskBackend { files_dir }),
+            ephemeral: false,
         })
+    }
+
+    /// Create a purely in-memory cache store. All entries live in a
+    /// `HashMap`; no filesystem operations are performed. Useful for
+    /// tests and ephemeral use.
+    #[must_use = "in-memory cache is useless if discarded"]
+    pub fn in_memory() -> Self {
+        Self {
+            cache_dir: PathBuf::new(),
+            files_dir: PathBuf::new(),
+            manifest: CacheManifest {
+                schema_version: CACHE_VERSION,
+                tool_version: env!("CARGO_PKG_VERSION").to_string(),
+                files: HashMap::new(),
+            },
+            dirty: false,
+            max_size_bytes: 0,
+            evict_target_ratio: 0.9,
+            max_file_size_bytes: 0,
+            backend: Box::new(InMemoryBackend::new()),
+            ephemeral: true,
+        }
     }
 
     pub fn should_cache_path(&self, path: &Path) -> bool {

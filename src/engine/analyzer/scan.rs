@@ -1,9 +1,7 @@
 //! `Analyzer::analyze_paths`: top-level scan orchestration with cache,
 //! cascade-invalidation, pruning, and stats aggregation.
 
-use std::collections::HashMap;
 use std::path::Path;
-use std::sync::Arc;
 
 use crate::Error;
 use crate::engine::{
@@ -12,8 +10,8 @@ use crate::engine::{
     dependencies::{discover_project_root, go_module_prefix},
     result::AnalysisResult,
     stats::ScanStats,
-    timing::TimingCollector,
-    walk::{collect_entries, scan_entries_parallel},
+    timing,
+    walk::{EntrySource, FilesystemWalker, scan_entries_parallel},
 };
 
 use super::types::Analyzer;
@@ -36,7 +34,7 @@ impl Analyzer {
         paths: &[impl AsRef<Path>],
         mut cache: Option<&mut CacheStore>,
     ) -> Result<AnalysisResult, Error> {
-        let mut timing = TimingCollector::new(self.collect_stats);
+        let mut timing = timing::TimingCollector::new(self.collect_stats);
         let scan_root = paths
             .first()
             .map(|p| {
@@ -60,38 +58,31 @@ impl Analyzer {
         };
 
         let (entries, files_skipped) = timing.measure("file_walk", || {
-            collect_entries(
-                &self.registry,
-                paths.iter().map(|p| p.as_ref()),
-                &self.lang_filter,
-                &self.path_filters,
-            )
+            let path_refs: Vec<&Path> = paths.iter().map(|p| p.as_ref()).collect();
+            match self.entry_source.as_ref() {
+                Some(source) => source.collect(
+                    &self.registry,
+                    &self.lang_filter,
+                    &self.path_filters,
+                    &path_refs,
+                ),
+                None => FilesystemWalker.collect(
+                    &self.registry,
+                    &self.lang_filter,
+                    &self.path_filters,
+                    &path_refs,
+                ),
+            }
         })?;
 
-        let mut findings = Vec::new();
-        let mut errors = Vec::new();
-        let mut source_cache: HashMap<String, Arc<str>> = HashMap::new();
-        let mut suppressed_count = 0;
-        let mut stats = ScanStats {
-            files_skipped,
-            ..Default::default()
-        };
-        let mut scanned_files: std::collections::HashSet<String> =
-            std::collections::HashSet::with_capacity(entries.len());
+        let mut acc = crate::engine::PipelineAccumulator::new(files_skipped);
         for entry in &entries {
-            scanned_files.insert(entry.path.display().to_string());
+            acc.record_scanned(entry.path.display().to_string());
         }
 
+        timing::init_global(self.collect_stats);
         for chunk in entries.chunks(SCAN_CHUNK_SIZE) {
-            let (
-                chunk_findings,
-                chunk_errors,
-                chunk_source_cache,
-                chunk_suppressed_count,
-                chunk_stats,
-                chunk_timing,
-                chunk_rescan_files,
-            ) = match scan_entries_parallel(
+            let chunk = match scan_entries_parallel(
                 &self.registry,
                 &self.ctx,
                 chunk,
@@ -102,12 +93,7 @@ impl Analyzer {
                 Ok(chunk) => chunk,
                 Err(e) => return Err(Error::Walk(e.to_string())),
             };
-            findings.extend(chunk_findings);
-            errors.extend(chunk_errors);
-            source_cache.extend(chunk_source_cache);
-            suppressed_count += chunk_suppressed_count;
-            stats.merge(&chunk_stats);
-            timing.merge(&chunk_timing);
+            let rescan_files = acc.merge_chunk(chunk, &mut timing);
 
             // Transitive invalidation: every file whose content
             // hash changed is, by definition, a dependency of any
@@ -117,7 +103,7 @@ impl Analyzer {
             // previous hash) are NOT cascaded — there is nothing to
             // invalidate yet.
             if let Some(cache) = cache.as_deref_mut() {
-                for (rescanned_file, hash_changed) in chunk_rescan_files {
+                for (rescanned_file, hash_changed) in rescan_files {
                     if !hash_changed {
                         continue;
                     }
@@ -137,7 +123,7 @@ impl Analyzer {
         // the last scan). Done at the analyzer level so it still runs
         // when `entries` is empty.
         if let Some(cache) = cache.as_deref_mut() {
-            if let Ok(removed) = cache.prune(&scanned_files) {
+            if let Ok(removed) = cache.prune(acc.scanned_files()) {
                 if removed > 0 {
                     tracing::debug!(removed, "pruned stale cache entries");
                 }
@@ -149,35 +135,35 @@ impl Analyzer {
         for idx in self.registry.detector_indices_for_project() {
             self.registry
                 .detector(idx)
-                .finalize(&self.ctx, &mut findings);
+                .finalize(&self.ctx, acc.findings_mut());
         }
         timing.stop(det_idx);
 
-        timing.measure("sort_results", || sort_findings(&mut findings));
+        timing.measure("sort_results", || sort_findings(acc.findings_mut()));
 
-        if !errors.is_empty() {
+        if !acc.errors().is_empty() {
             tracing::warn!(
-                error_count = errors.len(),
+                error_count = acc.errors().len(),
                 "scan completed with per-file errors"
             );
         }
 
+        let chunk_stats = acc.take_stats();
         let mut result = AnalysisResult {
-            findings,
-            errors,
-            source_cache,
-            suppressed_count,
+            findings: acc.take_findings(),
+            errors: acc.take_errors(),
+            source_cache: acc.take_source_cache(),
+            suppressed_count: acc.suppressed_count(),
             stats: None,
         };
-
         if self.collect_stats {
             let mut scan_stats = ScanStats::from_result(&result);
-            scan_stats.files_scanned = stats.files_scanned;
-            scan_stats.files_skipped = stats.files_skipped;
-            scan_stats.files_errored = stats.files_errored;
-            scan_stats.bytes_scanned = stats.bytes_scanned;
-            scan_stats.lines_scanned = stats.lines_scanned;
-            scan_stats.rules_executed = stats.rules_executed;
+            scan_stats.files_scanned = chunk_stats.files_scanned;
+            scan_stats.files_skipped = chunk_stats.files_skipped;
+            scan_stats.files_errored = chunk_stats.files_errored;
+            scan_stats.bytes_scanned = chunk_stats.bytes_scanned;
+            scan_stats.lines_scanned = chunk_stats.lines_scanned;
+            scan_stats.rules_executed = chunk_stats.rules_executed;
             scan_stats.detectors_loaded = self.registry.detector_count();
             scan_stats.timing = Some(timing.to_summary());
             result.stats = Some(scan_stats);
@@ -193,7 +179,7 @@ impl Analyzer {
     }
 }
 
-pub(super) fn sort_findings(findings: &mut [crate::rules::Finding]) {
+pub(crate) fn sort_findings(findings: &mut [crate::rules::Finding]) {
     findings.sort_by(|a, b| {
         a.file
             .cmp(&b.file)

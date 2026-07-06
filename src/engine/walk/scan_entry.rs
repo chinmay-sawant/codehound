@@ -14,7 +14,7 @@ use crate::engine::parse_pool::ParsePool;
 use crate::engine::registry::Registry;
 use crate::engine::result::{ScanError, ScanErrorKind};
 use crate::engine::stats::{FileStats, ScanStats};
-use crate::engine::timing::TimingCollector;
+use crate::engine::timing;
 use crate::rules::Finding;
 
 use super::analyze::analyze_parsed_unit;
@@ -56,15 +56,14 @@ pub(super) fn read_entry_utf8(
     ))
 }
 
-type ScanEntryResult = (
-    Vec<Finding>,
-    String,
-    Arc<str>,
-    usize,
-    ScanStats,
-    Vec<String>,
-    TimingCollector,
-);
+pub(crate) struct ScanEntryResult {
+    pub findings: Vec<Finding>,
+    pub cache_key: String,
+    pub source: Arc<str>,
+    pub suppressed_count: usize,
+    pub stats: ScanStats,
+    pub dependencies: Vec<String>,
+}
 
 struct ReadOutcome {
     source: Arc<str>,
@@ -73,14 +72,13 @@ struct ReadOutcome {
 
 fn read_entry_source(
     entry: &ScanEntry,
-    timing: &mut TimingCollector,
     stats: &mut ScanStats,
 ) -> Result<ReadOutcome, ScanError> {
-    let idx = timing.start("file_read");
+    let idx = timing::global_start("file_read");
     let (source, _) = read_entry_utf8(entry).inspect_err(|_| {
         stats.record_errored();
     })?;
-    timing.stop(idx);
+    timing::global_stop(idx);
     let file_stats = FileStats::from_source(&source);
     Ok(ReadOutcome { source, file_stats })
 }
@@ -90,7 +88,6 @@ fn parse_entry_unit(
     plugin: &dyn LanguagePlugin,
     pool: &mut ParsePool,
     source: Arc<str>,
-    timing: &mut TimingCollector,
     stats: &mut ScanStats,
 ) -> Result<ParsedUnit, ScanError> {
     let parser = pool.parser_for(plugin).map_err(|e| {
@@ -101,7 +98,7 @@ fn parse_entry_unit(
             format!("configuring parser for {}: {e}", entry.path.display()),
         )
     })?;
-    let idx = timing.start("tree_sitter_parse");
+    let idx = timing::global_start("tree_sitter_parse");
     let unit = plugin
         .parse_with(parser, &entry.path, Arc::clone(&source))
         .map_err(|e| {
@@ -112,7 +109,7 @@ fn parse_entry_unit(
                 format!("parsing {}: {e:#}", entry.path.display()),
             )
         })?;
-    timing.stop(idx);
+    timing::global_stop(idx);
     Ok(unit)
 }
 
@@ -121,7 +118,6 @@ fn analyze_parsed_entry(
     ctx: &ScanContext,
     plugin: &dyn LanguagePlugin,
     unit: &mut ParsedUnit,
-    timing: &mut TimingCollector,
     stats: &mut ScanStats,
     file_stats: FileStats,
 ) -> (Vec<Finding>, usize) {
@@ -136,9 +132,9 @@ fn analyze_parsed_entry(
         unit.function_spans = ast::collect_function_spans(unit.tree.root_node(), fn_kinds);
     }
 
-    let det_idx = timing.start("detector_execution");
-    let (mut findings, rules_executed) = analyze_parsed_unit(registry, ctx, unit, timing);
-    timing.stop(det_idx);
+    let det_idx = timing::global_start("detector_execution");
+    let (mut findings, rules_executed) = analyze_parsed_unit(registry, ctx, unit);
+    timing::global_stop(det_idx);
     // per-finding rule filter — consistent with cache hit path (filter_cached_findings)
     findings.retain(|f| ctx.allows(&f.rule_id));
     for f in &mut findings {
@@ -169,9 +165,6 @@ fn analyze_parsed_entry(
 /// to extract project-local dependency files after parsing; the
 /// returned list is what gets written to the cache entry so a future
 /// edit to a dependency can invalidate this file's cached findings.
-///
-/// On success, returns findings, cache key, source text, suppressed count,
-/// per-file stats, dependency list, and a timing collector for this file.
 pub(crate) fn scan_entry(
     registry: &Registry,
     ctx: &ScanContext,
@@ -180,8 +173,6 @@ pub(crate) fn scan_entry(
     project_root: &Path,
     module_prefix: Option<&str>,
 ) -> std::result::Result<ScanEntryResult, ScanError> {
-    let collect_stats = ctx.collect_stats();
-    let mut timing = TimingCollector::new(collect_stats);
     let mut stats = ScanStats::default();
 
     let plugin = match registry.plugin_for_id(entry.language) {
@@ -196,50 +187,34 @@ pub(crate) fn scan_entry(
         }
     };
 
-    let ReadOutcome { source, file_stats } = read_entry_source(entry, &mut timing, &mut stats)?;
-    let mut unit = parse_entry_unit(
-        entry,
-        plugin,
-        pool,
-        Arc::clone(&source),
-        &mut timing,
-        &mut stats,
-    )?;
+    let ReadOutcome { source, file_stats } = read_entry_source(entry, &mut stats)?;
+    let mut unit = parse_entry_unit(entry, plugin, pool, Arc::clone(&source), &mut stats)?;
     let dependencies = extract_dependencies(&unit, project_root, module_prefix);
 
     let file_ignore = parse_file_ignore(unit.source.as_ref());
     if !ctx.show_ignored && file_ignore.as_ref().is_some_and(IgnoreDirective::is_all) {
         stats.record_file(file_stats.bytes, file_stats.lines);
-        return Ok((
-            Vec::new(),
-            unit.display_path,
+        return Ok(ScanEntryResult {
+            findings: Vec::new(),
+            cache_key: unit.display_path,
             source,
-            0,
+            suppressed_count: 0,
             stats,
             dependencies,
-            timing,
-        ));
+        });
     }
 
-    let (findings, suppressed_count) = analyze_parsed_entry(
-        registry,
-        ctx,
-        plugin,
-        &mut unit,
-        &mut timing,
-        &mut stats,
-        file_stats,
-    );
+    let (findings, suppressed_count) =
+        analyze_parsed_entry(registry, ctx, plugin, &mut unit, &mut stats, file_stats);
 
-    Ok((
+    Ok(ScanEntryResult {
         findings,
-        unit.display_path,
+        cache_key: unit.display_path,
         source,
         suppressed_count,
         stats,
         dependencies,
-        timing,
-    ))
+    })
 }
 
 /// Walk the unit's tree once to collect every function-like span, then attach

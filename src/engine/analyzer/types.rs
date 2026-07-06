@@ -6,6 +6,7 @@ use crate::core::ScanContext;
 use crate::engine::config::PathFilters;
 use crate::engine::language_filter::LanguageFilter;
 use crate::engine::registry::Registry;
+use crate::engine::walk::EntrySource;
 
 /// Language-agnostic static analyzer.
 pub struct Analyzer {
@@ -21,4 +22,7 @@ pub struct Analyzer {
     /// present. Used to distinguish local Go imports from
     /// stdlib / third-party.
     pub(super) module_prefix: Option<String>,
+    /// Optional pluggable entry source. When `None`, the default
+    /// [`FilesystemWalker`](crate::engine::walk::FilesystemWalker) is used.
+    pub(super) entry_source: Option<Box<dyn EntrySource>>,
 }
