@@ -20,7 +20,7 @@ impl LanguageId {
         }
     }
 
-    /// Parse a `slopguard.toml` / operator language name (e.g. `go`, `python`, `py`).
+    /// Parse a `codehound.toml` / operator language name (e.g. `go`, `python`, `py`).
     pub fn from_config_name(name: &str) -> Option<Self> {
         let name = name.trim();
         if name.eq_ignore_ascii_case("go") {

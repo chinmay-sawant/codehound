@@ -4,9 +4,9 @@
 mod helpers;
 use helpers::unique_temp_root;
 
-use slopguard::core::ScanContext;
-use slopguard::engine::Analyzer;
-use slopguard::export::{ExportOptions, export_findings};
+use codehound::core::ScanContext;
+use codehound::engine::Analyzer;
+use codehound::export::{ExportOptions, export_findings};
 
 #[test]
 fn export_uses_source_cache_after_source_file_is_removed() {

@@ -1,5 +1,5 @@
 use phf::phf_set;
-use slopguard::engine::sinks;
+use codehound::engine::sinks;
 
 static SQL_SINKS: phf::Set<&'static str> = phf_set! {
     "db.Query",

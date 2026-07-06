@@ -1,4 +1,4 @@
-# Slopguard — Ponytail Ultra-Audit Report
+# Codehound — Ponytail Ultra-Audit Report
 
 > **Generated:** 2026-06-27 · **Last updated:** 2026-06-28
 > **Mode:** Ultra (maximum aggression — find everything questionable)
@@ -55,10 +55,10 @@ The codebase is lean for its capability. The biggest wins are: (1) **~580 lines*
 - [x] `delete:` `dependencies/entry.rs:68-70` trivial `extensions` wrapper. Rename `extensions_for` and drop wrapper. [`dependencies/entry.rs:11-18`]
 - [x] `delete:` `walk/scan_entry.rs:252-254` dead `if spans.is_empty()` — always false. [`walk/scan_entry.rs:252-254`]
 - [x] `delete:` `timing/millis.rs:11-15` `deserialize` function dead code. [`timing/millis.rs:11-15`]
-- [x] `delete:` `config/section.rs:25-27` `SlopguardConfig::discover()` never called. [`config/section.rs:25`]
+- [x] `delete:` `config/section.rs:25-27` `CodehoundConfig::discover()` never called. [`config/section.rs:25`]
 - [x] `delete:` `stats/file.rs:7` `skipped: bool` field always `false`, never read. [`stats/file.rs:7`]
 - [x] `delete:` `stats/scan.rs:111-126` `record_skipped`, `record_cache_hit`, `record_cache_miss` never called. [`stats/scan.rs:111-126`]
-- [x] `yagni:` `config/section.rs:53-107` — 11 accessor methods on `SlopguardConfig` for pub fields. Remove, callers access directly. [`config/section.rs:53-107`]
+- [x] `yagni:` `config/section.rs:53-107` — 11 accessor methods on `CodehoundConfig` for pub fields. Remove, callers access directly. [`config/section.rs:53-107`]
 - [ ] ~~`yagni:` `walk/analyze.rs:44-55` throwaway `TimingCollector::new(false)`. Call with `None` directly.~~ — SKIPPED (touches API surface beyond audit scope)
 - [x] `shrink:` `walk/parallel.rs:161` discarded `suppressed` value. Use or remove computation. [`walk/parallel.rs:161`]
 - [x] `shrink:` `diagnostics/build.rs:49-69` — 5 near-identical severity-count blocks. Replace with loop over `Severity::variants()`. [`diagnostics/build.rs:49-69`]

@@ -62,7 +62,7 @@ All 9 phases of the additional-findings report implemented. 70 tests pass
 - `.github/workflows/ci.yml` (Linux + macOS matrix, MSRV 1.85, `cargo bench`
   smoke)
 - `materialized_root()` now per-process subdirectory (was shared across
-  parallel test binaries → race on `target/slopguard-fixtures/`)
+  parallel test binaries → race on `target/codehound-fixtures/`)
 - 22 new unit tests across `ast`, `rules`, `engine`, `reporting`, `core`,
   `cwe` modules
 - `makefile` no longer hard-codes `SCAN_PATH ?= /home/chinmay/...gopdfsuit`
@@ -110,12 +110,12 @@ All 9 phases of the additional-findings report implemented. 70 tests pass
 - Deferred: **A8** (full `thiserror` enum), **C2** (`catch_unwind` wrapper).
 
 ### Phase 6 — API/Config/CLI
-- **F-3.1** `#[serde(deny_unknown_fields)]` on `SlopguardConfig` and
-  `SlopguardSection` — typos like `fali_on` now fail at parse time
-- **F-3.2** `include` / `exclude` glob lists in `[slopguard]` config section
-- **F-4.1** `--config <path>` flag and `SLOPGUARD_CONFIG` env var
-- **F-4.2** `SLOPGUARD_ONLY` / `SLOPGUARD_SKIP` env-var overrides
-- **F-4.3** `discover_config` walks parent directories for `slopguard.toml`
+- **F-3.1** `#[serde(deny_unknown_fields)]` on `CodehoundConfig` and
+  `CodehoundSection` — typos like `fali_on` now fail at parse time
+- **F-3.2** `include` / `exclude` glob lists in `[codehound]` config section
+- **F-4.1** `--config <path>` flag and `CODEHOUND_CONFIG` env var
+- **F-4.2** `CODEHOUND_ONLY` / `CODEHOUND_SKIP` env-var overrides
+- **F-4.3** `discover_config` walks parent directories for `codehound.toml`
   (was CWD-only)
 - **F-4.4** CLI severity policy now wins over `fail_on` in config (was
   inverted — config overwrote CLI)
@@ -123,8 +123,8 @@ All 9 phases of the additional-findings report implemented. 70 tests pass
 - **F-5.2** `--list-rules` and `--explain <RULE>` flags
 - **F-5.3** `--quiet` and `--verbose` flags (`--verbose` maps to
   `tracing::Level` via `EnvFilter`)
-- **F-5.5** `slopguard init` subcommand writes a starter `slopguard.toml`
-- **F-5.6** `.slopguardignore` support via `WalkBuilder::add_custom_ignore_filename`
+- **F-5.5** `codehound init` subcommand writes a starter `codehound.toml`
+- **F-5.6** `.codehoundignore` support via `WalkBuilder::add_custom_ignore_filename`
 - **F-5.9** README updated: SARIF no longer marked "planned" (it was
   already shipped), new examples for `--format sarif`, `--list-rules`,
   `--explain`, `init`
@@ -134,7 +134,7 @@ All 9 phases of the additional-findings report implemented. 70 tests pass
 - **F-6.2** SARIF per-result `ruleIndex` pointing into the `rules` array
 - **F-6.3** SARIF `rules[]` sorted alphabetically for stable diffs
 - **F-6.5** SARIF `properties.tags = ["security", "cwe", "cwe-22", ...]`
-- **F-6.6** SARIF `partialFingerprints["slopguard/v1"]` (stable across runs)
+- **F-6.6** SARIF `partialFingerprints["codehound/v1"]` (stable across runs)
 - **F-6.7** SARIF `runs[].invocations[].endTimeUtc`, `workingDirectory`,
   `executionSuccessful`
 - **F-6.9** `--no-snippet` switches SARIF to compact JSON
@@ -152,7 +152,7 @@ All 9 phases of the additional-findings report implemented. 70 tests pass
 - `src/lib.rs` — crate-level doc comment with quick-start example, feature
   flags, and module map
 - `docs/configuration.md` (new) — schema, precedence table, env vars,
-  `.slopguardignore`, `init` command
+  `.codehoundignore`, `init` command
 - `docs/output-formats.md` (new) — text/JSON/SARIF examples, exit codes,
   security-severity mapping
 - `plans/p1.md` — updated to reflect actual shipped work
@@ -192,7 +192,7 @@ cargo bench --bench scan_throughput -- --warm-up-time 1 --measurement-time 3
 cargo run -- --list-rules
 cargo run -- --explain CWE-22
 cargo run -- --format sarif --no-snippet tests/fixtures/python | jq .
-slopguard init
+codehound init
 ```
 
 ---

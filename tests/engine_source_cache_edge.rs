@@ -6,8 +6,8 @@ use helpers::unique_temp_root;
 
 use std::sync::Arc;
 
-use slopguard::core::ScanContext;
-use slopguard::engine::Analyzer;
+use codehound::core::ScanContext;
+use codehound::engine::Analyzer;
 
 #[test]
 fn analyze_paths_handles_unicode_and_omits_non_utf8_source_cache_entries() {

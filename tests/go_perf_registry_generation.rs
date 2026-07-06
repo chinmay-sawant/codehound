@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
-use slopguard::core::LanguageId;
-use slopguard::engine::Registry;
+use codehound::core::LanguageId;
+use codehound::engine::Registry;
 
 fn registry_toml_perf_ids() -> BTreeSet<String> {
     let mut ids = BTreeSet::new();

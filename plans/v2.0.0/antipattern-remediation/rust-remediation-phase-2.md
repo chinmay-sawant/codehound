@@ -10,7 +10,7 @@
 
 ## Overview
 
-Phase 1 closed the lint gate, introduced `slopguard::Error`, split `app::run`, eliminated production `unwrap`, and reduced clone/`anyhow` debt. Phase 2 finishes **library error boundaries**, **structural decomposition** of the walk layer, and **documentation/testing maturity** — without starting the full Go detector restructure (that remains in `restructure-codebase/`).
+Phase 1 closed the lint gate, introduced `codehound::Error`, split `app::run`, eliminated production `unwrap`, and reduced clone/`anyhow` debt. Phase 2 finishes **library error boundaries**, **structural decomposition** of the walk layer, and **documentation/testing maturity** — without starting the full Go detector restructure (that remains in `restructure-codebase/`).
 
 ---
 
@@ -29,8 +29,8 @@ Phase 1 closed the lint gate, introduced `slopguard::Error`, split `app::run`, e
 
 ### 2A.1 Public API migration
 
-- [x] `SlopguardConfig::load` → `Result<SlopguardConfig, Error>` (`engine/config/section.rs`)
-- [x] `load_discovered_config` → `Result<Option<SlopguardConfig>, Error>` (`engine/config/discover.rs`)
+- [x] `CodehoundConfig::load` → `Result<CodehoundConfig, Error>` (`engine/config/section.rs`)
+- [x] `load_discovered_config` → `Result<Option<CodehoundConfig>, Error>` (`engine/config/discover.rs`)
 - [x] `load_rule_descriptions` → `Result<HashMap<_, RuleDescription>, Error>` (`cwe/catalog/description.rs`)
 - [x] `Error::Config` used for TOML/config failures; `Error::Json` for catalogue JSON
 - [x] `app/config.rs` maps `Error` → `anyhow` at binary boundary
@@ -62,7 +62,7 @@ Phase 1 closed the lint gate, introduced `slopguard::Error`, split `app::run`, e
 
 - [x] `resolve_language_filter` (`engine/language_filter.rs`)
 - [x] `collect_entries` (`engine/walk/entry.rs`)
-- [x] `SlopguardConfig::load`, `load_discovered_config`, `load_rule_descriptions`
+- [x] `CodehoundConfig::load`, `load_discovered_config`, `load_rule_descriptions`
 - [x] `Registry::default` / builder methods — (needs review: deferred, `#[must_use]` not added) (deferred → see plans/v3.0.0/) (now implemented)
 
 **Verify:** `cargo test --all-features` · `cargo clippy --all-targets --all-features --locked -- -D warnings`
@@ -116,7 +116,7 @@ Phase 1 closed the lint gate, introduced `slopguard::Error`, split `app::run`, e
 
 - [~] Enable `#![warn(missing_docs)]` on `src/lib.rs` — (needs review: still deferred; only on `rules/mod.rs`) (deferred → see plans/v3.0.0/)
 - [x] `# Errors` on `LanguagePlugin::parse_with` and `configure_parser`
-- [x] `# Errors` on config loaders (`SlopguardConfig::load`, `load_discovered_config`, `load_rule_descriptions`)
+- [x] `# Errors` on config loaders (`CodehoundConfig::load`, `load_discovered_config`, `load_rule_descriptions`)
 - [x] `# Errors` on reporting `print*` and export — confirmed (15 sections total)
 - [~] Runnable doc-test for `lib.rs` quick-start — (needs review: still `#no_run`) (deferred → see plans/v3.0.0/)
 - [~] `#![deny(missing_docs)]` ratchet on one module — (needs review: `warn` on `rules/mod.rs` only) (deferred → see plans/v3.0.0/)
@@ -148,7 +148,7 @@ Phase 1 closed the lint gate, introduced `slopguard::Error`, split `app::run`, e
 - [x] Introduce `engine::prelude` with curated re-exports (≤10 symbols) — confirmed (~9 symbols)
 - [~] Deprecate direct `engine::*` re-exports — (needs review: not started) (deferred → see plans/v3.0.0/)
 - [x] `#[cfg(feature = "cli")]` on `pub mod cli` in `lib.rs` — confirmed
-- [x] Update `src/main.rs` to use `slopguard::cli` via feature gate — (needs review: not confirmed) (deferred → see plans/v3.0.0/) (now implemented)
+- [x] Update `src/main.rs` to use `codehound::cli` via feature gate — (needs review: not confirmed) (deferred → see plans/v3.0.0/) (now implemented)
 
 ### 2D.2 CI tooling
 

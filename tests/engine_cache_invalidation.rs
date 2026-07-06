@@ -8,9 +8,9 @@ use helpers::unique_temp_root;
 use std::fs;
 use std::path::Path;
 
-use slopguard::core::ScanContext;
-use slopguard::engine::{Analyzer, CacheSession, CacheStore, DEFAULT_CACHE_DIR, go_module_prefix};
-use slopguard::fixture::{materialize_tree, materialized_root};
+use codehound::core::ScanContext;
+use codehound::engine::{Analyzer, CacheSession, CacheStore, DEFAULT_CACHE_DIR, go_module_prefix};
+use codehound::fixture::{materialize_tree, materialized_root};
 
 fn copy_materialized_tree(src: &Path, dst: &Path) {
     fs::create_dir_all(dst).unwrap();
@@ -113,7 +113,7 @@ fn go_module_prefix_returns_none_for_missing_go_mod() {
 #[test]
 fn transitive_invalidation_clears_dependents() {
     use dep_helpers::*;
-    use slopguard::engine::discover_cache_dir;
+    use codehound::engine::discover_cache_dir;
 
     let root = unique_temp_root("transitive");
     std::fs::create_dir_all(root.join("pkg/db")).unwrap();

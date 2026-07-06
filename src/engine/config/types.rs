@@ -1,4 +1,4 @@
-//! `slopguard.toml` configuration types.
+//! `codehound.toml` configuration types.
 
 use std::path::PathBuf;
 
@@ -8,14 +8,14 @@ use crate::rules::Severity;
 
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct SlopguardConfig {
+pub struct CodehoundConfig {
     #[serde(default)]
-    pub slopguard: SlopguardSection,
+    pub codehound: CodehoundSection,
 }
 
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct SlopguardSection {
+pub struct CodehoundSection {
     #[serde(default)]
     pub languages: Vec<String>,
     #[serde(default)]
@@ -59,7 +59,7 @@ impl Default for BaselineConfig {
 /// Incremental-analysis cache configuration. Mirrors the `--no-cache` /
 /// `--cache-dir` CLI flags. When `enabled = false` the cache is not
 /// opened or written; when `path` is `Some`, that directory is used
-/// instead of the auto-discovered `<project>/.slopguard-cache/`.
+/// instead of the auto-discovered `<project>/.codehound-cache/`.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct CacheConfig {

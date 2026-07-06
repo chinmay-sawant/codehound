@@ -11,7 +11,7 @@ use crate::rules::Finding;
 pub const CACHE_VERSION: u32 = 2;
 
 /// Conventional cache directory name. Used when no override is supplied.
-pub const DEFAULT_CACHE_DIR: &str = ".slopguard-cache";
+pub const DEFAULT_CACHE_DIR: &str = ".codehound-cache";
 
 pub(super) const MANIFEST_NAME: &str = "manifest.json";
 pub(super) const FILES_SUBDIR: &str = "files";

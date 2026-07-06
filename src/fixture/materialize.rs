@@ -1,4 +1,4 @@
-//! Write materialized sources under `target/slopguard-fixtures/<pid>-<nanos>/`.
+//! Write materialized sources under `target/codehound-fixtures/<pid>-<nanos>/`.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -11,7 +11,7 @@ use walkdir::WalkDir;
 use super::format::{FIXTURE_EXTENSION, TextFixture, parse_fixture};
 
 fn unique_root() -> PathBuf {
-    let base = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/slopguard-fixtures");
+    let base = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/codehound-fixtures");
     let pid = std::process::id();
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)

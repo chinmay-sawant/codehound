@@ -1,7 +1,7 @@
 //! Smoke test: verify the clean Go file triggers zero false positives
 //! when scanned with all shipped detectors (PERF + BP + CWE).
 
-use slopguard::engine::Analyzer;
+use codehound::engine::Analyzer;
 
 #[path = "helpers/mod.rs"]
 mod helpers;

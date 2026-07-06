@@ -1,23 +1,23 @@
 use std::path::{Path, PathBuf};
 
-use slopguard::cli::Cli;
-use slopguard::engine::{CacheStore, DEFAULT_CACHE_DIR, SlopguardConfig, discover_cache_dir};
+use codehound::cli::Cli;
+use codehound::engine::{CacheStore, DEFAULT_CACHE_DIR, CodehoundConfig, discover_cache_dir};
 
 /// Resolve and open the incremental-analysis cache when enabled by
-/// CLI flags + `slopguard.toml`. Returns `None` when the cache is
+/// CLI flags + `codehound.toml`. Returns `None` when the cache is
 /// disabled (`--no-cache` or `cache.enabled = false`) or when the
 /// directory cannot be opened.
-pub(crate) fn open_cache_store(cli: &Cli, config: Option<&SlopguardConfig>) -> Option<CacheStore> {
+pub(crate) fn open_cache_store(cli: &Cli, config: Option<&CodehoundConfig>) -> Option<CacheStore> {
     if cli.no_cache {
         return None;
     }
     if let Some(cfg) = config {
-        if !cfg.slopguard.cache.enabled {
+        if !cfg.codehound.cache.enabled {
             return None;
         }
     }
     let dir = cache_directory(cli, config);
-    let cache_cfg = config.map(|c| &c.slopguard.cache);
+    let cache_cfg = config.map(|c| &c.codehound.cache);
     let max_size_mb = cache_cfg.map(|c| c.max_size_mb).unwrap_or(500);
     let evict_target_ratio = cache_cfg.and_then(|c| c.evict_target_ratio).unwrap_or(0.9);
     let max_file_size_mb = cache_cfg.and_then(|c| c.max_file_size_mb).unwrap_or(4);
@@ -34,12 +34,12 @@ pub(crate) fn open_cache_store(cli: &Cli, config: Option<&SlopguardConfig>) -> O
 
 /// Resolve the cache directory following CLI > config > auto-discovery
 /// precedence, falling back to [`DEFAULT_CACHE_DIR`].
-pub(crate) fn cache_directory(cli: &Cli, config: Option<&SlopguardConfig>) -> PathBuf {
+pub(crate) fn cache_directory(cli: &Cli, config: Option<&CodehoundConfig>) -> PathBuf {
     if let Some(dir) = cli.cache_dir.clone() {
         return dir;
     }
     if let Some(cfg) = config {
-        if let Some(p) = cfg.slopguard.cache.path.clone() {
+        if let Some(p) = cfg.codehound.cache.path.clone() {
             return p;
         }
     }

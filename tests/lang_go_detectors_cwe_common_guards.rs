@@ -1,10 +1,10 @@
 #![cfg(feature = "go")]
 
-use slopguard::lang::go::detectors::cwe::common::{
+use codehound::lang::go::detectors::cwe::common::{
     has_canonical_path_guard, has_symlink_guard, is_path_confined,
 };
-use slopguard::lang::go::detectors::cwe::facts::AssignmentFact;
-use slopguard::lang::go::detectors::cwe::source_index::{NEEDLES, SourceIndex};
+use codehound::lang::go::detectors::cwe::facts::AssignmentFact;
+use codehound::lang::go::detectors::cwe::source_index::{NEEDLES, SourceIndex};
 
 #[test]
 fn has_canonical_path_guard_matches_known_pattern() {

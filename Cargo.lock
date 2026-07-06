@@ -201,6 +201,34 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9"
 
 [[package]]
+name = "codehound"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "clap",
+ "colored",
+ "criterion",
+ "ignore",
+ "insta",
+ "inventory",
+ "jiff",
+ "phf",
+ "pretty_assertions",
+ "rayon",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror",
+ "toml",
+ "tracing",
+ "tracing-subscriber",
+ "tree-sitter",
+ "tree-sitter-go",
+ "tree-sitter-python",
+ "walkdir",
+]
+
+[[package]]
 name = "colorchoice"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1024,34 +1052,6 @@ name = "slab"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
-
-[[package]]
-name = "slopguard"
-version = "0.0.1"
-dependencies = [
- "anyhow",
- "clap",
- "colored",
- "criterion",
- "ignore",
- "insta",
- "inventory",
- "jiff",
- "phf",
- "pretty_assertions",
- "rayon",
- "serde",
- "serde_json",
- "sha2",
- "thiserror",
- "toml",
- "tracing",
- "tracing-subscriber",
- "tree-sitter",
- "tree-sitter-go",
- "tree-sitter-python",
- "walkdir",
-]
 
 [[package]]
 name = "smallvec"

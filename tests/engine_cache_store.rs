@@ -7,7 +7,7 @@ use helpers::unique_temp_root;
 
 use std::collections::HashSet;
 
-use slopguard::engine::{CacheEntry, CacheLookup, CacheStore, cache_key_for_path, content_hash};
+use codehound::engine::{CacheEntry, CacheLookup, CacheStore, cache_key_for_path, content_hash};
 
 fn manifest_len(store: &CacheStore) -> usize {
     store.manifest().files.len()

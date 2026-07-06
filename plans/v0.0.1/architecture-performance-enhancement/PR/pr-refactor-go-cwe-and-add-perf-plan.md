@@ -1,4 +1,4 @@
-# SlopGuard — Pull Request Draft
+# CodeHound — Pull Request Draft
 
 ## PR title
 

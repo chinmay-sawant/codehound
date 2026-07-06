@@ -1,4 +1,4 @@
-# Adding a language to SlopGuard
+# Adding a language to CodeHound
 
 ## Layout
 

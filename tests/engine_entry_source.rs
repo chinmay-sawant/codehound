@@ -9,12 +9,12 @@ use helpers::{assert_fixture_materializes, unique_temp_root};
 
 use std::sync::Arc;
 
-use slopguard::core::LanguageId;
-use slopguard::engine::{
+use codehound::core::LanguageId;
+use codehound::engine::{
     Analyzer, CacheSession, CacheStore, FilesystemWalker, ListEntrySource, ScanEntry,
     collect_entries_with,
 };
-use slopguard::engine::{LanguageFilter, PathFilters, Registry};
+use codehound::engine::{LanguageFilter, PathFilters, Registry};
 
 #[test]
 fn list_entry_source_injects_entries_into_analyzer() {

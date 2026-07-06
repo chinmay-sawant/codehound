@@ -1,13 +1,13 @@
-use slopguard::core::LanguageId;
-use slopguard::engine::{
-    LanguageFilter, Registry, SlopguardConfig, SlopguardSection, resolve_language_filter,
+use codehound::core::LanguageId;
+use codehound::engine::{
+    LanguageFilter, Registry, CodehoundConfig, CodehoundSection, resolve_language_filter,
 };
 
 #[test]
 fn cli_lang_overrides_config_languages() {
     let registry = Registry::default();
-    let config = SlopguardConfig {
-        slopguard: SlopguardSection {
+    let config = CodehoundConfig {
+        codehound: CodehoundSection {
             languages: vec!["python".into()],
             ..Default::default()
         },
@@ -19,8 +19,8 @@ fn cli_lang_overrides_config_languages() {
 #[test]
 fn unknown_config_language_errors() {
     let registry = Registry::default();
-    let config = SlopguardConfig {
-        slopguard: SlopguardSection {
+    let config = CodehoundConfig {
+        codehound: CodehoundSection {
             languages: vec!["rust".into()],
             ..Default::default()
         },

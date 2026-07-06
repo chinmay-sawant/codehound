@@ -35,7 +35,7 @@ impl Diagnostics {
             .unwrap_or(0.0);
 
         Self {
-            tool: "slopguard",
+            tool: "codehound",
             version: env!("CARGO_PKG_VERSION"),
             timestamp: iso8601_utc_now(),
             scan: ScanDiagnostics {

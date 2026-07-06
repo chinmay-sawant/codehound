@@ -1,12 +1,12 @@
 target/
 # Materialized fixture sources (generated from .slop at test/runtime)
-target/slopguard-fixtures/
+target/codehound-fixtures/
 
 # chunks and findings 
 scripts/chunks
 scripts/findings
 scripts/gopdfsuit
-.slopguard-cache
+.codehound-cache
 
 .agents
 .grok 

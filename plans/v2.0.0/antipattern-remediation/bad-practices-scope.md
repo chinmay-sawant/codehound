@@ -123,7 +123,7 @@ A new file `ruleset/golang/bad-practices.json` is added alongside `golang.json`.
 
 ## 7. CLI & Configuration
 
-- New `[bad_practices]` block in `slopguard.toml`:
+- New `[bad_practices]` block in `codehound.toml`:
   ```toml
   [bad_practices]
   enabled = true          # default true
@@ -166,7 +166,7 @@ A new file `ruleset/golang/bad-practices.json` is added alongside `golang.json`.
 - Existing detector architecture (`src/core/detector.rs`, `src/lang/go/detectors/cwe/mod.rs`, `src/lang/go/detectors/perf/mod.rs`).
 - Existing fact extraction infrastructure (AST + tree-sitter queries already in place).
 - `build.rs` code generation pipeline (extended to load `bad-practices.json`).
-- `slopguard.toml` configuration structure (add `[bad_practices]` block).
+- `codehound.toml` configuration structure (add `[bad_practices]` block).
 - CLI argument definitions (add `--bp-only`, `--no-bp`).
 - Reporter modules (add color band for `BP-` prefix, `category: bad_practice` JSON field, SARIF `security-severity: 5.0`).
 

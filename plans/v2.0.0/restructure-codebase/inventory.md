@@ -8,12 +8,12 @@
 
 ## Overview
 
-Exhaustive list of every Rust and configuration file in the slopguard
+Exhaustive list of every Rust and configuration file in the codehound
 repository that exceeds the **2 000–3 000-character target ceiling** in
 the v2.0.0 plan. Each row maps a file to the section of its phase
 document that covers the proposed split.
 
-**Excludes** Markdown files, `target/`, `.git/`, `.slopguard-cache/`,
+**Excludes** Markdown files, `target/`, `.git/`, `.codehound-cache/`,
 `tests/fixtures/`, and `ruleset/` (rule-pack JSON, not source).
 
 ---
@@ -150,7 +150,7 @@ document that covers the proposed split.
 | `src/lang/go/detectors/cwe/registry.toml` | 14 144 | 878 | §5.3 | Split by domain into 15 per-domain TOML files (mirror `domains/` layout) | [x] |
 | `src/lang/go/detectors/perf/registry.toml` | 12 456 | 801 | §5.4 | Split by domain into 7 per-domain TOML files (mirror `domains/` layout) | [x] |
 | `build.rs` | 12 914 | 386 | §5.2 | **Highest-leverage split** — into `build/` directory of 6 sub-modules | [x] |
-| `slopguard.schema.json` | 4 403 | 124 | §5.5 | Optional split via `$ref` (recommendation: skip) | [x] |
+| `codehound.schema.json` | 4 403 | 124 | §5.5 | Optional split via `$ref` (recommendation: skip) | [x] |
 | `.github/workflows/ci.yml` | 3 392 | 113 | §5.6 | Extract `rust-toolchain-cache` composite action; extract `scripts/check_bench_budget.sh` | [x] |
 | `Cargo.toml` | 2 300 | 95 | §5.1 | **No split** — Cargo manifest format does not support it | [x] |
 

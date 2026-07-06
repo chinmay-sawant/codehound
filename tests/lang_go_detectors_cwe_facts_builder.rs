@@ -5,9 +5,9 @@ use std::sync::Arc;
 
 use tree_sitter::Parser;
 
-use slopguard::core::{LanguageId, LanguagePlugin, ParsedUnit};
-use slopguard::lang::go::GoPlugin;
-use slopguard::lang::go::detectors::cwe::facts::*;
+use codehound::core::{LanguageId, LanguagePlugin, ParsedUnit};
+use codehound::lang::go::GoPlugin;
+use codehound::lang::go::detectors::cwe::facts::*;
 
 fn parse_go_source(source: &str) -> ParsedUnit {
     let plugin = GoPlugin;

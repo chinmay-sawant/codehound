@@ -101,7 +101,7 @@ Both work because each file in `tests/` is a separate test crate. Splits should 
 
 - [x] Create `tests/engine_source_cache_populate.rs` with tests 1–4 (~3 200 chars)
 - [x] Create `tests/engine_source_cache_edge.rs` with tests 5–7 (~2 800 chars)
-- [x] Create `tests/engine_source_cache_export.rs` with test 8 (uses `slopguard::export::{ExportOptions, export_findings}`) (~2 100 chars)
+- [x] Create `tests/engine_source_cache_export.rs` with test 8 (uses `codehound::export::{ExportOptions, export_findings}`) (~2 100 chars)
 - [x] Delete `tests/engine_source_cache.rs`
 
 ---
@@ -198,8 +198,8 @@ A single `tests/helpers/reporting.rs` housing `sample()` and `sample_with_cwe()`
 
 ### Proposed file tree (2 new files + new helper file)
 
-- [x] Create `tests/app_inline_ignore_inline.rs` with tests 1 + 2: line-level `// slopguard-ignore` (~2 100 chars)
-- [x] Create `tests/app_inline_ignore_file.rs` with tests 3 + 4 + 5: `// slopguard-ignore-file` headers (~2 800 chars)
+- [x] Create `tests/app_inline_ignore_inline.rs` with tests 1 + 2: line-level `// codehound-ignore` (~2 100 chars)
+- [x] Create `tests/app_inline_ignore_file.rs` with tests 3 + 4 + 5: `// codehound-ignore-file` headers (~2 800 chars)
 - [x] Create `tests/helpers/inline_ignore.rs` (new) with `unique_temp_root`, `write_vulnerable_go`, `write_vulnerable_go_with_header` (~1 400 chars)
 - [x] Delete `tests/app_inline_ignore.rs`
 
@@ -326,7 +326,7 @@ Both helpers can also live in `helpers/reporting.rs` (shared with `reporting_jso
 
 ## Phase 6.20: `tests/engine_ignore.rs` — 2 290 chars / 97 lines, 9 tests
 
-**9 tests on `slopguard::engine::{IgnoreDirective, parse_file_ignore, parse_inline_ignores}`.** The file even names the two groups in the test function names.
+**9 tests on `codehound::engine::{IgnoreDirective, parse_file_ignore, parse_inline_ignores}`.** The file even names the two groups in the test function names.
 
 ### Proposed file tree (2 new files)
 
@@ -418,9 +418,9 @@ Helper module growth: `tests/helpers/mod.rs` + ~5 new sub-files = roughly +4 000
 
 ## Phase 6.29: Cross-cutting notes
 
-- [x] The test files exercise the public `slopguard::*` API. After the source-side splits (Phases 1–5), every public symbol remains reachable at the same path. **No test source file needs updating except for the three flagged cases:**
+- [x] The test files exercise the public `codehound::*` API. After the source-side splits (Phases 1–5), every public symbol remains reachable at the same path. **No test source file needs updating except for the three flagged cases:**
   - `tests/go_perf_registry_generation.rs:7` — directory glob instead of single-file read.
-  - `tests/engine_config.rs:301-336` — only if `slopguard.schema.json` is split via `$ref` (§5.5).
+  - `tests/engine_config.rs:301-336` — only if `codehound.schema.json` is split via `$ref` (§5.5).
   - The two `debug_*` tests in `engine_cache.rs` should be deleted or moved behind `#[ignore]` (they reference a personal checkout path).
 - [x] New helper files: `tests/helpers/{cache,inline_ignore,reporting,manifest}.rs` + `benches/common/mod.rs`. All add `pub mod …;` to their respective `mod.rs`.
 
@@ -440,7 +440,7 @@ Helper module growth: `tests/helpers/mod.rs` + ~5 new sub-files = roughly +4 000
 - **Crate dependencies:** none added.
 - **External tools:** none added; uses existing `#[path = "helpers/mod.rs"] mod helpers;` pattern.
 - **Cross-cutting concerns:**
-  - **Phases 1–5 must land first** — Phase 6 splits depend on the source-side splits being done. Test files exercise the public `slopguard::*` API; if a Phase 1–5 split breaks a path, Phase 6's tests will fail.
+  - **Phases 1–5 must land first** — Phase 6 splits depend on the source-side splits being done. Test files exercise the public `codehound::*` API; if a Phase 1–5 split breaks a path, Phase 6's tests will fail.
   - **Helper extraction order matters** — introduce `tests/helpers/cache.rs` (§6.1) before §6.3, §6.11, §6.13, §6.14. Introduce `tests/helpers/reporting.rs` (§6.5) before §6.6, §6.12. Introduce `tests/helpers/inline_ignore.rs` (§6.9) before §6.4. Introduce `benches/common/mod.rs` (§6.18) before §6.19.
   - **Two test files require editing for Phase 5 reasons** — `tests/go_perf_registry_generation.rs:7` (Phase 5 §5.4) and optionally `tests/engine_config.rs:301-336` (Phase 5 §5.5). These are the only test source edits driven by upstream phases.
   - **The two `debug_*` tests in `engine_cache.rs`** (lines 695–939) reference a personal `/home/chinmay/.../gopdfsuit` path. They should be deleted or moved behind `#[ignore]` as part of §6.1.

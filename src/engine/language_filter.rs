@@ -4,7 +4,7 @@ use std::collections::HashSet;
 
 use crate::Error;
 use crate::core::LanguageId;
-use crate::engine::config::SlopguardConfig;
+use crate::engine::config::CodehoundConfig;
 use crate::engine::registry::Registry;
 
 /// Which languages to include when collecting and scanning files.
@@ -15,7 +15,7 @@ pub enum LanguageFilter {
     All,
     /// Single language from `--lang` (overrides config).
     One(LanguageId),
-    /// Subset from `slopguard.toml` `[slopguard.languages]`.
+    /// Subset from `codehound.toml` `[codehound.languages]`.
     Many(HashSet<LanguageId>),
 }
 
@@ -33,12 +33,12 @@ impl LanguageFilter {
 ///
 /// # Errors
 ///
-/// Returns [`Error::Config`] when `slopguard.toml` lists an unknown or
+/// Returns [`Error::Config`] when `codehound.toml` lists an unknown or
 /// disabled language for this build.
 #[must_use = "language filter resolution failures must be handled"]
 pub fn resolve_language_filter(
     cli_lang: Option<LanguageId>,
-    config: Option<&SlopguardConfig>,
+    config: Option<&CodehoundConfig>,
     registry: &Registry,
 ) -> Result<LanguageFilter, Error> {
     if let Some(id) = cli_lang {
@@ -46,7 +46,7 @@ pub fn resolve_language_filter(
     }
 
     let Some(names) = config
-        .map(|c| c.slopguard.languages.as_slice())
+        .map(|c| c.codehound.languages.as_slice())
         .filter(|s| !s.is_empty())
     else {
         return Ok(LanguageFilter::All);
@@ -58,7 +58,7 @@ pub fn resolve_language_filter(
         let Some(id) = LanguageId::from_config_name(name) else {
             let known = format_known_language_names(&enabled);
             return Err(Error::Config(format!(
-                "unknown language {name:?} in slopguard.toml; expected one of: {known}"
+                "unknown language {name:?} in codehound.toml; expected one of: {known}"
             )));
         };
         if !enabled.contains(&id) {

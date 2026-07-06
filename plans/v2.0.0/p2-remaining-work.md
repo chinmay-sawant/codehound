@@ -22,7 +22,7 @@
   - [x] Added 8 taint fixtures (`tests/fixtures/go/taint/CWE-{78,89,22,79}-{vulnerable,safe}.txt`)
   - [x] Added `taint` flag to `tests/fixtures/manifest.toml` and `fixture_manifest_integration.rs`
 - [x] **Configuration**
-  - [x] `[taint]` section in `slopguard.toml` with `enabled` (default false) and `show_paths`
+  - [x] `[taint]` section in `codehound.toml` with `enabled` (default false) and `show_paths`
   - [x] `taint_enabled` / `taint_show_paths` fields in `ScanContext`
 - [x] **Phase C — Remove substring fallback for CWE-78/89/22/79** (completed — substring fallback removed, taint enabled by default)
   - 📋 Detailed plan: `plans/v2.0.0/pending-work/01-taint-tracking-remaining.md` Phase C
@@ -57,7 +57,7 @@
 - [x] **`cache.evict_target_ratio` config field** — implemented as `Option<f64>` on `CacheConfig`, wired through `open_with_limits()`, validated in `normalize_evict_target_ratio()`. Default 0.9.
 - [x] **`CacheStore::evict_to_size` should log a `tracing::info!` summary** — implemented at `store_flush.rs:80` with `entries_evicted`, `bytes_freed`, `current_size_mb`, `target_size_mb`.
 - [x] **Add `--prune-cache` CLI flag** to force a cache cleanup without scanning.
-- [x] **Add `cache.max_size_mb` config field** to `[slopguard.cache]` in `slopguard.toml` and the schema.
+- [x] **Add `cache.max_size_mb` config field** to `[codehound.cache]` in `codehound.toml` and the schema.
 - [x] **Update `docs/architecture-performance.md`** to reflect the P2.3 phases that shipped (cache, dependency extraction, transitive invalidation, LRU eviction).
 
 ### A.3 Known test-suite flake
@@ -163,9 +163,9 @@ The scope doc at `plans/bad-practices-scope.md` is a roadmap. MVP module is impl
 
 ### C.2 Configuration & CLI
 
-- [x] **`[bad_practices]` config block** in `SlopguardConfig` (mirror of `[cache]` and `[baseline]`) with `enabled` and `severity`
-- [x] **`slopguard.toml` template** — add the new block
-- [x] **`slopguard.schema.json`** — add the new section
+- [x] **`[bad_practices]` config block** in `CodehoundConfig` (mirror of `[cache]` and `[baseline]`) with `enabled` and `severity`
+- [x] **`codehound.toml` template** — add the new block
+- [x] **`codehound.schema.json`** — add the new section
 - [x] **`--bp-only` CLI flag** — shorthand for `--only "BP-*"`
 - [x] **`--no-bp` CLI flag** — disable the whole category
 - [x] **`init` subcommand template** — add a commented-out example
@@ -222,9 +222,9 @@ See **§ P2.1** above for detailed status: Phase A (Foundation) and Phase B (Int
 - [x] **Update `README.md`** — describes the incremental cache, PERF catalog, and cache CLI flags.
 - [x] **Update `docs/architecture-performance.md`** — covers the P2.3 cache, dependency extraction, transitive invalidation, and LRU eviction.
 - [x] **Update `docs/finding-identity.md`** — the inline-ignore section now mentions the "re-applied on cache hits" behavior. Added "Suppression and the incremental cache" section.
-- [x] **Add a `docs/incremental-cache.md`** — explains the `.slopguard-cache/` directory, the hash-vs-mtime strategy, and how to use `--rebuild-cache` / `--no-cache` / `--cache-dir`.
+- [x] **Add a `docs/incremental-cache.md`** — explains the `.codehound-cache/` directory, the hash-vs-mtime strategy, and how to use `--rebuild-cache` / `--no-cache` / `--cache-dir`.
 - [x] **Add `CHANGELOG.md`** — first cut created; covers the v0.0.1 release and the P2.x Unreleased section (cache, taint, BP, PERF batch 1+2+3). Needs to be updated with each subsequent batch.
-- [x] **Add a `docs/taint.md`** — describes the taint-tracking model, the `[slopguard.taint]` config block, and how to read the `taint_paths` field in JSON output.
+- [x] **Add a `docs/taint.md`** — describes the taint-tracking model, the `[codehound.taint]` config block, and how to read the `taint_paths` field in JSON output.
 - [x] **Add a `docs/bad-practices.md`** — one paragraph per BP rule with the rationale and the canonical fix.
 
 ### E.3 Plan / tracking updates

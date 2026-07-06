@@ -1,4 +1,4 @@
-//! Inline suppression directive: a single `// slopguard-ignore: CWE-22, CWE-78`
+//! Inline suppression directive: a single `// codehound-ignore: CWE-22, CWE-78`
 //! marker targeting the next non-comment line, or a file-level header.
 
 #[derive(Debug, Clone, PartialEq, Eq)]

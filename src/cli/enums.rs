@@ -6,7 +6,7 @@ use crate::core::LanguageId;
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
-    /// Write a starter `slopguard.toml` to the current directory.
+    /// Write a starter `codehound.toml` to the current directory.
     Init,
 }
 

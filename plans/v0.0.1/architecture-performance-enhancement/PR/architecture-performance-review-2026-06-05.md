@@ -1,4 +1,4 @@
-# SlopGuard Architecture and Performance Review
+# CodeHound Architecture and Performance Review
 
 **Reviewer stance:** world-class Rust and static-analysis engineering bar  
 **Date:** 2026-06-05  
@@ -45,9 +45,9 @@ The split across `engine`, `core`, `lang`, `rules`, `reporting`, `export`, `fixt
 
 In particular:
 
-- [`src/engine/analyzer.rs`](/home/chinmay/ChinmayPersonalProjects/slopguard/src/engine/analyzer.rs:1) is a clean orchestration surface
-- [`src/engine/walk.rs`](/home/chinmay/ChinmayPersonalProjects/slopguard/src/engine/walk.rs:1) keeps file collection and scan execution together, which is a reasonable boundary
-- [`src/core/detector.rs`](/home/chinmay/ChinmayPersonalProjects/slopguard/src/core/detector.rs:1) and [`src/core/unit.rs`](/home/chinmay/ChinmayPersonalProjects/slopguard/src/core/unit.rs:1) keep the analyzer-side API small
+- [`src/engine/analyzer.rs`](/home/chinmay/ChinmayPersonalProjects/codehound/src/engine/analyzer.rs:1) is a clean orchestration surface
+- [`src/engine/walk.rs`](/home/chinmay/ChinmayPersonalProjects/codehound/src/engine/walk.rs:1) keeps file collection and scan execution together, which is a reasonable boundary
+- [`src/core/detector.rs`](/home/chinmay/ChinmayPersonalProjects/codehound/src/core/detector.rs:1) and [`src/core/unit.rs`](/home/chinmay/ChinmayPersonalProjects/codehound/src/core/unit.rs:1) keep the analyzer-side API small
 
 ### 2. The scan execution model is fundamentally sound
 
@@ -57,13 +57,13 @@ The current pipeline is reasonable:
 
 Important positives:
 
-- parser reuse via [`src/engine/parse_pool.rs`](/home/chinmay/ChinmayPersonalProjects/slopguard/src/engine/parse_pool.rs:1) is correct
-- per-file failure isolation in [`src/engine/walk.rs`](/home/chinmay/ChinmayPersonalProjects/slopguard/src/engine/walk.rs:186) is a real strength
+- parser reuse via [`src/engine/parse_pool.rs`](/home/chinmay/ChinmayPersonalProjects/codehound/src/engine/parse_pool.rs:1) is correct
+- per-file failure isolation in [`src/engine/walk.rs`](/home/chinmay/ChinmayPersonalProjects/codehound/src/engine/walk.rs:186) is a real strength
 - the registry avoids scanning detectors from irrelevant languages
 
 ### 3. The Go fact-build path is no longer architecturally broken
 
-[`src/lang/go/detectors/cwe/mod.rs`](/home/chinmay/ChinmayPersonalProjects/slopguard/src/lang/go/detectors/cwe/mod.rs:1) builds `GoUnitFacts` once per file and runs all Go rules over that shared state. That is the correct shape for this detector family.
+[`src/lang/go/detectors/cwe/mod.rs`](/home/chinmay/ChinmayPersonalProjects/codehound/src/lang/go/detectors/cwe/mod.rs:1) builds `GoUnitFacts` once per file and runs all Go rules over that shared state. That is the correct shape for this detector family.
 
 If this were still one fact-build per rule, the performance score would be much lower.
 
@@ -90,7 +90,7 @@ The architecture doc says "split files before 120 lines" while these files are 1
 
 ### 2. `build.rs` is using source-text scraping as architecture glue
 
-[`build.rs`](/home/chinmay/ChinmayPersonalProjects/slopguard/build.rs:1) discovers supported Go CWE ids by opening Rust source files and scanning for function names like `detect_cwe_...`.
+[`build.rs`](/home/chinmay/ChinmayPersonalProjects/codehound/build.rs:1) discovers supported Go CWE ids by opening Rust source files and scanning for function names like `detect_cwe_...`.
 
 That is fragile.
 
@@ -105,7 +105,7 @@ World-class Rust architecture would make the detector registry declarative and t
 
 ### 3. `main.rs` still owns too much application orchestration
 
-[`src/main.rs`](/home/chinmay/ChinmayPersonalProjects/slopguard/src/main.rs:1) handles:
+[`src/main.rs`](/home/chinmay/ChinmayPersonalProjects/codehound/src/main.rs:1) handles:
 
 - CLI dispatch
 - config discovery/loading
@@ -148,13 +148,13 @@ That matters. A world-class performance story is not just "fast on one run". It 
 Right now you only have:
 
 - one main throughput benchmark
-- one extremely loose CI smoke threshold at 15 seconds in [`tests/perf_regression.rs`](/home/chinmay/ChinmayPersonalProjects/slopguard/tests/perf_regression.rs:1)
+- one extremely loose CI smoke threshold at 15 seconds in [`tests/perf_regression.rs`](/home/chinmay/ChinmayPersonalProjects/codehound/tests/perf_regression.rs:1)
 
 That smoke test is useful, but it will not catch meaningful 10-20% regressions.
 
 ### 5. The Go heuristics are still text-heavy enough to limit the ceiling
 
-[`src/lang/go/detectors/cwe/facts.rs`](/home/chinmay/ChinmayPersonalProjects/slopguard/src/lang/go/detectors/cwe/facts.rs:1) is a reasonable first-stage IR, but it is still fairly string-oriented:
+[`src/lang/go/detectors/cwe/facts.rs`](/home/chinmay/ChinmayPersonalProjects/codehound/src/lang/go/detectors/cwe/facts.rs:1) is a reasonable first-stage IR, but it is still fairly string-oriented:
 
 - captured callees are text
 - assignments are text
@@ -167,12 +167,12 @@ That is fine for the current product stage, but it should lower the score.
 
 ### 6. Export/reporting paths are more allocation-heavy than they need to be
 
-[`src/export/mod.rs`](/home/chinmay/ChinmayPersonalProjects/slopguard/src/export/mod.rs:1) constructs every `FindingBlock` in memory before writing anything. That is acceptable at current scale, but it is not ideal for large finding sets.
+[`src/export/mod.rs`](/home/chinmay/ChinmayPersonalProjects/codehound/src/export/mod.rs:1) constructs every `FindingBlock` in memory before writing anything. That is acceptable at current scale, but it is not ideal for large finding sets.
 
 Similarly:
 
-- JSON envelope mode allocates a full `Vec<FindingJson>` in [`src/reporting/json.rs`](/home/chinmay/ChinmayPersonalProjects/slopguard/src/reporting/json.rs:1)
-- SARIF generation builds the full run model eagerly in [`src/reporting/sarif.rs`](/home/chinmay/ChinmayPersonalProjects/slopguard/src/reporting/sarif.rs:1)
+- JSON envelope mode allocates a full `Vec<FindingJson>` in [`src/reporting/json.rs`](/home/chinmay/ChinmayPersonalProjects/codehound/src/reporting/json.rs:1)
+- SARIF generation builds the full run model eagerly in [`src/reporting/sarif.rs`](/home/chinmay/ChinmayPersonalProjects/codehound/src/reporting/sarif.rs:1)
 
 These are not emergency issues, but they are not peak-efficiency designs either.
 

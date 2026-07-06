@@ -1,4 +1,4 @@
-# SlopGuard Rust Best Practices Review
+# CodeHound Rust Best Practices Review
 
 **Reviewer stance:** Apollo GraphQL Rust Best Practices Handbook  
 **Date:** 2026-06-27 (final re-audit — post fact-index migration)  
@@ -19,7 +19,7 @@
 
 ### P0 — Error boundaries
 
-- [x] Create crate-root `src/error.rs` with `thiserror` (`slopguard::Error`)
+- [x] Create crate-root `src/error.rs` with `thiserror` (`codehound::Error`)
 - [x] Migrate `LanguagePlugin::parse_with` / `configure_parser` → `Result<_, Error>`
 - [x] Migrate reporting (`json`, `sarif`, `text`) and `export` to `Result<_, Error>`
 - [x] SARIF `render_to_string` — no production `unwrap`; returns `Result<String, Error>`
@@ -60,8 +60,8 @@
 
 ### Phase 2A — Error boundaries
 
-- [x] `SlopguardConfig::load` → `Result<SlopguardConfig, Error>` (`engine/config/section.rs`)
-- [x] `load_discovered_config` → `Result<Option<SlopguardConfig>, Error>` (`engine/config/discover.rs`)
+- [x] `CodehoundConfig::load` → `Result<CodehoundConfig, Error>` (`engine/config/section.rs`)
+- [x] `load_discovered_config` → `Result<Option<CodehoundConfig>, Error>` (`engine/config/discover.rs`)
 - [x] `load_rule_descriptions` → `Result<HashMap<_, RuleDescription>, Error>` (`cwe/catalog/description.rs`)
 - [x] `engine/cache/{io,store_lifecycle,store_flush}.rs` → `Result<_, Error>`
 - [x] `engine/walk/parallel.rs` → `Result<_, Error>`
@@ -106,13 +106,13 @@
 
 Phase 2 closed the remaining Apollo Chapter 4 library error boundaries. **`cargo clippy --all-targets --all-features --locked -- -D warnings` passes**, **`cargo test --all-features` passes** (263 `#[test]` functions + 1 compile doc-test = **264** tests, 2 ignored), and **`cargo audit` runs in CI**.
 
-The error story is now coherent end-to-end: `anyhow` appears in exactly **4** `src/` files (`app/` + `fixture/` only), all engine cache/walk/config/catalog paths return `crate::Error`, and **0** production `.unwrap()` / `.expect()` remain in `src/` (enforced by `#![deny(clippy::unwrap_used)]` + manual audit). Config loaders (`SlopguardConfig::load`, `load_discovered_config`, `load_rule_descriptions`) and `collect_entries` are typed on `Error` with `#[must_use]` and `# Errors` docs.
+The error story is now coherent end-to-end: `anyhow` appears in exactly **4** `src/` files (`app/` + `fixture/` only), all engine cache/walk/config/catalog paths return `crate::Error`, and **0** production `.unwrap()` / `.expect()` remain in `src/` (enforced by `#![deny(clippy::unwrap_used)]` + manual audit). Config loaders (`CodehoundConfig::load`, `load_discovered_config`, `load_rule_descriptions`) and `collect_entries` are typed on `Error` with `#[must_use]` and `# Errors` docs.
 
 Structural wins: `scan_entries_parallel` decomposed into three focused helpers (~37-line orchestrator), `ScanErrorKind::exit_code()` wired into `app/run.rs`, and one `insta` JSON envelope snapshot committed.
 
 **Remaining gaps** are narrower hygiene items: **5** `#[allow(dead_code)]` in `src/` (only 1 migrated to `#[expect]`), `#![warn(missing_docs)]` still deferred, only **1** of 3 planned snapshot tests, `scan_entry.rs` still has **7** `.clone()` calls, and multi-assert integration tests unchanged.
 
-**Overall verdict:** Phase 2 moved SlopGuard from “coherent error type with engine leaks” to “library-grade error boundaries with binary-only `anyhow`.” Not yet Apollo-exemplar (~8.5 target), but honestly **8.3/10** — up **+0.4** from Phase 1 **7.9/10** and **+1.2** from pre-remediation **7.1/10**.
+**Overall verdict:** Phase 2 moved CodeHound from “coherent error type with engine leaks” to “library-grade error boundaries with binary-only `anyhow`.” Not yet Apollo-exemplar (~8.5 target), but honestly **8.3/10** — up **+0.4** from Phase 1 **7.9/10** and **+1.2** from pre-remediation **7.1/10**.
 
 ## Before / After Ratings
 
@@ -189,7 +189,7 @@ Structural wins: `scan_entries_parallel` decomposed into three focused helpers (
 |---|---|
 | **`anyhow` confined to binary boundary** | `rg 'use anyhow' src/` — 4 files: `app/{config,run}.rs`, `fixture/{format,materialize}.rs` |
 | **Engine cache/walk on `Error`** | `engine/cache/{io,store_lifecycle,store_flush}.rs`, `engine/walk/parallel.rs` import `crate::Error` |
-| **Config/catalog public APIs on `Error`** | `SlopguardConfig::load`, `load_discovered_config`, `load_rule_descriptions` return `Result<_, Error>` |
+| **Config/catalog public APIs on `Error`** | `CodehoundConfig::load`, `load_discovered_config`, `load_rule_descriptions` return `Result<_, Error>` |
 | **0 production `.expect()`** | `rg '\.expect\(' src/` — 8 hits, all in `#[cfg(test)]` modules (`dependencies/tests.rs`, taint `tests.rs`) |
 | **0 production `.unwrap()`** | `#![deny(clippy::unwrap_used)]`; only `//!` example text in `lib.rs` |
 | **SARIF rule-index panic removed** | `reporting/sarif/log.rs` uses `filter_map` skip path |
@@ -230,18 +230,18 @@ Structural wins: `scan_entries_parallel` decomposed into three focused helpers (
 
 ### 1. Parallel scan pipeline with deliberate decomposition
 
-- [`src/engine/walk/parallel.rs`](/home/chinmay/ChinmayPersonalProjects/slopguard/src/engine/walk/parallel.rs) — `preflight_cache_hits` → `dispatch_parallel_scan` → `merge_parallel_results`; Rayon chunking, `Arc<str>` sharing, panic isolation via `catch_unwind`
-- [`src/engine/parse_pool.rs`](/home/chinmay/ChinmayPersonalProjects/slopguard/src/engine/parse_pool.rs) — one `tree_sitter::Parser` per `LanguageId` per worker
+- [`src/engine/walk/parallel.rs`](/home/chinmay/ChinmayPersonalProjects/codehound/src/engine/walk/parallel.rs) — `preflight_cache_hits` → `dispatch_parallel_scan` → `merge_parallel_results`; Rayon chunking, `Arc<str>` sharing, panic isolation via `catch_unwind`
+- [`src/engine/parse_pool.rs`](/home/chinmay/ChinmayPersonalProjects/codehound/src/engine/parse_pool.rs) — one `tree_sitter::Parser` per `LanguageId` per worker
 
 ### 2. Library-grade error boundaries
 
-- [`src/error.rs`](/home/chinmay/ChinmayPersonalProjects/slopguard/src/error.rs) — unified `Error` enum (`thiserror`)
+- [`src/error.rs`](/home/chinmay/ChinmayPersonalProjects/codehound/src/error.rs) — unified `Error` enum (`thiserror`)
 - Engine cache, walk, config, catalog — all on `crate::Error`
 - Binary (`app/`) maps `Error` → `anyhow` at the CLI boundary (Apollo-correct pattern)
 
 ### 3. Structured, non-fatal per-file errors
 
-- [`src/engine/result.rs`](/home/chinmay/ChinmayPersonalProjects/slopguard/src/engine/result.rs) — `ScanError` / `ScanErrorKind` with `exit_code()` semantics
+- [`src/engine/result.rs`](/home/chinmay/ChinmayPersonalProjects/codehound/src/engine/result.rs) — `ScanError` / `ScanErrorKind` with `exit_code()` semantics
 
 ### 4. Performance measurement culture
 
@@ -265,7 +265,7 @@ needless_collect = { level = "warn", priority = 5 }
 
 ### 6. Snapshot testing started
 
-[`tests/reporting_json_envelope_snapshot.rs`](/home/chinmay/ChinmayPersonalProjects/slopguard/tests/reporting_json_envelope_snapshot.rs) — `insta::assert_snapshot!` with version redaction for stable output.
+[`tests/reporting_json_envelope_snapshot.rs`](/home/chinmay/ChinmayPersonalProjects/codehound/tests/reporting_json_envelope_snapshot.rs) — `insta::assert_snapshot!` with version redaction for stable output.
 
 ## Critical Findings (post-Phase 2)
 

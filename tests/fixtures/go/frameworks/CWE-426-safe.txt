@@ -13,7 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const trustedPluginDir = "/opt/slopguard/plugins"
+const trustedPluginDir = "/opt/codehound/plugins"
 
 func LoadTenantPlugin(c *gin.Context) (plugin.Symbol, error) {
 	name := filepath.Base(c.Param("name"))

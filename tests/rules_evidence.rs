@@ -1,4 +1,4 @@
-use slopguard::rules::{
+use codehound::rules::{
     ControlFlowKind, DetectorEvidence, LineCol, TaintHop, TaintSinkInfo, TaintSourceInfo,
 };
 

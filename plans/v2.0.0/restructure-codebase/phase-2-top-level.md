@@ -67,8 +67,8 @@ in every case.
 ### Compatibility notes
 
 - [x] `app::run` and `app::EXIT_CONFIG` continue to work.
-- [x] `src/main.rs` already does `use slopguard::cli::Cli; … match app::run(cli)` and `app::EXIT_CONFIG` — both remain reachable through the new `mod.rs` re-exports. **No edit to `main.rs`.**
-- [x] `tests/app_baseline.rs` and `tests/app_inline_ignore.rs` exercise the binary end-to-end via `CARGO_BIN_EXE_slopguard`; no `slopguard::app` import.
+- [x] `src/main.rs` already does `use codehound::cli::Cli; … match app::run(cli)` and `app::EXIT_CONFIG` — both remain reachable through the new `mod.rs` re-exports. **No edit to `main.rs`.**
+- [x] `tests/app_baseline.rs` and `tests/app_inline_ignore.rs` exercise the binary end-to-end via `CARGO_BIN_EXE_codehound`; no `codehound::app` import.
 
 ---
 
@@ -243,17 +243,17 @@ The following references are doc-only; update them as part of the PR:
 
 ## Phase 2.13: Compatibility audit (no test changes required)
 
-- [x] `src/main.rs` — imports `slopguard::cli::Cli; app::run; app::EXIT_CONFIG` — unchanged
-- [x] `tests/cli_baseline.rs` — `slopguard::cli::Cli` — unchanged
-- [x] `tests/engine_config.rs` — `slopguard::cli::{Cli, RuleCategory}` — unchanged
-- [x] `tests/engine_observability.rs` — `slopguard::cli::Cli` — unchanged
-- [x] `tests/engine_cache.rs` — `slopguard::cli::Cli` — unchanged
-- [x] `tests/reporting_text.rs` — `slopguard::reporting::text::{TextOptions, write_with_options}` — unchanged
-- [x] `tests/reporting_json.rs` — `slopguard::reporting::json::{Envelope, FindingJson}` — unchanged
-- [x] `tests/reporting_sarif.rs` — `slopguard::reporting::sarif::render_to_string` — unchanged
-- [x] `tests/export.rs` — `slopguard::export::{ExportOptions, export_findings}` — unchanged
-- [x] `tests/engine_source_cache.rs` — `slopguard::export::{ExportOptions, export_findings}` — unchanged
-- [x] `tests/app_baseline.rs` — `CARGO_BIN_EXE_slopguard` (no `slopguard::app` import) — unchanged
+- [x] `src/main.rs` — imports `codehound::cli::Cli; app::run; app::EXIT_CONFIG` — unchanged
+- [x] `tests/cli_baseline.rs` — `codehound::cli::Cli` — unchanged
+- [x] `tests/engine_config.rs` — `codehound::cli::{Cli, RuleCategory}` — unchanged
+- [x] `tests/engine_observability.rs` — `codehound::cli::Cli` — unchanged
+- [x] `tests/engine_cache.rs` — `codehound::cli::Cli` — unchanged
+- [x] `tests/reporting_text.rs` — `codehound::reporting::text::{TextOptions, write_with_options}` — unchanged
+- [x] `tests/reporting_json.rs` — `codehound::reporting::json::{Envelope, FindingJson}` — unchanged
+- [x] `tests/reporting_sarif.rs` — `codehound::reporting::sarif::render_to_string` — unchanged
+- [x] `tests/export.rs` — `codehound::export::{ExportOptions, export_findings}` — unchanged
+- [x] `tests/engine_source_cache.rs` — `codehound::export::{ExportOptions, export_findings}` — unchanged
+- [x] `tests/app_baseline.rs` — `CARGO_BIN_EXE_codehound` (no `codehound::app` import) — unchanged
 - [x] `tests/app_inline_ignore.rs` — same — unchanged
 
 ---
@@ -271,7 +271,7 @@ The following references are doc-only; update them as part of the PR:
 - **Crate dependencies:** none added.
 - **External tools:** none.
 - **Cross-cutting concerns:**
-  - `src/main.rs` references `slopguard::cli::Cli` and `slopguard::app::{run, EXIT_CONFIG}`. Both paths must remain reachable through the new `mod.rs` re-exports.
+  - `src/main.rs` references `codehound::cli::Cli` and `codehound::app::{run, EXIT_CONFIG}`. Both paths must remain reachable through the new `mod.rs` re-exports.
   - The `Envelope` and `FindingJson` types are imported by name in `tests/reporting_json.rs` — `json/types.rs` re-exports them through the new `json/mod.rs`.
   - `app/run.rs` will still be ~6 000 chars even after extracting the baseline/reporting helpers. That is the maximum allowed for a top-level file with a non-trivial public API.
   - Doc paths in `docs/architecture-performance.md` and 5 plan files reference `src/app.rs` and `sarif.rs:80-87`. These are prose-only updates; they do not affect the build. **All 6 paths updated** on 2026-06-26: `docs/architecture-performance.md` line 53, `plans/v0.0.1/.../pr-architecture-performance-enhancement-sprint.md` lines 167+209, `plans/p2-implementation/02-baseline-ignore.md` line 126, and the 3 sarif.rs references in the Review2/MODULE_CLEANUP/pr-implementation-summary files.

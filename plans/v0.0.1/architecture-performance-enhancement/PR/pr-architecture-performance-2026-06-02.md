@@ -1,4 +1,4 @@
-# SlopGuard — Pull Request: Architecture & performance follow-up
+# CodeHound — Pull Request: Architecture & performance follow-up
 
 ## Suggested PR title
 
@@ -8,7 +8,7 @@
 
 ## Summary
 
-Implements the architecture and performance follow-up from the June 2026 review: Rayon workers now reuse tree-sitter parsers across files, `slopguard.toml` `languages` is enforced with `--lang` taking precedence, extension lookup is O(1), and basic benchmark/smoke guardrails catch large regressions. Chunked parallel scanning caps in-flight work without changing the overall pipeline shape.
+Implements the architecture and performance follow-up from the June 2026 review: Rayon workers now reuse tree-sitter parsers across files, `codehound.toml` `languages` is enforced with `--lang` taking precedence, extension lookup is O(1), and basic benchmark/smoke guardrails catch large regressions. Chunked parallel scanning caps in-flight work without changing the overall pipeline shape.
 
 ---
 
@@ -44,18 +44,18 @@ entries
 ### Config — `languages` enforcement
 
 - Added `LanguageFilter` and `resolve_language_filter()` (`src/engine/language_filter.rs`).
-- `--lang` overrides `[slopguard.languages]` in config; empty config means all enabled languages.
+- `--lang` overrides `[codehound.languages]` in config; empty config means all enabled languages.
 - Unknown or disabled language names fail at startup with a helpful list of valid names.
 - Config loaded once in `main.rs` via `load_discovered_config()` and passed to scan context + filter.
 
-Example `slopguard.toml`:
+Example `codehound.toml`:
 
 ```toml
-[slopguard]
+[codehound]
 languages = ["go", "python"]
 ```
 
-CLI still wins: `slopguard --lang go` scans Go only even if config lists Python.
+CLI still wins: `codehound --lang go` scans Go only even if config lists Python.
 
 ### Registry — O(1) extension lookup
 
@@ -96,7 +96,7 @@ CLI still wins: `slopguard --lang go` scans Go only even if config lists Python.
 | Item | Migration |
 |------|-----------|
 | `AnalyzerBuilder::language(LanguageId)` | Use `language_filter(LanguageFilter::One(id))` or `resolve_language_filter` |
-| `build_scan_context(...)` | Pass `Option<SlopguardConfig>` from `load_discovered_config()?` |
+| `build_scan_context(...)` | Pass `Option<CodehoundConfig>` from `load_discovered_config()?` |
 | Library callers of `scan_entry` | Pass `&mut ParsePool` |
 
 ---
@@ -105,7 +105,7 @@ CLI still wins: `slopguard --lang go` scans Go only even if config lists Python.
 
 ```mermaid
 flowchart LR
-  CLI[CLI + slopguard.toml] --> Filter[resolve_language_filter]
+  CLI[CLI + codehound.toml] --> Filter[resolve_language_filter]
   Filter --> Analyzer
   Analyzer --> Collect[collect_entries + LanguageFilter]
   Collect --> Chunk[chunks of 1024]
@@ -146,7 +146,7 @@ flowchart LR
 - [x] `cargo clippy --all-targets`
 - [~] `cargo fmt --check` (needs review — run manually) (deferred → see plans/v3.0.0/)
 - [x] `cargo bench --bench scan_throughput` (local baseline) (bench exists at benches/scan_throughput.rs)
-- [x] Manual: `languages = ["go"]` in `slopguard.toml` — no Python findings (LanguageFilter + resolve_language_filter implemented)
+- [x] Manual: `languages = ["go"]` in `codehound.toml` — no Python findings (LanguageFilter + resolve_language_filter implemented)
 - [x] Manual: `--lang go` with config `languages = ["python"]` — Go only (CLI override tested in config_languages_integration.rs)
 - [x] Manual: unknown language in config — clear error at startup (resolve_language_filter errors on unknown languages)
 
@@ -186,11 +186,11 @@ cargo run -- tests/fixtures
 - [x] Behavior matches summary and test plan (parser pool reuse via map_init, LanguageFilter + resolve_language_filter, SCAN_CHUNK_SIZE, O(1) by_extension HashMap, perf_regression.rs guardrails)
 - [~] No unrelated changes in diff (needs review — PR diff check) (deferred → see plans/v3.0.0/)
 - [x] Public API / CLI changes documented (docs/architecture-performance.md and docs/configuration.md updated)
-- [~] ~~Config `languages` example added to repo `slopguard.toml` if desired~~ (skipped: not in repo slopguard.toml; present in templates/slopguard.toml and docs/configuration.md)
+- [~] ~~Config `languages` example added to repo `codehound.toml` if desired~~ (skipped: not in repo codehound.toml; present in templates/codehound.toml and docs/configuration.md)
 - [x] `docs/architecture-performance.md` updated if pipeline docs exist (pipeline docs exist at docs/architecture-performance.md and are current)
 
 ---
 
 ## Release notes (if user-facing)
 
-`slopguard.toml` `[slopguard.languages]` is now enforced; `--lang` overrides config. Faster scans on large repos due to parser reuse across files per worker thread.
+`codehound.toml` `[codehound.languages]` is now enforced; `--lang` overrides config. Faster scans on large repos due to parser reuse across files per worker thread.

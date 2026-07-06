@@ -63,7 +63,7 @@
 - **`Error` unification across the crate** (`src/error.rs`) with `thiserror` is a significant improvement over the old ad-hoc `anyhow` usage. The `#[must_use]` annotations are thorough.
 - **Parallel scan with cache preflight** correctly handles `catch_unwind` for worker panics, report them as `ScanError::Engine` without crashing the process.
 - **Type-state builder pattern** (`AnalyzerBuilder<UnsetFilter>` → `AnalyzerBuilder<HasFilter>`) enforces a required `language_filter` or `with_default_filter` call before `build()`, catching misconfiguration at compile time.
-- **Inline suppression directives** (`// slopguard-ignore:`) are handled for both fresh scans and cache-hit replay, with sensible `show_ignored` fallback.
+- **Inline suppression directives** (`// codehound-ignore:`) are handled for both fresh scans and cache-hit replay, with sensible `show_ignored` fallback.
 
 ---
 

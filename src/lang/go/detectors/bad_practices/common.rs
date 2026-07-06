@@ -13,14 +13,14 @@ pub(crate) fn is_test_file(unit: &ParsedUnit) -> bool {
 
 pub(crate) fn is_materialized_fixture(unit: &ParsedUnit) -> bool {
     let display = unit.display_path.as_str();
-    display.contains("target/slopguard-fixtures/")
-        || display.contains("target\\slopguard-fixtures\\")
+    display.contains("target/codehound-fixtures/")
+        || display.contains("target\\codehound-fixtures\\")
 }
 
 pub(crate) fn is_flat_materialized_fixture(unit: &ParsedUnit) -> bool {
     let display = unit.display_path.as_str();
-    let materialized = display.contains("target/slopguard-fixtures/")
-        || display.contains("target\\slopguard-fixtures\\");
+    let materialized = display.contains("target/codehound-fixtures/")
+        || display.contains("target\\codehound-fixtures\\");
     let parent_is_language_root = unit
         .path
         .parent()

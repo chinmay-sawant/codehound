@@ -1,17 +1,17 @@
-# Example SlopGuard configuration (optional).
+# Example CodeHound configuration (optional).
 # CLI flags override these when both are set for skip/only.
 
-[slopguard]
+[codehound]
 # fail_on = "medium"   # medium | high | none | strict
 # skip = ["CWE-89"]
 # only = ["CWE-22"]
 
 # Baseline suppression is enabled by default.
-# [slopguard.baseline]
+# [codehound.baseline]
 # enabled = true
-# path = ".slopguard-baseline.json"
+# path = ".codehound-baseline.json"
 
 # Bad-practice rules (BP-*) are enabled by default.
-# [slopguard.bad_practices]
+# [codehound.bad_practices]
 # enabled = true
 # severity = "low" # info | low | medium | high | critical

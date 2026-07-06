@@ -175,7 +175,7 @@ The cache invalidation hook from P2.3 means that an edit to a source file only r
 ## 10. Configuration
 
 ```toml
-# slopguard.toml
+# codehound.toml
 [taint]
 enabled = false          # default off during rollout; flip to true in v0.2
 show_paths = false      # emit the taint path in JSON/SARIF for debugging

@@ -1,6 +1,6 @@
 # Go Performance Rules (PERF)
 
-This document summarizes the shipped Go performance (`PERF-*`) detectors in SlopGuard. Each entry describes the detected pattern, why it matters, and the canonical fix.
+This document summarizes the shipped Go performance (`PERF-*`) detectors in CodeHound. Each entry describes the detected pattern, why it matters, and the canonical fix.
 
 ## 1 — Idiomatic Usage
 

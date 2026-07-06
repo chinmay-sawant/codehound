@@ -1,7 +1,7 @@
 use std::path::Path;
 
-use slopguard::core::ScanContext;
-use slopguard::engine::{Analyzer, PathFilters};
+use codehound::core::ScanContext;
+use codehound::engine::{Analyzer, PathFilters};
 
 #[path = "helpers/mod.rs"]
 mod helpers;

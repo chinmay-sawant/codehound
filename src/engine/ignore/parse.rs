@@ -1,5 +1,5 @@
-//! Parsing helpers for inline (`// slopguard-ignore:`) and file-level
-//! (`// slopguard-ignore-file`) directives.
+//! Parsing helpers for inline (`// codehound-ignore:`) and file-level
+//! (`// codehound-ignore-file`) directives.
 
 use std::collections::HashMap;
 
@@ -37,14 +37,14 @@ fn comment_body(line: &str) -> Option<&str> {
 
 fn parse_ignore_line(line: &str) -> Option<IgnoreDirective> {
     let raw = comment_body(line)?
-        .strip_prefix("slopguard-ignore:")?
+        .strip_prefix("codehound-ignore:")?
         .trim();
     parse_rule_list(raw)
 }
 
 fn parse_file_ignore_line(line: &str) -> Option<IgnoreDirective> {
     let raw = comment_body(line)?
-        .strip_prefix("slopguard-ignore-file")?
+        .strip_prefix("codehound-ignore-file")?
         .trim();
     if raw.is_empty() {
         return Some(IgnoreDirective::all());

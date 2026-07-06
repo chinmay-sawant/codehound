@@ -3,9 +3,9 @@
 #[path = "helpers/go_cwe_cases.rs"]
 mod go_cwe_cases;
 
-use slopguard::core::Detector;
-use slopguard::cwe::builtin_rule_catalogue;
-use slopguard::lang::go::detectors::cwe::GoCweScan;
+use codehound::core::Detector;
+use codehound::cwe::builtin_rule_catalogue;
+use codehound::lang::go::detectors::cwe::GoCweScan;
 
 fn canonicalize_rule_id(id: &str) -> String {
     if id.starts_with("CWE-") {

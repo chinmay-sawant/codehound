@@ -4,8 +4,8 @@
 mod helpers;
 use helpers::unique_temp_root;
 
-use slopguard::core::ScanContext;
-use slopguard::engine::Analyzer;
+use codehound::core::ScanContext;
+use codehound::engine::Analyzer;
 
 #[test]
 fn analyze_paths_populates_source_cache_for_scanned_files() {

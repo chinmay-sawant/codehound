@@ -1,7 +1,7 @@
 //! Shared test helpers for reporting tests.
 
-use slopguard::engine::AnalysisResult;
-use slopguard::rules::Finding;
+use codehound::engine::AnalysisResult;
+use codehound::rules::Finding;
 
 pub fn sample_result(findings: Vec<Finding>) -> AnalysisResult {
     let suppressed_count = findings.iter().filter(|f| f.suppressed).count();

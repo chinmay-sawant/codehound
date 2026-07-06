@@ -11,7 +11,7 @@ expression: s
       "column": 5,
       "cwe": [],
       "file": "a.go",
-      "fingerprint": "slopguard:1:CWE-89:a.go:12:5",
+      "fingerprint": "codehound:1:CWE-89:a.go:12:5",
       "line": 12,
       "message": "user input is concatenated into the query",
       "rule_id": "CWE-89",
@@ -19,7 +19,7 @@ expression: s
       "severity": "high"
     }
   ],
-  "schema": "https://json.schemastore.org/slopguard/v1",
+  "schema": "https://json.schemastore.org/codehound/v1",
   "suppressedCount": 0,
-  "tool": "slopguard"
+  "tool": "codehound"
 }

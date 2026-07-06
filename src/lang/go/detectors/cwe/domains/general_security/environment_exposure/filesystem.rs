@@ -9,7 +9,7 @@ pub(crate) fn detect_cwe_403(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 
     let opens_secret_before_exec = facts
         .source_index
-        .has(r#"os.Open("/etc/slopguard/master.key")"#)
+        .has(r#"os.Open("/etc/codehound/master.key")"#)
         && facts.source_index.has(r#"exec.Command("/bin/sh", "-c""#);
     if !opens_secret_before_exec {
         return;
@@ -22,7 +22,7 @@ pub(crate) fn detect_cwe_403(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     }
 
     let start_byte = source
-        .find("os.Open(\"/etc/slopguard/master.key\")")
+        .find("os.Open(\"/etc/codehound/master.key\")")
         .unwrap_or(0);
     let (line, col) = unit.line_col(start_byte);
     emit::push_finding(

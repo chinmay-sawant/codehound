@@ -8,8 +8,8 @@ use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 
-use slopguard::core::ScanContext;
-use slopguard::engine::{
+use codehound::core::ScanContext;
+use codehound::engine::{
     Analyzer, CacheSession, CacheStore, DEFAULT_CACHE_DIR, content_hash, discover_cache_dir,
 };
 
@@ -118,18 +118,18 @@ fn no_cache_cli_flag_is_parsed_and_wired() {
     // Smoke test that exercises the CLI flag wiring without spawning
     // a subprocess: simply assert the flag round-trips through clap.
     use clap::Parser;
-    use slopguard::cli::Cli;
+    use codehound::cli::Cli;
 
-    let cli = Cli::try_parse_from(["slopguard", "--no-cache"]).unwrap();
+    let cli = Cli::try_parse_from(["codehound", "--no-cache"]).unwrap();
     assert!(cli.no_cache);
 
-    let cli = Cli::try_parse_from(["slopguard", "--cache-dir", "/tmp/c"]).unwrap();
+    let cli = Cli::try_parse_from(["codehound", "--cache-dir", "/tmp/c"]).unwrap();
     assert_eq!(cli.cache_dir, Some(PathBuf::from("/tmp/c")));
 
-    let cli = Cli::try_parse_from(["slopguard", "--rebuild-cache"]).unwrap();
+    let cli = Cli::try_parse_from(["codehound", "--rebuild-cache"]).unwrap();
     assert!(cli.rebuild_cache);
 
-    let cli = Cli::try_parse_from(["slopguard", "--prune-cache"]).unwrap();
+    let cli = Cli::try_parse_from(["codehound", "--prune-cache"]).unwrap();
     assert!(cli.prune_cache);
 }
 

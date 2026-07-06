@@ -44,6 +44,6 @@ Root: `plans/p2.md`
 
 - ~27× speedup measured on `gopdfsuit` (139 files: 0.4s cold → 0.015s warm).
 - CLI flags: `--no-cache`, `--cache-dir <DIR>`, `--rebuild-cache`, `--prune-cache`.
-- Config: `[slopguard.cache]` block with `enabled`, `path`, and `max_size_mb`.
+- Config: `[codehound.cache]` block with `enabled`, `path`, and `max_size_mb`.
 - 26 tests in `tests/engine_cache.rs`.
 - Deferred: size-based LRU eviction on `flush()` (Phase 6.2), concurrent-scan corruption test (Phase 8.4).

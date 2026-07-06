@@ -2,7 +2,7 @@
 
 use crate::core::{FailPolicy, ScanContext};
 
-use super::types::SlopguardConfig;
+use super::types::CodehoundConfig;
 
 /// Parameters for [`build_scan_context`].
 #[derive(Debug, Clone, Default)]
@@ -10,7 +10,7 @@ pub struct ScanContextParams {
     pub only: Vec<String>,
     pub skip: Vec<String>,
     pub fail_policy: FailPolicy,
-    pub config: Option<SlopguardConfig>,
+    pub config: Option<CodehoundConfig>,
     pub cli_set_fail_policy: bool,
     pub debug_timing: bool,
     pub diagnostics: bool,

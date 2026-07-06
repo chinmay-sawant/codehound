@@ -1,4 +1,4 @@
-use slopguard::rules::Severity;
+use codehound::rules::Severity;
 
 #[test]
 fn severity_variants_are_consistent() {

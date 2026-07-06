@@ -1,6 +1,6 @@
 # Output formats
 
-SlopGuard emits findings in three formats. Pick with `--format {text|json|sarif}`.
+CodeHound emits findings in three formats. Pick with `--format {text|json|sarif}`.
 
 ## Text (default)
 
@@ -58,13 +58,13 @@ Optional structured fields:
 ## SARIF 2.1.0
 
 ```sh
-slopguard --format sarif ./... > out.sarif
+codehound --format sarif ./... > out.sarif
 ```
 
 Or compact (one line, no indentation) for machine consumers:
 
 ```sh
-slopguard --format sarif --no-snippet ./... | jq > out.sarif
+codehound --format sarif --no-snippet ./... | jq > out.sarif
 ```
 
 The output conforms to
@@ -75,7 +75,7 @@ and includes:
 |----------------------------------------------------|-------|
 | `$schema`                                          | `https://json.schemastore.org/sarif-2.1.0.json` |
 | `version`                                          | `2.1.0` |
-| `runs[0].tool.driver.name`                         | `slopguard` |
+| `runs[0].tool.driver.name`                         | `codehound` |
 | `runs[0].tool.driver.informationUri`               | repository URL (from `Cargo.toml`) |
 | `runs[0].tool.driver.version`                      | package version (from `Cargo.toml`) |
 | `runs[0].tool.driver.semanticVersion`              | same |
@@ -90,12 +90,12 @@ and includes:
 | `runs[0].results[].message.text`                   | detector message |
 | `runs[0].results[].locations[].physicalLocation.artifactLocation.uri` | file path |
 | `runs[0].results[].locations[].physicalLocation.region.startLine`/`startColumn` | 1-indexed |
-| `runs[0].results[].partialFingerprints["slopguard/v1"]` | stable fingerprint (`slopguard:1:<rule>:<file>:<line>:<col>`) |
+| `runs[0].results[].partialFingerprints["codehound/v1"]` | stable fingerprint (`codehound:1:<rule>:<file>:<line>:<col>`) |
 | `runs[0].results[].properties.tags`                | `["security", "cwe", "cwe-22", ...]` |
 | `runs[0].results[].properties.security-severity`   | `0.0`/`4.0`/`7.0`/`9.0` |
 | `runs[0].results[].rank`                           | confidence × 100 (only when `confidence` is set) |
 | `runs[0].results[].suppressions[].kind`            | `"external"` when the finding is suppressed |
-| `runs[0].results[].properties.slopguardEvidence`   | full structured detector evidence as JSON |
+| `runs[0].results[].properties.codehoundEvidence`   | full structured detector evidence as JSON |
 | `runs[0].results[].properties.remediation`         | longer remediation guidance when set |
 
 New properties are additive and use SARIF's standard `properties` bag, so existing SARIF consumers should ignore unknown fields gracefully.

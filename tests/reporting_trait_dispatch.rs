@@ -4,13 +4,13 @@
 
 use std::borrow::Cow;
 
-use slopguard::engine::AnalysisResult;
-use slopguard::export::{ExportOptions, ExportSummary};
-use slopguard::reporting::text::TextOptions;
-use slopguard::reporting::{
+use codehound::engine::AnalysisResult;
+use codehound::export::{ExportOptions, ExportSummary};
+use codehound::reporting::text::TextOptions;
+use codehound::reporting::{
     JsonReporter, NoTerminalReporter, OutputReporter, SarifReporter, TextReporter,
 };
-use slopguard::rules::{Finding, FindingInputs, LineCol, Severity};
+use codehound::rules::{Finding, FindingInputs, LineCol, Severity};
 
 #[path = "helpers/mod.rs"]
 mod helpers;

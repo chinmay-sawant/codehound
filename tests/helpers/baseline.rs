@@ -18,7 +18,7 @@ impl TempProject {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let root = std::env::temp_dir().join(format!("slopguard-{test_name}-{unique}"));
+        let root = std::env::temp_dir().join(format!("codehound-{test_name}-{unique}"));
         std::fs::create_dir_all(&root).unwrap();
         Self { root }
     }
@@ -61,8 +61,8 @@ pub fn setup_temp_project(fixtures: &[&str]) -> TempProject {
     project
 }
 
-pub fn run_slopguard(args: &[&str], cwd: &Path) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_slopguard"))
+pub fn run_codehound(args: &[&str], cwd: &Path) -> Output {
+    Command::new(env!("CARGO_BIN_EXE_codehound"))
         .current_dir(cwd)
         .args(args)
         .output()
@@ -92,7 +92,7 @@ pub fn save_baseline(project: &TempProject, source_path: &str, baseline_path: &s
         "python",
         source_path,
     ];
-    let save = run_slopguard(&args, project.path());
+    let save = run_codehound(&args, project.path());
 
     assert!(
         save.status.success(),

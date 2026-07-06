@@ -1,4 +1,4 @@
-# Slopguard — Ponytail Ultra Review (Rust Only)
+# Codehound — Ponytail Ultra Review (Rust Only)
 
 > **Generated:** 2026-07-06 · **Re-scanned:** 2026-07-06 (post-remediation pass #2)
 > **Mode:** Ultra (maximum aggression — find everything questionable)
@@ -191,7 +191,7 @@ Skipped/deferred from prior pass: `ControlFlowIssue` evidence refactor, Python/G
 ### Checklist
 
 - [x] `bug:` `push_finding` skips `apply_fix()` while `push_finding_with_evidence` / `push_finding_with_snippet` call it — ~200+ call sites silently drop `meta.fix`. [`emit.rs:57-65`]
-- [x] `shrink:` `Fingerprint` stores redundant `tool`/`version` + allocates `"slopguard".to_string()` per call — collapse to pure function. [`fingerprint.rs:13-31`]
+- [x] `shrink:` `Fingerprint` stores redundant `tool`/`version` + allocates `"codehound".to_string()` per call — collapse to pure function. [`fingerprint.rs:13-31`]
 - [x] `yagni:` `Fingerprint` derives `Eq`/`Hash` — zero `HashMap`/`HashSet` consumers. [`fingerprint.rs:12`]
 - [x] `shrink:` `fingerprint.rs` exists only for `fingerprint_string()` — fold into `finding.rs`. [`fingerprint.rs`] [`finding.rs:246-248`]
 - [x] `shrink:` `scan_entry` mutates `function_*` directly; `with_function_range()` dead in production. [`scan_entry.rs:241-244`] [`finding.rs:231-243`]
@@ -220,7 +220,7 @@ Skipped/deferred from prior pass: `ControlFlowIssue` evidence refactor, Python/G
 
 ### Checklist
 
-- [x] `shrink:` `init_cmd.rs` 45-line `const TEMPLATE` duplicates `templates/slopguard.toml` — use `include_str!`. [`app/init_cmd.rs:7-45`] [`templates/slopguard.toml`]
+- [x] `shrink:` `init_cmd.rs` 45-line `const TEMPLATE` duplicates `templates/codehound.toml` — use `include_str!`. [`app/init_cmd.rs:7-45`] [`templates/codehound.toml`]
 - [x] `shrink:` `cache_directory()` returns `Option<PathBuf>` but always `Some` — return `PathBuf`. [`app/cache.rs:37-50`] [`app/run.rs:182-184`]
 - [x] `yagni:` `load_config`, `print_rules`, `print_rule_explanation` are `pub` with no crate re-exports — `pub(crate)`. [`app/config.rs:7`] [`app/rule_info.rs:9,47`]
 - [x] `shrink:` `emit_output` quiet-mode summary duplicates `write_summary` footer strings. [`app/run.rs:366-394`] [`reporting/text/summary.rs:31-56`]

@@ -11,8 +11,8 @@ mod go_perf_cases;
 #[path = "helpers/mod.rs"]
 mod helpers;
 
-use slopguard::engine::Analyzer;
-use slopguard::rules::{ControlFlowKind, DetectorEvidence};
+use codehound::engine::Analyzer;
+use codehound::rules::{ControlFlowKind, DetectorEvidence};
 use std::process::Command;
 
 fn reported_rule_ids(stdout: &str) -> Vec<&str> {
@@ -68,7 +68,7 @@ fn go_perf_fixtures_fire_vulnerable_and_silence_safe() {
 fn go_perf_text_fixtures_also_work_via_cli_scan_path() {
     let cases = go_perf_cases::discover_go_perf_cases();
     let mut failures: Vec<String> = Vec::new();
-    let exe = env!("CARGO_BIN_EXE_slopguard");
+    let exe = env!("CARGO_BIN_EXE_codehound");
 
     for perf_id in &cases {
         let vulnerable = go_perf_cases::fixture_path(*perf_id, true);

@@ -1,22 +1,22 @@
-use slopguard::engine::{IgnoreDirective, parse_file_ignore};
+use codehound::engine::{IgnoreDirective, parse_file_ignore};
 
 #[test]
 fn parse_file_ignore_without_rules_means_all_rules() {
-    let ignore = parse_file_ignore("// slopguard-ignore-file\npackage sample\n");
+    let ignore = parse_file_ignore("// codehound-ignore-file\npackage sample\n");
 
     assert_eq!(ignore, Some(IgnoreDirective::all()));
 }
 
 #[test]
 fn parse_file_ignore_all_rules() {
-    let ignore = parse_file_ignore("// slopguard-ignore-file: all\npackage sample\n");
+    let ignore = parse_file_ignore("// codehound-ignore-file: all\npackage sample\n");
 
     assert_eq!(ignore, Some(IgnoreDirective::all()));
 }
 
 #[test]
 fn parse_file_ignore_rule_list() {
-    let ignore = parse_file_ignore("// slopguard-ignore-file: CWE-22, CWE-78\npackage sample\n");
+    let ignore = parse_file_ignore("// codehound-ignore-file: CWE-22, CWE-78\npackage sample\n");
 
     assert_eq!(
         ignore,
@@ -30,7 +30,7 @@ fn parse_file_ignore_rule_list() {
 #[test]
 fn parse_file_ignore_ignores_directives_after_line_twenty() {
     let source = format!(
-        "{}// slopguard-ignore-file: all\npackage sample\n",
+        "{}// codehound-ignore-file: all\npackage sample\n",
         "\n".repeat(20)
     );
 

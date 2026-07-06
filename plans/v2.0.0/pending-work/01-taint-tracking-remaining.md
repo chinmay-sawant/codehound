@@ -11,7 +11,7 @@
 
 The taint-tracking foundation is in place: `TaintGraph` data model, tree-sitter fact extraction, BFS path-finding, and four CWE detector rewrites (CWE-22/78/79/89) with graceful fallback to the old pattern-matching logic. What remains is hardening, expansion, CLI integration, documentation, and the large inter-procedural work.
 
-**Situation:** 21 source files in `src/lang/go/detectors/cwe/taint/`. 8 test fixtures. Taint is gated behind `[slopguard.taint] enabled = true` in config (default `false`). No CLI flags exist for taint. The `taint_show_paths` config field is parsed but **never consumed** anywhere.
+**Situation:** 21 source files in `src/lang/go/detectors/cwe/taint/`. 8 test fixtures. Taint is gated behind `[codehound.taint] enabled = true` in config (default `false`). No CLI flags exist for taint. The `taint_show_paths` config field is parsed but **never consumed** anywhere.
 
 ---
 
@@ -34,13 +34,13 @@ The taint-tracking foundation is in place: `TaintGraph` data model, tree-sitter 
 
 ### 1.1 Prerequisites
 
-- [x] Land Phase E (CLI flags) so users can discover and enable taint without editing `slopguard.toml`
+- [x] Land Phase E (CLI flags) so users can discover and enable taint without editing `codehound.toml`
 - [x] Land `docs/taint.md` so users understand what taint does and how to disable it
 - [x] Ensure `--no-taint` / `--taint` flags exist (see Phase E)
 
 ### 1.2 Code changes
 
-- [x] Flip default `slopguard.taint.enabled` from `false` to `true` in `src/engine/config/types.rs:90`
+- [x] Flip default `codehound.taint.enabled` from `false` to `true` in `src/engine/config/types.rs:90`
 - [x] Remove the `if facts.taint_graph.is_some() { return taint_version } else { fallback }` pattern in all 4 CWE detectors (`domains/path_traversal.rs`, `domains/injection/sinks.rs`, `domains/input_validation/output_encoding.rs`)
   - Each detector should **always** delegate to the taint-based implementation when taint is enabled
   - The old substring-heuristic fallback remains as a compile-time error only when taint is disabled
@@ -98,7 +98,7 @@ Add the following sanitizer functions to the classifier in `src/lang/go/detector
 
 Add the following to `src/cli/args.rs` and wire in `src/cli/args_impl.rs`:
 
-- [x] `--taint` (flag): shorthand to enable taint tracking. Equivalent to setting `[slopguard.taint] enabled = true` in config. Takes precedence over config.
+- [x] `--taint` (flag): shorthand to enable taint tracking. Equivalent to setting `[codehound.taint] enabled = true` in config. Takes precedence over config.
   ```rust
   #[arg(long, help = "Enable taint-tracking analysis (CWE-22/78/79/89)")]
   taint: bool,
@@ -132,7 +132,7 @@ Add the following to `src/cli/args.rs` and wire in `src/cli/args_impl.rs`:
 Create `docs/taint.md` covering:
 
 - [x] **Overview**: what taint tracking is and which CWE rules use it (CWE-22, 78, 79, 89)
-- [x] **Enabling**: via config (`[slopguard.taint] enabled = true`) and via CLI (`--taint`)
+- [x] **Enabling**: via config (`[codehound.taint] enabled = true`) and via CLI (`--taint`)
 - [x] **Model**: source kinds (UserInput, Args, EnvVar, File, Network), sink kinds (CommandExec, SQLQuery, etc.), sanitizer kinds (Path, HTML, URL, SQL, Validation, Bounded)
 - [x] **Limitations**: intra-procedural only (no cross-function tracking), single-assignment-per-scope (no full reaching-definitions), no struct-field tracking
 - [x] **Reading output**: how to interpret `evidence.taint_path` in JSON output
@@ -141,8 +141,8 @@ Create `docs/taint.md` covering:
 
 ### 3.4 Schema update
 
-- [~] Add `taint` CLI flags to `slopguard.schema.json` (if schema tracks CLI flags)
-- [x] Update `templates/slopguard.toml` to include a commented-out `[slopguard.taint]` block
+- [~] Add `taint` CLI flags to `codehound.schema.json` (if schema tracks CLI flags)
+- [x] Update `templates/codehound.toml` to include a commented-out `[codehound.taint]` block
 
 ---
 

@@ -70,8 +70,8 @@ tier and phase within each workstream.
 
 ### Phase C — Remove substring fallback ✅ SHIPPED
 
-- [x] Land Phase E (CLI flags) so users can discover and enable taint without editing `slopguard.toml`
-- [x] Flip default `slopguard.taint.enabled` from `false` to `true`
+- [x] Land Phase E (CLI flags) so users can discover and enable taint without editing `codehound.toml`
+- [x] Flip default `codehound.taint.enabled` from `false` to `true`
   - Also fixed `build_scan_context` hardcoded default (was `false`, now `true`)
   - Also fixed `TaintConfig.enabled` from `bool` to `Option<bool>` so config absence doesn't override
 - [x] Remove substring fallback in CWE-22/78/79/89:
@@ -101,7 +101,7 @@ tier and phase within each workstream.
 - [x] Wire `taint_show_paths` in SARIF reporter (`properties` bag)
 - [x] Wire `taint_show_paths` in text reporter (print path in output)
 - [x] Create `docs/taint.md` — overview, enabling, model, limitations, output, custom sanitizers
-- [x] Update `templates/slopguard.toml` with commented-out `[slopguard.taint]` block
+- [x] Update `templates/codehound.toml` with commented-out `[codehound.taint]` block
 
 ### Phase F — Inter-procedural taint tracking
 

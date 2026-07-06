@@ -2,8 +2,8 @@ use std::path::Path;
 use std::time::Duration;
 
 use criterion::{Criterion, criterion_group, criterion_main};
-use slopguard::engine::CacheStore;
-use slopguard::fixture::{materialize_tree, materialized_root};
+use codehound::engine::CacheStore;
+use codehound::fixture::{materialize_tree, materialized_root};
 
 #[path = "common/mod.rs"]
 mod common;

@@ -59,7 +59,7 @@ Deferred items from v0.0.1 legacy plan files that were not yet implemented at ti
 
 ### 4.3 pr-performance-parallel-scan.md
 
-- [ ] `cargo run -- target/slopguard-fixtures` — manual verification run, not automated
+- [ ] `cargo run -- target/codehound-fixtures` — manual verification run, not automated
 - [ ] Scan large repo and compare wall time vs previous sequential build — manual benchmark
 
 ## Phase 5: Architecture & Performance

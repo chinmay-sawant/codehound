@@ -33,7 +33,7 @@ in the source, independent of the framework wrapper.
   `file:` from the header. Any other header fields are dropped, so we
   can add a `variant:` discriminator without touching Rust.
 - **Filename collision risk:** the materializer writes all Go fixtures
-  to `target/slopguard-fixtures/go/` flat, using the `file:` header
+  to `target/codehound-fixtures/go/` flat, using the `file:` header
   value (or the `.txt` stem as default). A new `CWE-89-vulnerable.txt`
   with default naming would overwrite the existing
   `target/.../CWE-89-vulnerable.go` at test time. Every pure-Go
@@ -70,7 +70,7 @@ fixtures get an analogous `variant: gin-gorm-sqlx` (or similar) in the
 Why `.pure.go` and not just leaving the default filename: it guarantees
 no collision with the framework set at materialization time, and it
 makes the two sets trivially distinguishable in
-`target/slopguard-fixtures/go/`.
+`target/codehound-fixtures/go/`.
 
 ---
 
@@ -176,7 +176,7 @@ framework set rule.
      pointing at the new paths, with the right `required_rules`.
    - **Forbidden-import grep**: `grep -rE 'gin-gonic/gin|gorm\.io/|jmoiron/sqlx|labstack/echo|go-chi/chi|gofiber/fasthttp' tests/fixtures/go/stdlib/` must return zero matches.
    - **Filename-collision check**: every materialized `.pure.go` name
-     must be unique under `target/slopguard-fixtures/go/` (no `.pure.go`
+     must be unique under `target/codehound-fixtures/go/` (no `.pure.go`
      may collide with an existing framework-set materialized name).
    - **Manifest reconciliation**: while we're here, audit the existing
      352-entry manifest vs the 353 files in `tests/fixtures/go/` and

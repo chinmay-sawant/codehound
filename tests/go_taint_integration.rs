@@ -10,8 +10,8 @@ mod helpers;
 
 use std::sync::OnceLock;
 
-use slopguard::core::ScanContext;
-use slopguard::engine::Analyzer;
+use codehound::core::ScanContext;
+use codehound::engine::Analyzer;
 
 static TAINT_ANALYZER: OnceLock<Analyzer> = OnceLock::new();
 

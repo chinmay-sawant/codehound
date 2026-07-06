@@ -1,4 +1,4 @@
-# SlopGuard Anti-Pattern Review (M15) — Phase 2 Re-validation
+# CodeHound Anti-Pattern Review (M15) — Phase 2 Re-validation
 
 **Reviewer stance:** M15 Anti-Pattern skill — symptom vs cause analysis  
 **Date:** 2026-06-27 (post-Phase 3 + 3E re-audit)  

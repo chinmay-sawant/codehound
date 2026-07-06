@@ -11,7 +11,7 @@ use super::evidence::DetectorEvidence;
 use super::finding_wire::FindingWire;
 use crate::cwe::CweRef;
 
-pub(crate) const FINGERPRINT_TOOL: &str = "slopguard";
+pub(crate) const FINGERPRINT_TOOL: &str = "codehound";
 pub(crate) const FINGERPRINT_VERSION: u32 = 1;
 
 fn format_fingerprint(rule_id: &str, file: &str, line: usize, column: usize) -> String {

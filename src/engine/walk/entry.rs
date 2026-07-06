@@ -63,7 +63,7 @@ impl EntrySource for FilesystemWalker {
             let mut builder = WalkBuilder::new(path);
             builder
                 .standard_filters(true)
-                .add_custom_ignore_filename(".slopguardignore");
+                .add_custom_ignore_filename(".codehoundignore");
             for entry in builder.build().filter_map(Result::ok) {
                 if !entry.file_type().is_some_and(|t| t.is_file()) {
                     continue;
@@ -120,7 +120,7 @@ impl EntrySource for ListEntrySource {
 /// Walk paths and collect supported source files via [`FilesystemWalker`].
 ///
 /// Honors `.gitignore`/`.ignore` (via `standard_filters(true)`) **and**
-/// `.slopguardignore` if present at any walked root.
+/// `.codehoundignore` if present at any walked root.
 ///
 /// Returns the collected entries and the number of files skipped by
 /// ignore/language/path filters.

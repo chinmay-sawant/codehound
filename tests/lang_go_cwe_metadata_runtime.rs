@@ -1,7 +1,7 @@
 #![cfg(feature = "go")]
 
-use slopguard::engine::Analyzer;
-use slopguard::fixture::materialize_fixture;
+use codehound::engine::Analyzer;
+use codehound::fixture::materialize_fixture;
 
 #[test]
 fn go_cwe_findings_include_structured_cwe_refs() {

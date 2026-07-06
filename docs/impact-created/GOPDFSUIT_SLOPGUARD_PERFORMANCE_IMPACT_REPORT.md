@@ -1,13 +1,13 @@
-# SlopGuard Performance Impact - Detailed Report
+# CodeHound Performance Impact - Detailed Report
 
 **Generated:** 2026-06-24  
-**Sources:** `slopguard-findings.md`, `20260610_slopguard_fixes_report.md`, `PR/PR_DESCRIPTION.md`
+**Sources:** `codehound-findings.md`, `20260610_codehound_fixes_report.md`, `PR/PR_DESCRIPTION.md`
 
 ---
 
 ## Overview
 
-SlopGuard is the project's static-analysis performance linter. It ran against the full codebase and produced **226 findings**, of which **218 were actionable performance items (PERF-* rules)**. All 218 have been fixed across 6 remediation batches (P1–P6). The remaining 8 findings were CWE security-only items excluded from the performance pass.
+CodeHound is the project's static-analysis performance linter. It ran against the full codebase and produced **226 findings**, of which **218 were actionable performance items (PERF-* rules)**. All 218 have been fixed across 6 remediation batches (P1–P6). The remaining 8 findings were CWE security-only items excluded from the performance pass.
 
 ---
 
@@ -609,7 +609,7 @@ for scanner.Scan() {
 
 ### Why Some Workloads Regressed Slightly
 - `text_short` (−6.6%): The static-asset cache header wrapper added a small handler overhead visible only on the fastest benchmark. Absolute ns/op remained excellent.
-- `png_table_180_rows` / `png_rows_60` (−3.7% to −5.1%): These workloads are compression-bound; the SlopGuard fixes targeted CPU-bound paths, so gains were minimal and noise dominated.
+- `png_table_180_rows` / `png_rows_60` (−3.7% to −5.1%): These workloads are compression-bound; the CodeHound fixes targeted CPU-bound paths, so gains were minimal and noise dominated.
 
 ---
 
@@ -646,23 +646,23 @@ The allocation increase is a worthwhile tradeoff for the throughput gains on hea
 
 ---
 
-## Compound Effect - SlopGuard as Foundation
+## Compound Effect - CodeHound as Foundation
 
-The SlopGuard remediation was Phase 3 of a multi-phase performance program. It laid the allocation-reduction and hot-path discipline foundation upon which later phases built:
+The CodeHound remediation was Phase 3 of a multi-phase performance program. It laid the allocation-reduction and hot-path discipline foundation upon which later phases built:
 
 | Phase | Scope | Cumulative Outcome |
 |-------|-------|--------------------|
 | Phase 1–2 | Buffer pooling, zlib streaming, structure-tree | `BenchmarkGoPdfSuit` −11.6% latency, −16% alloc vs master |
-| **Phase 3** | **SlopGuard (218 findings)** | **Heavy workloads +5–13% throughput** |
+| **Phase 3** | **CodeHound (218 findings)** | **Heavy workloads +5–13% throughput** |
 | Phase 4+ | GoPDFKit parity, image dedup, table fast paths | gopdflib wins 7/7 workloads (up to +788% on `png_rows_60`) |
 | Phase 5–6 | Gin HTTP + Zerodha harness | Gin weighted ~910–1,232 req/s; Zerodha ~2,646 avg / 2,898 peak ops/s |
 | Phase 7+ | Cache bounds, tagged-PDF alloc, cross-stack validation | v6.0.0 release ready |
 
-Many of the techniques SlopGuard taught - pre-size slices, pool buffers, avoid extra copies, use stack-scratch writes - became the playbook for every subsequent optimization phase. The later Zerodha jump from **2,799 → 9,594 ops/sec** (June 20 article) directly builds on the SlopGuard discipline of replacing `fmt.Sprintf` with `AppendInt`, pooling allocs, and removing defer from hot paths.
+Many of the techniques CodeHound taught - pre-size slices, pool buffers, avoid extra copies, use stack-scratch writes - became the playbook for every subsequent optimization phase. The later Zerodha jump from **2,799 → 9,594 ops/sec** (June 20 article) directly builds on the CodeHound discipline of replacing `fmt.Sprintf` with `AppendInt`, pooling allocs, and removing defer from hot paths.
 
 ---
 
-## Files Modified (SlopGuard-Specific)
+## Files Modified (CodeHound-Specific)
 
 | File | Rules Applied | Key Changes |
 |------|--------------|-------------|
@@ -687,7 +687,7 @@ Many of the techniques SlopGuard taught - pre-size slices, pool buffers, avoid e
 
 ## Conclusion
 
-SlopGuard identified and tracked **226 findings**, of which **218 were actionable performance issues**. All 218 have been fixed, covering 16 files across the codebase. The fixes delivered:
+CodeHound identified and tracked **226 findings**, of which **218 were actionable performance issues**. All 218 have been fixed, covering 16 files across the codebase. The fixes delivered:
 
 - **+9% throughput** on `text_240_lines`
 - **+13% throughput** on `table_180_rows` 
@@ -695,4 +695,4 @@ SlopGuard identified and tracked **226 findings**, of which **218 were actionabl
 - **1–7%** noise-level change on lighter workloads
 - **2–15%** allocation increase (accepted tradeoff)
 
-Beyond the direct numbers, SlopGuard established a systematic approach to performance hygiene - replacing allocation-heavy patterns (`fmt.Sprintf`, `strconv.Itoa`, `defer` in loops, repeated regex compilation) with allocation-free alternatives - that became the foundation for all subsequent optimization work, culminating in the Zerodha benchmark reaching **9,594 ops/sec** (a 3.4× improvement over earlier baselines).
+Beyond the direct numbers, CodeHound established a systematic approach to performance hygiene - replacing allocation-heavy patterns (`fmt.Sprintf`, `strconv.Itoa`, `defer` in loops, repeated regex compilation) with allocation-free alternatives - that became the foundation for all subsequent optimization work, culminating in the Zerodha benchmark reaching **9,594 ops/sec** (a 3.4× improvement over earlier baselines).

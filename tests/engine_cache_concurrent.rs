@@ -10,8 +10,8 @@ use std::thread;
 
 use helpers::{assert_fixture_materializes, unique_temp_root};
 
-use slopguard::core::ScanContext;
-use slopguard::engine::{Analyzer, CacheSession, CacheStore, DEFAULT_CACHE_DIR};
+use codehound::core::ScanContext;
+use codehound::engine::{Analyzer, CacheSession, CacheStore, DEFAULT_CACHE_DIR};
 
 fn copy_fixture_into_root(fixture: &str, root: &Path, output_name: &str) {
     fs::create_dir_all(root).unwrap();

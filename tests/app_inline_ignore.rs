@@ -9,9 +9,9 @@ fn file_ignore_suppresses_all_findings() {
     let source_dir = root.join("sample");
     std::fs::create_dir_all(&source_dir).unwrap();
     let source_path = source_dir.join("sample.go");
-    helpers::write_go_source(&source_path, "// slopguard-ignore-file\n");
+    helpers::write_go_source(&source_path, "// codehound-ignore-file\n");
 
-    let output = Command::new(env!("CARGO_BIN_EXE_slopguard"))
+    let output = Command::new(env!("CARGO_BIN_EXE_codehound"))
         .arg("--format")
         .arg("json")
         .arg("--no-context")
@@ -40,9 +40,9 @@ fn file_ignore_rule_list_suppresses_matching_finding() {
     let source_dir = root.join("sample");
     std::fs::create_dir_all(&source_dir).unwrap();
     let source_path = source_dir.join("sample.go");
-    helpers::write_go_source(&source_path, "// slopguard-ignore-file: CWE-78\n");
+    helpers::write_go_source(&source_path, "// codehound-ignore-file: CWE-78\n");
 
-    let output = Command::new(env!("CARGO_BIN_EXE_slopguard"))
+    let output = Command::new(env!("CARGO_BIN_EXE_codehound"))
         .arg("--format")
         .arg("json")
         .arg("--no-context")
@@ -71,9 +71,9 @@ fn show_ignored_reports_file_ignored_finding_as_info() {
     let source_dir = root.join("sample");
     std::fs::create_dir_all(&source_dir).unwrap();
     let source_path = source_dir.join("sample.go");
-    helpers::write_go_source(&source_path, "// slopguard-ignore-file: all\n");
+    helpers::write_go_source(&source_path, "// codehound-ignore-file: all\n");
 
-    let output = Command::new(env!("CARGO_BIN_EXE_slopguard"))
+    let output = Command::new(env!("CARGO_BIN_EXE_codehound"))
         .arg("--show-ignored")
         .arg("--format")
         .arg("json")
@@ -109,7 +109,7 @@ fn show_ignored_reports_file_ignored_finding_as_info() {
 fn inline_ignore_suppresses_matching_finding() {
     let source_path =
         helpers::assert_fixture_materializes("tests/fixtures/go/baseline/suppressed_inline.txt");
-    let output = Command::new(env!("CARGO_BIN_EXE_slopguard"))
+    let output = Command::new(env!("CARGO_BIN_EXE_codehound"))
         .arg("--format")
         .arg("json")
         .arg("--no-context")
@@ -146,7 +146,7 @@ import (
 
 func TraceRoute(w http.ResponseWriter, r *http.Request) {
 	host := r.URL.Query().Get("host")
-	// slopguard-ignore: all
+	// codehound-ignore: all
 	cmd := exec.Command("sh", "-c", "traceroute -m 1 "+host)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -159,7 +159,7 @@ func TraceRoute(w http.ResponseWriter, r *http.Request) {
     )
     .unwrap();
 
-    let output = Command::new(env!("CARGO_BIN_EXE_slopguard"))
+    let output = Command::new(env!("CARGO_BIN_EXE_codehound"))
         .arg("--show-ignored")
         .arg("--format")
         .arg("json")

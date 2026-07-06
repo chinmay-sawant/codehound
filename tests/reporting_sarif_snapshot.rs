@@ -1,13 +1,13 @@
 use std::borrow::Cow;
 
-use slopguard::engine::AnalysisResult;
-use slopguard::rules::{Finding, FindingInputs, LineCol, Severity};
+use codehound::engine::AnalysisResult;
+use codehound::rules::{Finding, FindingInputs, LineCol, Severity};
 
 #[path = "helpers/mod.rs"]
 mod helpers;
 
 use insta::assert_snapshot;
-use slopguard::reporting::sarif::render_to_string;
+use codehound::reporting::sarif::render_to_string;
 
 fn sample_result() -> AnalysisResult {
     helpers::reporting::sample_result(vec![

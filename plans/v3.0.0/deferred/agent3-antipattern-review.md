@@ -63,7 +63,7 @@ Deferred anti-pattern remediation, code review, and audit items from Agent 3 rev
 
 - [ ] Shrink `engine/mod.rs` `pub use` surface (13+ groups remain) — `rust-patterns.md`
 - [ ] Deprecate direct `engine::*` re-exports — `rust-remediation-phase-2.md`
-- [x] Update `src/main.rs` to use `slopguard::cli` via feature gate — `rust-remediation-phase-2.md`
+- [x] Update `src/main.rs` to use `codehound::cli` via feature gate — `rust-remediation-phase-2.md`
 
 ---
 

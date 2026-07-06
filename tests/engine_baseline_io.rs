@@ -5,8 +5,8 @@ mod helpers;
 use helpers::cache::finding;
 use helpers::unique_temp_root;
 
-use slopguard::engine::{BASELINE_FILE_NAME, Baseline, discover_baseline};
-use slopguard::rules::Finding;
+use codehound::engine::{BASELINE_FILE_NAME, Baseline, discover_baseline};
+use codehound::rules::Finding;
 
 #[test]
 fn discover_baseline_walks_up_to_git_root() {
@@ -25,7 +25,7 @@ fn discover_baseline_walks_up_to_git_root() {
 #[test]
 fn baseline_schema_file_is_valid_json_and_covers_known_fields() {
     let path =
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("slopguard-baseline.schema.json");
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("codehound-baseline.schema.json");
     let text =
         std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
     let v: serde_json::Value =
@@ -43,7 +43,7 @@ fn baseline_schema_file_is_valid_json_and_covers_known_fields() {
     );
     assert_eq!(
         v.pointer("/properties/entries/additionalProperties/items/properties/fingerprint/pattern"),
-        Some(&serde_json::Value::String("^slopguard:1:".to_string()))
+        Some(&serde_json::Value::String("^codehound:1:".to_string()))
     );
 }
 

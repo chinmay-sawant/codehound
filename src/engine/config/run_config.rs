@@ -3,7 +3,7 @@
 use crate::core::ScanContext;
 
 use super::scan_context::{ScanContextParams, build_scan_context};
-use super::types::{PathFilters, SlopguardConfig};
+use super::types::{PathFilters, CodehoundConfig};
 
 /// Scan context and path filters built together from CLI + TOML.
 #[derive(Debug, Clone)]
@@ -21,14 +21,14 @@ pub struct RunConfigParams {
 
 /// Build [`PathFilters`] from optional TOML config and CLI overrides.
 pub fn path_filters_from_config(
-    config: Option<&SlopguardConfig>,
+    config: Option<&CodehoundConfig>,
     include_tests: bool,
 ) -> PathFilters {
     let mut path_filters = config
         .map(|cfg| PathFilters {
-            include: cfg.slopguard.include.clone(),
-            exclude: cfg.slopguard.exclude.clone(),
-            exclude_tests: cfg.slopguard.exclude_tests.unwrap_or(true),
+            include: cfg.codehound.include.clone(),
+            exclude: cfg.codehound.exclude.clone(),
+            exclude_tests: cfg.codehound.exclude_tests.unwrap_or(true),
         })
         .unwrap_or_default();
     if include_tests {

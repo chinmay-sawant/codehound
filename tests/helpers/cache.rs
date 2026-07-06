@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use slopguard::rules::{Finding, FindingInputs, LineCol, Severity};
+use codehound::rules::{Finding, FindingInputs, LineCol, Severity};
 
 pub fn finding(rule_id: &'static str, file: &str, line: usize, column: usize) -> Finding {
     Finding::new(FindingInputs::new(
@@ -19,9 +19,9 @@ pub mod dep_helpers {
     use std::path::Path;
     use std::sync::Arc;
 
-    use slopguard::core::LanguagePlugin;
-    use slopguard::engine::{extract_dependencies, go_module_prefix};
-    use slopguard::lang::go::GoPlugin;
+    use codehound::core::LanguagePlugin;
+    use codehound::engine::{extract_dependencies, go_module_prefix};
+    use codehound::lang::go::GoPlugin;
 
     pub fn write_file(path: &Path, body: &str) {
         if let Some(parent) = path.parent() {
@@ -30,7 +30,7 @@ pub mod dep_helpers {
         std::fs::write(path, body).unwrap();
     }
 
-    pub fn parse_go(project: &Path, rel: &str) -> (slopguard::core::ParsedUnit, Option<String>) {
+    pub fn parse_go(project: &Path, rel: &str) -> (codehound::core::ParsedUnit, Option<String>) {
         let path = project.join(rel);
         let source = std::fs::read_to_string(&path).unwrap();
         let plugin = GoPlugin;

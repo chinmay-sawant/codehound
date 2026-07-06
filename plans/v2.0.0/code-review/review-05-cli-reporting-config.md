@@ -6,7 +6,7 @@
 
 ### Critical Issues
 
-- **`slopguard.schema.json:17` — TypeScript in config enum without feature gate.** The `enum` for `languages` includes `"ts"` and `"typescript"`, but `LanguageId::TypeScript` only exists behind `#[cfg(feature = "typescript")]`. If a user's config validation passes but the binary was built without the feature, `LanguageId::from_config_name` returns `None` and the language is silently skipped. At minimum the schema should note the feature flag; ideally the schema is generated or includes a `oneOf` with a `"not": {"enum": ["ts", "typescript"]}` fallback when the feature is absent.
+- **`codehound.schema.json:17` — TypeScript in config enum without feature gate.** The `enum` for `languages` includes `"ts"` and `"typescript"`, but `LanguageId::TypeScript` only exists behind `#[cfg(feature = "typescript")]`. If a user's config validation passes but the binary was built without the feature, `LanguageId::from_config_name` returns `None` and the language is silently skipped. At minimum the schema should note the feature flag; ideally the schema is generated or includes a `oneOf` with a `"not": {"enum": ["ts", "typescript"]}` fallback when the feature is absent.
   - **Fix:** Either (a) conditionally include `"ts"/"typescript"` in the schema at build time, or (b) add a validation error in `resolve_language_filter` when an unsupported language name is given, rather than silently dropping it.
 
 - **`src/reporting/sarif/log.rs:55` — Every SARIF result tagged "security" unconditionally.** The line `let mut tags: Vec<String> = vec!["security".to_string()];` prepends the tag "security" to all results, including PERF-* (performance) and BP-* (bad-practice) findings. SARIF consumers that filter on this tag (e.g. GitHub Code Scanning severity overrides) will see false classifications.
@@ -30,7 +30,7 @@
   - **Fix:** Resolve to an absolute path via `std::env::current_dir()` or `std::path::absolute()`.
 
 - **`src/app/config.rs:28` — `Option::is_none_or` usage.** This method was stabilized in Rust 1.82. If the project needs to support older MSRV than 1.82, this will fail to compile. The CI specifies MSRV 1.85, so this is acceptable — but it's worth noting that `is_none_or` is relatively new and may surprise readers.
-  - **Fix:** Either add a comment noting the MSRV requirement, or replace with `config.map_or(true, SlopguardConfig::baseline_enabled)` for broader compatibility.
+  - **Fix:** Either add a comment noting the MSRV requirement, or replace with `config.map_or(true, CodehoundConfig::baseline_enabled)` for broader compatibility.
 
 - **`src/reporting/text/style.rs:3-58` — `cfg(feature = "terminal-output")` gate for colored output.** The `#[cfg(feature = "terminal-output")]` module uses `colored::Colorize` while the fallback strips styling. This is correct. However `style.rs:61` does `pub use terminal::*;` which re-exports both modules (one gets shadowed by cfg). This works but is slightly confusing — the `pub use terminal::*;` at the bottom re-exports whichever `terminal` module was compiled.
   - **Fix:** Minor, but consider renaming the modules `impl_terminal` / `impl_noop` for clarity.
@@ -42,7 +42,7 @@
 - **`src/lang/python/detectors/re_compile_in_loop.rs:47-48` — `walk_calls` walks the entire CST for every file.** For Python files with few functions but many calls, this is correct but wasteful. A tree-sitter `Query.captures` for `call` nodes would be more efficient. Worth profiling before optimizing.
 - **`src/reporting/sarif/log.rs:44` — `security_severity` for bad_practice is hardcoded to "5.0".** This is reasonable as a default but should be documented as a decision. Consider deriving from the finding's actual severity when possible.
 - **`plans/p2-implementation/01-taint-tracking.md` — Phase 1 is marked complete but Phase 1.1–1.4 have all `[ ]` unchecked.** The list is checkbox-based but all items show `[ ]` even for completed phases. Confusing for future readers. Recommend using `[x]` for checked items if the section is complete.
-- **`slopguard.schema.json:45` — `exclude_tests` default is `true` but `templates/slopguard.toml` comments say it's `false`.** The template says `# exclude_tests = false` while the schema says `"default": true`. These need to match.
+- **`codehound.schema.json:45` — `exclude_tests` default is `true` but `templates/codehound.toml` comments say it's `false`.** The template says `# exclude_tests = false` while the schema says `"default": true`. These need to match.
 - **`scripts/check_no_prod_expect.sh:33,43` — Regex `\.(expect|unwrap)\(` matches within string literals and comments (though comments are filtered).** The script handles single-line comments but may still miss inline comments after code. The heuristic is effective but not airtight. Consider a comment noting this limitation.
 - **`CHANGELOG.md:299-312` — Deferred items are well documented but there's no target release date or tracking issue for Phase C-F of taint tracking.** Consider linking to the plan documents.
 

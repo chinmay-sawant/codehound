@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
-use slopguard::engine::AnalysisResult;
-use slopguard::reporting::sarif::render_to_string;
-use slopguard::rules::{
+use codehound::engine::AnalysisResult;
+use codehound::reporting::sarif::render_to_string;
+use codehound::rules::{
     DetectorEvidence, Finding, FindingInputs, LineCol, Severity, TaintHop, TaintSinkInfo,
     TaintSourceInfo,
 };
@@ -38,7 +38,7 @@ fn driver_fields_are_populated() {
     let log = render_to_string(&sample_result()).expect("render SARIF");
     assert!(log.contains("\"informationUri\""), "got: {log}");
     assert!(log.contains("\"semanticVersion\""), "got: {log}");
-    assert!(log.contains("\"name\": \"slopguard\""), "got: {log}");
+    assert!(log.contains("\"name\": \"codehound\""), "got: {log}");
 }
 
 #[test]
@@ -63,7 +63,7 @@ fn results_have_partial_fingerprints() {
         "missing partialFingerprints, got: {log}"
     );
     assert!(
-        log.contains("\"slopguard/v1\": \"slopguard:1:CWE-22:a.go:1:1\""),
+        log.contains("\"codehound/v1\": \"codehound:1:CWE-22:a.go:1:1\""),
         "missing canonical fingerprint, got: {log}"
     );
 }
@@ -153,21 +153,21 @@ fn invocation_includes_suppressed_count_when_present() {
 }
 
 #[test]
-fn evidence_maps_to_slopguard_evidence_property() {
+fn evidence_maps_to_codehound_evidence_property() {
     let mut r = sample_result();
     r.findings[0].evidence = Some(DetectorEvidence::TaintFlow {
-        source: slopguard::rules::TaintSourceInfo {
+        source: codehound::rules::TaintSourceInfo {
             kind: "UserInput".to_string(),
             function: "r.URL.Query".to_string(),
             variable: "host".to_string(),
         },
-        sink: slopguard::rules::TaintSinkInfo::new("CommandExec", "exec.Command"),
+        sink: codehound::rules::TaintSinkInfo::new("CommandExec", "exec.Command"),
         hops: 1,
         sanitized: false,
     });
 
     let log = render_to_string(&r).expect("render SARIF");
-    assert!(log.contains("\"slopguardEvidence\""), "got: {log}");
+    assert!(log.contains("\"codehoundEvidence\""), "got: {log}");
     assert!(log.contains("\"kind\": \"TaintFlow\""), "got: {log}");
     assert!(log.contains("\"function\": \"exec.Command\""), "got: {log}");
 }
@@ -228,7 +228,7 @@ fn taint_show_paths_sets_sarif_property_flag() {
 
     let log = render_to_string(&r).expect("render SARIF");
     assert!(
-        log.contains("\"slopguardTaintShowPaths\": true"),
+        log.contains("\"codehoundTaintShowPaths\": true"),
         "got: {log}"
     );
 }

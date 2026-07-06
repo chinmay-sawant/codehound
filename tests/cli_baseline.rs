@@ -1,10 +1,10 @@
 use clap::Parser;
-use slopguard::cli::Cli;
+use codehound::cli::Cli;
 
 #[test]
 fn baseline_flags_parse() {
     let cli = Cli::parse_from([
-        "slopguard",
+        "codehound",
         "--baseline",
         "--no-baseline",
         "--show-ignored",

@@ -10,7 +10,7 @@
 
 Split every oversized config / build file: `build.rs` (highest leverage), the two registry TOMLs, the JSON schemas, and the CI workflow.
 
-**Scope:** `Cargo.toml`, `slopguard.schema.json`, `slopguard-baseline.schema.json`, `.github/workflows/ci.yml`, `build.rs`, `src/lang/go/detectors/cwe/registry.toml`, `src/lang/go/detectors/perf/registry.toml`.
+**Scope:** `Cargo.toml`, `codehound.schema.json`, `codehound-baseline.schema.json`, `.github/workflows/ci.yml`, `build.rs`, `src/lang/go/detectors/cwe/registry.toml`, `src/lang/go/detectors/perf/registry.toml`.
 **Files covered:** 7 (5 require splitting, 1 unchanged, 1 has optional split).
 **New files:** ~25.
 
@@ -21,8 +21,8 @@ Split every oversized config / build file: `build.rs` (highest leverage), the tw
 - **Problem:** `build.rs` (12 914 chars) is a single file that produces 6 output files. The two registry TOMLs (14 144 + 12 456 chars) are monolithic. `ci.yml` (3 392 chars) duplicates 4 steps across 3 jobs.
 - **Approach:** Convert `build.rs` into a `build/` directory of focused sub-modules. Split each registry TOML into per-domain files mirroring the `domains/` layout. Extract a CI composite action for the shared checkout + toolchain + cache steps. Leave `Cargo.toml` and the JSON schemas alone.
 - **Success criteria:** All 5 split files are at or below 3 000 chars (or justified as exception). `tests/go_perf_registry_generation.rs` is updated to use `read_dir`. Generated `OUT_DIR/*.rs` is byte-identical before/after.
-- **Trade-offs:** `Cargo.toml` cannot be split (manifest format does not support it). `slopguard.schema.json` split is recommended to skip (already a clean 4.4 KB).
-- **Open questions:** Should `slopguard.schema.json` be split via `$ref`? **Recommendation: skip.**
+- **Trade-offs:** `Cargo.toml` cannot be split (manifest format does not support it). `codehound.schema.json` split is recommended to skip (already a clean 4.4 KB).
+- **Open questions:** Should `codehound.schema.json` be split via `$ref`? **Recommendation: skip.**
 
 ---
 
@@ -200,22 +200,22 @@ Split every oversized config / build file: `build.rs` (highest leverage), the tw
 
 ---
 
-## Phase 5.5: `slopguard.schema.json` (4 403 chars / 124 lines) — **optional split**
+## Phase 5.5: `codehound.schema.json` (4 403 chars / 124 lines) — **optional split**
 
 JSON Schema (draft-07) supports `$ref` to other files via URI/relative-path references.
 
 ### Proposed file tree (if a split is desired)
 
-- [x] Create `schemas/slopguard.schema.json` (root) with `$schema`, `title`, `description`, `type`, `additionalProperties: false`, root `slopguard` property with `additionalProperties: false` and `properties` map using `$ref` to all sub-schemas (~600 chars)
-- [x] Create `schemas/slopguard/sl-languages.schema.json` with `languages` (string array with enum)
-- [x] Create `schemas/slopguard/sl-rules.schema.json` with `skip`, `only` (string arrays)
-- [x] Create `schemas/slopguard/sl-glob-list.schema.json` with `include`, `exclude` (string arrays)
-- [x] Create `schemas/slopguard/sl-baseline.schema.json` with `baseline` nested object
-- [x] Create `schemas/slopguard/sl-cache.schema.json` with `cache` nested object
-- [x] Create `schemas/slopguard/sl-taint.schema.json` with `taint` nested object
-- [x] Create `schemas/slopguard/sl-bad-practices.schema.json` with `bad_practices` nested object
-- [x] Create `schemas/slopguard/sl-fail-on.schema.json` with `fail_on` (string)
-- [x] Create `schemas/slopguard/sl-exclude-tests.schema.json` with `exclude_tests` (boolean)
+- [x] Create `schemas/codehound.schema.json` (root) with `$schema`, `title`, `description`, `type`, `additionalProperties: false`, root `codehound` property with `additionalProperties: false` and `properties` map using `$ref` to all sub-schemas (~600 chars)
+- [x] Create `schemas/codehound/sl-languages.schema.json` with `languages` (string array with enum)
+- [x] Create `schemas/codehound/sl-rules.schema.json` with `skip`, `only` (string arrays)
+- [x] Create `schemas/codehound/sl-glob-list.schema.json` with `include`, `exclude` (string arrays)
+- [x] Create `schemas/codehound/sl-baseline.schema.json` with `baseline` nested object
+- [x] Create `schemas/codehound/sl-cache.schema.json` with `cache` nested object
+- [x] Create `schemas/codehound/sl-taint.schema.json` with `taint` nested object
+- [x] Create `schemas/codehound/sl-bad-practices.schema.json` with `bad_practices` nested object
+- [x] Create `schemas/codehound/sl-fail-on.schema.json` with `fail_on` (string)
+- [x] Create `schemas/codehound/sl-exclude-tests.schema.json` with `exclude_tests` (boolean)
 
 ### Reference style
 
@@ -223,7 +223,7 @@ JSON Schema (draft-07) supports `$ref` to other files via URI/relative-path refe
 
 ### Test update required (only if split is done)
 
-- [x] `tests/engine_config.rs:301-336` loads `slopguard.schema.json` by path and uses JSON pointer `/properties/slopguard/properties/{languages,fail_on,...}`. After the split, the test must either:
+- [x] `tests/engine_config.rs:301-336` loads `codehound.schema.json` by path and uses JSON pointer `/properties/codehound/properties/{languages,fail_on,...}`. After the split, the test must either:
   - (a) read the root schema and walk the pointer chain (which requires `$ref` dereferencing), or
   - (b) be updated to assert against the new file layout.
 - [x] The test currently uses `serde_json::Value` which does **not** dereference `$ref`, so the assertions would need rewriting.
@@ -231,11 +231,11 @@ JSON Schema (draft-07) supports `$ref` to other files via URI/relative-path refe
 ### Caveat
 
 - [x] The whole-file form is already a clean ~4.4 KB and a single editor buffer. **Splitting is a stylistic call**, not a maintainability emergency.
-- [x] `slopguard-baseline.schema.json` stays as its own root schema — independent and small.
+- [x] `codehound-baseline.schema.json` stays as its own root schema — independent and small.
 
 ### Recommendation
 
-- [x] **Leave `slopguard.schema.json` as-is** unless the schema is expected to grow further.
+- [x] **Leave `codehound.schema.json` as-is** unless the schema is expected to grow further.
 
 ---
 
@@ -273,8 +273,8 @@ JSON Schema (draft-07) supports `$ref` to other files via URI/relative-path refe
 ## Phase 5.7: Tests / Benches that reference these files
 
 - [x] `tests/go_perf_registry_generation.rs:7` — `std::fs::read_to_string("src/lang/go/detectors/perf/registry.toml")`. **Must change** to a directory glob if `perf/registry.toml` is split (see §5.4)
-- [x] `tests/engine_config.rs:301-336` — `Path::new(env!("CARGO_MANIFEST_DIR")).join("slopguard.schema.json")` + JSON pointer to `/properties/slopguard/properties/…`. Must change if `slopguard.schema.json` is split via `$ref` (see §5.5)
-- [x] `tests/engine_baseline.rs:97` — `slopguard-baseline.schema.json`. **No change** — schema is independent and small
+- [x] `tests/engine_config.rs:301-336` — `Path::new(env!("CARGO_MANIFEST_DIR")).join("codehound.schema.json")` + JSON pointer to `/properties/codehound/properties/…`. Must change if `codehound.schema.json` is split via `$ref` (see §5.5)
+- [x] `tests/engine_baseline.rs:97` — `codehound-baseline.schema.json`. **No change** — schema is independent and small
 - [x] `tests/lang_go_cwe_metadata.rs`, `tests/go_cwe_detector_integration.rs` — implicitly rely on `OUT_DIR` content. **No change** — they read the public API
 - [x] `benches/incremental_scan.rs`, `benches/scan_throughput.rs` — no file reference. **No change**
 
@@ -286,7 +286,7 @@ JSON Schema (draft-07) supports `$ref` to other files via URI/relative-path refe
 - [x] **§5.4 `perf/registry.toml`** — split next; update the one test that opens the file.
 - [x] **§5.3 `cwe/registry.toml`** — split; no test changes.
 - [x] **§5.6 `ci.yml`** — extract the composite action.
-- [x] **§5.5 `slopguard.schema.json`** — only if a split is wanted.
+- [x] **§5.5 `codehound.schema.json`** — only if a split is wanted.
 - [x] **Verification after each batch:** `cargo build --features go,python` and `cargo test --test go_perf_registry_generation --test engine_config --test engine_baseline`
 
 ---
@@ -297,7 +297,7 @@ JSON Schema (draft-07) supports `$ref` to other files via URI/relative-path refe
 - [x] **2. Split `perf/registry.toml` by domain** (7 files in `perf/registry/`), update `build.rs` to glob, update the one test.
 - [x] **3. Split `cwe/registry.toml` by domain** (15 files in `cwe/registry/`), update `build.rs` to glob.
 - [x] **4. Split `ci.yml`** by extracting a `rust-toolchain-cache` composite action.
-- [x] **5. Split `slopguard.schema.json`** only if the schema is expected to grow further.
+- [x] **5. Split `codehound.schema.json`** only if the schema is expected to grow further.
 - [x] **6. Do not split `Cargo.toml`**. Cargo's manifest format does not support it.
 
 ---
@@ -327,5 +327,5 @@ JSON Schema (draft-07) supports `$ref` to other files via URI/relative-path refe
   - **`build.rs` split (§5.2) is independent of the registry splits (§5.3 / §5.4).** Splitting the registries requires `build.rs` to grow a directory-read step; splitting only `build.rs` is also fine.
   - **CI cache key impact** — any change to the registry file path invalidates the cargo cache in CI on the first run after the merge. This is a one-time cost.
   - **Generated `OUT_DIR/*.rs` must remain byte-identical.** Diff the output before/after every change (see `verification.md`).
-  - **`tests/go_perf_registry_generation.rs` is the only test that needs editing** for the registry split. `tests/engine_config.rs` only needs editing if `slopguard.schema.json` is split (recommended to skip).
+  - **`tests/go_perf_registry_generation.rs` is the only test that needs editing** for the registry split. `tests/engine_config.rs` only needs editing if `codehound.schema.json` is split (recommended to skip).
   - **`Cargo.toml` is genuinely unsplittable** — Cargo's manifest format does not support it. Leave it as a single file.

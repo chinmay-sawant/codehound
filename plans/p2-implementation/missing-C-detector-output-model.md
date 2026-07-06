@@ -220,7 +220,7 @@ The `Finding` struct currently carries only a plain-text `message` plus metadata
 ### 4.2 SARIF output
 
 - [x] Map `DetectorEvidence` variants to SARIF fields:
-  - [x] All variants serialize as JSON in `result.properties.slopguardEvidence`
+  - [x] All variants serialize as JSON in `result.properties.codehoundEvidence`
   - [x] `DangerousCall` → function/argumentIndex surfaced in evidence JSON
   - [~] `TaintFlow` → map to SARIF `graphTraversal` or `codeFlow` sections (deferred → see plans/v3.0.0/)
   - [x] `PatternMatch` / `MissingConfig` / `ControlFlowIssue` / `Other` → evidence JSON in properties

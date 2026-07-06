@@ -4,7 +4,7 @@
 
 For every CWE listed in `ruleset/golang/golang.json` (175 entries), produce one
 **vulnerable** (positive) and one **safe** (negative) Go test fixture, following
-the SlopGuard text-fixture convention used by this repo. No heuristics, no
+the CodeHound text-fixture convention used by this repo. No heuristics, no
 detection logic — fixtures only.
 
 ---
@@ -29,8 +29,8 @@ These are non-negotiable; deviating breaks the integration tests.
 
    The `---` line is mandatory and separates header from body. The body must
    be a **complete, compilable Go file** (valid `package`, all imports,
-   compilable syntax) so that `slopguard::fixture::materialize_fixture` can
-   write it to `target/slopguard-fixtures/go/...` at test time.
+   compilable syntax) so that `codehound::fixture::materialize_fixture` can
+   write it to `target/codehound-fixtures/go/...` at test time.
 
 2. **Folder layout** — place every fixture under:
 
@@ -57,7 +57,7 @@ These are non-negotiable; deviating breaks the integration tests.
    `"CWE-89"`, not `"SLOP..."`).
 
 4. **No `.go` files committed.** Source is materialized under
-   `target/slopguard-fixtures/go/` at test time (gitignored).
+   `target/codehound-fixtures/go/` at test time (gitignored).
 
 ---
 

@@ -51,7 +51,7 @@ The codebase had grown organically with multiple files exceeding 10,000+ chars (
 - **God function decomposition**: `app::run` 253→17 lines, `scan_entries_parallel` 273→46 lines
 - **Clone reduction**: `src/` `.clone()` from 74 → 58; `scan_entry.rs` clones 7 → 1; `parallel.rs` clones 12 → 4
 - **Production panic elimination**: 0 `.unwrap()`/`.expect()` in `src/`; `#![deny(clippy::unwrap_used)]` on `lib.rs`
-- **Unified error type**: `slopguard::Error` with `thiserror`; all public APIs migrated to `Result<_, Error>`
+- **Unified error type**: `codehound::Error` with `thiserror`; all public APIs migrated to `Result<_, Error>`
 - `anyhow` confined to 4 files (app + fixture only, down from 28)
 - `#[must_use]` expanded: 16 → 27 attributes across 16 files
 - Taint scope model: `ScopeId` parent chain replaces per-scope `Arc<str>` clones
@@ -112,7 +112,7 @@ PERF-213 (Cache Without Eviction), PERF-214 (Cache Key Volatility), PERF-215 (Bu
 - Batch 4: PERF-110, 128, 130, 135, 140, 158, 171, 181, 182, 106 extended (10 detectors)
 - Batch 5: PERF-121, 131, 132, 145, 165, 166, 168, 204, 209, 211 (10 detectors; PERF-208 dropped — duplicate of PERF-99)
 - Batch 6: PERF-102, 108, 133, 137, 141, 149, 161, 163, 170, 176, 195 (11 detectors; PERF-136 dropped — un-implementable without type inference)
-- **Competitive edge**: 22 of 27 PERF rules (81%) unique to SlopGuard; 321 findings on gopdfsuit vs. 0 from staticcheck
+- **Competitive edge**: 22 of 27 PERF rules (81%) unique to CodeHound; 321 findings on gopdfsuit vs. 0 from staticcheck
 - **4 blind spots vs. staticcheck**: framework-specific patterns, hot-path/cold-path distinction, security vulnerabilities (no CWE/taint), custom domain-specific detectors
 
 ### Consolidated Pending Task Audit (codebase reality check)

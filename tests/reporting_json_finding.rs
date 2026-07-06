@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
-use slopguard::engine::AnalysisResult;
-use slopguard::reporting::json::{Envelope, FindingJson};
-use slopguard::rules::{
+use codehound::engine::AnalysisResult;
+use codehound::reporting::json::{Envelope, FindingJson};
+use codehound::rules::{
     DetectorEvidence, Finding, FindingInputs, LineCol, Severity, TaintHop, TaintSinkInfo,
     TaintSourceInfo,
 };
@@ -26,8 +26,8 @@ fn sample() -> AnalysisResult {
 }
 
 fn sample_with_cwe() -> AnalysisResult {
-    let cwes: &'static [slopguard::cwe::CweRef] =
-        Box::leak(Box::new([slopguard::cwe::CweRef::new(
+    let cwes: &'static [codehound::cwe::CweRef] =
+        Box::leak(Box::new([codehound::cwe::CweRef::new(
             89,
             "SQL Injection",
             "https://cwe.mitre.org/data/definitions/89.html",
@@ -191,7 +191,7 @@ fn legacy_json_consumers_ignore_structured_fields() {
     assert_eq!(legacy.file, "cmd.go");
     assert_eq!(legacy.line, 10);
     assert_eq!(legacy.column, 3);
-    assert_eq!(legacy.fingerprint, "slopguard:1:CWE-78:cmd.go:10:3");
+    assert_eq!(legacy.fingerprint, "codehound:1:CWE-78:cmd.go:10:3");
     assert_eq!(legacy.message, "command uses user input");
     assert_eq!(legacy.severity, "high");
     assert!(legacy.cwe.is_empty());
@@ -248,7 +248,7 @@ fn ndjson_emits_one_finding_per_line() {
         lines[0]
     );
     assert!(
-        lines[0].contains("\"fingerprint\":\"slopguard:1:CWE-1:a.go:1:1\""),
+        lines[0].contains("\"fingerprint\":\"codehound:1:CWE-1:a.go:1:1\""),
         "got: {}",
         lines[0]
     );

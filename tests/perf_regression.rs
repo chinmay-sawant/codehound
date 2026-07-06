@@ -3,9 +3,9 @@
 use std::path::Path;
 use std::time::{Duration, Instant};
 
-use slopguard::core::ScanContext;
-use slopguard::engine::Analyzer;
-use slopguard::fixture::{materialize_tree, materialized_root};
+use codehound::core::ScanContext;
+use codehound::engine::Analyzer;
+use codehound::fixture::{materialize_tree, materialized_root};
 
 /// Observed full-fixture scan is ~100–200ms on a typical dev machine; allow 3× for CI.
 /// Bumped from 600ms to cover the analyzer's function-context post-pass

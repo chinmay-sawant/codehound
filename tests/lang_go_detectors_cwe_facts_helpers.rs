@@ -1,6 +1,6 @@
 #![cfg(feature = "go")]
 
-use slopguard::lang::go::detectors::cwe::facts::*;
+use codehound::lang::go::detectors::cwe::facts::*;
 
 #[test]
 fn split_assignment_handles_both_forms() {

@@ -242,7 +242,7 @@ For each PERF-213–224, create `tests/fixtures/go/perf/PERF-{ID}-safe.txt`:
 ### 4.2 Integration Test
 
 - [x] Run `cargo test --test go_perf_detector_integration` — all PERF-106 fixtures pass
-- [x] Extend `cargo test --test go_perf_detector_integration` so it also runs the compiled `slopguard` binary against every `tests/fixtures/go/perf/PERF-*-{safe,vulnerable}.txt` file
+- [x] Extend `cargo test --test go_perf_detector_integration` so it also runs the compiled `codehound` binary against every `tests/fixtures/go/perf/PERF-*-{safe,vulnerable}.txt` file
 - [x] Run `cargo test --test fixture_manifest_integration` — manifest well-formed
 
 ---

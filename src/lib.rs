@@ -1,9 +1,9 @@
 #![deny(clippy::unwrap_used)]
 #![cfg_attr(test, allow(clippy::unwrap_used))]
 
-//! # SlopGuard
+//! # CodeHound
 //!
-//! SlopGuard is a multi-language static analyzer for performance bottlenecks
+//! CodeHound is a multi-language static analyzer for performance bottlenecks
 //! and security weaknesses ("slop"). It currently ships with:
 //!
 //! - **Go** — 175 CWE heuristic detectors
@@ -12,11 +12,11 @@
 //! ## Quick start (as a library)
 //!
 //! ```no_run
-//! use slopguard::engine::{Analyzer, SlopguardConfig, resolve_language_filter, Registry};
-//! use slopguard::core::ScanContext;
+//! use codehound::engine::{Analyzer, CodehoundConfig, resolve_language_filter, Registry};
+//! use codehound::core::ScanContext;
 //!
 //! let registry = Registry::default();
-//! let config = SlopguardConfig::default();
+//! let config = CodehoundConfig::default();
 //! let filter = resolve_language_filter(None, Some(&config), &registry).unwrap();
 //!
 //! let analyzer = Analyzer::builder()
@@ -32,7 +32,7 @@
 //!
 //! - `go` (default) — Go tree-sitter grammar and the CWE bundle
 //! - `python` (default) — Python tree-sitter grammar and the `SLOP101` rule
-//! - `cli` (default) — clap-derived CLI types (`slopguard::cli`)
+//! - `cli` (default) — clap-derived CLI types (`codehound::cli`)
 //! - `typescript` (optional) — reserves `LanguageId::TypeScript` (no plugin yet)
 //! - `default` — `go`, `python`, `terminal-output`, and `cli`
 //!
@@ -53,7 +53,7 @@
 //! - [`cli`] — clap-derived argument definitions (binary only)
 //!
 //! See `docs/architecture-performance.md` for the pipeline diagram and
-//! `docs/configuration.md` for `slopguard.toml` schema.
+//! `docs/configuration.md` for `codehound.toml` schema.
 //!
 //! ## Documentation ratchet (v2.0.0)
 //!

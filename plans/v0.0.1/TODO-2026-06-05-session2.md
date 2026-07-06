@@ -1,4 +1,4 @@
-# SlopGuard TODO — 2026-06-05 Session 2
+# CodeHound TODO — 2026-06-05 Session 2
 
 ## Test Migration (move `mod tests` out of src/ → tests/)
 

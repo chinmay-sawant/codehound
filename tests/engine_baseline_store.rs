@@ -3,7 +3,7 @@ mod helpers;
 use helpers::cache::finding;
 use helpers::unique_temp_root;
 
-use slopguard::engine::{BASELINE_FILE_NAME, Baseline};
+use codehound::engine::{BASELINE_FILE_NAME, Baseline};
 
 #[test]
 fn baseline_from_findings_groups_entries_by_rule() {
@@ -16,11 +16,11 @@ fn baseline_from_findings_groups_entries_by_rule() {
     assert_eq!(baseline.entry_count(), 2);
     assert_eq!(
         baseline.entries["CWE-22"][0].fingerprint,
-        "slopguard:1:CWE-22:a.go:1:2"
+        "codehound:1:CWE-22:a.go:1:2"
     );
     assert_eq!(
         baseline.entries["CWE-89"][0].fingerprint,
-        "slopguard:1:CWE-89:b.go:3:4"
+        "codehound:1:CWE-89:b.go:3:4"
     );
 }
 

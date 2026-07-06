@@ -165,21 +165,21 @@ Verification: `cargo test --test engine_cache --features go,python` (27/27 pass)
 ## Phase 1.4: `src/engine/config.rs` → `src/engine/config/`
 
 **Current size:** 9 209 chars / 326 lines.
-**Top-level items:** `SlopguardConfig`, `SlopguardSection`, `BaselineConfig`, `CacheConfig`, `TaintConfig`, `BadPracticesConfig`, `PathFilters`, the ~17-method `impl SlopguardConfig`, `discover_cache_dir`, `fail_on_to_policy`, `discover_config`, `load_discovered_config`, `build_scan_context`.
+**Top-level items:** `CodehoundConfig`, `CodehoundSection`, `BaselineConfig`, `CacheConfig`, `TaintConfig`, `BadPracticesConfig`, `PathFilters`, the ~17-method `impl CodehoundConfig`, `discover_cache_dir`, `fail_on_to_policy`, `discover_config`, `load_discovered_config`, `build_scan_context`.
 
 ### Proposed file tree
 
 - [x] Create `src/engine/config/mod.rs` with `mod` decls + `pub use` for all 10 currently re-exported items (~500 chars)
 - [x] Create `src/engine/config/types.rs` with all `#[derive(Deserialize)]` structs + their `Default` impls (~3 500 chars)
-- [x] Create `src/engine/config/section.rs` with `impl SlopguardConfig` (the ~17 accessors + `load` + `discover` + `merge_into`) (~4 200 chars)
+- [x] Create `src/engine/config/section.rs` with `impl CodehoundConfig` (the ~17 accessors + `load` + `discover` + `merge_into`) (~4 200 chars)
 - [x] Create `src/engine/config/discover.rs` with `discover_cache_dir`, `discover_config`, `load_discovered_config`, `fail_on_to_policy` (~1 600 chars)
 - [x] Create `src/engine/config/scan_context.rs` with `build_scan_context` (~1 300 chars)
 - [x] Delete `src/engine/config.rs`
 
 ### Implementation notes (2026-06-26)
 
-- The `mod.rs` re-exports **only the items the engine parent actually uses** (`BaselineConfig, CacheConfig, PathFilters, SlopguardConfig, SlopguardSection`). `BadPracticesConfig` and `TaintConfig` are kept in `types.rs` but are reachable as `crate::engine::config::types::{BadPracticesConfig, TaintConfig}` if needed.
-- `section.rs` is a top-level `impl SlopguardConfig` block; it lives in its own file to keep `types.rs` (data only) separate from the accessors.
+- The `mod.rs` re-exports **only the items the engine parent actually uses** (`BaselineConfig, CacheConfig, PathFilters, CodehoundConfig, CodehoundSection`). `BadPracticesConfig` and `TaintConfig` are kept in `types.rs` but are reachable as `crate::engine::config::types::{BadPracticesConfig, TaintConfig}` if needed.
+- `section.rs` is a top-level `impl CodehoundConfig` block; it lives in its own file to keep `types.rs` (data only) separate from the accessors.
 - Verification: `cargo build --features go,python` and `cargo test --lib --features go,python` (18/18 pass).
 
 ---
@@ -525,7 +525,7 @@ Verification: `cargo test --test engine_cache --features go,python` (27/27 pass)
 ### Caveat
 
 - [x] `lang/go/detectors/facts.rs:2-7` aliases `SharedTextInterner as CweInterner`, `record_call_fact as record_cwe_call`, `record_assignment_fact as record_cwe_assign`. After the split, those become `crate::lang::go::detectors::cwe::facts::interner::{…}` and remain `pub(crate) use` re-exported from `facts/mod.rs`.
-- [x] `split_assignment`, `extract_identifiers`, `is_user_input_expr`, `is_trusted_config_expr` in `expr_patterns.rs` are **`pub`** (not `pub(crate)`) because the test `tests/lang_go_detectors_cwe_facts.rs` uses a wildcard import `use slopguard::lang::go::detectors::cwe::facts::*;` to call them. The plan said `pub(crate)` but that broke the test.
+- [x] `split_assignment`, `extract_identifiers`, `is_user_input_expr`, `is_trusted_config_expr` in `expr_patterns.rs` are **`pub`** (not `pub(crate)`) because the test `tests/lang_go_detectors_cwe_facts.rs` uses a wildcard import `use codehound::lang::go::detectors::cwe::facts::*;` to call them. The plan said `pub(crate)` but that broke the test.
 
 ### Implementation notes (2026-06-26)
 
@@ -561,9 +561,9 @@ These are not in the strict scope of the split but are removed as a side-effect:
 
 The following tests/benches consume only the re-exports at the parent `mod.rs` level. After the split, every public symbol remains reachable at the same path. **No test or bench source file requires modification.**
 
-- [x] `tests/engine_cache.rs` — `Analyzer, CacheEntry, CacheStore, DEFAULT_CACHE_DIR, Registry, SlopguardConfig, content_hash, discover_cache_dir, go_module_prefix, CACHE_VERSION, extract_dependencies, discover_project_root` (all via `slopguard::engine::*`) — **passes 27/27**
+- [x] `tests/engine_cache.rs` — `Analyzer, CacheEntry, CacheStore, DEFAULT_CACHE_DIR, Registry, CodehoundConfig, content_hash, discover_cache_dir, go_module_prefix, CACHE_VERSION, extract_dependencies, discover_project_root` (all via `codehound::engine::*`) — **passes 27/27**
 - [x] `tests/engine_baseline.rs` — `BASELINE_FILE_NAME, Baseline, discover_baseline` — **passes 7/7**
-- [x] `tests/engine_config.rs` — `BaselineConfig, CacheConfig, PathFilters, SlopguardConfig, SlopguardSection, build_scan_context, discover_cache_dir, discover_config, fail_on_to_policy, load_discovered_config` — **passes 22/22**
+- [x] `tests/engine_config.rs` — `BaselineConfig, CacheConfig, PathFilters, CodehoundConfig, CodehoundSection, build_scan_context, discover_cache_dir, discover_config, fail_on_to_policy, load_discovered_config` — **passes 22/22**
 - [x] `tests/engine_ignore.rs` — `IgnoreDirective, parse_file_ignore, parse_inline_ignores` — **passes 9/9**
 - [x] `tests/engine_observability.rs` — `Analyzer, Diagnostics, ScanStats, TimingCollector` — **passes 10/10**
 - [x] `tests/engine_result.rs` — `AnalysisResult, ScanError, ScanErrorKind` — **passes 4/4**
@@ -583,7 +583,7 @@ The following tests/benches consume only the re-exports at the parent `mod.rs` l
 
 - [x] After every batch: `cargo build --features go && cargo test --lib --features go` — **all green**
 - [x] Final, after all engine + cwe + taint splits: run the full Phase 1 test list from `verification.md` § "Phase 1 (Engine / AST / Core / CWE / taint)" — **all 41 test binaries pass, 0 failures**
-- [x] Canary: the wildcard import in `tests/lang_go_detectors_cwe_facts.rs:10` (`use slopguard::lang::go::detectors::cwe::facts::*;`) catches any missing `pub use` re-export in §1.22. (The `pub(crate)` items are re-exported with `pub(crate) use`; the test only broke once, when I had marked `expr_patterns.rs` items as `pub(crate)` — re-exported as `pub use` per the wildcard-import contract.)
+- [x] Canary: the wildcard import in `tests/lang_go_detectors_cwe_facts.rs:10` (`use codehound::lang::go::detectors::cwe::facts::*;`) catches any missing `pub use` re-export in §1.22. (The `pub(crate)` items are re-exported with `pub(crate) use`; the test only broke once, when I had marked `expr_patterns.rs` items as `pub(crate)` — re-exported as `pub use` per the wildcard-import contract.)
 - [x] Additional checks performed: `cargo test --all-features` (41/41 binaries pass), `cargo bench --no-run` (Criterion compiles), `cargo fmt --check` (clean), `cargo build` with no warnings.
 
 ---

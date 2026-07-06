@@ -38,7 +38,7 @@ Deferred pending work items from the v2.0.0 audit across taint tracking, cache/i
 ### 1.3 CLI Flags + Documentation
 
 - [x] Test for taint finding with `show_paths=true` including path details
-- [ ] Add `taint` CLI flags to `slopguard.schema.json` — config fields exist but CLI flags not tracked in schema
+- [ ] Add `taint` CLI flags to `codehound.schema.json` — config fields exist but CLI flags not tracked in schema
 
 ### 1.4 Inter-Procedural Taint Tracking
 
@@ -95,7 +95,7 @@ Deferred pending work items from the v2.0.0 audit across taint tracking, cache/i
 
 ## External: gopdfsuit Optimizations
 
-> Items from `gopdfsuit-optimizations-markdown-review.md` — external project, not validated against SlopGuard codebase.
+> Items from `gopdfsuit-optimizations-markdown-review.md` — external project, not validated against CodeHound codebase.
 
 ### E.1 Still-Open Engine/HFT Items
 

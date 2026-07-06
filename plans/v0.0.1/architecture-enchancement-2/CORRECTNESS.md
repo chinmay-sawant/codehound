@@ -25,7 +25,7 @@ Several correctness issues were identified that affect user output or miss findi
 - [x] **1.8** Update `FailPolicy::WarningsAsErrors` → `FailPolicy::MediumAsErrors`
 - [x] **1.9** Update `engine/config.rs:fail_on_to_policy` — `"medium"` as the canonical fail-on value
 - [x] **1.10** Update test files referencing `Severity::Warning` and `FailPolicy::WarningsAsErrors`
-- [x] **1.11** Update `slopguard.toml` config comments
+- [x] **1.11** Update `codehound.toml` config comments
 - [x] **1.12** Update `src/app.rs:231` template comment
 
 ### Phase 2: Fix text reporter top-rules sort bug

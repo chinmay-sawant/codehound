@@ -50,7 +50,7 @@ Therefore:
 
 Success criteria:
 
-- `slopguard --fix` changes only findings marked `MachineApplicable`.
+- `codehound --fix` changes only findings marked `MachineApplicable`.
 - Running `--fix` twice produces no second diff.
 - A stale source, overlapping edits, parse failure, `gofmt` failure, or failed
   post-fix validation never causes a partial file write.
