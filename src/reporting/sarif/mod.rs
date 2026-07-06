@@ -3,9 +3,8 @@
 mod entry;
 mod log;
 mod schema;
-mod time;
 
-pub use entry::{print, print_compact, render_to_string};
+pub use entry::render_to_string;
 
 use crate::Error;
 use crate::engine::AnalysisResult;
@@ -19,9 +18,9 @@ pub struct SarifReporter {
 impl OutputReporter for SarifReporter {
     fn report(&self, result: &AnalysisResult) -> Result<(), Error> {
         if self.compact {
-            print_compact(result)
+            entry::print_compact(result)
         } else {
-            print(result)
+            entry::print(result)
         }
     }
 }

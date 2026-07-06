@@ -9,6 +9,18 @@ use std::collections::HashSet;
 
 use slopguard::engine::{CacheEntry, CacheLookup, CacheStore, content_hash};
 
+fn manifest_len(store: &CacheStore) -> usize {
+    store.manifest().files.len()
+}
+
+fn cache_get(store: &CacheStore, file: &str) -> Option<CacheEntry> {
+    let hash = store.manifest().files.get(file)?.content_hash.clone();
+    match store.lookup(file, &hash) {
+        CacheLookup::Hit(entry) => Some(entry),
+        _ => None,
+    }
+}
+
 // ── In-memory tests (no filesystem I/O) ──────────────────────────────
 
 #[test]
@@ -27,7 +39,7 @@ fn put_then_get_round_trips_findings() {
     };
     store.put(entry).unwrap();
 
-    let read = store.get("pkg/a.go").expect("entry should be present");
+    let read = cache_get(&store, "pkg/a.go").expect("entry should be present");
     assert_eq!(read.findings.len(), 1);
     assert_eq!(read.findings[0].rule_id, "CWE-78");
     assert_eq!(read.findings[0].file, "pkg/a.go");
@@ -81,10 +93,10 @@ fn remove_drops_entry_from_manifest() {
         cached_at: "".to_string(),
     };
     store.put(entry).unwrap();
-    assert_eq!(store.len(), 1);
+    assert_eq!(manifest_len(&store), 1);
     store.remove("x.go").unwrap();
-    assert!(store.is_empty());
-    assert!(store.get("x.go").is_none());
+    assert!(store.manifest().files.is_empty());
+    assert!(cache_get(&store, "x.go").is_none());
 }
 
 #[test]
@@ -111,56 +123,16 @@ fn prune_removes_orphaned_entries() {
         };
         store.put(entry).unwrap();
     }
-    assert_eq!(store.len(), 3);
+    assert_eq!(manifest_len(&store), 3);
 
     let mut keep = HashSet::new();
     keep.insert("a.go".to_string());
     let removed = store.prune(&keep).unwrap();
     assert_eq!(removed, 2);
-    assert_eq!(store.len(), 1);
-    assert!(store.get("a.go").is_some());
-    assert!(store.get("b.go").is_none());
-    assert!(store.get("c.go").is_none());
-}
-
-#[test]
-fn flush_evicts_oldest_entries_when_over_max_size() {
-    let mut store = CacheStore::in_memory();
-
-    // Override max_size_bytes to a small value so we can trigger eviction
-    // without filling real disk. in_memory() sets max_size_bytes = 0
-    // (disabled). We need a store where it's enabled.
-    // Use open_with_capacity with a small limit but we want in-memory
-    // behaviour. Since in_memory() has max_size_bytes=0, eviction won't
-    // trigger. Instead, we simulate by using open_with_capacity with a
-    // very small limit.
-    // Actually, let's just test that InMemoryBackend.total_size() works
-    // by verifying non-zero size after puts.
-    let bulky_message = "x".repeat(8_000);
-    for i in 0..5 {
-        let name = format!("file{i:03}.go");
-        let mut f = finding("CWE-78", &name, 1, 1);
-        f.message = bulky_message.clone();
-        let entry = CacheEntry {
-            schema_version: slopguard::engine::CACHE_VERSION,
-            file: name.clone(),
-            content_hash: content_hash(&name),
-            mtime_secs: 0,
-            mtime_nanos: 0,
-            language: "go".to_string(),
-            findings: vec![f],
-            dependencies: Vec::new(),
-            cached_at: format!("2026-06-10T00:{i:02}:00Z"),
-        };
-        store.put(entry).unwrap();
-    }
-
-    let total = store.total_size();
-    assert!(
-        total > 0,
-        "in-memory total_size should be non-zero after puts"
-    );
-    assert_eq!(store.len(), 5);
+    assert_eq!(manifest_len(&store), 1);
+    assert!(cache_get(&store, "a.go").is_some());
+    assert!(cache_get(&store, "b.go").is_none());
+    assert!(cache_get(&store, "c.go").is_none());
 }
 
 // ── Disk-backed tests (filesystem-specific behaviour) ─────────────────
@@ -172,8 +144,8 @@ fn open_creates_files_directory_on_empty_path() {
 
     assert!(root.is_dir(), "cache root was not created");
     assert!(root.join("files").is_dir(), "files/ subdir was not created");
-    assert_eq!(store.len(), 0);
-    assert!(store.is_empty());
+    assert_eq!(manifest_len(&store), 0);
+    assert!(store.manifest().files.is_empty());
 
     std::fs::remove_dir_all(root).unwrap();
 }
@@ -204,7 +176,7 @@ fn reopen_loads_existing_manifest() {
     .unwrap();
 
     let store = CacheStore::open_with_capacity(root.clone(), 500).unwrap();
-    assert_eq!(store.len(), 1);
+    assert_eq!(manifest_len(&store), 1);
     assert!(store.manifest().files.contains_key("pkg/handler/user.go"));
 
     std::fs::remove_dir_all(root).unwrap();
@@ -217,7 +189,7 @@ fn corrupt_manifest_falls_back_to_empty() {
     std::fs::write(root.join("manifest.json"), "{ this is not valid json").unwrap();
 
     let store = CacheStore::open_with_capacity(root.clone(), 500).unwrap();
-    assert!(store.is_empty());
+    assert!(store.manifest().files.is_empty());
 
     std::fs::remove_dir_all(root).unwrap();
 }
@@ -253,7 +225,7 @@ fn tool_version_mismatch_is_tolerated() {
     store.flush().unwrap();
 
     let reopened = CacheStore::open_with_capacity(root.clone(), 500).unwrap();
-    assert!(reopened.get("versioned.go").is_some());
+    assert!(cache_get(&reopened, "versioned.go").is_some());
 
     std::fs::remove_dir_all(root).unwrap();
 }
@@ -312,7 +284,7 @@ fn corrupt_entry_file_is_treated_as_cache_miss() {
         store.lookup("x.go", &content_hash("body")),
         CacheLookup::Stale
     ));
-    assert!(store.get("x.go").is_none());
+    assert!(cache_get(&store, "x.go").is_none());
 
     std::fs::remove_dir_all(root).unwrap();
 }
@@ -339,7 +311,7 @@ fn clean_orphans_removes_untracked_entry_files() {
     let removed = store.clean_orphans().unwrap();
     assert_eq!(removed, 1);
     assert!(!root.join("files").join("orphan.json").exists());
-    assert!(store.get("tracked.go").is_some());
+    assert!(cache_get(&store, "tracked.go").is_some());
 
     std::fs::remove_dir_all(root).unwrap();
 }

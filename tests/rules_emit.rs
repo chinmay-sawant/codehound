@@ -1,6 +1,6 @@
 use slopguard::rules::{
-    DetectorEvidence, RuleMetadata, Severity, push_finding, push_finding_with_evidence,
-    push_finding_with_snippet, rule_meta,
+    DetectorEvidence, RuleMetadata, Severity, TaintSinkInfo, TaintSourceInfo, push_finding,
+    push_finding_with_evidence, push_finding_with_snippet, rule_meta,
 };
 
 fn meta_with_cwe() -> RuleMetadata {
@@ -46,18 +46,25 @@ fn push_finding_variants_populate_correctly() {
         1,
         1,
         "msg",
-        DetectorEvidence::DangerousCall {
-            function: "exec.Command".to_string(),
-            argument_index: Some(2),
+        DetectorEvidence::TaintFlow {
+            source: TaintSourceInfo {
+                kind: "UserInput".to_string(),
+                function: "r.URL.Query".to_string(),
+                variable: "host".to_string(),
+            },
+            sink: TaintSinkInfo::new("CommandExec", "exec.Command"),
+            hops: 1,
+            sanitized: false,
         },
         &mut out3,
     );
     assert!(matches!(
         out3[0].evidence,
-        Some(DetectorEvidence::DangerousCall {
-            ref function,
-            argument_index: Some(2),
-        }) if function == "exec.Command"
+        Some(DetectorEvidence::TaintFlow {
+            ref sink,
+            hops: 1,
+            ..
+        }) if sink.function == "exec.Command"
     ));
 
     // rule_meta const-evaluable

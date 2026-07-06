@@ -14,7 +14,6 @@ pub const CACHE_VERSION: u32 = 1;
 pub const DEFAULT_CACHE_DIR: &str = ".slopguard-cache";
 
 pub(super) const MANIFEST_NAME: &str = "manifest.json";
-pub(super) const METADATA_NAME: &str = "metadata.json";
 pub(super) const FILES_SUBDIR: &str = "files";
 
 /// Cache manifest: cheap O(1) lookup for per-file state.
@@ -62,14 +61,6 @@ pub struct CacheEntry {
     pub cached_at: String,
 }
 
-/// Top-level metadata file (`<cache_dir>/metadata.json`).
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CacheMetadata {
-    pub tool_version: String,
-    pub last_scan: String,
-    pub entry_count: usize,
-}
-
 /// Outcome of a cache lookup.
 #[derive(Debug, Clone)]
 pub enum CacheLookup {
@@ -91,9 +82,4 @@ pub enum CacheError {
 
     #[error("unsupported cache schema version: {found}, expected {expected}")]
     SchemaMismatch { found: u32, expected: u32 },
-
-    /// The on-disk entry file exists but is corrupt (invalid JSON or
-    /// schema version mismatch). Treated as a cache miss by the caller.
-    #[error("corrupt cache entry: {0}")]
-    Corrupt(String),
 }

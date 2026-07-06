@@ -1,6 +1,6 @@
 #![cfg(feature = "go")]
 
-use slopguard::ast::walk_calls_and_assignments;
+use slopguard::ast::walk_nodes;
 use tree_sitter::Parser;
 
 fn parse_go(source: &str) -> tree_sitter::Tree {
@@ -12,7 +12,7 @@ fn parse_go(source: &str) -> tree_sitter::Tree {
 }
 
 #[test]
-fn walk_calls_and_assignments_finds_both_kinds_in_go() {
+fn walk_nodes_finds_both_kinds_in_go() {
     let tree = parse_go(
         r#"
 package main
@@ -26,7 +26,7 @@ func main() {
     );
     let mut calls = 0;
     let mut assignments = 0;
-    walk_calls_and_assignments(
+    walk_nodes(
         tree.root_node(),
         &[
             "call_expression",
@@ -44,7 +44,7 @@ func main() {
 }
 
 #[test]
-fn walk_calls_and_assignments_visits_each_node_once() {
+fn walk_nodes_visits_each_node_once() {
     let tree = parse_go(
         r#"
 package main
@@ -55,7 +55,7 @@ func main() {
 "#,
     );
     let mut count = 0;
-    walk_calls_and_assignments(
+    walk_nodes(
         tree.root_node(),
         &[
             "call_expression",

@@ -7,18 +7,15 @@
 
 use std::path::{Path, PathBuf};
 
+use crate::engine::path_walk::{WalkUpAction, walk_up_dirs};
+
 pub fn discover_project_root(start: &Path) -> PathBuf {
-    let mut current: PathBuf = if start.is_file() {
-        start.parent().unwrap_or(start).to_path_buf()
-    } else {
-        start.to_path_buf()
-    };
-    loop {
+    walk_up_dirs(start, |current| {
         if current.join(".git").exists() || current.join("go.mod").is_file() {
-            return current;
+            WalkUpAction::Found(current.to_path_buf())
+        } else {
+            WalkUpAction::Continue
         }
-        if !current.pop() {
-            return start.to_path_buf();
-        }
-    }
+    })
+    .unwrap_or_else(|| start.to_path_buf())
 }

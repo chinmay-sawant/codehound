@@ -8,7 +8,7 @@
 mod entry;
 mod types;
 
-pub use entry::{print, print_envelope};
+pub use entry::print_envelope;
 pub use types::{Envelope, FindingJson};
 
 use crate::Error;
@@ -25,7 +25,7 @@ impl OutputReporter for JsonReporter {
         if self.envelope {
             print_envelope(result)
         } else {
-            print(result)
+            entry::print(result)
         }
     }
 }

@@ -6,47 +6,76 @@ use std::sync::Mutex;
 use super::backend::CacheBackend;
 use super::types::{CacheEntry, CacheError};
 
+fn serialized_len(entry: &CacheEntry) -> u64 {
+    serde_json::to_vec(entry)
+        .map(|v| v.len() as u64)
+        .unwrap_or(0)
+}
+
 /// Backend that stores entries in a `HashMap` behind a `Mutex`.
 /// Suitable for tests or short-lived cache instances that should not
 /// touch the filesystem.
 #[derive(Debug)]
-pub struct InMemoryBackend {
+pub(crate) struct InMemoryBackend {
     entries: Mutex<HashMap<String, CacheEntry>>,
+    total_bytes: Mutex<u64>,
 }
 
 impl InMemoryBackend {
     pub(super) fn new() -> Self {
         Self {
             entries: Mutex::new(HashMap::new()),
+            total_bytes: Mutex::new(0),
         }
     }
 }
 
 impl CacheBackend for InMemoryBackend {
     fn load_entry(&self, cache_key: &str) -> Option<CacheEntry> {
-        self.entries.lock().unwrap().get(cache_key).cloned()
+        self.entries
+            .lock()
+            .expect("in-memory cache entries mutex poisoned")
+            .get(cache_key)
+            .cloned()
     }
 
     fn store_entry(&mut self, cache_key: &str, entry: &CacheEntry) -> Result<(), CacheError> {
-        self.entries
+        let new_len = serialized_len(entry);
+        let mut entries = self
+            .entries
             .lock()
-            .unwrap()
-            .insert(cache_key.to_string(), entry.clone());
+            .expect("in-memory cache entries mutex poisoned");
+        let mut total = self
+            .total_bytes
+            .lock()
+            .expect("in-memory cache size mutex poisoned");
+        if let Some(old) = entries.insert(cache_key.to_string(), entry.clone()) {
+            *total = total.saturating_sub(serialized_len(&old));
+        }
+        *total += new_len;
         Ok(())
     }
 
     fn delete_entry(&mut self, cache_key: &str) -> Result<(), CacheError> {
-        self.entries.lock().unwrap().remove(cache_key);
+        let mut entries = self
+            .entries
+            .lock()
+            .expect("in-memory cache entries mutex poisoned");
+        let mut total = self
+            .total_bytes
+            .lock()
+            .expect("in-memory cache size mutex poisoned");
+        if let Some(old) = entries.remove(cache_key) {
+            *total = total.saturating_sub(serialized_len(&old));
+        }
         Ok(())
     }
 
     fn total_size(&self) -> u64 {
-        self.entries
+        *self
+            .total_bytes
             .lock()
-            .unwrap()
-            .values()
-            .map(|e| serde_json::to_vec(e).map(|v| v.len() as u64).unwrap_or(0))
-            .sum()
+            .expect("in-memory cache size mutex poisoned")
     }
 
     fn clean_orphans(&self, _active_keys: &HashSet<&str>) -> Result<usize, CacheError> {

@@ -6,13 +6,13 @@ use crate::Error;
 
 use super::CacheStore;
 use super::io::write_atomic;
-use super::types::{CacheMetadata, MANIFEST_NAME, METADATA_NAME};
-use crate::engine::time::{iso8601_from_secs, iso8601_utc_now};
+use super::types::MANIFEST_NAME;
+use crate::engine::time::iso8601_from_secs;
 
 impl CacheStore {
-    /// Write the manifest and metadata to disk. No-op when no
-    /// mutations have happened since the last flush. Should be called
-    /// once per scan run, after all `put`/`remove` calls.
+    /// Write the manifest to disk. No-op when no mutations have happened
+    /// since the last flush. Should be called once per scan run, after
+    /// all `put`/`remove` calls.
     pub fn flush(&mut self) -> Result<(), Error> {
         if !self.dirty {
             return Ok(());
@@ -26,13 +26,6 @@ impl CacheStore {
         }
         let manifest_path = self.cache_dir.join(MANIFEST_NAME);
         write_atomic(&manifest_path, &self.manifest)?;
-        let metadata = CacheMetadata {
-            tool_version: env!("CARGO_PKG_VERSION").to_string(),
-            last_scan: iso8601_utc_now(),
-            entry_count: self.manifest.files.len(),
-        };
-        let metadata_path = self.cache_dir.join(METADATA_NAME);
-        write_atomic(&metadata_path, &metadata)?;
         self.dirty = false;
         Ok(())
     }
@@ -42,7 +35,7 @@ impl CacheStore {
     /// repeated eviction on every small write.
     pub(super) fn evict_to_size(&mut self) -> Result<(), Error> {
         let target = ((self.max_size_bytes as f64) * self.evict_target_ratio).floor() as u64;
-        let mut current = self.total_size();
+        let mut current = self.backend.total_size();
         if current <= target {
             return Ok(());
         }
@@ -61,7 +54,9 @@ impl CacheStore {
                 continue;
             }
             // Read cached_at from the entry file; fall back to manifest mtime.
-            let cached_at = super::store_lifecycle::read_entry(self, &meta.cache_key)
+            let cached_at = self
+                .backend
+                .load_entry(&meta.cache_key)
                 .map(|e| e.cached_at)
                 .unwrap_or_else(|| iso8601_from_secs(meta.mtime_secs));
             entries.push((file.clone(), cached_at, size));
@@ -96,6 +91,7 @@ impl CacheStore {
 
     /// Sum the sizes of all `files/<key>.json` entries in bytes.
     /// Useful for capacity checks and `--diagnostics`.
+    #[cfg(test)]
     pub fn total_size(&self) -> u64 {
         self.backend.total_size()
     }

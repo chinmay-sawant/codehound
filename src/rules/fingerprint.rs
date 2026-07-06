@@ -3,16 +3,14 @@
 
 use std::fmt;
 
-use serde::{Deserialize, Serialize};
-
 use super::Finding;
 
-pub const FINGERPRINT_TOOL: &str = "slopguard";
-pub const FINGERPRINT_VERSION: u32 = 1;
+pub(crate) const FINGERPRINT_TOOL: &str = "slopguard";
+pub(crate) const FINGERPRINT_VERSION: u32 = 1;
 
 /// Canonical identity for a finding across output formats.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct Fingerprint {
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub(crate) struct Fingerprint {
     pub tool: String,
     pub version: u32,
     pub rule_id: String,
@@ -22,7 +20,7 @@ pub struct Fingerprint {
 }
 
 impl Fingerprint {
-    pub fn from_finding(finding: &Finding) -> Self {
+    pub(crate) fn from_finding(finding: &Finding) -> Self {
         Self {
             tool: FINGERPRINT_TOOL.to_string(),
             version: FINGERPRINT_VERSION,

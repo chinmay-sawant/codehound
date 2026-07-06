@@ -1,18 +1,55 @@
-//! Baseline store: in-memory indexed baseline + serialization.
+//! Baseline store: entry types, discovery, and serialization.
 
 use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
 use crate::Error;
+use crate::engine::cache::write_atomic;
+use crate::engine::time::iso8601_utc_now;
 use crate::rules::Finding;
 
-use super::entry::{BaselineEntry, BaselineLocationKey};
-use super::io::iso8601_utc_now;
-
+pub const BASELINE_FILE_NAME: &str = ".slopguard-baseline.json";
 pub const BASELINE_VERSION: &str = "1";
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BaselineEntry {
+    pub file: String,
+    pub line: usize,
+    pub column: usize,
+    pub fingerprint: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct BaselineLocationKey {
+    rule_id: String,
+    file: String,
+    line: usize,
+    column: usize,
+}
+
+pub fn discover_baseline(cwd: &Path) -> Option<PathBuf> {
+    let mut current = if cwd.is_file() {
+        cwd.parent()?.to_path_buf()
+    } else {
+        cwd.to_path_buf()
+    };
+
+    loop {
+        let candidate = current.join(BASELINE_FILE_NAME);
+        if candidate.is_file() {
+            return Some(candidate);
+        }
+        if current.join(".git").is_dir() {
+            return None;
+        }
+        if !current.pop() {
+            return None;
+        }
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Baseline {
@@ -62,12 +99,7 @@ impl Baseline {
     }
 
     pub fn to_file(&self, path: &Path) -> Result<(), Error> {
-        if let Some(parent) = path.parent().filter(|p| !p.as_os_str().is_empty()) {
-            fs::create_dir_all(parent)?;
-        }
-        let text = serde_json::to_string_pretty(self)?;
-        fs::write(path, format!("{text}\n"))?;
-        Ok(())
+        write_atomic(path, self)
     }
 
     pub fn contains_finding(&self, finding: &Finding) -> bool {

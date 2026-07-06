@@ -10,7 +10,7 @@ fn library_quick_start_analyzes_a_file() {
     let filter = resolve_language_filter(None, Some(&config), &registry).unwrap();
 
     let analyzer = Analyzer::builder()
-        .with_default_filter()
+        
         .scan_context(ScanContext::default())
         .language_filter(filter)
         .build();

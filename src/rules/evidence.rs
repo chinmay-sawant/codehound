@@ -8,10 +8,6 @@ use crate::rules::LineCol;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind")]
 pub enum DetectorEvidence {
-    DangerousCall {
-        function: String,
-        argument_index: Option<usize>,
-    },
     TaintFlow {
         source: TaintSourceInfo,
         sink: TaintSinkInfo,
@@ -22,6 +18,16 @@ pub enum DetectorEvidence {
         control_flow_kind: ControlFlowKind,
         location: LineCol,
     },
+}
+
+impl DetectorEvidence {
+    /// Returns `Some(true)` when taint hop details are present (from `--taint-show-paths`).
+    pub fn taint_show_paths_flag(&self) -> Option<bool> {
+        match self {
+            Self::TaintFlow { sink, .. } if !sink.hop_details.is_empty() => Some(true),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

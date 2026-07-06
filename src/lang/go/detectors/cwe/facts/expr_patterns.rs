@@ -1,22 +1,6 @@
-//! Assignment-pattern helpers: `split_assignment`, `extract_identifiers`,
-//! `is_user_input_expr`, `is_trusted_config_expr`.
+//! User-input and trusted-config expression classifiers.
 
-#[doc(hidden)]
-pub fn split_assignment(text: &str) -> Option<(&str, &str)> {
-    if let Some((lhs, rhs)) = text.split_once(":=") {
-        return Some((lhs.trim(), rhs.trim()));
-    }
-    let (lhs, rhs) = text.split_once('=')?;
-    Some((lhs.trim(), rhs.trim()))
-}
-
-#[doc(hidden)]
-pub fn extract_identifiers(lhs: &str) -> Vec<&str> {
-    lhs.split(',')
-        .map(str::trim)
-        .filter(|name| !name.is_empty())
-        .collect()
-}
+pub use crate::lang::assignment::{extract_identifiers, split_assignment};
 
 #[doc(hidden)]
 pub fn is_user_input_expr(expr: &str) -> bool {

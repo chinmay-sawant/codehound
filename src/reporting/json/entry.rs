@@ -13,7 +13,7 @@ use super::types::{Envelope, FindingJson};
 ///
 /// Returns [`Error`] when JSON serialization or stdout write fails.
 #[must_use = "I/O errors from writing JSON output must be handled"]
-pub fn print(result: &AnalysisResult) -> Result<(), Error> {
+pub(crate) fn print(result: &AnalysisResult) -> Result<(), Error> {
     let stdout = std::io::stdout();
     let mut out = stdout.lock();
     for f in &result.findings {

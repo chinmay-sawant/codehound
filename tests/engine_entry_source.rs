@@ -30,7 +30,7 @@ fn list_entry_source_injects_entries_into_analyzer() {
     let source = ListEntrySource::new(entries);
     let analyzer = Analyzer::builder()
         .entry_source(Box::new(source))
-        .with_default_filter()
+        
         .build();
     let mut cache = CacheStore::in_memory();
     let result = analyzer

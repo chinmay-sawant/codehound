@@ -12,7 +12,7 @@ fn bench_scan_materialized_fixtures(c: &mut Criterion) {
     materialize_tree(Path::new("tests/fixtures")).expect("materialize integration fixtures");
 
     let analyzer = Analyzer::builder()
-        .with_default_filter()
+        
         .scan_context(ScanContext::default())
         .build();
     let root = materialized_root();
@@ -57,7 +57,7 @@ fn bench_scan_go_only_subset(c: &mut Criterion) {
     };
 
     let analyzer = Analyzer::builder()
-        .with_default_filter()
+        
         .scan_context(ctx)
         .build();
     let root = materialized_root();

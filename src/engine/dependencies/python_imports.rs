@@ -5,7 +5,7 @@ use std::path::Path;
 
 use tree_sitter::Node;
 
-use super::entry::{extensions, resolve_local_path};
+use super::entry::{extensions_for, resolve_local_path};
 
 pub(super) fn extract(
     root: &Node,
@@ -192,7 +192,7 @@ fn is_local_module(name: &str, project_root: &Path) -> bool {
 }
 
 fn try_resolve_py(abs: &Path, _project_root: &Path, out: &mut Vec<String>) {
-    let exts = extensions(crate::core::LanguageId::Python);
+    let exts = extensions_for(crate::core::LanguageId::Python);
     if let Some(paths) = resolve_local_path(abs, exts) {
         for p in paths {
             out.push(p.display().to_string().replace('\\', "/"));

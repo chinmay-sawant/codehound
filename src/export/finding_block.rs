@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use crate::cwe::format_cwe_list;
 use crate::rules::Finding;
 
 use super::context::finding_context_lines;
@@ -27,15 +28,8 @@ pub(super) fn format_finding_block(
         format!("Message: {}", finding.message),
     ];
 
-    if let Some(cwes) = finding.cwe.as_deref() {
-        if !cwes.is_empty() {
-            let list = cwes
-                .iter()
-                .map(|cwe| format!("CWE-{} ({})", cwe.id, cwe.name))
-                .collect::<Vec<_>>()
-                .join(", ");
-            lines.push(format!("CWEs: {list}"));
-        }
+    if let Some(cwes) = finding.cwe.as_deref().filter(|cwes| !cwes.is_empty()) {
+        lines.push(format!("CWEs: {}", format_cwe_list(cwes)));
     }
 
     if let Some(fix) = &finding.fix {

@@ -22,7 +22,7 @@ fn taint_analyzer() -> &'static Analyzer {
             ..ScanContext::default()
         };
         Analyzer::builder()
-            .with_default_filter()
+            
             .scan_context(ctx)
             .build()
     })

@@ -155,14 +155,20 @@ fn invocation_includes_suppressed_count_when_present() {
 #[test]
 fn evidence_maps_to_slopguard_evidence_property() {
     let mut r = sample_result();
-    r.findings[0].evidence = Some(DetectorEvidence::DangerousCall {
-        function: "exec.Command".to_string(),
-        argument_index: Some(2),
+    r.findings[0].evidence = Some(DetectorEvidence::TaintFlow {
+        source: slopguard::rules::TaintSourceInfo {
+            kind: "UserInput".to_string(),
+            function: "r.URL.Query".to_string(),
+            variable: "host".to_string(),
+        },
+        sink: slopguard::rules::TaintSinkInfo::new("CommandExec", "exec.Command"),
+        hops: 1,
+        sanitized: false,
     });
 
     let log = render_to_string(&r).expect("render SARIF");
     assert!(log.contains("\"slopguardEvidence\""), "got: {log}");
-    assert!(log.contains("\"kind\": \"DangerousCall\""), "got: {log}");
+    assert!(log.contains("\"kind\": \"TaintFlow\""), "got: {log}");
     assert!(log.contains("\"function\": \"exec.Command\""), "got: {log}");
 }
 

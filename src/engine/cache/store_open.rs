@@ -4,11 +4,10 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use super::io::mtime_of_file;
 use super::types::FILES_SUBDIR;
-use super::types::{
-    CACHE_VERSION, CacheEntry, CacheError, CacheLookup, CacheManifest, MANIFEST_NAME,
-};
+use super::types::{CACHE_VERSION, CacheError, CacheLookup, CacheManifest, MANIFEST_NAME};
+#[cfg(test)]
+use super::types::CacheEntry;
 use super::{CacheStore, DiskBackend, InMemoryBackend};
 
 impl CacheStore {
@@ -61,11 +60,23 @@ impl CacheStore {
                         error = %e,
                         "manifest is corrupt; starting with an empty manifest"
                     );
-                    Self::empty_manifest(&cache_dir)
+                    Self::empty_manifest()
                 }
             }
         } else {
-            Self::empty_manifest(&cache_dir)
+            Self::empty_manifest()
+        };
+
+        let evict_target_ratio = if evict_target_ratio.is_finite()
+            && (0.1..=0.99).contains(&evict_target_ratio)
+        {
+            evict_target_ratio
+        } else {
+            tracing::warn!(
+                evict_target_ratio,
+                "cache.evict_target_ratio must be between 0.1 and 0.99; falling back to 0.9"
+            );
+            0.9
         };
 
         Ok(Self {
@@ -74,7 +85,7 @@ impl CacheStore {
             manifest,
             dirty: false,
             max_size_bytes: max_size_mb.saturating_mul(1024 * 1024),
-            evict_target_ratio: normalize_evict_target_ratio(evict_target_ratio),
+            evict_target_ratio,
             max_file_size_bytes: max_file_size_mb.saturating_mul(1024 * 1024),
             backend: Box::new(DiskBackend { files_dir }),
             ephemeral: false,
@@ -103,6 +114,10 @@ impl CacheStore {
         }
     }
 
+    fn within_max_file_size(&self, size_bytes: u64) -> bool {
+        self.max_file_size_bytes == 0 || size_bytes <= self.max_file_size_bytes
+    }
+
     pub fn should_cache_path(&self, path: &Path) -> bool {
         if self.max_file_size_bytes == 0 {
             return true;
@@ -110,7 +125,7 @@ impl CacheStore {
         let Ok(meta) = fs::metadata(path) else {
             return true;
         };
-        if meta.len() <= self.max_file_size_bytes {
+        if self.within_max_file_size(meta.len()) {
             return true;
         }
         tracing::debug!(
@@ -123,10 +138,10 @@ impl CacheStore {
     }
 
     pub fn should_cache_bytes(&self, size_bytes: u64) -> bool {
-        self.max_file_size_bytes == 0 || size_bytes <= self.max_file_size_bytes
+        self.within_max_file_size(size_bytes)
     }
 
-    fn empty_manifest(_cache_dir: &Path) -> CacheManifest {
+    fn empty_manifest() -> CacheManifest {
         CacheManifest {
             schema_version: CACHE_VERSION,
             tool_version: env!("CARGO_PKG_VERSION").to_string(),
@@ -140,11 +155,13 @@ impl CacheStore {
     }
 
     /// Number of files currently tracked in the manifest.
+    #[cfg(test)]
     pub fn len(&self) -> usize {
         self.manifest.files.len()
     }
 
     /// True when no entries are tracked.
+    #[cfg(test)]
     pub fn is_empty(&self) -> bool {
         self.manifest.files.is_empty()
     }
@@ -162,20 +179,7 @@ impl CacheStore {
         if meta.content_hash != content_hash {
             return CacheLookup::Stale;
         }
-        // mtime drift is not fatal — the hash is authoritative. We
-        // log a warning so a corrupted mtime (e.g. from a touch) is
-        // visible.
-        if let Ok(actual) = mtime_of_file(file) {
-            if actual.0 < meta.mtime_secs
-                || (actual.0 == meta.mtime_secs && actual.1 < meta.mtime_nanos)
-            {
-                tracing::debug!(
-                    file,
-                    "cache entry mtime is newer than on-disk mtime; serving from cache"
-                );
-            }
-        }
-        match super::store_lifecycle::read_entry(self, &meta.cache_key) {
+        match self.backend.load_entry(&meta.cache_key) {
             Some(entry) => CacheLookup::Hit(entry),
             None => CacheLookup::Stale,
         }
@@ -191,26 +195,15 @@ impl CacheStore {
     /// Read the manifest entry for `file` and load the on-disk
     /// `CacheEntry` for it. Returns `None` when the file is not in the
     /// manifest or the entry file is missing/corrupt.
+    #[cfg(test)]
     pub fn get(&self, file: &str) -> Option<CacheEntry> {
         let meta = self.manifest.files.get(file)?;
-        super::store_lifecycle::read_entry(self, &meta.cache_key)
+        self.backend.load_entry(&meta.cache_key)
     }
 
     /// Read-only access to the manifest, primarily for tests and
     /// diagnostics output.
     pub fn manifest(&self) -> &CacheManifest {
         &self.manifest
-    }
-}
-
-fn normalize_evict_target_ratio(value: f64) -> f64 {
-    if value.is_finite() && (0.1..=0.99).contains(&value) {
-        value
-    } else {
-        tracing::warn!(
-            evict_target_ratio = value,
-            "cache.evict_target_ratio must be between 0.1 and 0.99; falling back to 0.9"
-        );
-        0.9
     }
 }

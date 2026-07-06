@@ -3,10 +3,11 @@ use std::process::ExitCode;
 
 use anyhow::{Context, Result};
 use slopguard::cli::{Cli, Command, OutputFormat};
+use slopguard::core::ScanContext;
 use slopguard::engine::{
     AnalysisResult, Analyzer, BASELINE_FILE_NAME, Baseline, CacheStore, Diagnostics,
-    LanguageFilter, PathFilters, Registry, SlopguardConfig, TimingCollector, collect_entries,
-    resolve_language_filter,
+    LanguageFilter, PathFilters, Registry, ScanContextParams, SlopguardConfig, TimingCollector,
+    build_scan_context, collect_entries, resolve_language_filter,
 };
 use slopguard::export::{ExportOptions, ExportSummary, export_findings};
 use slopguard::fixture::{FIXTURE_EXTENSION, materialize_fixture, parse_fixture};
@@ -36,6 +37,48 @@ pub fn run(cli: Cli) -> Result<ExitCode> {
     run_scan(cli)
 }
 
+fn scan_context_for_run(cli: &Cli, config: Option<SlopguardConfig>) -> ScanContext {
+    let cli_set_fail_policy = cli.severity.is_explicit();
+    let mut ctx = build_scan_context(ScanContextParams {
+        only: cli.only.clone(),
+        skip: cli.skip.clone(),
+        fail_policy: cli.severity.fail_policy(),
+        config,
+        cli_set_fail_policy,
+        debug_timing: cli.debug_timing,
+        diagnostics: cli.diagnostics.is_some(),
+        diagnostics_summary: cli.diagnostics_summary,
+    });
+    if cli.bp_only {
+        ctx.only = Some(["BP-*".to_string()].into_iter().collect());
+        ctx.bad_practices_enabled = true;
+    }
+    if cli.no_bp {
+        ctx.bad_practices_enabled = false;
+    }
+    if cli.taint {
+        ctx.taint_enabled = true;
+    }
+    if cli.no_taint {
+        ctx.taint_enabled = false;
+    }
+    if cli.taint_show_paths {
+        ctx.taint_show_paths = true;
+    }
+    ctx.show_ignored = cli.show_ignored;
+    ctx
+}
+
+fn export_options_for_run(cli: &Cli) -> ExportOptions {
+    ExportOptions {
+        export_context: !cli.no_context,
+        export_chunks: !cli.no_chunks,
+        chunk_size: cli.chunk_size,
+        context_output_dir: cli.context_output_dir.clone(),
+        chunks_output_dir: cli.chunks_output_dir.clone(),
+    }
+}
+
 fn configure_terminal_color(cli: &Cli) {
     #[cfg(feature = "terminal-output")]
     {
@@ -56,10 +99,7 @@ fn run_explain(rule_id: &str) -> Result<ExitCode> {
 }
 
 fn run_scan(cli: Cli) -> Result<ExitCode> {
-    let collect_stats = cli.debug_timing || cli.diagnostics.is_some();
-    let mut app_timing = TimingCollector::new(collect_stats);
-
-    let config = app_timing.measure("config_load", || load_config(cli.config.as_deref()))?;
+    let config = load_config(cli.config.as_deref())?;
     let registry = Registry::default();
     let lang_filter = resolve_language_filter(cli.lang.language_id(), config.as_ref(), &registry)?;
 
@@ -78,8 +118,9 @@ fn run_scan(cli: Cli) -> Result<ExitCode> {
         path_filters.exclude_tests = false;
     }
 
-    let scan_context = cli.scan_context(config.clone());
+    let scan_context = scan_context_for_run(&cli, config.clone());
     let collect_stats = scan_context.collect_stats();
+    let mut app_timing = TimingCollector::new(collect_stats);
     let analyzer = Analyzer::builder()
         .scan_context(scan_context)
         .path_filters(path_filters.clone())
@@ -111,7 +152,7 @@ fn run_scan(cli: Cli) -> Result<ExitCode> {
 
     apply_baseline_filter(&cli, config.as_ref(), &mut result);
 
-    let export_options = cli.export_options();
+    let export_options = export_options_for_run(&cli);
     let export_summary = app_timing.measure("export", || {
         export_findings(&result.findings, &export_options, &result.source_cache)
     })?;

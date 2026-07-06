@@ -13,7 +13,7 @@ use crate::rules::{Finding, emit};
 pub(crate) fn detect_perf_98(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let _source = unit.source.as_ref();
-    if !index_matches_any(&facts.source_index, REDIS_MARKERS) {
+    if !facts.source_index.has_any(REDIS_MARKERS) {
         return;
     }
     if facts.source_index.has(".Pipeline()")

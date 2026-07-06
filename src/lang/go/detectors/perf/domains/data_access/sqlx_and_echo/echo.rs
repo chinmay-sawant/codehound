@@ -1,6 +1,5 @@
 use super::super::super::super::facts::GoPerfFacts;
 use super::super::super::super::metadata::*;
-use super::super::common::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
@@ -45,10 +44,10 @@ pub(crate) fn detect_perf_87(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     } else {
         return;
     };
-    if has_any(
-        &facts.source_index,
-        &["echo.Binder", "NewBinder()", "DefaultBinder{}"],
-    ) {
+    if facts
+        .source_index
+        .has_any(&["echo.Binder", "NewBinder()", "DefaultBinder{}"])
+    {
         return;
     }
     let start = source.find(needle).unwrap_or(0);
@@ -70,10 +69,10 @@ pub(crate) fn detect_perf_88(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     let Some(&needle) = triggers.iter().find(|n| facts.source_index.has(n)) else {
         return;
     };
-    if has_any(
-        &facts.source_index,
-        &["Cache-Control", "cacheControl", "SetCache", "MaxAge"],
-    ) {
+    if facts
+        .source_index
+        .has_any(&["Cache-Control", "cacheControl", "SetCache", "MaxAge"])
+    {
         return;
     }
     let start = source.find(needle).unwrap_or(0);
@@ -122,14 +121,11 @@ pub(crate) fn detect_perf_90(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     if !facts.source_index.has("c.Set(") {
         return;
     }
-    if has_any(
-        &facts.source_index,
-        &[
-            "c.Set(\"user_id\",",
-            "c.Set(\"request_id\",",
-            "c.Set(\"trace_id\",",
-        ],
-    ) {
+    if facts.source_index.has_any(&[
+        "c.Set(\"user_id\",",
+        "c.Set(\"request_id\",",
+        "c.Set(\"trace_id\",",
+    ]) {
         return;
     }
     let start = source.find("c.Set(").unwrap_or(0);

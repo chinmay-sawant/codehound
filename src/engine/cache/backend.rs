@@ -9,7 +9,7 @@ use super::types::{CacheEntry, CacheError};
 /// delegates entry persistence to this trait so that different storage
 /// strategies (disk, in-memory, remote) can be swapped without changing
 /// the cache lifecycle logic.
-pub trait CacheBackend: Send + Sync + std::fmt::Debug {
+pub(crate) trait CacheBackend: Send + Sync + std::fmt::Debug {
     /// Read a previously stored entry. Returns `None` when the entry
     /// does not exist or is corrupt.
     fn load_entry(&self, cache_key: &str) -> Option<CacheEntry>;

@@ -8,12 +8,46 @@ mod helpers;
 use clap::Parser;
 use slopguard::cli::{Cli, RuleCategory};
 use slopguard::core::ScanContext;
-use slopguard::engine::{AnalysisResult, Analyzer, PathFilters, SlopguardConfig};
+use slopguard::engine::{
+    AnalysisResult, Analyzer, PathFilters, ScanContextParams, SlopguardConfig, build_scan_context,
+};
 use slopguard::reporting::json::FindingJson;
 use slopguard::reporting::sarif::render_to_string;
 use slopguard::rules::{Finding, FindingInputs, LineCol, Severity};
 use std::borrow::Cow;
 use std::process::Command;
+
+fn scan_context_from_cli(cli: &Cli, config: Option<SlopguardConfig>) -> ScanContext {
+    let cli_set_fail_policy = cli.severity.is_explicit();
+    let mut ctx = build_scan_context(ScanContextParams {
+        only: cli.only.clone(),
+        skip: cli.skip.clone(),
+        fail_policy: cli.severity.fail_policy(),
+        config,
+        cli_set_fail_policy,
+        debug_timing: cli.debug_timing,
+        diagnostics: cli.diagnostics.is_some(),
+        diagnostics_summary: cli.diagnostics_summary,
+    });
+    if cli.bp_only {
+        ctx.only = Some(["BP-*".to_string()].into_iter().collect());
+        ctx.bad_practices_enabled = true;
+    }
+    if cli.no_bp {
+        ctx.bad_practices_enabled = false;
+    }
+    if cli.taint {
+        ctx.taint_enabled = true;
+    }
+    if cli.no_taint {
+        ctx.taint_enabled = false;
+    }
+    if cli.taint_show_paths {
+        ctx.taint_show_paths = true;
+    }
+    ctx.show_ignored = cli.show_ignored;
+    ctx
+}
 
 fn reported_rule_ids(stdout: &str) -> Vec<&str> {
     stdout
@@ -40,7 +74,7 @@ fn reported_rule_ids(stdout: &str) -> Vec<&str> {
 
 fn bp_analyzer() -> Analyzer {
     Analyzer::builder()
-        .with_default_filter()
+        
         .path_filters(PathFilters {
             exclude_tests: false,
             ..Default::default()
@@ -149,7 +183,7 @@ fn scan_context_can_disable_bad_practice_category() {
 #[test]
 fn cli_bp_only_sets_bp_prefix_filter() {
     let cli = Cli::try_parse_from(["slopguard", "--bp-only"]).unwrap();
-    let ctx = cli.scan_context(None);
+    let ctx = scan_context_from_cli(&cli, None);
 
     assert!(ctx.allows("BP-1"));
     assert!(!ctx.allows("PERF-1"));
@@ -165,7 +199,7 @@ enabled = false
 "#,
     )
     .unwrap();
-    let ctx = cli.scan_context(Some(cfg));
+    let ctx = scan_context_from_cli(&cli, Some(cfg));
 
     assert!(ctx.allows("BP-1"));
     assert!(!ctx.allows("CWE-89"));
@@ -174,7 +208,7 @@ enabled = false
 #[test]
 fn cli_no_bp_disables_bad_practice_category() {
     let cli = Cli::try_parse_from(["slopguard", "--no-bp"]).unwrap();
-    let ctx = cli.scan_context(None);
+    let ctx = scan_context_from_cli(&cli, None);
 
     assert!(!ctx.allows("BP-1"));
     assert!(ctx.allows("PERF-1"));

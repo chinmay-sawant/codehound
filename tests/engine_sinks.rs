@@ -1,4 +1,19 @@
+use phf::phf_set;
 use slopguard::engine::sinks;
+
+static SQL_SINKS: phf::Set<&'static str> = phf_set! {
+    "db.Query",
+    "db.QueryRow",
+    "db.Exec",
+    "db.QueryContext",
+    "db.QueryRowContext",
+    "db.ExecContext",
+};
+
+static COMMAND_INJECTION_SINKS: phf::Set<&'static str> = phf_set! {
+    "exec.Command",
+    "exec.CommandContext",
+};
 
 #[test]
 fn sink_matching_is_correct() {
@@ -9,7 +24,7 @@ fn sink_matching_is_correct() {
             &["os.Open"] as &[&str],
         ),
         (
-            &sinks::SQL_SINKS,
+            &SQL_SINKS,
             &[
                 "db.Query",
                 "db.QueryRow",
@@ -21,7 +36,7 @@ fn sink_matching_is_correct() {
             &["exec.Command"],
         ),
         (
-            &sinks::COMMAND_INJECTION_SINKS,
+            &COMMAND_INJECTION_SINKS,
             &["exec.Command", "exec.CommandContext"],
             &["os.ReadFile"],
         ),

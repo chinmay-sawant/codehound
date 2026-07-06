@@ -33,8 +33,8 @@ pub struct JsonRule {
     pub id: String,
     pub name: String,
     pub description: String,
-    pub original_description: String,
-    pub category: String,
+    pub _original_description: String,
+    pub _category: String,
     pub detection_notes: String,
     pub severity: Option<String>,
 }

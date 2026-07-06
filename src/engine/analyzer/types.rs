@@ -1,7 +1,5 @@
 //! `Analyzer` type.
 
-use std::path::PathBuf;
-
 use crate::core::ScanContext;
 use crate::engine::config::PathFilters;
 use crate::engine::language_filter::LanguageFilter;
@@ -15,13 +13,6 @@ pub struct Analyzer {
     pub(super) lang_filter: LanguageFilter,
     pub(super) path_filters: PathFilters,
     pub(super) collect_stats: bool,
-    /// Resolved at build time. Falls back to the cwd when the scan
-    /// path has no enclosing `.git`.
-    pub(super) project_root: PathBuf,
-    /// `module` directive from the project root's `go.mod`, when
-    /// present. Used to distinguish local Go imports from
-    /// stdlib / third-party.
-    pub(super) module_prefix: Option<String>,
     /// Optional pluggable entry source. When `None`, the default
     /// [`FilesystemWalker`](crate::engine::walk::FilesystemWalker) is used.
     pub(super) entry_source: Option<Box<dyn EntrySource>>,

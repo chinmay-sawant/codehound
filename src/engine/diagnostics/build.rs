@@ -5,7 +5,7 @@ use serde::Serialize;
 use crate::engine::ScanStats;
 use crate::rules::Severity;
 
-use super::clock::iso8601_utc_now;
+use crate::engine::time::iso8601_utc_now;
 
 fn severity_count(stats: &ScanStats, sev: Severity) -> usize {
     *stats.findings_by_severity.get(sev.as_str()).unwrap_or(&0)

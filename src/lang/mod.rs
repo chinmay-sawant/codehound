@@ -1,5 +1,8 @@
 //! Language plugins registry.
 
+pub mod assignment;
+pub mod source_index;
+
 #[cfg(feature = "go")]
 pub mod go;
 
@@ -11,7 +14,6 @@ mod plugin;
 
 use crate::core::LanguagePlugin;
 
-/// Plugins enabled by Cargo features.
 /// Plugins enabled by Cargo features.
 #[allow(clippy::vec_init_then_push)]
 pub fn enabled_plugins() -> Vec<Box<dyn LanguagePlugin>> {

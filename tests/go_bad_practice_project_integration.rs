@@ -29,7 +29,7 @@ fn discover_project_cases() -> Vec<String> {
 }
 
 fn analyzer() -> Analyzer {
-    Analyzer::builder().with_default_filter().build()
+    Analyzer::builder().build()
 }
 
 #[test]

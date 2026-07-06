@@ -36,7 +36,7 @@ fn concurrent_scans_can_share_a_cache_directory_without_panicking() {
         let scan_root = Arc::clone(&scan_root);
         handles.push(thread::spawn(move || {
             let analyzer = Analyzer::builder()
-                .with_default_filter()
+                
                 .scan_context(ScanContext::default())
                 .build();
             let mut cache = CacheStore::open_with_capacity((*cache_dir).clone(), 500).unwrap();

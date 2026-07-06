@@ -1,6 +1,5 @@
 //! `CacheStore` lifecycle: `put`, `remove`, `prune`, `clean_orphans`,
-//! `invalidate_file`, `invalidate_dependent`, plus the `read_entry` helper
-//! that backs `lookup`/`get`.
+//! `invalidate_file`, `invalidate_dependent`.
 
 use crate::Error;
 
@@ -78,12 +77,18 @@ impl CacheStore {
             .map_err(|e| Error::Walk(format!("cleaning cache orphans: {e}")))
     }
 
-    /// Lazily invalidate the entry for `file`. Equivalent to
-    /// [`remove`](Self::remove) but kept as a separate name for use by
-    /// callers that invalidate without deleting the on-disk entry
-    /// (e.g. when an external observer signals staleness).
+    /// Invalidate the entry for `file`, removing it from the manifest
+    /// and deleting the on-disk entry.
     pub fn invalidate_file(&mut self, file: &str) {
-        if self.manifest.files.remove(file).is_some() {
+        if let Some(meta) = self.manifest.files.remove(file) {
+            if let Err(e) = self.backend.delete_entry(&meta.cache_key) {
+                tracing::warn!(
+                    file,
+                    cache_key = %meta.cache_key,
+                    error = %e,
+                    "failed to delete invalidated cache entry"
+                );
+            }
             self.dirty = true;
         }
     }
@@ -113,10 +118,4 @@ impl CacheStore {
         }
         count
     }
-}
-
-/// Delegate to the backend to load an entry. The `lookup` and `get`
-/// methods call this through `CacheStore::read_entry`.
-pub(super) fn read_entry(store: &CacheStore, cache_key: &str) -> Option<CacheEntry> {
-    store.backend.load_entry(cache_key)
 }

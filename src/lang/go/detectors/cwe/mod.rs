@@ -14,13 +14,16 @@ use std::sync::Mutex;
 
 use crate::core::{Detector, LanguageId, ParsedUnit, ScanContext};
 use crate::rules::{
-    DetectorEvidence, Finding, Rule, RuleMetadata, TaintHop, TaintSinkInfo, TaintSourceInfo,
+    DetectorEvidence, Finding, RuleMetadata, TaintHop, TaintSinkInfo, TaintSourceInfo,
 };
 use domains::*;
 use facts::{GoUnitFacts, build_go_unit_facts, build_taint_graph_for_facts};
 use taint::{
     CallGraph, SinkKind, TaintAnnotations, TaintGraph, TaintNode, TaintNodeId, build_import_map,
+    detect_cwe_22_taint, detect_cwe_78_taint, detect_cwe_79_taint, detect_cwe_89_taint,
+    detect_cwe_90_taint, detect_cwe_91_taint,
 };
+use taint::{forward_reaches_any, unsanitized_reaches_any};
 
 use crate::rules::emit;
 
@@ -37,6 +40,7 @@ include!(concat!(env!("OUT_DIR"), "/go_cwe_registry.rs"));
 struct ProjectUnit {
     path: String,
     source: Arc<str>,
+    line_starts: Vec<usize>,
     call_graph: CallGraph,
     annotations: TaintAnnotations,
     import_map: HashMap<String, String>,
@@ -65,15 +69,6 @@ impl Default for GoCweScan {
     }
 }
 
-impl Rule for GoCweScan {
-    fn metadata(&self) -> RuleMetadata {
-        GO_RULES
-            .first()
-            .map(|(_, _, meta)| (*meta).clone())
-            .expect("GO_RULES must not be empty")
-    }
-}
-
 impl Detector for GoCweScan {
     fn language(&self) -> LanguageId {
         LanguageId::Go
@@ -99,13 +94,7 @@ impl Detector for GoCweScan {
             build_taint_graph_for_facts(&mut facts);
         }
         let mut state = self.state.lock().expect("lock CweDetector state");
-        state.units.push(ProjectUnit {
-            path: unit.display_path.clone(),
-            source: Arc::clone(&unit.source),
-            call_graph: facts.call_graph.clone().unwrap_or_default(),
-            annotations: facts.taint.clone(),
-            import_map: build_import_map(unit),
-        });
+        push_project_unit(&mut state, unit, &facts);
     }
 
     fn run(&self, ctx: &ScanContext, unit: &ParsedUnit, out: &mut Vec<Finding>) {
@@ -117,16 +106,9 @@ impl Detector for GoCweScan {
             build_taint_graph_for_facts(&mut facts);
         }
 
-        // Accumulate state for project-level analysis.
         {
             let mut state = self.state.lock().expect("lock CweDetector state");
-            state.units.push(ProjectUnit {
-                path: unit.display_path.clone(),
-                source: Arc::clone(&unit.source),
-                call_graph: facts.call_graph.clone().unwrap_or_default(),
-                annotations: facts.taint.clone(),
-                import_map: build_import_map(unit),
-            });
+            push_project_unit(&mut state, unit, &facts);
         }
 
         for (rule_id, detector, _) in GO_RULES {
@@ -172,6 +154,7 @@ impl Detector for GoCweScan {
             let caller_path = state.units[caller_idx].path.as_str();
             let caller_graph = &per_file[caller_idx].1;
             let caller_source = &state.units[caller_idx].source;
+            let caller_line_starts = &state.units[caller_idx].line_starts;
 
             for site in sites {
                 let raw_callee = site.callee.as_ref();
@@ -209,7 +192,7 @@ impl Detector for GoCweScan {
                     }
                     emit_inter_procedural_finding(
                         caller_path,
-                        caller_source,
+                        caller_line_starts,
                         caller_graph,
                         &callee_name,
                         site,
@@ -237,7 +220,7 @@ impl Detector for GoCweScan {
                     }
                     emit_inter_procedural_finding(
                         caller_path,
-                        caller_source,
+                        caller_line_starts,
                         caller_graph,
                         &callee_name,
                         site,
@@ -262,7 +245,7 @@ impl Detector for GoCweScan {
                     }
                     emit_inter_procedural_finding(
                         caller_path,
-                        caller_source,
+                        caller_line_starts,
                         caller_graph,
                         &callee_name,
                         site,
@@ -280,6 +263,17 @@ impl Detector for GoCweScan {
 }
 
 // --- Inter-procedural analysis helpers ---
+
+fn push_project_unit(state: &mut ProjectTaintState, unit: &ParsedUnit, facts: &GoUnitFacts) {
+    state.units.push(ProjectUnit {
+        path: unit.display_path.clone(),
+        source: Arc::clone(&unit.source),
+        line_starts: unit.line_starts.clone(),
+        call_graph: facts.call_graph.clone().unwrap_or_default(),
+        annotations: facts.taint.clone(),
+        import_map: build_import_map(unit),
+    });
+}
 
 /// Find a callee's TaintSummary across all files.
 fn find_callee_summary<'a>(
@@ -308,7 +302,7 @@ fn is_identifier_tainted(graph: &TaintGraph, name: &str) -> bool {
     if !var_ids.is_empty() {
         for source_ids in graph.by_source.values() {
             for source_id in source_ids {
-                if bfs_sanitized_reaches(graph, *source_id, &var_ids, &[]) {
+                if unsanitized_reaches_any(graph, *source_id, &var_ids) {
                     return true;
                 }
             }
@@ -332,56 +326,6 @@ fn is_identifier_tainted(graph: &TaintGraph, name: &str) -> bool {
     }
 
     false
-}
-
-/// BFS from `start` to any of `targets`, tracking sanitized state.
-/// Returns true only if an UNSANITIZED path exists.
-fn bfs_sanitized_reaches(
-    graph: &TaintGraph,
-    start: TaintNodeId,
-    targets: &[TaintNodeId],
-    _allowed_sanitizers: &[taint::SanitizerKind],
-) -> bool {
-    use std::collections::VecDeque;
-
-    let mut adj: HashMap<TaintNodeId, Vec<TaintNodeId>> = HashMap::new();
-    for edge in &graph.edges {
-        adj.entry(edge.from).or_default().push(edge.to);
-    }
-
-    let mut queue: VecDeque<(TaintNodeId, bool)> = VecDeque::new();
-    let mut visited = vec![false; graph.nodes.len()];
-    queue.push_back((start, false));
-    visited[start] = true;
-
-    while let Some((current, was_sanitized)) = queue.pop_front() {
-        let sanitized =
-            was_sanitized || matches!(graph.nodes.get(current), Some(TaintNode::Sanitizer { .. }));
-
-        if targets.contains(&current) && !sanitized {
-            return true;
-        }
-
-        for &next in adj.get(&current).into_iter().flatten() {
-            if !visited[next] {
-                visited[next] = true;
-                queue.push_back((next, sanitized));
-            }
-        }
-    }
-    false
-}
-
-/// Convert byte offset to 1-based line/column.
-fn byte_to_line_col(source: &str, byte: usize) -> (usize, usize) {
-    let byte = byte.min(source.len());
-    let line = source[..byte].matches('\n').count() + 1;
-    let last_newline = source[..byte].rfind('\n');
-    let col = match last_newline {
-        Some(pos) => byte - pos,
-        None => byte + 1,
-    };
-    (line, col)
 }
 
 /// Map a SinkKind to the corresponding RuleMetadata for finding emission.
@@ -470,7 +414,7 @@ fn sink_kinds_reached_by_var(graph: &TaintGraph, var_name: &str) -> Vec<SinkKind
     .iter()
     {
         if let Some(sink_ids) = graph.by_sink.get(&sk) {
-            if bfs_reaches_set(graph, &var_ids, sink_ids) {
+            if forward_reaches_any(graph, &var_ids, sink_ids) {
                 reached.push(sk);
             }
         }
@@ -478,38 +422,11 @@ fn sink_kinds_reached_by_var(graph: &TaintGraph, var_name: &str) -> Vec<SinkKind
     reached
 }
 
-/// BFS from any start node to any target node.
-fn bfs_reaches_set(graph: &TaintGraph, starts: &[TaintNodeId], targets: &[TaintNodeId]) -> bool {
-    let mut adj: HashMap<TaintNodeId, Vec<TaintNodeId>> = HashMap::new();
-    for edge in &graph.edges {
-        adj.entry(edge.from).or_default().push(edge.to);
-    }
-    let mut visited = vec![false; graph.nodes.len()];
-    let mut stack: Vec<TaintNodeId> = starts.to_vec();
-    for &s in starts {
-        if s < visited.len() {
-            visited[s] = true;
-        }
-    }
-    while let Some(current) = stack.pop() {
-        if targets.contains(&current) {
-            return true;
-        }
-        for &next in adj.get(&current).into_iter().flatten() {
-            if next < visited.len() && !visited[next] {
-                visited[next] = true;
-                stack.push(next);
-            }
-        }
-    }
-    false
-}
-
 /// Emit findings for a cross-function taint flow.
 #[allow(clippy::too_many_arguments)]
 fn emit_inter_procedural_finding(
     file: &str,
-    source: &str,
+    line_starts: &[usize],
     _graph: &TaintGraph,
     _callee_name: &str,
     site: &taint::CallSite,
@@ -518,7 +435,7 @@ fn emit_inter_procedural_finding(
     ctx: &ScanContext,
     out: &mut Vec<Finding>,
 ) {
-    let (line, col) = byte_to_line_col(source, site.byte_range.start);
+    let (line, col) = crate::ast::line_col_with_starts(line_starts, site.byte_range.start);
     for &sk in sink_kinds {
         let meta = match sink_kind_meta(sk) {
             Some(m) => m,

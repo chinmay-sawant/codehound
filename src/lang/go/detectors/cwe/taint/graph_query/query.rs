@@ -35,6 +35,75 @@ pub fn find_taint_paths(
 }
 
 /// Find taint paths from arbitrary start node IDs to sinks of `sink_kind`.
+/// Forward BFS: returns true if any node in `targets` is reachable from any node in `starts`.
+pub fn forward_reaches_any(
+    graph: &TaintGraph,
+    starts: &[TaintNodeId],
+    targets: &[TaintNodeId],
+) -> bool {
+    if starts.is_empty() || targets.is_empty() {
+        return false;
+    }
+    let mut adj: HashMap<TaintNodeId, Vec<TaintNodeId>> = HashMap::new();
+    for edge in &graph.edges {
+        adj.entry(edge.from).or_default().push(edge.to);
+    }
+    let mut visited = vec![false; graph.nodes.len()];
+    let mut stack: Vec<TaintNodeId> = starts.to_vec();
+    for &s in starts {
+        if s < visited.len() {
+            visited[s] = true;
+        }
+    }
+    while let Some(current) = stack.pop() {
+        if targets.contains(&current) {
+            return true;
+        }
+        for &next in adj.get(&current).into_iter().flatten() {
+            if next < visited.len() && !visited[next] {
+                visited[next] = true;
+                stack.push(next);
+            }
+        }
+    }
+    false
+}
+
+/// BFS with sanitizer tracking: any `TaintNode::Sanitizer` on the path counts as sanitized.
+/// Returns true only if an unsanitized path exists from `start` to any `target`.
+pub fn unsanitized_reaches_any(
+    graph: &TaintGraph,
+    start: TaintNodeId,
+    targets: &[TaintNodeId],
+) -> bool {
+    let mut adj: HashMap<TaintNodeId, Vec<TaintNodeId>> = HashMap::new();
+    for edge in &graph.edges {
+        adj.entry(edge.from).or_default().push(edge.to);
+    }
+
+    let mut queue: VecDeque<(TaintNodeId, bool)> = VecDeque::new();
+    let mut visited = vec![false; graph.nodes.len()];
+    queue.push_back((start, false));
+    visited[start] = true;
+
+    while let Some((current, was_sanitized)) = queue.pop_front() {
+        let sanitized =
+            was_sanitized || matches!(graph.nodes.get(current), Some(TaintNode::Sanitizer { .. }));
+
+        if targets.contains(&current) && !sanitized {
+            return true;
+        }
+
+        for &next in adj.get(&current).into_iter().flatten() {
+            if !visited[next] {
+                visited[next] = true;
+                queue.push_back((next, sanitized));
+            }
+        }
+    }
+    false
+}
+
 pub fn find_taint_paths_from_nodes(
     graph: &TaintGraph,
     start_ids: &[TaintNodeId],

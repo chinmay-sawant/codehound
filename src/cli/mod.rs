@@ -1,7 +1,6 @@
 //! Command-line argument definitions.
 
 mod args;
-mod args_impl;
 mod enums;
 mod severity_args;
 

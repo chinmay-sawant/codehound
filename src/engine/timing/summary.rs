@@ -25,27 +25,7 @@ impl TimingSummary {
             entry.1 += phase.count;
         }
 
-        let mut phases: Vec<PhaseTiming> = by_name
-            .into_iter()
-            .map(|(name, (duration, count))| PhaseTiming {
-                name,
-                duration,
-                percentage: 0.0,
-                count,
-            })
-            .collect();
-        let total = phases
-            .iter()
-            .map(|p| p.duration)
-            .fold(Duration::ZERO, |a, b| a + b);
-        for phase in &mut phases {
-            phase.percentage = if total.is_zero() {
-                0.0
-            } else {
-                phase.duration.as_secs_f64() / total.as_secs_f64() * 100.0
-            };
-        }
-        phases.sort_by_key(|b| std::cmp::Reverse(b.duration));
+        let (total, phases) = super::aggregate::aggregate_phases(by_name);
 
         self.total_wall_time = total;
         self.phases = phases;

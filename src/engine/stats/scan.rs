@@ -4,8 +4,8 @@ use std::collections::HashMap;
 
 use serde::Serialize;
 
-use crate::engine::result::AnalysisResult;
 use crate::engine::timing::TimingSummary;
+use crate::rules::Finding;
 
 #[derive(Debug, Default, Clone, Serialize)]
 pub struct ScanStats {
@@ -20,7 +20,6 @@ pub struct ScanStats {
 
     pub findings_total: usize,
     pub findings_by_severity: HashMap<String, usize>,
-    pub findings_by_rule: Vec<(String, usize)>,
     pub findings_suppressed: usize,
 
     pub rules_executed: usize,
@@ -30,37 +29,21 @@ pub struct ScanStats {
 }
 
 impl ScanStats {
-    /// Build stats from a finished result. Timing is attached separately
-    /// because it is collected while the scan runs.
-    pub fn from_result(result: &AnalysisResult) -> Self {
+    /// Build findings-related stats from a finished result slice.
+    pub fn from_findings(findings: &[Finding], suppressed_count: usize) -> Self {
         let mut findings_by_severity: HashMap<String, usize> = HashMap::new();
-        let mut by_rule: HashMap<String, usize> = HashMap::new();
 
-        for finding in &result.findings {
+        for finding in findings {
             *findings_by_severity
                 .entry(finding.severity.as_str().to_string())
                 .or_insert(0) += 1;
-            *by_rule.entry(finding.rule_id.to_string()).or_insert(0) += 1;
         }
 
-        let mut findings_by_rule: Vec<(String, usize)> = by_rule.into_iter().collect();
-        findings_by_rule.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
-
         Self {
-            files_scanned: 0,
-            files_skipped: 0,
-            files_errored: result.errors.len(),
-            bytes_scanned: 0,
-            lines_scanned: 0,
-            cache_hits: 0,
-            cache_misses: 0,
-            findings_total: result.findings.len(),
+            findings_total: findings.len(),
             findings_by_severity,
-            findings_by_rule,
-            findings_suppressed: result.suppressed_count,
-            rules_executed: 0,
-            detectors_loaded: 0,
-            timing: None,
+            findings_suppressed: suppressed_count,
+            ..Default::default()
         }
     }
 
@@ -80,14 +63,6 @@ impl ScanStats {
         for (sev, count) in &other.findings_by_severity {
             *self.findings_by_severity.entry(sev.clone()).or_insert(0) += count;
         }
-
-        let mut by_rule: HashMap<String, usize> = self.findings_by_rule.drain(..).collect();
-        for (rule, count) in &other.findings_by_rule {
-            *by_rule.entry(rule.clone()).or_insert(0) += count;
-        }
-        let mut findings_by_rule: Vec<(String, usize)> = by_rule.into_iter().collect();
-        findings_by_rule.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
-        self.findings_by_rule = findings_by_rule;
 
         self.rules_executed += other.rules_executed;
         // detectors_loaded is a process-level constant; keep the larger value.

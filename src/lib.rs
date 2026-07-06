@@ -49,7 +49,7 @@
 //! - [`reporting`] — text, JSON, SARIF output
 //! - [`export`] — per-finding context files and chunk files
 //! - [`fixture`] — `.txt` test fixture materialization
-//! - [`ast`] — tree-sitter helpers (`line_col`, `walk_nodes`, ...)
+//! - [`ast`] — tree-sitter helpers (`line_col_with_starts`, `walk_nodes`, ...)
 //! - [`cli`] — clap-derived argument definitions (binary only)
 //!
 //! See `docs/architecture-performance.md` for the pipeline diagram and

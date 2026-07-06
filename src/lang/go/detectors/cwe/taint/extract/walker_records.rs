@@ -3,7 +3,7 @@ use std::sync::Arc;
 use super::super::{
     AssignmentDetail, TaintSanitizerAnnotation, TaintSinkAnnotation, TaintSourceAnnotation,
 };
-use super::assignments::{extract_identifiers, split_assignment};
+use crate::lang::assignment::{extract_identifiers, split_assignment};
 use super::classify::{
     classify_sanitizer, classify_sink, classify_source, is_source_or_sanitizer_call,
 };

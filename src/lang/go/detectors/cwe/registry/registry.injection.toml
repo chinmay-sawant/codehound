@@ -3,22 +3,22 @@
 [[detector]]
 cwe = 78
 domain = "injection"
-function = "detect_cwe_78"
+function = "detect_cwe_78_taint"
 
 [[detector]]
 cwe = 89
 domain = "injection"
-function = "detect_cwe_89"
+function = "detect_cwe_89_taint"
 
 [[detector]]
 cwe = 90
 domain = "injection"
-function = "detect_cwe_90"
+function = "detect_cwe_90_taint"
 
 [[detector]]
 cwe = 91
 domain = "injection"
-function = "detect_cwe_91"
+function = "detect_cwe_91_taint"
 
 [[detector]]
 cwe = 93

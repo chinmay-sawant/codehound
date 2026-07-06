@@ -2,7 +2,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use slopguard::cwe::CweRef;
 use slopguard::export::{ExportOptions, export_findings};
-use slopguard::rules::{DetectorEvidence, Finding, FindingInputs, LineCol, Severity};
+use slopguard::rules::{
+    DetectorEvidence, Finding, FindingInputs, LineCol, Severity, TaintSinkInfo, TaintSourceInfo,
+};
 
 #[test]
 fn exports_context_and_chunk_files() {
@@ -34,9 +36,15 @@ fn exports_context_and_chunk_files() {
             Severity::Medium,
             std::borrow::Cow::Borrowed(cwe),
         ))
-        .with_evidence(DetectorEvidence::DangerousCall {
-            function: "database/sql.Query".to_string(),
-            argument_index: Some(0),
+        .with_evidence(DetectorEvidence::TaintFlow {
+            source: TaintSourceInfo {
+                kind: "UserInput".to_string(),
+                function: "r.URL.Query".to_string(),
+                variable: "id".to_string(),
+            },
+            sink: TaintSinkInfo::new("SQLQuery", "database/sql.Query"),
+            hops: 1,
+            sanitized: false,
         })
         .with_confidence(0.7)
         .with_tags(vec!["heuristic".to_string(), "review-query".to_string()])
@@ -73,7 +81,7 @@ fn exports_context_and_chunk_files() {
     for output in [&context, &chunk] {
         assert!(
             output.contains(
-                "Evidence: {\"kind\":\"DangerousCall\",\"function\":\"database/sql.Query\",\"argument_index\":0}"
+                "Evidence: {\"kind\":\"TaintFlow\",\"source\":{\"kind\":\"UserInput\",\"function\":\"r.URL.Query\",\"variable\":\"id\"},\"sink\":{\"kind\":\"SQLQuery\",\"function\":\"database/sql.Query\"},\"hops\":1,\"sanitized\":false}"
             ),
             "got: {output}"
         );

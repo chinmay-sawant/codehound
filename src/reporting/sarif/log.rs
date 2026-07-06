@@ -3,15 +3,14 @@
 use std::collections::BTreeMap;
 
 use crate::engine::AnalysisResult;
-use crate::rules::DetectorEvidence;
-use crate::rules::category_for_rule_id;
+use crate::rules::{DetectorEvidence, Severity, category_for_rule_id};
 
 use super::schema::{
     SarifArtifactLocation, SarifInvocation, SarifInvocationProperties, SarifLocation, SarifLog,
     SarifPhysicalLocation, SarifProperties, SarifRegion, SarifResult, SarifRule, SarifRun,
     SarifRunProperties, SarifSuppression, SarifText,
 };
-use super::time::iso8601_utc_now;
+use crate::engine::time::iso8601_utc_now;
 
 pub(super) fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
     let mut seen: BTreeMap<&str, &str> = BTreeMap::new();
@@ -35,24 +34,8 @@ pub(super) fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
         .iter()
         .filter_map(|f| {
             let rule_index = *rule_index_of.get(f.rule_id)?;
-            let level = match f.severity {
-                crate::rules::Severity::Info => "note",
-                crate::rules::Severity::Low => "warning",
-                crate::rules::Severity::Medium => "warning",
-                crate::rules::Severity::High | crate::rules::Severity::Critical => "error",
-            };
             let category = category_for_rule_id(f.rule_id);
-            let severity_score = if category == "bad_practice" {
-                "5.0"
-            } else {
-                match f.severity {
-                    crate::rules::Severity::Info => "0.0",
-                    crate::rules::Severity::Low => "2.0",
-                    crate::rules::Severity::Medium => "5.0",
-                    crate::rules::Severity::High => "7.5",
-                    crate::rules::Severity::Critical => "9.5",
-                }
-            };
+            let (level, severity_score) = sarif_severity_fields(f.severity, category);
             let mut tags: Vec<String> = vec!["security".to_string()];
             if f.rule_id.starts_with("CWE-") {
                 tags.push("cwe".to_string());
@@ -114,11 +97,10 @@ pub(super) fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
                     security_severity: severity_score,
                     slopguard_evidence,
                     remediation: f.remediation.clone(),
-                    taint_show_paths: matches!(
-                        f.evidence.as_ref(),
-                        Some(DetectorEvidence::TaintFlow { sink, .. }) if !sink.hop_details.is_empty()
-                    )
-                    .then_some(true),
+                    taint_show_paths: f
+                        .evidence
+                        .as_ref()
+                        .and_then(DetectorEvidence::taint_show_paths_flag),
                 },
             })
         })
@@ -156,4 +138,25 @@ pub(super) fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
             properties: run_properties,
         }],
     }
+}
+
+fn sarif_severity_fields(severity: Severity, category: &str) -> (&'static str, &'static str) {
+    let level = match severity {
+        Severity::Info => "note",
+        Severity::Low => "warning",
+        Severity::Medium => "warning",
+        Severity::High | Severity::Critical => "error",
+    };
+    let security_severity = if category == "bad_practice" {
+        "5.0"
+    } else {
+        match severity {
+            Severity::Info => "0.0",
+            Severity::Low => "2.0",
+            Severity::Medium => "5.0",
+            Severity::High => "7.5",
+            Severity::Critical => "9.5",
+        }
+    };
+    (level, security_severity)
 }

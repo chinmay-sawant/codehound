@@ -12,7 +12,7 @@ use super::scan_entry::attach_function_context;
 /// Returns the findings and the number of detector invocations that actually
 /// executed (used for scan statistics). Per-detector timing is recorded via
 /// the global timing collector.
-pub fn analyze_parsed_unit(
+pub(crate) fn analyze_parsed_unit(
     registry: &Registry,
     ctx: &ScanContext,
     unit: &ParsedUnit,
@@ -40,7 +40,7 @@ pub fn analyze_parsed_unit(
 
 /// Run detectors **and** attach function-context ranges for a single unit.
 /// This is the right entry point when the parsed unit is still alive (no
-/// re-parse needed) — used by [`Analyzer::analyze_units`].
+/// re-parse needed).
 pub fn analyze_parsed_unit_with_context(
     registry: &Registry,
     ctx: &ScanContext,

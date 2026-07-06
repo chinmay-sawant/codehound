@@ -1,10 +1,10 @@
 //! Detector trait — language-scoped analysis rule.
 
 use crate::core::{LanguageId, ParsedUnit, ScanContext};
-use crate::rules::{Finding, Rule};
+use crate::rules::Finding;
 
 /// Walks one parsed unit and appends findings.
-pub trait Detector: Rule + Send + Sync {
+pub trait Detector: Send + Sync {
     fn language(&self) -> LanguageId;
 
     /// Rule ids implemented by this detector (one id, or all ids in a language bundle).

@@ -22,7 +22,7 @@ fn fingerprint_from_finding_is_deterministic() {
         f.fingerprint_string(),
         "slopguard:1:CWE-22:pkg/handler/user.go:42:5"
     );
-    assert_eq!(f.fingerprint(), f.fingerprint());
+    assert_eq!(f.fingerprint_string(), f.fingerprint_string());
 }
 
 #[test]
@@ -30,7 +30,7 @@ fn different_columns_produce_different_fingerprints() {
     let left = finding("pkg/handler/user.go", 42, 5);
     let right = finding("pkg/handler/user.go", 42, 6);
 
-    assert_ne!(left.fingerprint(), right.fingerprint());
+    assert_ne!(left.fingerprint_string(), right.fingerprint_string());
 }
 
 #[test]
@@ -38,7 +38,7 @@ fn different_files_produce_different_fingerprints() {
     let left = finding("pkg/handler/user.go", 42, 5);
     let right = finding("pkg/handler/admin.go", 42, 5);
 
-    assert_ne!(left.fingerprint(), right.fingerprint());
+    assert_ne!(left.fingerprint_string(), right.fingerprint_string());
 }
 
 #[test]

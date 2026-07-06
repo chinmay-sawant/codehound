@@ -8,6 +8,7 @@
 //! signatures. App-level and analyzer-level timing still use locally-owned
 //! [`TimingCollector`] instances.
 
+mod aggregate;
 mod collector;
 mod millis;
 mod summary;

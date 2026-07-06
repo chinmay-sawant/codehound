@@ -115,14 +115,11 @@ pub(crate) fn detect_perf_79(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     let Some(&needle) = triggers.iter().find(|n| facts.source_index.has(n)) else {
         return;
     };
-    if has_any(
-        &facts.source_index,
-        &[
-            "SetMaxOpenConns(",
-            "SetMaxIdleConns(",
-            "SetConnMaxLifetime(",
-        ],
-    ) {
+    if facts.source_index.has_any(&[
+        "SetMaxOpenConns(",
+        "SetMaxIdleConns(",
+        "SetConnMaxLifetime(",
+    ]) {
         return;
     }
     let start = source.find(needle).unwrap_or(0);

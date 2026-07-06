@@ -1,7 +1,7 @@
 //! Go bad-practice heuristics (P2.5 MVP).
 
 use crate::core::{Detector, LanguageId, ParsedUnit, ScanContext};
-use crate::rules::{Finding, Rule, RuleMetadata};
+use crate::rules::{Finding, RuleMetadata};
 
 mod dispatch;
 mod metadata;
@@ -11,12 +11,6 @@ mod source_index;
 pub(crate) use metadata::*;
 
 pub struct GoBadPracticeScan;
-
-impl Rule for GoBadPracticeScan {
-    fn metadata(&self) -> RuleMetadata {
-        SCAN_METADATA.clone()
-    }
-}
 
 impl Detector for GoBadPracticeScan {
     fn language(&self) -> LanguageId {
@@ -35,7 +29,8 @@ impl Detector for GoBadPracticeScan {
         if !self.rule_ids().iter().any(|id| ctx.allows(id)) {
             return;
         }
-        let index = source_index::SourceIndex::build(unit.source.as_ref());
+        let index =
+            source_index::SourceIndex::build(source_index::NEEDLES, unit.source.as_ref());
         for (rule_id, detector) in dispatch::BAD_PRACTICE_RULES {
             if ctx.allows(rule_id) {
                 let start = out.len();

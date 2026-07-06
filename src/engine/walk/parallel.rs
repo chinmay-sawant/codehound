@@ -10,10 +10,8 @@ use crate::Error;
 use crate::core::ParsedUnit;
 use crate::core::{LanguageId, ScanContext};
 use crate::engine::cache::{CacheEntry, CacheLookup, CacheStore, content_hash};
-use crate::engine::ignore::{
-    IgnoreDirective, apply_file_ignore, apply_inline_ignores, parse_file_ignore,
-    parse_inline_ignores,
-};
+use crate::engine::ignore::{apply_ignores, parse_file_ignore};
+use crate::engine::stats::FileStats;
 use crate::engine::parse_pool::ParsePool;
 use crate::engine::registry::Registry;
 use crate::engine::result::{ScanError, ScanErrorKind};
@@ -110,35 +108,19 @@ pub(crate) fn scan_entries_parallel(
     Ok(merged)
 }
 
-fn apply_cached_ignores(ctx: &ScanContext, source: &str, findings: &mut Vec<Finding>) {
-    let file_ignore = parse_file_ignore(source);
-    if !ctx.show_ignored && file_ignore.as_ref().is_some_and(IgnoreDirective::is_all) {
-        findings.clear();
-        return;
-    }
-    apply_file_ignore(findings, file_ignore.as_ref(), ctx.show_ignored);
-    if file_ignore.is_none() {
-        let inline_ignores = parse_inline_ignores(source);
-        apply_inline_ignores(findings, &inline_ignores, ctx.show_ignored);
-    }
-}
-
-fn process_cache_hit(
-    ctx: &ScanContext,
-    cached: CacheEntry,
-    source: Arc<str>,
-    _fallback_language: LanguageId,
-) -> ScanOutcome {
+fn process_cache_hit(ctx: &ScanContext, cached: CacheEntry, source: Arc<str>) -> ScanOutcome {
     let cache_key = cached.file;
     let mut findings = filter_cached_findings(ctx, cached.findings);
-    apply_cached_ignores(ctx, source.as_ref(), &mut findings);
-    let mut file_stats = ScanStats::default();
-    file_stats.record_file(source.len() as u64, bytecount_lines(&source) as u64);
+    let file_ignore = parse_file_ignore(source.as_ref());
+    let _suppressed = apply_ignores(ctx, source.as_ref(), &mut findings, file_ignore.as_ref());
+    let file_stats = FileStats::from_source(source.as_ref());
+    let mut file_scan_stats = ScanStats::default();
+    file_scan_stats.record_file(file_stats.bytes, file_stats.lines);
     ScanOutcome::Cached {
         findings,
         cache_key,
         source,
-        stats: file_stats,
+        stats: file_scan_stats,
     }
 }
 
@@ -179,12 +161,7 @@ fn preflight_cache_hits(
         match cache.lookup(&rel, &hash) {
             CacheLookup::Hit(cached) => {
                 cache_hit_count += 1;
-                cached_outcomes.push(process_cache_hit(
-                    ctx,
-                    cached,
-                    source.clone(),
-                    entry.language,
-                ));
+                cached_outcomes.push(process_cache_hit(ctx, cached, source.clone()));
                 cached_files.push(CachedFileInfo {
                     source,
                     display_path: rel,
@@ -434,13 +411,6 @@ fn mtime_of(rel: &str) -> (u64, u32) {
         },
         Err(_) => (0, 0),
     }
-}
-
-fn bytecount_lines(s: &str) -> usize {
-    if s.is_empty() {
-        return 0;
-    }
-    s.bytes().filter(|b| *b == b'\n').count() + 1
 }
 
 fn panic_message(payload: &Box<dyn std::any::Any + Send>) -> String {

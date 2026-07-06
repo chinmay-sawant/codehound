@@ -31,7 +31,10 @@ pub(crate) fn detect_perf_73(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     if facts.source_index.has("Preload(") || facts.source_index.has(".Joins(") {
         return;
     }
-    if !has_any(&facts.source_index, &["db.Find(", "db.First(", "db.Take("]) {
+    if !facts
+        .source_index
+        .has_any(&["db.Find(", "db.First(", "db.Take("])
+    {
         return;
     }
     let relations = [
@@ -45,7 +48,7 @@ pub(crate) fn detect_perf_73(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         ".Tags",
         ".Addresses",
     ];
-    if !has_any(&facts.source_index, &relations) {
+    if !facts.source_index.has_any(&relations) {
         return;
     }
     let needle = ["db.Find(", "db.First(", "db.Take("]

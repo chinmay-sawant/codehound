@@ -63,4 +63,3 @@ pub fn extract_dependencies(
 }
 
 pub(super) use super::resolve::resolve_local_path;
-pub(super) use extensions_for as extensions;

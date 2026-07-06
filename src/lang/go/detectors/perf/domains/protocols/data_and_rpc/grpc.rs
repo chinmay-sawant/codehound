@@ -13,7 +13,7 @@ use crate::rules::{Finding, emit};
 pub(crate) fn detect_perf_96(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let _source = unit.source.as_ref();
-    if !index_matches_any(&facts.source_index, GRPC_MARKERS) || !facts.source_index.has("RecvMsg(")
+    if !facts.source_index.has_any(GRPC_MARKERS) || !facts.source_index.has("RecvMsg(")
     {
         return;
     }

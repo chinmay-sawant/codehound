@@ -5,8 +5,10 @@ mod render;
 mod style;
 mod summary;
 
-pub use options::{TextOptions, print, print_with_options};
+pub use options::TextOptions;
 pub use render::write_with_options;
+
+use options::print_with_options;
 
 use crate::Error;
 use crate::engine::AnalysisResult;

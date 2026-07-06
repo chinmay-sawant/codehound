@@ -5,6 +5,7 @@ pub static PATH_TRAVERSAL_SINKS: phf::Set<&'static str> = phf_set! {
     "ioutil.ReadFile",
 };
 
+#[cfg(test)]
 pub static SQL_SINKS: phf::Set<&'static str> = phf_set! {
     "db.Query",
     "db.QueryRow",
@@ -14,6 +15,7 @@ pub static SQL_SINKS: phf::Set<&'static str> = phf_set! {
     "db.ExecContext",
 };
 
+#[cfg(test)]
 pub static COMMAND_INJECTION_SINKS: phf::Set<&'static str> = phf_set! {
     "exec.Command",
     "exec.CommandContext",

@@ -1,6 +1,5 @@
 use super::super::super::facts::{GoUnitFacts, InputKind};
 use super::super::super::metadata::META_CWE_76;
-use super::super::super::taint::detect_cwe_79_taint;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
@@ -49,8 +48,4 @@ pub(crate) fn detect_cwe_76(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Ve
         "manual angle-bracket stripping is used for HTML output instead of proper escaping",
         out,
     );
-}
-
-pub(crate) fn detect_cwe_79(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
-    detect_cwe_79_taint(unit, facts, out);
 }

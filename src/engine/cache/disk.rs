@@ -11,7 +11,7 @@ use super::types::{CACHE_VERSION, CacheEntry, CacheError};
 /// Backend that stores each entry as a separate JSON file under
 /// `files_dir/<cache_key>.json`.
 #[derive(Debug)]
-pub struct DiskBackend {
+pub(crate) struct DiskBackend {
     pub(super) files_dir: PathBuf,
 }
 
@@ -56,10 +56,7 @@ impl CacheBackend for DiskBackend {
     fn store_entry(&mut self, cache_key: &str, entry: &CacheEntry) -> Result<(), CacheError> {
         let path = self.files_dir.join(format!("{cache_key}.json"));
         write_atomic(&path, entry).map_err(|e| {
-            CacheError::Io(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                e.to_string(),
-            ))
+            CacheError::Io(std::io::Error::other(e.to_string()))
         })
     }
 

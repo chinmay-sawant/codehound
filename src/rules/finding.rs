@@ -242,13 +242,8 @@ impl Finding {
         self
     }
 
-    /// Compute a stable cross-run fingerprint.
-    pub fn fingerprint(&self) -> Fingerprint {
-        Fingerprint::from_finding(self)
-    }
-
     /// Convenience string form for wire output.
     pub fn fingerprint_string(&self) -> String {
-        self.fingerprint().to_string()
+        Fingerprint::from_finding(self).to_string()
     }
 }

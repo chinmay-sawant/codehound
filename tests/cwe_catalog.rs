@@ -1,7 +1,4 @@
-use slopguard::cwe::{
-    CWE_CATALOG, CWE_REFS_400_1336, CWE_REFS_407, CWE_REFS_770, CWE_REFS_770_400,
-    builtin_rule_catalogue, default_ruleset_path,
-};
+use slopguard::cwe::{CWE_CATALOG, CWE_REFS_400_1336, builtin_rule_catalogue, default_ruleset_path};
 
 #[test]
 fn catalog_has_expected_entries() {
@@ -24,9 +21,6 @@ fn catalog_has_expected_entries() {
 #[test]
 fn ref_slices_have_correct_lengths() {
     assert_eq!(CWE_REFS_400_1336.len(), 2);
-    assert_eq!(CWE_REFS_407.len(), 1);
-    assert_eq!(CWE_REFS_770.len(), 1);
-    assert_eq!(CWE_REFS_770_400.len(), 2);
 }
 
 #[test]

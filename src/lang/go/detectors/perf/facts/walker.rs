@@ -1,12 +1,12 @@
 use tree_sitter::Node;
 
-use crate::ast::{walk_calls_and_assignments, walk_nodes};
+use crate::ast::walk_nodes;
 use crate::core::ParsedUnit;
 use crate::lang::go::CALL_ASSIGN_NODE_KINDS;
 
-use super::super::source_index::PerfSourceIndex;
+use super::super::source_index::{NEEDLES, PerfSourceIndex};
 use super::classifier::{classify_init_only, collect_var_spec_kinds};
-use super::text::{extract_identifiers, split_assignment};
+use crate::lang::assignment::{extract_identifiers, split_assignment};
 use super::types::*;
 
 pub fn build_go_perf_facts(unit: &ParsedUnit) -> GoPerfFacts {
@@ -15,7 +15,7 @@ pub fn build_go_perf_facts(unit: &ParsedUnit) -> GoPerfFacts {
     let mut facts = GoPerfFacts::default();
     let mut interner = SharedTextInterner::default();
 
-    walk_calls_and_assignments(
+    walk_nodes(
         root,
         CALL_ASSIGN_NODE_KINDS,
         &mut |node| match node.kind() {
@@ -40,7 +40,7 @@ pub fn build_go_perf_facts(unit: &ParsedUnit) -> GoPerfFacts {
         collect_var_spec_kinds(spec, src, &mut facts.var_kinds, &mut interner);
     });
 
-    facts.source_index = PerfSourceIndex::build(unit.source.as_ref());
+    facts.source_index = PerfSourceIndex::build(NEEDLES, unit.source.as_ref());
     facts
 }
 

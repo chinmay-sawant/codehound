@@ -1,11 +1,10 @@
-#[doc(hidden)]
+//! Shared assignment-pattern helpers for fact extraction.
+
+/// Split `lhs := rhs`, `lhs = rhs`, or compound assignment (`+=`, `<<=`, …).
 pub fn split_assignment(text: &str) -> Option<(&str, &str)> {
     if let Some((lhs, rhs)) = text.split_once(":=") {
         return Some((lhs.trim(), rhs.trim()));
     }
-    // Split on the first compound assignment operator (`+=`, `-=`, `<<=`,
-    // …) so the operator characters do not leak into the LHS identifier
-    // (e.g. `totalDur += d` → LHS = "totalDur", not "totalDur +").
     const COMPOUND: &[&str] = &[
         "<<=", ">>=", "&^=", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=",
     ];
@@ -19,7 +18,7 @@ pub fn split_assignment(text: &str) -> Option<(&str, &str)> {
     Some((lhs.trim(), rhs.trim()))
 }
 
-#[doc(hidden)]
+/// Extract comma-separated identifier names from an assignment LHS.
 pub fn extract_identifiers(lhs: &str) -> Vec<&str> {
     lhs.split(',')
         .map(str::trim)

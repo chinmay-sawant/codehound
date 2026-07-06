@@ -92,21 +92,32 @@ path = "custom-baseline.json"
 
 #[test]
 fn fail_on_string_maps_to_policy() {
-    use slopguard::core::FailPolicy;
-    use slopguard::engine::fail_on_to_policy;
+    use slopguard::core::{FailPolicy, ScanContext};
+    use slopguard::engine::SlopguardConfig;
 
-    assert!(matches!(fail_on_to_policy("none"), FailPolicy::NoFail));
-    assert!(matches!(fail_on_to_policy("never"), FailPolicy::NoFail));
-    assert!(matches!(fail_on_to_policy("high"), FailPolicy::Strict));
-    assert!(matches!(fail_on_to_policy("strict"), FailPolicy::Strict));
-    assert!(matches!(
-        fail_on_to_policy("medium"),
-        FailPolicy::MediumAsErrors
-    ));
-    assert!(matches!(
-        fail_on_to_policy("warning"),
-        FailPolicy::MediumAsErrors
-    ));
+    let cases = [
+        ("none", FailPolicy::NoFail),
+        ("never", FailPolicy::NoFail),
+        ("high", FailPolicy::Strict),
+        ("strict", FailPolicy::Strict),
+        ("medium", FailPolicy::MediumAsErrors),
+        ("warning", FailPolicy::MediumAsErrors),
+    ];
+
+    for (fail_on, expected) in cases {
+        let config: SlopguardConfig = toml::from_str(&format!(
+            r#"
+[slopguard]
+fail_on = "{fail_on}"
+"#
+        ))
+        .unwrap();
+        let ctx = config.merge_into(ScanContext::default(), false);
+        assert!(
+            matches!(ctx.fail_policy, policy if std::mem::discriminant(&policy) == std::mem::discriminant(&expected)),
+            "fail_on={fail_on:?}"
+        );
+    }
 }
 
 #[test]
@@ -155,7 +166,7 @@ fn runtime_include_exclude_filters_apply_during_collection() {
     materialize_tree(Path::new("tests/fixtures")).expect("materialize");
 
     let analyzer = Analyzer::builder()
-        .with_default_filter()
+        
         .path_filters(PathFilters {
             include: vec!["**/*.go".to_string()],
             exclude: vec!["**/frameworks/**".to_string()],

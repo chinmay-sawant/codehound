@@ -231,9 +231,15 @@ fn structured_output_builders_chain_and_serialize() {
         Severity::High,
         Cow::Borrowed(&[]),
     ))
-    .with_evidence(DetectorEvidence::DangerousCall {
-        function: "exec.Command".to_string(),
-        argument_index: Some(1),
+    .with_evidence(DetectorEvidence::TaintFlow {
+        source: slopguard::rules::TaintSourceInfo {
+            kind: "UserInput".to_string(),
+            function: "r.URL.Query".to_string(),
+            variable: "host".to_string(),
+        },
+        sink: slopguard::rules::TaintSinkInfo::new("CommandExec", "exec.Command"),
+        hops: 1,
+        sanitized: false,
     })
     .with_confidence(0.8)
     .with_tags(vec!["needs-review".to_string()])
@@ -242,10 +248,11 @@ fn structured_output_builders_chain_and_serialize() {
 
     assert!(matches!(
         f.evidence,
-        Some(DetectorEvidence::DangerousCall {
-            ref function,
-            argument_index: Some(1),
-        }) if function == "exec.Command"
+        Some(DetectorEvidence::TaintFlow {
+            ref sink,
+            hops: 1,
+            ..
+        }) if sink.function == "exec.Command"
     ));
     assert_eq!(f.confidence, Some(0.8));
     assert_eq!(f.tags.as_deref(), Some(&["needs-review".to_string()][..]));
@@ -256,7 +263,7 @@ fn structured_output_builders_chain_and_serialize() {
     );
 
     let value: serde_json::Value = serde_json::to_value(&f).unwrap();
-    assert_eq!(value["evidence"]["kind"], "DangerousCall");
+    assert_eq!(value["evidence"]["kind"], "TaintFlow");
     assert!((value["confidence"].as_f64().unwrap() - 0.8).abs() < 0.000_001);
     assert_eq!(value["tags"][0], "needs-review");
     assert_eq!(value["suppressed"], true);

@@ -18,5 +18,7 @@ pub struct TaintPath {
 }
 
 pub use build::build_taint_graph;
-pub use query::{find_taint_paths, find_taint_paths_from_nodes};
+pub use query::{
+    find_taint_paths, find_taint_paths_from_nodes, forward_reaches_any, unsanitized_reaches_any,
+};
 pub use summary::compute_all_summaries;

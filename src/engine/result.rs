@@ -45,18 +45,6 @@ impl ScanErrorKind {
     }
 }
 
-impl std::fmt::Display for ScanErrorKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = match self {
-            ScanErrorKind::Io => "io",
-            ScanErrorKind::Encoding => "encoding",
-            ScanErrorKind::Parse => "parse",
-            ScanErrorKind::Engine => "engine",
-        };
-        f.write_str(s)
-    }
-}
-
 /// Accumulates per-chunk [`MergedScan`](crate::engine::walk::MergedScan)
 /// results into a single [`AnalysisResult`]. Encapsulates the chunk-merge
 /// logic so that adding a new pipeline field touches one file (this one)
@@ -68,6 +56,7 @@ impl std::fmt::Display for ScanErrorKind {
 /// 1. Add the field to [`ScanEntryResult`](crate::engine::walk::scan_entry::ScanEntryResult)
 /// 2. Add the field to [`MergedScan`](crate::engine::walk::MergedScan)
 /// 3. Wire it in `merge_chunk`
+///
 /// That's one accumulator method change instead of 8+ edits across 3 files.
 #[derive(Debug)]
 pub(crate) struct PipelineAccumulator {

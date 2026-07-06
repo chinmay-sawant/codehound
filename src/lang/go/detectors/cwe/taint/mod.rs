@@ -25,5 +25,5 @@ pub use rules::{
 
 pub use graph_query::{
     TaintPath, build_taint_graph, compute_all_summaries, find_taint_paths,
-    find_taint_paths_from_nodes,
+    find_taint_paths_from_nodes, forward_reaches_any, unsanitized_reaches_any,
 };

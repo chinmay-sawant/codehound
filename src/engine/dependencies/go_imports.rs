@@ -5,7 +5,7 @@ use std::path::Path;
 
 use tree_sitter::Node;
 
-use super::entry::{extensions, resolve_local_path};
+use super::entry::{extensions_for, resolve_local_path};
 
 pub(super) fn extract(
     root: &Node,
@@ -116,7 +116,7 @@ fn resolve_and_add(
         return;
     }
     let abs = project_root.join(local);
-    let exts = extensions(crate::core::LanguageId::Go);
+    let exts = extensions_for(crate::core::LanguageId::Go);
     if let Some(paths) = resolve_local_path(&abs, exts) {
         for p in paths {
             out.push(p.display().to_string().replace('\\', "/"));

@@ -1,5 +1,4 @@
 use super::super::super::facts::GoPerfFacts;
-use super::super::super::source_index::PerfSourceIndex;
 
 pub(crate) fn call_in_loop_with(facts: &GoPerfFacts, needles: &[&str]) -> Option<usize> {
     facts.calls.iter().find_map(|c| {
@@ -9,10 +8,6 @@ pub(crate) fn call_in_loop_with(facts: &GoPerfFacts, needles: &[&str]) -> Option
             None
         }
     })
-}
-
-pub(crate) fn has_any(index: &PerfSourceIndex, needles: &[&str]) -> bool {
-    index.has_any(needles)
 }
 
 /// Substring-level presence check (not backed by the file-level index).

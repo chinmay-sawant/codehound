@@ -544,39 +544,4 @@ pub const NEEDLES: &[&str] = &[
     "|=",
 ];
 
-/// Precomputed presence of [`NEEDLES`] for one source file.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PerfSourceIndex {
-    flags: Vec<bool>,
-}
-
-impl Default for PerfSourceIndex {
-    fn default() -> Self {
-        Self {
-            flags: vec![false; NEEDLES.len()],
-        }
-    }
-}
-
-impl PerfSourceIndex {
-    pub fn build(source: &str) -> Self {
-        let flags = NEEDLES
-            .iter()
-            .map(|needle| source.contains(needle))
-            .collect();
-        Self { flags }
-    }
-
-    #[inline]
-    pub fn has(&self, needle: &str) -> bool {
-        let Some(idx) = NEEDLES.iter().position(|n| *n == needle) else {
-            return false;
-        };
-        self.flags.get(idx).copied().unwrap_or(false)
-    }
-
-    #[inline]
-    pub fn has_any(&self, needles: &[&str]) -> bool {
-        needles.iter().any(|n| self.has(n))
-    }
-}
+pub use crate::lang::source_index::SourceIndex as PerfSourceIndex;

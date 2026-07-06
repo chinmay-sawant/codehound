@@ -35,22 +35,17 @@ impl Analyzer {
         mut cache: Option<&mut CacheStore>,
     ) -> Result<AnalysisResult, Error> {
         let mut timing = timing::TimingCollector::new(self.collect_stats);
-        let scan_root = paths
+        let start = paths
             .first()
-            .map(|p| {
-                let path = p.as_ref();
-                if path.is_file() {
-                    path.parent().unwrap_or(path).to_path_buf()
-                } else {
-                    path.to_path_buf()
-                }
-            })
-            .unwrap_or_else(|| self.project_root.clone());
-        let project_root = paths
-            .first()
-            .map(|p| discover_project_root(p.as_ref()))
-            .unwrap_or_else(|| self.project_root.clone());
-        let module_prefix = go_module_prefix(&project_root).or_else(|| self.module_prefix.clone());
+            .map(|p| p.as_ref())
+            .unwrap_or_else(|| Path::new("."));
+        let scan_root = if start.is_file() {
+            start.parent().unwrap_or(start).to_path_buf()
+        } else {
+            start.to_path_buf()
+        };
+        let project_root = discover_project_root(start);
+        let module_prefix = go_module_prefix(&project_root);
         let dependency_root = if module_prefix.is_some() {
             project_root
         } else {
@@ -132,7 +127,7 @@ impl Analyzer {
 
         // Project-level analysis: let detectors emit cross-file findings.
         let det_idx = timing.start("detector_finalize");
-        for idx in self.registry.detector_indices_for_project() {
+        for &idx in self.registry.detector_indices_for_project() {
             self.registry
                 .detector(idx)
                 .finalize(&self.ctx, acc.findings_mut());
@@ -157,7 +152,8 @@ impl Analyzer {
             stats: None,
         };
         if self.collect_stats {
-            let mut scan_stats = ScanStats::from_result(&result);
+            let mut scan_stats =
+                ScanStats::from_findings(&result.findings, result.suppressed_count);
             scan_stats.files_scanned = chunk_stats.files_scanned;
             scan_stats.files_skipped = chunk_stats.files_skipped;
             scan_stats.files_errored = chunk_stats.files_errored;

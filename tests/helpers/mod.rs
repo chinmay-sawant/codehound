@@ -137,7 +137,7 @@ pub fn assert_mixed_txt_fixtures(fixtures_root: &str, go_rules: &[&str], python_
     materialize_tree(Path::new(fixtures_root))
         .unwrap_or_else(|e| panic!("materialize_tree {fixtures_root}: {e:#}"));
 
-    let analyzer = Analyzer::builder().with_default_filter().build();
+    let analyzer = Analyzer::builder().build();
     let result = analyzer
         .analyze_paths(&[materialized_root()], None)
         .unwrap_or_else(|e| panic!("analyze materialized fixtures: {e:#}"));

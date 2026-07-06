@@ -8,7 +8,7 @@ function = "detect_cwe_76"
 [[detector]]
 cwe = 79
 domain = "input_validation"
-function = "detect_cwe_79"
+function = "detect_cwe_79_taint"
 
 [[detector]]
 cwe = 140

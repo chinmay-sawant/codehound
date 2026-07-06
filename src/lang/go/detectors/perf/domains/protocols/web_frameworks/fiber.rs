@@ -13,7 +13,7 @@ use crate::rules::{Finding, emit};
 pub(crate) fn detect_perf_91(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let _source = unit.source.as_ref();
-    if !index_matches_any(&facts.source_index, FIBER_MARKERS) {
+    if !facts.source_index.has_any(FIBER_MARKERS) {
         return;
     }
     if facts.source_index.has("sync.Pool") || facts.source_index.has("bytePool") {
@@ -44,7 +44,7 @@ pub(crate) fn detect_perf_91(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 pub(crate) fn detect_perf_92(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
-    if !index_matches_any(&facts.source_index, FIBER_MARKERS) {
+    if !facts.source_index.has_any(FIBER_MARKERS) {
         return;
     }
     walk_nodes(unit.tree.root_node(), &["go_statement"], &mut |node| {
@@ -55,7 +55,13 @@ pub(crate) fn detect_perf_92(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         if text.contains("c.UserContext()") || text.contains("c.Context()") {
             return;
         }
-        if body_has_identifier(text, "c") {
+        let bytes = text.as_bytes();
+        let captures_c = bytes.iter().enumerate().any(|(idx, &b)| {
+            b == b'c'
+                && (idx == 0 || !is_ident_byte(bytes[idx - 1]))
+                && (idx + 1 == bytes.len() || !is_ident_byte(bytes[idx + 1]))
+        });
+        if captures_c {
             let (line, col) = unit.line_col(node.start_byte());
             emit::push_finding(
                 &META_PERF_92,
@@ -74,7 +80,7 @@ pub(crate) fn detect_perf_92(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 pub(crate) fn detect_perf_93(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let _source = unit.source.as_ref();
-    if !index_matches_any(&facts.source_index, FIBER_MARKERS) {
+    if !facts.source_index.has_any(FIBER_MARKERS) {
         return;
     }
     if facts.source_index.has("encoderPool") || facts.source_index.has("jsonPool") {
@@ -104,7 +110,7 @@ pub(crate) fn detect_perf_93(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 pub(crate) fn detect_perf_94(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let _source = unit.source.as_ref();
-    if !index_matches_any(&facts.source_index, FIBER_MARKERS) {
+    if !facts.source_index.has_any(FIBER_MARKERS) {
         return;
     }
     for call in &facts.calls {

@@ -13,7 +13,7 @@ use crate::rules::{Finding, emit};
 pub(crate) fn detect_perf_100(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
-    if !index_matches_any(&facts.source_index, COBRA_MARKERS) {
+    if !facts.source_index.has_any(COBRA_MARKERS) {
         return;
     }
     let mut flag_count = 0usize;

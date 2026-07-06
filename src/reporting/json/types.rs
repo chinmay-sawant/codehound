@@ -6,7 +6,7 @@ use serde::Serialize;
 use crate::cwe::CweRef;
 use crate::engine::AnalysisResult;
 use crate::engine::ScanStats;
-use crate::rules::{DetectorEvidence, TaintSinkInfo, category_for_rule_id};
+use crate::rules::{category_for_rule_id, is_false};
 
 /// JSON shape used in the envelope mode. The inner `findings` field is a
 /// `Vec<FindingJson>` so we can attach a `fingerprint` per finding.
@@ -84,10 +84,6 @@ pub struct FindingJson<'a> {
     pub taint_show_paths: Option<bool>,
 }
 
-fn is_false(value: &bool) -> bool {
-    !*value
-}
-
 /// `CweRef` with `id` rendered as `"CWE-N"`.
 #[derive(Serialize)]
 #[doc(hidden)]
@@ -136,18 +132,10 @@ impl<'a> From<&'a crate::rules::Finding> for FindingJson<'a> {
             tags: f.tags.as_deref(),
             suppressed: f.suppressed,
             remediation: f.remediation.as_deref(),
-            taint_show_paths: taint_show_paths_flag(f.evidence.as_ref()),
+            taint_show_paths: f
+                .evidence
+                .as_ref()
+                .and_then(crate::rules::DetectorEvidence::taint_show_paths_flag),
         }
     }
-}
-
-fn taint_show_paths_flag(evidence: Option<&crate::rules::DetectorEvidence>) -> Option<bool> {
-    match evidence {
-        Some(DetectorEvidence::TaintFlow { sink, .. }) if has_hop_details(sink) => Some(true),
-        _ => None,
-    }
-}
-
-fn has_hop_details(sink: &TaintSinkInfo) -> bool {
-    !sink.hop_details.is_empty()
 }

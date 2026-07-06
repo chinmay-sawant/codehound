@@ -1,9 +1,3 @@
-use super::super::super::source_index::PerfSourceIndex;
-
-pub(crate) fn index_matches_any(index: &PerfSourceIndex, needles: &[&str]) -> bool {
-    index.has_any(needles)
-}
-
 pub(crate) const FIBER_MARKERS: &[&str] = &[
     "*fiber.Ctx",
     "fiber.Ctx",
@@ -105,26 +99,6 @@ pub(crate) const FLAG_METHOD_SFX: &[&str] = &[
     ".StringSlice(",
     ".StringArray(",
 ];
-
-pub(crate) fn body_has_identifier(body: &str, word: &str) -> bool {
-    let bytes = body.as_bytes();
-    let wlen = word.len();
-    if wlen == 0 || bytes.len() < wlen {
-        return false;
-    }
-    let mut idx = 0;
-    while idx + wlen <= bytes.len() {
-        if &bytes[idx..idx + wlen] == word.as_bytes() {
-            let before_ok = idx == 0 || !is_ident_byte(bytes[idx - 1]);
-            let after_ok = idx + wlen == bytes.len() || !is_ident_byte(bytes[idx + wlen]);
-            if before_ok && after_ok {
-                return true;
-            }
-        }
-        idx += 1;
-    }
-    false
-}
 
 pub(crate) fn is_ident_byte(b: u8) -> bool {
     b.is_ascii_alphanumeric() || b == b'_'

@@ -17,7 +17,7 @@ fn go_cwe_fixtures_fire_vulnerable_and_silence_safe() {
         for suite in ["frameworks", "stdlib"] {
             let vulnerable = go_cwe_cases::fixture_path(suite, cwe, true);
             let safe = go_cwe_cases::fixture_path(suite, cwe, false);
-            let analyzer = Analyzer::builder().with_default_filter().build();
+            let analyzer = Analyzer::builder().build();
             if let Err(e) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 helpers::assert_fixture_rules(&vulnerable, &[cwe.as_str()], &analyzer);
                 helpers::assert_fixture_rules(&safe, &[], &analyzer);
@@ -64,7 +64,7 @@ fn taint_cwe_fixtures_fire_vulnerable_and_silence_safe() {
         ..ScanContext::default()
     };
     let analyzer = Analyzer::builder()
-        .with_default_filter()
+        
         .scan_context(ctx)
         .build();
 
@@ -98,7 +98,7 @@ fn framework_cwe_393_safe_does_not_false_positive_cwe_89() {
         ..ScanContext::default()
     };
     let analyzer = Analyzer::builder()
-        .with_default_filter()
+        
         .scan_context(ctx)
         .build();
     let safe =

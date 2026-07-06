@@ -93,17 +93,23 @@ fn json_emits_structured_fields_when_set() {
         Severity::High,
         Cow::Borrowed(&[]),
     ))
-    .with_evidence(DetectorEvidence::DangerousCall {
-        function: "exec.Command".to_string(),
-        argument_index: Some(0),
+    .with_evidence(DetectorEvidence::TaintFlow {
+        source: TaintSourceInfo {
+            kind: "UserInput".into(),
+            function: "r.URL.Query".into(),
+            variable: "host".into(),
+        },
+        sink: TaintSinkInfo::new("CommandExec", "exec.Command"),
+        hops: 1,
+        sanitized: false,
     })
     .with_confidence(0.75)
     .with_tags(vec!["needs-review".to_string()])
     .with_remediation("Use an allowlisted command.");
     let value = serde_json::to_value(FindingJson::from(&finding)).unwrap();
 
-    assert_eq!(value["evidence"]["kind"], "DangerousCall");
-    assert_eq!(value["evidence"]["function"], "exec.Command");
+    assert_eq!(value["evidence"]["kind"], "TaintFlow");
+    assert_eq!(value["evidence"]["sink"]["function"], "exec.Command");
     assert_eq!(value["confidence"], 0.75);
     assert_eq!(value["tags"][0], "needs-review");
     assert_eq!(value["remediation"], "Use an allowlisted command.");
@@ -162,9 +168,15 @@ fn legacy_json_consumers_ignore_structured_fields() {
         Severity::High,
         Cow::Borrowed(&[]),
     ))
-    .with_evidence(DetectorEvidence::DangerousCall {
-        function: "exec.Command".to_string(),
-        argument_index: Some(0),
+    .with_evidence(DetectorEvidence::TaintFlow {
+        source: TaintSourceInfo {
+            kind: "UserInput".into(),
+            function: "r.URL.Query".into(),
+            variable: "host".into(),
+        },
+        sink: TaintSinkInfo::new("CommandExec", "exec.Command"),
+        hops: 1,
+        sanitized: false,
     })
     .with_confidence(0.75)
     .with_tags(vec!["needs-review".to_string()])

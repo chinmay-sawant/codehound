@@ -39,7 +39,7 @@ fn manifest_entries_exist_and_fire() {
             ScanContext::default()
         };
         let analyzer = Analyzer::builder()
-            .with_default_filter()
+            
             .scan_context(ctx)
             .path_filters(PathFilters {
                 exclude_tests: !fixture_materializes_test_file(&entry.path),

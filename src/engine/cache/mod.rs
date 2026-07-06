@@ -19,13 +19,13 @@ mod types;
 
 use std::path::PathBuf;
 
-pub use backend::CacheBackend;
-pub use disk::DiskBackend;
+pub(crate) use backend::CacheBackend;
+pub(crate) use disk::DiskBackend;
 pub use hash::{cache_key_for_path, content_hash};
-pub use memory::InMemoryBackend;
+pub(crate) use io::write_atomic;
+pub(crate) use memory::InMemoryBackend;
 pub use types::{
-    CACHE_VERSION, CacheEntry, CacheError, CacheLookup, CacheManifest, CacheMetadata,
-    DEFAULT_CACHE_DIR, FileCacheMeta,
+    CACHE_VERSION, CacheEntry, CacheError, CacheLookup, CacheManifest, DEFAULT_CACHE_DIR,
 };
 
 /// Cache: entry storage, manifest, invalidation, eviction.

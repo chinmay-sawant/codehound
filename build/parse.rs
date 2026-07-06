@@ -65,8 +65,8 @@ pub fn parse_rules(parsed: &serde_json::Value) -> Vec<JsonRule> {
             id,
             name,
             description,
-            original_description,
-            category,
+            _original_description: original_description,
+            _category: category,
             detection_notes,
             severity,
         });

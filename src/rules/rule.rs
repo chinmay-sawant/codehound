@@ -22,8 +22,3 @@ pub struct RuleMetadata {
     /// Suggested fix or note.
     pub fix: Option<&'static str>,
 }
-
-/// Trait implemented by all rule metadata.
-pub trait Rule {
-    fn metadata(&self) -> RuleMetadata;
-}

@@ -3,20 +3,6 @@ use slopguard::rules::{
 };
 
 #[test]
-fn dangerous_call_evidence_round_trips() {
-    let evidence = DetectorEvidence::DangerousCall {
-        function: "exec.Command".to_string(),
-        argument_index: Some(1),
-    };
-
-    let json = serde_json::to_string(&evidence).unwrap();
-    let parsed: DetectorEvidence = serde_json::from_str(&json).unwrap();
-
-    assert_eq!(parsed, evidence);
-    assert!(json.contains("\"kind\":\"DangerousCall\""), "{json}");
-}
-
-#[test]
 fn taint_flow_evidence_round_trips() {
     let evidence = DetectorEvidence::TaintFlow {
         source: TaintSourceInfo {
@@ -74,19 +60,6 @@ fn taint_flow_with_hops_includes_hop_details_in_json() {
 
     // Round-trip should preserve hop_details.
     let parsed: DetectorEvidence = serde_json::from_str(&json).unwrap();
-    assert_eq!(parsed, evidence);
-}
-
-#[test]
-fn missing_config_evidence_round_trips() {
-    let evidence = DetectorEvidence::DangerousCall {
-        function: "ServerConfig.TLSConfig".into(),
-        argument_index: None,
-    };
-
-    let parsed: DetectorEvidence =
-        serde_json::from_str(&serde_json::to_string(&evidence).unwrap()).unwrap();
-
     assert_eq!(parsed, evidence);
 }
 

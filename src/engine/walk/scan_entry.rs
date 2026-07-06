@@ -6,10 +6,7 @@ use std::sync::Arc;
 use crate::ast;
 use crate::core::{LanguagePlugin, ParsedUnit, ScanContext};
 use crate::engine::dependencies::extract_dependencies;
-use crate::engine::ignore::{
-    IgnoreDirective, apply_file_ignore, apply_inline_ignores, parse_file_ignore,
-    parse_inline_ignores,
-};
+use crate::engine::ignore::{IgnoreDirective, apply_ignores, parse_file_ignore};
 use crate::engine::parse_pool::ParsePool;
 use crate::engine::registry::Registry;
 use crate::engine::result::{ScanError, ScanErrorKind};
@@ -117,8 +114,8 @@ fn analyze_parsed_entry(
     unit: &mut ParsedUnit,
     stats: &mut ScanStats,
     file_stats: FileStats,
+    file_ignore: Option<IgnoreDirective>,
 ) -> (Vec<Finding>, usize) {
-    let file_ignore = parse_file_ignore(unit.source.as_ref());
     if !ctx.show_ignored && file_ignore.as_ref().is_some_and(IgnoreDirective::is_all) {
         stats.record_file(file_stats.bytes, file_stats.lines);
         return (Vec::new(), 0);
@@ -133,17 +130,17 @@ fn analyze_parsed_entry(
     let (mut findings, rules_executed) = analyze_parsed_unit(registry, ctx, unit);
     timing::global_stop(det_idx);
     // per-finding rule filter — consistent with cache hit path (filter_cached_findings)
-    findings.retain(|f| ctx.allows(&f.rule_id));
+    findings.retain(|f| ctx.allows(f.rule_id));
     for f in &mut findings {
         ctx.apply_finding_overrides(f);
     }
     attach_function_context(&mut findings, plugin, unit);
-    let mut suppressed_count =
-        apply_file_ignore(&mut findings, file_ignore.as_ref(), ctx.show_ignored);
-    if file_ignore.is_none() {
-        let inline_ignores = parse_inline_ignores(unit.source.as_ref());
-        suppressed_count += apply_inline_ignores(&mut findings, &inline_ignores, ctx.show_ignored);
-    }
+    let suppressed_count = apply_ignores(
+        ctx,
+        unit.source.as_ref(),
+        &mut findings,
+        file_ignore.as_ref(),
+    );
 
     stats.record_file(file_stats.bytes, file_stats.lines);
     stats.findings_total = findings.len();
@@ -201,8 +198,15 @@ pub(crate) fn scan_entry(
         });
     }
 
-    let (findings, suppressed_count) =
-        analyze_parsed_entry(registry, ctx, plugin, &mut unit, &mut stats, file_stats);
+    let (findings, suppressed_count) = analyze_parsed_entry(
+        registry,
+        ctx,
+        plugin,
+        &mut unit,
+        &mut stats,
+        file_stats,
+        file_ignore,
+    );
 
     Ok(ScanEntryResult {
         findings,
@@ -221,23 +225,17 @@ pub(crate) fn scan_entry(
 /// falls back to its snippet / small-window path.
 pub(super) fn attach_function_context(
     findings: &mut [Finding],
-    plugin: &dyn LanguagePlugin,
+    _plugin: &dyn LanguagePlugin,
     unit: &ParsedUnit,
 ) {
     if findings.is_empty() {
         return;
     }
 
-    let spans = if !unit.function_spans.is_empty() {
-        &unit.function_spans
-    } else {
-        let kinds = plugin.function_node_kinds();
-        if kinds.is_empty() {
-            return;
-        }
-        let _ = kinds;
+    if unit.function_spans.is_empty() {
         return;
-    };
+    }
+    let spans = &unit.function_spans;
     for finding in findings.iter_mut() {
         if let Some(span) = ast::enclosing_function(spans, finding.line) {
             finding.function_start_byte = Some(span.start_byte);

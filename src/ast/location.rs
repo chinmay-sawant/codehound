@@ -1,16 +1,5 @@
 //! Line/column from byte offset.
 
-use tree_sitter::Tree;
-
-/// 1-indexed `(line, column)` for a byte offset in `tree`. O(tree depth).
-pub fn line_col(tree: &Tree, byte_offset: usize) -> (usize, usize) {
-    tree.root_node()
-        .descendant_for_byte_range(byte_offset, byte_offset)
-        .map_or((1, 1), |n| {
-            (n.start_position().row + 1, n.start_position().column + 1)
-        })
-}
-
 /// 1-indexed `(line, column)` for a byte offset using a precomputed per-line
 /// start-offset table. O(log N) — used on the detector hot path where
 /// `line_col` is called up to ~175 times per file.

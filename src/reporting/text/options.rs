@@ -1,4 +1,4 @@
-//! `TextOptions` type and convenience entry points (`print`, `print_with_options`).
+//! `TextOptions` type and the `print_with_options` entry point.
 
 use std::io;
 
@@ -16,29 +16,13 @@ pub struct TextOptions {
     pub debug_timing: bool,
 }
 
-/// Write a human-readable finding report to stdout.
-///
-/// # Errors
-///
-/// Returns [`Error`] when formatting or stdout write fails.
-#[must_use = "I/O errors from writing text output must be handled"]
-pub fn print(result: &AnalysisResult) -> Result<(), Error> {
-    print_with_options(
-        result,
-        TextOptions {
-            color: true,
-            ..TextOptions::default()
-        },
-    )
-}
-
 /// Write a human-readable finding report with custom formatting options.
 ///
 /// # Errors
 ///
 /// Returns [`Error`] when formatting or stdout write fails.
 #[must_use = "I/O errors from writing text output must be handled"]
-pub fn print_with_options(result: &AnalysisResult, options: TextOptions) -> Result<(), Error> {
+pub(crate) fn print_with_options(result: &AnalysisResult, options: TextOptions) -> Result<(), Error> {
     let stdout = io::stdout();
     let mut out = stdout.lock();
     write_with_options(&mut out, result, options)

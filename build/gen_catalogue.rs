@@ -17,15 +17,11 @@ pub fn generate_rule_catalogue_code(rules: &[JsonRule]) -> String {
              \x20           id: \"{}\".into(),\n\
              \x20           name: \"{}\".into(),\n\
              \x20           description: \"{}\".into(),\n\
-             \x20           original_description: \"{}\".into(),\n\
-             \x20           category: \"{}\".into(),\n\
              \x20           detection_notes: \"{}\".into(),\n\
              \x20       }},\n",
             escape_rust_string(&rule.id),
             escape_rust_string(&rule.name),
             escape_rust_string(&rule.description),
-            escape_rust_string(&rule.original_description),
-            escape_rust_string(&rule.category),
             escape_rust_string(&rule.detection_notes),
         ));
     }

@@ -29,7 +29,7 @@ fn scan_with_context(
     ctx: ScanContext,
 ) -> Vec<String> {
     let analyzer = Analyzer::builder()
-        .with_default_filter()
+        
         .scan_context(ctx)
         .build();
     let result = analyzer
@@ -63,7 +63,7 @@ fn first_run_writes_cache_second_run_reads_it() {
     // is rewritten but should still cover the file.
     let second = scan_with_cache(&root, Some(&mut cache));
     assert_eq!(first, second);
-    assert_eq!(cache.len(), 1, "expected one tracked file");
+    assert_eq!(cache.manifest().files.len(), 1, "expected one tracked file");
 
     std::fs::remove_dir_all(root).unwrap();
 }
@@ -78,7 +78,7 @@ fn changing_source_invalidates_cache_entry() {
     let cache_dir = root.join(DEFAULT_CACHE_DIR);
     let mut cache = CacheStore::open_with_capacity(cache_dir, 500).unwrap();
     let _ = scan_with_cache(&root, Some(&mut cache));
-    assert_eq!(cache.len(), 1);
+    assert_eq!(cache.manifest().files.len(), 1);
 
     // Modify the file: a new line at the end changes the content hash.
     let mut body = std::fs::read_to_string(&source).unwrap();
@@ -106,11 +106,14 @@ fn deleting_a_file_prunes_its_cache_entry() {
     let cache_dir = root.join(DEFAULT_CACHE_DIR);
     let mut cache = CacheStore::open_with_capacity(cache_dir, 500).unwrap();
     let _ = scan_with_cache(&root, Some(&mut cache));
-    assert_eq!(cache.len(), 1);
+    assert_eq!(cache.manifest().files.len(), 1);
 
     std::fs::remove_file(&source).unwrap();
     let _ = scan_with_cache(&root, Some(&mut cache));
-    assert!(cache.is_empty(), "deleted file's entry should be pruned");
+    assert!(
+        cache.manifest().files.is_empty(),
+        "deleted file's entry should be pruned"
+    );
 
     std::fs::remove_dir_all(root).unwrap();
 }
@@ -170,7 +173,10 @@ fn oversized_files_are_scanned_but_not_cached() {
         !findings.is_empty(),
         "oversized file should still be scanned"
     );
-    assert!(cache.is_empty(), "oversized file should not be cached");
+    assert!(
+        cache.manifest().files.is_empty(),
+        "oversized file should not be cached"
+    );
 
     fs::remove_dir_all(root).unwrap();
 }

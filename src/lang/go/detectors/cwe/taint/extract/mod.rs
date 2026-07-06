@@ -1,6 +1,5 @@
 //! Single-pass tree-sitter extraction of taint-relevant facts.
 
-mod assignments;
 mod call_graph;
 mod classify;
 mod imports;

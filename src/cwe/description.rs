@@ -34,12 +34,6 @@ pub struct RuleDescription {
     pub id: String,
     pub name: String,
     pub description: String,
-    /// Retained for deserialization from the auto-generated rule catalogue.
-    #[allow(dead_code)]
-    #[serde(default)]
-    pub original_description: String,
-    #[serde(default)]
-    pub category: String,
     #[serde(default)]
     pub detection_notes: String,
 }

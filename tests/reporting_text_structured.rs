@@ -2,7 +2,9 @@ use std::borrow::Cow;
 
 use slopguard::engine::AnalysisResult;
 use slopguard::reporting::text::{TextOptions, write_with_options};
-use slopguard::rules::{DetectorEvidence, Finding, FindingInputs, LineCol, Severity};
+use slopguard::rules::{
+    DetectorEvidence, Finding, FindingInputs, LineCol, Severity, TaintSinkInfo, TaintSourceInfo,
+};
 
 #[path = "helpers/mod.rs"]
 mod helpers;
@@ -20,9 +22,15 @@ fn one_structured_finding_result() -> AnalysisResult {
         Severity::High,
         Cow::Borrowed(&[]),
     ))
-    .with_evidence(DetectorEvidence::DangerousCall {
-        function: "exec.Command".to_string(),
-        argument_index: Some(0),
+    .with_evidence(DetectorEvidence::TaintFlow {
+        source: TaintSourceInfo {
+            kind: "UserInput".to_string(),
+            function: "r.URL.Query".to_string(),
+            variable: "host".to_string(),
+        },
+        sink: TaintSinkInfo::new("CommandExec", "exec.Command"),
+        hops: 1,
+        sanitized: false,
     })
     .with_confidence(0.75)
     .with_tags(vec!["needs-review".to_string(), "heuristic".to_string()])
@@ -78,7 +86,9 @@ fn verbose_text_output_shows_evidence_summary() {
     let rendered = String::from_utf8(out).unwrap();
 
     assert!(
-        rendered.contains("evidence: dangerous call `exec.Command` argument 0"),
+        rendered.contains(
+            "evidence: taint flow UserInput.r.URL.Query -> CommandExec.exec.Command across 1 hop"
+        ),
         "{rendered}"
     );
 }

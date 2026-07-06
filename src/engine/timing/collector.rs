@@ -15,7 +15,9 @@ static GLOBAL: Mutex<Option<TimingCollector>> = Mutex::new(None);
 
 /// Initialise the global collector for the scope of a scan chunk.
 pub(crate) fn init_global(enabled: bool) {
-    *GLOBAL.lock().unwrap() = Some(TimingCollector::new(enabled));
+    *GLOBAL
+        .lock()
+        .expect("global timing collector mutex poisoned") = Some(TimingCollector::new(enabled));
 }
 
 /// Start a span on the global collector. Returns the span index (0 when
@@ -23,7 +25,7 @@ pub(crate) fn init_global(enabled: bool) {
 pub(crate) fn global_start(name: &'static str) -> usize {
     GLOBAL
         .lock()
-        .unwrap()
+        .expect("global timing collector mutex poisoned")
         .as_mut()
         .map(|c| c.start(name))
         .unwrap_or(0)
@@ -31,14 +33,21 @@ pub(crate) fn global_start(name: &'static str) -> usize {
 
 /// Stop a span started with [`global_start`].
 pub(crate) fn global_stop(idx: usize) {
-    if let Some(ref mut c) = *GLOBAL.lock().unwrap() {
+    if let Some(ref mut c) = *GLOBAL
+        .lock()
+        .expect("global timing collector mutex poisoned")
+    {
         c.stop(idx);
     }
 }
 
 /// Drain the global collector into `target`. Resets the global to `None`.
 pub(crate) fn drain_global(target: &mut TimingCollector) {
-    if let Some(c) = GLOBAL.lock().unwrap().take() {
+    if let Some(c) = GLOBAL
+        .lock()
+        .expect("global timing collector mutex poisoned")
+        .take()
+    {
         target.merge(&c);
     }
 }
@@ -54,10 +63,16 @@ pub(crate) fn drain_global(target: &mut TimingCollector) {
 pub fn with_timing<R>(f: impl FnOnce() -> R) -> (R, Option<TimingSummary>) {
     init_global(true);
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f));
-    let summary = GLOBAL.lock().unwrap().take().map(|c| c.to_summary());
+    let summary = GLOBAL
+        .lock()
+        .expect("global timing collector mutex poisoned")
+        .take()
+        .map(|c| c.to_summary());
     // Reset even if the closure panicked so the global is clean for the
     // next test.
-    *GLOBAL.lock().unwrap() = None;
+    *GLOBAL
+        .lock()
+        .expect("global timing collector mutex poisoned") = None;
     match result {
         Ok(val) => (val, summary),
         Err(e) => std::panic::resume_unwind(e),
@@ -83,11 +98,6 @@ impl TimingCollector {
             spans: Vec::new(),
             enabled,
         }
-    }
-
-    /// Returns true if this collector will actually record spans.
-    pub fn is_enabled(&self) -> bool {
-        self.enabled
     }
 
     /// Start a span and return its index. If disabled, returns 0 and does nothing.
@@ -150,20 +160,7 @@ impl TimingCollector {
             total += duration;
         }
 
-        let mut phases: Vec<super::summary::PhaseTiming> = by_name
-            .into_iter()
-            .map(|(name, (duration, count))| super::summary::PhaseTiming {
-                name,
-                duration,
-                percentage: if total.is_zero() {
-                    0.0
-                } else {
-                    duration.as_secs_f64() / total.as_secs_f64() * 100.0
-                },
-                count,
-            })
-            .collect();
-        phases.sort_by_key(|b| std::cmp::Reverse(b.duration));
+        let (_, phases) = super::aggregate::aggregate_phases(by_name);
 
         TimingSummary {
             total_wall_time: total,

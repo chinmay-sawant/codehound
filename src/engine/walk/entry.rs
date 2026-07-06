@@ -3,7 +3,7 @@
 //! The [`EntrySource`] trait allows injecting a pre-built entry list for
 //! tests, avoiding filesystem I/O.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
 use ignore::WalkBuilder;
@@ -108,9 +108,6 @@ impl ListEntrySource {
         }
     }
 
-    pub fn with_skipped(entries: Vec<ScanEntry>, skipped: usize) -> Self {
-        Self { entries, skipped }
-    }
 }
 
 impl EntrySource for ListEntrySource {
@@ -137,21 +134,13 @@ impl EntrySource for ListEntrySource {
 ///
 /// Returns [`Error::Walk`] when a walk root path does not exist.
 #[must_use = "entry collection failures must be handled"]
-pub fn collect_entries<I, P>(
+pub fn collect_entries(
     registry: &Registry,
-    paths: I,
+    paths: &[impl AsRef<Path>],
     lang_filter: &LanguageFilter,
     path_filters: &PathFilters,
-) -> Result<(Vec<ScanEntry>, usize), Error>
-where
-    I: IntoIterator<Item = P>,
-    P: AsRef<Path>,
-{
-    let owned: Vec<PathBuf> = paths
-        .into_iter()
-        .map(|p| p.as_ref().to_path_buf())
-        .collect();
-    let refs: Vec<&Path> = owned.iter().map(|p| p.as_path()).collect();
+) -> Result<(Vec<ScanEntry>, usize), Error> {
+    let refs: Vec<&Path> = paths.iter().map(|p| p.as_ref()).collect();
     FilesystemWalker.collect(registry, lang_filter, path_filters, &refs)
 }
 

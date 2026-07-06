@@ -4,6 +4,7 @@
 use std::io::Write;
 
 use crate::Error;
+use crate::cwe::format_cwe_list;
 use crate::engine::AnalysisResult;
 use crate::rules::DetectorEvidence;
 
@@ -21,18 +22,22 @@ pub fn write_with_options(
         writeln!(
             out,
             "{}",
-            styled_green_bold("no slop detected", options.color)
+            with_color(options.color, "no slop detected", || {
+                style::green_bold("no slop detected").to_string()
+            })
         )?;
         write_summary(out, result, options)?;
         return Ok(());
     }
 
     for f in &result.findings {
-        let sev_colored = styled_severity(f.severity, options.color);
+        let sev_colored = with_color(options.color, f.severity.as_str(), || {
+            style::severity(f.severity).to_string()
+        });
         let head = format!(
             "{}  {}  {}:{}:{}",
             sev_colored,
-            styled_rule_id(f.rule_id, options.color),
+            with_color(options.color, f.rule_id, || style::rule_id(f.rule_id).to_string()),
             f.file,
             f.line,
             f.column
@@ -59,25 +64,29 @@ pub fn write_with_options(
         if !options.suppress_snippet {
             if let Some(snip) = &f.snippet {
                 for line in snip.lines() {
-                    writeln!(out, "    {}", styled_dimmed(line, options.color))?;
+                    writeln!(
+                        out,
+                        "    {}",
+                        with_color(options.color, line, || style::dimmed(line).to_string())
+                    )?;
                 }
             }
         }
-        if let Some(cwes) = f.cwe.as_deref() {
-            if !cwes.is_empty() {
-                let mut sorted: Vec<_> = cwes.iter().collect();
-                sorted.sort_by_key(|c| c.id);
-                let list = sorted
-                    .iter()
-                    .map(|c| format!("CWE-{} ({})", c.id, c.name))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                writeln!(out, "  ↳ {}", styled_dimmed(&list, options.color))?;
-            }
+        if let Some(cwes) = f.cwe.as_deref().filter(|cwes| !cwes.is_empty()) {
+            let list = format_cwe_list(cwes);
+            writeln!(
+                out,
+                "  ↳ {}",
+                with_color(options.color, &list, || style::dimmed(&list).to_string())
+            )?;
         }
         if let Some(fix) = &f.fix {
             if !fix.is_empty() {
-                writeln!(out, "  fix: {}", styled_cyan(fix, options.color))?;
+                writeln!(
+                    out,
+                    "  fix: {}",
+                    with_color(options.color, fix, || style::cyan(fix).to_string())
+                )?;
             }
         }
         writeln!(out)?;
@@ -96,55 +105,19 @@ pub fn write_with_options(
     Ok(())
 }
 
-fn styled_severity(severity: crate::rules::Severity, color: bool) -> String {
+fn with_color<T>(color: bool, plain: T, styled: impl FnOnce() -> String) -> String
+where
+    T: ToString,
+{
     if color {
-        style::severity(severity).to_string()
+        styled()
     } else {
-        severity.as_str().to_string()
-    }
-}
-
-fn styled_rule_id(rule_id: &str, color: bool) -> String {
-    if color {
-        style::rule_id(rule_id).to_string()
-    } else {
-        rule_id.to_string()
-    }
-}
-
-fn styled_dimmed(text: &str, color: bool) -> String {
-    if color {
-        style::dimmed(text).to_string()
-    } else {
-        text.to_string()
-    }
-}
-
-fn styled_green_bold(text: &str, color: bool) -> String {
-    if color {
-        style::green_bold(text).to_string()
-    } else {
-        text.to_string()
-    }
-}
-
-fn styled_cyan(text: &str, color: bool) -> String {
-    if color {
-        style::cyan(text).to_string()
-    } else {
-        text.to_string()
+        plain.to_string()
     }
 }
 
 pub(super) fn evidence_summary(evidence: &DetectorEvidence) -> String {
     match evidence {
-        DetectorEvidence::DangerousCall {
-            function,
-            argument_index,
-        } => match argument_index {
-            Some(index) => format!("dangerous call `{function}` argument {index}"),
-            None => format!("dangerous call `{function}`"),
-        },
         DetectorEvidence::TaintFlow {
             source,
             sink,

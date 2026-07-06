@@ -4,7 +4,7 @@ use crate::ast::{nearest_loop, snippet_of, walk_calls};
 use crate::core::{Detector, LanguageId, ParsedUnit, ScanContext};
 use crate::cwe::CWE_REFS_400_1336;
 use crate::lang::python::LOOP_NODE_KINDS;
-use crate::rules::{Finding, Rule, RuleMetadata, Severity, emit};
+use crate::rules::{Finding, RuleMetadata, Severity, emit};
 
 fn is_re_compile_call(node: tree_sitter::Node, src: &[u8]) -> bool {
     let text = node.utf8_text(src).unwrap_or("");
@@ -21,12 +21,6 @@ const SLOP101_META: RuleMetadata = RuleMetadata {
 };
 
 pub struct ReCompileInLoop;
-
-impl Rule for ReCompileInLoop {
-    fn metadata(&self) -> RuleMetadata {
-        SLOP101_META.clone()
-    }
-}
 
 impl Detector for ReCompileInLoop {
     fn language(&self) -> LanguageId {

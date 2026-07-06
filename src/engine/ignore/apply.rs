@@ -2,9 +2,11 @@
 
 use std::collections::HashMap;
 
+use crate::core::ScanContext;
 use crate::rules::{Finding, Severity};
 
 use super::directive::IgnoreDirective;
+use super::parse::parse_inline_ignores;
 
 const SUPPRESSED_TAG: &str = " (suppressed)";
 
@@ -78,6 +80,7 @@ fn apply_directive(
         suppressed += 1;
         if show_ignored {
             finding.severity = Severity::Info;
+            finding.suppressed = true;
             tag_suppressed(finding);
             true
         } else {
@@ -85,4 +88,28 @@ fn apply_directive(
         }
     });
     suppressed
+}
+
+/// Apply file-level and inline ignore directives to `findings`.
+///
+/// `file_ignore` should be the result of [`parse_file_ignore`] on `source` when
+/// the caller has already parsed it once for the file.
+pub(crate) fn apply_ignores(
+    ctx: &ScanContext,
+    source: &str,
+    findings: &mut Vec<Finding>,
+    file_ignore: Option<&IgnoreDirective>,
+) -> usize {
+    if !ctx.show_ignored && file_ignore.is_some_and(IgnoreDirective::is_all) {
+        let count = findings.len();
+        findings.clear();
+        return count;
+    }
+
+    let mut suppressed_count = apply_file_ignore(findings, file_ignore, ctx.show_ignored);
+    if file_ignore.is_none() {
+        let inline_ignores = parse_inline_ignores(source);
+        suppressed_count += apply_inline_ignores(findings, &inline_ignores, ctx.show_ignored);
+    }
+    suppressed_count
 }

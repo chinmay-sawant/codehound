@@ -24,6 +24,13 @@ fn finding_from_meta(
     })
 }
 
+fn apply_fix(meta: &RuleMetadata, finding: Finding) -> Finding {
+    match meta.fix {
+        Some(fix) => finding.with_fix(fix),
+        None => finding,
+    }
+}
+
 /// Static rule metadata used by multiple detectors in one language bundle.
 // ponytail: kept because generated code (build.rs → go_perf_metadata.rs) calls
 // it pervasively (~100+ call sites) in const context where struct literal syntax
@@ -68,10 +75,10 @@ pub fn push_finding_with_evidence(
     evidence: DetectorEvidence,
     out: &mut Vec<Finding>,
 ) {
-    let mut finding = finding_from_meta(meta, file, line, col, message).with_evidence(evidence);
-    if let Some(fix) = meta.fix {
-        finding = finding.with_fix(fix);
-    }
+    let finding = apply_fix(
+        meta,
+        finding_from_meta(meta, file, line, col, message).with_evidence(evidence),
+    );
     out.push(finding);
 }
 
@@ -85,9 +92,9 @@ pub fn push_finding_with_snippet(
     snippet: impl Into<String>,
     out: &mut Vec<Finding>,
 ) {
-    let mut finding = finding_from_meta(meta, file, line, col, message).with_snippet(snippet);
-    if let Some(fix) = meta.fix {
-        finding = finding.with_fix(fix);
-    }
+    let finding = apply_fix(
+        meta,
+        finding_from_meta(meta, file, line, col, message).with_snippet(snippet),
+    );
     out.push(finding);
 }

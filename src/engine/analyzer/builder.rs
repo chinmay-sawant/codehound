@@ -8,7 +8,8 @@ use crate::engine::walk::EntrySource;
 
 use super::types::Analyzer;
 
-struct BuilderFields {
+/// Configures an [`Analyzer`].
+pub struct AnalyzerBuilder {
     ctx: ScanContext,
     registry: Registry,
     lang_filter: LanguageFilter,
@@ -17,74 +18,54 @@ struct BuilderFields {
     entry_source: Option<Box<dyn EntrySource>>,
 }
 
-/// Configures an [`Analyzer`].
-pub struct AnalyzerBuilder {
-    fields: BuilderFields,
-}
-
 impl AnalyzerBuilder {
     #[must_use = "configure the analyzer before calling build()"]
     pub(crate) fn new() -> Self {
         Self {
-            fields: BuilderFields {
-                ctx: ScanContext::default(),
-                registry: Registry::default(),
-                lang_filter: LanguageFilter::default(),
-                path_filters: PathFilters::default(),
-                collect_stats: false,
-                entry_source: None,
-            },
+            ctx: ScanContext::default(),
+            registry: Registry::default(),
+            lang_filter: LanguageFilter::default(),
+            path_filters: PathFilters::default(),
+            collect_stats: false,
+            entry_source: None,
         }
     }
 
     pub fn scan_context(mut self, ctx: ScanContext) -> Self {
-        self.fields.ctx = ctx;
-        self
-    }
-
-    pub fn registry(mut self, registry: Registry) -> Self {
-        self.fields.registry = registry;
+        self.ctx = ctx;
         self
     }
 
     pub fn path_filters(mut self, filters: PathFilters) -> Self {
-        self.fields.path_filters = filters;
+        self.path_filters = filters;
         self
     }
 
     pub fn collect_stats(mut self, collect: bool) -> Self {
-        self.fields.collect_stats = collect;
-        self
-    }
-
-    /// Accept the default language filter (`All`). Retained for
-    /// callers that previously needed the type-state transition.
-    pub fn with_default_filter(self) -> Self {
+        self.collect_stats = collect;
         self
     }
 
     pub fn language_filter(mut self, filter: LanguageFilter) -> Self {
-        self.fields.lang_filter = filter;
+        self.lang_filter = filter;
         self
     }
 
     /// Inject a custom entry source (e.g. [`ListEntrySource`] for tests).
     /// When not set, the default [`FilesystemWalker`] is used.
     pub fn entry_source(mut self, source: Box<dyn EntrySource>) -> Self {
-        self.fields.entry_source = Some(source);
+        self.entry_source = Some(source);
         self
     }
 
     pub fn build(self) -> Analyzer {
         Analyzer {
-            registry: self.fields.registry,
-            ctx: self.fields.ctx,
-            lang_filter: self.fields.lang_filter,
-            path_filters: self.fields.path_filters,
-            collect_stats: self.fields.collect_stats,
-            project_root: std::path::PathBuf::default(),
-            module_prefix: None,
-            entry_source: self.fields.entry_source,
+            registry: self.registry,
+            ctx: self.ctx,
+            lang_filter: self.lang_filter,
+            path_filters: self.path_filters,
+            collect_stats: self.collect_stats,
+            entry_source: self.entry_source,
         }
     }
 }

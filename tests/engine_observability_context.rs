@@ -68,7 +68,6 @@ fn sample_result_with_stats() -> slopguard::engine::AnalysisResult {
             cache_misses: 0,
             findings_total: 1,
             findings_by_severity: [("high".to_string(), 1)].into_iter().collect(),
-            findings_by_rule: vec![("CWE-89".to_string(), 1)],
             findings_suppressed: 0,
             rules_executed: 5,
             detectors_loaded: 2,
@@ -78,13 +77,13 @@ fn sample_result_with_stats() -> slopguard::engine::AnalysisResult {
 }
 
 #[test]
-fn scan_stats_from_result_populates_findings() {
+fn scan_stats_from_findings_populates_findings() {
     let result = sample_result_with_stats();
-    let stats = ScanStats::from_result(&result);
+    let stats = ScanStats::from_findings(&result.findings, result.suppressed_count);
 
     assert_eq!(stats.findings_total, 1);
     assert_eq!(stats.findings_by_severity.get("high"), Some(&1));
-    assert_eq!(stats.findings_by_rule, vec![("CWE-89".to_string(), 1)]);
+    assert_eq!(stats.findings_suppressed, 0);
 }
 
 #[test]
@@ -151,7 +150,7 @@ fn analyzer_collects_stats_when_enabled() {
         ..ScanContext::default()
     };
     let analyzer = Analyzer::builder()
-        .with_default_filter()
+        
         .scan_context(ctx)
         .collect_stats(true)
         .build();
@@ -175,7 +174,7 @@ fn analyzer_collects_stats_when_enabled() {
 #[test]
 fn analyzer_omits_stats_when_disabled() {
     let analyzer = Analyzer::builder()
-        .with_default_filter()
+        
         .collect_stats(false)
         .build();
     let result = analyzer.analyze_paths(&["src"], None).unwrap();
