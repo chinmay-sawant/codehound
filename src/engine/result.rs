@@ -121,16 +121,6 @@ impl PipelineAccumulator {
         &self.scanned_files
     }
 
-    #[allow(dead_code)]
-    pub fn stats(&self) -> &ScanStats {
-        &self.stats
-    }
-
-    #[allow(dead_code)]
-    pub fn stats_mut(&mut self) -> &mut ScanStats {
-        &mut self.stats
-    }
-
     pub fn findings_mut(&mut self) -> &mut Vec<Finding> {
         &mut self.findings
     }
@@ -157,67 +147,6 @@ impl PipelineAccumulator {
 
     pub fn take_stats(&mut self) -> ScanStats {
         std::mem::take(&mut self.stats)
-    }
-}
-
-/// Builder for [`AnalysisResult`]. Accumulates findings, errors, and
-/// stats, then produces a single [`AnalysisResult`] via [`build`](AnalysisResultBuilder::build).
-///
-/// # Locality
-///
-/// Adding a new result field requires editing this builder and the
-/// `build()` method — one file instead of the scattered field-by-field
-/// wiring in `analyze_paths`.
-#[allow(dead_code)]
-#[derive(Debug, Default)]
-pub struct AnalysisResultBuilder {
-    findings: Vec<Finding>,
-    errors: Vec<ScanError>,
-    source_cache: HashMap<String, Arc<str>>,
-    suppressed_count: usize,
-    stats: Option<ScanStats>,
-}
-
-#[allow(dead_code)]
-impl AnalysisResultBuilder {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn add_findings(&mut self, more: &mut Vec<Finding>) {
-        self.findings.append(more);
-    }
-
-    pub fn add_errors(&mut self, more: &mut Vec<ScanError>) {
-        self.errors.append(more);
-    }
-
-    pub fn add_source_cache(&mut self, more: HashMap<String, Arc<str>>) {
-        self.source_cache.extend(more);
-    }
-
-    pub fn add_suppressed(&mut self, count: usize) {
-        self.suppressed_count += count;
-    }
-
-    pub fn set_stats(&mut self, stats: ScanStats) {
-        self.stats = Some(stats);
-    }
-
-    /// Consume the builder and produce the final [`AnalysisResult`].
-    /// Caller is responsible for sorting and stats finalisation.
-    pub fn build(self) -> AnalysisResult {
-        AnalysisResult {
-            findings: self.findings,
-            errors: self.errors,
-            source_cache: self.source_cache,
-            suppressed_count: self.suppressed_count,
-            stats: self.stats,
-        }
-    }
-
-    pub fn into_findings(mut self) -> Vec<Finding> {
-        std::mem::take(&mut self.findings)
     }
 }
 
@@ -248,5 +177,124 @@ impl AnalysisResult {
 
     pub fn source_cache_bytes(&self) -> usize {
         self.source_cache.values().map(|source| source.len()).sum()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+    use std::sync::Arc;
+
+    use crate::engine::{ScanError, ScanErrorKind, ScanStats, walk::MergedScan};
+
+    use super::PipelineAccumulator;
+
+    fn make_finding(n: usize) -> crate::rules::Finding {
+        // ponytail: test-only leak for &'static str
+        let rule_id = Box::leak(format!("CWE-{n}").into_boxed_str());
+        let file = Box::leak(format!("f{n}.go").into_boxed_str());
+        use std::borrow::Cow;
+        crate::rules::Finding::new(crate::rules::FindingInputs::new(
+            rule_id,
+            "title",
+            file,
+            crate::rules::LineCol { line: n, column: 1 },
+            "msg",
+            crate::rules::Severity::High,
+            Cow::Borrowed(&[]),
+        ))
+    }
+
+    fn make_chunk(findings_count: usize, errors_count: usize) -> MergedScan {
+        let findings: Vec<_> = (0..findings_count).map(make_finding).collect();
+        let mut errors = Vec::new();
+        for i in 0..errors_count {
+            errors.push(ScanError {
+                path: std::path::PathBuf::from(format!("e{i}.go")),
+                kind: ScanErrorKind::Io,
+                message: format!("error {i}"),
+            });
+        }
+        MergedScan {
+            findings,
+            errors,
+            source_cache: HashMap::from([("f0.go".into(), Arc::from("source0"))]),
+            suppressed_count: 0,
+            stats: ScanStats::default(),
+            rescan_files: vec![("f0.go".into(), true)],
+        }
+    }
+
+    #[test]
+    fn new_accumulator_starts_empty() {
+        let mut acc = PipelineAccumulator::new(5);
+        assert!(acc.take_findings().is_empty());
+        assert!(acc.take_errors().is_empty());
+        assert_eq!(acc.suppressed_count(), 0);
+        assert_eq!(acc.scanned_files().len(), 0);
+        let stats = acc.take_stats();
+        assert_eq!(stats.files_skipped, 5);
+    }
+
+    #[test]
+    fn merge_chunk_accumulates_findings_and_errors() {
+        let mut acc = PipelineAccumulator::new(0);
+        let chunk = make_chunk(3, 2);
+        let rescan = acc.merge_chunk(
+            chunk,
+            &mut crate::engine::timing::TimingCollector::new(false),
+        );
+        assert_eq!(acc.take_findings().len(), 3);
+        assert_eq!(acc.take_errors().len(), 2);
+        assert_eq!(rescan, vec![("f0.go".into(), true)]);
+    }
+
+    #[test]
+    fn merge_chunk_accumulates_source_cache() {
+        let mut acc = PipelineAccumulator::new(0);
+        let chunk = make_chunk(1, 0);
+        acc.merge_chunk(
+            chunk,
+            &mut crate::engine::timing::TimingCollector::new(false),
+        );
+        let cache = acc.take_source_cache();
+        assert_eq!(cache.get("f0.go").map(|s| s.as_ref()), Some("source0"));
+        assert_eq!(cache.len(), 1);
+    }
+
+    #[test]
+    fn multiple_chunks_merge_correctly() {
+        let mut acc = PipelineAccumulator::new(0);
+        for _ in 0..3 {
+            let chunk = make_chunk(2, 1);
+            acc.merge_chunk(
+                chunk,
+                &mut crate::engine::timing::TimingCollector::new(false),
+            );
+        }
+        assert_eq!(acc.take_findings().len(), 6);
+        assert_eq!(acc.take_errors().len(), 3);
+    }
+
+    #[test]
+    fn record_scanned_tracks_file_paths() {
+        let mut acc = PipelineAccumulator::new(0);
+        acc.record_scanned("a.go".into());
+        acc.record_scanned("b.go".into());
+        assert_eq!(acc.scanned_files().len(), 2);
+        assert!(acc.scanned_files().contains("a.go"));
+    }
+
+    #[test]
+    fn findings_mut_allows_mutation() {
+        let mut acc = PipelineAccumulator::new(0);
+        let chunk = make_chunk(1, 0);
+        acc.merge_chunk(
+            chunk,
+            &mut crate::engine::timing::TimingCollector::new(false),
+        );
+        assert_eq!(acc.findings_mut().len(), 1);
+        acc.findings_mut().clear();
+        assert!(acc.take_findings().is_empty());
     }
 }

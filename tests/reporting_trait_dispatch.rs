@@ -35,62 +35,6 @@ fn sample_result() -> AnalysisResult {
     ])
 }
 
-fn capture_reporter_output(reporter: &dyn OutputReporter, result: &AnalysisResult) -> String {
-    // Redirect stdout to a buffer. The reporter writes to stdout via
-    // `report()`. We capture it by replacing the global stdout.
-    let mut buf = Vec::new();
-    {
-        let prev = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            let writer = std::io::BufWriter::new(&mut buf);
-            // We can't easily redirect stdout in test, so we use a
-            // workaround: each reporter also exposes its inner writer
-            // function. We test the trait dispatch by calling report()
-            // which goes to stdout. Instead, we test that the output
-            // functions called by report() produce valid content.
-            // For TextReporter, report() calls print_with_options()
-            // which writes to stdout. To capture it, we'd need to
-            // redirect stdout.
-            //
-            // Instead, we verify the trait is correctly wired by
-            // calling the internal write function.
-        }));
-        let _ = prev;
-    }
-
-    // Simpler approach: test each reporter writes to a Vec<u8> by
-    // calling their std-accessible write functions, then verify
-    // the trait dispatch returns Ok(()).
-    let text_reporter = TextReporter {
-        options: TextOptions {
-            suppress_snippet: true,
-            color: false,
-            show_fingerprint: false,
-            verbose: false,
-            debug_timing: false,
-        },
-    };
-    let json_reporter = JsonReporter { envelope: false };
-    let json_envelope_reporter = JsonReporter { envelope: true };
-    let sarif_reporter = SarifReporter { compact: false };
-    let sarif_compact_reporter = SarifReporter { compact: true };
-
-    // All must return Ok(()) when called through the trait
-    let reporters: [&dyn OutputReporter; 5] = [
-        &text_reporter,
-        &json_reporter,
-        &json_envelope_reporter,
-        &sarif_reporter,
-        &sarif_compact_reporter,
-    ];
-
-    let mut outputs = String::new();
-    for (i, r) in reporters.iter().enumerate() {
-        let result = r.report(result);
-        outputs.push_str(&format!("reporter[{i}]: ok={}\n", result.is_ok()));
-    }
-    outputs
-}
-
 #[test]
 fn text_reporter_via_trait_succeeds() {
     let r = sample_result();

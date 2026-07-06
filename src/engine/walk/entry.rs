@@ -94,14 +94,12 @@ impl EntrySource for FilesystemWalker {
 
 /// [`EntrySource`] that returns a pre-built list. Useful for tests that
 /// want to verify pipeline behaviour without walking the filesystem.
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct ListEntrySource {
     entries: Vec<ScanEntry>,
     skipped: usize,
 }
 
-#[allow(dead_code)]
 impl ListEntrySource {
     pub fn new(entries: Vec<ScanEntry>) -> Self {
         Self {

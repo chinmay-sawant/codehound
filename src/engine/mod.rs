@@ -44,7 +44,8 @@ pub use result::{AnalysisResult, ScanError, ScanErrorKind};
 pub use stats::{FileStats, ScanStats};
 pub use timing::{PhaseTiming, TimingCollector, TimingSpan, TimingSummary};
 pub use walk::{
-    analyze_parsed_unit, analyze_parsed_unit_with_context, collect_entries, scratch_contains,
+    EntrySource, FilesystemWalker, ListEntrySource, ScanEntry, analyze_parsed_unit,
+    analyze_parsed_unit_with_context, collect_entries, scratch_contains,
 };
 
 /// Process large entry lists in bounded chunks to cap parallel work memory.

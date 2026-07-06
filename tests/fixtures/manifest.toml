@@ -6422,3 +6422,23 @@ lang = "go"
 path = "tests/fixtures/go/perf_real_world/clean_go_file.txt"
 required_rules = []
 
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/heuristics/cache/no-go-mod-db.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/heuristics/cache/no-go-mod-handler.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/heuristics/cache/oversized-command-injection.txt"
+required_rules = ["CWE-78"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/heuristics/cache/concurrent-command-injection.txt"
+required_rules = ["CWE-78"]
+

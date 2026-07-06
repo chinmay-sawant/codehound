@@ -19,4 +19,5 @@ pub(crate) use collector::{drain_global, global_start, global_stop, init_global}
 pub use summary::{PhaseTiming, TimingSummary};
 
 #[cfg(test)]
+#[allow(unused_imports)]
 pub use collector::with_timing;

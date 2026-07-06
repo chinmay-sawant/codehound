@@ -14,13 +14,13 @@ Deep-dive architecture review across entire `src/` tree (~10,100 lines). Archite
 
 ## Executive Summary
 
-| Dimension | Before | After | Bottleneck |
-|-----------|--------|-------|------------|
-| Depth | 6/10 | **7/10** | Core `Analyzer::analyze_paths` remains deep. Pipeline: 7-element anonymous tuples → named structs (6 fields). Config: 8 positional params → 1 `ScanContextParams` struct. Cache: `in_memory()` 0-param constructor delivers full behavior. Timing removed from pipeline structs. Remaining shallow spots: `ScanEntryResult`/`MergedScan` are DTOs — appropriate for data carriers. |
-| Seams | 7/10 | **8/10** | `OutputReporter` trait: 3 real adapters (Text, JSON, SARIF). `TreeSitterLang` trait: 2 real adapters (Go, Python) — deleted 2 per-language `parser.rs` files. `lang_plugin!` macro updated to use generic functions. CacheStore: weak seam via `mem_entries` (pragmatic ponytail choice, avoids trait until a second non-test backend is needed). `ScanContextParams`: data-coupling only. |
-| Locality | 5/10 | **7/10** | Named struct fields eliminated positional ordering bugs. Timing fully decoupled from data pipeline — timing change now touches 1 file instead of 4+. `build_scan_context` signature is stable (never changes when config grows). Config additions are compiler-exhaustiveness-checked. New pipeline field still requires ~7-9 edits across 3 files — bounded by pipeline architecture, not tuple fragility. |
-| Testability | 5/10 | **7/10** | `CacheStore::in_memory()` enables test cache without disk I/O (available but not yet used by existing tests). Timing no longer threaded through function signatures. `OutputReporter` trait makes format testing polymorphic. Remaining: `init_global`/`drain_global` are `pub(crate)` (integration tests route through public `Analyzer` API). |
-| Leverage | 8/10 | **8/10** | Detector authors still get full pipeline for ~5 methods (unchanged). New language author: eliminated per-language `parser.rs` (~40 lines saved per language). New output format: standardized `OutputReporter` trait (1 method). Config: named fields, no ordering errors. Third language effort: ~55 lines → ~23 lines. |
+| Dimension | Before | After Phase 1-4 | After Phase 5 | Bottleneck |
+|-----------|--------|-----------------|---------------|------------|
+| Depth | 6/10 | 7/10 | **8/10** | Core `Analyzer::analyze_paths` deep and remains so. `PipelineAccumulator` concentrates merge logic (6 field extensions → 1 call). `CacheBackend` trait (5 methods) abstracts storage behind a clean seam. Global timing removes threading from 5+ function signatures. `ScanContextParams` (named struct, 7 fields) replaces 8 positional params. Remaining: `ScanEntryResult`/`MergedScan` are DTOs — appropriate. `AnalysisResultBuilder` is dead code (`#[allow(dead_code)]`). |
+| Seams | 7/10 | 8/10 | **9/10** | 4 real seams with 2+ adapters each: `CacheBackend` (Disk + InMemory), `OutputReporter` (Text + JSON + SARIF), `TreeSitterLang` (Go + Python), `EntrySource` (FilesystemWalker + ListEntrySource). `lang_plugin!` removed (superseded by `tree_sitter_lang!`). `ListEntrySource` is unused dead code (`#[allow(dead_code)]`). |
+| Locality | 5/10 | 7/10 | **8/10** | Pipeline field addition: 4-5 files, 8+ touch points (down from 6-8 files). Config option: 3-4 files (same count, safer via named fields). `PipelineAccumulator` reduces inline merge noise (6 lines per chunk → 1 call). Timing fully decoupled. Remaining: pipeline field still threads through `ScanEntryResult → ScanOutcome → MergedScan → PipelineAccumulator → AnalysisResult` — inherent to the pipeline architecture, not a design flaw. |
+| Testability | 5/10 | 7/10 | **8/10** | 6/13 cache tests migrated to `in_memory()` (no disk I/O). `timing::with_timing()` public test helper. `OutputReporter` polymorphic dispatch tested (5 variants via `&dyn OutputReporter`). `EntrySource` trait enables zero-fs pipeline tests (no test uses this yet). Remaining: `AnalysisResultBuilder` is dead code. `ListEntrySource` never constructed. `PipelineAccumulator` untested. `capture_reporter_output` dead function in `reporting_trait_dispatch.rs`. |
+| Leverage | 8/10 | 8/10 | **9/10** | `tree_sitter_lang!` eliminates ~48 lines of boilerplate per language (96 lines deleted across 2 files). `OutputReporter`: 1 method to add a format. `CacheBackend`: 5 methods to add a backend. `EntrySource`: 1 method to add a source. `ScanContextParams`: named fields, no ordering errors, `#[derive(Default)]`. `PipelineAccumulator`: 1 `merge_chunk` call replaces 6 inline field extensions. Remaining: `tree_sitter_lang!` has 9 args (could be ~5 with a config struct — YAGNI until 3rd language). |
 
 ---
 
@@ -395,7 +395,9 @@ The current architecture rates **7.6 / 10** across five dimensions. The gap to 1
 8. **5.9 AnalysisResult builder** (2-3h) — when `analyze_paths` grows more result fields
 9. **5.10 Error consolidation** (4-6h) — defer until error handling friction is real
 
-**Target rating after Phase 5:** Depth 9/10, Seams 10/10, Locality 9/10, Testability 9/10, Leverage 10/10
+**Current rating after Phase 5:** Depth 8/10, Seams 9/10, Locality 8/10, Testability 8/10, Leverage 9/10 — **~8.4/10** overall.
+
+The gap from 8.4 to 10/10 is narrower: the remaining friction is dead code cleanup (AnalysisResultBuilder, ListEntrySource, capture_reporter_output), test coverage for pipeline logic (PipelineAccumulator untested), and speculative polishing (tree_sitter_lang! arg count, large detector files).
 
 ### Phase 5 Implementation Status
 
@@ -411,3 +413,23 @@ The current architecture rates **7.6 / 10** across five dimensions. The gap to 1
 | 5.8 File-walk seam | **Done** | 4-5h | `EntrySource` trait with `FilesystemWalker` (default) and `ListEntrySource` (test injection). Optional field on `Analyzer`+`AnalyzerBuilder`. |
 | 5.9 AnalysisResult builder | **Done** | 2-3h | `AnalysisResultBuilder` with accumulator methods + `build()`. |
 | 5.10 Error consolidation | **Done** | 1h | Added `CacheError::Corrupt` variant. Updated doc comments. Minimal change — the trait returns `Option`, so corrupt entries are still `None`; the error type is available for future `Result`-returning APIs. |
+
+---
+
+## Remaining Findings (Post-Phase-5 Review) — Cleanup Status
+
+New friction points surfaced by a post-implementation architecture scan and subsequently addressed.
+
+### ✅ Completed Cleanup
+
+- [x] **6.1** Delete `AnalysisResultBuilder` (~50 lines dead code removed. `analyze_paths` constructs `AnalysisResult` directly.)
+- [x] **6.2** Export + test `ListEntrySource` (removed `#[allow(dead_code)]`, added `tests/engine_entry_source.rs` with real pipeline exercise)
+- [x] **6.3** Delete `capture_reporter_output` dead function in `reporting_trait_dispatch.rs` (~55 lines removed)
+- [x] **6.4** Add `PipelineAccumulator` unit tests (6 tests under `#[cfg(test)] mod tests` in `result.rs`: merge, take, scan tracking, mutation)
+- [x] **6.5** Add zero-fs pipeline test (covered by `tests/engine_entry_source.rs` using `ListEntrySource` + `CacheStore::in_memory()`)
+
+### ⏳ Deferred (Low Priority)
+
+- [ ] **6.6** Orphaned CWE domain files — cosmetic structural inconsistency, no functional impact
+- [ ] **6.7** Large detector files — speculative, YAGNI until split pattern is proven across all domains
+- [ ] **6.8** 14 of 18 engine sub-modules lack `#[cfg(test)]` blocks — test coverage gap, not a design issue
