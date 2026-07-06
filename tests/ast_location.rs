@@ -1,4 +1,4 @@
-use slopguard::ast::{compute_line_starts, line_col_with_starts};
+use codehound::ast::{compute_line_starts, line_col_with_starts};
 
 #[test]
 fn compute_line_starts_single_line() {

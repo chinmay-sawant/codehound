@@ -5,7 +5,7 @@ This module implements the Go CWE fixture detector as one bundled scan, not as o
 ## Pipeline
 
 1. The engine parses each Go unit once.
-2. File collection already honors language filtering, `.slopguardignore`, and config-driven `include`/`exclude` path globs before the Go detector runs.
+2. File collection already honors language filtering, `.codehoundignore`, and config-driven `include`/`exclude` path globs before the Go detector runs.
 3. `GoCweScan` builds `GoUnitFacts` once for that `ParsedUnit`.
 4. Rule evaluators query those facts plus a few targeted source-shape checks.
 5. Matching rules emit `Finding` values directly.
@@ -28,11 +28,11 @@ Rules should prefer these facts when the pattern is structural. Plain source sca
 
 ## Rule Structure
 
-The detector lives in [mod.rs](/home/chinmay/ChinmayPersonalProjects/slopguard/src/lang/go/detectors/cwe/mod.rs) as:
+The detector lives in [mod.rs](/home/chinmay/ChinmayPersonalProjects/codehound/src/lang/go/detectors/cwe/mod.rs) as:
 
 - metadata constants with one structured self-CWE reference per rule
-- a typed [registry.toml](/home/chinmay/ChinmayPersonalProjects/slopguard/src/lang/go/detectors/cwe/registry.toml) (source of truth for `build.rs`)
-- domain modules under [domains/](/home/chinmay/ChinmayPersonalProjects/slopguard/src/lang/go/detectors/cwe/domains/) with rule functions such as `detect_cwe_22`
+- a typed [registry.toml](/home/chinmay/ChinmayPersonalProjects/codehound/src/lang/go/detectors/cwe/registry.toml) (source of truth for `build.rs`)
+- domain modules under [domains/](/home/chinmay/ChinmayPersonalProjects/codehound/src/lang/go/detectors/cwe/domains/) with rule functions such as `detect_cwe_22`
 - one `run` orchestrator and a `SourceIndex` built once per file for hot substring guards
 
 This shape keeps registration static and avoids the overhead of a trait-object registry for every CWE.
@@ -55,8 +55,8 @@ The important constraint is locality: suppression should be cheap, deterministic
 2. Add a `META_CWE_*` entry.
 3. Gate it in `GoCweScan::run`.
 4. Implement `detect_cwe_*`.
-5. Add framework and stdlib fixture coverage in [tests/go_cwe_detector_integration.rs](/home/chinmay/ChinmayPersonalProjects/slopguard/tests/go_cwe_detector_integration.rs).
-6. Keep [tests/lang_go_cwe_metadata.rs](/home/chinmay/ChinmayPersonalProjects/slopguard/tests/lang_go_cwe_metadata.rs) green so fixture inventory, detector registration, and metadata stay aligned.
+5. Add framework and stdlib fixture coverage in [tests/go_cwe_detector_integration.rs](/home/chinmay/ChinmayPersonalProjects/codehound/tests/go_cwe_detector_integration.rs).
+6. Keep [tests/lang_go_cwe_metadata.rs](/home/chinmay/ChinmayPersonalProjects/codehound/tests/lang_go_cwe_metadata.rs) green so fixture inventory, detector registration, and metadata stay aligned.
 7. Verify with:
    - `cargo test --test go_cwe_detector_integration`
    - `cargo test --test fixture_manifest_integration`

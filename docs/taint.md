@@ -1,6 +1,6 @@
 # Taint Tracking (Experimental)
 
-SlopGuard includes an experimental intra-procedural taint-tracking engine for Go
+CodeHound includes an experimental intra-procedural taint-tracking engine for Go
 that augments the substring-based CWE detectors (CWE-22, CWE-78, CWE-79,
 CWE-89). When enabled, it traces data flow from untrusted sources to
 dangerous sinks and suppresses findings where a recognized sanitizer
@@ -10,10 +10,10 @@ intercepts the flow.
 
 | Method | How |
 |--------|-----|
-| CLI flag | `slopguard --taint` |
-| Config file | `[slopguard.taint]\nenabled = true` |
-| Disable | `--no-taint` or `[slopguard.taint]\nenabled = false` |
-| Show paths | `--taint-show-paths` or `[slopguard.taint]\nshow_paths = true` |
+| CLI flag | `codehound --taint` |
+| Config file | `[codehound.taint]\nenabled = true` |
+| Disable | `--no-taint` or `[codehound.taint]\nenabled = false` |
+| Show paths | `--taint-show-paths` or `[codehound.taint]\nshow_paths = true` |
 
 Taint is disabled by default. The substring-based heuristic still runs as a
 fallback when taint is off.

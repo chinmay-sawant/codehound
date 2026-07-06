@@ -1,7 +1,7 @@
 //! [`CacheSession`] exposes only scan-time cache operations.
 
-use slopguard::engine::{CacheLookup, CacheSession, CacheStore};
-use slopguard::rules::{Finding, FindingInputs, LineCol, Severity};
+use codehound::engine::{CacheLookup, CacheSession, CacheStore};
+use codehound::rules::{Finding, FindingInputs, LineCol, Severity};
 
 #[test]
 fn cache_session_delegates_lookup_and_flush() {

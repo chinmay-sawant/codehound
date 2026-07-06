@@ -6,18 +6,18 @@ mod go_bp_cases;
 mod helpers;
 
 use clap::Parser;
-use slopguard::cli::{Cli, RuleCategory};
-use slopguard::core::ScanContext;
-use slopguard::engine::{
-    AnalysisResult, Analyzer, PathFilters, ScanContextParams, SlopguardConfig, build_scan_context,
+use codehound::cli::{Cli, RuleCategory};
+use codehound::core::ScanContext;
+use codehound::engine::{
+    AnalysisResult, Analyzer, PathFilters, ScanContextParams, CodehoundConfig, build_scan_context,
 };
-use slopguard::reporting::json::FindingJson;
-use slopguard::reporting::sarif::render_to_string;
-use slopguard::rules::{Finding, FindingInputs, LineCol, Severity};
+use codehound::reporting::json::FindingJson;
+use codehound::reporting::sarif::render_to_string;
+use codehound::rules::{Finding, FindingInputs, LineCol, Severity};
 use std::borrow::Cow;
 use std::process::Command;
 
-fn scan_context_from_cli(cli: &Cli, config: Option<SlopguardConfig>) -> ScanContext {
+fn scan_context_from_cli(cli: &Cli, config: Option<CodehoundConfig>) -> ScanContext {
     build_scan_context(ScanContextParams {
         only: cli.only.clone(),
         skip: cli.skip.clone(),
@@ -99,7 +99,7 @@ fn go_bad_practice_fixtures_fire_vulnerable_and_silence_safe() {
 fn go_bad_practice_text_fixtures_also_work_via_cli_scan_path() {
     let cases = go_bp_cases::discover_go_bp_cases();
     let mut failures: Vec<String> = Vec::new();
-    let exe = env!("CARGO_BIN_EXE_slopguard");
+    let exe = env!("CARGO_BIN_EXE_codehound");
 
     for case in &cases {
         let vulnerable = go_bp_cases::fixture_path(case, true);
@@ -169,7 +169,7 @@ fn scan_context_can_disable_bad_practice_category() {
 
 #[test]
 fn cli_bp_only_sets_bp_prefix_filter() {
-    let cli = Cli::try_parse_from(["slopguard", "--bp-only"]).unwrap();
+    let cli = Cli::try_parse_from(["codehound", "--bp-only"]).unwrap();
     let ctx = scan_context_from_cli(&cli, None);
 
     assert!(ctx.allows("BP-1"));
@@ -178,10 +178,10 @@ fn cli_bp_only_sets_bp_prefix_filter() {
 
 #[test]
 fn cli_bp_only_overrides_config_disabled_bp() {
-    let cli = Cli::try_parse_from(["slopguard", "--bp-only"]).unwrap();
-    let cfg = toml::from_str::<SlopguardConfig>(
-        r#"[slopguard]
-[slopguard.bad_practices]
+    let cli = Cli::try_parse_from(["codehound", "--bp-only"]).unwrap();
+    let cfg = toml::from_str::<CodehoundConfig>(
+        r#"[codehound]
+[codehound.bad_practices]
 enabled = false
 "#,
     )
@@ -194,7 +194,7 @@ enabled = false
 
 #[test]
 fn cli_no_bp_disables_bad_practice_category() {
-    let cli = Cli::try_parse_from(["slopguard", "--no-bp"]).unwrap();
+    let cli = Cli::try_parse_from(["codehound", "--no-bp"]).unwrap();
     let ctx = scan_context_from_cli(&cli, None);
 
     assert!(!ctx.allows("BP-1"));
@@ -204,7 +204,7 @@ fn cli_no_bp_disables_bad_practice_category() {
 #[test]
 fn cli_list_rules_accepts_bad_practice_category_filter() {
     let cli = Cli::try_parse_from([
-        "slopguard",
+        "codehound",
         "--list-rules",
         "--rule-category",
         "bad-practice",
@@ -217,7 +217,7 @@ fn cli_list_rules_accepts_bad_practice_category_filter() {
 
 #[test]
 fn cli_list_rules_prints_only_bp_rules_for_bad_practice_filter() {
-    let exe = env!("CARGO_BIN_EXE_slopguard");
+    let exe = env!("CARGO_BIN_EXE_codehound");
     let run = Command::new(exe)
         .args(["--list-rules", "--rule-category", "bad-practice"])
         .output()
@@ -236,7 +236,7 @@ fn cli_list_rules_prints_only_bp_rules_for_bad_practice_filter() {
 
 #[test]
 fn cli_explain_bp_1_uses_generated_metadata() {
-    let exe = env!("CARGO_BIN_EXE_slopguard");
+    let exe = env!("CARGO_BIN_EXE_codehound");
     let run = Command::new(exe)
         .args(["--explain", "BP-1"])
         .output()

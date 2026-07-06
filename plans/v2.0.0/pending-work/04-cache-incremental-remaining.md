@@ -49,7 +49,7 @@ let target = (self.max_size_bytes as f64 * 9.0 / 10.0) as u64; // hardcoded 0.9
 - [x] Add default 0.9 in `CacheConfig::apply_defaults()` or wherever defaults are set
 - [x] Wire through `CacheStore::open_with_capacity()` and use in `evict_to_size()`
 - [x] Validate range (0.1–0.99) with a `tracing::warn!` on out-of-range values (clamp to 0.9)
-- [x] Update `slopguard.schema.json` with `cache.evict_target_ratio` field
+- [x] Update `codehound.schema.json` with `cache.evict_target_ratio` field
 - [x] Update `docs/incremental-cache.md` with the new config option
 - [~] Add a test: `flush_evicts_to_configured_ratio` in `tests/engine_cache_store.rs`
 
@@ -60,7 +60,7 @@ Currently every file under ~4 MiB is cached; the threshold is implicit (based on
 - [x] Add `max_file_size_mb: Option<u64>` to `CacheConfig` (default 4)
 - [x] In the scan preflight / cache-lookup step, skip caching for files larger than this threshold
 - [x] Log a `tracing::debug!` when a file is skipped due to size
-- [x] Update `slopguard.schema.json` with `cache.max_file_size_mb`
+- [x] Update `codehound.schema.json` with `cache.max_file_size_mb`
 - [x] Update `docs/incremental-cache.md`
 
 ---

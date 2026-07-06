@@ -1,4 +1,4 @@
-# SlopGuard Rust Patterns Review (Phase 2 Re-validation)
+# CodeHound Rust Patterns Review (Phase 2 Re-validation)
 
 **Reviewer stance:** ECC Rust Development Patterns skill  
 **Date:** 2026-06-27 (post-Phase 3 + 3E re-audit)  
@@ -14,7 +14,7 @@
 
 #### P0 — Error type consistency
 
-- [x] Create `src/error.rs` — crate-root `slopguard::Error` with `thiserror` + `#[from]` variants
+- [x] Create `src/error.rs` — crate-root `codehound::Error` with `thiserror` + `#[from]` variants
 - [x] Export `pub mod error` + `pub use error::Error` from `lib.rs`
 - [x] Migrate `LanguagePlugin::configure_parser` / `parse_with` → `Result<_, Error>`
 - [x] Migrate `Analyzer::analyze_paths` → `Result<AnalysisResult, Error>`
@@ -36,7 +36,7 @@
 
 > Rating: **8.8 → 9.2** (+0.4). Target met.
 
-- [x] Migrate `SlopguardConfig::load` → `Result<_, Error>` (`engine/config/section.rs`)
+- [x] Migrate `CodehoundConfig::load` → `Result<_, Error>` (`engine/config/section.rs`)
 - [x] Migrate `load_discovered_config` → `Result<_, Error>` (`engine/config/discover.rs`)
 - [x] Migrate `load_rule_descriptions` → `Result<_, Error>` (`cwe/catalog/description.rs`)
 - [x] Engine-internal `anyhow` removed — cache I/O, `parallel.rs`, `store_*` use `Error`
@@ -66,7 +66,7 @@
 
 ## Executive Summary
 
-SlopGuard remains a **mature, idiomatic Rust static analyzer** with an exemplary parallel scan pipeline and zero `unsafe` blocks. **Phase 2** closed the remaining library error-boundary gaps from Phase 1:
+CodeHound remains a **mature, idiomatic Rust static analyzer** with an exemplary parallel scan pipeline and zero `unsafe` blocks. **Phase 2** closed the remaining library error-boundary gaps from Phase 1:
 
 1. **Complete typed public surface** — all fallible public APIs (including config loaders and rule catalogue) return `Result<_, Error>`; **0** public `anyhow::Result`.
 2. **Engine consistency** — cache I/O, walk/parallel, and store lifecycle helpers migrated off `anyhow` to `crate::Error`.
@@ -98,7 +98,7 @@ SlopGuard remains a **mature, idiomatic Rust static analyzer** with an exemplary
 
 | Priority | Recommendation | Phase 1 | Phase 2 | Evidence |
 |---|---|---|---|---|
-| **P0** | Crate-root `slopguard::Error` with `thiserror` | ✅ | ✅ | `src/error.rs`; `pub use error::Error` in `lib.rs` |
+| **P0** | Crate-root `codehound::Error` with `thiserror` | ✅ | ✅ | `src/error.rs`; `pub use error::Error` in `lib.rs` |
 | **P0** | Migrate public library APIs off `anyhow::Result` | ⚠️ 3 gaps | ✅ **Done** | Config, discover, catalogue → `Result<_, Error>` |
 | **P0** | Confine `anyhow` to `app/` + `fixture/` | ⚠️ 11 files | ✅ **Done** | 4 files only; 0 in `engine/` |
 | **P1** | `#[must_use]` on fallible public APIs | ✅ 16 | ✅ **21** | +config loaders, `resolve_language_filter`, `collect_entries` |
@@ -122,7 +122,7 @@ SlopGuard remains a **mature, idiomatic Rust static analyzer** with an exemplary
 | `Cow` for flexible ownership | Partial | Partial | `Finding::new`, `emit::push_finding` | B+ |
 | `Result` + `?` propagation | Yes | **Strong** | All public + engine paths on `Error` | **A** |
 | `thiserror` in library | Strong (5 types) | Strong (5 types) | `Error`, `GrammarError`, `ScanError`, `CacheError`, `FingerprintParseError` | A− |
-| Crate-root unified `Error` | Yes | **Complete** | All public fallible APIs on `slopguard::Error` | **A** |
+| Crate-root unified `Error` | Yes | **Complete** | All public fallible APIs on `codehound::Error` | **A** |
 | `anyhow` in application only | Mostly (11 files) | **Yes (4 files)** | `app/run.rs`, `app/config.rs`, `fixture/*` | **A** |
 | `#[must_use]` on fallible APIs | Yes (16) | **Yes (21)** | analyzer, cache, baseline, reporting, export, config, walk | **A−** |
 | Enums for states | Yes | **Stronger** | `ScanErrorKind` exit codes; `CacheLookup`, `LanguageFilter`, … | **A** |
@@ -181,7 +181,7 @@ SlopGuard remains a **mature, idiomatic Rust static analyzer** with an exemplary
 
 | Type | Location | Used by |
 |---|---|---|
-| `slopguard::Error` | `src/error.rs` | Public: analyzer, parsers, plugin trait, reporting, export, baseline, config, catalogue, language filter, walk |
+| `codehound::Error` | `src/error.rs` | Public: analyzer, parsers, plugin trait, reporting, export, baseline, config, catalogue, language filter, walk |
 | `GrammarError` | `src/error.rs` | Internal grammar `OnceLock`; converts to `Error::Grammar` |
 | `ScanError` / `ScanErrorKind` | `engine/result.rs` | Per-file non-fatal scan failures inside `AnalysisResult` |
 | `CacheError` | `engine/cache/types.rs` | `CacheStore::open`, cache I/O |
@@ -195,7 +195,7 @@ SlopGuard remains a **mature, idiomatic Rust static analyzer** with an exemplary
 | `engine/cache/store_open.rs` | 2 | `CacheStore::open`, `open_with_capacity` |
 | `engine/baseline/store.rs` | 1 | `Baseline::from_file` |
 | `engine/result.rs` | 1 | `AnalysisResult` struct |
-| `engine/config/section.rs` | 1 | `SlopguardConfig::load` |
+| `engine/config/section.rs` | 1 | `CodehoundConfig::load` |
 | `engine/config/discover.rs` | 1 | `load_discovered_config` |
 | `engine/language_filter.rs` | 1 | `resolve_language_filter` |
 | `engine/walk/entry.rs` | 1 | `collect_entries` |
@@ -215,7 +215,7 @@ Crate-root `Error` composes `Io`, `Cache`, `Fingerprint`, `Json`, and domain var
 
 ### 2. `src/engine/config/section.rs` — config on typed errors (Phase 2)
 
-`SlopguardConfig::load` returns `Result<Self, Error>` with `#[must_use]`; TOML failures map to `Error::Config`. Closes the last public `anyhow` gap.
+`CodehoundConfig::load` returns `Result<Self, Error>` with `#[must_use]`; TOML failures map to `Error::Config`. Closes the last public `anyhow` gap.
 
 ### 3. `src/engine/walk/parallel.rs` — phased concurrency (Phase 2)
 
@@ -319,7 +319,7 @@ Additional crate lints active:
 | Layer | Error strategy | Representative files |
 |---|---|---|
 | Binary (`main` + `app/`) | `anyhow::Result` + context + exit codes | `app/run.rs`, `app/config.rs` |
-| Crate-root public API | `Result<_, slopguard::Error>` | analyzer, reporting, export, parsers, **config**, **catalogue** |
+| Crate-root public API | `Result<_, codehound::Error>` | analyzer, reporting, export, parsers, **config**, **catalogue** |
 | Per-file scan failures | `ScanError` (thiserror struct) in `AnalysisResult` | `engine/result.rs`, `walk/parallel.rs` |
 | Cache | `CacheError` on `CacheStore::open`; `Error` on mutations | `cache/store_open.rs`, `cache/io.rs` |
 | Engine internals | `Result<_, Error>` (`pub(crate)`) | `cache/io.rs`, `walk/parallel.rs`, `store_*` |

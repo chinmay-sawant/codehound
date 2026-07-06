@@ -12,7 +12,7 @@
 | Dimension | Existing | Corrected | Why |
 |---|---|---|---|
 | Performance — Go CWE detectors | **4.0** | **3.0** | The review under-counts actual cost. Verified: **632** `source.contains(...)` calls per file (mean 3.6/detector, not "1× per rule"). `unit.path.display().to_string()` is called **175× per file** producing 175 identical `String` allocations of the same path. `meta.cwe.to_vec()` is **always** called on `&[]` — a pure waste. `format!` is on the hot path at **12 sites**. |
-| Test strategy | **7.0** | **4.0** | `.github/workflows/` is **empty** — no CI of any kind. `insta` is a **dead dev-dep** (0 snapshots, 0 calls). Only **4 `#[test]` over 55 files** in `src/`. Real race condition on `target/slopguard-fixtures/` because all test binaries share the same path. Hard-coded `SCAN_PATH` in `makefile`. |
+| Test strategy | **7.0** | **4.0** | `.github/workflows/` is **empty** — no CI of any kind. `insta` is a **dead dev-dep** (0 snapshots, 0 calls). Only **4 `#[test]` over 55 files** in `src/`. Real race condition on `target/codehound-fixtures/` because all test binaries share the same path. Hard-coded `SCAN_PATH` in `makefile`. |
 | Architecture — Module boundaries | **7.5** | **6.5** | Public surface leaks Go-detector internals (`GoUnitFacts`, `InputBinding`, `CallFact`, `AssignmentFact`, `GoCweScan` all `pub`). 175 `META_CWE_*` constants duplicate the curated `cwe::catalog` but link to **zero** of its entries — the catalog is dead weight in the Go path. |
 | Architecture — Domain coherence | **5.0** | **4.0** | `ruleset/golang/golang.json` (168 KB, 191 entries) is **never loaded** by the binary — `rg "ruleset\|golang.json"` over `src/` returns 0 matches. The 16 `PERF-001..016` records exist only in planning PRs. |
 | Architecture — Test strategy | **7.0** | (already corrected) | |
@@ -132,7 +132,7 @@ Verified by `rg` and `find`:
 | **No unit tests for the hot path** | The 4 `#[test]` in `src/` are 1 in `fixture/format.rs`, 2 in `engine/language_filter.rs`, 1 in `export/mod.rs`. **Zero** unit tests for `src/ast/walk.rs`, `src/engine/walk.rs`, `src/engine/parse_pool.rs`, `src/rules/emit.rs`, `src/rules/finding.rs`, `src/lang/go/detectors/cwe/facts.rs` — exactly the files the review itself flagged as performance bottlenecks. |
 | **No fuzzing** | 0 `proptest`, 0 `arbitrary`, 0 `cargo-fuzz`, 0 `fuzz/` dir. Tree-sitter is a C library; a panic in the parser crashes the whole scan. |
 | **No baseline for the bench** | `cargo bench -- --save-baseline` is never invoked. `benches/baseline.txt` does not exist. No scaling test (1k/10k/100k files, 1 MB files). |
-| **Parallel-test race on `target/slopguard-fixtures/`** | `src/fixture/materialize.rs:13` is shared across all test binaries. `fs::write` is not atomic across processes. Two test binaries writing to the same path simultaneously can produce a half-written file that the analyzer reads, parses, and silently produces 0 findings for. |
+| **Parallel-test race on `target/codehound-fixtures/`** | `src/fixture/materialize.rs:13` is shared across all test binaries. `fs::write` is not atomic across processes. Two test binaries writing to the same path simultaneously can produce a half-written file that the analyzer reads, parses, and silently produces 0 findings for. |
 | **Orphan fixture not caught** | `tests/fixtures/rust/sample.txt` exists on disk but is **absent from `tests/fixtures/manifest.toml`**. The "every fixture is registered" invariant is enforced one direction only (manifest→file, not file→manifest). |
 | **Dead test code** | `tests/fixture_manifest_integration.rs:65` ends with `let _ = Analyzer::builder().build();` — a no-op that does not test anything. |
 | **"Mixed" test isn't mixed** | `tests/mixed_integration.rs:8` passes empty `go_rules` and only `python_rules = ["SLOP101"]`. There is no test that asserts a mixed-repo scan produces both Go and Python findings. |
@@ -149,17 +149,17 @@ Verified by `rg` and `find`:
 ## 7. **Public API / CLI / config / DX — 50+ findings the review under-covers**
 
 ### 7.1 Public surface leaks Go-detector internals
-`src/lang/go/detectors/cwe/facts.rs:7, 13, 19, 26, 33, 39`, `src/lang/go/detectors/cwe/mod.rs:3, 20`, `src/lang/go/detectors/mod.rs:3`, `src/lang/go/mod.rs:3, 13`, `src/lang/python/mod.rs:15`, `src/lang/python/detectors/re_compile_in_loop.rs:10` all `pub`. `GoUnitFacts`, `InputBinding`, `CallFact`, `AssignmentFact`, `build_go_unit_facts`, `GoCweScan`, `GoPlugin`, `PythonPlugin`, `ReCompileInLoop` are all part of the stable surface by accident. The whole `pub mod lang` re-exports modules that are **feature-gated** (`#[cfg(feature = "go")]`) — a `--no-default-features --features python` build doesn't have `slopguard::lang::go` at all, but this isn't documented. Add a `slopguard::prelude` and gate properly with `pub(crate)` for detector internals.
+`src/lang/go/detectors/cwe/facts.rs:7, 13, 19, 26, 33, 39`, `src/lang/go/detectors/cwe/mod.rs:3, 20`, `src/lang/go/detectors/mod.rs:3`, `src/lang/go/mod.rs:3, 13`, `src/lang/python/mod.rs:15`, `src/lang/python/detectors/re_compile_in_loop.rs:10` all `pub`. `GoUnitFacts`, `InputBinding`, `CallFact`, `AssignmentFact`, `build_go_unit_facts`, `GoCweScan`, `GoPlugin`, `PythonPlugin`, `ReCompileInLoop` are all part of the stable surface by accident. The whole `pub mod lang` re-exports modules that are **feature-gated** (`#[cfg(feature = "go")]`) — a `--no-default-features --features python` build doesn't have `codehound::lang::go` at all, but this isn't documented. Add a `codehound::prelude` and gate properly with `pub(crate)` for detector internals.
 
 ### 7.2 Config validation gaps
-- `#[serde(deny_unknown_fields)]` is **not** set on `SlopguardConfig` (`src/engine/config.rs:11-15, 17-27`) — typos like `fali_on` or `language` (pluralization) are **silently ignored**.
-- No JSON schema. No `slopguard.schema.json`. No `schemars` dependency.
-- **No `--config <path>` flag**, no `SLOPGUARD_*` env-var overrides, no upward config walk, no `.slopguardignore`.
-- **Precedence bug for `fail_on`** in `config.rs:40-52`: config **wins** over CLI severity flags, which is inverted from how `only`/`skip` work. The README/slopguard.toml comment is wrong on this.
+- `#[serde(deny_unknown_fields)]` is **not** set on `CodehoundConfig` (`src/engine/config.rs:11-15, 17-27`) — typos like `fali_on` or `language` (pluralization) are **silently ignored**.
+- No JSON schema. No `codehound.schema.json`. No `schemars` dependency.
+- **No `--config <path>` flag**, no `CODEHOUND_*` env-var overrides, no upward config walk, no `.codehoundignore`.
+- **Precedence bug for `fail_on`** in `config.rs:40-52`: config **wins** over CLI severity flags, which is inverted from how `only`/`skip` work. The README/codehound.toml comment is wrong on this.
 
 ### 7.3 CLI ergonomics
 - `--help` has **no `after_help` examples**.
-- No subcommands, no `--list-rules`, no `slopguard explain CWE-22`, no `--quiet`/`--verbose`, no `--init`.
+- No subcommands, no `--list-rules`, no `codehound explain CWE-22`, no `--quiet`/`--verbose`, no `--init`.
 - **No stdin reading** — `rg 'io::stdin' src/` → 0 hits.
 - **Exit codes are 3-valued** (0/1/2); no distinction between config error and engine internal error. The review's A8 (`anyhow` → `thiserror`) is needed to enable this.
 - **Stale README**: `README.md:17` says "SARIF — planned", but `src/reporting/sarif.rs` is implemented and reachable via `--format sarif`.
@@ -186,7 +186,7 @@ Verified by `rg` and `find`:
 NDJSON only (`serde_json::to_writer` at `src/reporting/json.rs:13`) — no envelope, no `byteOffset`/`endLine`/`endColumn`/`byteLength`, no `fingerprint`, no `run_id`. `CweRef.id` is numeric, not the `CWE-N` string consumers expect.
 
 ### 7.7 `ruleset/golang/golang.json` (168 KB) is never loaded
-`rg "ruleset\|golang.json" src/` → **0 matches**. The 191-entry JSON (175 CWE + 16 `PERF-001..016`) is the natural source of truth for `--list-rules` and `slopguard explain` but the binary's `metadata.rs` hand-writes the metadata in Rust constants. Either wire the JSON in via `include_str!` + `serde_json::from_str` and codegen `metadata.rs` from it via `build.rs`, or **delete it as a stale artifact**. The 16 `PERF-001..016` are referenced **only** in `plans/PR/pr-refactor-go-cwe-and-add-perf-plan.md` and `plans/v0.0.1/go/perf-heuristics-and-sarif.md` — no path from spec to code exists.
+`rg "ruleset\|golang.json" src/` → **0 matches**. The 191-entry JSON (175 CWE + 16 `PERF-001..016`) is the natural source of truth for `--list-rules` and `codehound explain` but the binary's `metadata.rs` hand-writes the metadata in Rust constants. Either wire the JSON in via `include_str!` + `serde_json::from_str` and codegen `metadata.rs` from it via `build.rs`, or **delete it as a stale artifact**. The 16 `PERF-001..016` are referenced **only** in `plans/PR/pr-refactor-go-cwe-and-add-perf-plan.md` and `plans/v0.0.1/go/perf-heuristics-and-sarif.md` — no path from spec to code exists.
 
 ### 7.8 `plans/` is largely stale
 - `plans/p1.md`, `p2.md`, `p3.md` are placeholder scaffolds with all checkboxes unchecked. `README.md:29-34` says "p1: Implemented" but `p1.md` doesn't reflect that.
@@ -210,7 +210,7 @@ Only two files in `docs/`: `adding-a-language.md` (43 lines) and `architecture-p
 | **A6 (metadata duplication)** | Add: 175 lines of `&[]` in `metadata.rs` is provable-typo bait (any future CWE rule that forgets the link will be silently unwired). Codegen from a single YAML/JSON spec also fixes the CWE-270/CWE-841 precedence bugs (§4 B1, B2). |
 | **A8 (error type strategy)** | Add: any `Err` from one worker kills the whole scan via rayon's `FromParallelIterator<Result>` (`rayon-core/result.rs:93-131`). A `thiserror` enum at the engine boundary enables partial-failure recovery and distinct exit codes (config=2, internal=3). |
 | **(NEW) P7b: Parallelism stops at file boundary** | Add: tree-sitter 0.25's `unsafe impl Send for Parser/Tree` is what makes rayon-parallel parsing sound — older versions of tree-sitter didn't have this. Pinning `tree-sitter = "0.25"` in `Cargo.toml:42` is a **deliberate correctness choice**, not just a freshness decision. |
-| **(NEW) Test strategy 7.0 → 4.0** | Add: no CI, `insta` is a dead dev-dep, 0 unit tests for hot-path files, real race on `target/slopguard-fixtures/`, hard-coded `SCAN_PATH` in `makefile`, "mixed" test isn't mixed, 90 KB hand-written `go_cwe_detector_integration.rs` should be a `for` loop. |
+| **(NEW) Test strategy 7.0 → 4.0** | Add: no CI, `insta` is a dead dev-dep, 0 unit tests for hot-path files, real race on `target/codehound-fixtures/`, hard-coded `SCAN_PATH` in `makefile`, "mixed" test isn't mixed, 90 KB hand-written `go_cwe_detector_integration.rs` should be a `for` loop. |
 | **(NEW) A9: Public API leaks detector internals** | `GoUnitFacts`/`InputBinding`/`CallFact`/`AssignmentFact`/`GoCweScan`/`GoPlugin`/`PythonPlugin`/`ReCompileInLoop` are all `pub` but should be `pub(crate)`. Whole `lang::*` is `pub` but feature-gated — surface changes per build profile. |
 | **(NEW) A10: `ruleset/golang/golang.json` is dead weight** | 168 KB / 191 entries / 0 references in `src/`. The 16 `PERF-001..016` records have no path to code. |
 | **(NEW) A11: `plans/` is stale** | `p1/p2/p3.md` are unchecked placeholders that contradict `README.md`. `plans/PR/pr-*.md` are merged-PR records. `plans/v0.0.1/go/PR/` is empty. |
@@ -233,7 +233,7 @@ Only two files in `docs/`: `adding-a-language.md` (43 lines) and `architecture-p
 1. **Split `GoCweScan` into generated per-rule detectors** sharing `Arc<GoUnitFacts>` (existing P1, sharpened). Restores registry semantics, enables per-rule `--only` short-circuits, eliminates the 175×-per-file `unit.path.display().to_string()`.
 2. **Intern callee + binding-name as `SymbolId` (u16)** via a `phf::Map` built once at startup. Eliminates ~28 string compares per detector per file and ~100 String allocs per file. Highest absolute win.
 3. **Change `Finding.cwe` to `Option<Box<[CweRef]>>` and `Finding.message` to `Cow<'static, str>`**. Both are provably alloc-free for current Go detectors (all `cwe: &[]`, all `message: &'static str`).
-4. **Wire `ruleset/golang/golang.json` into the build** via `include_str!` + codegen of `metadata.rs` from it. Kills the metadata-typo risk, fixes the `&[]` drift, makes `--list-rules` and `slopguard explain` real, fixes the B1/B2 precedence bugs by giving rules a structured spec.
+4. **Wire `ruleset/golang/golang.json` into the build** via `include_str!` + codegen of `metadata.rs` from it. Kills the metadata-typo risk, fixes the `&[]` drift, makes `--list-rules` and `codehound explain` real, fixes the B1/B2 precedence bugs by giving rules a structured spec.
 5. **Add a real CI workflow** (`.github/workflows/ci.yml`): `cargo test` + `cargo clippy --all-targets --all-features -- -D warnings` + `cargo fmt --check` + `cargo test --no-default-features --features go` + a Linux/macOS matrix. Single biggest score-lift available; takes ~30 lines of YAML.
 
 ---

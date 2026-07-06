@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use slopguard::rules::{Finding, FindingInputs, LineCol, Severity};
+use codehound::rules::{Finding, FindingInputs, LineCol, Severity};
 
 fn finding(file: &str, line: usize, column: usize) -> Finding {
     Finding::new(FindingInputs::new(
@@ -20,7 +20,7 @@ fn fingerprint_from_finding_is_deterministic() {
 
     assert_eq!(
         f.fingerprint_string(),
-        "slopguard:1:CWE-22:pkg/handler/user.go:42:5"
+        "codehound:1:CWE-22:pkg/handler/user.go:42:5"
     );
     assert_eq!(f.fingerprint_string(), f.fingerprint_string());
 }
@@ -47,7 +47,7 @@ fn fingerprint_normalizes_windows_path_separators() {
 
     assert_eq!(
         f.fingerprint_string(),
-        "slopguard:1:CWE-22:pkg/handler/user.go:42:5"
+        "codehound:1:CWE-22:pkg/handler/user.go:42:5"
     );
 }
 
@@ -57,6 +57,6 @@ fn fingerprint_handles_unicode_file_paths() {
 
     assert_eq!(
         f.fingerprint_string(),
-        "slopguard:1:CWE-22:pkg/हैंडलर/user.go:42:5"
+        "codehound:1:CWE-22:pkg/हैंडलर/user.go:42:5"
     );
 }

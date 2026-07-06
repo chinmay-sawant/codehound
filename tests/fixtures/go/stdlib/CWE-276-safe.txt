@@ -22,7 +22,7 @@ func PersistSession(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing session id", http.StatusBadRequest)
 		return
 	}
-	path := "/var/lib/slopguard/sessions/" + sid
+	path := "/var/lib/codehound/sessions/" + sid
 	_ = os.WriteFile(path, []byte(body), 0600)
 	w.WriteHeader(http.StatusOK)
 }

@@ -34,9 +34,9 @@ pub struct Envelope<'a> {
 impl<'a> From<&'a AnalysisResult> for Envelope<'a> {
     fn from(r: &'a AnalysisResult) -> Self {
         Self {
-            tool: "slopguard",
+            tool: "codehound",
             version: env!("CARGO_PKG_VERSION"),
-            schema: "https://json.schemastore.org/slopguard/v1",
+            schema: "https://json.schemastore.org/codehound/v1",
             finding_count: r.findings.len(),
             error_count: r.errors.len(),
             suppressed_count: r.suppressed_count,

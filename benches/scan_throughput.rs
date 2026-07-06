@@ -4,9 +4,9 @@ use std::path::Path;
 use std::time::Duration;
 
 use criterion::{Criterion, criterion_group, criterion_main};
-use slopguard::core::ScanContext;
-use slopguard::engine::{Analyzer, LanguageFilter, Registry, collect_entries};
-use slopguard::fixture::{materialize_tree, materialized_root};
+use codehound::core::ScanContext;
+use codehound::engine::{Analyzer, LanguageFilter, Registry, collect_entries};
+use codehound::fixture::{materialize_tree, materialized_root};
 
 fn bench_scan_materialized_fixtures(c: &mut Criterion) {
     materialize_tree(Path::new("tests/fixtures")).expect("materialize integration fixtures");

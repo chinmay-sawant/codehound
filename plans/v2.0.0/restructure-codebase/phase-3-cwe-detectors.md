@@ -458,10 +458,10 @@ All of these are preserved by the re-exports in each new `mod.rs`.
 
 After auditing, **no test or benchmark file needs editing** for any proposed split. The detector source files are not directly referenced by tests; tests use:
 
-- [x] `slopguard::lang::go::detectors::cwe::GoCweScan` (unchanged)
-- [x] `slopguard::lang::go::detectors::cwe::common::*` (unchanged)
-- [x] `slopguard::lang::go::detectors::cwe::facts::*` (unchanged)
-- [x] `slopguard::lang::go::detectors::cwe::source_index::SourceIndex` (unchanged)
+- [x] `codehound::lang::go::detectors::cwe::GoCweScan` (unchanged)
+- [x] `codehound::lang::go::detectors::cwe::common::*` (unchanged)
+- [x] `codehound::lang::go::detectors::cwe::facts::*` (unchanged)
+- [x] `codehound::lang::go::detectors::cwe::source_index::SourceIndex` (unchanged)
 
 The integration test `tests/go_cwe_detector_integration.rs` discovers fixtures by CWE id, runs every `CWE-N` detector, and asserts the registry is in sync. If a `pub use` is forgotten, this test reports a missing finding for the affected CWE — it is the **canary test** for the split.
 

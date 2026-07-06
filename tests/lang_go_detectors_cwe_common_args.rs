@@ -1,6 +1,6 @@
 #![cfg(feature = "go")]
 
-use slopguard::lang::go::detectors::cwe::common::argument_uses_identifier;
+use codehound::lang::go::detectors::cwe::common::argument_uses_identifier;
 
 #[test]
 fn argument_uses_identifier_exact_match() {

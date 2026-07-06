@@ -1,4 +1,4 @@
-# SlopGuard vs Staticcheck: Finding Analysis
+# CodeHound vs Staticcheck: Finding Analysis
 
 **Test codebase:** `gopdfsuit` — a Go PDF generation/manipulation suite  
 **Findings:** 321 across 13 chunk files  
@@ -22,16 +22,16 @@
 
 | Category | % of findings | Staticcheck blind spot |
 |----------|:------------:|------------------------|
-| **Unique to SlopGuard** | 81% (22/27 rules) | Framework semantics, hot-path awareness, repeated-call tracking, goroutine-scope analysis |
+| **Unique to CodeHound** | 81% (22/27 rules) | Framework semantics, hot-path awareness, repeated-call tracking, goroutine-scope analysis |
 | Staticcheck would catch | 19% (5/27 rules) | PERF-1 (SA6000 regex-in-loop), PERF-7 (gocritic deferInLoop), PERF-36 (govet loopclosure), PERF-42 (S1028 fmt.Errorf with static string), PERF-45 (prealloc) |
 
 ### The Four Blind Spots
 
-**1. Framework-specific patterns** — staticcheck has zero knowledge of Gin, Echo, GORM, or sqlx. It sees `gin.Logger()` as any other function call. SlopGuard knows `gin.Logger()` performs synchronous I/O under a mutex on every request.
+**1. Framework-specific patterns** — staticcheck has zero knowledge of Gin, Echo, GORM, or sqlx. It sees `gin.Logger()` as any other function call. CodeHound knows `gin.Logger()` performs synchronous I/O under a mutex on every request.
 
 Examples: PERF-68 (Gin Logger in production), PERF-61 (static handler no cache headers), PERF-57 (heavy work in middleware)
 
-**2. Hot-path / cold-path distinction** — staticcheck treats all function bodies equally. SlopGuard understands whether code runs at startup (once) vs. on the request path (per-request, potentially thousands of times/second).
+**2. Hot-path / cold-path distinction** — staticcheck treats all function bodies equally. CodeHound understands whether code runs at startup (once) vs. on the request path (per-request, potentially thousands of times/second).
 
 Examples: PERF-6 (fmt.Sprintf in loop), PERF-32 (string/byte conversion on hot path), PERF-22 (os.ReadFile in handler)
 
@@ -92,7 +92,7 @@ Examples: PERF-40 (repeated time.Now calls in one function), PERF-44 (repeated t
 
 ## PERF Rule Classification
 
-| Rule | Title | Unique to SlopGuard? |
+| Rule | Title | Unique to CodeHound? |
 |------|-------|:---:|
 | PERF-1 | Regular Expression Compilation Inside Loop | No (staticcheck SA6000) |
 | PERF-3 | Slice Rebuild Inside Loop | **Yes** |
@@ -122,7 +122,7 @@ Examples: PERF-40 (repeated time.Now calls in one function), PERF-44 (repeated t
 | PERF-68 | Gin Logger Middleware In Production Hot Path | **Yes** |
 | PERF-88 | Echo Static Handler Missing Cache | **Yes** |
 
-**22 of 27 PERF rules (81%) are unique to SlopGuard.**
+**22 of 27 PERF rules (81%) are unique to CodeHound.**
 
 ---
 
@@ -134,4 +134,4 @@ Examples: PERF-40 (repeated time.Now calls in one function), PERF-44 (repeated t
 
 ## Bottom Line
 
-Staticcheck is a language-level linter. It operates on syntax patterns without understanding framework semantics, request-path context, security threat models, or application architecture. SlopGuard fills the gap between language linters and full SAST tools — detecting application-level performance patterns and security vulnerabilities that require understanding *what* the code does at runtime, not just *how* it's written.
+Staticcheck is a language-level linter. It operates on syntax patterns without understanding framework semantics, request-path context, security threat models, or application architecture. CodeHound fills the gap between language linters and full SAST tools — detecting application-level performance patterns and security vulnerabilities that require understanding *what* the code does at runtime, not just *how* it's written.

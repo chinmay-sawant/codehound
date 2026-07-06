@@ -30,6 +30,6 @@ mod go_module_prefix_tests {
             .duration_since(UNIX_EPOCH)
             .expect("system clock before UNIX epoch")
             .as_nanos();
-        std::env::temp_dir().join(format!("slopguard-deps-{label}-{unique}"))
+        std::env::temp_dir().join(format!("codehound-deps-{label}-{unique}"))
     }
 }

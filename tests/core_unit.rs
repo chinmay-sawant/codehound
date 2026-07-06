@@ -3,8 +3,8 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use slopguard::ast::compute_line_starts;
-use slopguard::core::{LanguageId, ParsedUnit};
+use codehound::ast::compute_line_starts;
+use codehound::core::{LanguageId, ParsedUnit};
 use tree_sitter::Parser;
 
 fn parsed(source: &str) -> ParsedUnit {

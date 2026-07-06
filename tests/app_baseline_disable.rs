@@ -1,10 +1,10 @@
 mod helpers;
 
 use helpers::baseline::{
-    TempProject, parse_findings, run_slopguard, save_baseline, setup_temp_project,
+    TempProject, parse_findings, run_codehound, save_baseline, setup_temp_project,
 };
 
-const BASELINE_FILE: &str = ".slopguard-baseline.json";
+const BASELINE_FILE: &str = ".codehound-baseline.json";
 const SCAN_ARGS: &[&str] = &[
     "--format",
     "json",
@@ -26,7 +26,7 @@ fn assert_success(output: &std::process::Output) {
 fn scan_with_args(project: &TempProject, extra_args: &[&str]) -> std::process::Output {
     let mut args = SCAN_ARGS.to_vec();
     args.extend_from_slice(extra_args);
-    run_slopguard(&args, project.path())
+    run_codehound(&args, project.path())
 }
 
 #[test]
@@ -55,8 +55,8 @@ fn config_baseline_disabled_prevents_auto_loading() {
     let project = setup_temp_project(&["sample.py"]);
     save_baseline(&project, "sample.py", BASELINE_FILE);
     project.write_file(
-        "slopguard.toml",
-        "[slopguard]\n[slopguard.baseline]\nenabled = false\n",
+        "codehound.toml",
+        "[codehound]\n[codehound.baseline]\nenabled = false\n",
     );
 
     let output = scan_with_args(&project, &["sample.py"]);
@@ -73,8 +73,8 @@ fn config_baseline_path_is_used_when_cli_path_absent() {
     save_baseline(&project, "sample.py", "custom-baseline.json");
     assert!(project.join("custom-baseline.json").exists());
     project.write_file(
-        "slopguard.toml",
-        "[slopguard]\n[slopguard.baseline]\npath = \"custom-baseline.json\"\n",
+        "codehound.toml",
+        "[codehound]\n[codehound.baseline]\npath = \"custom-baseline.json\"\n",
     );
 
     let output = scan_with_args(&project, &["sample.py"]);
@@ -92,11 +92,11 @@ fn config_baseline_path_is_used_when_cli_path_absent() {
 fn baseline_save_mode_ignores_disabled_config() {
     let project = setup_temp_project(&["sample.py"]);
     project.write_file(
-        "slopguard.toml",
-        "[slopguard]\n[slopguard.baseline]\nenabled = false\n",
+        "codehound.toml",
+        "[codehound]\n[codehound.baseline]\nenabled = false\n",
     );
 
-    let output = run_slopguard(
+    let output = run_codehound(
         &[
             "--baseline",
             "--no-context",

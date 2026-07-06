@@ -30,9 +30,9 @@ pub struct SarifRun<'a> {
 #[derive(Serialize)]
 #[doc(hidden)]
 pub struct SarifRunProperties<'a> {
-    #[serde(rename = "slopguardScanStats", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "codehoundScanStats", skip_serializing_if = "Option::is_none")]
     pub scan_stats: Option<&'a crate::engine::ScanStats>,
-    #[serde(rename = "slopguardTiming", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "codehoundTiming", skip_serializing_if = "Option::is_none")]
     pub timing: Option<&'a crate::engine::TimingSummary>,
 }
 
@@ -101,12 +101,12 @@ pub struct SarifProperties {
     pub category: &'static str,
     #[serde(rename = "security-severity")]
     pub security_severity: &'static str,
-    #[serde(rename = "slopguardEvidence", skip_serializing_if = "Option::is_none")]
-    pub slopguard_evidence: Option<Value>,
+    #[serde(rename = "codehoundEvidence", skip_serializing_if = "Option::is_none")]
+    pub codehound_evidence: Option<Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub remediation: Option<String>,
     #[serde(
-        rename = "slopguardTaintShowPaths",
+        rename = "codehoundTaintShowPaths",
         skip_serializing_if = "Option::is_none"
     )]
     pub taint_show_paths: Option<bool>,

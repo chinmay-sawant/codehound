@@ -96,7 +96,7 @@ Deferred items from p2-implementation plan files that were not yet implemented a
 
 ### 2.1 File-level rule-specific detector masking
 
-- [ ] Rule-specific detector masking while preserving suppressed-count and `--show-ignored` semantics — fast-path for `// slopguard-ignore-file: all` exists but rule-specific masking before analysis is not implemented
+- [ ] Rule-specific detector masking while preserving suppressed-count and `--show-ignored` semantics — fast-path for `// codehound-ignore-file: all` exists but rule-specific masking before analysis is not implemented
 
 ---
 
@@ -209,8 +209,8 @@ Deferred items from p2-implementation plan files that were not yet implemented a
 ### 9.1 Pack loading mechanism
 
 - [ ] Pack loading mechanism — `pack.rs` does not exist
-- [ ] SlopguardConfig rule_packs fields — not added to config struct
-- [ ] `slopguard.schema.json` updates — design done, not applied
+- [ ] CodehoundConfig rule_packs fields — not added to config struct
+- [ ] `codehound.schema.json` updates — design done, not applied
 - [ ] PackLoader — not implemented
 - [ ] GenericPatternDetector — not implemented
 - [ ] Integration into scan pipeline — not done
@@ -259,7 +259,7 @@ Deferred items from p2-implementation plan files that were not yet implemented a
 
 ### 10.5 Output per-detector timing
 
-- [x] SARIF reporter timing data — `slopguardTiming` field in `SarifRunProperties` at `sarif/schema.rs:35`
+- [x] SARIF reporter timing data — `codehoundTiming` field in `SarifRunProperties` at `sarif/schema.rs:35`
 
 ---
 

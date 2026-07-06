@@ -3,8 +3,8 @@ use std::path::Path;
 use std::time::Duration;
 
 use criterion::{Criterion, criterion_group, criterion_main};
-use slopguard::engine::{CacheStore, collect_entries, content_hash};
-use slopguard::fixture::{materialize_tree, materialized_root};
+use codehound::engine::{CacheStore, collect_entries, content_hash};
+use codehound::fixture::{materialize_tree, materialized_root};
 
 #[path = "common/mod.rs"]
 mod common;
@@ -18,11 +18,11 @@ fn bench_partial(c: &mut Criterion) {
         let mut cache = CacheStore::open_with_capacity(cache_dir.clone(), 0).unwrap();
         let _ = run_scan_with_cache(root, Some(&mut cache));
     }
-    let registry = slopguard::engine::Registry::default();
+    let registry = codehound::engine::Registry::default();
     let (entries, _skipped) = collect_entries(
         &registry,
         &[&root],
-        &slopguard::engine::LanguageFilter::default(),
+        &codehound::engine::LanguageFilter::default(),
         &Default::default(),
     )
     .expect("collect");
@@ -40,7 +40,7 @@ fn bench_partial(c: &mut Criterion) {
         b.iter(|| {
             for p in &to_change {
                 if let Ok(mut body) = std::fs::read_to_string(p) {
-                    body.push_str("\n// slopguard-bench-touch\n");
+                    body.push_str("\n// codehound-bench-touch\n");
                     std::fs::write(p, &body).unwrap();
                 }
             }

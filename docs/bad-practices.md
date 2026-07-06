@@ -1,6 +1,6 @@
 # Go Bad Practices Rules
 
-This document summarizes the Go bad-practice (`BP-*`) rules shipped by SlopGuard. Each rule records the rationale for the heuristic and the canonical fix the detector expects.
+This document summarizes the Go bad-practice (`BP-*`) rules shipped by CodeHound. Each rule records the rationale for the heuristic and the canonical fix the detector expects.
 
 ## Error Handling
 

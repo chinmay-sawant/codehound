@@ -1,6 +1,6 @@
 # How We Fixed 218 Go Performance Anti-Patterns with Static Analysis
 
-We ran a set of custom static analysis checks (codename SlopGuard) against our Go PDF library. It found 226 issues. 218 of them were real. We fixed all 218.
+We ran a set of custom static analysis checks (codename CodeHound) against our Go PDF library. It found 226 issues. 218 of them were real. We fixed all 218.
 
 Here is what we learned, what the actual before/after code looked like, and how much faster our PDFs got.
 
@@ -10,7 +10,7 @@ GoPDFSuit is optimized for high-volume PDF generation: invoices, reports, signed
 
 We have been profiling and optimizing for weeks. Buffer pooling, compression pipelines, structure tree rewrites. The low-hanging fruit was gone. We needed something more surgical.
 
-Enter the tool we built (codename SlopGuard). It scans Go ASTs for known performance anti-patterns using custom analyzers. It flags things like "hey, you are compiling a regex inside a loop" or "you called fmt.Sprintf on a static string, use errors.New instead."
+Enter the tool we built (codename CodeHound). It scans Go ASTs for known performance anti-patterns using custom analyzers. It flags things like "hey, you are compiling a regex inside a loop" or "you called fmt.Sprintf on a static string, use errors.New instead."
 
 We ran it. It spat out 226 findings across the entire project. After filtering out 8 CWE security-only items, we had 218 actionable performance issues to fix.
 
@@ -267,7 +267,7 @@ func isSpace(s string) bool {
 
 ## Algorithmic Hoisting Over Micro-Optimizations
 
-Not every SlopGuard fix was a one-liner. Finding P6-26 in `internal/pdf/redact/ocr_adapter.go` flagged a nested loop that called `strings.ToLower` and `strings.TrimSpace` on every iteration of a word-by-word OCR search. The fix was to hoist both normalizations out of the loop entirely.
+Not every CodeHound fix was a one-liner. Finding P6-26 in `internal/pdf/redact/ocr_adapter.go` flagged a nested loop that called `strings.ToLower` and `strings.TrimSpace` on every iteration of a word-by-word OCR search. The fix was to hoist both normalizations out of the loop entirely.
 
 Before. Each query and each OCR word was lowered and trimmed on every comparison:
 

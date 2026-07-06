@@ -1,4 +1,4 @@
-# v2.0.0 — SlopGuard File-Split Plan
+# v2.0.0 — CodeHound File-Split Plan
 
 > **Parent:** `plans/README.md` (root index)
 > **Status:** Complete. All 6 phases have been executed. The codebase has been fully restructured.
@@ -9,7 +9,7 @@
 ## Overview
 
 This plan covers splitting every Rust and configuration file in the
-slopguard repository that exceeds the **2 000–3 000-character target
+codehound repository that exceeds the **2 000–3 000-character target
 ceiling** into smaller, more maintainable units. The work is structured as
 **six phases**, each owned by a clearly scoped area of the codebase.
 
@@ -50,7 +50,7 @@ ceiling** into smaller, more maintainable units. The work is structured as
 - **Success criteria:** Every Rust file under 3 000 chars; every public symbol reachable at the same path; every `detect_*` function and `META_*` constant byte-identical; `cargo build --features go,python && cargo test --all-features` is green; generated `OUT_DIR/*.rs` is byte-stable.
 - **Trade-offs:** Some files (e.g. `app/run.rs`, `sarif/log.rs`, `cli/args.rs`, `stdlib_misuse/*` cluster) will remain in the 4 000–6 000-char exception band because they have no clean sub-split. Detector name preservation forces a flat folder layout for many clusters.
 - **Open questions:**
-  - Should `slopguard.schema.json` be split via `$ref`? (Recommendation: no, leave as-is.)
+  - Should `codehound.schema.json` be split via `$ref`? (Recommendation: no, leave as-is.)
   - Should `metadata_overrides.rs` be split by id-range, or kept flat with comments? (Recommendation: keep flat with comments.)
   - Should `Cargo.toml` be touched? (No — Cargo's manifest format does not support it.)
 
@@ -103,7 +103,7 @@ ceiling** into smaller, more maintainable units. The work is structured as
 - [x] Apply `perf/registry.toml` split — split into `registry/` directory; `go_perf_registry_generation.rs` updated to use `read_dir`
 - [x] Apply `cwe/registry.toml` split — split into `registry/` directory (15 per-domain files)
 - [x] Apply `.github/workflows/ci.yml` split — `rust-toolchain-cache` composite action extracted; `scripts/check_bench_budget.sh` referenced
-- [x] Apply `slopguard.schema.json` — kept flat (Recommendation: skip followed)
+- [x] Apply `codehound.schema.json` — kept flat (Recommendation: skip followed)
 - [x] Do **not** split `Cargo.toml` — followed
 - [x] Verify byte-stable generated `OUT_DIR/*.rs` (see `verification.md`)
 

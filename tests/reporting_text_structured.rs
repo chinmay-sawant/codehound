@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
-use slopguard::engine::AnalysisResult;
-use slopguard::reporting::text::{TextOptions, write_with_options};
-use slopguard::rules::{
+use codehound::engine::AnalysisResult;
+use codehound::reporting::text::{TextOptions, write_with_options};
+use codehound::rules::{
     DetectorEvidence, Finding, FindingInputs, LineCol, Severity, TaintSinkInfo, TaintSourceInfo,
 };
 

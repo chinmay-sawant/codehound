@@ -3,8 +3,8 @@
 #[path = "helpers/mod.rs"]
 mod helpers;
 
-use slopguard::engine::Analyzer;
-use slopguard::rules::DetectorEvidence;
+use codehound::engine::Analyzer;
+use codehound::rules::DetectorEvidence;
 
 #[test]
 fn cwe_78_finding_includes_dangerous_call_evidence() {

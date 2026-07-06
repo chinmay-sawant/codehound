@@ -19,7 +19,7 @@ pub const CWE_1336: CweRef = CweRef::new(
 // -- auto-generated entries from ruleset/golang/chunks/*.json follow --
 include!(concat!(env!("OUT_DIR"), "/cwe_catalog_generated.rs"));
 
-/// Curated CWE entries referenced by SlopGuard rules.
+/// Curated CWE entries referenced by CodeHound rules.
 pub static CWE_CATALOG: &[CweRef] = CWE_CATALOG_GENERATED;
 
 /// Precomposed slices for rule metadata (no runtime allocation).

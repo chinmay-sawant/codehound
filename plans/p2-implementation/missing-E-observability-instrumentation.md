@@ -115,7 +115,7 @@ Once incremental analysis or larger monorepo workflows are added, performance de
 - [x] In JSON reporter:
   - [x] Stats/timing included in envelope `"stats"` object when enabled
 - [x] In SARIF reporter:
-  - [x] Add timing data as `run.properties.slopguardTiming`
+  - [x] Add timing data as `run.properties.codehoundTiming`
 
 ---
 
@@ -172,7 +172,7 @@ Once incremental analysis or larger monorepo workflows are added, performance de
   - [x] Add `"stats"` object to envelope output (`--json-envelope`)
   - [x] NDJSON: no stats record (envelope only)
 - [x] In SARIF reporter:
-  - [x] Add stats to `run.properties.slopguardScanStats`
+  - [x] Add stats to `run.properties.codehoundScanStats`
 
 ---
 

@@ -8,8 +8,8 @@ use std::fs;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use slopguard::engine::Analyzer;
-use slopguard::fixture::{materialize_fixture, materialize_tree, materialized_root};
+use codehound::engine::Analyzer;
+use codehound::fixture::{materialize_fixture, materialize_tree, materialized_root};
 
 pub mod baseline;
 pub mod cache;
@@ -98,7 +98,7 @@ pub fn unique_temp_root(test_name: &str) -> std::path::PathBuf {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    std::env::temp_dir().join(format!("slopguard-{test_name}-{unique}"))
+    std::env::temp_dir().join(format!("codehound-{test_name}-{unique}"))
 }
 
 /// Write a Go source file that triggers a command-injection finding.

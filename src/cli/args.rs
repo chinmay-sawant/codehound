@@ -6,22 +6,22 @@ use clap::Parser;
 
 #[derive(Debug, Parser)]
 #[command(
-    name = "slopguard",
+    name = "codehound",
     version,
     about = "Detect performance bottlenecks and slop (Go, Python, …) in source code",
     long_about = None,
     styles = clap::builder::Styles::styled(),
     after_help = "EXAMPLES:\n  \
-        slopguard                            # scan the current directory\n  \
-        slopguard ./cmd/foo.go               # scan a single file\n  \
-        slopguard --only CWE-22,CWE-89       # only the named rules\n  \
-        slopguard --format sarif > out.sarif # SARIF for CI\n  \
-        slopguard --taint                    # enable experimental taint tracking\n  \
-        slopguard --taint-show-paths         # emit taint-path evidence\n  \
-        slopguard --diagnostics-summary      # compact scan stats\n  \
-        slopguard --list-rules               # show every registered rule\n  \
-        slopguard --explain CWE-89           # details for a specific rule\n  \
-        slopguard init                       # write a starter slopguard.toml"
+        codehound                            # scan the current directory\n  \
+        codehound ./cmd/foo.go               # scan a single file\n  \
+        codehound --only CWE-22,CWE-89       # only the named rules\n  \
+        codehound --format sarif > out.sarif # SARIF for CI\n  \
+        codehound --taint                    # enable experimental taint tracking\n  \
+        codehound --taint-show-paths         # emit taint-path evidence\n  \
+        codehound --diagnostics-summary      # compact scan stats\n  \
+        codehound --list-rules               # show every registered rule\n  \
+        codehound --explain CWE-89           # details for a specific rule\n  \
+        codehound init                       # write a starter codehound.toml"
 )]
 pub struct Cli {
     #[command(subcommand)]
@@ -39,16 +39,16 @@ pub struct Cli {
     #[arg(long, value_enum, default_value_t = super::enums::OutputFormat::Text)]
     pub format: super::enums::OutputFormat,
 
-    /// Path to a `slopguard.toml` (overrides auto-discovery).
-    #[arg(long, env = "SLOPGUARD_CONFIG")]
+    /// Path to a `codehound.toml` (overrides auto-discovery).
+    #[arg(long, env = "CODEHOUND_CONFIG")]
     pub config: Option<PathBuf>,
 
     /// Only run the given rule IDs (comma-separated).
-    #[arg(long, value_delimiter = ',', env = "SLOPGUARD_ONLY")]
+    #[arg(long, value_delimiter = ',', env = "CODEHOUND_ONLY")]
     pub only: Vec<String>,
 
     /// Skip the given rule IDs (comma-separated).
-    #[arg(long, value_delimiter = ',', env = "SLOPGUARD_SKIP")]
+    #[arg(long, value_delimiter = ',', env = "CODEHOUND_SKIP")]
     pub skip: Vec<String>,
 
     /// Only run bad-practice rules (`BP-*`).
@@ -148,11 +148,11 @@ pub struct Cli {
     #[arg(long)]
     pub baseline: bool,
 
-    /// Ignore any existing `.slopguard-baseline.json` file.
+    /// Ignore any existing `.codehound-baseline.json` file.
     #[arg(long)]
     pub no_baseline: bool,
 
-    /// Report findings suppressed by slopguard-ignore comments.
+    /// Report findings suppressed by codehound-ignore comments.
     #[arg(long)]
     pub show_ignored: bool,
 
@@ -177,7 +177,7 @@ pub struct Cli {
     pub no_cache: bool,
 
     /// Custom directory for the incremental analysis cache
-    /// (overrides `cache.path` in `slopguard.toml`).
+    /// (overrides `cache.path` in `codehound.toml`).
     #[arg(long, value_name = "DIR")]
     pub cache_dir: Option<PathBuf>,
 

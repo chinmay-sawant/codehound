@@ -13,7 +13,7 @@ All deferred files have been converted to standardized phase-wise checklist form
 | D1 — P2 Implementation | 28 | 12 | 56 | 96 |
 | D2 — V2 Core | 5 | 0 | 77 | 82 |
 | D3 — Anti-Pattern & Review | 5 | 0 | 22 | 27 |
-| D4 — Pending Work (SlopGuard) | 9 | 1 | 29 | 39 |
+| D4 — Pending Work (CodeHound) | 9 | 1 | 29 | 39 |
 | D4 — External (gopdfsuit) | 0 | 0 | 20 | 20 |
 | D5 — V0.0.1 Legacy | 2 | 0 | 22 | 24 |
 | **Grand Total** | **49** | **13** | **226** | **288** |

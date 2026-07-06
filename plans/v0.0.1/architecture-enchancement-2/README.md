@@ -15,7 +15,7 @@ The previous implementation pass made real progress (sink registry, TreeCursor, 
 | Severity 4→5 levels (Info/Low/Medium/High/Critical) | **No** — still 4 (Info/Warning/High/Critical) |
 | SourceIndex phf::Map O(1) + u64 bitmask | **No** — still Vec<bool> with O(N) position() |
 | jiff replacing iso8601_utc_now | **No** — custom calendar math still present |
-| templates/slopguard.toml with include_str! | **No** — still inline const TEMPLATE |
+| templates/codehound.toml with include_str! | **No** — still inline const TEMPLATE |
 | Tree walks recursive→iterative | Already was iterative before refactor |
 
 ---

@@ -12,7 +12,7 @@ use crate::engine::path_walk::{WalkUpAction, walk_up_dirs};
 use crate::engine::time::iso8601_utc_now;
 use crate::rules::Finding;
 
-pub const BASELINE_FILE_NAME: &str = ".slopguard-baseline.json";
+pub const BASELINE_FILE_NAME: &str = ".codehound-baseline.json";
 pub const BASELINE_VERSION: &str = "1";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

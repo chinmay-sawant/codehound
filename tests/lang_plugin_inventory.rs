@@ -1,7 +1,7 @@
 //! Compile-time plugin registration via `inventory`.
 
-use slopguard::core::LanguageId;
-use slopguard::lang::enabled_plugins;
+use codehound::core::LanguageId;
+use codehound::lang::enabled_plugins;
 
 #[test]
 fn enabled_plugins_collects_feature_gated_registrars() {

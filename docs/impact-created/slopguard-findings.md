@@ -1,6 +1,6 @@
-# SlopGuard Findings
+# CodeHound Findings
 
-Source chunks: `/home/chinmay/ChinmayPersonalProjects/slopguard/scripts/chunks/Chunk_*.txt`
+Source chunks: `/home/chinmay/ChinmayPersonalProjects/codehound/scripts/chunks/Chunk_*.txt`
 
 ## Scope
 
@@ -241,9 +241,9 @@ Source chunks: `/home/chinmay/ChinmayPersonalProjects/slopguard/scripts/chunks/C
 
 ---
 
-## Batch 2 (P2): SlopGuard Findings from Chunk_*.txt (Findings 1-140)
+## Batch 2 (P2): CodeHound Findings from Chunk_*.txt (Findings 1-140)
 
-Source: `/home/chinmay/ChinmayPersonalProjects/slopguard/scripts/chunks/Chunk_*.txt`
+Source: `/home/chinmay/ChinmayPersonalProjects/codehound/scripts/chunks/Chunk_*.txt`
 
 Cross-referenced against the 226 already-fixed findings above. ~78 were duplicates (already in P1), ~17 were CWE-only or false-positives, ~45 were new and fixed.
 
@@ -313,9 +313,9 @@ Cross-referenced against the 226 already-fixed findings above. ~78 were duplicat
 
 ---
 
-## Batch 3 (P3): 101 SlopGuard Findings (Regenerated Chunks)
+## Batch 3 (P3): 101 CodeHound Findings (Regenerated Chunks)
 
-Source: `/home/chinmay/ChinmayPersonalProjects/slopguard/scripts/chunks/` (regenerated, now 101 findings)
+Source: `/home/chinmay/ChinmayPersonalProjects/codehound/scripts/chunks/` (regenerated, now 101 findings)
 
 Cross-referenced against P1 (226) and P2 (140) findings. Many were already fixed; ~30 were newly addressed.
 
@@ -429,7 +429,7 @@ Cross-referenced against P1 (226) and P2 (140) findings. Many were already fixed
 
 ## Batch 4 (P4) + Batch 5 (P5): Regenerated Chunk Findings (65 + 65 findings)
 
-Source: `/home/chinmay/ChinmayPersonalProjects/slopguard/scripts/chunks/` (subsequent regenerations)
+Source: `/home/chinmay/ChinmayPersonalProjects/codehound/scripts/chunks/` (subsequent regenerations)
 
 ### P4 (65 findings - 3 newly fixed)
 
@@ -448,9 +448,9 @@ The P5 chunk set contains the same 65 findings as P4 (regenerated). All previous
 
 ---
 
-## Batch 6 (P6): SlopGuard Findings from `findings/functions/*.txt` (66 findings)
+## Batch 6 (P6): CodeHound Findings from `findings/functions/*.txt` (66 findings)
 
-Source: `/home/chinmay/ChinmayPersonalProjects/slopguard/scripts/findings/functions/{1..66}.txt`
+Source: `/home/chinmay/ChinmayPersonalProjects/codehound/scripts/findings/functions/{1..66}.txt`
 
 Cross-referenced against P1-P5. **4 newly fixed**, **62 verified as already handled or unfixable**.
 

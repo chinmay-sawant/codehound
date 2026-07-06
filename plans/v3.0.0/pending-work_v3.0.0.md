@@ -69,7 +69,7 @@ Wire `--taint-show-paths` into the 6 intra-procedural CWE taint rules so they em
 - [ ] P4 Public Surface Narrowing
 - [ ] 29 BP `walk()` closures — test callers remain; NEEDLES table rewrite
 - [ ] Per-detector timing on cache hit path
-- [ ] Add `taint` CLI flags to `slopguard.schema.json`
+- [ ] Add `taint` CLI flags to `codehound.schema.json`
 - [ ] Size-based LRU pruning for cache (Phase 6.2)
 
 ---

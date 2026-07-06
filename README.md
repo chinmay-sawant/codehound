@@ -1,9 +1,9 @@
-# SlopGuard
+# CodeHound
 
 > A static code analyzer written in Rust for detecting statically visible code
 > weaknesses in supported codebases.
 
-SlopGuard is a fast, opinionated analyzer focused on **statically detectable
+CodeHound is a fast, opinionated analyzer focused on **statically detectable
 weaknesses** with the current Go implementation centered on bundled CWE
 heuristics and fixture-backed regression coverage.
 
@@ -27,7 +27,7 @@ heuristics, reusable fact extraction, and machine-readable findings.
 
 ## Status
 
-SlopGuard is under active development. The current Go implementation centers on
+CodeHound is under active development. The current Go implementation centers on
 fixture-backed CWE detection.
 
 ## Roadmap
@@ -49,42 +49,42 @@ cargo install --path .
 
 ```sh
 # Analyze the current directory
-slopguard .
+codehound .
 
 # Analyze a single file
-slopguard path/to/file.go
+codehound path/to/file.go
 
 # JSON or SARIF output
-slopguard --format json ./...
-slopguard --format sarif ./... > out.sarif
+codehound --format json ./...
+codehound --format sarif ./... > out.sarif
 
 # Test files (*_test.go, etc.) are excluded by default; include them with:
-slopguard --include-tests .
+codehound --include-tests .
 
 # Limit to specific rules
-slopguard --only CWE-22,CWE-89 .
+codehound --only CWE-22,CWE-89 .
 
 # Show every registered rule
-slopguard --list-rules
+codehound --list-rules
 
 # Show details for a single rule
-slopguard --explain CWE-89
+codehound --explain CWE-89
 
-# Write a starter slopguard.toml
-slopguard init
+# Write a starter codehound.toml
+codehound init
 
 # Incremental analysis cache (enabled by default)
-#   .slopguard-cache/ stores per-file findings keyed by content hash.
-slopguard .
+#   .codehound-cache/ stores per-file findings keyed by content hash.
+codehound .
 
 # Force a fresh cache (purge then scan)
-slopguard --rebuild-cache .
+codehound --rebuild-cache .
 
 # Prune stale cache entries without scanning
-slopguard --prune-cache .
+codehound --prune-cache .
 
 # Disable the cache for this run
-slopguard --no-cache .
+codehound --no-cache .
 ```
 
 See [`docs/incremental-cache.md`](./docs/incremental-cache.md) for details on the cache format, invalidation strategy, and configuration.
@@ -118,7 +118,7 @@ scanned 238 files | 195 cached | 43 fresh | 1250.3ms | slowest: PERF-141
 
 ### Taint Tracking
 
-SlopGuard includes an experimental intra-procedural taint-tracking engine for
+CodeHound includes an experimental intra-procedural taint-tracking engine for
 CWE-22, CWE-78, CWE-79, and CWE-89. See [`docs/taint.md`](./docs/taint.md)
 for details.
 
@@ -128,12 +128,12 @@ for details.
 concurrency, testing, API design, code organization, production hardening, and
 dependency hygiene. See [`docs/bad-practices.md`](./docs/bad-practices.md).
 
-### Configuration file (`slopguard.toml`)
+### Configuration file (`codehound.toml`)
 
-All fields are optional. See `slopguard init` for a starter template.
+All fields are optional. See `codehound init` for a starter template.
 
 ```toml
-[slopguard]
+[codehound]
 # Only analyze these languages.
 # languages = ["go", "python"]
 
@@ -173,7 +173,7 @@ func readFile(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
-SlopGuard output:
+CodeHound output:
 
 ```
 high  CWE-22  sample.go:10:13  user-controlled input reaches a filesystem path sink

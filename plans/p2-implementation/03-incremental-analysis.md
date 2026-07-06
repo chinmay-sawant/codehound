@@ -17,10 +17,10 @@ Cache parsed ASTs and extracted facts to disk. On re-run, only parse files whose
 
 ### 1.1 Define cache directory layout
 
-- [x] Cache directory: `.slopguard-cache/` in the project root (near `.git` or `.slopguard-baseline.json`)
+- [x] Cache directory: `.codehound-cache/` in the project root (near `.git` or `.codehound-baseline.json`)
 - [x] Layout:
   ```
-  .slopguard-cache/
+  .codehound-cache/
   ├── manifest.json            # Global index file
   ├── files/
   │   ├── <sha256-of-path-1>.json   # Per-file cache entry
@@ -74,7 +74,7 @@ Cache parsed ASTs and extracted facts to disk. On re-run, only parse files whose
   {
     "schema_version": 1,
     "tool_version": "0.0.1",
-    "cache_dir": ".slopguard-cache",
+    "cache_dir": ".codehound-cache",
     "files": {
       "pkg/handler/user.go": {
         "cache_key": "...",
@@ -316,11 +316,11 @@ Cache parsed ASTs and extracted facts to disk. On re-run, only parse files whose
   Purges the existing cache directory and reopens the store so the
   next run writes a fresh manifest.
 
-### 5.4 Update `SlopguardConfig`
+### 5.4 Update `CodehoundConfig`
 
-- [x] Add cache fields to `SlopguardConfig` in `src/engine/config.rs`:
+- [x] Add cache fields to `CodehoundConfig` in `src/engine/config.rs`:
   ```rust
-  pub struct SlopguardSection {
+  pub struct CodehoundSection {
       pub cache: CacheConfig,
   }
   pub struct CacheConfig {
@@ -328,8 +328,8 @@ Cache parsed ASTs and extracted facts to disk. On re-run, only parse files whose
       pub dir: Option<PathBuf>,  // custom directory
   }
   ```
-- [x] Update `slopguard.schema.json`
-- [x] Update `templates/slopguard.toml`
+- [x] Update `codehound.schema.json`
+- [x] Update `templates/codehound.toml`
 
 ### 5.5 Config precedence
 
@@ -339,8 +339,8 @@ Cache parsed ASTs and extracted facts to disk. On re-run, only parse files whose
 - [x] CLI `--prune-cache` → prunes stale entries and orphaned files without scanning
 - [x] Config `cache.enabled = false` → same as `--no-cache`
 - [x] Config `cache.max_size_mb` → size limit wired (LRU eviction TBD)
-- [x] Default: cache enabled, directory auto-discovered (walk up from cwd for `.slopguard-cache/`)  
-- [x] `discover_cache_dir()` walks up to `.git` looking for `.slopguard-cache/`
+- [x] Default: cache enabled, directory auto-discovered (walk up from cwd for `.codehound-cache/`)  
+- [x] `discover_cache_dir()` walks up to `.git` looking for `.codehound-cache/`
 
 ---
 
@@ -435,7 +435,7 @@ Cache parsed ASTs and extracted facts to disk. On re-run, only parse files whose
   - [x] Run scan
   - [x] Assert cache is empty
 - [x] Create test: CLI flag wiring for `--no-cache`, `--cache-dir`, `--rebuild-cache`, `--prune-cache`
-- [x] Create test: `[slopguard.cache]` TOML block is parsed
+- [x] Create test: `[codehound.cache]` TOML block is parsed
 - [x] Create test: change imported dependency → dependent entry cascade-invalidated (`transitive_invalidation_clears_dependents`)
 - [x] Create test: cache hit with `--skip` still filters cached findings (`skip_flag_filters_cached_findings`)
 

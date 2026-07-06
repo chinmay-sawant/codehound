@@ -40,7 +40,7 @@ This plan consolidates all cross-cutting items that don't fit neatly into a sing
 - [x] Create `docs/taint.md` covering:
   - Overview: what taint tracking is (intra-procedural data-flow analysis)
   - Which CWE rules use it: CWE-22, CWE-78, CWE-79, CWE-89
-  - Enabling: via `[slopguard.taint] enabled = true` in config, or `--taint` CLI flag
+  - Enabling: via `[codehound.taint] enabled = true` in config, or `--taint` CLI flag
   - Model: 5 source kinds (UserInput, Args, EnvVar, File, Network), 6 sink kinds, 6 sanitizer kinds
   - Limitations: intra-procedural only, single-assignment-per-scope, no struct-field tracking
   - Reading output: `evidence.taint_path` in JSON output (source → hops → sink)
@@ -92,7 +92,7 @@ This plan consolidates all cross-cutting items that don't fit neatly into a sing
 - [x] `--taint` flag: shorthand to enable taint tracking.
   - File: `src/cli/args.rs`
   - Wiring: `src/cli/args_impl.rs::scan_context()` — sets `ctx.taint_enabled = true`
-  - Precedence: CLI `--taint` overrides config `[slopguard.taint] enabled = false`
+  - Precedence: CLI `--taint` overrides config `[codehound.taint] enabled = false`
 - [x] `--no-taint` flag: disable taint tracking even if config enables it.
   - Precedence: `--no-taint` overrides both config and `--taint`
 - [x] `--taint-show-paths` flag: include taint propagation paths in evidence output.
@@ -197,11 +197,11 @@ This plan consolidates all cross-cutting items that don't fit neatly into a sing
 
 ### 5.1 Schema adds
 
-- [x] `cache.evict_target_ratio`: float (0.0–1.0, default 0.9) in `slopguard.schema.json`
+- [x] `cache.evict_target_ratio`: float (0.0–1.0, default 0.9) in `codehound.schema.json`
   - Also tracked in `04-cache-incremental-remaining.md` Phase 1.1
-- [x] `cache.max_file_size_mb`: integer (default 4) in `slopguard.schema.json`
+- [x] `cache.max_file_size_mb`: integer (default 4) in `codehound.schema.json`
   - Also tracked in `04-cache-incremental-remaining.md` Phase 1.2
-- [x] `bad_practices.severity_overrides`: map of rule ID → severity string in `slopguard.schema.json`
+- [x] `bad_practices.severity_overrides`: map of rule ID → severity string in `codehound.schema.json`
   - Also tracked in `03-bad-practices-remaining.md` Phase 1 (MVP hygiene)
 
 ### 5.2 Config struct updates
@@ -212,15 +212,15 @@ This plan consolidates all cross-cutting items that don't fit neatly into a sing
 
 ### 5.3 Template updates
 
-- [x] Add commented-out `[slopguard.taint]` block to `templates/slopguard.toml`:
+- [x] Add commented-out `[codehound.taint]` block to `templates/codehound.toml`:
   ```toml
-  # [slopguard.taint]
+  # [codehound.taint]
   # enabled = false
   # show_paths = false
   ```
-- [x] Add commented-out `[slopguard.bad_practices]` with `severity_overrides` example:
+- [x] Add commented-out `[codehound.bad_practices]` with `severity_overrides` example:
   ```toml
-  # [slopguard.bad_practices]
+  # [codehound.bad_practices]
   # enabled = true
   # severity = "medium"
   # severity_overrides = { "BP-5" = "high" }

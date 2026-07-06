@@ -1,4 +1,4 @@
-# SlopGuard — Performance Benchmarks
+# CodeHound — Performance Benchmarks
 
 > **Methodology:** Criterion.rs benchmarks on release profile (`opt-level=3`, `lto=thin`, `codegen-units=1`).
 > **Fixtures:** 900 Go files (~11,000 total lines, 3.6 MB) materialized from `tests/fixtures/go/{stdlib,perf,frameworks}/`.
@@ -39,7 +39,7 @@
 | 15 | Dead code removed (nearest_function, walk_assignments, --verbose flag, SarifResult dead fields, FILE_WRITE_SINKS, FILE_OPEN_SINKS) | P2 cleanup |
 | 16 | `Cow` removed from `Finding::new` | P2 architecture |
 | 17 | `iso8601_utc_now` → `jiff::Timestamp::now()` | P2 architecture |
-| 18 | Init template → `templates/slopguard.toml` with `include_str!` | P2 architecture |
+| 18 | Init template → `templates/codehound.toml` with `include_str!` | P2 architecture |
 | 19 | CI perf budget: `scan_materialized_fixtures` < 65ms gate | P2 architecture |
 | 20 | Feature-gated `colored` (`terminal-output` feature) | P2 architecture |
 | 21 | `NO_COLOR` spec compliance (any non-empty value disables color) | P0 correctness |

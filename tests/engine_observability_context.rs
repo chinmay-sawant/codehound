@@ -1,10 +1,10 @@
 use std::borrow::Cow;
 
 use clap::Parser;
-use slopguard::cli::Cli;
-use slopguard::core::ScanContext;
-use slopguard::engine::{Analyzer, Diagnostics, ScanStats, TimingCollector};
-use slopguard::rules::{Finding, FindingInputs, LineCol, Severity};
+use codehound::cli::Cli;
+use codehound::core::ScanContext;
+use codehound::engine::{Analyzer, Diagnostics, ScanStats, TimingCollector};
+use codehound::rules::{Finding, FindingInputs, LineCol, Severity};
 
 #[path = "helpers/mod.rs"]
 mod helpers;
@@ -12,7 +12,7 @@ mod helpers;
 #[test]
 fn debug_timing_and_diagnostics_flags_parse() {
     let cli = Cli::parse_from([
-        "slopguard",
+        "codehound",
         "--debug-timing",
         "--diagnostics",
         "diag.json",
@@ -53,8 +53,8 @@ fn scan_context_collects_stats_when_verbose_set() {
     assert!(ctx.collect_stats());
 }
 
-fn sample_result_with_stats() -> slopguard::engine::AnalysisResult {
-    slopguard::engine::AnalysisResult {
+fn sample_result_with_stats() -> codehound::engine::AnalysisResult {
+    codehound::engine::AnalysisResult {
         source_cache: std::collections::HashMap::new(),
         findings: vec![Finding::new(FindingInputs::new(
             "CWE-89",
@@ -102,7 +102,7 @@ fn diagnostics_from_stats_serializes_expected_keys() {
     let diagnostics = Diagnostics::from_stats(&stats);
     let json = serde_json::to_value(&diagnostics).unwrap();
 
-    assert_eq!(json["tool"], "slopguard");
+    assert_eq!(json["tool"], "codehound");
     assert!(!json["version"].as_str().unwrap().is_empty());
     assert!(json["timestamp"].as_str().unwrap().contains('T'));
     assert_eq!(json["scan"]["files_scanned"], 3);
@@ -115,7 +115,7 @@ fn diagnostics_from_stats_serializes_expected_keys() {
 #[test]
 fn diagnostics_flag_writes_valid_json_file() {
     let temp_dir =
-        std::env::temp_dir().join(format!("slopguard-diagnostics-test-{}", std::process::id()));
+        std::env::temp_dir().join(format!("codehound-diagnostics-test-{}", std::process::id()));
     let diagnostics_path = temp_dir.join("diag.json");
     std::fs::create_dir_all(&temp_dir).unwrap();
 
@@ -145,7 +145,7 @@ fn diagnostics_flag_writes_valid_json_file() {
     let content = std::fs::read_to_string(&diagnostics_path)
         .unwrap_or_else(|e| panic!("diagnostics file not written: {e}"));
     let value: serde_json::Value = serde_json::from_str(&content).unwrap();
-    assert_eq!(value["tool"], "slopguard");
+    assert_eq!(value["tool"], "codehound");
     assert!(value["scan"]["files_scanned"].as_u64().unwrap_or(0) > 0);
     assert!(value["findings"]["total"].as_u64().is_some());
 

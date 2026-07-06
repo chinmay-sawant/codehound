@@ -1,21 +1,21 @@
 [package]
-name = "slopguard"
+name = "codehound"
 version = "0.0.1"
 edition = "2024"
 rust-version = "1.85"
-description = "A static code analyzer for detecting performance bottlenecks and 'slop' in codebases"
+description = "A static code analyzer for detecting performance bottlenecks and security weaknesses"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/chinmay/slopguard"
+repository = "https://github.com/chinmay/codehound"
 readme = "README.md"
 keywords = ["static-analysis", "linter", "performance", "go", "slop"]
 categories = ["command-line-utilities", "development-tools::static-analysis"]
 
 [lib]
-name = "slopguard"
+name = "codehound"
 path = "src/lib.rs"
 
 [[bin]]
-name = "slopguard"
+name = "codehound"
 path = "src/main.rs"
 required-features = ["cli"]
 

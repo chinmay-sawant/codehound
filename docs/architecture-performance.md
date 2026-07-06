@@ -10,14 +10,14 @@ Each file is read, parsed, analyzed, and dropped independently so peak memory st
 
 ## Incremental cache (P2.3)
 
-- **Directory**: `.slopguard-cache/` at the project root (auto-discovered near `.git` or `go.mod`).
+- **Directory**: `.codehound-cache/` at the project root (auto-discovered near `.git` or `go.mod`).
 - **Manifest**: `manifest.json` tracks per-file content hash, mtime, and dependency list; kept in memory during the scan.
 - **Per-file entries**: `files/<sha256>.json` stores serialized findings, content hash, and dependency list.
 - **Cache hit flow**: File is read for hash computation → hash matches manifest → findings served from cache → inline-ignore directives re-applied from the (already in-memory) source → `ctx.allows()` filters rules skipped via `--skip` / `--only`.
 - **Transitive invalidation**: When a file's content hash changes, every cache entry that lists it as a dependency is invalidated. Dependency extraction walks Go `import` statements and Python `import` statements to build the dependency graph. Only project-local imports (matching the `go.mod` module prefix) are tracked; stdlib and third-party imports are excluded.
 - **Pruning**: After each scan, entries for files no longer on disk are removed. `--prune-cache` prunes without scanning. `--rebuild-cache` purges the entire cache directory.
 - **CLI flags**: `--no-cache`, `--cache-dir <DIR>`, `--rebuild-cache`, `--prune-cache`.
-- **Configuration**: `[slopguard.cache]` block with `enabled`, `path`, and `max_size_mb` (default 500 MiB).
+- **Configuration**: `[codehound.cache]` block with `enabled`, `path`, and `max_size_mb` (default 500 MiB).
 - **Size-based LRU pruning**: on `flush()`, if `total_size() > max_size_mb`, oldest entries (by `cached_at`) are evicted until the cache is at or below 90% of the limit.
 - **Fair warning in `--diagnostics`**: The document includes total cache size via `CacheStore::total_size()`.
 
@@ -60,7 +60,7 @@ Run `wc -l src/lang/go/detectors/cwe/domains/*.rs` in CI or locally to catch mod
 - `only` and `skip` are additive across config and CLI.
 - `fail_on` from config applies only when the CLI did not explicitly set `--strict`, `--no-fail`, or `--warnings-as-errors`.
 - `include` and `exclude` are gitignore-style path globs applied during file collection.
-- `.slopguardignore`, `.gitignore`, and `.ignore` remain active alongside config-backed include/exclude filtering.
+- `.codehoundignore`, `.gitignore`, and `.ignore` remain active alongside config-backed include/exclude filtering.
 - `--debug-timing` and `--diagnostics` are CLI-only flags (no config-file equivalent); they enable per-detector timing and phase-level instrumentation.
 
 ## Complexity (typical repo)

@@ -22,7 +22,7 @@ following items explicitly deferred. All of them are now implemented:
 | A8  | `thiserror` derive on `ScanError` / `ScanErrorKind::Display`   | done |
 | C2  | `catch_unwind` wrapper around `par_iter` in scan path          | done |
 | F-2.3 | `pub(crate)` on detector internals + move integration test into `facts.rs` | done |
-| F-3.3 | `slopguard.schema.json` JSON Schema + unit test              | done |
+| F-3.3 | `codehound.schema.json` JSON Schema + unit test              | done |
 | F-6.4 | SARIF `region.endLine` / `endColumn` / `byteOffset` / `byteLength` | done |
 | F-7.1 | `--json-envelope` flag + `Envelope` struct                   | done |
 | F-7.3 | JSON `fingerprint` field                                       | done |
@@ -35,7 +35,7 @@ following items explicitly deferred. All of them are now implemented:
 - `Cargo.toml`, `Cargo.lock` (thiserror)
 - 14 source files (`src/**/*.rs`)
 - 1 test file deleted (`tests/go_cwe_facts_integration.rs`)
-- `slopguard.schema.json` (new)
+- `codehound.schema.json` (new)
 - `CHANGELOG.md` (updated Unreleased)
 
 ### Key results
@@ -92,11 +92,11 @@ deleted; its 3 tests now live in `#[cfg(test)] mod tests` inside
 `facts.rs`. This removes the integration-binary compile cost and
 makes the public surface honest.
 
-### F-3.3 — `slopguard.schema.json` (done)
+### F-3.3 — `codehound.schema.json` (done)
 JSON Schema draft-07 at the repo root. Every field in the default
 `Envelope` output is described; `additionalProperties: false` enforces
 that consumers can rely on the contract. A unit test
-(`slopguard_schema_covers_envelope_fields`) parses the schema, walks
+(`codehound_schema_covers_envelope_fields`) parses the schema, walks
 the `properties` of the envelope and each finding, and asserts that
 all 6 expected field names are present.
 
@@ -109,7 +109,7 @@ through. `partialFingerprints` now uses `Finding::fingerprint()` (a
 stable hash of file/line/col/rule).
 
 ### F-7.1 — JSON envelope mode (done)
-New `--json-envelope` CLI flag (also `SLOPGUARD_JSON_ENVELOPE` env).
+New `--json-envelope` CLI flag (also `CODEHOUND_JSON_ENVELOPE` env).
 When set, the default text/JSON output is wrapped in a top-level
 `Envelope` struct with `tool` (name + version from `CARGO_PKG_VERSION`),
 `schema` (the JSON Schema URL), `exit_code`, `findings[]`, and
@@ -204,7 +204,7 @@ on the previous commit, so the −15.9% is real.)
   user wants typed constants for IDE completion, this becomes useful.
 - The **envelope mode** intentionally does *not* change the default
   text output. Users who want the envelope get a flag; CI scripts
-  that pipe `slopguard --format json` keep getting the array of
+  that pipe `codehound --format json` keep getting the array of
   findings they expect.
 - `scratch_contains` is **not a `Cow` or `SmallString` optimisation**
   — it's a deliberately simple `clear()` + `write!` pattern that

@@ -1,4 +1,4 @@
-# SlopGuard — Independent Architecture & Performance Review v2
+# CodeHound — Independent Architecture & Performance Review v2
 
 > **Method:** Six independent subagent audits, each reading the full relevant
 > source, verifying every claim against actual code at file:line level.

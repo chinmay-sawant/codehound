@@ -5,8 +5,8 @@ mod go_cwe_cases;
 #[path = "helpers/mod.rs"]
 mod helpers;
 
-use slopguard::core::ScanContext;
-use slopguard::engine::Analyzer;
+use codehound::core::ScanContext;
+use codehound::engine::Analyzer;
 
 #[test]
 fn go_cwe_fixtures_fire_vulnerable_and_silence_safe() {

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": ".slopguard-baseline.json",
-  "description": "Baseline file for SlopGuard finding suppression.",
+  "title": ".codehound-baseline.json",
+  "description": "Baseline file for CodeHound finding suppression.",
   "type": "object",
   "additionalProperties": false,
   "required": ["version", "generated_at", "tool_version", "entries"],
@@ -15,7 +15,7 @@
       "type": "string"
     },
     "tool_version": {
-      "description": "SlopGuard package version that generated the baseline.",
+      "description": "CodeHound package version that generated the baseline.",
       "type": "string"
     },
     "entries": {
@@ -41,7 +41,7 @@
             },
             "fingerprint": {
               "type": "string",
-              "pattern": "^slopguard:1:"
+              "pattern": "^codehound:1:"
             }
           }
         }

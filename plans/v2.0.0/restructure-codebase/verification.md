@@ -77,7 +77,7 @@ After **all** phases are complete:
   ```bash
   cargo rustdoc --lib --features go -- -Zunstable-options --output-format json
   ```
-- [x] **Canary:** the wildcard import in `tests/lang_go_detectors_cwe_facts.rs:10` (`use slopguard::lang::go::detectors::cwe::facts::*;`) is the canary for `facts.rs` re-exports.
+- [x] **Canary:** the wildcard import in `tests/lang_go_detectors_cwe_facts.rs:10` (`use codehound::lang::go::detectors::cwe::facts::*;`) is the canary for `facts.rs` re-exports.
 
 ### Phase 2 (Top-level src)
 
@@ -136,12 +136,12 @@ After **all** phases are complete:
   ```bash
   cargo build --features go,python
   # Save the current output
-  cp -r target/debug/build/slopguard-*/out out_after
+  cp -r target/debug/build/codehound-*/out out_after
   # Reset and rebuild
   cargo clean
   git stash
   cargo build --features go,python
-  cp -r target/debug/build/slopguard-*/out out_before
+  cp -r target/debug/build/codehound-*/out out_before
   git stash pop
   diff -r out_before out_after    # Should be empty
   ```
@@ -184,12 +184,12 @@ For every batch (a single file split or a small group of related splits):
 - [x] **4. Diff the generated code (Phase 3 / 4 / 5 only):**
   ```bash
   # Save the previous generated output
-  cp -r target/debug/build/slopguard-*/out /tmp/slopguard_out_before
+  cp -r target/debug/build/codehound-*/out /tmp/codehound_out_before
   # Rebuild
   cargo clean
   cargo build --features go,python
   # Compare
-  diff -r /tmp/slopguard_out_before target/debug/build/slopguard-*/out
+  diff -r /tmp/codehound_out_before target/debug/build/codehound-*/out
   ```
 - [x] **5. Commit** the batch (small commits, one per file or per logical group).
 

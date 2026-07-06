@@ -137,14 +137,14 @@ Bad Practices detection is a new rule category beyond CWE (security) and PERF (p
 
 ### 3.4 Configuration integration
 
-- [x] `[bad_practices]` section in `slopguard.toml`:
+- [x] `[bad_practices]` section in `codehound.toml`:
   ```toml
   [bad_practices]
   enabled = true
   severity = "medium"
   ```
 - [x] `BadPracticesConfig` struct in `engine/config/types.rs:102`
-- [x] `slopguard.schema.json` updated with `bad_practices` block (`schema.json:104`)
+- [x] `codehound.schema.json` updated with `bad_practices` block (`schema.json:104`)
 - [x] `ScanContext.bad_practices_enabled` / `bad_practice_severity` fields
 
 ### 3.5 Reporting integration
@@ -387,7 +387,7 @@ Bad Practices detection is a new rule category beyond CWE (security) and PERF (p
 - Existing detector architecture (`src/core/detector.rs`, `src/lang/go/detectors/cwe/mod.rs`) — ✅ ready
 - `SourceIndex` fact pattern (shared across CWE, PERF, BP) — ✅ ready
 - CLI: `--only`/`--skip` filtering already works for BP rules — ✅ ready
-- Config: `[bad_practices]` section already parsed in `slopguard.toml` — ✅ ready
+- Config: `[bad_practices]` section already parsed in `codehound.toml` — ✅ ready
 - Reporting: JSON/SARIF/text already support `"category": "bad_practice"` — ✅ ready
 - Tree-sitter queries (Phase 4.4): `interface_type`, `type_spec`, `method_declaration`
 - go.mod parsing (Phase 4.5): `src/engine/dependencies/` infrastructure

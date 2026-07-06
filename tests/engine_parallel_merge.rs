@@ -9,11 +9,11 @@ use helpers::{assert_fixture_materializes, unique_temp_root};
 
 use std::sync::Arc;
 
-use slopguard::core::LanguageId;
-use slopguard::engine::{
+use codehound::core::LanguageId;
+use codehound::engine::{
     Analyzer, CacheSession, CacheStore, ListEntrySource, ScanEntry, content_hash,
 };
-use slopguard::rules::{Finding, FindingInputs, LineCol, Severity};
+use codehound::rules::{Finding, FindingInputs, LineCol, Severity};
 
 fn perf_fixture_entry(root: &std::path::Path) -> ScanEntry {
     let source_path = assert_fixture_materializes("tests/fixtures/go/perf/PERF-213-vulnerable.txt");

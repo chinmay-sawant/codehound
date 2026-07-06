@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-use slopguard::cli::RuleCategory;
-use slopguard::cwe::{RuleDescription, default_ruleset_path, load_rule_descriptions};
-use slopguard::engine::Registry;
-use slopguard::rules::category_for_rule_id;
+use codehound::cli::RuleCategory;
+use codehound::cwe::{RuleDescription, default_ruleset_path, load_rule_descriptions};
+use codehound::engine::Registry;
+use codehound::rules::category_for_rule_id;
 
 pub(crate) fn print_rules(category: Option<RuleCategory>) {
     let registry = Registry::default();

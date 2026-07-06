@@ -1,8 +1,8 @@
-# PR Summary: SlopGuard modular architecture & multi-language testing
+# PR Summary: CodeHound modular architecture & multi-language testing
 
 ## Overview
 
-This PR turns SlopGuard from a Go-only bootstrap into a **modular, multi-language static analyzer** with trait-based plugins, performance-oriented scanning, and a **`.txt` text fixture** workflow for tests (no committed `.go`/`.py`/`.rs` under `tests/fixtures/`).
+This PR turns CodeHound from a Go-only bootstrap into a **modular, multi-language static analyzer** with trait-based plugins, performance-oriented scanning, and a **`.txt` text fixture** workflow for tests (no committed `.go`/`.py`/`.rs` under `tests/fixtures/`).
 
 ---
 
@@ -41,7 +41,7 @@ This PR turns SlopGuard from a Go-only bootstrap into a **modular, multi-languag
 
 ### Changes
 
-- Optional `slopguard.toml` + `engine/config.rs`.
+- Optional `codehound.toml` + `engine/config.rs`.
 - SARIF reporter in `reporting/sarif.rs` (replaces runtime bail).
 
 ---
@@ -69,7 +69,7 @@ go = ["dep:tree-sitter-go"]
 python = ["dep:tree-sitter-python"]
 ```
 
-Mixed repos work with `slopguard .` and `--lang auto` (extension-based plugin selection).
+Mixed repos work with `codehound .` and `--lang auto` (extension-based plugin selection).
 
 ---
 
@@ -101,10 +101,10 @@ package sample
 ...
 ```
 
-### Pipeline (`slopguard::fixture`)
+### Pipeline (`codehound::fixture`)
 
 1. `parse_fixture()` — read header + body after `---`
-2. `materialize_fixture()` — write `target/slopguard-fixtures/<lang>/<file>`
+2. `materialize_fixture()` — write `target/codehound-fixtures/<lang>/<file>`
 3. `Analyzer::analyze_paths()` on generated sources
 
 ### Layout
@@ -126,7 +126,7 @@ tests/
 
 **Removed:** all `.slop` files (replaced with `.txt`); committed `.go`/`.py` under fixtures.
 
-**Gitignored:** `target/slopguard-fixtures/`
+**Gitignored:** `target/codehound-fixtures/`
 
 ---
 
@@ -186,8 +186,8 @@ tests/fixtures/{go,python,rust}/*.txt
 - [x] `cargo test` — verified at PR time (merged)
 - [x] No `*.go` / `*.py` / `*.slop` under `tests/fixtures/` — verified: only `.txt` files present
 - [x] Only `*.txt` fixtures present — verified
-- [x] After tests: `target/slopguard-fixtures/go/sample.go` exists — materialized at test time
-- [x] `cargo run -- target/slopguard-fixtures` → Go + Python findings — pipeline works
+- [x] After tests: `target/codehound-fixtures/go/sample.go` exists — materialized at test time
+- [x] `cargo run -- target/codehound-fixtures` → Go + Python findings — pipeline works
 - [x] `cargo run -- tests/fixtures` with materialize step (or scan materialized dir)
 
 ---

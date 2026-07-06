@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-const trustedPluginRoot = "/opt/slopguard/plugins"
+const trustedPluginRoot = "/opt/codehound/plugins"
 
 func LoadExtension(w http.ResponseWriter, r *http.Request) {
 	name := filepath.Base(r.PathValue("name"))

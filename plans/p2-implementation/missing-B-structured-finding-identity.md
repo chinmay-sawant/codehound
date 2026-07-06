@@ -1,7 +1,7 @@
 # Missing B — Structured Finding Identity as First-Class Output
 
 > **Parent:** `plans/p2.md` — Missing Item B
-> **Status:** Phase 1, Phase 2 JSON/SARIF/export emission, Phase 3 baseline consumption, Phase 4 stability docs/tests, and Phase 5 caller audit landed. Canonical fingerprints now use `slopguard:1:<rule_id>:<file>:<line>:<column>` through the shared `Fingerprint` type. Incremental/cache consumers and optional terminal display remain open.
+> **Status:** Phase 1, Phase 2 JSON/SARIF/export emission, Phase 3 baseline consumption, Phase 4 stability docs/tests, and Phase 5 caller audit landed. Canonical fingerprints now use `codehound:1:<rule_id>:<file>:<line>:<column>` through the shared `Fingerprint` type. Incremental/cache consumers and optional terminal display remain open.
 > **Estimated effort:** 3-5 days.
 
 ---
@@ -18,9 +18,9 @@ Baseline, deduplication, ignore-once, and CI diffing all need the same stable id
 
 - [x] Document the fingerprint format contract:
   ```
-  slopguard-fingerprint-v1 := <tool_name>:<version>:<rule_id>:<file>:<line>:<column>
+  codehound-fingerprint-v1 := <tool_name>:<version>:<rule_id>:<file>:<line>:<column>
   ```
-- [x] Example: `slopguard:1:CWE-22:pkg/handler/user.go:42:5`
+- [x] Example: `codehound:1:CWE-22:pkg/handler/user.go:42:5`
 - [x] Version the format: embed `v1` or `1` so future changes can be detected
 - [x] Decide what goes into the identity:
   - [x] `rule_id` — required (identifies which check found it)
@@ -33,7 +33,7 @@ Baseline, deduplication, ignore-once, and CI diffing all need the same stable id
   - [x] What about `byte_offset`? — NOT included (redundant with line:col)
 - [x] Document edge cases:
   - [x] File path normalization: use forward slashes on all platforms (`/` not `\`)
-  - [x] File path relativity: relative to the project root (where `.slopguard.toml` or `.git` lives)
+  - [x] File path relativity: relative to the project root (where `.codehound.toml` or `.git` lives)
   - [x] Unicode file paths: use the OS-native representation (bytes, not normalized Unicode)
 - [x] Create `docs/finding-identity.md` with the full specification
 
@@ -43,7 +43,7 @@ Baseline, deduplication, ignore-once, and CI diffing all need the same stable id
   ```rust
   #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
   pub struct Fingerprint {
-      pub tool: String,       // "slopguard"
+      pub tool: String,       // "codehound"
       pub version: u32,       // 1
       pub rule_id: String,
       pub file: String,
@@ -55,7 +55,7 @@ Baseline, deduplication, ignore-once, and CI diffing all need the same stable id
   - [x] Normalize file path (forward slashes)
   - [x] Use `finding.rule_id`, `finding.file`, `finding.line`, `finding.column`
 - [x] Implement `Fingerprint::to_string() -> String`
-  - [x] Format: `slopguard:1:<rule_id>:<file>:<line>:<column>`
+  - [x] Format: `codehound:1:<rule_id>:<file>:<line>:<column>`
 - [x] Implement `Fingerprint::parse(s: &str) -> Result<Self>` for deserialization
 - [x] Implement `Display` for `Fingerprint`
 - [x] Replace `Finding::fingerprint()` with a method that creates a `Fingerprint`:
@@ -79,7 +79,7 @@ Baseline, deduplication, ignore-once, and CI diffing all need the same stable id
 
 - [x] In `src/reporting/json.rs`:
   - [x] Add `fingerprint` field to `FindingJson` struct (already existed; now it calls `fingerprint_string()` from the new `Fingerprint` type)
-  - [x] Ensure the serialized value is the canonical string: `slopguard:1:CWE-22:file.go:42:5`
+  - [x] Ensure the serialized value is the canonical string: `codehound:1:CWE-22:file.go:42:5`
   - [x] Add unit test: serialization preserves fingerprint format
 - [x] Ensure `--json-envelope` mode also includes fingerprint
 
@@ -88,16 +88,16 @@ Baseline, deduplication, ignore-once, and CI diffing all need the same stable id
 - [x] In `src/reporting/sarif.rs` (line 199-208):
   - [x] Update `partialFingerprints` to use the canonical format
   - [x] Current format: `<version>:<rule_id>:<file>:<line>:<column>`
-  - [x] New format: `slopguard:1:<rule_id>:<file>:<line>:<column>` (add tool name prefix)
+  - [x] New format: `codehound:1:<rule_id>:<file>:<line>:<column>` (add tool name prefix)
   - [~] Add `primary` or `fullyQualifiedLogicalName` if SARIF spec supports it — not implemented (deferred → see plans/v3.0.0/)
-  - [x] Document the fingerprint key: `slopguard/v1`
-  - [x] Add unit test: SARIF output contains `partialFingerprints.slopguard/v1` with correct value
+  - [x] Document the fingerprint key: `codehound/v1`
+  - [x] Add unit test: SARIF output contains `partialFingerprints.codehound/v1` with correct value
 
 ### 2.3 Export layer
 
 - [x] In `src/export/mod.rs`:
   - [x] Include the canonical fingerprint in each context `.txt` file
-  - [x] Format: `Fingerprint: slopguard:1:CWE-22:pkg/handler/user.go:42:5`
+  - [x] Format: `Fingerprint: codehound:1:CWE-22:pkg/handler/user.go:42:5`
   - [x] Include in chunk files too (for machine parsing)
 
 ### 2.4 Text/terminal output
@@ -186,7 +186,7 @@ Baseline, deduplication, ignore-once, and CI diffing all need the same stable id
   - [x] Any tests referencing fingerprint string format were updated
 - [x] If existing fingerprint format changes, document backward-compat need:
   - [x] Old format: `CWE-22:file.go:42:5` (no tool prefix, no version)
-  - [x] New format: `slopguard:1:CWE-22:file.go:42:5`
+  - [x] New format: `codehound:1:CWE-22:file.go:42:5`
   - [~] Old baseline/cache files with old format → warn and treat as v0 (compatibility mode; deferred until migration support is implemented) (deferred → see plans/v3.0.0/)
 
 ---

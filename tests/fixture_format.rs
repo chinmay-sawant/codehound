@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use slopguard::fixture::{FixtureLanguage, parse_fixture};
+use codehound::fixture::{FixtureLanguage, parse_fixture};
 
 #[test]
 fn parses_minimal_header() {

@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
-use slopguard::engine::AnalysisResult;
-use slopguard::reporting::text::{TextOptions, write_with_options};
-use slopguard::rules::{Finding, FindingInputs, LineCol, Severity};
+use codehound::engine::AnalysisResult;
+use codehound::reporting::text::{TextOptions, write_with_options};
+use codehound::rules::{Finding, FindingInputs, LineCol, Severity};
 
 #[path = "helpers/mod.rs"]
 mod helpers;
@@ -50,7 +50,7 @@ fn text_output_hides_fingerprint_by_default() {
 
     assert!(!rendered.contains("fingerprint:"), "{rendered}");
     assert!(
-        !rendered.contains("slopguard:1:CWE-89:a.go:1:1"),
+        !rendered.contains("codehound:1:CWE-89:a.go:1:1"),
         "{rendered}"
     );
 }
@@ -72,7 +72,7 @@ fn text_output_can_show_fingerprint() {
     let rendered = String::from_utf8(out).unwrap();
 
     assert!(
-        rendered.contains("fingerprint: slopguard:1:CWE-89:a.go:1:1"),
+        rendered.contains("fingerprint: codehound:1:CWE-89:a.go:1:1"),
         "{rendered}"
     );
 }

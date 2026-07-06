@@ -1,21 +1,21 @@
-use slopguard::core::FailPolicy;
-use slopguard::engine::{
-    CacheConfig, PathFilters, RunConfigParams, ScanContextParams, SlopguardConfig,
-    SlopguardSection, build_run_config, discover_config,
+use codehound::core::FailPolicy;
+use codehound::engine::{
+    CacheConfig, PathFilters, RunConfigParams, ScanContextParams, CodehoundConfig,
+    CodehoundSection, build_run_config, discover_config,
 };
-use slopguard::rules::Severity;
+use codehound::rules::Severity;
 use std::path::{Path, PathBuf};
 
 #[test]
 fn deny_unknown_fields_at_top_level() {
-    let r = toml::from_str::<SlopguardConfig>(r#"unknown = 1"#);
+    let r = toml::from_str::<CodehoundConfig>(r#"unknown = 1"#);
     assert!(r.is_err(), "expected error for unknown field, got {r:?}");
 }
 
 #[test]
 fn deny_unknown_fields_in_section() {
-    let r = toml::from_str::<SlopguardConfig>(
-        r#"[slopguard]
+    let r = toml::from_str::<CodehoundConfig>(
+        r#"[codehound]
 fali_on = "high"
 "#,
     );
@@ -24,17 +24,17 @@ fali_on = "high"
 
 #[test]
 fn allow_known_fields() {
-    let r = toml::from_str::<SlopguardConfig>(
-        r#"[slopguard]
+    let r = toml::from_str::<CodehoundConfig>(
+        r#"[codehound]
 languages = ["go"]
 skip = ["CWE-15"]
 only = []
 include = []
 exclude = []
-[slopguard.baseline]
+[codehound.baseline]
 enabled = true
-path = ".slopguard-baseline.json"
-[slopguard.bad_practices]
+path = ".codehound-baseline.json"
+[codehound.bad_practices]
 enabled = true
 severity = "medium"
 "#,
@@ -44,57 +44,57 @@ severity = "medium"
 
 #[test]
 fn bad_practices_config_defaults_enabled() {
-    let cfg = toml::from_str::<SlopguardConfig>("[slopguard]\n").unwrap();
+    let cfg = toml::from_str::<CodehoundConfig>("[codehound]\n").unwrap();
 
-    assert!(cfg.slopguard.bad_practices.enabled);
-    assert_eq!(cfg.slopguard.bad_practices.severity, None);
+    assert!(cfg.codehound.bad_practices.enabled);
+    assert_eq!(cfg.codehound.bad_practices.severity, None);
 }
 
 #[test]
 fn bad_practices_config_accepts_enabled_and_severity() {
-    let cfg = toml::from_str::<SlopguardConfig>(
-        r#"[slopguard]
-[slopguard.bad_practices]
+    let cfg = toml::from_str::<CodehoundConfig>(
+        r#"[codehound]
+[codehound.bad_practices]
 enabled = false
 severity = "high"
 "#,
     )
     .unwrap();
 
-    assert!(!cfg.slopguard.bad_practices.enabled);
-    assert_eq!(cfg.slopguard.bad_practices.severity, Some(Severity::High));
+    assert!(!cfg.codehound.bad_practices.enabled);
+    assert_eq!(cfg.codehound.bad_practices.severity, Some(Severity::High));
 }
 
 #[test]
 fn baseline_config_defaults_enabled() {
-    let cfg = toml::from_str::<SlopguardConfig>("[slopguard]\n").unwrap();
+    let cfg = toml::from_str::<CodehoundConfig>("[codehound]\n").unwrap();
 
-    assert!(cfg.slopguard.baseline.enabled);
-    assert_eq!(cfg.slopguard.baseline.path, None);
+    assert!(cfg.codehound.baseline.enabled);
+    assert_eq!(cfg.codehound.baseline.path, None);
 }
 
 #[test]
 fn baseline_config_accepts_enabled_and_path() {
-    let cfg = toml::from_str::<SlopguardConfig>(
-        r#"[slopguard]
-[slopguard.baseline]
+    let cfg = toml::from_str::<CodehoundConfig>(
+        r#"[codehound]
+[codehound.baseline]
 enabled = false
 path = "custom-baseline.json"
 "#,
     )
     .unwrap();
 
-    assert!(!cfg.slopguard.baseline.enabled);
+    assert!(!cfg.codehound.baseline.enabled);
     assert_eq!(
-        cfg.slopguard.baseline.path.as_deref(),
+        cfg.codehound.baseline.path.as_deref(),
         Some(Path::new("custom-baseline.json"))
     );
 }
 
 #[test]
 fn fail_on_string_maps_to_policy() {
-    use slopguard::core::{FailPolicy, ScanContext};
-    use slopguard::engine::SlopguardConfig;
+    use codehound::core::{FailPolicy, ScanContext};
+    use codehound::engine::CodehoundConfig;
 
     let cases = [
         ("none", FailPolicy::NoFail),
@@ -106,9 +106,9 @@ fn fail_on_string_maps_to_policy() {
     ];
 
     for (fail_on, expected) in cases {
-        let config: SlopguardConfig = toml::from_str(&format!(
+        let config: CodehoundConfig = toml::from_str(&format!(
             r#"
-[slopguard]
+[codehound]
 fail_on = "{fail_on}"
 "#
         ))
@@ -123,14 +123,14 @@ fail_on = "{fail_on}"
 
 #[test]
 fn schema_file_is_valid_json_and_covers_known_fields() {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("slopguard.schema.json");
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("codehound.schema.json");
     let text =
         std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
     let v: serde_json::Value =
         serde_json::from_str(&text).unwrap_or_else(|e| panic!("parse schema: {e}"));
     let props = v
-        .pointer("/properties/slopguard/properties")
-        .expect("schema.properties.slopguard.properties");
+        .pointer("/properties/codehound/properties")
+        .expect("schema.properties.codehound.properties");
     for field in [
         "languages",
         "fail_on",
@@ -150,19 +150,19 @@ fn schema_file_is_valid_json_and_covers_known_fields() {
         );
     }
     assert_eq!(
-        v.pointer("/properties/slopguard/additionalProperties"),
+        v.pointer("/properties/codehound/additionalProperties"),
         Some(&serde_json::Value::Bool(false))
     );
     assert_eq!(
-        v.pointer("/properties/slopguard/properties/baseline/additionalProperties"),
+        v.pointer("/properties/codehound/properties/baseline/additionalProperties"),
         Some(&serde_json::Value::Bool(false))
     );
 }
 
 #[test]
 fn runtime_include_exclude_filters_apply_during_collection() {
-    use slopguard::engine::Analyzer;
-    use slopguard::fixture::{materialize_tree, materialized_root};
+    use codehound::engine::Analyzer;
+    use codehound::fixture::{materialize_tree, materialized_root};
 
     materialize_tree(Path::new("tests/fixtures")).expect("materialize");
 
@@ -206,26 +206,26 @@ fn runtime_include_exclude_filters_apply_during_collection() {
 #[test]
 fn cache_config_is_parsed_from_toml() {
     let toml = r#"
-[slopguard.cache]
+[codehound.cache]
 enabled = false
 path = "/tmp/custom-cache"
 evict_target_ratio = 0.75
 max_file_size_mb = 16
 "#;
-    let cfg: SlopguardConfig = toml::from_str(toml).unwrap();
-    assert!(!cfg.slopguard.cache.enabled);
+    let cfg: CodehoundConfig = toml::from_str(toml).unwrap();
+    assert!(!cfg.codehound.cache.enabled);
     assert_eq!(
-        cfg.slopguard.cache.path,
+        cfg.codehound.cache.path,
         Some(PathBuf::from("/tmp/custom-cache"))
     );
-    assert_eq!(cfg.slopguard.cache.evict_target_ratio, Some(0.75));
-    assert_eq!(cfg.slopguard.cache.max_file_size_mb, Some(16));
+    assert_eq!(cfg.codehound.cache.evict_target_ratio, Some(0.75));
+    assert_eq!(cfg.codehound.cache.max_file_size_mb, Some(16));
 }
 
 #[test]
 fn cache_disabled_in_config_means_open_returns_none() {
-    let cfg = SlopguardConfig {
-        slopguard: SlopguardSection {
+    let cfg = CodehoundConfig {
+        codehound: CodehoundSection {
             cache: CacheConfig {
                 enabled: false,
                 path: None,
@@ -234,15 +234,15 @@ fn cache_disabled_in_config_means_open_returns_none() {
             ..Default::default()
         },
     };
-    assert!(!cfg.slopguard.cache.enabled);
+    assert!(!cfg.codehound.cache.enabled);
 }
 
 #[test]
 fn discover_config_finds_in_cwd() {
     let path = discover_config(Path::new("."));
-    assert!(path.is_some(), "expected slopguard.toml in cwd");
+    assert!(path.is_some(), "expected codehound.toml in cwd");
     let path = path.unwrap();
-    assert!(path.ends_with("slopguard.toml"));
+    assert!(path.ends_with("codehound.toml"));
 }
 
 #[test]
@@ -252,7 +252,7 @@ fn discover_config_finds_in_subdir() {
         let path = discover_config(target);
         assert!(
             path.is_some(),
-            "expected upward walk to find slopguard.toml"
+            "expected upward walk to find codehound.toml"
         );
     }
 }
@@ -265,13 +265,13 @@ fn discover_config_returns_none_outside_repo() {
 
 #[test]
 fn merge_into_cli_fail_policy_wins_over_config() {
-    let cfg = SlopguardConfig {
-        slopguard: SlopguardSection {
+    let cfg = CodehoundConfig {
+        codehound: CodehoundSection {
             fail_on: Some("none".to_string()),
             ..Default::default()
         },
     };
-    let ctx = slopguard::core::ScanContext {
+    let ctx = codehound::core::ScanContext {
         fail_policy: FailPolicy::Strict,
         ..Default::default()
     };
@@ -281,13 +281,13 @@ fn merge_into_cli_fail_policy_wins_over_config() {
 
 #[test]
 fn merge_into_config_fail_on_applies_when_cli_didnt_set_it() {
-    let cfg = SlopguardConfig {
-        slopguard: SlopguardSection {
+    let cfg = CodehoundConfig {
+        codehound: CodehoundSection {
             fail_on: Some("none".to_string()),
             ..Default::default()
         },
     };
-    let ctx = slopguard::core::ScanContext {
+    let ctx = codehound::core::ScanContext {
         fail_policy: FailPolicy::MediumAsErrors,
         ..Default::default()
     };
@@ -297,13 +297,13 @@ fn merge_into_config_fail_on_applies_when_cli_didnt_set_it() {
 
 #[test]
 fn merge_into_only_is_additive_with_cli_values() {
-    let cfg = SlopguardConfig {
-        slopguard: SlopguardSection {
+    let cfg = CodehoundConfig {
+        codehound: CodehoundSection {
             only: vec!["CWE-22".to_string()],
             ..Default::default()
         },
     };
-    let ctx = slopguard::core::ScanContext {
+    let ctx = codehound::core::ScanContext {
         only: Some(["CWE-89".to_string()].into_iter().collect()),
         ..Default::default()
     };
@@ -317,7 +317,7 @@ fn merge_into_only_is_additive_with_cli_values() {
 
 #[test]
 fn scan_context_supports_rule_prefix_filters() {
-    let ctx = slopguard::core::ScanContext {
+    let ctx = codehound::core::ScanContext {
         only: Some(["BP-*".to_string()].into_iter().collect()),
         ..Default::default()
     };

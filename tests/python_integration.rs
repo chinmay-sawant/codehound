@@ -1,6 +1,6 @@
 //! Python integration tests — must use `tests/fixtures/python/` only.
 
-use slopguard::engine::Analyzer;
+use codehound::engine::Analyzer;
 
 #[path = "helpers/mod.rs"]
 mod helpers;

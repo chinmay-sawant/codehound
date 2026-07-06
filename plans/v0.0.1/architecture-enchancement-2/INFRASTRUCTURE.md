@@ -18,8 +18,8 @@ Several claimed infrastructure improvements were not actually applied. This plan
 
 ### Phase 2: Move init template to templates/
 
-- [x] **2.1** Create `templates/slopguard.toml` with the content from `src/app.rs:219-240` (`const TEMPLATE`)
-- [x] **2.2** In `src/app.rs`, replace the inline `const TEMPLATE: &str = "..."` with `const TEMPLATE: &str = include_str!("../templates/slopguard.toml");`
+- [x] **2.1** Create `templates/codehound.toml` with the content from `src/app.rs:219-240` (`const TEMPLATE`)
+- [x] **2.2** In `src/app.rs`, replace the inline `const TEMPLATE: &str = "..."` with `const TEMPLATE: &str = include_str!("../templates/codehound.toml");`
 - [x] **2.3** Update the template to reference the new 5-level severity (Medium instead of Warning)
 
 ### Phase 3: Feature-gate colored
@@ -71,6 +71,6 @@ Several claimed infrastructure improvements were not actually applied. This plan
 
 - [x] `cargo build --no-default-features --features go` produces a working binary without colored
 - [x] `cargo build` includes terminal-output by default (backward compatible)
-- [x] `cargo run -- init` creates a valid slopguard.toml with correct template
+- [x] `cargo run -- init` creates a valid codehound.toml with correct template
 - [x] SARIF output includes ISO 8601 timestamps from jiff
 - [x] Installed binary can find the ruleset (or has it embedded)

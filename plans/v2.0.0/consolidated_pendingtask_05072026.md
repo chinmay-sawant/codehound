@@ -101,7 +101,7 @@ All detectors exist. No structured patches. Add policy/precondition gate:
 - [x] Add `max_file_size_mb: Option<u64>` to `CacheConfig` (default 4)
 - [x] In scan preflight/cache-lookup, skip caching for files larger than threshold
 - [x] Log `tracing::debug!` when file skipped due to size
-- [x] Update `slopguard.schema.json` with both new fields
+- [x] Update `codehound.schema.json` with both new fields
 - [x] Update `docs/incremental-cache.md` with both new config options
 
 ### Eviction Logging
@@ -178,11 +178,11 @@ All detectors exist. No structured patches. Add policy/precondition gate:
 
 ### Schema + Config Template
 
-- [x] Add `cache.evict_target_ratio` to `slopguard.schema.json` *(already present, verified)*
-- [x] Add `cache.max_file_size_mb` to `slopguard.schema.json` *(already present, verified)*
-- [x] Add `bad_practices.severity_overrides` to `slopguard.schema.json`
-- [x] Add `[slopguard.bad_practices]` with `severity_overrides` to `templates/slopguard.toml`
-- [x] Add `cache.evict_target_ratio` and `cache.max_file_size_mb` to `templates/slopguard.toml`
+- [x] Add `cache.evict_target_ratio` to `codehound.schema.json` *(already present, verified)*
+- [x] Add `cache.max_file_size_mb` to `codehound.schema.json` *(already present, verified)*
+- [x] Add `bad_practices.severity_overrides` to `codehound.schema.json`
+- [x] Add `[codehound.bad_practices]` with `severity_overrides` to `templates/codehound.toml`
+- [x] Add `cache.evict_target_ratio` and `cache.max_file_size_mb` to `templates/codehound.toml`
 
 ### Per-Detector Timing on Cache Hit *(still pending — needs CacheEntry struct changes)*
 
@@ -229,7 +229,7 @@ All detectors exist. No structured patches. Add policy/precondition gate:
 > **Status:** ❌ Not started.
 
 - [~] Deprecate direct `engine::*` re-exports (deferred → see plans/v3.0.0/)
-- [x] Update `src/main.rs` to use `slopguard::cli` via feature gate
+- [x] Update `src/main.rs` to use `codehound::cli` via feature gate
 
 ---
 

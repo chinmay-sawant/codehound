@@ -77,7 +77,7 @@ pub(crate) fn detect_cwe_538(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     if !public_secret_export {
         return;
     }
-    if facts.source_index.has("/var/lib/slopguard/private") || facts.source_index.has("0o600") {
+    if facts.source_index.has("/var/lib/codehound/private") || facts.source_index.has("0o600") {
         return;
     }
 

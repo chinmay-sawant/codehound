@@ -1,6 +1,6 @@
 # P2 Executive Summary
 
-**Goal:** Take SlopGuard from a well-built v0.x prototype (8.5/10) to a production-grade security analyzer (9.5/10).
+**Goal:** Take CodeHound from a well-built v0.x prototype (8.5/10) to a production-grade security analyzer (9.5/10).
 
 ---
 
@@ -16,7 +16,7 @@
 
 1. **P2.2 Baseline** — unblocks adoption on real codebases. Lowest effort, highest ROI.
 2. **P2.3 Incremental** — makes everything faster. Required for CI viability.
-3. **P2.1 Taint Tracking** — core correctness. Single biggest gap between SlopGuard and a real security analyzer.
+3. **P2.1 Taint Tracking** — core correctness. Single biggest gap between CodeHound and a real security analyzer.
 
 ## 9.5/10 Requires
 
@@ -35,4 +35,4 @@ No single open-source Go security linter has all three. Each exists in a differe
 | Incremental | **Ruff** (Python), **ESLint** (JS) | Both have `--cache`, but not Go tools |
 | All three | **Snyk Code** (commercial) | SaaS-only, not open-source |
 
-The niche Slopguard is targeting — a single binary with Go-specialized taint tracking + production-grade CLI UX — doesn't exist in open-source.
+The niche Codehound is targeting — a single binary with Go-specialized taint tracking + production-grade CLI UX — doesn't exist in open-source.

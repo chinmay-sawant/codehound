@@ -1,6 +1,6 @@
-# Configuration (`slopguard.toml`)
+# Configuration (`codehound.toml`)
 
-SlopGuard reads an optional `slopguard.toml` from the current directory or any
+CodeHound reads an optional `codehound.toml` from the current directory or any
 parent directory. All fields are optional and the file may be empty.
 
 Unknown fields are **rejected** with a parse error — there is no silent
@@ -17,18 +17,18 @@ $ pwd
 /home/me/projects/myapp
 
 # Tries:
-#   ./slopguard.toml
-#   ../slopguard.toml
-#   ../../slopguard.toml
+#   ./codehound.toml
+#   ../codehound.toml
+#   ../../codehound.toml
 #   ... up to the filesystem root
 ```
 
-Override discovery with `--config <PATH>` or `SLOPGUARD_CONFIG=<PATH>`.
+Override discovery with `--config <PATH>` or `CODEHOUND_CONFIG=<PATH>`.
 
 ## Schema
 
 ```toml
-[slopguard]
+[codehound]
 # Restrict analysis to specific languages. Values: "go", "python".
 # languages = ["go", "python"]
 
@@ -51,26 +51,26 @@ Override discovery with `--config <PATH>` or `SLOPGUARD_CONFIG=<PATH>`.
 
 # Baselines are enabled by default and auto-discovered upward from the current
 # directory. Configure a custom file path or disable config-driven loading here.
-# [slopguard.baseline]
+# [codehound.baseline]
 # enabled = true
-# path = ".slopguard-baseline.json"
+# path = ".codehound-baseline.json"
 ```
 
 ## Precedence (highest to lowest)
 
 1. CLI flags (`--only`, `--skip`, `--strict`, `--no-fail`, `--warnings-as-errors`, `--debug-timing`, `--diagnostics`, `--baseline`, `--no-baseline`, `--baseline-file`)
-2. `slopguard.toml` values
+2. `codehound.toml` values
 3. Built-in defaults (no filtering, `fail_on = warnings`)
 
 Note: `--only` and `--skip` are *merged* (additive) — the CLI list extends the
 config list. `--fail-on` replaces the config value when the CLI flag is set.
 For baselines, `--baseline` save mode ignores config loading, `--no-baseline`
 disables all baseline loading, and `--baseline-file` overrides
-`[slopguard.baseline].path`.
+`[codehound.baseline].path`.
 
-## `.slopguardignore`
+## `.codehoundignore`
 
-A `.slopguardignore` file in any walked directory is honored (gitignore-style
+A `.codehoundignore` file in any walked directory is honored (gitignore-style
 globs). It works alongside `.gitignore` and `.ignore` via the
 [`ignore`](https://docs.rs/ignore) crate.
 
@@ -78,16 +78,16 @@ globs). It works alongside `.gitignore` and `.ignore` via the
 
 | Var                  | Equivalent flag |
 |----------------------|------------------|
-| `SLOPGUARD_CONFIG`   | `--config`       |
-| `SLOPGUARD_ONLY`     | `--only`         |
-| `SLOPGUARD_SKIP`     | `--skip`         |
+| `CODEHOUND_CONFIG`   | `--config`       |
+| `CODEHOUND_ONLY`     | `--only`         |
+| `CODEHOUND_SKIP`     | `--skip`         |
 | `NO_COLOR`           | `--no-color`     |
 | `RUST_LOG`           | verbosity (debug/info/warn) |
 
 ## Writing a starter file
 
 ```sh
-slopguard init
+codehound init
 ```
 
-Writes a commented `slopguard.toml` to the current directory if none exists.
+Writes a commented `codehound.toml` to the current directory if none exists.

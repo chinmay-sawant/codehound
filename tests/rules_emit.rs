@@ -1,4 +1,4 @@
-use slopguard::rules::{
+use codehound::rules::{
     DetectorEvidence, RuleMetadata, Severity, TaintSinkInfo, TaintSourceInfo, push_finding,
     push_finding_with_evidence, push_finding_with_snippet, rule_meta,
 };

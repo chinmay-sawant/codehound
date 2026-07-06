@@ -1,14 +1,14 @@
 # P2.2 — Baseline / Ignore-Once Mechanism
 
 > **Parent:** `plans/p2.md` — P2.2
-> **Status:** Baseline file core/schema, CLI flags, config integration, save/load workflow, finding filtering, inline `slopguard-ignore` next-line comments, file-level `slopguard-ignore-file`, `--show-ignored`, suppressed-count reporting, and baseline/ignore tests are implemented. File-level skip-before-analysis optimization, shared test helper cleanup, and large-baseline performance validation remain open.
+> **Status:** Baseline file core/schema, CLI flags, config integration, save/load workflow, finding filtering, inline `codehound-ignore` next-line comments, file-level `codehound-ignore-file`, `--show-ignored`, suppressed-count reporting, and baseline/ignore tests are implemented. File-level skip-before-analysis optimization, shared test helper cleanup, and large-baseline performance validation remain open.
 > **Estimated effort:** 1-2 weeks.
 
 ---
 
 ## Overview
 
-Enable adoption on legacy codebases: first-run baseline captures all current findings, subsequent runs only report new findings. Inline suppression via `// slopguard-ignore:` comments.
+Enable adoption on legacy codebases: first-run baseline captures all current findings, subsequent runs only report new findings. Inline suppression via `// codehound-ignore:` comments.
 
 ---
 
@@ -16,7 +16,7 @@ Enable adoption on legacy codebases: first-run baseline captures all current fin
 
 ### 1.1 Define baseline file format
 
-- [x] Create `.slopguard-baseline.json` schema
+- [x] Create `.codehound-baseline.json` schema
 - [x] Format: JSON object with version and entries
   ```json
   {
@@ -25,10 +25,10 @@ Enable adoption on legacy codebases: first-run baseline captures all current fin
     "tool_version": "0.1.0",
     "entries": {
       "CWE-22": [
-        { "file": "pkg/handler/user.go", "line": 42, "column": 5, "fingerprint": "slopguard:1:CWE-22:pkg/handler/user.go:42:5" }
+        { "file": "pkg/handler/user.go", "line": 42, "column": 5, "fingerprint": "codehound:1:CWE-22:pkg/handler/user.go:42:5" }
       ],
       "PERF-1": [
-        { "file": "pkg/service/auth.go", "line": 128, "column": 2, "fingerprint": "slopguard:1:PERF-1:pkg/service/auth.go:128:2" }
+        { "file": "pkg/service/auth.go", "line": 128, "column": 2, "fingerprint": "codehound:1:PERF-1:pkg/service/auth.go:128:2" }
       ]
     }
   }
@@ -64,7 +64,7 @@ Enable adoption on legacy codebases: first-run baseline captures all current fin
   - [x] Group findings by `rule_id`
   - [x] Create `BaselineEntry` for each finding with `file`, `line`, `column`, `fingerprint`
 - [x] Implement `Baseline::contains(rule_id: &str, file: &str, line: usize, column: usize) -> bool`
-  - [x] First check `fingerprint_index` for fast lookup: `slopguard:1:<rule_id>:<file>:<line>:<column>`
+  - [x] First check `fingerprint_index` for fast lookup: `codehound:1:<rule_id>:<file>:<line>:<column>`
   - [x] Fall back to scanning entries for the rule_id if needed
 - [x] Implement `Baseline::from_file(path: &Path) -> Result<Baseline>`
   - [x] Read JSON file, deserialize, build `fingerprint_index`
@@ -76,10 +76,10 @@ Enable adoption on legacy codebases: first-run baseline captures all current fin
 ### 1.3 File discovery
 
 - [x] Implement `discover_baseline(cwd: &Path) -> Option<PathBuf>`
-  - [x] Walk upward from `cwd` looking for `.slopguard-baseline.json`
+  - [x] Walk upward from `cwd` looking for `.codehound-baseline.json`
   - [x] Stop at filesystem root or when `.git` directory is found
   - [x] Return first match (closest to cwd)
-- [x] Respect `.slopguardignore` (already handled by the `ignore` crate in the source walk; baseline discovery does not change source walking)
+- [x] Respect `.codehoundignore` (already handled by the `ignore` crate in the source walk; baseline discovery does not change source walking)
 
 ---
 
@@ -89,7 +89,7 @@ Enable adoption on legacy codebases: first-run baseline captures all current fin
 
 - [x] Add to `Cli` struct in `src/cli/mod.rs`:
   ```rust
-  #[arg(long = "baseline", help = "Save current findings as the baseline (writes .slopguard-baseline.json)")]
+  #[arg(long = "baseline", help = "Save current findings as the baseline (writes .codehound-baseline.json)")]
   pub baseline: bool,
   ```
 - [x] Add to `cli.generate_baseline()` accessor
@@ -98,7 +98,7 @@ Enable adoption on legacy codebases: first-run baseline captures all current fin
 
 - [x] Add to `Cli` struct:
   ```rust
-  #[arg(long = "no-baseline", help = "Ignore any existing .slopguard-baseline.json file")]
+  #[arg(long = "no-baseline", help = "Ignore any existing .codehound-baseline.json file")]
   pub no_baseline: bool,
   ```
 - [x] Lower priority than `--baseline` (if both set, `--baseline` wins)
@@ -165,11 +165,11 @@ Enable adoption on legacy codebases: first-run baseline captures all current fin
 
 ### 4.1 Define suppression comment format
 
-- [x] Single-rule suppression: `// slopguard-ignore: CWE-22`
+- [x] Single-rule suppression: `// codehound-ignore: CWE-22`
   - [x] Applies to the next non-comment line (the finding's line)
-- [x] Multi-rule suppression: `// slopguard-ignore: CWE-22, CWE-78`
+- [x] Multi-rule suppression: `// codehound-ignore: CWE-22, CWE-78`
   - [x] Comma-separated, optional spaces
-- [x] All-rules suppression: `// slopguard-ignore: all`
+- [x] All-rules suppression: `// codehound-ignore: all`
   - [x] Suppresses all findings on the target line
 - [x] Block-scope suppression (future): not in initial scope
 
@@ -179,7 +179,7 @@ Enable adoption on legacy codebases: first-run baseline captures all current fin
   - [x] `pub fn parse_inline_ignores(source: &str) -> HashMap<usize, IgnoreDirective>`
     - [x] Key: 1-indexed target line number
     - [x] `IgnoreDirective { rule_ids: Option<Vec<String>> }` — `None` means "all"
-  - [x] Parse `//\s*slopguard-ignore:\s*(.+)$`-equivalent lines without adding a regex dependency
+  - [x] Parse `//\s*codehound-ignore:\s*(.+)$`-equivalent lines without adding a regex dependency
   - [x] Parse the capture group: split by comma, trim whitespace
   - [x] If captures "all", set `rule_ids = None`
 - [x] Register `ignore.rs` in `src/engine/mod.rs`
@@ -194,13 +194,13 @@ Enable adoption on legacy codebases: first-run baseline captures all current fin
 - [x] OR: In `AnalysisResult` filtering (same place as baseline filtering):
   - [x] Not selected; inline filtering happens per file in `scan_entry()` and contributes to `AnalysisResult.suppressed_count`
 
-### 4.4 Implement `// slopguard-ignore-file` for entire-file suppression
+### 4.4 Implement `// codehound-ignore-file` for entire-file suppression
 
-- [x] Parse `// slopguard-ignore-file` at the top of a file (within first N lines, e.g., 20)
-- [x] Parse `// slopguard-ignore-file: CWE-22, CWE-78` for file-level rule-specific suppression
-- [x] Parse `// slopguard-ignore-file: all` for all-rule file suppression
+- [x] Parse `// codehound-ignore-file` at the top of a file (within first N lines, e.g., 20)
+- [x] Parse `// codehound-ignore-file: CWE-22, CWE-78` for file-level rule-specific suppression
+- [x] Parse `// codehound-ignore-file: all` for all-rule file suppression
 - [~] In `scan_entry()`, skip analysis for suppressed rules entirely (performance win) — only `all` fast-path implemented (deferred → see plans/v3.0.0/)
-  - [x] Fast-path `// slopguard-ignore-file` / `// slopguard-ignore-file: all` when `--show-ignored` is off, returning before detector execution
+  - [x] Fast-path `// codehound-ignore-file` / `// codehound-ignore-file: all` when `--show-ignored` is off, returning before detector execution
   - [~] Rule-specific detector masking while preserving suppressed-count and `--show-ignored` semantics (deferred → see plans/v3.0.0/)
 - [x] Store `file_ignores` in `ScanContext` or a per-run map — not needed; file-level directives are parsed per source file in `scan_entry()` and applied immediately.
 
@@ -209,7 +209,7 @@ Enable adoption on legacy codebases: first-run baseline captures all current fin
 - [x] Don't report inline-suppressed findings unless `--show-ignored` flag is set
 - [x] Add `--show-ignored` CLI flag in `src/cli/mod.rs`:
   ```rust
-  #[arg(long = "show-ignored", help = "Report findings suppressed by slopguard-ignore comments")]
+  #[arg(long = "show-ignored", help = "Report findings suppressed by codehound-ignore comments")]
   pub show_ignored: bool,
   ```
 - [x] When `--show-ignored` is set, include suppressed findings but mark them as `severity: Info` with a suffix " (suppressed)"
@@ -218,11 +218,11 @@ Enable adoption on legacy codebases: first-run baseline captures all current fin
 
 ## Phase 5: Configuration Integration
 
-### 5.1 Update `SlopguardConfig`
+### 5.1 Update `CodehoundConfig`
 
-- [x] Add baseline fields to `SlopguardConfig` in `src/engine/config.rs`:
+- [x] Add baseline fields to `CodehoundConfig` in `src/engine/config.rs`:
   ```rust
-  pub struct SlopguardConfig {
+  pub struct CodehoundConfig {
       // ... existing fields ...
       pub baseline: Option<BaselineConfig>,
   }
@@ -231,8 +231,8 @@ Enable adoption on legacy codebases: first-run baseline captures all current fin
       pub path: Option<PathBuf>, // custom path
   }
   ```
-- [x] Update `slopguard.schema.json` to include baseline config properties
-- [x] Update `templates/slopguard.toml` to include commented-out baseline section
+- [x] Update `codehound.schema.json` to include baseline config properties
+- [x] Update `templates/codehound.toml` to include commented-out baseline section
 
 ### 5.2 Config precedence
 
@@ -260,13 +260,13 @@ Enable adoption on legacy codebases: first-run baseline captures all current fin
 ### 6.2 Unit tests for inline ignore parsing
 
 - [x] Test `parse_inline_ignores()`:
-  - [x] Single rule: `// slopguard-ignore: CWE-22` → line `N`, rule `CWE-22`
-  - [x] Multi-rule: `// slopguard-ignore: CWE-22, CWE-89` → both rules
-  - [x] All-rules: `// slopguard-ignore: all` → `None` (all)
-  - [x] Whitespace variants: `//slopguard-ignore:CWE-22`, `//  slopguard-ignore:  CWE-22  `
+  - [x] Single rule: `// codehound-ignore: CWE-22` → line `N`, rule `CWE-22`
+  - [x] Multi-rule: `// codehound-ignore: CWE-22, CWE-89` → both rules
+  - [x] All-rules: `// codehound-ignore: all` → `None` (all)
+  - [x] Whitespace variants: `//codehound-ignore:CWE-22`, `//  codehound-ignore:  CWE-22  `
   - [x] Non-matching comments ignored: `// some other comment`
   - [x] No panics on empty source, source with only comments
-- [x] Test `// slopguard-ignore-file` parsing:
+- [x] Test `// codehound-ignore-file` parsing:
   - [x] Top of file, within first 20 lines
   - [x] After line 20: ignored (not a file-level directive)
 
@@ -274,12 +274,12 @@ Enable adoption on legacy codebases: first-run baseline captures all current fin
 
 - [x] Create test helper in `tests/helpers/baseline.rs`:
   - [x] `setup_temp_project(fixtures: &[&str]) -> TempProject` — creates project with known fixtures using an in-repo RAII temp helper
-  - [x] `run_slopguard(args: &[&str], cwd: &Path) -> output` — runs the binary with args
+  - [x] `run_codehound(args: &[&str], cwd: &Path) -> output` — runs the binary with args
   - [x] `parse_findings(output: &str) -> Vec<FindingStub>` — parses JSON output
 - [x] Test scenario: Initial baseline save
   - [x] Run scan on project with known findings
   - [x] Run with `--baseline`
-  - [x] Assert `.slopguard-baseline.json` created with correct entry count
+  - [x] Assert `.codehound-baseline.json` created with correct entry count
   - [x] Assert exit code 0
 - [x] Test scenario: Baseline suppression
   - [x] Run scan with baseline file present (no changes to code)
@@ -314,14 +314,14 @@ Enable adoption on legacy codebases: first-run baseline captures all current fin
 
   func handler(w http.ResponseWriter, r *http.Request) {
       cmd := r.URL.Query().Get("cmd")
-      // slopguard-ignore: CWE-78
+      // codehound-ignore: CWE-78
       exec.Command("sh", "-c", cmd).Run()
   }
   ```
 - [x] Scan the fixture, assert CWE-78 does NOT fire
 - [x] Scan with `--show-ignored`, assert CWE-78 fires but is marked as suppressed
-- [x] Create fixture with `// slopguard-ignore: all` — no findings fire
-- [x] Create fixture with `// slopguard-ignore-file` — all findings suppressed
+- [x] Create fixture with `// codehound-ignore: all` — no findings fire
+- [x] Create fixture with `// codehound-ignore-file` — all findings suppressed
 
 ### 6.5 Edge case tests
 

@@ -1,10 +1,10 @@
 mod helpers;
 
 use helpers::baseline::{
-    TempProject, parse_findings, run_slopguard, save_baseline, setup_temp_project,
+    TempProject, parse_findings, run_codehound, save_baseline, setup_temp_project,
 };
 
-const BASELINE_FILE: &str = ".slopguard-baseline.json";
+const BASELINE_FILE: &str = ".codehound-baseline.json";
 const SCAN_ARGS: &[&str] = &[
     "--format",
     "json",
@@ -26,7 +26,7 @@ fn assert_success(output: &std::process::Output) {
 fn scan_with_args(project: &TempProject, extra_args: &[&str]) -> std::process::Output {
     let mut args = SCAN_ARGS.to_vec();
     args.extend_from_slice(extra_args);
-    run_slopguard(&args, project.path())
+    run_codehound(&args, project.path())
 }
 
 #[test]
@@ -51,7 +51,7 @@ fn baseline_save_then_filter_suppresses_existing_findings() {
 fn default_baseline_auto_discovery_suppresses_findings() {
     let project = setup_temp_project(&["sample.py"]);
 
-    let save = run_slopguard(
+    let save = run_codehound(
         &[
             "--baseline",
             "--no-context",

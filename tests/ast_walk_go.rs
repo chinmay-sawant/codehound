@@ -1,6 +1,6 @@
 #![cfg(feature = "go")]
 
-use slopguard::ast::walk_nodes;
+use codehound::ast::walk_nodes;
 use tree_sitter::Parser;
 
 fn parse_go(source: &str) -> tree_sitter::Tree {

@@ -8,7 +8,7 @@
 
 ## Overview
 
-SlopGuard has a strong plugin-like internal structure (detectors implement a trait, registry.toml drives code generation, domain modules organize by category). The next architectural step after bundled maturity is external rule-pack loading -- allowing users or third parties to add detectors without rebuilding the binary.
+CodeHound has a strong plugin-like internal structure (detectors implement a trait, registry.toml drives code generation, domain modules organize by category). The next architectural step after bundled maturity is external rule-pack loading -- allowing users or third parties to add detectors without rebuilding the binary.
 
 ---
 
@@ -41,7 +41,7 @@ SlopGuard has a strong plugin-like internal structure (detectors implement a tra
 - [x] **Recommendation**: Start with Type 1 (metadata-only packs) as MVP
   - [x] No code execution boundary to manage
   - [x] Same safety guarantees as bundled rules
-  - [x] Enables community-contributed rule descriptions without a PR to slopguard
+  - [x] Enables community-contributed rule descriptions without a PR to codehound
 - [x] **Future**: Type 2 (pattern DSL) for v2 -- highest value-to-effort ratio
 - [x] **Defer**: Type 3 (WASM) and Type 4 (scripting) -- significant complexity, evaluate demand first
 
@@ -64,7 +64,7 @@ SlopGuard has a strong plugin-like internal structure (detectors implement a tra
   version = "1.0.0"
   description = "Custom rules for my team's codebase"
   author = "My Team"
-  slopguard_min_version = "0.1.0"
+  codehound_min_version = "0.1.0"
 
   [language]
   name = "go"
@@ -90,16 +90,16 @@ SlopGuard has a strong plugin-like internal structure (detectors implement a tra
 - [x] Limitation (MVP): External packs can only use patterns the generic detector supports
   - [x] If external rule needs complex AST analysis -- still needs compiled-in Rust code
 
-### 2.2 Update `SlopguardConfig`
+### 2.2 Update `CodehoundConfig`
 
-- [x] Add `rule_packs` section to `SlopguardConfig`:
+- [x] Add `rule_packs` section to `CodehoundConfig`:
   ```toml
   [rule_packs]
-  paths = ["./my-rules", "/usr/local/share/slopguard/rules/my-pack"]
+  paths = ["./my-rules", "/usr/local/share/codehound/rules/my-pack"]
   enabled = true
   ```
-- [~] Add fields to `SlopguardConfig` struct — not implemented (deferred → see plans/v3.0.0/)
-- [~] Update `slopguard.schema.json` — not implemented (deferred → see plans/v3.0.0/)
+- [~] Add fields to `CodehoundConfig` struct — not implemented (deferred → see plans/v3.0.0/)
+- [~] Update `codehound.schema.json` — not implemented (deferred → see plans/v3.0.0/)
 
 ### 2.3 Implement pack discovery and loading
 
@@ -184,7 +184,7 @@ SlopGuard has a strong plugin-like internal structure (detectors implement a tra
 
 ### 4.3 Avoid weakening rule determinism
 
-- [x] External packs must declare their minimum slopguard version
+- [x] External packs must declare their minimum codehound version
 - [x] Version mismatch: warn but attempt to load (or refuse if major incompatibility)
 - [x] External rules with same ID as builtin: error at load time
 - [x] Snapshot the rule set at scan start -- no hot-reload during scan
@@ -238,15 +238,15 @@ SlopGuard has a strong plugin-like internal structure (detectors implement a tra
 
 ### 6.2 Configuration schema (design complete, implementation pending)
 
-- [x] Design `slopguard.schema.json` updates with `rule_packs` properties
-- [x] Design `templates/slopguard.toml` commented-out example
+- [x] Design `codehound.schema.json` updates with `rule_packs` properties
+- [x] Design `templates/codehound.toml` commented-out example
 - [~] Apply schema and template updates — not implemented (deferred → see plans/v3.0.0/)
 
 ---
 
 ## Dependencies
 
-- `src/engine/config.rs` -- `SlopguardConfig` (adds `rule_packs` field)
+- `src/engine/config.rs` -- `CodehoundConfig` (adds `rule_packs` field)
 - `src/cli/mod.rs` -- CLI flags
 - `src/engine/` -- new `pack.rs` module
 - `src/lang/go/detectors/` -- new `GenericPatternDetector`

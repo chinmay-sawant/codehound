@@ -1,10 +1,10 @@
 use std::borrow::Cow;
 
-use slopguard::engine::AnalysisResult;
-use slopguard::engine::ScanError;
-use slopguard::engine::ScanErrorKind;
-use slopguard::reporting::json::Envelope;
-use slopguard::rules::{Finding, FindingInputs, LineCol, Severity};
+use codehound::engine::AnalysisResult;
+use codehound::engine::ScanError;
+use codehound::engine::ScanErrorKind;
+use codehound::reporting::json::Envelope;
+use codehound::rules::{Finding, FindingInputs, LineCol, Severity};
 
 #[path = "helpers/mod.rs"]
 mod helpers;
@@ -29,7 +29,7 @@ fn envelope_includes_tool_name() {
     let r = sample();
     let env = Envelope::from(&r);
     let s = serde_json::to_string_pretty(&env).unwrap();
-    assert!(s.contains("\"tool\": \"slopguard\""), "got: {s}");
+    assert!(s.contains("\"tool\": \"codehound\""), "got: {s}");
 }
 
 #[test]
@@ -62,7 +62,7 @@ fn envelope_serializes_finding_fingerprint() {
     let env = Envelope::from(&r);
     let s = serde_json::to_string_pretty(&env).unwrap();
     assert!(
-        s.contains("\"fingerprint\": \"slopguard:1:CWE-89:a.go:12:5\""),
+        s.contains("\"fingerprint\": \"codehound:1:CWE-89:a.go:12:5\""),
         "got: {s}"
     );
 }

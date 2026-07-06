@@ -253,7 +253,7 @@ Track how user-controlled data flows through assignments, function calls, and re
 - [x] Make taint fact extraction lazy: only extract if taint enabled (`ctx.taint_enabled` guard)
 - [~] Limit taint extraction to files that contain at least one source AND one sink (quick pre-scan) — not implemented (deferred → see plans/v3.0.0/)
 - [x] Avoid duplicating tree-sitter queries: reuse existing `walk_calls_and_assignments` shared path
-- [~] Benchmark: taint analysis overhead on full slopguard self-scan — not benchmarked (deferred → see plans/v3.0.0/)
+- [~] Benchmark: taint analysis overhead on full codehound self-scan — not benchmarked (deferred → see plans/v3.0.0/)
 - [~] Target: <2× slowdown for files with taint sources (deferred → see plans/v3.0.0/)
 - [~] Target: negligible overhead for files without sources/sinks (<5%) (deferred → see plans/v3.0.0/)
 - [~] Add a `--max-taint-depth` CLI flag — not implemented (deferred → see plans/v3.0.0/)

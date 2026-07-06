@@ -1,13 +1,13 @@
-//! `slopguard.toml` `languages` filtering and validation.
+//! `codehound.toml` `languages` filtering and validation.
 
 use std::collections::HashSet;
 use std::path::Path;
 
-use slopguard::core::{LanguageId, ScanContext};
-use slopguard::engine::{
-    Analyzer, LanguageFilter, Registry, SlopguardConfig, SlopguardSection, resolve_language_filter,
+use codehound::core::{LanguageId, ScanContext};
+use codehound::engine::{
+    Analyzer, LanguageFilter, Registry, CodehoundConfig, CodehoundSection, resolve_language_filter,
 };
-use slopguard::fixture::{materialize_tree, materialized_root};
+use codehound::fixture::{materialize_tree, materialized_root};
 
 #[test]
 fn go_only_filter_skips_python_files() {
@@ -37,8 +37,8 @@ fn go_only_filter_skips_python_files() {
 #[test]
 fn unknown_config_language_fails_fast() {
     let registry = Registry::default();
-    let config = SlopguardConfig {
-        slopguard: SlopguardSection {
+    let config = CodehoundConfig {
+        codehound: CodehoundSection {
             languages: vec!["rust".into()],
             ..Default::default()
         },
@@ -50,8 +50,8 @@ fn unknown_config_language_fails_fast() {
 #[test]
 fn cli_lang_overrides_config_languages() {
     let registry = Registry::default();
-    let config = SlopguardConfig {
-        slopguard: SlopguardSection {
+    let config = CodehoundConfig {
+        codehound: CodehoundSection {
             languages: vec!["python".into()],
             ..Default::default()
         },

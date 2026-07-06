@@ -19,7 +19,7 @@ lint:
 fmt:
 	$(CARGO) fmt
 
-# Run slopguard against a path. Override SCAN_PATH or RUN_ARGS as needed.
+# Run codehound against a path. Override SCAN_PATH or RUN_ARGS as needed.
 run:
 	@$(CARGO) run --quiet -- $(SCAN_PATH) --no-fail --no-terminal $(RUN_ARGS)
 

@@ -1,10 +1,10 @@
-use slopguard::engine::{IgnoreDirective, parse_inline_ignores};
+use codehound::engine::{IgnoreDirective, parse_inline_ignores};
 
 #[test]
 fn parse_inline_ignore_single_rule_targets_next_code_line() {
     let ignores = parse_inline_ignores(
         r#"
-// slopguard-ignore: CWE-22
+// codehound-ignore: CWE-22
 
 value := input
 "#,
@@ -18,7 +18,7 @@ value := input
 
 #[test]
 fn parse_inline_ignore_multi_rule() {
-    let ignores = parse_inline_ignores("//slopguard-ignore:CWE-22, CWE-89\nrun()\n");
+    let ignores = parse_inline_ignores("//codehound-ignore:CWE-22, CWE-89\nrun()\n");
 
     assert_eq!(
         ignores.get(&2),
@@ -31,7 +31,7 @@ fn parse_inline_ignore_multi_rule() {
 
 #[test]
 fn parse_inline_ignore_all_rules() {
-    let ignores = parse_inline_ignores("//  slopguard-ignore:  all  \nrun()\n");
+    let ignores = parse_inline_ignores("//  codehound-ignore:  all  \nrun()\n");
 
     assert_eq!(ignores.get(&2), Some(&IgnoreDirective::all()));
 }
@@ -40,7 +40,7 @@ fn parse_inline_ignore_all_rules() {
 fn parse_inline_ignore_skips_comment_only_lines() {
     let ignores = parse_inline_ignores(
         r#"
-// slopguard-ignore: CWE-22
+// codehound-ignore: CWE-22
 // explanatory comment
 run()
 "#,
@@ -71,13 +71,13 @@ mod cache_inline {
 
     use std::collections::HashSet;
 
-    use slopguard::engine::{CacheSession, CacheStore, DEFAULT_CACHE_DIR};
+    use codehound::engine::{CacheSession, CacheStore, DEFAULT_CACHE_DIR};
 
     #[test]
     fn inline_ignore_re_applied_on_cache_hit() {
         use dep_helpers::*;
-        use slopguard::core::ScanContext;
-        use slopguard::engine::Analyzer;
+        use codehound::core::ScanContext;
+        use codehound::engine::Analyzer;
 
         let root = unique_temp_root("inline-ignore-cache");
         std::fs::create_dir_all(&root).unwrap();
@@ -117,7 +117,7 @@ func Run(w http.ResponseWriter, r *http.Request) {
         );
 
         let mut src = std::fs::read_to_string(root.join("cmd.go")).unwrap();
-        src.insert_str(0, "// slopguard-ignore-file: CWE-78\n");
+        src.insert_str(0, "// codehound-ignore-file: CWE-78\n");
         std::fs::write(root.join("cmd.go"), &src).unwrap();
 
         let mut cache2 = CacheStore::open_with_capacity(cache_dir, 500).unwrap();
@@ -143,15 +143,15 @@ func Run(w http.ResponseWriter, r *http.Request) {
     #[test]
     fn inline_ignore_applied_on_cache_hit_when_source_unchanged() {
         use dep_helpers::*;
-        use slopguard::core::ScanContext;
-        use slopguard::engine::Analyzer;
+        use codehound::core::ScanContext;
+        use codehound::engine::Analyzer;
 
         let root = unique_temp_root("inline-cache-hit");
         std::fs::create_dir_all(&root).unwrap();
         std::fs::write(root.join("go.mod"), "module example.com/proj\n\ngo 1.22\n").unwrap();
         write_file(
             &root.join("cmd.go"),
-            "// slopguard-ignore-file: CWE-78\npackage cmd\n\nimport (\n\t\"net/http\"\n\t\"os/exec\"\n)\n\nfunc Run(w http.ResponseWriter, r *http.Request) {\n\thost := r.URL.Query().Get(\"host\")\n\tcmd := exec.Command(\"sh\", \"-c\", \"ping -c 1 \"+host)\n\t_, _ = cmd.CombinedOutput()\n}\n",
+            "// codehound-ignore-file: CWE-78\npackage cmd\n\nimport (\n\t\"net/http\"\n\t\"os/exec\"\n)\n\nfunc Run(w http.ResponseWriter, r *http.Request) {\n\thost := r.URL.Query().Get(\"host\")\n\tcmd := exec.Command(\"sh\", \"-c\", \"ping -c 1 \"+host)\n\t_, _ = cmd.CombinedOutput()\n}\n",
         );
 
         let cache_dir = root.join(DEFAULT_CACHE_DIR);
@@ -178,7 +178,7 @@ func Run(w http.ResponseWriter, r *http.Request) {
         };
         assert_eq!(
             cwe78, 0,
-            "CWE-78 must be filtered by slopguard-ignore-file on cache hit"
+            "CWE-78 must be filtered by codehound-ignore-file on cache hit"
         );
 
         std::fs::remove_dir_all(root).unwrap();
@@ -187,8 +187,8 @@ func Run(w http.ResponseWriter, r *http.Request) {
     #[test]
     fn skip_flag_filters_cached_findings() {
         use dep_helpers::*;
-        use slopguard::core::ScanContext;
-        use slopguard::engine::Analyzer;
+        use codehound::core::ScanContext;
+        use codehound::engine::Analyzer;
 
         let root = unique_temp_root("skip-cache-hit");
         std::fs::create_dir_all(&root).unwrap();

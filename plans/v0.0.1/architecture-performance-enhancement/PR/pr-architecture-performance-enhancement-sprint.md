@@ -8,7 +8,7 @@
 
 ## Summary
 
-A comprehensive architecture and performance enhancement pass across the entire SlopGuard codebase: ~12K lines changed across 120+ files, addressing all critical findings from the June 2026 architecture/performance review. The Go CWE detector layer was refactored from a single monolithic `GoCweScan` into 175 per-rule `define_detector!` structs, the scan pipeline was optimized for ~47% cumulative throughput improvement, test coverage was expanded from 4 `#[test]` functions in `src/` to 96+ passing tests across 26 test binaries, CI was established, and reporting was brought to production quality (SARIF 2.1.0 with full field coverage, JSON envelope mode, colorized text output).
+A comprehensive architecture and performance enhancement pass across the entire CodeHound codebase: ~12K lines changed across 120+ files, addressing all critical findings from the June 2026 architecture/performance review. The Go CWE detector layer was refactored from a single monolithic `GoCweScan` into 175 per-rule `define_detector!` structs, the scan pipeline was optimized for ~47% cumulative throughput improvement, test coverage was expanded from 4 `#[test]` functions in `src/` to 96+ passing tests across 26 test binaries, CI was established, and reporting was brought to production quality (SARIF 2.1.0 with full field coverage, JSON envelope mode, colorized text output).
 
 ---
 
@@ -64,7 +64,7 @@ A follow-up forensic read (`additional-architecture-performance-findings.md`) sh
 - **Orphan-fixture check**: `manifest_includes_every_fixture_on_disk` catches unregistered `.txt` files
 - **Negative Python test**: `python_safe_does_not_fire_slop101` with `tests/fixtures/python/safe.txt`
 - **Perf regression smoke test**: 15s wall-clock ceiling on materialized fixture scan
-- **`materialized_root()`** now per-process subdirectory (fixes race on `target/slopguard-fixtures/`)
+- **`materialized_root()`** now per-process subdirectory (fixes race on `target/codehound-fixtures/`)
 
 ### D. Correctness fixes (Round 1)
 
@@ -85,15 +85,15 @@ A follow-up forensic read (`additional-architecture-performance-findings.md`) sh
 
 ### F. CLI & config (Round 1)
 
-- `--config <path>` flag and `SLOPGUARD_CONFIG` env var for config discovery override
-- `SLOPGUARD_ONLY` / `SLOPGUARD_SKIP` env-var overrides for rule filtering
-- `discover_config` — upward directory walk for `slopguard.toml` (was CWD-only)
+- `--config <path>` flag and `CODEHOUND_CONFIG` env var for config discovery override
+- `CODEHOUND_ONLY` / `CODEHOUND_SKIP` env-var overrides for rule filtering
+- `discover_config` — upward directory walk for `codehound.toml` (was CWD-only)
 - `--list-rules` and `--explain <RULE>` subcommands
 - `--quiet` / `--verbose` flags (maps to `tracing::Level` via `EnvFilter`)
-- `--init` subcommand writes a starter `slopguard.toml`
-- `.slopguardignore` support via `ignore::WalkBuilder::add_custom_ignore_filename`
-- `#[serde(deny_unknown_fields)]` on `SlopguardConfig` / `SlopguardSection` — typos fail at parse time
-- `include` / `exclude` glob lists in `[slopguard]` config section
+- `--init` subcommand writes a starter `codehound.toml`
+- `.codehoundignore` support via `ignore::WalkBuilder::add_custom_ignore_filename`
+- `#[serde(deny_unknown_fields)]` on `CodehoundConfig` / `CodehoundSection` — typos fail at parse time
+- `include` / `exclude` glob lists in `[codehound]` config section
 - CLI `after_help` examples in `--help` output
 
 ### G. Reporting (Rounds 1–2)
@@ -104,15 +104,15 @@ A follow-up forensic read (`additional-architecture-performance-findings.md`) sh
 - `region.endLine` / `endColumn` / `byteOffset` / `byteLength`
 - `properties.tags = ["security", "cwe", "cwe-22", ...]`
 - `properties.security-severity`
-- `partialFingerprints["slopguard/v1"]` (stable across runs)
+- `partialFingerprints["codehound/v1"]` (stable across runs)
 - `runs[].invocations[].endTimeUtc`, `workingDirectory`, `executionSuccessful`
 - Compact JSON when `--no-snippet` is set
 
-**JSON envelope mode** (`--json-envelope` / `SLOPGUARD_JSON_ENVELOPE`):
+**JSON envelope mode** (`--json-envelope` / `CODEHOUND_JSON_ENVELOPE`):
 - Wraps output in `Envelope { tool, schema, exit_code, findings[], errors[] }`
 - Every finding has stable `fingerprint()` (FnvHasher over `path:line:col:rule`)
 - `CweRef` serialised as `"CWE-N"` via `DisplayCweRef` newtype
-- JSON Schema draft-07 (`slopguard.schema.json`) with unit test coverage
+- JSON Schema draft-07 (`codehound.schema.json`) with unit test coverage
 
 **Text reporter**:
 - Color-coded severity (cyan/yellow/red/red+bold)
@@ -124,7 +124,7 @@ A follow-up forensic read (`additional-architecture-performance-findings.md`) sh
 ### H. Documentation & project hygiene
 
 - `CHANGELOG.md` — full unreleased changelog
-- `docs/configuration.md` — schema, precedence, env vars, `.slopguardignore`, `init`
+- `docs/configuration.md` — schema, precedence, env vars, `.codehoundignore`, `init`
 - `docs/output-formats.md` — text/JSON/SARIF examples, exit codes, severity mapping
 - `docs/architecture-performance.md` — updated pipeline, performance choices, codebase conventions
 - `src/lib.rs` — crate-level doc with quick-start example, feature flags, module map
@@ -133,7 +133,7 @@ A follow-up forensic read (`additional-architecture-performance-findings.md`) sh
 - `plans/p2.md`, `plans/p3.md` — deleted (stale placeholders)
 - `makefile` — no more hard-coded local `SCAN_PATH`
 - `.github/workflows/ci.yml` — CI matrix workflow
-- `slopguard.schema.json` — JSON Schema for envelope output
+- `codehound.schema.json` — JSON Schema for envelope output
 
 ---
 
@@ -191,7 +191,7 @@ A follow-up forensic read (`additional-architecture-performance-findings.md`) sh
 | `src/rules/finding.rs` | `with_byte_range`, `with_end`, `fingerprint()` |
 | `src/rules/severity.rs` | Severity helpers |
 | `build.rs` | Codegen from `ruleset/golang/golang.json` |
-| `slopguard.schema.json` | New — JSON Schema draft-07 |
+| `codehound.schema.json` | New — JSON Schema draft-07 |
 | `CHANGELOG.md` | New |
 | `docs/configuration.md`, `docs/output-formats.md` | New |
 | `tests/` | 25+ test files, 96+ tests |

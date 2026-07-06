@@ -1,4 +1,4 @@
-# SlopGuard — Pull Request Template
+# CodeHound — Pull Request Template
 
 Use this document as the base when authoring GitHub pull requests. Copy the sections below into the PR description and fill in each section. Delete guidance comments before submitting.
 
@@ -231,11 +231,11 @@ cargo run -- tests/fixtures
 
 ---
 
-## Example titles (SlopGuard)
+## Example titles (CodeHound)
 
 ```
 feat: add SLOP102 asyncio.gather in sync loop detector
-fix: load slopguard.toml languages field
+fix: load codehound.toml languages field
 perf: parallel file scan with rayon
 refactor: single-pass Go AST visitor for loop rules
 test: fixture manifest covers all default-language rules

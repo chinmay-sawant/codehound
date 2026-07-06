@@ -22,7 +22,7 @@ as the primary output path.
 
 ### Export pipeline
 
-- Added [src/export/mod.rs](/home/chinmay/ChinmayPersonalProjects/slopguard/src/export/mod.rs) to:
+- Added [src/export/mod.rs](/home/chinmay/ChinmayPersonalProjects/codehound/src/export/mod.rs) to:
   - build per-finding text blocks
   - write numbered finding files under `scripts/findings/functions`
   - write `Chunk_<start>_<end>.txt` files under `scripts/chunks`
@@ -30,18 +30,18 @@ as the primary output path.
 
 ### CLI integration
 
-- Extended [src/cli/mod.rs](/home/chinmay/ChinmayPersonalProjects/slopguard/src/cli/mod.rs) with:
+- Extended [src/cli/mod.rs](/home/chinmay/ChinmayPersonalProjects/codehound/src/cli/mod.rs) with:
   - `--no-terminal`
   - `--no-context`
   - `--no-chunks`
   - `--chunk-size`
   - `--context-output-dir`
   - `--chunks-output-dir`
-- Updated [src/main.rs](/home/chinmay/ChinmayPersonalProjects/slopguard/src/main.rs) to export findings after analysis and before optional terminal reporting.
+- Updated [src/main.rs](/home/chinmay/ChinmayPersonalProjects/codehound/src/main.rs) to export findings after analysis and before optional terminal reporting.
 
 ### Build workflow
 
-- Updated [makefile](/home/chinmay/ChinmayPersonalProjects/slopguard/makefile) so `make run`:
+- Updated [makefile](/home/chinmay/ChinmayPersonalProjects/codehound/makefile) so `make run`:
   - defaults to `SCAN_PATH`
   - runs with `--no-fail`
   - runs with `--no-terminal`
@@ -89,16 +89,16 @@ None.
 
 - [x] `cargo test`
 - [x] `cargo fmt --all`
-- [x] Manual: `cargo run -- target/slopguard-fixtures/go --no-fail --no-terminal`
-- [x] Manual: `make run SCAN_PATH=target/slopguard-fixtures/go`
+- [x] Manual: `cargo run -- target/codehound-fixtures/go --no-fail --no-terminal`
+- [x] Manual: `make run SCAN_PATH=target/codehound-fixtures/go`
 
 ### Commands
 
 ```sh
 cargo fmt --all
 cargo test
-cargo run -- target/slopguard-fixtures/go --no-fail --no-terminal
-make run SCAN_PATH=target/slopguard-fixtures/go
+cargo run -- target/codehound-fixtures/go --no-fail --no-terminal
+make run SCAN_PATH=target/codehound-fixtures/go
 ```
 
 ---

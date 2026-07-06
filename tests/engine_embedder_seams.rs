@@ -2,7 +2,7 @@
 
 #![cfg(feature = "go")]
 
-use slopguard::engine::{Analyzer, CacheBackend, CacheEntry, CacheError, CacheStore, Registry};
+use codehound::engine::{Analyzer, CacheBackend, CacheEntry, CacheError, CacheStore, Registry};
 
 #[derive(Debug)]
 struct EmptyBackend;

@@ -1,8 +1,8 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use slopguard::cwe::CweRef;
-use slopguard::export::{ExportOptions, export_findings};
-use slopguard::rules::{
+use codehound::cwe::CweRef;
+use codehound::export::{ExportOptions, export_findings};
+use codehound::rules::{
     DetectorEvidence, Finding, FindingInputs, LineCol, Severity, TaintSinkInfo, TaintSourceInfo,
 };
 
@@ -12,7 +12,7 @@ fn exports_context_and_chunk_files() {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let root = std::env::temp_dir().join(format!("slopguard-export-test-{unique}"));
+    let root = std::env::temp_dir().join(format!("codehound-export-test-{unique}"));
     let source_path = root.join("sample.go");
     std::fs::create_dir_all(&root).unwrap();
     std::fs::write(
@@ -71,11 +71,11 @@ fn exports_context_and_chunk_files() {
     let context = std::fs::read_to_string(root.join("findings/functions/1.txt")).unwrap();
     let chunk = std::fs::read_to_string(root.join("chunks/Chunk_1_1.txt")).unwrap();
     assert!(
-        context.contains("Fingerprint: slopguard:1:CWE-89:"),
+        context.contains("Fingerprint: codehound:1:CWE-89:"),
         "got: {context}"
     );
     assert!(
-        chunk.contains("Fingerprint: slopguard:1:CWE-89:"),
+        chunk.contains("Fingerprint: codehound:1:CWE-89:"),
         "got: {chunk}"
     );
     for output in [&context, &chunk] {

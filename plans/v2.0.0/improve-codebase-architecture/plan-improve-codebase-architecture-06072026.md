@@ -367,7 +367,7 @@ Fresh architecture review across entire `src/` tree (~35,150 lines, 74 test file
 | Add pipeline counter (in `ScanStats`) | 4–5 | `stats/scan.rs`, `scan_entry.rs`, `parallel.rs`, `analyzer/scan.rs`, optional `diagnostics/` |
 | Add pipeline counter (new top-level field) | 4 | `scan_entry.rs`, `parallel.rs`, `result.rs`, `analyzer/scan.rs` — drops to 2 after 1.1 |
 | Add `ScanContext` CLI option | 3–4 | `core/scan/context.rs`, `scan_context.rs`, `app/run.rs`, tests |
-| Add `slopguard.toml` option | 5–7 | `types.rs`, `discover.rs`, `scan_context.rs`, `cli/args.rs`, `app/run.rs`, tests |
+| Add `codehound.toml` option | 5–7 | `types.rs`, `discover.rs`, `scan_context.rs`, `cli/args.rs`, `app/run.rs`, tests |
 | Add `Finding` field | 4–6 | `finding.rs`, `finding_wire.rs`, `json/types.rs`, + text/export/SARIF — drops to 2–3 after 4.2 |
 
 ---

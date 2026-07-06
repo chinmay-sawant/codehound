@@ -40,9 +40,9 @@ pub(super) fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
             let (level, severity_score) = sarif_severity_fields(view.severity(), category);
             let tags = view.sarif_tags();
             let mut partial_fingerprints: BTreeMap<&'static str, String> = BTreeMap::new();
-            partial_fingerprints.insert("slopguard/v1", view.fingerprint());
+            partial_fingerprints.insert("codehound/v1", view.fingerprint());
 
-            let slopguard_evidence = view.evidence().and_then(|ev| serde_json::to_value(ev).ok());
+            let codehound_evidence = view.evidence().and_then(|ev| serde_json::to_value(ev).ok());
 
             Some(SarifResult {
                 rule_id: view.rule_id(),
@@ -73,7 +73,7 @@ pub(super) fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
                     tags,
                     category,
                     security_severity: severity_score,
-                    slopguard_evidence,
+                    codehound_evidence,
                     remediation: view.non_empty_remediation().map(str::to_string),
                     taint_show_paths: view.taint_show_paths(),
                 },
@@ -101,7 +101,7 @@ pub(super) fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
         runs: vec![SarifRun {
             tool: super::schema::SarifTool {
                 driver: super::schema::SarifDriver {
-                    name: "slopguard",
+                    name: "codehound",
                     information_uri: env!("CARGO_PKG_REPOSITORY"),
                     version: env!("CARGO_PKG_VERSION"),
                     semantic_version: env!("CARGO_PKG_VERSION"),

@@ -154,7 +154,7 @@ Zero fix-engine infrastructure exists. All 38 safe-fixer detectors exist as dete
 - [x] `confidence: f32` on Finding (hop-count decay and severity downgrade remain deferred)
 - [ ] External rule-pack loading, CLI flag for pack directory, sandboxed evaluation
 - [ ] Deprecate direct `engine::*` re-exports
-- [x] Update `src/main.rs` to use `slopguard::cli` via feature gate
+- [x] Update `src/main.rs` to use `codehound::cli` via feature gate
 
 ---
 

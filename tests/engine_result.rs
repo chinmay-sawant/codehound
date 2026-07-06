@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use slopguard::core::FailPolicy;
-use slopguard::engine::{AnalysisResult, ScanError, ScanErrorKind};
+use codehound::core::FailPolicy;
+use codehound::engine::{AnalysisResult, ScanError, ScanErrorKind};
 
 #[test]
 fn should_fail_returns_false_when_no_findings() {
@@ -30,7 +30,7 @@ fn error_kind_maps_to_exit_codes() {
 
 #[test]
 fn scan_exit_code_uses_worst_error_kind_code() {
-    use slopguard::core::FailPolicy;
+    use codehound::core::FailPolicy;
 
     let result = AnalysisResult {
         findings: vec![],

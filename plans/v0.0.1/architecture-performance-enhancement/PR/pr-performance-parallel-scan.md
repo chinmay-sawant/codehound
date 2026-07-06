@@ -10,7 +10,7 @@
 
 This PR addresses the performance and correctness issues identified in the architectural review: memory leaks on the finding hot path, redundant AST traversals, sequential file processing, unnecessary allocations, and SARIF output buffering.
 
-SlopGuard now scans files in parallel with **read → parse → detect → drop** per file, runs all Go loop rules in a **single AST pass**, and uses **static CWE slices** with zero runtime allocation for rule metadata.
+CodeHound now scans files in parallel with **read → parse → detect → drop** per file, runs all Go loop rules in a **single AST pass**, and uses **static CWE slices** with zero runtime allocation for rule metadata.
 
 ---
 
@@ -172,7 +172,7 @@ flowchart LR
 
 - [x] `cargo test` — 8 tests pass (unit + integration + fixture manifest)
 - [x] `cargo build` — clean build, no warnings
-- [~] `cargo run -- target/slopguard-fixtures` — Go + Python findings unchanged (deferred → see plans/v3.0.0/)
+- [~] `cargo run -- target/codehound-fixtures` — Go + Python findings unchanged (deferred → see plans/v3.0.0/)
 - [~] ~~`cargo run -- --only SLOP001 .` — single-rule filter still works with `GoScan`~~ (skipped: SLOP* rules removed from codebase)
 - [x] `cargo run -- --format sarif .` — valid SARIF streamed to stdout (SARIF streaming via serde_json::to_writer_pretty in src/reporting/sarif/)
 - [~] Scan a large repo and compare wall time vs previous sequential build (deferred → see plans/v3.0.0/)

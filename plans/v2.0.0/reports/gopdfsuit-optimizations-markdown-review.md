@@ -12,7 +12,7 @@ This file is a de-duplicated checklist of the performance work documented under:
 
 `/home/chinmay/ChinmayPersonalProjects/gopdfsuit/guides/optimizations`
 
-It is based on the markdown reports, checklists, PR summaries, and executive summaries in that folder. It is not a code scan of SlopGuard itself.
+It is based on the markdown reports, checklists, PR summaries, and executive summaries in that folder. It is not a code scan of CodeHound itself.
 
 The goal is to collapse repeated optimization themes across those docs into one checklist-oriented ledger:
 
@@ -148,7 +148,7 @@ The goal is to collapse repeated optimization themes across those docs into one 
 - [x] PERF: Added benchmark scenario controls and better percentile reporting so weighted, retail-only, active-only, and HFT-only cases are measured explicitly.
 - [x] PERF: Reframed the Python benchmark around honest end-to-end throughput rather than cache-only throughput.
 
-### 1.12 PERF: SlopGuard-guided source cleanups that landed
+### 1.12 PERF: CodeHound-guided source cleanups that landed
 
 - [x] PERF: Hoisted repeated regex compilation out of hot loops.
 - [x] PERF: Replaced many `fmt.Sprintf` / `fmt.Errorf` / `strconv.Itoa` sites with cheaper append/build/static-error paths.
@@ -182,7 +182,7 @@ The goal is to collapse repeated optimization themes across those docs into one 
 
 ---
 
-> **Note:** This checklist documents the **gopdfsuit** project's optimization status (not slopguard). Items below cannot be validated against the slopguard codebase; they remain as documented by the original analysis.
+> **Note:** This checklist documents the **gopdfsuit** project's optimization status (not codehound). Items below cannot be validated against the codehound codebase; they remain as documented by the original analysis.
 
 ## Phase 3: Dedupe of Work Still Open / Repeatedly Deferred
 

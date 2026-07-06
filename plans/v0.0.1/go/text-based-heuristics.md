@@ -45,7 +45,7 @@ Add real detection logic for the Go CWE fixtures so the analyzer validates vulne
 ## Design principles
 
 1. Optimize for the current engine shape first.
-   The engine already parallelizes across files in [src/engine/walk.rs](/home/chinmay/ChinmayPersonalProjects/slopguard/src/engine/walk.rs:104). Do not add nested per-file parallelism by default.
+   The engine already parallelizes across files in [src/engine/walk.rs](/home/chinmay/ChinmayPersonalProjects/codehound/src/engine/walk.rs:104). Do not add nested per-file parallelism by default.
 
 2. Build facts once, evaluate many rules cheaply.
    The expensive operation is walking the AST and normalizing source patterns. Do that once per file, then let many rules consume the indexed facts.
@@ -54,7 +54,7 @@ Add real detection logic for the Go CWE fixtures so the analyzer validates vulne
    Only extract shared abstractions to `src/core/` after a second language proves they are truly shared.
 
 4. Prefer grouped rule evaluators over one struct per CWE.
-   The codebase already prefers bundled scans, as seen in [src/lang/go/scan.rs](/home/chinmay/ChinmayPersonalProjects/slopguard/src/lang/go/scan.rs:1). Follow that shape.
+   The codebase already prefers bundled scans, as seen in [src/lang/go/scan.rs](/home/chinmay/ChinmayPersonalProjects/codehound/src/lang/go/scan.rs:1). Follow that shape.
 
 5. Safe logic is evidence-based suppression, not a second detector pipeline.
    A rule can emit a candidate from indexed facts, then optionally suppress it with additional indexed facts. Safe patterns never emit findings on their own.

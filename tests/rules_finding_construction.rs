@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
-use slopguard::cwe::CweRef;
-use slopguard::rules::{
+use codehound::cwe::CweRef;
+use codehound::rules::{
     DetectorEvidence, Finding, FindingInputs, FindingView, LineCol, Severity, category_for_rule_id,
     sarif_family_tag_for_rule_id, sarif_tags_for_finding,
 };
@@ -235,12 +235,12 @@ fn structured_output_builders_chain_and_serialize() {
         Cow::Borrowed(&[]),
     ))
     .with_evidence(DetectorEvidence::TaintFlow {
-        source: slopguard::rules::TaintSourceInfo {
+        source: codehound::rules::TaintSourceInfo {
             kind: "UserInput".to_string(),
             function: "r.URL.Query".to_string(),
             variable: "host".to_string(),
         },
-        sink: slopguard::rules::TaintSinkInfo::new("CommandExec", "exec.Command"),
+        sink: codehound::rules::TaintSinkInfo::new("CommandExec", "exec.Command"),
         hops: 1,
         sanitized: false,
     })

@@ -3,7 +3,7 @@
 #[path = "helpers/mod.rs"]
 mod helpers;
 
-use slopguard::engine::Analyzer;
+use codehound::engine::Analyzer;
 use std::fs;
 use std::path::Path;
 
