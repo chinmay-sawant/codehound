@@ -4,12 +4,12 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use super::{CacheStore, DiskBackend, InMemoryBackend};
 use super::io::mtime_of_file;
 use super::types::FILES_SUBDIR;
 use super::types::{
     CACHE_VERSION, CacheEntry, CacheError, CacheLookup, CacheManifest, MANIFEST_NAME,
 };
+use super::{CacheStore, DiskBackend, InMemoryBackend};
 
 impl CacheStore {
     /// Open the cache with a maximum on-disk size in MiB. `0` disables
@@ -69,7 +69,7 @@ impl CacheStore {
         };
 
         Ok(Self {
-            cache_dir: cache_dir.clone(),
+            cache_dir,
             files_dir: files_dir.clone(),
             manifest,
             dirty: false,

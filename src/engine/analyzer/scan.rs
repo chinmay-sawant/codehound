@@ -52,7 +52,7 @@ impl Analyzer {
             .unwrap_or_else(|| self.project_root.clone());
         let module_prefix = go_module_prefix(&project_root).or_else(|| self.module_prefix.clone());
         let dependency_root = if module_prefix.is_some() {
-            project_root.clone()
+            project_root
         } else {
             scan_root
         };

@@ -101,9 +101,13 @@ pub struct ListEntrySource {
     skipped: usize,
 }
 
+#[allow(dead_code)]
 impl ListEntrySource {
     pub fn new(entries: Vec<ScanEntry>) -> Self {
-        Self { entries, skipped: 0 }
+        Self {
+            entries,
+            skipped: 0,
+        }
     }
 
     pub fn with_skipped(entries: Vec<ScanEntry>, skipped: usize) -> Self {
@@ -145,7 +149,10 @@ where
     I: IntoIterator<Item = P>,
     P: AsRef<Path>,
 {
-    let owned: Vec<PathBuf> = paths.into_iter().map(|p| p.as_ref().to_path_buf()).collect();
+    let owned: Vec<PathBuf> = paths
+        .into_iter()
+        .map(|p| p.as_ref().to_path_buf())
+        .collect();
     let refs: Vec<&Path> = owned.iter().map(|p| p.as_path()).collect();
     FilesystemWalker.collect(registry, lang_filter, path_filters, &refs)
 }

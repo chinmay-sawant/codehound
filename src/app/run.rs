@@ -384,9 +384,10 @@ fn write_diagnostics_summary(cli: &Cli, result: &AnalysisResult) {
     let Some(stats) = result.stats.as_ref() else {
         return;
     };
-    let slowest = stats.timing.as_ref().and_then(|t| {
-        t.phases.iter().max_by_key(|p| p.duration).map(|p| p.name)
-    });
+    let slowest = stats
+        .timing
+        .as_ref()
+        .and_then(|t| t.phases.iter().max_by_key(|p| p.duration).map(|p| p.name));
     let total_ms = stats
         .timing
         .as_ref()

@@ -70,10 +70,7 @@ struct ReadOutcome {
     file_stats: FileStats,
 }
 
-fn read_entry_source(
-    entry: &ScanEntry,
-    stats: &mut ScanStats,
-) -> Result<ReadOutcome, ScanError> {
+fn read_entry_source(entry: &ScanEntry, stats: &mut ScanStats) -> Result<ReadOutcome, ScanError> {
     let idx = timing::global_start("file_read");
     let (source, _) = read_entry_utf8(entry).inspect_err(|_| {
         stats.record_errored();

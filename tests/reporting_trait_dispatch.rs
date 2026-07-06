@@ -5,8 +5,8 @@
 use std::borrow::Cow;
 
 use slopguard::engine::AnalysisResult;
-use slopguard::reporting::{JsonReporter, OutputReporter, SarifReporter, TextReporter};
 use slopguard::reporting::text::TextOptions;
+use slopguard::reporting::{JsonReporter, OutputReporter, SarifReporter, TextReporter};
 use slopguard::rules::{Finding, FindingInputs, LineCol, Severity};
 
 #[path = "helpers/mod.rs"]

@@ -11,9 +11,9 @@ mod types;
 pub use entry::{print, print_envelope};
 pub use types::{Envelope, FindingJson};
 
+use crate::Error;
 use crate::engine::AnalysisResult;
 use crate::reporting::OutputReporter;
-use crate::Error;
 
 /// Reporter that serializes findings as NDJSON or a JSON envelope.
 pub struct JsonReporter {

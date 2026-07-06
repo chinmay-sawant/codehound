@@ -56,7 +56,10 @@ impl CacheBackend for DiskBackend {
     fn store_entry(&mut self, cache_key: &str, entry: &CacheEntry) -> Result<(), CacheError> {
         let path = self.files_dir.join(format!("{cache_key}.json"));
         write_atomic(&path, entry).map_err(|e| {
-            CacheError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+            CacheError::Io(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                e.to_string(),
+            ))
         })
     }
 

@@ -13,9 +13,9 @@ impl CacheStore {
     /// the store dirty so [`flush`](Self::flush) writes to disk.
     pub fn put(&mut self, entry: CacheEntry) -> Result<(), Error> {
         let cache_key = cache_key_for_path(&entry.file);
-        self.backend.store_entry(&cache_key, &entry).map_err(|e| {
-            Error::Walk(format!("storing cache entry {cache_key}: {e}"))
-        })?;
+        self.backend
+            .store_entry(&cache_key, &entry)
+            .map_err(|e| Error::Walk(format!("storing cache entry {cache_key}: {e}")))?;
         let meta = FileCacheMeta {
             cache_key,
             content_hash: entry.content_hash.clone(),
@@ -73,9 +73,9 @@ impl CacheStore {
             .values()
             .map(|m| m.cache_key.as_str())
             .collect();
-        self.backend.clean_orphans(&active_keys).map_err(|e| {
-            Error::Walk(format!("cleaning cache orphans: {e}"))
-        })
+        self.backend
+            .clean_orphans(&active_keys)
+            .map_err(|e| Error::Walk(format!("cleaning cache orphans: {e}")))
     }
 
     /// Lazily invalidate the entry for `file`. Equivalent to

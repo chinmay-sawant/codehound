@@ -7,9 +7,9 @@ mod time;
 
 pub use entry::{print, print_compact, render_to_string};
 
+use crate::Error;
 use crate::engine::AnalysisResult;
 use crate::reporting::OutputReporter;
-use crate::Error;
 
 /// Reporter that serializes findings as SARIF 2.1.0 JSON.
 pub struct SarifReporter {

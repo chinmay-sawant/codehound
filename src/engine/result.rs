@@ -121,10 +121,12 @@ impl PipelineAccumulator {
         &self.scanned_files
     }
 
+    #[allow(dead_code)]
     pub fn stats(&self) -> &ScanStats {
         &self.stats
     }
 
+    #[allow(dead_code)]
     pub fn stats_mut(&mut self) -> &mut ScanStats {
         &mut self.stats
     }

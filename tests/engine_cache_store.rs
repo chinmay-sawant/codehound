@@ -156,7 +156,10 @@ fn flush_evicts_oldest_entries_when_over_max_size() {
     }
 
     let total = store.total_size();
-    assert!(total > 0, "in-memory total_size should be non-zero after puts");
+    assert!(
+        total > 0,
+        "in-memory total_size should be non-zero after puts"
+    );
     assert_eq!(store.len(), 5);
 }
 

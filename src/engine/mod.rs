@@ -27,9 +27,9 @@ pub use cache::{
     DEFAULT_CACHE_DIR, FileCacheMeta, cache_key_for_path, content_hash,
 };
 pub use config::{
-    BaselineConfig, CacheConfig, PathFilters, ScanContextParams, SlopguardConfig,
-    SlopguardSection, build_scan_context, discover_cache_dir, discover_config,
-    fail_on_to_policy, load_discovered_config,
+    BaselineConfig, CacheConfig, PathFilters, ScanContextParams, SlopguardConfig, SlopguardSection,
+    build_scan_context, discover_cache_dir, discover_config, fail_on_to_policy,
+    load_discovered_config,
 };
 pub use dependencies::{discover_project_root, extract_dependencies, go_module_prefix};
 pub use diagnostics::Diagnostics;

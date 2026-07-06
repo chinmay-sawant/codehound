@@ -7,13 +7,13 @@ use std::sync::Arc;
 use rayon::prelude::*;
 
 use crate::Error;
+use crate::core::ParsedUnit;
 use crate::core::{LanguageId, ScanContext};
 use crate::engine::cache::{CacheEntry, CacheLookup, CacheStore, content_hash};
 use crate::engine::ignore::{
     IgnoreDirective, apply_file_ignore, apply_inline_ignores, parse_file_ignore,
     parse_inline_ignores,
 };
-use crate::core::ParsedUnit;
 use crate::engine::parse_pool::ParsePool;
 use crate::engine::registry::Registry;
 use crate::engine::result::{ScanError, ScanErrorKind};
@@ -21,9 +21,7 @@ use crate::engine::stats::ScanStats;
 use crate::rules::Finding;
 
 use super::entry::ScanEntry;
-use super::scan_entry::{read_entry_utf8, scan_entry, scan_err, ScanEntryResult};
-
-
+use super::scan_entry::{ScanEntryResult, read_entry_utf8, scan_entry, scan_err};
 
 /// Per-file outcome from a parallel scan: either findings or a structured error.
 #[derive(Debug)]
@@ -181,7 +179,12 @@ fn preflight_cache_hits(
         match cache.lookup(&rel, &hash) {
             CacheLookup::Hit(cached) => {
                 cache_hit_count += 1;
-                cached_outcomes.push(process_cache_hit(ctx, cached, source.clone(), entry.language));
+                cached_outcomes.push(process_cache_hit(
+                    ctx,
+                    cached,
+                    source.clone(),
+                    entry.language,
+                ));
                 cached_files.push(CachedFileInfo {
                     source,
                     display_path: rel,
@@ -204,11 +207,7 @@ fn preflight_cache_hits(
 /// detector state (e.g. call graphs for taint analysis) that `finalize()`
 /// needs. The generated per-file findings are discarded — cached findings
 /// are used instead.
-fn accumulate_state_for_cached(
-    registry: &Registry,
-    ctx: &ScanContext,
-    files: &[CachedFileInfo],
-) {
+fn accumulate_state_for_cached(registry: &Registry, ctx: &ScanContext, files: &[CachedFileInfo]) {
     let mut pool = ParsePool::new();
     for info in files {
         let Some(plugin) = registry.plugin_for_id(info.language) else {

@@ -53,11 +53,7 @@ pub(crate) fn drain_global(target: &mut TimingCollector) {
 pub fn with_timing<R>(f: impl FnOnce() -> R) -> (R, Option<TimingSummary>) {
     init_global(true);
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f));
-    let summary = GLOBAL
-        .lock()
-        .unwrap()
-        .take()
-        .map(|c| c.to_summary());
+    let summary = GLOBAL.lock().unwrap().take().map(|c| c.to_summary());
     // Reset even if the closure panicked so the global is clean for the
     // next test.
     *GLOBAL.lock().unwrap() = None;
