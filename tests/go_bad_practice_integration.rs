@@ -18,36 +18,23 @@ use std::borrow::Cow;
 use std::process::Command;
 
 fn scan_context_from_cli(cli: &Cli, config: Option<SlopguardConfig>) -> ScanContext {
-    let cli_set_fail_policy = cli.severity.is_explicit();
-    let mut ctx = build_scan_context(ScanContextParams {
+    build_scan_context(ScanContextParams {
         only: cli.only.clone(),
         skip: cli.skip.clone(),
         fail_policy: cli.severity.fail_policy(),
         config,
-        cli_set_fail_policy,
+        cli_set_fail_policy: cli.severity.is_explicit(),
         debug_timing: cli.debug_timing,
         diagnostics: cli.diagnostics.is_some(),
         diagnostics_summary: cli.diagnostics_summary,
         verbose: cli.verbose,
-    });
-    if cli.bp_only {
-        ctx.only = Some(["BP-*".to_string()].into_iter().collect());
-        ctx.bad_practices_enabled = true;
-    }
-    if cli.no_bp {
-        ctx.bad_practices_enabled = false;
-    }
-    if cli.taint {
-        ctx.taint_enabled = true;
-    }
-    if cli.no_taint {
-        ctx.taint_enabled = false;
-    }
-    if cli.taint_show_paths {
-        ctx.taint_show_paths = true;
-    }
-    ctx.show_ignored = cli.show_ignored;
-    ctx
+        bp_only: cli.bp_only,
+        no_bp: cli.no_bp,
+        taint: cli.taint,
+        no_taint: cli.no_taint,
+        taint_show_paths: cli.taint_show_paths,
+        show_ignored: cli.show_ignored,
+    })
 }
 
 fn reported_rule_ids(stdout: &str) -> Vec<&str> {

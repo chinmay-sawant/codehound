@@ -21,6 +21,11 @@ pub struct Registry {
 }
 
 impl Registry {
+    /// Build a registry from an explicit plugin list (embedder / test seam).
+    pub fn with_plugins(plugins: Vec<Box<dyn LanguagePlugin>>) -> Self {
+        Self::from_plugins(plugins)
+    }
+
     pub(crate) fn from_plugins(plugins: Vec<Box<dyn LanguagePlugin>>) -> Self {
         let mut by_extension = HashMap::new();
         let mut by_id = HashMap::new();

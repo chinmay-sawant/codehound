@@ -6,7 +6,7 @@ pub mod text;
 
 pub use json::JsonReporter;
 pub use sarif::SarifReporter;
-pub use text::TextReporter;
+pub use text::{NoTerminalReporter, TextReporter};
 
 use crate::Error;
 use crate::engine::AnalysisResult;

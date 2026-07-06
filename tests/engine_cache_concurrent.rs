@@ -11,7 +11,7 @@ use std::thread;
 use helpers::{assert_fixture_materializes, unique_temp_root};
 
 use slopguard::core::ScanContext;
-use slopguard::engine::{Analyzer, CacheStore, DEFAULT_CACHE_DIR};
+use slopguard::engine::{Analyzer, CacheSession, CacheStore, DEFAULT_CACHE_DIR};
 
 fn copy_fixture_into_root(fixture: &str, root: &Path, output_name: &str) {
     fs::create_dir_all(root).unwrap();
@@ -40,7 +40,7 @@ fn concurrent_scans_can_share_a_cache_directory_without_panicking() {
                 .build();
             let mut cache = CacheStore::open_with_capacity((*cache_dir).clone(), 500).unwrap();
             let result = analyzer
-                .analyze_paths(&[scan_root.as_ref()], Some(&mut cache))
+                .analyze_paths(&[scan_root.as_ref()], Some(CacheSession::open(&mut cache)))
                 .unwrap();
             assert!(
                 !result.findings.is_empty(),

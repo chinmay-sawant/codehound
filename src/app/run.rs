@@ -3,11 +3,11 @@ use std::process::ExitCode;
 
 use anyhow::{Context, Result};
 use slopguard::cli::{Cli, Command, OutputFormat};
-use slopguard::core::ScanContext;
 use slopguard::engine::{
-    AnalysisResult, Analyzer, BASELINE_FILE_NAME, Baseline, CacheStore, Diagnostics,
-    LanguageFilter, PathFilters, Registry, ScanContextParams, SlopguardConfig, TimingCollector,
-    build_scan_context, collect_entries, resolve_language_filter,
+    AnalysisResult, Analyzer, BASELINE_FILE_NAME, Baseline, CacheSession, CacheStore, Diagnostics,
+    FilesystemWalker, LanguageFilter, PathFilters, Registry, RunConfigParams, ScanContextParams,
+    SlopguardConfig, TimingCollector, build_run_config, collect_entries_with,
+    resolve_language_filter,
 };
 use slopguard::export::{ExportOptions, ExportSummary, export_findings};
 use slopguard::fixture::{FIXTURE_EXTENSION, materialize_fixture, parse_fixture};
@@ -35,39 +35,6 @@ pub fn run(cli: Cli) -> Result<ExitCode> {
     }
 
     run_scan(cli)
-}
-
-fn scan_context_for_run(cli: &Cli, config: Option<SlopguardConfig>) -> ScanContext {
-    let cli_set_fail_policy = cli.severity.is_explicit();
-    let mut ctx = build_scan_context(ScanContextParams {
-        only: cli.only.clone(),
-        skip: cli.skip.clone(),
-        fail_policy: cli.severity.fail_policy(),
-        config,
-        cli_set_fail_policy,
-        debug_timing: cli.debug_timing,
-        diagnostics: cli.diagnostics.is_some(),
-        diagnostics_summary: cli.diagnostics_summary,
-        verbose: cli.verbose,
-    });
-    if cli.bp_only {
-        ctx.only = Some(["BP-*".to_string()].into_iter().collect());
-        ctx.bad_practices_enabled = true;
-    }
-    if cli.no_bp {
-        ctx.bad_practices_enabled = false;
-    }
-    if cli.taint {
-        ctx.taint_enabled = true;
-    }
-    if cli.no_taint {
-        ctx.taint_enabled = false;
-    }
-    if cli.taint_show_paths {
-        ctx.taint_show_paths = true;
-    }
-    ctx.show_ignored = cli.show_ignored;
-    ctx
 }
 
 fn export_options_for_run(cli: &Cli) -> ExportOptions {
@@ -99,77 +66,111 @@ fn run_explain(rule_id: &str) -> Result<ExitCode> {
     Ok(ExitCode::from(EXIT_CLEAN))
 }
 
-fn run_scan(cli: Cli) -> Result<ExitCode> {
-    let config = load_config(cli.config.as_deref())?;
-    let registry = Registry::default();
-    let lang_filter = resolve_language_filter(cli.lang.language_id(), config.as_ref(), &registry)?;
+/// CLI scan orchestration behind a single interface.
+struct ScanRun {
+    cli: Cli,
+}
 
-    let mut path_filters = config
-        .as_ref()
-        .map(|cfg| {
-            use slopguard::engine::PathFilters;
-            PathFilters {
-                include: cfg.slopguard.include.clone(),
-                exclude: cfg.slopguard.exclude.clone(),
-                exclude_tests: cfg.slopguard.exclude_tests.unwrap_or(true),
-            }
-        })
-        .unwrap_or_default();
-    if cli.include_tests {
-        path_filters.exclude_tests = false;
+impl ScanRun {
+    fn new(cli: Cli) -> Self {
+        Self { cli }
     }
 
-    let scan_context = scan_context_for_run(&cli, config.clone());
-    let collect_stats = scan_context.collect_stats();
-    let mut app_timing = TimingCollector::new(collect_stats);
-    let analyzer = Analyzer::builder()
-        .scan_context(scan_context)
-        .path_filters(path_filters.clone())
-        .language_filter(lang_filter.clone())
-        .collect_stats(collect_stats)
-        .build();
+    fn execute(self) -> Result<ExitCode> {
+        let cli = self.cli;
+        let config = load_config(cli.config.as_deref())?;
+        let registry = Registry::default();
+        let lang_filter =
+            resolve_language_filter(cli.lang.language_id(), config.as_ref(), &registry)?;
 
-    let mut cache_store = open_cache_store(&cli, config.as_ref());
-    rebuild_cache_if_requested(&cli, config.as_ref(), &mut cache_store);
+        let run_config = build_run_config(RunConfigParams {
+            scan: scan_context_params_for_run(&cli, config.clone()),
+            include_tests: cli.include_tests,
+        });
+        let collect_stats = run_config.scan_context.collect_stats();
+        let mut app_timing = TimingCollector::new(collect_stats);
+        let analyzer = Analyzer::builder()
+            .scan_context(run_config.scan_context.clone())
+            .path_filters(run_config.path_filters.clone())
+            .language_filter(lang_filter.clone())
+            .collect_stats(collect_stats)
+            .build();
 
-    if cli.prune_cache {
-        return run_prune_cache(&cli, &registry, &lang_filter, &path_filters, cache_store);
-    }
+        let mut cache_store = open_cache_store(&cli, config.as_ref());
+        rebuild_cache_if_requested(&cli, config.as_ref(), &mut cache_store);
 
-    let scan_paths = resolve_scan_paths(&cli.paths)?;
-    let mut result = match analyzer.analyze_paths(&scan_paths, cache_store.as_mut()) {
-        Ok(r) => r,
-        Err(e) => {
-            eprintln!("internal error during scan: {e:#}");
-            return Ok(ExitCode::from(EXIT_INTERNAL));
+        if cli.prune_cache {
+            return run_prune_cache(
+                &cli,
+                &registry,
+                &lang_filter,
+                &run_config.path_filters,
+                cache_store,
+            );
         }
-    };
 
-    report_scan_errors(&result);
+        let scan_paths = resolve_scan_paths(&cli.paths)?;
+        let mut result = match analyzer.analyze_paths(
+            &scan_paths,
+            CacheSession::from_optional(cache_store.as_mut()),
+        ) {
+            Ok(r) => r,
+            Err(e) => {
+                eprintln!("internal error during scan: {e:#}");
+                return Ok(ExitCode::from(EXIT_INTERNAL));
+            }
+        };
 
-    if cli.baseline {
-        return save_baseline(&cli, &result);
+        report_scan_errors(&result);
+
+        if cli.baseline {
+            return save_baseline(&cli, &result);
+        }
+
+        apply_baseline_filter(&cli, config.as_ref(), &mut result);
+
+        let export_options = export_options_for_run(&cli);
+        let export_summary = app_timing.measure("export", || {
+            export_findings(&result.findings, &export_options, &result.source_cache)
+        })?;
+
+        emit_output(
+            &cli,
+            &mut app_timing,
+            &result,
+            &export_options,
+            &export_summary,
+        )?;
+        merge_app_timing(&mut result, &app_timing, collect_stats);
+        write_diagnostics(&cli, &result)?;
+        write_diagnostics_summary(&cli, &result);
+
+        Ok(scan_exit_code(&result, analyzer.ctx.fail_policy))
     }
+}
 
-    apply_baseline_filter(&cli, config.as_ref(), &mut result);
+fn run_scan(cli: Cli) -> Result<ExitCode> {
+    ScanRun::new(cli).execute()
+}
 
-    let export_options = export_options_for_run(&cli);
-    let export_summary = app_timing.measure("export", || {
-        export_findings(&result.findings, &export_options, &result.source_cache)
-    })?;
-
-    emit_output(
-        &cli,
-        &mut app_timing,
-        &result,
-        &export_options,
-        &export_summary,
-    )?;
-    merge_app_timing(&mut result, &app_timing, collect_stats);
-    write_diagnostics(&cli, &result)?;
-    write_diagnostics_summary(&cli, &result);
-
-    Ok(scan_exit_code(&result, analyzer.ctx.fail_policy))
+fn scan_context_params_for_run(cli: &Cli, config: Option<SlopguardConfig>) -> ScanContextParams {
+    ScanContextParams {
+        only: cli.only.clone(),
+        skip: cli.skip.clone(),
+        fail_policy: cli.severity.fail_policy(),
+        config,
+        cli_set_fail_policy: cli.severity.is_explicit(),
+        debug_timing: cli.debug_timing,
+        diagnostics: cli.diagnostics.is_some(),
+        diagnostics_summary: cli.diagnostics_summary,
+        verbose: cli.verbose,
+        bp_only: cli.bp_only,
+        no_bp: cli.no_bp,
+        taint: cli.taint,
+        no_taint: cli.no_taint,
+        taint_show_paths: cli.taint_show_paths,
+        show_ignored: cli.show_ignored,
+    }
 }
 
 fn rebuild_cache_if_requested(
@@ -221,7 +222,13 @@ fn run_prune_cache(
     path_filters: &PathFilters,
     mut cache_store: Option<CacheStore>,
 ) -> Result<ExitCode> {
-    let (entries, _skipped) = collect_entries(registry, &cli.paths, lang_filter, path_filters)?;
+    let (entries, _skipped) = collect_entries_with(
+        &FilesystemWalker,
+        registry,
+        &cli.paths,
+        lang_filter,
+        path_filters,
+    )?;
     let scanned_files: std::collections::HashSet<String> = entries
         .iter()
         .map(|e| e.path.display().to_string())
@@ -342,8 +349,20 @@ fn emit_output(
     export_options: &ExportOptions,
     export_summary: &ExportSummary,
 ) -> Result<()> {
-    if !cli.no_terminal && !cli.quiet {
-        let reporter: Box<dyn reporting::OutputReporter> = match cli.format {
+    if cli.quiet {
+        return Ok(());
+    }
+    let reporter: Box<dyn reporting::OutputReporter> = if cli.no_terminal {
+        Box::new(reporting::NoTerminalReporter {
+            options: reporting::text::TextOptions {
+                verbose: cli.verbose,
+                ..Default::default()
+            },
+            export_options: export_options.clone(),
+            export_summary: *export_summary,
+        })
+    } else {
+        match cli.format {
             OutputFormat::Text => Box::new(reporting::TextReporter {
                 options: reporting::text::TextOptions {
                     color: true,
@@ -359,22 +378,9 @@ fn emit_output(
             OutputFormat::Sarif => Box::new(reporting::SarifReporter {
                 compact: cli.no_snippet,
             }),
-        };
-        app_timing.measure("reporting", || reporter.report(result))?;
-    } else if !cli.quiet {
-        let stdout = std::io::stdout();
-        let mut out = stdout.lock();
-        reporting::text::write_no_terminal_summary(
-            &mut out,
-            result,
-            reporting::text::TextOptions {
-                verbose: cli.verbose,
-                ..Default::default()
-            },
-            export_options,
-            export_summary,
-        )?;
-    }
+        }
+    };
+    app_timing.measure("reporting", || reporter.report(result))?;
     Ok(())
 }
 
@@ -481,6 +487,27 @@ mod tests {
         let resolved = resolve_scan_path(temp_path.to_str().expect("utf8 temp path"))
             .expect("resolve plain text path");
         assert_eq!(resolved, temp_path);
+    }
+
+    #[test]
+    fn scan_run_builds_via_run_config() {
+        use slopguard::engine::{RunConfigParams, ScanContextParams, build_run_config};
+
+        let run_config = build_run_config(RunConfigParams {
+            scan: ScanContextParams {
+                bp_only: true,
+                ..ScanContextParams::default()
+            },
+            include_tests: false,
+        });
+        assert!(run_config.scan_context.bad_practices_enabled);
+        assert!(
+            run_config
+                .scan_context
+                .only
+                .as_ref()
+                .is_some_and(|s| s.contains("BP-*"))
+        );
     }
 
     #[test]

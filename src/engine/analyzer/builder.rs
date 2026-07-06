@@ -3,12 +3,14 @@
 use crate::core::ScanContext;
 use crate::engine::config::PathFilters;
 use crate::engine::language_filter::LanguageFilter;
-use crate::engine::walk::EntrySource;
+use crate::engine::registry::Registry;
+use crate::engine::walk::{EntrySource, FilesystemWalker};
 
 use super::types::Analyzer;
 
 /// Configures an [`Analyzer`].
 pub struct AnalyzerBuilder {
+    registry: Option<Registry>,
     ctx: ScanContext,
     lang_filter: LanguageFilter,
     path_filters: PathFilters,
@@ -20,12 +22,19 @@ impl AnalyzerBuilder {
     #[must_use = "configure the analyzer before calling build()"]
     pub(crate) fn new() -> Self {
         Self {
+            registry: None,
             ctx: ScanContext::default(),
             lang_filter: LanguageFilter::default(),
             path_filters: PathFilters::default(),
             collect_stats: false,
             entry_source: None,
         }
+    }
+
+    /// Use a custom detector/language registry instead of [`Registry::default`].
+    pub fn registry(mut self, registry: Registry) -> Self {
+        self.registry = Some(registry);
+        self
     }
 
     pub fn scan_context(mut self, ctx: ScanContext) -> Self {
@@ -57,12 +66,14 @@ impl AnalyzerBuilder {
 
     pub fn build(self) -> Analyzer {
         Analyzer {
-            registry: crate::engine::registry::Registry::default(),
+            registry: self.registry.unwrap_or_default(),
             ctx: self.ctx,
             lang_filter: self.lang_filter,
             path_filters: self.path_filters,
             collect_stats: self.collect_stats,
-            entry_source: self.entry_source,
+            entry_source: self
+                .entry_source
+                .unwrap_or_else(|| Box::new(FilesystemWalker)),
         }
     }
 }

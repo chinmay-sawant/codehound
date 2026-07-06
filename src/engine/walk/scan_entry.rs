@@ -60,6 +60,7 @@ pub(super) fn read_entry_utf8(
     ))
 }
 
+#[derive(Debug)]
 pub(crate) struct ScanEntryResult {
     pub findings: Vec<Finding>,
     pub cache_key: String,

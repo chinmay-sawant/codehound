@@ -6,6 +6,8 @@ mod gen_bp;
 mod gen_catalogue;
 #[path = "build/gen_cwe.rs"]
 mod gen_cwe;
+#[path = "build/gen_metadata.rs"]
+mod gen_metadata;
 #[path = "build/gen_perf.rs"]
 mod gen_perf;
 #[path = "build/parse.rs"]

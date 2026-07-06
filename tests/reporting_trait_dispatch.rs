@@ -5,8 +5,11 @@
 use std::borrow::Cow;
 
 use slopguard::engine::AnalysisResult;
+use slopguard::export::{ExportOptions, ExportSummary};
 use slopguard::reporting::text::TextOptions;
-use slopguard::reporting::{JsonReporter, OutputReporter, SarifReporter, TextReporter};
+use slopguard::reporting::{
+    JsonReporter, NoTerminalReporter, OutputReporter, SarifReporter, TextReporter,
+};
 use slopguard::rules::{Finding, FindingInputs, LineCol, Severity};
 
 #[path = "helpers/mod.rs"]
@@ -72,6 +75,29 @@ fn sarif_reporter_via_trait_succeeds() {
 fn sarif_compact_reporter_via_trait_succeeds() {
     let r = sample_result();
     let reporter = SarifReporter { compact: true };
+    assert!(reporter.report(&r).is_ok());
+}
+
+#[test]
+fn no_terminal_reporter_via_trait_succeeds() {
+    let r = sample_result();
+    let reporter = NoTerminalReporter {
+        options: TextOptions {
+            suppress_snippet: true,
+            ..TextOptions::default()
+        },
+        export_options: ExportOptions {
+            export_context: true,
+            export_chunks: false,
+            chunk_size: 100,
+            context_output_dir: std::path::PathBuf::from("context"),
+            chunks_output_dir: std::path::PathBuf::from("chunks"),
+        },
+        export_summary: ExportSummary {
+            context_files_written: 2,
+            chunk_files_written: 0,
+        },
+    };
     assert!(reporter.report(&r).is_ok());
 }
 

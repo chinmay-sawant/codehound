@@ -23,12 +23,13 @@ mod walk;
 pub use analyzer::{Analyzer, AnalyzerBuilder};
 pub use baseline::{BASELINE_FILE_NAME, BASELINE_VERSION, Baseline, discover_baseline};
 pub use cache::{
-    CacheEntry, CacheError, CacheLookup, CacheManifest, CacheStore, DEFAULT_CACHE_DIR,
-    cache_key_for_path, content_hash,
+    CacheBackend, CacheEntry, CacheError, CacheLookup, CacheManifest, CacheSession, CacheStore,
+    DEFAULT_CACHE_DIR, InMemoryBackend, cache_key_for_path, content_hash,
 };
 pub use config::{
-    CacheConfig, PathFilters, ScanContextParams, SlopguardConfig, SlopguardSection,
-    build_scan_context, discover_cache_dir, discover_config,
+    CacheConfig, PathFilters, RunConfig, RunConfigParams, ScanContextParams, SlopguardConfig,
+    SlopguardSection, build_run_config, build_scan_context, discover_cache_dir, discover_config,
+    path_filters_from_config,
 };
 pub use dependencies::{discover_project_root, extract_dependencies, go_module_prefix};
 pub use diagnostics::Diagnostics;
@@ -40,7 +41,8 @@ pub use result::{AnalysisResult, ScanError, ScanErrorKind};
 pub use stats::ScanStats;
 pub use timing::{PhaseTiming, TimingCollector, TimingSummary};
 pub use walk::{
-    EntrySource, FilesystemWalker, ListEntrySource, ScanEntry, collect_entries, scratch_contains,
+    EntrySource, FilesystemWalker, ListEntrySource, ScanEntry, collect_entries,
+    collect_entries_with, scratch_contains,
 };
 
 /// Process large entry lists in bounded chunks to cap parallel work memory.

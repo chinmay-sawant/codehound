@@ -10,7 +10,7 @@ use std::path::PathBuf;
 
 use slopguard::core::ScanContext;
 use slopguard::engine::{
-    Analyzer, CacheStore, DEFAULT_CACHE_DIR, content_hash, discover_cache_dir,
+    Analyzer, CacheSession, CacheStore, DEFAULT_CACHE_DIR, content_hash, discover_cache_dir,
 };
 
 fn copy_fixture_into_root(fixture: &str, root: &Path, output_name: &str) {
@@ -30,7 +30,7 @@ fn scan_with_context(
 ) -> Vec<String> {
     let analyzer = Analyzer::builder().scan_context(ctx).build();
     let result = analyzer
-        .analyze_paths(&[root], cache)
+        .analyze_paths(&[root], CacheSession::from_optional(cache))
         .expect("analyze_paths");
     let mut ids: Vec<String> = result
         .findings
@@ -72,8 +72,7 @@ fn changing_source_invalidates_cache_entry() {
     let source = root.join("sample.go");
     write_go_source(&source, "");
 
-    let cache_dir = root.join(DEFAULT_CACHE_DIR);
-    let mut cache = CacheStore::open_with_capacity(cache_dir, 500).unwrap();
+    let mut cache = CacheStore::in_memory();
     let _ = scan_with_cache(&root, Some(&mut cache));
     assert_eq!(cache.manifest().files.len(), 1);
 
@@ -100,8 +99,7 @@ fn deleting_a_file_prunes_its_cache_entry() {
     let source = root.join("sample.go");
     write_go_source(&source, "");
 
-    let cache_dir = root.join(DEFAULT_CACHE_DIR);
-    let mut cache = CacheStore::open_with_capacity(cache_dir, 500).unwrap();
+    let mut cache = CacheStore::in_memory();
     let _ = scan_with_cache(&root, Some(&mut cache));
     assert_eq!(cache.manifest().files.len(), 1);
 
@@ -162,8 +160,7 @@ fn oversized_files_are_scanned_but_not_cached() {
     body.push_str(&"// pad\n".repeat(220_000));
     fs::write(&source, body).unwrap();
 
-    let cache_dir = root.join(DEFAULT_CACHE_DIR);
-    let mut cache = CacheStore::open_with_limits(cache_dir, 500, 0.9, 1).unwrap();
+    let mut cache = CacheStore::in_memory_with_limits(500, 0.9, 1);
     let findings = scan_with_cache(&root, Some(&mut cache));
 
     assert!(

@@ -16,7 +16,7 @@ fn serialized_len(entry: &CacheEntry) -> u64 {
 /// Suitable for tests or short-lived cache instances that should not
 /// touch the filesystem.
 #[derive(Debug)]
-pub(crate) struct InMemoryBackend {
+pub struct InMemoryBackend {
     entries: Mutex<HashMap<String, CacheEntry>>,
     total_bytes: Mutex<u64>,
 }

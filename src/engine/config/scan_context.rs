@@ -5,7 +5,7 @@ use crate::core::{FailPolicy, ScanContext};
 use super::types::SlopguardConfig;
 
 /// Parameters for [`build_scan_context`].
-#[derive(Default)]
+#[derive(Debug, Clone, Default)]
 pub struct ScanContextParams {
     pub only: Vec<String>,
     pub skip: Vec<String>,
@@ -16,6 +16,12 @@ pub struct ScanContextParams {
     pub diagnostics: bool,
     pub diagnostics_summary: bool,
     pub verbose: bool,
+    pub bp_only: bool,
+    pub no_bp: bool,
+    pub taint: bool,
+    pub no_taint: bool,
+    pub taint_show_paths: bool,
+    pub show_ignored: bool,
 }
 
 /// Build scan context from CLI + optional config file.
@@ -40,6 +46,25 @@ pub fn build_scan_context(params: ScanContextParams) -> ScanContext {
     };
     if let Some(cfg) = params.config {
         ctx = cfg.merge_into(ctx, params.cli_set_fail_policy);
+    }
+    if params.bp_only {
+        ctx.only = Some(["BP-*".to_string()].into_iter().collect());
+        ctx.bad_practices_enabled = true;
+    }
+    if params.no_bp {
+        ctx.bad_practices_enabled = false;
+    }
+    if params.taint {
+        ctx.taint_enabled = true;
+    }
+    if params.no_taint {
+        ctx.taint_enabled = false;
+    }
+    if params.taint_show_paths {
+        ctx.taint_show_paths = true;
+    }
+    if params.show_ignored {
+        ctx.show_ignored = true;
     }
     ctx
 }

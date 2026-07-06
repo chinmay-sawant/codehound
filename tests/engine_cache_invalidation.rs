@@ -9,7 +9,7 @@ use std::fs;
 use std::path::Path;
 
 use slopguard::core::ScanContext;
-use slopguard::engine::{Analyzer, CacheStore, DEFAULT_CACHE_DIR, go_module_prefix};
+use slopguard::engine::{Analyzer, CacheSession, CacheStore, DEFAULT_CACHE_DIR, go_module_prefix};
 use slopguard::fixture::{materialize_tree, materialized_root};
 
 fn copy_materialized_tree(src: &Path, dst: &Path) {
@@ -145,7 +145,9 @@ func Handle() { db.Run() }
         let analyzer = Analyzer::builder()
             .scan_context(ScanContext::default())
             .build();
-        let _ = analyzer.analyze_paths(&[&root], Some(&mut cache)).unwrap();
+        let _ = analyzer
+            .analyze_paths(&[&root], Some(CacheSession::open(&mut cache)))
+            .unwrap();
     }
     cache.flush().unwrap();
 
@@ -177,7 +179,9 @@ func Handle() { db.Run() }
         let analyzer = Analyzer::builder()
             .scan_context(ScanContext::default())
             .build();
-        let _ = analyzer.analyze_paths(&[&root], Some(&mut cache2)).unwrap();
+        let _ = analyzer
+            .analyze_paths(&[&root], Some(CacheSession::open(&mut cache2)))
+            .unwrap();
     }
     let m2 = cache2.manifest();
     // After invalidation, handler.go's manifest entry is dropped,
@@ -214,7 +218,9 @@ fn transitive_invalidation_works_without_go_mod_using_cwd_fallback_paths() {
     let analyzer = Analyzer::builder()
         .scan_context(ScanContext::default())
         .build();
-    let _ = analyzer.analyze_paths(&[&root], Some(&mut cache)).unwrap();
+    let _ = analyzer
+        .analyze_paths(&[&root], Some(CacheSession::open(&mut cache)))
+        .unwrap();
     cache.flush().unwrap();
 
     let handler_meta = cache
@@ -238,7 +244,9 @@ fn transitive_invalidation_works_without_go_mod_using_cwd_fallback_paths() {
     std::fs::write(root.join("pkg/db/db.go"), db_src).unwrap();
 
     let mut cache2 = CacheStore::open_with_capacity(cache_dir, 500).unwrap();
-    let _ = analyzer.analyze_paths(&[&root], Some(&mut cache2)).unwrap();
+    let _ = analyzer
+        .analyze_paths(&[&root], Some(CacheSession::open(&mut cache2)))
+        .unwrap();
     assert!(
         cache2
             .manifest()

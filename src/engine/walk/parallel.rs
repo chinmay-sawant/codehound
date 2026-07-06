@@ -9,7 +9,7 @@ use rayon::prelude::*;
 use crate::Error;
 use crate::core::ParsedUnit;
 use crate::core::{LanguageId, ScanContext};
-use crate::engine::cache::{CacheEntry, CacheLookup, CacheStore, content_hash};
+use crate::engine::cache::{CacheEntry, CacheLookup, CacheSession, CacheStore, content_hash};
 use crate::engine::ignore::{apply_ignores, parse_file_ignore};
 use crate::engine::parse_pool::ParsePool;
 use crate::engine::registry::Registry;
@@ -26,15 +26,7 @@ use super::scan_entry::{PreloadedSource, ScanEntryResult, read_entry_utf8, scan_
 /// Per-file outcome from a parallel scan: either findings or a structured error.
 #[derive(Debug)]
 pub(crate) enum ScanOutcome {
-    Ok {
-        findings: Vec<Finding>,
-        cache_key: String,
-        source: Arc<str>,
-        content_hash: Option<String>,
-        suppressed_count: usize,
-        stats: ScanStats,
-        dependencies: Vec<String>,
-    },
+    Fresh(ScanEntryResult),
     Cached {
         findings: Vec<Finding>,
         cache_key: String,
@@ -71,13 +63,14 @@ pub(crate) fn scan_entries_parallel(
     registry: &Registry,
     ctx: &ScanContext,
     entries: &[ScanEntry],
-    mut cache: Option<&mut CacheStore>,
+    mut cache: Option<&mut CacheSession<'_>>,
     project_root: &Path,
     module_prefix: Option<&str>,
 ) -> Result<MergedScan, Error> {
     let total = entries.len();
 
-    let preflight = preflight_cache_hits(ctx, entries, cache.as_deref());
+    let preflight =
+        preflight_cache_hits(ctx, entries, cache.as_deref().map(CacheSession::as_store));
     let scan_outcomes = dispatch_parallel_scan(
         registry,
         ctx,
@@ -251,23 +244,7 @@ fn dispatch_parallel_scan(
             }));
             match unwind {
                 Ok(res) => match res {
-                    Ok(ScanEntryResult {
-                        findings,
-                        cache_key,
-                        source,
-                        content_hash,
-                        suppressed_count,
-                        stats,
-                        dependencies,
-                    }) => ScanOutcome::Ok {
-                        findings,
-                        cache_key,
-                        source,
-                        content_hash,
-                        suppressed_count,
-                        stats,
-                        dependencies,
-                    },
+                    Ok(result) => ScanOutcome::Fresh(result),
                     Err(e) => ScanOutcome::Err(e),
                 },
                 Err(payload) => {
@@ -287,7 +264,7 @@ fn dispatch_parallel_scan(
 fn merge_parallel_results(
     scan_outcomes: Vec<ScanOutcome>,
     cached_outcomes: Vec<ScanOutcome>,
-    cache: &mut Option<&mut CacheStore>,
+    cache: &mut Option<&mut CacheSession<'_>>,
     cache_hit_count: usize,
     total: usize,
 ) -> MergedScan {
@@ -302,28 +279,24 @@ fn merge_parallel_results(
 
     for outcome in scan_outcomes {
         match outcome {
-            ScanOutcome::Ok {
-                findings: mut f,
-                cache_key,
-                source,
-                content_hash,
-                suppressed_count: ignored,
-                stats: file_stats,
-                dependencies,
-            } => {
+            ScanOutcome::Fresh(mut result) => {
                 write_cache_on_miss(
                     cache,
-                    &cache_key,
-                    &source,
-                    content_hash.as_deref(),
-                    &f,
-                    &dependencies,
+                    &result.cache_key,
+                    &result.source,
+                    result.content_hash.as_deref(),
+                    &result.findings,
+                    &result.dependencies,
                     &mut merged.rescan_files,
                 );
-                merged.findings.append(&mut f);
-                merged.source_cache.insert(cache_key, source);
-                merged.suppressed_count += ignored;
-                merged.stats.merge(&file_stats);
+                append_file_contribution(
+                    &mut merged,
+                    &mut result.findings,
+                    result.cache_key,
+                    result.source,
+                    &result.stats,
+                    result.suppressed_count,
+                );
             }
             ScanOutcome::Err(e) => {
                 merged.errors.push(e);
@@ -342,9 +315,7 @@ fn merge_parallel_results(
                 stats: file_stats,
                 ..
             } => {
-                merged.findings.append(&mut f);
-                merged.source_cache.insert(cache_key, source);
-                merged.stats.merge(&file_stats);
+                append_file_contribution(&mut merged, &mut f, cache_key, source, &file_stats, 0);
             }
             ScanOutcome::Err(e) => {
                 merged.errors.push(e);
@@ -359,8 +330,22 @@ fn merge_parallel_results(
     merged
 }
 
+fn append_file_contribution(
+    merged: &mut MergedScan,
+    findings: &mut Vec<Finding>,
+    cache_key: String,
+    source: Arc<str>,
+    stats: &ScanStats,
+    suppressed_count: usize,
+) {
+    merged.findings.append(findings);
+    merged.source_cache.insert(cache_key, source);
+    merged.suppressed_count += suppressed_count;
+    merged.stats.merge(stats);
+}
+
 fn write_cache_on_miss(
-    cache: &mut Option<&mut CacheStore>,
+    cache: &mut Option<&mut CacheSession<'_>>,
     cache_key: &str,
     source: &Arc<str>,
     precomputed_hash: Option<&str>,
@@ -368,24 +353,24 @@ fn write_cache_on_miss(
     dependencies: &[String],
     rescan_files: &mut Vec<(String, bool)>,
 ) {
-    let Some(cache) = cache.as_deref_mut() else {
+    let Some(session) = cache.as_deref_mut() else {
         return;
     };
-    if !cache.should_cache_bytes(source.len() as u64) {
-        cache.invalidate_file(cache_key);
+    if !session.should_cache_bytes(source.len() as u64) {
+        session.invalidate_file(cache_key);
         return;
     }
     let hash = precomputed_hash
         .map(str::to_string)
         .unwrap_or_else(|| content_hash(source.as_ref()));
-    let prior_hash = cache
+    let prior_hash = session
         .manifest()
         .files
         .get(cache_key)
         .map(|m| m.content_hash.as_str());
     let hash_changed = prior_hash.map(|old| old != hash.as_str()).unwrap_or(false);
     let cached_at = iso8601_utc_now();
-    if let Err(e) = cache.put(
+    if let Err(e) = session.put(
         cache_key,
         &hash,
         dependencies,

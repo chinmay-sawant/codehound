@@ -1,6 +1,7 @@
 //! Python language plugin (stub + first detector).
 
 mod detectors;
+mod register;
 
 const LOOP_NODE_KINDS: &[&str] = &["for_statement", "while_statement"];
 

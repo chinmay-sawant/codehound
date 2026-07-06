@@ -6,7 +6,7 @@ use std::io::Write;
 use crate::Error;
 use crate::cwe::format_cwe_list;
 use crate::engine::AnalysisResult;
-use crate::rules::DetectorEvidence;
+use crate::rules::{DetectorEvidence, FindingView};
 
 use super::options::TextOptions;
 use super::style;
@@ -31,6 +31,7 @@ pub fn write_with_options(
     }
 
     for f in &result.findings {
+        let view = FindingView::new(f);
         let sev_colored = with_color(options.color, f.severity.as_str(), || {
             style::severity(f.severity).to_string()
         });
@@ -46,12 +47,12 @@ pub fn write_with_options(
         writeln!(out, "{head}")?;
         writeln!(out, "  {}", f.message)?;
         if options.show_fingerprint {
-            writeln!(out, "  fingerprint: {}", f.fingerprint_string())?;
+            writeln!(out, "  fingerprint: {}", view.fingerprint())?;
         }
-        if let Some(confidence) = f.confidence.filter(|confidence| *confidence < 1.0) {
+        if let Some(confidence) = view.partial_confidence() {
             writeln!(out, "  confidence: {confidence}")?;
         }
-        if let Some(tags) = f.tags.as_deref().filter(|tags| !tags.is_empty()) {
+        if let Some(tags) = view.non_empty_tags() {
             writeln!(out, "  tags: {}", tags.join(", "))?;
         }
         if f.suppressed {
@@ -73,7 +74,7 @@ pub fn write_with_options(
                 }
             }
         }
-        if let Some(cwes) = f.cwe.as_deref().filter(|cwes| !cwes.is_empty()) {
+        if let Some(cwes) = view.non_empty_cwe() {
             let list = format_cwe_list(cwes);
             writeln!(
                 out,
@@ -81,14 +82,12 @@ pub fn write_with_options(
                 with_color(options.color, &list, || style::dimmed(&list).to_string())
             )?;
         }
-        if let Some(fix) = &f.fix {
-            if !fix.is_empty() {
-                writeln!(
-                    out,
-                    "  fix: {}",
-                    with_color(options.color, fix, || style::cyan(fix).to_string())
-                )?;
-            }
+        if let Some(fix) = view.non_empty_fix() {
+            writeln!(
+                out,
+                "  fix: {}",
+                with_color(options.color, fix, || style::cyan(fix).to_string())
+            )?;
         }
         writeln!(out)?;
     }

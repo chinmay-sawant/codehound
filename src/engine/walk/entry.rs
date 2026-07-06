@@ -117,7 +117,7 @@ impl EntrySource for ListEntrySource {
     }
 }
 
-/// Walk paths and collect supported source files (no I/O beyond directory walk).
+/// Walk paths and collect supported source files via [`FilesystemWalker`].
 ///
 /// Honors `.gitignore`/`.ignore` (via `standard_filters(true)`) **and**
 /// `.slopguardignore` if present at any walked root.
@@ -135,8 +135,26 @@ pub fn collect_entries(
     lang_filter: &LanguageFilter,
     path_filters: &PathFilters,
 ) -> Result<(Vec<ScanEntry>, usize), Error> {
+    collect_entries_with(
+        &FilesystemWalker,
+        registry,
+        paths,
+        lang_filter,
+        path_filters,
+    )
+}
+
+/// Collect entries through an injected [`EntrySource`] seam.
+#[must_use = "entry collection failures must be handled"]
+pub fn collect_entries_with(
+    source: &dyn EntrySource,
+    registry: &Registry,
+    paths: &[impl AsRef<Path>],
+    lang_filter: &LanguageFilter,
+    path_filters: &PathFilters,
+) -> Result<(Vec<ScanEntry>, usize), Error> {
     let refs: Vec<&Path> = paths.iter().map(|p| p.as_ref()).collect();
-    FilesystemWalker.collect(registry, lang_filter, path_filters, &refs)
+    source.collect(registry, lang_filter, path_filters, &refs)
 }
 
 #[derive(Debug)]

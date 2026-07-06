@@ -6,12 +6,12 @@ use std::path::Path;
 use crate::Error;
 use crate::engine::{
     SCAN_CHUNK_SIZE,
-    cache::CacheStore,
+    cache::CacheSession,
     dependencies::{discover_project_root, go_module_prefix},
     result::AnalysisResult,
     stats::ScanStats,
     timing,
-    walk::{EntrySource, FilesystemWalker, scan_entries_parallel},
+    walk::scan_entries_parallel,
 };
 
 use super::types::Analyzer;
@@ -32,7 +32,7 @@ impl Analyzer {
     pub fn analyze_paths(
         &self,
         paths: &[impl AsRef<Path>],
-        mut cache: Option<&mut CacheStore>,
+        mut cache: Option<CacheSession<'_>>,
     ) -> Result<AnalysisResult, Error> {
         let mut timing = timing::TimingCollector::new(self.collect_stats);
         let start = paths
@@ -54,20 +54,12 @@ impl Analyzer {
 
         let (entries, files_skipped) = timing.measure("file_walk", || {
             let path_refs: Vec<&Path> = paths.iter().map(|p| p.as_ref()).collect();
-            match self.entry_source.as_ref() {
-                Some(source) => source.collect(
-                    &self.registry,
-                    &self.lang_filter,
-                    &self.path_filters,
-                    &path_refs,
-                ),
-                None => FilesystemWalker.collect(
-                    &self.registry,
-                    &self.lang_filter,
-                    &self.path_filters,
-                    &path_refs,
-                ),
-            }
+            self.entry_source.collect(
+                &self.registry,
+                &self.lang_filter,
+                &self.path_filters,
+                &path_refs,
+            )
         })?;
 
         let mut acc = crate::engine::PipelineAccumulator::new(files_skipped);
@@ -81,7 +73,7 @@ impl Analyzer {
                 &self.registry,
                 &self.ctx,
                 chunk,
-                cache.as_deref_mut(),
+                cache.as_mut(),
                 &dependency_root,
                 module_prefix.as_deref(),
             ) {
@@ -97,7 +89,7 @@ impl Analyzer {
             // re-lookup) re-parses them. Brand-new entries (no
             // previous hash) are NOT cascaded — there is nothing to
             // invalidate yet.
-            if let Some(cache) = cache.as_deref_mut() {
+            if let Some(cache) = cache.as_mut() {
                 for (rescanned_file, hash_changed) in rescan_files {
                     if !hash_changed {
                         continue;
@@ -117,7 +109,7 @@ impl Analyzer {
         // Prune orphan cache entries (files that were deleted since
         // the last scan). Done at the analyzer level so it still runs
         // when `entries` is empty.
-        if let Some(cache) = cache.as_deref_mut() {
+        if let Some(cache) = cache.as_mut() {
             if let Ok(removed) = cache.prune(acc.scanned_files()) {
                 if removed > 0 {
                     tracing::debug!(removed, "pruned stale cache entries");
@@ -159,22 +151,15 @@ impl Analyzer {
             stats: None,
         };
         if self.collect_stats {
-            let mut scan_stats =
-                ScanStats::from_findings(&result.findings, result.suppressed_count);
-            scan_stats.files_scanned = chunk_stats.files_scanned;
-            scan_stats.files_skipped = chunk_stats.files_skipped;
-            scan_stats.files_errored = chunk_stats.files_errored;
-            scan_stats.cache_hits = chunk_stats.cache_hits;
-            scan_stats.cache_misses = chunk_stats.cache_misses;
-            scan_stats.bytes_scanned = chunk_stats.bytes_scanned;
-            scan_stats.lines_scanned = chunk_stats.lines_scanned;
-            scan_stats.rules_executed = chunk_stats.rules_executed;
+            let mut scan_stats = chunk_stats;
+            scan_stats.merge(&ScanStats::from_findings(&result.findings, 0));
+            scan_stats.findings_suppressed = result.suppressed_count;
             scan_stats.detectors_loaded = self.registry.detector_count();
             scan_stats.timing = Some(timing.to_summary());
             result.stats = Some(scan_stats);
         }
 
-        if let Some(cache) = cache {
+        if let Some(mut cache) = cache {
             if let Err(e) = cache.flush() {
                 tracing::warn!(error = %e, "failed to flush incremental cache");
             }

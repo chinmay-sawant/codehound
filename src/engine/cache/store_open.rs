@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use super::backend::CacheBackend;
 use super::hash::cache_key_for_path;
 #[cfg(test)]
 use super::types::CacheEntry;
@@ -96,7 +97,8 @@ impl CacheStore {
     /// `HashMap`; no filesystem operations are performed. Useful for
     /// tests and ephemeral use.
     #[must_use = "in-memory cache is useless if discarded"]
-    pub fn in_memory() -> Self {
+    /// Wrap a custom [`CacheBackend`] for embedder / test use.
+    pub fn with_backend(backend: Box<dyn CacheBackend>) -> Self {
         Self {
             cache_dir: PathBuf::new(),
             files_dir: PathBuf::new(),
@@ -109,6 +111,40 @@ impl CacheStore {
             max_size_bytes: 0,
             evict_target_ratio: 0.9,
             max_file_size_bytes: 0,
+            backend,
+            ephemeral: true,
+        }
+    }
+
+    pub fn in_memory() -> Self {
+        Self::in_memory_with_limits(0, 0.9, 0)
+    }
+
+    /// In-memory cache with size limits (same semantics as [`Self::open_with_limits`]).
+    #[must_use = "in-memory cache is useless if discarded"]
+    pub fn in_memory_with_limits(
+        max_size_mb: u64,
+        evict_target_ratio: f64,
+        max_file_size_mb: u64,
+    ) -> Self {
+        let evict_target_ratio =
+            if evict_target_ratio.is_finite() && (0.1..=0.99).contains(&evict_target_ratio) {
+                evict_target_ratio
+            } else {
+                0.9
+            };
+        Self {
+            cache_dir: PathBuf::new(),
+            files_dir: PathBuf::new(),
+            manifest: CacheManifest {
+                schema_version: CACHE_VERSION,
+                tool_version: env!("CARGO_PKG_VERSION").to_string(),
+                files: HashMap::new(),
+            },
+            dirty: false,
+            max_size_bytes: max_size_mb.saturating_mul(1024 * 1024),
+            evict_target_ratio,
+            max_file_size_bytes: max_file_size_mb.saturating_mul(1024 * 1024),
             backend: Box::new(InMemoryBackend::new()),
             ephemeral: true,
         }

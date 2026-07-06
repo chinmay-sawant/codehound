@@ -1,7 +1,10 @@
 use std::borrow::Cow;
 
 use slopguard::cwe::CweRef;
-use slopguard::rules::{DetectorEvidence, Finding, FindingInputs, LineCol, Severity};
+use slopguard::rules::{
+    DetectorEvidence, Finding, FindingInputs, FindingView, LineCol, Severity, category_for_rule_id,
+    sarif_family_tag_for_rule_id, sarif_tags_for_finding,
+};
 
 #[test]
 fn new_builds_finding_with_no_snippet_or_fix() {
@@ -271,4 +274,54 @@ fn structured_output_builders_chain_and_serialize() {
         value["remediation"],
         "Use a fixed executable and validate arguments."
     );
+}
+
+#[test]
+fn finding_category_and_sarif_tags_use_shared_helpers() {
+    let f = Finding::new(FindingInputs::new(
+        "PERF-213",
+        "title",
+        "a.go",
+        LineCol { line: 1, column: 1 },
+        "msg",
+        Severity::Medium,
+        Cow::Borrowed(&[]),
+    ));
+
+    assert_eq!(f.category(), category_for_rule_id("PERF-213"));
+    assert_eq!(
+        sarif_family_tag_for_rule_id("PERF-213"),
+        Some("performance")
+    );
+
+    let tags = sarif_tags_for_finding(&f);
+    assert!(tags.contains(&"security".to_string()));
+    assert!(tags.contains(&"performance".to_string()));
+
+    let view = FindingView::new(&f);
+    assert_eq!(view.category(), f.category());
+    assert_eq!(view.sarif_tags(), tags);
+    assert_eq!(view.fingerprint(), f.fingerprint_string());
+}
+
+#[test]
+fn serde_roundtrip_uses_shared_wire_shape() {
+    let original = Finding::new(FindingInputs::new(
+        "CWE-89",
+        "SQL injection",
+        "a.go",
+        LineCol { line: 2, column: 3 },
+        "msg",
+        Severity::High,
+        Cow::Borrowed(&[]),
+    ))
+    .with_snippet("x := 1")
+    .with_fix("use parameterized queries");
+
+    let json = serde_json::to_string(&original).unwrap();
+    let roundtrip: Finding = serde_json::from_str(&json).unwrap();
+    assert_eq!(roundtrip.rule_id, "CWE-89");
+    assert_eq!(roundtrip.file, "a.go");
+    assert_eq!(roundtrip.line, 2);
+    assert_eq!(roundtrip.snippet.as_deref(), Some("x := 1"));
 }

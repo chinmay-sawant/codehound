@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use crate::cwe::CweRef;
 
 use super::finding::Finding;
+use super::finding_view::FindingView;
 
 /// Owned CWE reference used during deserialization. [`CweRef`] holds
 /// `&'static str` so it cannot be `Deserialize` directly; this mirror
@@ -82,6 +83,24 @@ pub(crate) struct FindingWire {
 
 impl From<Finding> for FindingWire {
     fn from(f: Finding) -> Self {
+        Self::from_finding(f)
+    }
+}
+
+impl FindingWire {
+    pub(crate) fn from_finding(f: Finding) -> Self {
+        let view = FindingView::new(&f);
+        let rule_id = view.rule_id().to_string();
+        let rule_title = view.rule_title().to_string();
+        let line = view.line();
+        let column = view.column();
+        let end_line = view.end_line();
+        let end_column = view.end_column();
+        let byte_offset = view.byte_offset();
+        let byte_length = view.byte_length();
+        let severity = view.severity();
+        let confidence = view.confidence();
+        let suppressed = view.suppressed();
         let cwe = f
             .cwe
             .map(|c| {
@@ -95,28 +114,28 @@ impl From<Finding> for FindingWire {
             })
             .unwrap_or_default();
         Self {
-            rule_id: f.rule_id.to_string(),
-            rule_title: f.rule_title.to_string(),
+            rule_id,
+            rule_title,
             file: f.file,
-            line: f.line,
-            column: f.column,
-            end_line: f.end_line,
-            end_column: f.end_column,
-            byte_offset: f.byte_offset,
-            byte_length: f.byte_length,
+            line,
+            column,
+            end_line,
+            end_column,
+            byte_offset,
+            byte_length,
             function_start_byte: f.function_start_byte,
             function_end_byte: f.function_end_byte,
             function_start_line: f.function_start_line,
             function_end_line: f.function_end_line,
             snippet: f.snippet,
             message: f.message,
-            severity: f.severity,
+            severity,
             cwe,
             fix: f.fix,
             evidence: f.evidence,
-            confidence: f.confidence,
+            confidence,
             tags: f.tags,
-            suppressed: f.suppressed,
+            suppressed,
             remediation: f.remediation,
         }
     }

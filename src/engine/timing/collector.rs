@@ -59,7 +59,6 @@ pub(crate) fn drain_global(target: &mut TimingCollector) {
 /// This is the primary way for integration tests to exercise the
 /// per-file / per-detector timing path.
 #[cfg(test)]
-#[allow(dead_code)]
 pub fn with_timing<R>(f: impl FnOnce() -> R) -> (R, Option<TimingSummary>) {
     init_global(true);
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f));

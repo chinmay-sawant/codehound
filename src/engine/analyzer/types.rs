@@ -13,7 +13,6 @@ pub struct Analyzer {
     pub(super) lang_filter: LanguageFilter,
     pub(super) path_filters: PathFilters,
     pub(super) collect_stats: bool,
-    /// Optional pluggable entry source. When `None`, the default
-    /// [`FilesystemWalker`](crate::engine::walk::FilesystemWalker) is used.
-    pub(super) entry_source: Option<Box<dyn EntrySource>>,
+    /// Pluggable entry source; defaults to [`FilesystemWalker`](crate::engine::walk::FilesystemWalker).
+    pub(super) entry_source: Box<dyn EntrySource>,
 }

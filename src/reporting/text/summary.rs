@@ -7,6 +7,7 @@ use std::time::Duration;
 use crate::Error;
 use crate::engine::AnalysisResult;
 use crate::export::{ExportOptions, ExportSummary};
+use crate::rules::FindingView;
 
 use super::options::TextOptions;
 
@@ -49,8 +50,9 @@ pub(crate) fn write_summary(
     let mut by_sev: BTreeMap<&'static str, usize> = BTreeMap::new();
     let mut by_rule: BTreeMap<&'static str, usize> = BTreeMap::new();
     for f in &result.findings {
-        *by_sev.entry(f.severity.as_str()).or_insert(0) += 1;
-        *by_rule.entry(f.rule_id).or_insert(0) += 1;
+        let view = FindingView::new(f);
+        *by_sev.entry(view.severity().as_str()).or_insert(0) += 1;
+        *by_rule.entry(view.rule_id()).or_insert(0) += 1;
     }
 
     if result.suppressed_count > 0 {

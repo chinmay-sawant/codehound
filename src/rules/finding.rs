@@ -262,11 +262,36 @@ impl Finding {
     pub fn fingerprint_string(&self) -> String {
         format_fingerprint(self.rule_id, &self.file, self.line, self.column)
     }
+
+    /// Rule category derived from the rule id prefix.
+    pub fn category(&self) -> &'static str {
+        super::category_for_rule_id(self.rule_id)
+    }
 }
 
 impl<'de> Deserialize<'de> for Finding {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let wire = FindingWire::deserialize(deserializer)?;
-        Ok(wire.into_finding())
+        Ok(FindingWire::deserialize(deserializer)?.into_finding())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn into_wire_round_trips_via_finding_wire() {
+        let f = Finding::new(FindingInputs::new(
+            "CWE-1",
+            "t",
+            "a.go",
+            LineCol { line: 1, column: 1 },
+            "m",
+            Severity::Low,
+            std::borrow::Cow::Borrowed(&[]),
+        ));
+        let wire = FindingWire::from(f.clone());
+        assert_eq!(wire.rule_id, "CWE-1");
+        assert_eq!(wire.into_finding().rule_id, f.rule_id);
     }
 }

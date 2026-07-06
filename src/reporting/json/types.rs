@@ -6,7 +6,7 @@ use serde::Serialize;
 use crate::cwe::CweRef;
 use crate::engine::AnalysisResult;
 use crate::engine::ScanStats;
-use crate::rules::category_for_rule_id;
+use crate::rules::FindingView;
 
 fn is_false(value: &bool) -> bool {
     !*value
@@ -109,15 +109,16 @@ impl<'a> From<&'a CweRef> for DisplayCweRef<'a> {
 
 impl<'a> From<&'a crate::rules::Finding> for FindingJson<'a> {
     fn from(f: &'a crate::rules::Finding) -> Self {
-        let cwe: Vec<DisplayCweRef<'_>> = f
-            .cwe
-            .as_deref()
+        let view = FindingView::new(f);
+        let f = view.inner();
+        let cwe: Vec<DisplayCweRef<'_>> = view
+            .non_empty_cwe()
             .map(|s| s.iter().map(DisplayCweRef::from).collect())
             .unwrap_or_default();
         Self {
             rule_id: f.rule_id,
             rule_title: f.rule_title,
-            category: category_for_rule_id(f.rule_id),
+            category: view.category(),
             file: f.file.as_str(),
             line: f.line,
             column: f.column,
@@ -125,17 +126,17 @@ impl<'a> From<&'a crate::rules::Finding> for FindingJson<'a> {
             end_column: f.end_column,
             byte_offset: f.byte_offset,
             byte_length: f.byte_length,
-            fingerprint: f.fingerprint_string(),
+            fingerprint: view.fingerprint(),
             snippet: f.snippet.as_deref(),
             message: f.message.as_str(),
             severity: f.severity,
             cwe,
-            fix: f.fix.as_deref(),
+            fix: view.non_empty_fix(),
             evidence: f.evidence.as_ref(),
             confidence: f.confidence,
-            tags: f.tags.as_deref(),
+            tags: view.non_empty_tags(),
             suppressed: f.suppressed,
-            remediation: f.remediation.as_deref(),
+            remediation: view.non_empty_remediation(),
             taint_show_paths: f
                 .evidence
                 .as_ref()

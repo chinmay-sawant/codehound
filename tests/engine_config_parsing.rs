@@ -1,6 +1,7 @@
 use slopguard::core::FailPolicy;
 use slopguard::engine::{
-    CacheConfig, PathFilters, SlopguardConfig, SlopguardSection, discover_config,
+    CacheConfig, PathFilters, RunConfigParams, ScanContextParams, SlopguardConfig,
+    SlopguardSection, build_run_config, discover_config,
 };
 use slopguard::rules::Severity;
 use std::path::{Path, PathBuf};
@@ -323,4 +324,20 @@ fn scan_context_supports_rule_prefix_filters() {
 
     assert!(ctx.allows("BP-1"));
     assert!(!ctx.allows("CWE-89"));
+}
+
+#[test]
+fn build_run_config_unifies_context_and_path_filters() {
+    let run_config = build_run_config(RunConfigParams {
+        scan: ScanContextParams {
+            taint: true,
+            show_ignored: true,
+            ..ScanContextParams::default()
+        },
+        include_tests: true,
+    });
+
+    assert!(run_config.scan_context.taint_enabled);
+    assert!(run_config.scan_context.show_ignored);
+    assert!(!run_config.path_filters.exclude_tests);
 }

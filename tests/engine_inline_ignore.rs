@@ -71,7 +71,7 @@ mod cache_inline {
 
     use std::collections::HashSet;
 
-    use slopguard::engine::{CacheStore, DEFAULT_CACHE_DIR};
+    use slopguard::engine::{CacheSession, CacheStore, DEFAULT_CACHE_DIR};
 
     #[test]
     fn inline_ignore_re_applied_on_cache_hit() {
@@ -105,7 +105,9 @@ func Run(w http.ResponseWriter, r *http.Request) {
             let analyzer = Analyzer::builder()
                 .scan_context(ScanContext::default())
                 .build();
-            let r = analyzer.analyze_paths(&[&root], Some(&mut cache)).unwrap();
+            let r = analyzer
+                .analyze_paths(&[&root], Some(CacheSession::open(&mut cache)))
+                .unwrap();
             r.findings.len()
         };
         cache.flush().unwrap();
@@ -123,7 +125,9 @@ func Run(w http.ResponseWriter, r *http.Request) {
             let analyzer = Analyzer::builder()
                 .scan_context(ScanContext::default())
                 .build();
-            let r = analyzer.analyze_paths(&[&root], Some(&mut cache2)).unwrap();
+            let r = analyzer
+                .analyze_paths(&[&root], Some(CacheSession::open(&mut cache2)))
+                .unwrap();
             let cwe78_count = r.findings.iter().filter(|f| f.rule_id == "CWE-78").count();
             (r.findings.len(), cwe78_count)
         };
@@ -156,7 +160,9 @@ func Run(w http.ResponseWriter, r *http.Request) {
             let analyzer = Analyzer::builder()
                 .scan_context(ScanContext::default())
                 .build();
-            let _ = analyzer.analyze_paths(&[&root], Some(&mut cache)).unwrap();
+            let _ = analyzer
+                .analyze_paths(&[&root], Some(CacheSession::open(&mut cache)))
+                .unwrap();
         }
         cache.flush().unwrap();
 
@@ -165,7 +171,9 @@ func Run(w http.ResponseWriter, r *http.Request) {
             let analyzer = Analyzer::builder()
                 .scan_context(ScanContext::default())
                 .build();
-            let r = analyzer.analyze_paths(&[&root], Some(&mut cache2)).unwrap();
+            let r = analyzer
+                .analyze_paths(&[&root], Some(CacheSession::open(&mut cache2)))
+                .unwrap();
             r.findings.iter().filter(|f| f.rule_id == "CWE-78").count()
         };
         assert_eq!(
@@ -216,7 +224,9 @@ func ReadFile(r *http.Request) {
             let analyzer = Analyzer::builder()
                 .scan_context(ScanContext::default())
                 .build();
-            let r = analyzer.analyze_paths(&[&root], Some(&mut cache)).unwrap();
+            let r = analyzer
+                .analyze_paths(&[&root], Some(CacheSession::open(&mut cache)))
+                .unwrap();
             let mut ids: Vec<String> = r.findings.iter().map(|f| f.rule_id.to_string()).collect();
             ids.sort();
             ids.dedup();
@@ -239,7 +249,9 @@ func ReadFile(r *http.Request) {
                 ..Default::default()
             };
             let analyzer = Analyzer::builder().scan_context(ctx).build();
-            let r = analyzer.analyze_paths(&[&root], Some(&mut cache2)).unwrap();
+            let r = analyzer
+                .analyze_paths(&[&root], Some(CacheSession::open(&mut cache2)))
+                .unwrap();
             let mut ids: Vec<String> = r.findings.iter().map(|f| f.rule_id.to_string()).collect();
             ids.sort();
             ids.dedup();
