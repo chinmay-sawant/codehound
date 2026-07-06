@@ -5,7 +5,13 @@ use crate::engine::registry::Registry;
 use crate::engine::timing;
 use crate::rules::Finding;
 
-use super::scan_entry::attach_function_context;
+/// Retain findings allowed by the scan context and apply per-rule overrides.
+pub(super) fn filter_findings(ctx: &ScanContext, findings: &mut Vec<Finding>) {
+    findings.retain(|f| ctx.allows(f.rule_id));
+    for f in findings.iter_mut() {
+        ctx.apply_finding_overrides(f);
+    }
+}
 
 /// Run enabled detectors on an already-parsed unit.
 ///
@@ -36,19 +42,4 @@ pub(crate) fn analyze_parsed_unit(
         }
     }
     (findings, rules_executed)
-}
-
-/// Run detectors **and** attach function-context ranges for a single unit.
-/// This is the right entry point when the parsed unit is still alive (no
-/// re-parse needed).
-pub fn analyze_parsed_unit_with_context(
-    registry: &Registry,
-    ctx: &ScanContext,
-    unit: &ParsedUnit,
-) -> Vec<Finding> {
-    let (mut findings, _rules) = analyze_parsed_unit(registry, ctx, unit);
-    if let Some(plugin) = registry.plugin_for_id(unit.language) {
-        attach_function_context(&mut findings, plugin, unit);
-    }
-    findings
 }

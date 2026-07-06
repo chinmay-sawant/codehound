@@ -7,6 +7,7 @@ mod summary;
 
 pub use options::TextOptions;
 pub use render::write_with_options;
+pub use summary::write_no_terminal_summary;
 
 use options::print_with_options;
 

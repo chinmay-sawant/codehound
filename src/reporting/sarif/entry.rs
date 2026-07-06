@@ -40,9 +40,5 @@ pub(crate) fn print_compact(result: &AnalysisResult) -> Result<(), Error> {
 #[must_use = "SARIF serialization failures must be handled"]
 pub fn render_to_string(result: &AnalysisResult) -> Result<String, Error> {
     let log = build_log(result);
-    let mut buf = Vec::new();
-    serde_json::to_writer_pretty(&mut buf, &log)?;
-    let s = String::from_utf8(buf)
-        .map_err(|e| Error::Walk(format!("SARIF JSON is not valid UTF-8: {e}")))?;
-    Ok(s)
+    serde_json::to_string_pretty(&log).map_err(Error::from)
 }

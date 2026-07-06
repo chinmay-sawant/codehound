@@ -126,6 +126,16 @@ pub(super) fn record_send(node: tree_sitter::Node, state: &mut ExtractionState<'
     });
 }
 
+pub(crate) fn result_variable_at_return_index(lhs: &str, ret_idx: usize) -> Option<String> {
+    let vars: Vec<&str> = lhs.split(',').map(str::trim).collect();
+    let var = vars.get(ret_idx).or_else(|| vars.last())?;
+    if !var.is_empty() && var.chars().all(|c| c.is_alphanumeric() || c == '_') {
+        Some(var.to_string())
+    } else {
+        None
+    }
+}
+
 pub(super) fn result_variable_of_call<'a>(
     call: tree_sitter::Node,
     src: &'a [u8],

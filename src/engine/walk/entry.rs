@@ -97,15 +97,11 @@ impl EntrySource for FilesystemWalker {
 #[derive(Debug, Clone)]
 pub struct ListEntrySource {
     entries: Vec<ScanEntry>,
-    skipped: usize,
 }
 
 impl ListEntrySource {
     pub fn new(entries: Vec<ScanEntry>) -> Self {
-        Self {
-            entries,
-            skipped: 0,
-        }
+        Self { entries }
     }
 }
 
@@ -117,7 +113,7 @@ impl EntrySource for ListEntrySource {
         _path_filters: &PathFilters,
         _paths: &[&Path],
     ) -> Result<(Vec<ScanEntry>, usize), Error> {
-        Ok((self.entries.clone(), self.skipped))
+        Ok((self.entries.clone(), 0))
     }
 }
 

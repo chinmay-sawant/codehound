@@ -6,7 +6,6 @@
 //! ponytail: Needed because CweRef has &'static str fields (can't Deserialize).
 //! The leak-to-static pattern is acceptable — bounded working set per cache load.
 
-use serde::de::Deserializer;
 use serde::{Deserialize, Serialize};
 
 use crate::cwe::CweRef;
@@ -186,12 +185,5 @@ impl FindingWire {
             suppressed,
             remediation,
         }
-    }
-}
-
-impl<'de> Deserialize<'de> for Finding {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let wire = FindingWire::deserialize(deserializer)?;
-        Ok(wire.into_finding())
     }
 }

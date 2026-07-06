@@ -259,6 +259,8 @@ pub struct CallSite {
     pub callee: SharedText,
     pub byte_range: Range<usize>,
     pub arguments: Box<[SharedText]>,
+    /// LHS of the assignment enclosing this call, when present.
+    pub assignment_lhs: Option<SharedText>,
     pub is_method_call: bool,
     pub is_closure: bool,
 }

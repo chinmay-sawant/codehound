@@ -8,7 +8,7 @@ use crate::rules::Finding;
 
 /// Cache file format version. Bump on any breaking change to the JSON
 /// shapes persisted on disk. Older caches are refused on `open()`.
-pub const CACHE_VERSION: u32 = 1;
+pub const CACHE_VERSION: u32 = 2;
 
 /// Conventional cache directory name. Used when no override is supplied.
 pub const DEFAULT_CACHE_DIR: &str = ".slopguard-cache";
@@ -29,20 +29,14 @@ pub struct CacheManifest {
 /// projects.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileCacheMeta {
-    /// Cache key (sha256 of the relative file path, hex).
-    pub cache_key: String,
     /// `sha256:<hex>` of the file's source text at scan time.
     pub content_hash: String,
-    /// File mtime in seconds since the UNIX epoch.
-    pub mtime_secs: u64,
-    /// File mtime nanoseconds component.
-    pub mtime_nanos: u32,
-    /// Resolved language id (`"go"`, `"python"`).
-    pub language: String,
     /// Relative file paths this file imports (for transitive
     /// invalidation). Empty when dependency tracking is not enabled.
     #[serde(default)]
     pub dependencies: Vec<String>,
+    /// ISO-8601 UTC timestamp when the entry was last written.
+    pub cached_at: String,
 }
 
 /// Full per-file cache entry. Persisted at
@@ -51,13 +45,7 @@ pub struct FileCacheMeta {
 pub struct CacheEntry {
     pub schema_version: u32,
     pub file: String,
-    pub content_hash: String,
-    pub mtime_secs: u64,
-    pub mtime_nanos: u32,
-    pub language: String,
     pub findings: Vec<Finding>,
-    #[serde(default)]
-    pub dependencies: Vec<String>,
     pub cached_at: String,
 }
 
@@ -66,7 +54,7 @@ pub struct CacheEntry {
 pub enum CacheLookup {
     /// Fresh entry; findings are returned.
     Hit(CacheEntry),
-    /// File is in the manifest but stale (hash or mtime mismatch).
+    /// File is in the manifest but stale (content hash mismatch or missing/corrupt entry).
     Stale,
     /// File has no entry in the manifest.
     Miss,

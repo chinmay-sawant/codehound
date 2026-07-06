@@ -80,7 +80,7 @@ pub fn with_timing<R>(f: impl FnOnce() -> R) -> (R, Option<TimingSummary>) {
 }
 
 #[derive(Debug, Clone)]
-pub struct TimingSpan {
+pub(crate) struct TimingSpan {
     pub name: &'static str,
     pub start: Instant,
     pub duration: Option<Duration>,

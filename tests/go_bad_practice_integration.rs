@@ -28,6 +28,7 @@ fn scan_context_from_cli(cli: &Cli, config: Option<SlopguardConfig>) -> ScanCont
         debug_timing: cli.debug_timing,
         diagnostics: cli.diagnostics.is_some(),
         diagnostics_summary: cli.diagnostics_summary,
+        verbose: cli.verbose,
     });
     if cli.bp_only {
         ctx.only = Some(["BP-*".to_string()].into_iter().collect());

@@ -14,8 +14,15 @@ use crate::engine::stats::{FileStats, ScanStats};
 use crate::engine::timing;
 use crate::rules::Finding;
 
-use super::analyze::analyze_parsed_unit;
+use super::analyze::{analyze_parsed_unit, filter_findings};
 use super::entry::ScanEntry;
+
+/// Source text and content hash preloaded during cache preflight on a miss.
+#[derive(Clone)]
+pub(crate) struct PreloadedSource {
+    pub source: Arc<str>,
+    pub content_hash: String,
+}
 
 pub(super) fn scan_err(
     entry: &ScanEntry,
@@ -57,6 +64,7 @@ pub(crate) struct ScanEntryResult {
     pub findings: Vec<Finding>,
     pub cache_key: String,
     pub source: Arc<str>,
+    pub content_hash: Option<String>,
     pub suppressed_count: usize,
     pub stats: ScanStats,
     pub dependencies: Vec<String>,
@@ -67,7 +75,19 @@ struct ReadOutcome {
     file_stats: FileStats,
 }
 
-fn read_entry_source(entry: &ScanEntry, stats: &mut ScanStats) -> Result<ReadOutcome, ScanError> {
+fn read_entry_source(
+    entry: &ScanEntry,
+    stats: &mut ScanStats,
+    preloaded: Option<&PreloadedSource>,
+) -> Result<ReadOutcome, ScanError> {
+    if let Some(preloaded) = preloaded {
+        let file_stats = FileStats::from_source(&preloaded.source);
+        return Ok(ReadOutcome {
+            source: Arc::clone(&preloaded.source),
+            file_stats,
+        });
+    }
+
     let idx = timing::global_start("file_read");
     let (source, _) = read_entry_utf8(entry).inspect_err(|_| {
         stats.record_errored();
@@ -116,11 +136,6 @@ fn analyze_parsed_entry(
     file_stats: FileStats,
     file_ignore: Option<IgnoreDirective>,
 ) -> (Vec<Finding>, usize) {
-    if !ctx.show_ignored && file_ignore.as_ref().is_some_and(IgnoreDirective::is_all) {
-        stats.record_file(file_stats.bytes, file_stats.lines);
-        return (Vec::new(), 0);
-    }
-
     let fn_kinds = plugin.function_node_kinds();
     if !fn_kinds.is_empty() {
         unit.function_spans = ast::collect_function_spans(unit.tree.root_node(), fn_kinds);
@@ -129,12 +144,8 @@ fn analyze_parsed_entry(
     let det_idx = timing::global_start("detector_execution");
     let (mut findings, rules_executed) = analyze_parsed_unit(registry, ctx, unit);
     timing::global_stop(det_idx);
-    // per-finding rule filter — consistent with cache hit path (filter_cached_findings)
-    findings.retain(|f| ctx.allows(f.rule_id));
-    for f in &mut findings {
-        ctx.apply_finding_overrides(f);
-    }
-    attach_function_context(&mut findings, plugin, unit);
+    filter_findings(ctx, &mut findings);
+    attach_function_context(&mut findings, unit);
     let suppressed_count = apply_ignores(
         ctx,
         unit.source.as_ref(),
@@ -143,7 +154,6 @@ fn analyze_parsed_entry(
     );
 
     stats.record_file(file_stats.bytes, file_stats.lines);
-    stats.findings_total = findings.len();
     stats.findings_suppressed = suppressed_count;
     stats.rules_executed = rules_executed;
     stats.detectors_loaded = registry.detector_count();
@@ -166,6 +176,7 @@ pub(crate) fn scan_entry(
     pool: &mut ParsePool,
     project_root: &Path,
     module_prefix: Option<&str>,
+    preloaded: Option<PreloadedSource>,
 ) -> std::result::Result<ScanEntryResult, ScanError> {
     let mut stats = ScanStats::default();
 
@@ -181,7 +192,9 @@ pub(crate) fn scan_entry(
         }
     };
 
-    let ReadOutcome { source, file_stats } = read_entry_source(entry, &mut stats)?;
+    let content_hash = preloaded.as_ref().map(|p| p.content_hash.clone());
+    let ReadOutcome { source, file_stats } =
+        read_entry_source(entry, &mut stats, preloaded.as_ref())?;
     let mut unit = parse_entry_unit(entry, plugin, pool, Arc::clone(&source), &mut stats)?;
     let dependencies = extract_dependencies(&unit, project_root, module_prefix);
 
@@ -192,6 +205,7 @@ pub(crate) fn scan_entry(
             findings: Vec::new(),
             cache_key: unit.display_path,
             source,
+            content_hash,
             suppressed_count: 0,
             stats,
             dependencies,
@@ -212,6 +226,7 @@ pub(crate) fn scan_entry(
         findings,
         cache_key: unit.display_path,
         source,
+        content_hash,
         suppressed_count,
         stats,
         dependencies,
@@ -223,11 +238,7 @@ pub(crate) fn scan_entry(
 /// one. Findings whose line is outside every function (e.g. package-level
 /// declarations, top-level statements) are left unchanged so the exporter
 /// falls back to its snippet / small-window path.
-pub(super) fn attach_function_context(
-    findings: &mut [Finding],
-    _plugin: &dyn LanguagePlugin,
-    unit: &ParsedUnit,
-) {
+pub(super) fn attach_function_context(findings: &mut [Finding], unit: &ParsedUnit) {
     if findings.is_empty() {
         return;
     }

@@ -9,7 +9,6 @@
 mod backend;
 mod disk;
 mod hash;
-mod io;
 mod memory;
 mod store_flush;
 mod store_lifecycle;
@@ -22,11 +21,8 @@ use std::path::PathBuf;
 pub(crate) use backend::CacheBackend;
 pub(crate) use disk::DiskBackend;
 pub use hash::{cache_key_for_path, content_hash};
-pub(crate) use io::write_atomic;
 pub(crate) use memory::InMemoryBackend;
-pub use types::{
-    CACHE_VERSION, CacheEntry, CacheError, CacheLookup, CacheManifest, DEFAULT_CACHE_DIR,
-};
+pub use types::{CacheEntry, CacheError, CacheLookup, CacheManifest, DEFAULT_CACHE_DIR};
 
 /// Cache: entry storage, manifest, invalidation, eviction.
 ///

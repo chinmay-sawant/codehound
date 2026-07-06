@@ -3,6 +3,7 @@
 use crate::core::{Detector, LanguageId, ParsedUnit, ScanContext};
 use crate::rules::{Finding, RuleMetadata};
 
+mod common;
 mod dispatch;
 mod metadata;
 mod rules;
@@ -18,7 +19,7 @@ impl Detector for GoBadPracticeScan {
     }
 
     fn rule_ids(&self) -> &'static [&'static str] {
-        dispatch::RULE_IDS
+        dispatch::rule_ids()
     }
 
     fn metadata_for(&self, rule_id: &str) -> Option<&'static RuleMetadata> {

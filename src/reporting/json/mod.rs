@@ -8,7 +8,6 @@
 mod entry;
 mod types;
 
-pub use entry::print_envelope;
 pub use types::{Envelope, FindingJson};
 
 use crate::Error;
@@ -23,7 +22,7 @@ pub struct JsonReporter {
 impl OutputReporter for JsonReporter {
     fn report(&self, result: &AnalysisResult) -> Result<(), Error> {
         if self.envelope {
-            print_envelope(result)
+            entry::print_envelope(result)
         } else {
             entry::print(result)
         }

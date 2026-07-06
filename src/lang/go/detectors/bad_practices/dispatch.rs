@@ -1,5 +1,7 @@
 //! Rule dispatch table and rule-ID list for Go bad-practice detectors.
 
+use std::sync::OnceLock;
+
 use crate::core::ParsedUnit;
 use crate::rules::Finding;
 
@@ -92,12 +94,8 @@ pub(crate) const BAD_PRACTICE_RULES: &[BadPracticeEntry] = &[
     ("BP-15", detect_bp_15_recursive_once_do),
 ];
 
-pub(crate) const RULE_IDS: &[&str] = &[
-    "BP-1", "BP-2", "BP-3", "BP-4", "BP-5", "BP-6", "BP-7", "BP-8", "BP-9", "BP-10", "BP-11",
-    "BP-12", "BP-13", "BP-14", "BP-15", "BP-16", "BP-17", "BP-18", "BP-19", "BP-20", "BP-21",
-    "BP-22", "BP-23", "BP-24", "BP-25", "BP-26", "BP-27", "BP-28", "BP-29", "BP-30", "BP-31",
-    "BP-32", "BP-33", "BP-34", "BP-35", "BP-36", "BP-37", "BP-38", "BP-39", "BP-40", "BP-41",
-    "BP-42", "BP-43", "BP-44", "BP-45", "BP-46", "BP-47", "BP-48", "BP-49", "BP-50", "BP-51",
-    "BP-52", "BP-53", "BP-54", "BP-55", "BP-56", "BP-57", "BP-58", "BP-59", "BP-60", "BP-61",
-    "BP-62", "BP-63", "BP-64", "BP-65",
-];
+pub(crate) fn rule_ids() -> &'static [&'static str] {
+    static IDS: OnceLock<Vec<&'static str>> = OnceLock::new();
+    IDS.get_or_init(|| BAD_PRACTICE_RULES.iter().map(|(id, _)| *id).collect())
+        .as_slice()
+}

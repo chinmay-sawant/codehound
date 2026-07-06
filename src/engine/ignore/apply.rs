@@ -16,7 +16,7 @@ fn tag_suppressed(finding: &mut Finding) {
     }
 }
 
-pub fn apply_inline_ignores(
+pub(crate) fn apply_inline_ignores(
     findings: &mut Vec<Finding>,
     ignores: &HashMap<usize, IgnoreDirective>,
     show_ignored: bool,
@@ -47,7 +47,7 @@ pub fn apply_inline_ignores(
     suppressed
 }
 
-pub fn apply_file_ignore(
+pub(crate) fn apply_file_ignore(
     findings: &mut Vec<Finding>,
     ignore: Option<&IgnoreDirective>,
     show_ignored: bool,

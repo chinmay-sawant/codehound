@@ -5,8 +5,8 @@ use std::fs;
 use std::path::PathBuf;
 
 use super::backend::CacheBackend;
-use super::io::write_atomic;
 use super::types::{CACHE_VERSION, CacheEntry, CacheError};
+use crate::engine::io::write_atomic;
 
 /// Backend that stores each entry as a separate JSON file under
 /// `files_dir/<cache_key>.json`.

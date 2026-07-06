@@ -4,6 +4,7 @@ use std::sync::Arc;
 use crate::core::ParsedUnit;
 
 use super::super::{CallGraph, CallSite, FunctionDecl, ProjectCallGraph, SharedText};
+use super::walker_records::result_variable_of_call;
 
 pub fn extract_call_graph(unit: &ParsedUnit) -> CallGraph {
     let src = unit.source.as_bytes();
@@ -99,11 +100,14 @@ fn record_call_site(node: tree_sitter::Node, src: &[u8], cg: &mut CallGraph) {
     let args = argument_texts(node, src);
     let byte_range = node.start_byte()..node.end_byte();
 
+    let assignment_lhs = result_variable_of_call(node, src).map(Arc::from);
+
     cg.add_site(CallSite {
         caller: caller_name,
         callee: Arc::from(callee),
         byte_range,
         arguments: args,
+        assignment_lhs,
         is_method_call,
         is_closure: callee.starts_with("func(") || callee.starts_with("func "),
     });

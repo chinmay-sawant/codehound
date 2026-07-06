@@ -48,6 +48,7 @@ fn scan_context_for_run(cli: &Cli, config: Option<SlopguardConfig>) -> ScanConte
         debug_timing: cli.debug_timing,
         diagnostics: cli.diagnostics.is_some(),
         diagnostics_summary: cli.diagnostics_summary,
+        verbose: cli.verbose,
     });
     if cli.bp_only {
         ctx.only = Some(["BP-*".to_string()].into_iter().collect());
@@ -179,9 +180,7 @@ fn rebuild_cache_if_requested(
     if !cli.rebuild_cache {
         return;
     }
-    let Some(dir) = cache_directory(cli, config) else {
-        return;
-    };
+    let dir = cache_directory(cli, config);
     if !dir.is_dir() {
         return;
     }
@@ -363,35 +362,18 @@ fn emit_output(
         };
         app_timing.measure("reporting", || reporter.report(result))?;
     } else if !cli.quiet {
-        let mut parts = Vec::new();
-        if let Some(stats) = &result.stats {
-            parts.push(format!(
-                "scanned {} file(s) | {} cache hits | {} fresh | {} finding(s)",
-                stats.files_scanned,
-                stats.cache_hits,
-                stats.cache_misses,
-                result.findings.len()
-            ));
-        } else {
-            parts.push(format!("{} finding(s)", result.findings.len()));
-        }
-        if export_options.export_context {
-            parts.push(format!(
-                "exported {} context file(s) to {}",
-                export_summary.context_files_written,
-                export_options.context_output_dir.display()
-            ));
-        }
-        if export_options.export_chunks {
-            parts.push(format!(
-                "exported {} chunk file(s) to {}",
-                export_summary.chunk_files_written,
-                export_options.chunks_output_dir.display()
-            ));
-        }
-        if !parts.is_empty() {
-            println!("{}", parts.join("; "));
-        }
+        let stdout = std::io::stdout();
+        let mut out = stdout.lock();
+        reporting::text::write_no_terminal_summary(
+            &mut out,
+            result,
+            reporting::text::TextOptions {
+                verbose: cli.verbose,
+                ..Default::default()
+            },
+            export_options,
+            export_summary,
+        )?;
     }
     Ok(())
 }

@@ -3,12 +3,28 @@
 
 use std::borrow::Cow;
 
-use serde::{Serialize, Serializer};
+use serde::de::Deserializer;
+use serde::{Deserialize, Serialize, Serializer};
 
 use super::Severity;
 use super::evidence::DetectorEvidence;
-use super::fingerprint::Fingerprint;
+use super::finding_wire::FindingWire;
 use crate::cwe::CweRef;
+
+pub(crate) const FINGERPRINT_TOOL: &str = "slopguard";
+pub(crate) const FINGERPRINT_VERSION: u32 = 1;
+
+fn format_fingerprint(rule_id: &str, file: &str, line: usize, column: usize) -> String {
+    format!(
+        "{}:{}:{}:{}:{}:{}",
+        FINGERPRINT_TOOL,
+        FINGERPRINT_VERSION,
+        rule_id,
+        file.replace('\\', "/"),
+        line,
+        column
+    )
+}
 
 /// 1-indexed line and column in a source file.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, serde::Deserialize)]
@@ -30,7 +46,7 @@ fn serialize_optional_cwe<S: Serializer>(
     }
 }
 
-pub(crate) fn is_false(value: &bool) -> bool {
+fn is_false(value: &bool) -> bool {
     !*value
 }
 
@@ -244,6 +260,13 @@ impl Finding {
 
     /// Convenience string form for wire output.
     pub fn fingerprint_string(&self) -> String {
-        Fingerprint::from_finding(self).to_string()
+        format_fingerprint(self.rule_id, &self.file, self.line, self.column)
+    }
+}
+
+impl<'de> Deserialize<'de> for Finding {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let wire = FindingWire::deserialize(deserializer)?;
+        Ok(wire.into_finding())
     }
 }

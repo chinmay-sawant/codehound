@@ -28,6 +28,8 @@ pub struct ScanContext {
     pub bad_practices_enabled: bool,
     /// Optional severity override for BP-* bad-practice findings.
     pub bad_practice_severity: Option<Severity>,
+    /// When true, text output includes extra scan stats (bytes, phase timing).
+    pub verbose: bool,
 }
 
 impl Default for ScanContext {
@@ -44,6 +46,7 @@ impl Default for ScanContext {
             taint_show_paths: false,
             bad_practices_enabled: true,
             bad_practice_severity: None,
+            verbose: false,
         }
     }
 }
@@ -51,9 +54,6 @@ impl Default for ScanContext {
 impl ScanContext {
     pub fn allows(&self, rule_id: &str) -> bool {
         if rule_id.starts_with("BP-") && !self.bad_practices_enabled {
-            return false;
-        }
-        if self.skip.contains(rule_id) {
             return false;
         }
         if self.skip.iter().any(|pattern| {
@@ -86,7 +86,7 @@ impl ScanContext {
     /// True if the run should collect scan statistics, phase timings, and
     /// per-detector timings.
     pub fn collect_stats(&self) -> bool {
-        self.debug_timing || self.diagnostics || self.diagnostics_summary
+        self.verbose || self.debug_timing || self.diagnostics || self.diagnostics_summary
     }
     // ponytail: collect_detector_timing was identical to collect_stats — merged.
     // Callers migrated to collect_stats().

@@ -6,7 +6,7 @@ use slopguard::cwe::{RuleDescription, default_ruleset_path, load_rule_descriptio
 use slopguard::engine::Registry;
 use slopguard::rules::category_for_rule_id;
 
-pub fn print_rules(category: Option<RuleCategory>) {
+pub(crate) fn print_rules(category: Option<RuleCategory>) {
     let registry = Registry::default();
     let descriptions = load_descriptions();
     let matching_rule_count: usize = registry
@@ -44,7 +44,7 @@ pub fn print_rules(category: Option<RuleCategory>) {
     }
 }
 
-pub fn print_rule_explanation(rule_id: &str) {
+pub(crate) fn print_rule_explanation(rule_id: &str) {
     let registry = Registry::default();
     for det in registry.detectors() {
         if det.rule_ids().contains(&rule_id) {

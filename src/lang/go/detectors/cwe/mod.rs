@@ -128,9 +128,9 @@ impl Detector for GoCweScan {
             return;
         }
 
-        // Phase 1.3: Merge per-file call graphs.
-        let project_cg =
-            taint::merge_call_graphs(state.units.iter().map(|u| (u.path.as_str(), &u.call_graph)));
+        // Stable order so duplicate function names resolve the same way
+        // regardless of parallel scan vs cache-hit accumulation order.
+        state.units.sort_by(|a, b| a.path.cmp(&b.path));
 
         // Pre-build per-file taint graphs and summaries.
         let mut per_file: Vec<(&str, TaintGraph, HashMap<String, taint::TaintSummary>)> =
@@ -145,18 +145,16 @@ impl Detector for GoCweScan {
             }
         }
 
-        // Phase 2 + 3: For each call site, check if callee has a param_source.
-        for (caller_name, sites) in &project_cg.calls {
-            let caller_idx = match func_to_file.get(caller_name) {
-                Some(&idx) => idx,
-                None => continue,
-            };
-            let caller_path = state.units[caller_idx].path.as_str();
+        // Phase 2 + 3: Walk each file's call sites in place. Using the merged
+        // project graph + func_to_file lookup was nondeterministic when the
+        // same function name appears in multiple files (parallel scan order
+        // decided which file "won").
+        for (caller_idx, unit) in state.units.iter().enumerate() {
+            let caller_path = unit.path.as_str();
             let caller_graph = &per_file[caller_idx].1;
-            let caller_source = &state.units[caller_idx].source;
-            let caller_line_starts = &state.units[caller_idx].line_starts;
+            let caller_line_starts = &unit.line_starts;
 
-            for site in sites {
+            for site in &unit.call_graph.sites {
                 let raw_callee = site.callee.as_ref();
                 // ponytail: skip external package calls when we can resolve
                 // the import prefix — prevents matching user-defined functions
@@ -209,8 +207,10 @@ impl Detector for GoCweScan {
                     if !is_ret_source {
                         continue;
                     }
-                    let result_var =
-                        result_variable_of_call(caller_source, site.byte_range.start, ret_idx);
+                    let result_var = site
+                        .assignment_lhs
+                        .as_deref()
+                        .and_then(|lhs| taint::result_variable_at_return_index(lhs, ret_idx));
                     let Some(result_var) = result_var else {
                         continue;
                     };
@@ -349,43 +349,6 @@ fn resolve_callee_name(callee: &str, is_method_call: bool) -> String {
         }
     }
     callee.to_string()
-}
-
-/// Find the variable that a call expression's result is assigned to.
-/// For multi-return (`a, b := f()`), `ret_idx` selects which return value's
-/// variable to return.
-fn result_variable_of_call(source: &str, call_byte: usize, ret_idx: usize) -> Option<String> {
-    let end = call_byte.min(source.len());
-    let before = &source[..end];
-    // Look for `:=` or `=` at the end of the prefix, skipping `==` and `!=`.
-    let assign = before
-        .char_indices()
-        .rev()
-        .find(|&(i, c)| {
-            if c != '=' {
-                return false;
-            }
-            if i == 0 {
-                return false;
-            }
-            let prev = before[..i]
-                .chars()
-                .last()
-                .expect("i > 0 so before[..i] is non-empty");
-            // Skip `==`, `!=`, `<=`, `>=` — only actual assignments.
-            prev != '=' && prev != '!' && prev != '<' && prev != '>'
-        })
-        .map(|(i, _)| i)?;
-    // Extract the LHS of the assignment from the current line.
-    let line_start = before[..assign].rfind('\n').map(|i| i + 1).unwrap_or(0);
-    let lhs = before[line_start..assign].trim_end_matches(':').trim();
-    // Split on `,` to handle multi-return.
-    let vars: Vec<&str> = lhs.split(',').map(|v| v.trim()).collect();
-    let var = vars.get(ret_idx).or_else(|| vars.last())?;
-    if !var.is_empty() && var.chars().all(|c| c.is_alphanumeric() || c == '_') {
-        return Some(var.to_string());
-    }
-    None
 }
 
 /// Which sink kinds does a variable reach in the TaintGraph (forward BFS)?

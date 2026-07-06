@@ -26,18 +26,15 @@ mod t {
             let name = format!("file{i:03}.go");
             let mut f = finding("CWE-78", &name, 1, 1);
             f.message = bulky_message.clone();
-            let entry = super::super::types::CacheEntry {
-                schema_version: super::super::types::CACHE_VERSION,
-                file: name.clone(),
-                content_hash: content_hash(&name),
-                mtime_secs: 0,
-                mtime_nanos: 0,
-                language: "go".to_string(),
-                findings: vec![f],
-                dependencies: Vec::new(),
-                cached_at: format!("2026-06-10T00:{i:02}:00Z"),
-            };
-            store.put(entry).unwrap();
+            store
+                .put(
+                    &name,
+                    &content_hash(&name),
+                    &[],
+                    vec![f],
+                    &format!("2026-06-10T00:{i:02}:00Z"),
+                )
+                .unwrap();
         }
 
         let total = store.total_size();

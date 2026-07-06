@@ -43,8 +43,9 @@ pub struct RuleDescription {
 ///
 /// # Errors
 ///
-/// Returns [`Error::Io`] on read failure and [`Error::Json`] when the file is
-/// not valid JSON for the expected schema.
+/// Returns [`Error::Io`] on read failure, [`Error::Json`] when the file is
+/// not valid JSON for the expected schema, and [`Error::Config`] when chunk
+/// files contain duplicate rule ids.
 #[must_use = "rule catalogue load failures must be handled"]
 pub fn load_rule_descriptions(path: &Path) -> Result<HashMap<String, RuleDescription>, Error> {
     if path.is_dir() {
@@ -63,9 +64,8 @@ pub fn load_rule_descriptions(path: &Path) -> Result<HashMap<String, RuleDescrip
             let chunk = load_rule_descriptions(&entry_path)?;
             for (rule_id, rule) in chunk {
                 if merged.insert(rule_id.clone(), rule).is_some() {
-                    return Err(Error::Io(std::io::Error::new(
-                        std::io::ErrorKind::InvalidData,
-                        format!("duplicate rule id across ruleset chunks: {rule_id}"),
+                    return Err(Error::Config(format!(
+                        "duplicate rule id across ruleset chunks: {rule_id}"
                     )));
                 }
             }

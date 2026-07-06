@@ -1,7 +1,7 @@
 //! Per-file statistics produced during scanning.
 
 #[derive(Debug, Default, Clone)]
-pub struct FileStats {
+pub(crate) struct FileStats {
     pub bytes: u64,
     pub lines: u64,
 }

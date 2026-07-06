@@ -70,15 +70,11 @@ impl Registry {
         self.detectors[index].as_ref()
     }
 
-    pub fn plugin_for_extension(&self, ext: &str) -> Option<&dyn LanguagePlugin> {
+    pub fn plugin_for_path(&self, path: &Path) -> Option<&dyn LanguagePlugin> {
+        let ext = path.extension().and_then(|s| s.to_str())?;
         self.by_extension
             .get(ext)
             .map(|&idx| self.plugins[idx].as_ref())
-    }
-
-    pub fn plugin_for_path(&self, path: &Path) -> Option<&dyn LanguagePlugin> {
-        let ext = path.extension().and_then(|s| s.to_str())?;
-        self.plugin_for_extension(ext)
     }
 
     pub fn plugin_for_id(&self, id: LanguageId) -> Option<&dyn LanguagePlugin> {

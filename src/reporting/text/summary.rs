@@ -2,13 +2,45 @@
 
 use std::collections::BTreeMap;
 use std::io::Write;
+use std::time::Duration;
 
 use crate::Error;
 use crate::engine::AnalysisResult;
+use crate::export::{ExportOptions, ExportSummary};
 
 use super::options::TextOptions;
 
-pub(super) fn write_summary(
+pub fn write_no_terminal_summary(
+    out: &mut impl Write,
+    result: &AnalysisResult,
+    options: TextOptions,
+    export_options: &ExportOptions,
+    export_summary: &ExportSummary,
+) -> Result<(), Error> {
+    write_summary(out, result, options)?;
+
+    let mut export_parts = Vec::new();
+    if export_options.export_context {
+        export_parts.push(format!(
+            "exported {} context file(s) to {}",
+            export_summary.context_files_written,
+            export_options.context_output_dir.display()
+        ));
+    }
+    if export_options.export_chunks {
+        export_parts.push(format!(
+            "exported {} chunk file(s) to {}",
+            export_summary.chunk_files_written,
+            export_options.chunks_output_dir.display()
+        ));
+    }
+    if !export_parts.is_empty() {
+        writeln!(out, "{}", export_parts.join("; "))?;
+    }
+    Ok(())
+}
+
+pub(crate) fn write_summary(
     out: &mut impl Write,
     result: &AnalysisResult,
     options: TextOptions,
@@ -81,12 +113,12 @@ pub(super) fn write_summary(
             if let Some(timing) = stats.timing.as_ref() {
                 writeln!(out, "timing:")?;
                 for phase in &timing.phases {
-                    writeln!(
+                    write_phase_timing_line(
                         out,
-                        "  {:24} {:>8.2}ms  ({:>5.1}%)",
+                        "  ",
                         phase.name,
-                        phase.duration.as_secs_f64() * 1000.0,
-                        phase.percentage
+                        phase.duration,
+                        phase.percentage,
                     )?;
                 }
             }
@@ -103,25 +135,38 @@ pub(super) fn write_detector_timing(
     writeln!(out, "--- Detector Timing (top 10) ---")?;
     let mut phases: Vec<_> = timing.phases.iter().collect();
     phases.sort_by_key(|b| std::cmp::Reverse(b.duration));
-    let total: std::time::Duration = phases.iter().map(|p| p.duration).sum();
+    let total: Duration = phases.iter().map(|p| p.duration).sum();
     for phase in phases.iter().take(10) {
-        writeln!(
-            out,
-            "{:<24} {:>8.2}ms  ({:>5.1}%)",
-            phase.name,
-            phase.duration.as_secs_f64() * 1000.0,
-            if total.is_zero() {
-                0.0
-            } else {
-                phase.duration.as_secs_f64() / total.as_secs_f64() * 100.0
-            }
-        )?;
+        let percentage = if total.is_zero() {
+            0.0
+        } else {
+            phase.duration.as_secs_f64() / total.as_secs_f64() * 100.0
+        };
+        write_phase_timing_line(out, "", phase.name, phase.duration, percentage)?;
     }
     writeln!(
         out,
         "Total detector time: {:.2}ms across {} phases",
         total.as_secs_f64() * 1000.0,
         phases.len()
+    )?;
+    Ok(())
+}
+
+fn write_phase_timing_line(
+    out: &mut impl Write,
+    indent: &str,
+    name: &str,
+    duration: Duration,
+    percentage: f64,
+) -> Result<(), Error> {
+    writeln!(
+        out,
+        "{}{:<24} {:>8.2}ms  ({:>5.1}%)",
+        indent,
+        name,
+        duration.as_secs_f64() * 1000.0,
+        percentage
     )?;
     Ok(())
 }

@@ -16,7 +16,7 @@ pub(crate) fn open_cache_store(cli: &Cli, config: Option<&SlopguardConfig>) -> O
             return None;
         }
     }
-    let dir = cache_directory(cli, config)?;
+    let dir = cache_directory(cli, config);
     let cache_cfg = config.map(|c| &c.slopguard.cache);
     let max_size_mb = cache_cfg.map(|c| c.max_size_mb).unwrap_or(500);
     let evict_target_ratio = cache_cfg.and_then(|c| c.evict_target_ratio).unwrap_or(0.9);
@@ -33,18 +33,18 @@ pub(crate) fn open_cache_store(cli: &Cli, config: Option<&SlopguardConfig>) -> O
 }
 
 /// Resolve the cache directory following CLI > config > auto-discovery
-/// precedence. Returns `None` when none of the sources apply.
-pub(crate) fn cache_directory(cli: &Cli, config: Option<&SlopguardConfig>) -> Option<PathBuf> {
+/// precedence, falling back to [`DEFAULT_CACHE_DIR`].
+pub(crate) fn cache_directory(cli: &Cli, config: Option<&SlopguardConfig>) -> PathBuf {
     if let Some(dir) = cli.cache_dir.clone() {
-        return Some(dir);
+        return dir;
     }
     if let Some(cfg) = config {
         if let Some(p) = cfg.slopguard.cache.path.clone() {
-            return Some(p);
+            return p;
         }
     }
     if let Some(found) = discover_cache_dir(Path::new(".")) {
-        return Some(found);
+        return found;
     }
-    Some(Path::new(DEFAULT_CACHE_DIR).to_path_buf())
+    Path::new(DEFAULT_CACHE_DIR).to_path_buf()
 }

@@ -2,6 +2,7 @@
 
 use tree_sitter::Node;
 
+use super::super::common::is_test_file;
 use super::super::source_index::SourceIndex;
 use super::helpers::{line_start_byte, push_at};
 use crate::core::ParsedUnit;
@@ -312,10 +313,6 @@ pub(crate) fn detect_bp_25_test_helper_returns_error(
             );
         }
     });
-}
-
-fn is_test_file(unit: &ParsedUnit) -> bool {
-    unit.display_path.ends_with("_test.go")
 }
 
 fn walk_call_expressions(

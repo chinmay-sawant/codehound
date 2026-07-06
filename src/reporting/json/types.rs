@@ -1,12 +1,16 @@
-//! JSON DTO types: `Envelope`, `FindingJson`, `DisplayCweRef`, plus the
-//! `From` impls and `is_false` helper.
+//! JSON DTO types: `Envelope`, `FindingJson`, `DisplayCweRef`, plus `From`
+//! impls.
 
 use serde::Serialize;
 
 use crate::cwe::CweRef;
 use crate::engine::AnalysisResult;
 use crate::engine::ScanStats;
-use crate::rules::{category_for_rule_id, is_false};
+use crate::rules::category_for_rule_id;
+
+fn is_false(value: &bool) -> bool {
+    !*value
+}
 
 /// JSON shape used in the envelope mode. The inner `findings` field is a
 /// `Vec<FindingJson>` so we can attach a `fingerprint` per finding.

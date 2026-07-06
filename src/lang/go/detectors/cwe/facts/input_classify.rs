@@ -1,7 +1,5 @@
 //! User-input and trusted-config expression classifiers.
 
-pub use crate::lang::assignment::{extract_identifiers, split_assignment};
-
 #[doc(hidden)]
 pub fn is_user_input_expr(expr: &str) -> bool {
     expr.contains(".Query(")

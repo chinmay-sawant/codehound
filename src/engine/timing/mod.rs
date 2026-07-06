@@ -15,7 +15,7 @@ mod summary;
 #[cfg(test)]
 mod tests;
 
-pub use collector::{TimingCollector, TimingSpan};
+pub use collector::TimingCollector;
 pub(crate) use collector::{drain_global, global_start, global_stop, init_global};
 pub use summary::{PhaseTiming, TimingSummary};
 

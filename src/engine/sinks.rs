@@ -30,8 +30,3 @@ pub static LINK_RESOLUTION_SINKS: phf::Set<&'static str> = phf_set! {
     "os.Open",
     "os.OpenFile",
 };
-
-/// Check if a callee name matches any sink in the set.
-pub fn matches_sink(sinks: &phf::Set<&'static str>, callee: &str) -> bool {
-    sinks.contains(callee)
-}

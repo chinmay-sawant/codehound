@@ -3,7 +3,6 @@
 use crate::core::ScanContext;
 use crate::engine::config::PathFilters;
 use crate::engine::language_filter::LanguageFilter;
-use crate::engine::registry::Registry;
 use crate::engine::walk::EntrySource;
 
 use super::types::Analyzer;
@@ -11,7 +10,6 @@ use super::types::Analyzer;
 /// Configures an [`Analyzer`].
 pub struct AnalyzerBuilder {
     ctx: ScanContext,
-    registry: Registry,
     lang_filter: LanguageFilter,
     path_filters: PathFilters,
     collect_stats: bool,
@@ -23,7 +21,6 @@ impl AnalyzerBuilder {
     pub(crate) fn new() -> Self {
         Self {
             ctx: ScanContext::default(),
-            registry: Registry::default(),
             lang_filter: LanguageFilter::default(),
             path_filters: PathFilters::default(),
             collect_stats: false,
@@ -60,7 +57,7 @@ impl AnalyzerBuilder {
 
     pub fn build(self) -> Analyzer {
         Analyzer {
-            registry: self.registry,
+            registry: crate::engine::registry::Registry::default(),
             ctx: self.ctx,
             lang_filter: self.lang_filter,
             path_filters: self.path_filters,

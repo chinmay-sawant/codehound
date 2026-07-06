@@ -3,5 +3,5 @@
 mod file;
 mod scan;
 
-pub use file::FileStats;
+pub(crate) use file::FileStats;
 pub use scan::ScanStats;

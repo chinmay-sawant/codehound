@@ -44,6 +44,15 @@ fn scan_context_collects_stats_when_diagnostics_set() {
     assert!(ctx.collect_stats());
 }
 
+#[test]
+fn scan_context_collects_stats_when_verbose_set() {
+    let ctx = ScanContext {
+        verbose: true,
+        ..ScanContext::default()
+    };
+    assert!(ctx.collect_stats());
+}
+
 fn sample_result_with_stats() -> slopguard::engine::AnalysisResult {
     slopguard::engine::AnalysisResult {
         source_cache: std::collections::HashMap::new(),

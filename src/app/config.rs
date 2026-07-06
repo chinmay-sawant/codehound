@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use slopguard::cli::Cli;
 use slopguard::engine::{SlopguardConfig, discover_baseline, discover_config};
 
-pub fn load_config(explicit: Option<&Path>) -> Result<Option<SlopguardConfig>> {
+pub(crate) fn load_config(explicit: Option<&Path>) -> Result<Option<SlopguardConfig>> {
     if let Some(path) = explicit {
         if !path.is_file() {
             anyhow::bail!("config file not found: {}", path.display());

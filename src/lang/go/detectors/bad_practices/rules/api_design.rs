@@ -6,6 +6,7 @@ use std::path::PathBuf;
 
 use tree_sitter::Node;
 
+use super::super::common::{is_flat_materialized_fixture, is_test_file};
 use super::super::source_index::SourceIndex;
 use super::helpers::push_at;
 use crate::core::ParsedUnit;
@@ -350,23 +351,6 @@ pub(crate) fn detect_bp_35_package_name_directory_mismatch(
             "package name diverges from its directory name",
         );
     }
-}
-
-fn is_test_file(unit: &ParsedUnit) -> bool {
-    unit.display_path.ends_with("_test.go")
-}
-
-fn is_flat_materialized_fixture(unit: &ParsedUnit) -> bool {
-    let display = unit.display_path.as_str();
-    let materialized = display.contains("target/slopguard-fixtures/")
-        || display.contains("target\\slopguard-fixtures\\");
-    let parent_is_language_root = unit
-        .path
-        .parent()
-        .and_then(|path| path.file_name())
-        .and_then(|name| name.to_str())
-        .is_some_and(|name| name == "go");
-    materialized && parent_is_language_root
 }
 
 fn walk_functions_and_methods(

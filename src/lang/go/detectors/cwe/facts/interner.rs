@@ -70,16 +70,16 @@ pub(crate) fn record_assignment_fact<'a>(
     let Ok(text) = node.utf8_text(src) else {
         return;
     };
-    let Some((lhs, rhs)) = super::expr_patterns::split_assignment(text) else {
+    let Some((lhs, rhs)) = crate::lang::assignment::split_assignment(text) else {
         return;
     };
-    let names = super::expr_patterns::extract_identifiers(lhs);
+    let names = crate::lang::assignment::extract_identifiers(lhs);
     if names.is_empty() {
         return;
     }
-    let kind = if super::expr_patterns::is_user_input_expr(rhs) {
+    let kind = if super::input_classify::is_user_input_expr(rhs) {
         Some(InputKind::UserControlled)
-    } else if super::expr_patterns::is_trusted_config_expr(rhs) {
+    } else if super::input_classify::is_trusted_config_expr(rhs) {
         Some(InputKind::TrustedConfig)
     } else {
         None

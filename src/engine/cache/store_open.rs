@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use super::hash::cache_key_for_path;
 #[cfg(test)]
 use super::types::CacheEntry;
 use super::types::FILES_SUBDIR;
@@ -178,7 +179,7 @@ impl CacheStore {
         if meta.content_hash != content_hash {
             return CacheLookup::Stale;
         }
-        match self.backend.load_entry(&meta.cache_key) {
+        match self.backend.load_entry(&cache_key_for_path(file)) {
             Some(entry) => CacheLookup::Hit(entry),
             None => CacheLookup::Stale,
         }
@@ -196,8 +197,10 @@ impl CacheStore {
     /// manifest or the entry file is missing/corrupt.
     #[cfg(test)]
     pub fn get(&self, file: &str) -> Option<CacheEntry> {
-        let meta = self.manifest.files.get(file)?;
-        self.backend.load_entry(&meta.cache_key)
+        if !self.manifest.files.contains_key(file) {
+            return None;
+        }
+        self.backend.load_entry(&cache_key_for_path(file))
     }
 
     /// Read-only access to the manifest, primarily for tests and

@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use tree_sitter::Node;
 use walkdir::WalkDir;
 
+use super::super::common::{is_materialized_fixture, is_project_anchor, is_test_file};
 use super::super::source_index::SourceIndex;
 use super::helpers::push_at;
 use crate::core::ParsedUnit;
@@ -336,16 +337,6 @@ pub(crate) fn detect_bp_55_missing_request_id_propagation(
     }
 }
 
-fn is_test_file(unit: &ParsedUnit) -> bool {
-    unit.display_path.ends_with("_test.go")
-}
-
-fn is_materialized_fixture(unit: &ParsedUnit) -> bool {
-    let display = unit.display_path.as_str();
-    display.contains("target/slopguard-fixtures/")
-        || display.contains("target\\slopguard-fixtures\\")
-}
-
 fn http_server_literals(source: &str) -> Vec<(usize, &str)> {
     let mut literals = Vec::new();
     let bytes = source.as_bytes();
@@ -579,18 +570,4 @@ fn normalize_type_name(value: &str) -> String {
             .to_string();
     }
     normalize_identifier(value)
-}
-
-fn is_project_anchor(unit: &ParsedUnit) -> bool {
-    let root = discover_project_root(&unit.path);
-    let mut files: Vec<PathBuf> = WalkDir::new(root)
-        .into_iter()
-        .filter_map(Result::ok)
-        .filter(|entry| entry.file_type().is_file())
-        .map(|entry| entry.path().to_path_buf())
-        .filter(|path| path.extension().and_then(|ext| ext.to_str()) == Some("go"))
-        .filter(|path| !path.to_string_lossy().ends_with("_test.go"))
-        .collect();
-    files.sort();
-    files.first().is_some_and(|path| path == &unit.path)
 }

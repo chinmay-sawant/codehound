@@ -7,7 +7,7 @@ use helpers::unique_temp_root;
 
 use std::collections::HashSet;
 
-use slopguard::engine::{CacheEntry, CacheLookup, CacheStore, content_hash};
+use slopguard::engine::{CacheEntry, CacheLookup, CacheStore, cache_key_for_path, content_hash};
 
 fn manifest_len(store: &CacheStore) -> usize {
     store.manifest().files.len()
@@ -26,18 +26,16 @@ fn cache_get(store: &CacheStore, file: &str) -> Option<CacheEntry> {
 #[test]
 fn put_then_get_round_trips_findings() {
     let mut store = CacheStore::in_memory();
-    let entry = CacheEntry {
-        schema_version: slopguard::engine::CACHE_VERSION,
-        file: "pkg/a.go".to_string(),
-        content_hash: content_hash("hello"),
-        mtime_secs: 1,
-        mtime_nanos: 0,
-        language: "go".to_string(),
-        findings: vec![finding("CWE-78", "pkg/a.go", 10, 5)],
-        dependencies: Vec::new(),
-        cached_at: "2026-06-10T00:00:00Z".to_string(),
-    };
-    store.put(entry).unwrap();
+    let hash = content_hash("hello");
+    store
+        .put(
+            "pkg/a.go",
+            &hash,
+            &[],
+            vec![finding("CWE-78", "pkg/a.go", 10, 5)],
+            "2026-06-10T00:00:00Z",
+        )
+        .unwrap();
 
     let read = cache_get(&store, "pkg/a.go").expect("entry should be present");
     assert_eq!(read.findings.len(), 1);
@@ -45,24 +43,24 @@ fn put_then_get_round_trips_findings() {
     assert_eq!(read.findings[0].file, "pkg/a.go");
     assert_eq!(read.findings[0].line, 10);
     assert_eq!(read.findings[0].column, 5);
-    assert_eq!(read.content_hash, content_hash("hello"));
+    assert_eq!(
+        store.manifest().files["pkg/a.go"].content_hash,
+        content_hash("hello")
+    );
 }
 
 #[test]
 fn is_cache_hit_matches_when_hash_matches_and_misses_otherwise() {
     let mut store = CacheStore::in_memory();
-    let entry = CacheEntry {
-        schema_version: slopguard::engine::CACHE_VERSION,
-        file: "a.go".to_string(),
-        content_hash: content_hash("source-v1"),
-        mtime_secs: 0,
-        mtime_nanos: 0,
-        language: "go".to_string(),
-        findings: vec![],
-        dependencies: Vec::new(),
-        cached_at: "2026-06-10T00:00:00Z".to_string(),
-    };
-    store.put(entry).unwrap();
+    store
+        .put(
+            "a.go",
+            &content_hash("source-v1"),
+            &[],
+            vec![],
+            "2026-06-10T00:00:00Z",
+        )
+        .unwrap();
 
     assert!(matches!(
         store.lookup("a.go", &content_hash("source-v1")),
@@ -81,18 +79,9 @@ fn is_cache_hit_matches_when_hash_matches_and_misses_otherwise() {
 #[test]
 fn remove_drops_entry_from_manifest() {
     let mut store = CacheStore::in_memory();
-    let entry = CacheEntry {
-        schema_version: slopguard::engine::CACHE_VERSION,
-        file: "x.go".to_string(),
-        content_hash: content_hash("body"),
-        mtime_secs: 0,
-        mtime_nanos: 0,
-        language: "go".to_string(),
-        findings: vec![],
-        dependencies: Vec::new(),
-        cached_at: "".to_string(),
-    };
-    store.put(entry).unwrap();
+    store
+        .put("x.go", &content_hash("body"), &[], vec![], "")
+        .unwrap();
     assert_eq!(manifest_len(&store), 1);
     store.remove("x.go").unwrap();
     assert!(store.manifest().files.is_empty());
@@ -110,18 +99,9 @@ fn flush_is_idempotent_when_not_dirty() {
 fn prune_removes_orphaned_entries() {
     let mut store = CacheStore::in_memory();
     for (name, body) in [("a.go", "alpha"), ("b.go", "beta"), ("c.go", "gamma")] {
-        let entry = CacheEntry {
-            schema_version: slopguard::engine::CACHE_VERSION,
-            file: name.to_string(),
-            content_hash: content_hash(body),
-            mtime_secs: 0,
-            mtime_nanos: 0,
-            language: "go".to_string(),
-            findings: vec![],
-            dependencies: Vec::new(),
-            cached_at: "".to_string(),
-        };
-        store.put(entry).unwrap();
+        store
+            .put(name, &content_hash(body), &[], vec![], "")
+            .unwrap();
     }
     assert_eq!(manifest_len(&store), 3);
 
@@ -154,17 +134,13 @@ fn open_creates_files_directory_on_empty_path() {
 fn reopen_loads_existing_manifest() {
     let root = unique_temp_root("reopen");
     let manifest = serde_json::json!({
-        "schema_version": 1,
+        "schema_version": 2,
         "tool_version": env!("CARGO_PKG_VERSION"),
-        "cache_dir": root.display().to_string(),
         "files": {
             "pkg/handler/user.go": {
-                "cache_key": "abc",
                 "content_hash": content_hash("body"),
-                "mtime_secs": 1234,
-                "mtime_nanos": 0,
-                "language": "go",
-                "dependencies": []
+                "dependencies": [],
+                "cached_at": "2026-06-10T00:00:00Z"
             }
         }
     });
@@ -198,7 +174,7 @@ fn corrupt_manifest_falls_back_to_empty() {
 fn tool_version_mismatch_is_tolerated() {
     let root = unique_temp_root("tool-version-mismatch");
     let manifest = serde_json::json!({
-        "schema_version": 1,
+        "schema_version": 2,
         "tool_version": "0.0.0-test",
         "files": {}
     });
@@ -210,18 +186,15 @@ fn tool_version_mismatch_is_tolerated() {
     .unwrap();
 
     let mut store = CacheStore::open_with_capacity(root.clone(), 500).unwrap();
-    let entry = CacheEntry {
-        schema_version: slopguard::engine::CACHE_VERSION,
-        file: "versioned.go".to_string(),
-        content_hash: content_hash("versioned"),
-        mtime_secs: 0,
-        mtime_nanos: 0,
-        language: "go".to_string(),
-        findings: vec![],
-        dependencies: Vec::new(),
-        cached_at: "2026-06-10T00:00:00Z".to_string(),
-    };
-    store.put(entry).unwrap();
+    store
+        .put(
+            "versioned.go",
+            &content_hash("versioned"),
+            &[],
+            vec![],
+            "2026-06-10T00:00:00Z",
+        )
+        .unwrap();
     store.flush().unwrap();
 
     let reopened = CacheStore::open_with_capacity(root.clone(), 500).unwrap();
@@ -236,7 +209,6 @@ fn schema_mismatch_returns_error() {
     let manifest = serde_json::json!({
         "schema_version": 999,
         "tool_version": env!("CARGO_PKG_VERSION"),
-        "cache_dir": root.display().to_string(),
         "files": {}
     });
     std::fs::create_dir_all(root.join("files")).unwrap();
@@ -259,21 +231,18 @@ fn schema_mismatch_returns_error() {
 fn corrupt_entry_file_is_treated_as_cache_miss() {
     let root = unique_temp_root("corrupt-entry");
     let mut store = CacheStore::open_with_capacity(root.clone(), 500).unwrap();
-    let entry = CacheEntry {
-        schema_version: slopguard::engine::CACHE_VERSION,
-        file: "x.go".to_string(),
-        content_hash: content_hash("body"),
-        mtime_secs: 0,
-        mtime_nanos: 0,
-        language: "go".to_string(),
-        findings: vec![],
-        dependencies: Vec::new(),
-        cached_at: "2026-06-10T00:00:00Z".to_string(),
-    };
-    store.put(entry).unwrap();
+    store
+        .put(
+            "x.go",
+            &content_hash("body"),
+            &[],
+            vec![],
+            "2026-06-10T00:00:00Z",
+        )
+        .unwrap();
     store.flush().unwrap();
 
-    let cache_key = store.manifest().files["x.go"].cache_key.clone();
+    let cache_key = cache_key_for_path("x.go");
     std::fs::write(
         root.join("files").join(format!("{cache_key}.json")),
         "{not json",
@@ -293,18 +262,15 @@ fn corrupt_entry_file_is_treated_as_cache_miss() {
 fn clean_orphans_removes_untracked_entry_files() {
     let root = unique_temp_root("clean-orphans");
     let mut store = CacheStore::open_with_capacity(root.clone(), 500).unwrap();
-    let entry = CacheEntry {
-        schema_version: slopguard::engine::CACHE_VERSION,
-        file: "tracked.go".to_string(),
-        content_hash: content_hash("tracked"),
-        mtime_secs: 0,
-        mtime_nanos: 0,
-        language: "go".to_string(),
-        findings: vec![],
-        dependencies: Vec::new(),
-        cached_at: "2026-06-10T00:00:00Z".to_string(),
-    };
-    store.put(entry).unwrap();
+    store
+        .put(
+            "tracked.go",
+            &content_hash("tracked"),
+            &[],
+            vec![],
+            "2026-06-10T00:00:00Z",
+        )
+        .unwrap();
     store.flush().unwrap();
 
     std::fs::write(root.join("files").join("orphan.json"), "{}").unwrap();

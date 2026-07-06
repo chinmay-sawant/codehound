@@ -69,12 +69,6 @@ impl ScanStats {
         self.detectors_loaded = self.detectors_loaded.max(other.detectors_loaded);
     }
 
-    /// Attach a timing summary after the scan completes.
-    pub fn with_timing(mut self, timing: TimingSummary) -> Self {
-        self.timing = Some(timing);
-        self
-    }
-
     /// Increment counters for a single successfully scanned file.
     pub fn record_file(&mut self, bytes: u64, lines: u64) {
         self.files_scanned += 1;

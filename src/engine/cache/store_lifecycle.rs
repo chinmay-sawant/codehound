@@ -2,28 +2,39 @@
 //! `invalidate_file`, `invalidate_dependent`.
 
 use crate::Error;
+use crate::rules::Finding;
 
 use super::CacheStore;
 use super::hash::cache_key_for_path;
-use super::types::{CacheEntry, FileCacheMeta};
+use super::types::{CACHE_VERSION, CacheEntry, FileCacheMeta};
 
 impl CacheStore {
     /// Insert or replace a cache entry. Updates the manifest and marks
     /// the store dirty so [`flush`](Self::flush) writes to disk.
-    pub fn put(&mut self, entry: CacheEntry) -> Result<(), Error> {
-        let cache_key = cache_key_for_path(&entry.file);
+    pub fn put(
+        &mut self,
+        file: &str,
+        content_hash: &str,
+        dependencies: &[String],
+        findings: Vec<Finding>,
+        cached_at: &str,
+    ) -> Result<(), Error> {
+        let cache_key = cache_key_for_path(file);
+        let entry = CacheEntry {
+            schema_version: CACHE_VERSION,
+            file: file.to_string(),
+            findings,
+            cached_at: cached_at.to_string(),
+        };
         self.backend
             .store_entry(&cache_key, &entry)
             .map_err(|e| Error::Walk(format!("storing cache entry {cache_key}: {e}")))?;
         let meta = FileCacheMeta {
-            cache_key,
-            content_hash: entry.content_hash.clone(),
-            mtime_secs: entry.mtime_secs,
-            mtime_nanos: entry.mtime_nanos,
-            language: entry.language.clone(),
-            dependencies: entry.dependencies.clone(),
+            content_hash: content_hash.to_string(),
+            dependencies: dependencies.to_vec(),
+            cached_at: cached_at.to_string(),
         };
-        self.manifest.files.insert(entry.file, meta);
+        self.manifest.files.insert(file.to_string(), meta);
         self.dirty = true;
         Ok(())
     }
@@ -31,10 +42,11 @@ impl CacheStore {
     /// Remove a single entry from the manifest and from disk. No-op
     /// when `file` is not tracked.
     pub fn remove(&mut self, file: &str) -> Result<(), Error> {
-        if let Some(meta) = self.manifest.files.remove(file) {
-            self.backend.delete_entry(&meta.cache_key).map_err(|e| {
-                Error::Walk(format!("removing cache entry {}: {e}", meta.cache_key))
-            })?;
+        if self.manifest.files.remove(file).is_some() {
+            let cache_key = cache_key_for_path(file);
+            self.backend
+                .delete_entry(&cache_key)
+                .map_err(|e| Error::Walk(format!("removing cache entry {cache_key}: {e}")))?;
             self.dirty = true;
         }
         Ok(())
@@ -66,25 +78,28 @@ impl CacheStore {
     /// manifest is torn (e.g. concurrent writes). Returns the number
     /// of files removed.
     pub fn clean_orphans(&self) -> Result<usize, Error> {
-        let active_keys: std::collections::HashSet<&str> = self
+        let active_keys: std::collections::HashSet<String> = self
             .manifest
             .files
-            .values()
-            .map(|m| m.cache_key.as_str())
+            .keys()
+            .map(|file| cache_key_for_path(file))
             .collect();
+        let active_refs: std::collections::HashSet<&str> =
+            active_keys.iter().map(String::as_str).collect();
         self.backend
-            .clean_orphans(&active_keys)
+            .clean_orphans(&active_refs)
             .map_err(|e| Error::Walk(format!("cleaning cache orphans: {e}")))
     }
 
     /// Invalidate the entry for `file`, removing it from the manifest
     /// and deleting the on-disk entry.
     pub fn invalidate_file(&mut self, file: &str) {
-        if let Some(meta) = self.manifest.files.remove(file) {
-            if let Err(e) = self.backend.delete_entry(&meta.cache_key) {
+        if self.manifest.files.remove(file).is_some() {
+            let cache_key = cache_key_for_path(file);
+            if let Err(e) = self.backend.delete_entry(&cache_key) {
                 tracing::warn!(
                     file,
-                    cache_key = %meta.cache_key,
+                    cache_key = %cache_key,
                     error = %e,
                     "failed to delete invalidated cache entry"
                 );

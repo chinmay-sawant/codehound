@@ -8,6 +8,14 @@ use super::super::{SanitizerKind, SinkKind, SourceKind, TaintGraph, TaintNode, T
 
 use super::TaintPath;
 
+fn build_adj(graph: &TaintGraph) -> HashMap<TaintNodeId, Vec<TaintNodeId>> {
+    let mut adj: HashMap<TaintNodeId, Vec<TaintNodeId>> = HashMap::new();
+    for edge in &graph.edges {
+        adj.entry(edge.from).or_default().push(edge.to);
+    }
+    adj
+}
+
 /// Find taint paths from any source of `source_kind` to any sink of `sink_kind`
 /// within the same function scope. A path is "sanitized" if every path from the
 /// source to the sink passes through an allowed sanitizer. If any unsanitized
@@ -44,25 +52,23 @@ pub fn forward_reaches_any(
     if starts.is_empty() || targets.is_empty() {
         return false;
     }
-    let mut adj: HashMap<TaintNodeId, Vec<TaintNodeId>> = HashMap::new();
-    for edge in &graph.edges {
-        adj.entry(edge.from).or_default().push(edge.to);
-    }
+    let adj = build_adj(graph);
     let mut visited = vec![false; graph.nodes.len()];
-    let mut stack: Vec<TaintNodeId> = starts.to_vec();
-    for &s in starts {
-        if s < visited.len() {
-            visited[s] = true;
+    let mut queue: VecDeque<TaintNodeId> = VecDeque::new();
+    for &start in starts {
+        if start < visited.len() && !visited[start] {
+            visited[start] = true;
+            queue.push_back(start);
         }
     }
-    while let Some(current) = stack.pop() {
+    while let Some(current) = queue.pop_front() {
         if targets.contains(&current) {
             return true;
         }
         for &next in adj.get(&current).into_iter().flatten() {
             if next < visited.len() && !visited[next] {
                 visited[next] = true;
-                stack.push(next);
+                queue.push_back(next);
             }
         }
     }
@@ -76,10 +82,7 @@ pub fn unsanitized_reaches_any(
     start: TaintNodeId,
     targets: &[TaintNodeId],
 ) -> bool {
-    let mut adj: HashMap<TaintNodeId, Vec<TaintNodeId>> = HashMap::new();
-    for edge in &graph.edges {
-        adj.entry(edge.from).or_default().push(edge.to);
-    }
+    let adj = build_adj(graph);
 
     let mut queue: VecDeque<(TaintNodeId, bool)> = VecDeque::new();
     let mut visited = vec![false; graph.nodes.len()];
@@ -149,11 +152,7 @@ fn bfs_path(
     sink_id: TaintNodeId,
     allowed_sanitizers: &[SanitizerKind],
 ) -> Option<TaintPath> {
-    // Build adjacency list for forward traversal.
-    let mut adj: HashMap<TaintNodeId, Vec<TaintNodeId>> = HashMap::new();
-    for edge in &graph.edges {
-        adj.entry(edge.from).or_default().push(edge.to);
-    }
+    let adj = build_adj(graph);
 
     // State: (node, sanitized) -> visited. We want to find an unsanitized path
     // first; if none exists, accept a sanitized path.

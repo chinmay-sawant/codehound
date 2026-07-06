@@ -1,4 +1,4 @@
-//! File I/O helpers: atomic writes.
+//! Shared engine I/O helpers.
 
 use std::fs;
 use std::io::Write;

@@ -7,7 +7,8 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 
 use crate::Error;
-use crate::engine::cache::write_atomic;
+use crate::engine::io::write_atomic;
+use crate::engine::path_walk::{WalkUpAction, walk_up_dirs};
 use crate::engine::time::iso8601_utc_now;
 use crate::rules::Finding;
 
@@ -31,24 +32,15 @@ struct BaselineLocationKey {
 }
 
 pub fn discover_baseline(cwd: &Path) -> Option<PathBuf> {
-    let mut current = if cwd.is_file() {
-        cwd.parent()?.to_path_buf()
-    } else {
-        cwd.to_path_buf()
-    };
-
-    loop {
-        let candidate = current.join(BASELINE_FILE_NAME);
-        if candidate.is_file() {
-            return Some(candidate);
+    walk_up_dirs(cwd, |current| {
+        if current.join(BASELINE_FILE_NAME).is_file() {
+            WalkUpAction::Found(current.join(BASELINE_FILE_NAME))
+        } else if current.join(".git").is_dir() {
+            WalkUpAction::Stop
+        } else {
+            WalkUpAction::Continue
         }
-        if current.join(".git").is_dir() {
-            return None;
-        }
-        if !current.pop() {
-            return None;
-        }
-    }
+    })
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

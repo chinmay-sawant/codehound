@@ -62,7 +62,10 @@ pub fn push_finding(
     message: &str,
     out: &mut Vec<Finding>,
 ) {
-    out.push(finding_from_meta(meta, file, line, col, message));
+    out.push(apply_fix(
+        meta,
+        finding_from_meta(meta, file, line, col, message),
+    ));
 }
 
 /// Like [`push_finding`] with machine-readable evidence.

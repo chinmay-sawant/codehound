@@ -5,9 +5,9 @@ use std::fs;
 use crate::Error;
 
 use super::CacheStore;
-use super::io::write_atomic;
+use super::hash::cache_key_for_path;
 use super::types::MANIFEST_NAME;
-use crate::engine::time::iso8601_from_secs;
+use crate::engine::io::write_atomic;
 
 impl CacheStore {
     /// Write the manifest to disk. No-op when no mutations have happened
@@ -44,7 +44,9 @@ impl CacheStore {
         let mut entries: Vec<(String, String, u64)> = Vec::new();
         let start_size = current;
         for (file, meta) in &self.manifest.files {
-            let path = self.files_dir.join(format!("{}.json", meta.cache_key));
+            let path = self
+                .files_dir
+                .join(format!("{}.json", cache_key_for_path(file)));
             let size = if let Ok(m) = fs::metadata(&path) {
                 m.len()
             } else {
@@ -53,13 +55,7 @@ impl CacheStore {
             if size == 0 {
                 continue;
             }
-            // Read cached_at from the entry file; fall back to manifest mtime.
-            let cached_at = self
-                .backend
-                .load_entry(&meta.cache_key)
-                .map(|e| e.cached_at)
-                .unwrap_or_else(|| iso8601_from_secs(meta.mtime_secs));
-            entries.push((file.clone(), cached_at, size));
+            entries.push((file.clone(), meta.cached_at.clone(), size));
         }
 
         // Sort oldest first. ISO8601 UTC timestamps sort lexicographically.

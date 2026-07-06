@@ -16,10 +16,12 @@ use crate::engine::registry::Registry;
 use crate::engine::result::{ScanError, ScanErrorKind};
 use crate::engine::stats::FileStats;
 use crate::engine::stats::ScanStats;
+use crate::engine::time::iso8601_utc_now;
 use crate::rules::Finding;
 
+use super::analyze::filter_findings;
 use super::entry::ScanEntry;
-use super::scan_entry::{ScanEntryResult, read_entry_utf8, scan_entry, scan_err};
+use super::scan_entry::{PreloadedSource, ScanEntryResult, read_entry_utf8, scan_entry, scan_err};
 
 /// Per-file outcome from a parallel scan: either findings or a structured error.
 #[derive(Debug)]
@@ -28,7 +30,7 @@ pub(crate) enum ScanOutcome {
         findings: Vec<Finding>,
         cache_key: String,
         source: Arc<str>,
-        language: LanguageId,
+        content_hash: Option<String>,
         suppressed_count: usize,
         stats: ScanStats,
         dependencies: Vec<String>,
@@ -49,7 +51,7 @@ struct CachedFileInfo {
 }
 
 struct PreflightResult {
-    to_scan_indices: Vec<usize>,
+    to_scan: Vec<(usize, Option<PreloadedSource>)>,
     cached_outcomes: Vec<ScanOutcome>,
     cache_hit_count: usize,
     cached_files: Vec<CachedFileInfo>,
@@ -80,7 +82,7 @@ pub(crate) fn scan_entries_parallel(
         registry,
         ctx,
         entries,
-        &preflight.to_scan_indices,
+        &preflight.to_scan,
         project_root,
         module_prefix,
     );
@@ -110,7 +112,8 @@ pub(crate) fn scan_entries_parallel(
 
 fn process_cache_hit(ctx: &ScanContext, cached: CacheEntry, source: Arc<str>) -> ScanOutcome {
     let cache_key = cached.file;
-    let mut findings = filter_cached_findings(ctx, cached.findings);
+    let mut findings = cached.findings;
+    filter_findings(ctx, &mut findings);
     let file_ignore = parse_file_ignore(source.as_ref());
     let _suppressed = apply_ignores(ctx, source.as_ref(), &mut findings, file_ignore.as_ref());
     let file_stats = FileStats::from_source(source.as_ref());
@@ -130,14 +133,14 @@ fn preflight_cache_hits(
     cache: Option<&CacheStore>,
 ) -> PreflightResult {
     let total = entries.len();
-    let mut to_scan_indices = Vec::with_capacity(total);
+    let mut to_scan = Vec::with_capacity(total);
     let mut cached_outcomes = Vec::new();
     let mut cache_hit_count = 0usize;
 
     let Some(cache) = cache else {
-        to_scan_indices.extend(0..entries.len());
+        to_scan.extend((0..entries.len()).map(|i| (i, None)));
         return PreflightResult {
-            to_scan_indices,
+            to_scan,
             cached_outcomes,
             cache_hit_count,
             cached_files: Vec::new(),
@@ -147,7 +150,7 @@ fn preflight_cache_hits(
     let mut cached_files = Vec::new();
     for (i, entry) in entries.iter().enumerate() {
         if !cache.should_cache_path(entry.path.as_ref()) {
-            to_scan_indices.push(i);
+            to_scan.push((i, None));
             continue;
         }
         let (source, rel) = match read_entry_utf8(entry) {
@@ -168,12 +171,18 @@ fn preflight_cache_hits(
                     language: entry.language,
                 });
             }
-            _ => to_scan_indices.push(i),
+            _ => to_scan.push((
+                i,
+                Some(PreloadedSource {
+                    source,
+                    content_hash: hash,
+                }),
+            )),
         }
     }
 
     PreflightResult {
-        to_scan_indices,
+        to_scan,
         cached_outcomes,
         cache_hit_count,
         cached_files,
@@ -220,16 +229,25 @@ fn dispatch_parallel_scan(
     registry: &Registry,
     ctx: &ScanContext,
     entries: &[ScanEntry],
-    to_scan_indices: &[usize],
+    to_scan: &[(usize, Option<PreloadedSource>)],
     project_root: &Path,
     module_prefix: Option<&str>,
 ) -> Vec<ScanOutcome> {
-    to_scan_indices
+    to_scan
         .par_iter()
-        .map_init(ParsePool::new, |pool, &i| {
-            let entry = &entries[i];
+        .map_init(ParsePool::new, |pool, (i, preloaded)| {
+            let entry = &entries[*i];
+            let preloaded = preloaded.clone();
             let unwind = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                scan_entry(registry, ctx, entry, pool, project_root, module_prefix)
+                scan_entry(
+                    registry,
+                    ctx,
+                    entry,
+                    pool,
+                    project_root,
+                    module_prefix,
+                    preloaded,
+                )
             }));
             match unwind {
                 Ok(res) => match res {
@@ -237,6 +255,7 @@ fn dispatch_parallel_scan(
                         findings,
                         cache_key,
                         source,
+                        content_hash,
                         suppressed_count,
                         stats,
                         dependencies,
@@ -244,7 +263,7 @@ fn dispatch_parallel_scan(
                         findings,
                         cache_key,
                         source,
-                        language: entry.language,
+                        content_hash,
                         suppressed_count,
                         stats,
                         dependencies,
@@ -287,7 +306,7 @@ fn merge_parallel_results(
                 findings: mut f,
                 cache_key,
                 source,
-                language,
+                content_hash,
                 suppressed_count: ignored,
                 stats: file_stats,
                 dependencies,
@@ -296,7 +315,7 @@ fn merge_parallel_results(
                     cache,
                     &cache_key,
                     &source,
-                    language,
+                    content_hash.as_deref(),
                     &f,
                     &dependencies,
                     &mut merged.rescan_files,
@@ -344,7 +363,7 @@ fn write_cache_on_miss(
     cache: &mut Option<&mut CacheStore>,
     cache_key: &str,
     source: &Arc<str>,
-    language: LanguageId,
+    precomputed_hash: Option<&str>,
     findings: &[Finding],
     dependencies: &[String],
     rescan_files: &mut Vec<(String, bool)>,
@@ -356,60 +375,27 @@ fn write_cache_on_miss(
         cache.invalidate_file(cache_key);
         return;
     }
-    let hash = content_hash(source);
-    let mtime = mtime_of(cache_key);
+    let hash = precomputed_hash
+        .map(str::to_string)
+        .unwrap_or_else(|| content_hash(source.as_ref()));
     let prior_hash = cache
         .manifest()
         .files
         .get(cache_key)
         .map(|m| m.content_hash.as_str());
     let hash_changed = prior_hash.map(|old| old != hash.as_str()).unwrap_or(false);
-    let entry = CacheEntry {
-        schema_version: crate::engine::cache::CACHE_VERSION,
-        file: cache_key.to_string(),
-        content_hash: hash,
-        mtime_secs: mtime.0,
-        mtime_nanos: mtime.1,
-        language: language.as_str().to_string(),
-        findings: findings.to_vec(),
-        dependencies: dependencies.to_vec(),
-        cached_at: crate::engine::time::iso8601_utc_now(),
-    };
-    if let Err(e) = cache.put(entry) {
+    let cached_at = iso8601_utc_now();
+    if let Err(e) = cache.put(
+        cache_key,
+        &hash,
+        dependencies,
+        findings.to_vec(),
+        &cached_at,
+    ) {
         tracing::warn!(file = %cache_key, error = %e, "failed to write cache entry");
     }
     if hash_changed {
         rescan_files.push((cache_key.to_string(), true));
-    }
-}
-
-fn filter_cached_findings(ctx: &ScanContext, findings: Vec<Finding>) -> Vec<Finding> {
-    if findings.is_empty() {
-        return findings;
-    }
-    findings
-        .into_iter()
-        .filter_map(|mut f| {
-            if ctx.allows(f.rule_id) {
-                ctx.apply_finding_overrides(&mut f);
-                Some(f)
-            } else {
-                None
-            }
-        })
-        .collect()
-}
-
-fn mtime_of(rel: &str) -> (u64, u32) {
-    match std::fs::metadata(rel) {
-        Ok(m) => match m.modified() {
-            Ok(t) => match t.duration_since(std::time::SystemTime::UNIX_EPOCH) {
-                Ok(d) => (d.as_secs(), d.subsec_nanos()),
-                Err(_) => (0, 0),
-            },
-            Err(_) => (0, 0),
-        },
-        Err(_) => (0, 0),
     }
 }
 

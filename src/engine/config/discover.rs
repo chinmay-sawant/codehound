@@ -69,11 +69,12 @@ pub fn discover_cache_dir(start: &Path) -> Option<std::path::PathBuf> {
 }
 
 pub(crate) fn fail_on_to_policy(s: &str) -> FailPolicy {
-    match s.to_lowercase().as_str() {
-        "none" | "never" => FailPolicy::NoFail,
-        "high" | "strict" => FailPolicy::Strict,
-        "medium" | "warning" => FailPolicy::MediumAsErrors,
-        _ => FailPolicy::MediumAsErrors,
+    if s.eq_ignore_ascii_case("none") || s.eq_ignore_ascii_case("never") {
+        FailPolicy::NoFail
+    } else if s.eq_ignore_ascii_case("high") || s.eq_ignore_ascii_case("strict") {
+        FailPolicy::Strict
+    } else {
+        FailPolicy::MediumAsErrors
     }
 }
 

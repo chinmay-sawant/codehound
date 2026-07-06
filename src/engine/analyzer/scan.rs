@@ -134,7 +134,14 @@ impl Analyzer {
         }
         timing.stop(det_idx);
 
-        timing.measure("sort_results", || sort_findings(acc.findings_mut()));
+        timing.measure("sort_results", || {
+            acc.findings_mut().sort_by(|a, b| {
+                a.file
+                    .cmp(&b.file)
+                    .then(a.line.cmp(&b.line))
+                    .then(a.column.cmp(&b.column))
+            });
+        });
 
         if !acc.errors().is_empty() {
             tracing::warn!(
@@ -174,13 +181,4 @@ impl Analyzer {
 
         Ok(result)
     }
-}
-
-pub(crate) fn sort_findings(findings: &mut [crate::rules::Finding]) {
-    findings.sort_by(|a, b| {
-        a.file
-            .cmp(&b.file)
-            .then(a.line.cmp(&b.line))
-            .then(a.column.cmp(&b.column))
-    });
 }
