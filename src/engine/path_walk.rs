@@ -35,4 +35,3 @@ pub(crate) fn walk_up_dirs<T>(
         }
     }
 }
-

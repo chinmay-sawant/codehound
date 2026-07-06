@@ -37,7 +37,8 @@ pub fn write_with_options(
         let head = format!(
             "{}  {}  {}:{}:{}",
             sev_colored,
-            with_color(options.color, f.rule_id, || style::rule_id(f.rule_id).to_string()),
+            with_color(options.color, f.rule_id, || style::rule_id(f.rule_id)
+                .to_string()),
             f.file,
             f.line,
             f.column
@@ -109,11 +110,7 @@ fn with_color<T>(color: bool, plain: T, styled: impl FnOnce() -> String) -> Stri
 where
     T: ToString,
 {
-    if color {
-        styled()
-    } else {
-        plain.to_string()
-    }
+    if color { styled() } else { plain.to_string() }
 }
 
 pub(super) fn evidence_summary(evidence: &DetectorEvidence) -> String {

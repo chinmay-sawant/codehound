@@ -41,7 +41,10 @@ mod t {
         }
 
         let total = store.total_size();
-        assert!(total > 0, "in-memory total_size should be non-zero after puts");
+        assert!(
+            total > 0,
+            "in-memory total_size should be non-zero after puts"
+        );
         assert_eq!(store.len(), 5);
     }
 

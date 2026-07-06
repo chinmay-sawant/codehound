@@ -74,7 +74,6 @@ fn reported_rule_ids(stdout: &str) -> Vec<&str> {
 
 fn bp_analyzer() -> Analyzer {
     Analyzer::builder()
-        
         .path_filters(PathFilters {
             exclude_tests: false,
             ..Default::default()

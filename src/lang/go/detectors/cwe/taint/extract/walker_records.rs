@@ -3,11 +3,11 @@ use std::sync::Arc;
 use super::super::{
     AssignmentDetail, TaintSanitizerAnnotation, TaintSinkAnnotation, TaintSourceAnnotation,
 };
-use crate::lang::assignment::{extract_identifiers, split_assignment};
 use super::classify::{
     classify_sanitizer, classify_sink, classify_source, is_source_or_sanitizer_call,
 };
 use super::walker_core::{ExtractionState, is_chained_call};
+use crate::lang::assignment::{extract_identifiers, split_assignment};
 
 pub(super) fn record_call(node: tree_sitter::Node, state: &mut ExtractionState<'_>) {
     let Some(func) = node.child_by_field_name("function") else {

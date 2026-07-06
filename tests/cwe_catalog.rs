@@ -1,4 +1,6 @@
-use slopguard::cwe::{CWE_CATALOG, CWE_REFS_400_1336, builtin_rule_catalogue, default_ruleset_path};
+use slopguard::cwe::{
+    CWE_CATALOG, CWE_REFS_400_1336, builtin_rule_catalogue, default_ruleset_path,
+};
 
 #[test]
 fn catalog_has_expected_entries() {

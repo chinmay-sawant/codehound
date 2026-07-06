@@ -6,8 +6,8 @@ use crate::lang::go::CALL_ASSIGN_NODE_KINDS;
 
 use super::super::source_index::{NEEDLES, PerfSourceIndex};
 use super::classifier::{classify_init_only, collect_var_spec_kinds};
-use crate::lang::assignment::{extract_identifiers, split_assignment};
 use super::types::*;
+use crate::lang::assignment::{extract_identifiers, split_assignment};
 
 pub fn build_go_perf_facts(unit: &ParsedUnit) -> GoPerfFacts {
     let src = unit.source.as_bytes();

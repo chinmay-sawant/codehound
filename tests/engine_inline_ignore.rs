@@ -103,7 +103,6 @@ func Run(w http.ResponseWriter, r *http.Request) {
         let mut cache = CacheStore::open_with_capacity(cache_dir.clone(), 500).unwrap();
         let first_count = {
             let analyzer = Analyzer::builder()
-                
                 .scan_context(ScanContext::default())
                 .build();
             let r = analyzer.analyze_paths(&[&root], Some(&mut cache)).unwrap();
@@ -122,7 +121,6 @@ func Run(w http.ResponseWriter, r *http.Request) {
         let mut cache2 = CacheStore::open_with_capacity(cache_dir, 500).unwrap();
         let (second_count, cwe78_in_second) = {
             let analyzer = Analyzer::builder()
-                
                 .scan_context(ScanContext::default())
                 .build();
             let r = analyzer.analyze_paths(&[&root], Some(&mut cache2)).unwrap();
@@ -156,7 +154,6 @@ func Run(w http.ResponseWriter, r *http.Request) {
         let mut cache = CacheStore::open_with_capacity(cache_dir.clone(), 500).unwrap();
         {
             let analyzer = Analyzer::builder()
-                
                 .scan_context(ScanContext::default())
                 .build();
             let _ = analyzer.analyze_paths(&[&root], Some(&mut cache)).unwrap();
@@ -166,7 +163,6 @@ func Run(w http.ResponseWriter, r *http.Request) {
         let mut cache2 = CacheStore::open_with_capacity(cache_dir, 500).unwrap();
         let cwe78 = {
             let analyzer = Analyzer::builder()
-                
                 .scan_context(ScanContext::default())
                 .build();
             let r = analyzer.analyze_paths(&[&root], Some(&mut cache2)).unwrap();
@@ -218,7 +214,6 @@ func ReadFile(r *http.Request) {
 
         let first_ids = {
             let analyzer = Analyzer::builder()
-                
                 .scan_context(ScanContext::default())
                 .build();
             let r = analyzer.analyze_paths(&[&root], Some(&mut cache)).unwrap();
@@ -243,10 +238,7 @@ func ReadFile(r *http.Request) {
                 skip: skip_set,
                 ..Default::default()
             };
-            let analyzer = Analyzer::builder()
-                
-                .scan_context(ctx)
-                .build();
+            let analyzer = Analyzer::builder().scan_context(ctx).build();
             let r = analyzer.analyze_paths(&[&root], Some(&mut cache2)).unwrap();
             let mut ids: Vec<String> = r.findings.iter().map(|f| f.rule_id.to_string()).collect();
             ids.sort();

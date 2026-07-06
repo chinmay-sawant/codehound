@@ -143,7 +143,6 @@ func Handle() { db.Run() }
     let mut cache = CacheStore::open_with_capacity(cache_dir.clone(), 500).unwrap();
     {
         let analyzer = Analyzer::builder()
-            
             .scan_context(ScanContext::default())
             .build();
         let _ = analyzer.analyze_paths(&[&root], Some(&mut cache)).unwrap();
@@ -176,7 +175,6 @@ func Handle() { db.Run() }
     let mut cache2 = CacheStore::open_with_capacity(cache_dir, 500).unwrap();
     {
         let analyzer = Analyzer::builder()
-            
             .scan_context(ScanContext::default())
             .build();
         let _ = analyzer.analyze_paths(&[&root], Some(&mut cache2)).unwrap();
@@ -214,7 +212,6 @@ fn transitive_invalidation_works_without_go_mod_using_cwd_fallback_paths() {
     let cache_dir = root.join(DEFAULT_CACHE_DIR);
     let mut cache = CacheStore::open_with_capacity(cache_dir.clone(), 500).unwrap();
     let analyzer = Analyzer::builder()
-        
         .scan_context(ScanContext::default())
         .build();
     let _ = analyzer.analyze_paths(&[&root], Some(&mut cache)).unwrap();

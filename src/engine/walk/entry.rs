@@ -107,7 +107,6 @@ impl ListEntrySource {
             skipped: 0,
         }
     }
-
 }
 
 impl EntrySource for ListEntrySource {

@@ -7,7 +7,6 @@
 mod helpers;
 use helpers::{assert_fixture_materializes, unique_temp_root};
 
-
 use std::sync::Arc;
 
 use slopguard::core::LanguageId;
@@ -28,10 +27,7 @@ fn list_entry_source_injects_entries_into_analyzer() {
     }];
 
     let source = ListEntrySource::new(entries);
-    let analyzer = Analyzer::builder()
-        .entry_source(Box::new(source))
-        
-        .build();
+    let analyzer = Analyzer::builder().entry_source(Box::new(source)).build();
     let mut cache = CacheStore::in_memory();
     let result = analyzer
         .analyze_paths(&[&root], Some(&mut cache))

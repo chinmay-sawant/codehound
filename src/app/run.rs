@@ -362,24 +362,35 @@ fn emit_output(
             }),
         };
         app_timing.measure("reporting", || reporter.report(result))?;
-    } else {
+    } else if !cli.quiet {
         let mut parts = Vec::new();
+        if let Some(stats) = &result.stats {
+            parts.push(format!(
+                "scanned {} file(s) | {} cache hits | {} fresh | {} finding(s)",
+                stats.files_scanned,
+                stats.cache_hits,
+                stats.cache_misses,
+                result.findings.len()
+            ));
+        } else {
+            parts.push(format!("{} finding(s)", result.findings.len()));
+        }
         if export_options.export_context {
             parts.push(format!(
-                "Exported {} context file(s) to {}",
+                "exported {} context file(s) to {}",
                 export_summary.context_files_written,
                 export_options.context_output_dir.display()
             ));
         }
         if export_options.export_chunks {
             parts.push(format!(
-                "{} chunk file(s) to {}",
+                "exported {} chunk file(s) to {}",
                 export_summary.chunk_files_written,
                 export_options.chunks_output_dir.display()
             ));
         }
         if !parts.is_empty() {
-            println!("{}", parts.join(" and "));
+            println!("{}", parts.join("; "));
         }
     }
     Ok(())

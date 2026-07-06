@@ -63,10 +63,7 @@ fn taint_cwe_fixtures_fire_vulnerable_and_silence_safe() {
         taint_enabled: true,
         ..ScanContext::default()
     };
-    let analyzer = Analyzer::builder()
-        
-        .scan_context(ctx)
-        .build();
+    let analyzer = Analyzer::builder().scan_context(ctx).build();
 
     for cwe in ["CWE-78", "CWE-89", "CWE-22", "CWE-79"] {
         let vulnerable = helpers::assert_fixture_materializes(&format!(
@@ -97,10 +94,7 @@ fn framework_cwe_393_safe_does_not_false_positive_cwe_89() {
         taint_enabled: true,
         ..ScanContext::default()
     };
-    let analyzer = Analyzer::builder()
-        
-        .scan_context(ctx)
-        .build();
+    let analyzer = Analyzer::builder().scan_context(ctx).build();
     let safe =
         helpers::assert_fixture_materializes("tests/fixtures/go/frameworks/CWE-393-safe.txt");
 

@@ -4,10 +4,10 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use super::types::FILES_SUBDIR;
-use super::types::{CACHE_VERSION, CacheError, CacheLookup, CacheManifest, MANIFEST_NAME};
 #[cfg(test)]
 use super::types::CacheEntry;
+use super::types::FILES_SUBDIR;
+use super::types::{CACHE_VERSION, CacheError, CacheLookup, CacheManifest, MANIFEST_NAME};
 use super::{CacheStore, DiskBackend, InMemoryBackend};
 
 impl CacheStore {
@@ -67,17 +67,16 @@ impl CacheStore {
             Self::empty_manifest()
         };
 
-        let evict_target_ratio = if evict_target_ratio.is_finite()
-            && (0.1..=0.99).contains(&evict_target_ratio)
-        {
-            evict_target_ratio
-        } else {
-            tracing::warn!(
-                evict_target_ratio,
-                "cache.evict_target_ratio must be between 0.1 and 0.99; falling back to 0.9"
-            );
-            0.9
-        };
+        let evict_target_ratio =
+            if evict_target_ratio.is_finite() && (0.1..=0.99).contains(&evict_target_ratio) {
+                evict_target_ratio
+            } else {
+                tracing::warn!(
+                    evict_target_ratio,
+                    "cache.evict_target_ratio must be between 0.1 and 0.99; falling back to 0.9"
+                );
+                0.9
+            };
 
         Ok(Self {
             cache_dir,

@@ -12,7 +12,6 @@ fn bench_scan_materialized_fixtures(c: &mut Criterion) {
     materialize_tree(Path::new("tests/fixtures")).expect("materialize integration fixtures");
 
     let analyzer = Analyzer::builder()
-        
         .scan_context(ScanContext::default())
         .build();
     let root = materialized_root();
@@ -37,7 +36,7 @@ fn bench_collect_entries_only(c: &mut Criterion) {
 
     c.bench_function("collect_entries_materialized", |b| {
         b.iter(|| {
-            collect_entries(&registry, [&root], &filter, &Default::default())
+            collect_entries(&registry, &[&root], &filter, &Default::default())
                 .expect("collect entries");
         });
     });
@@ -56,10 +55,7 @@ fn bench_scan_go_only_subset(c: &mut Criterion) {
         ..ScanContext::default()
     };
 
-    let analyzer = Analyzer::builder()
-        
-        .scan_context(ctx)
-        .build();
+    let analyzer = Analyzer::builder().scan_context(ctx).build();
     let root = materialized_root();
 
     c.bench_function("scan_go_only_two_rules", |b| {

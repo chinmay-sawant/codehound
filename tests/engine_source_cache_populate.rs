@@ -16,7 +16,6 @@ fn analyze_paths_populates_source_cache_for_scanned_files() {
     std::fs::write(&source_path, source).unwrap();
 
     let analyzer = Analyzer::builder()
-        
         .scan_context(ScanContext::default())
         .build();
     let result = analyzer.analyze_paths(&[&root], None).unwrap();
@@ -43,7 +42,6 @@ fn analyze_paths_populates_source_cache_for_files_with_zero_findings() {
     std::fs::write(&source_path, source).unwrap();
 
     let analyzer = Analyzer::builder()
-        
         .scan_context(ScanContext::default())
         .build();
     let result = analyzer.analyze_paths(&[&root], None).unwrap();
@@ -67,7 +65,6 @@ fn analyze_paths_populates_source_cache_for_empty_files() {
     std::fs::write(&source_path, "").unwrap();
 
     let analyzer = Analyzer::builder()
-        
         .scan_context(ScanContext::default())
         .build();
     let result = analyzer.analyze_paths(&[&root], None).unwrap();
@@ -99,7 +96,6 @@ func add(a int, b int) int {
     std::fs::write(&py_path, py_source).unwrap();
 
     let analyzer = Analyzer::builder()
-        
         .scan_context(ScanContext::default())
         .build();
     let result = analyzer.analyze_paths(&[&root], None).unwrap();

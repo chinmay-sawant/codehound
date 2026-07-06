@@ -21,10 +21,7 @@ fn taint_analyzer() -> &'static Analyzer {
             taint_enabled: true,
             ..ScanContext::default()
         };
-        Analyzer::builder()
-            
-            .scan_context(ctx)
-            .build()
+        Analyzer::builder().scan_context(ctx).build()
     })
 }
 

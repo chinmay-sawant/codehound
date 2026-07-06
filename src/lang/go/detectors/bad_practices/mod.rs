@@ -29,8 +29,7 @@ impl Detector for GoBadPracticeScan {
         if !self.rule_ids().iter().any(|id| ctx.allows(id)) {
             return;
         }
-        let index =
-            source_index::SourceIndex::build(source_index::NEEDLES, unit.source.as_ref());
+        let index = source_index::SourceIndex::build(source_index::NEEDLES, unit.source.as_ref());
         for (rule_id, detector) in dispatch::BAD_PRACTICE_RULES {
             if ctx.allows(rule_id) {
                 let start = out.len();

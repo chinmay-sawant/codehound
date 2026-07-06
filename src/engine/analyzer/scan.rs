@@ -151,19 +151,20 @@ impl Analyzer {
             suppressed_count: acc.suppressed_count(),
             stats: None,
         };
+        let mut scan_stats = ScanStats::from_findings(&result.findings, result.suppressed_count);
+        scan_stats.files_scanned = chunk_stats.files_scanned;
+        scan_stats.files_skipped = chunk_stats.files_skipped;
+        scan_stats.files_errored = chunk_stats.files_errored;
+        scan_stats.cache_hits = chunk_stats.cache_hits;
+        scan_stats.cache_misses = chunk_stats.cache_misses;
         if self.collect_stats {
-            let mut scan_stats =
-                ScanStats::from_findings(&result.findings, result.suppressed_count);
-            scan_stats.files_scanned = chunk_stats.files_scanned;
-            scan_stats.files_skipped = chunk_stats.files_skipped;
-            scan_stats.files_errored = chunk_stats.files_errored;
             scan_stats.bytes_scanned = chunk_stats.bytes_scanned;
             scan_stats.lines_scanned = chunk_stats.lines_scanned;
             scan_stats.rules_executed = chunk_stats.rules_executed;
             scan_stats.detectors_loaded = self.registry.detector_count();
             scan_stats.timing = Some(timing.to_summary());
-            result.stats = Some(scan_stats);
         }
+        result.stats = Some(scan_stats);
 
         if let Some(cache) = cache {
             if let Err(e) = cache.flush() {

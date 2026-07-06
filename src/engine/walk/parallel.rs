@@ -11,10 +11,10 @@ use crate::core::ParsedUnit;
 use crate::core::{LanguageId, ScanContext};
 use crate::engine::cache::{CacheEntry, CacheLookup, CacheStore, content_hash};
 use crate::engine::ignore::{apply_ignores, parse_file_ignore};
-use crate::engine::stats::FileStats;
 use crate::engine::parse_pool::ParsePool;
 use crate::engine::registry::Registry;
 use crate::engine::result::{ScanError, ScanErrorKind};
+use crate::engine::stats::FileStats;
 use crate::engine::stats::ScanStats;
 use crate::rules::Finding;
 

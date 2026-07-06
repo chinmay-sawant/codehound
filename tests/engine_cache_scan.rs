@@ -28,10 +28,7 @@ fn scan_with_context(
     cache: Option<&mut CacheStore>,
     ctx: ScanContext,
 ) -> Vec<String> {
-    let analyzer = Analyzer::builder()
-        
-        .scan_context(ctx)
-        .build();
+    let analyzer = Analyzer::builder().scan_context(ctx).build();
     let result = analyzer
         .analyze_paths(&[root], cache)
         .expect("analyze_paths");

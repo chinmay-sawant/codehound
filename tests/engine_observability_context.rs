@@ -150,7 +150,6 @@ fn analyzer_collects_stats_when_enabled() {
         ..ScanContext::default()
     };
     let analyzer = Analyzer::builder()
-        
         .scan_context(ctx)
         .collect_stats(true)
         .build();
@@ -173,10 +172,7 @@ fn analyzer_collects_stats_when_enabled() {
 
 #[test]
 fn analyzer_omits_stats_when_disabled() {
-    let analyzer = Analyzer::builder()
-        
-        .collect_stats(false)
-        .build();
+    let analyzer = Analyzer::builder().collect_stats(false).build();
     let result = analyzer.analyze_paths(&["src"], None).unwrap();
     assert!(result.stats.is_none());
 }

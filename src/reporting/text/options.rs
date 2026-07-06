@@ -22,7 +22,10 @@ pub struct TextOptions {
 ///
 /// Returns [`Error`] when formatting or stdout write fails.
 #[must_use = "I/O errors from writing text output must be handled"]
-pub(crate) fn print_with_options(result: &AnalysisResult, options: TextOptions) -> Result<(), Error> {
+pub(crate) fn print_with_options(
+    result: &AnalysisResult,
+    options: TextOptions,
+) -> Result<(), Error> {
     let stdout = io::stdout();
     let mut out = stdout.lock();
     write_with_options(&mut out, result, options)
