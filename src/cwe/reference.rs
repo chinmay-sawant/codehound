@@ -14,3 +14,14 @@ impl CweRef {
         Self { id, name, url }
     }
 }
+
+/// Format CWE references as `"CWE-N (name), ..."` sorted by id.
+pub fn format_cwe_list(cwes: &[CweRef]) -> String {
+    let mut sorted: Vec<_> = cwes.iter().collect();
+    sorted.sort_by_key(|c| c.id);
+    sorted
+        .iter()
+        .map(|c| format!("CWE-{} ({})", c.id, c.name))
+        .collect::<Vec<_>>()
+        .join(", ")
+}

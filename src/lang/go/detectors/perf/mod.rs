@@ -13,7 +13,7 @@ pub mod source_index;
 mod metadata;
 
 use crate::core::{Detector, LanguageId, ParsedUnit, ScanContext};
-use crate::rules::{Finding, Rule, RuleMetadata};
+use crate::rules::{Finding, RuleMetadata};
 use domains::*;
 use facts::{GoPerfFacts, build_go_perf_facts};
 
@@ -24,15 +24,6 @@ include!(concat!(env!("OUT_DIR"), "/go_perf_registry.rs"));
 
 pub struct GoPerfScan;
 
-impl Rule for GoPerfScan {
-    fn metadata(&self) -> RuleMetadata {
-        GO_PERF_RULES
-            .first()
-            .map(|(_, _, meta)| (*meta).clone())
-            .expect("GO_PERF_RULES must not be empty")
-    }
-}
-
 impl Detector for GoPerfScan {
     fn language(&self) -> LanguageId {
         LanguageId::Go
@@ -42,11 +33,11 @@ impl Detector for GoPerfScan {
         self::metadata::GO_PERF_RULE_IDS
     }
 
-    fn metadata_for(&self, rule_id: &str) -> Option<RuleMetadata> {
+    fn metadata_for(&self, rule_id: &str) -> Option<&'static RuleMetadata> {
         GO_PERF_RULES
             .iter()
             .find(|(id, _, _)| *id == rule_id)
-            .map(|(_, _, meta)| (*meta).clone())
+            .map(|(_, _, meta)| *meta)
     }
 
     fn run(&self, ctx: &ScanContext, unit: &ParsedUnit, out: &mut Vec<Finding>) {

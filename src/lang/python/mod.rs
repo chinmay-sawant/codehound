@@ -1,46 +1,21 @@
 //! Python language plugin (stub + first detector).
 
 mod detectors;
-mod loop_kinds;
-mod matchers;
-mod parser;
+mod register;
 
-use std::path::Path;
-use std::sync::Arc;
+const LOOP_NODE_KINDS: &[&str] = &["for_statement", "while_statement"];
 
-use anyhow::Result;
+use crate::core::LanguageId;
+use crate::lang::plugin::tree_sitter_lang;
 
-use crate::core::{Detector, LanguageId, LanguagePlugin, ParsedUnit};
-
-pub struct PythonPlugin;
-
-impl LanguagePlugin for PythonPlugin {
-    fn id(&self) -> LanguageId {
-        LanguageId::Python
-    }
-
-    fn extensions(&self) -> &'static [&'static str] {
-        &["py"]
-    }
-
-    fn configure_parser(&self, parser: &mut tree_sitter::Parser) {
-        parser::configure(parser);
-    }
-
-    fn parse_with(
-        &self,
-        parser: &mut tree_sitter::Parser,
-        path: &Path,
-        source: Arc<str>,
-    ) -> Result<ParsedUnit> {
-        parser::parse_with(parser, path, source)
-    }
-
-    fn detectors(&self) -> Vec<Box<dyn Detector>> {
-        detectors::all()
-    }
-
-    fn loop_node_kinds(&self) -> &'static [&'static str] {
-        loop_kinds::LOOP_NODE_KINDS
-    }
-}
+tree_sitter_lang!(
+    PythonLang,
+    PythonPlugin,
+    LanguageId::Python,
+    tree_sitter_python::LANGUAGE.into(),
+    "tree-sitter-python",
+    &["py"],
+    detectors::all(),
+    &[],
+    LOOP_NODE_KINDS
+);

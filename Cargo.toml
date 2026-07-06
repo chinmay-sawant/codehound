@@ -17,17 +17,20 @@ path = "src/lib.rs"
 [[bin]]
 name = "slopguard"
 path = "src/main.rs"
+required-features = ["cli"]
 
 [features]
 # Default: all shipped languages — mixed Go + Python repos work out of the box.
-default = ["go", "python", "terminal-output"]
+default = ["go", "python", "terminal-output", "cli"]
+cli = ["dep:clap"]
+typescript = []
 go = ["dep:tree-sitter-go"]
 python = ["dep:tree-sitter-python"]
 terminal-output = ["dep:colored"]
 
 [dependencies]
 # CLI
-clap = { version = "4.6", features = ["derive", "cargo", "env", "wrap_help"] }
+clap = { version = "4.6", features = ["derive", "cargo", "env", "wrap_help"], optional = true }
 
 # Errors
 anyhow = "1.0"
@@ -61,6 +64,12 @@ phf = { version = "0.11", features = ["macros"] }
 walkdir = "2.5"
 ignore = "0.4"
 
+# Content hashing (incremental analysis cache)
+sha2 = "0.10"
+
+# Compile-time plugin registration
+inventory = "0.3"
+
 [build-dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -78,8 +87,17 @@ tree-sitter-python = "0.25"
 name = "scan_throughput"
 harness = false
 
+[[bench]]
+name = "incremental_scan"
+harness = false
+
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("go", "python", "terminal-output"))'] }
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("go", "python", "terminal-output", "cli", "typescript"))'] }
+
+[lints.clippy]
+all = { level = "deny", priority = 10 }
+redundant_clone = { level = "deny", priority = 9 }
+needless_collect = { level = "warn", priority = 5 }
 
 [profile.release]
 opt-level = 3

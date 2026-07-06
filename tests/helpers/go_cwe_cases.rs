@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 
 use std::collections::BTreeSet;
-use std::fs;
 use std::path::Path;
 
 pub fn discover_go_cwe_cases() -> Vec<String> {
@@ -30,6 +29,25 @@ pub fn parse_cwe_number(cwe: &str) -> u32 {
         .unwrap_or_else(|e| panic!("invalid CWE number in {cwe}: {e}"))
 }
 
+fn collect_cases_with_suffix(dir: &Path, suffix: &str) -> BTreeSet<String> {
+    let mut cases = BTreeSet::new();
+    for entry in
+        std::fs::read_dir(dir).unwrap_or_else(|e| panic!("read_dir {}: {e}", dir.display()))
+    {
+        let path = entry
+            .unwrap_or_else(|e| panic!("read_dir entry {}: {e}", dir.display()))
+            .path();
+        let name = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or_else(|| panic!("non-utf8 fixture path: {}", path.display()));
+        if let Some(case) = name.strip_suffix(suffix) {
+            cases.insert(case.to_string());
+        }
+    }
+    cases
+}
+
 fn collect_suite_cases(suite: &str) -> BTreeSet<String> {
     let dir = Path::new("tests/fixtures/go").join(suite);
     let vulnerable = collect_cases_with_suffix(&dir, "-vulnerable.txt");
@@ -41,24 +59,4 @@ fn collect_suite_cases(suite: &str) -> BTreeSet<String> {
     );
 
     vulnerable
-}
-
-fn collect_cases_with_suffix(dir: &Path, suffix: &str) -> BTreeSet<String> {
-    let mut cases = BTreeSet::new();
-
-    for entry in fs::read_dir(dir).unwrap_or_else(|e| panic!("read_dir {}: {e}", dir.display())) {
-        let path = entry
-            .unwrap_or_else(|e| panic!("read_dir entry {}: {e}", dir.display()))
-            .path();
-        let name = path
-            .file_name()
-            .and_then(|name| name.to_str())
-            .unwrap_or_else(|| panic!("non-utf8 fixture path: {}", path.display()));
-
-        if let Some(case) = name.strip_suffix(suffix) {
-            cases.insert(case.to_string());
-        }
-    }
-
-    cases
 }

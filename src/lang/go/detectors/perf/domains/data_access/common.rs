@@ -10,6 +10,7 @@ pub(crate) fn call_in_loop_with(facts: &GoPerfFacts, needles: &[&str]) -> Option
     })
 }
 
-pub(crate) fn has_any(source: &str, needles: &[&str]) -> bool {
-    needles.iter().any(|n| source.contains(n))
+/// Substring-level presence check (not backed by the file-level index).
+pub(crate) fn substr_has_any(s: &str, needles: &[&str]) -> bool {
+    needles.iter().any(|n| s.contains(n))
 }

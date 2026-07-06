@@ -2,15 +2,15 @@ use super::facts;
 use super::source_index::SourceIndex;
 
 pub fn is_configuration_sink(callee: &str) -> bool {
-    crate::engine::sinks::matches_sink(&crate::engine::sinks::CONFIG_SINKS, callee)
+    crate::engine::sinks::CONFIG_SINKS.contains(callee)
 }
 
 pub fn is_path_traversal_sink(callee: &str) -> bool {
-    crate::engine::sinks::matches_sink(&crate::engine::sinks::PATH_TRAVERSAL_SINKS, callee)
+    crate::engine::sinks::PATH_TRAVERSAL_SINKS.contains(callee)
 }
 
 pub fn is_link_resolution_sink(callee: &str) -> bool {
-    crate::engine::sinks::matches_sink(&crate::engine::sinks::LINK_RESOLUTION_SINKS, callee)
+    crate::engine::sinks::LINK_RESOLUTION_SINKS.contains(callee)
 }
 
 pub fn argument_uses_identifier(argument: &str, ident: &str) -> bool {

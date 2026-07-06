@@ -21,8 +21,11 @@ critical  CWE-89  src/db.go:9:18  user-controlled input is concatenated into a S
   `red` (high), `red+bold` (critical). Disable with `--no-color` or
   `NO_COLOR=1`.
 - Use `--no-snippet` to suppress the source snippet block.
+- Use `--verbose` to show structured evidence summaries, confidence, tags, and suppression status.
+- Use `--debug-timing` to print a per-detector timing breakdown after findings.
 - CWE list is sorted by id for deterministic output.
 - A summary footer lists totals by severity and the top 5 rules by count.
+- When stats collection is enabled (`--debug-timing` or `--diagnostics`), the footer also shows files scanned, lines scanned, and total wall time.
 
 ## JSON (NDJSON, one finding per line)
 
@@ -34,6 +37,23 @@ critical  CWE-89  src/db.go:9:18  user-controlled input is concatenated into a S
 - `cwe` is always an array (`[]` when no CWE references).
 - One JSON object per line; suitable for `jq` pipelines.
 - `severity` is one of `"info"`, `"warning"`, `"high"`, `"critical"`.
+- `fingerprint` is always present and is stable across text, JSON, SARIF,
+  baseline matching, and CI diffing.
+- Structured detector fields are additive and omitted when unset, so older
+  consumers can keep parsing the core finding shape.
+- `--json-envelope` wraps findings in a single object that also includes
+  `findingCount`, `errorCount`, `suppressedCount`, and an optional `stats`
+  object when timing/stats collection is enabled.
+
+Optional structured fields:
+
+| Field         | Meaning |
+|---------------|---------|
+| `evidence`    | Machine-readable detector evidence such as `DangerousCall`, `TaintFlow`, `PatternMatch`, `MissingConfig`, or `ControlFlowIssue`. |
+| `confidence`  | Detector confidence from `0.0` to `1.0` when a heuristic rule can quantify certainty. |
+| `tags`        | Machine-readable labels for workflow hints, false-positive risk, framework context, or detector category. |
+| `suppressed`  | Present only when the finding is emitted in ignored/suppressed mode. |
+| `remediation` | Longer actionable remediation guidance, separate from the shorter `fix` hint. |
 
 ## SARIF 2.1.0
 
@@ -70,9 +90,15 @@ and includes:
 | `runs[0].results[].message.text`                   | detector message |
 | `runs[0].results[].locations[].physicalLocation.artifactLocation.uri` | file path |
 | `runs[0].results[].locations[].physicalLocation.region.startLine`/`startColumn` | 1-indexed |
-| `runs[0].results[].partialFingerprints["slopguard/v1"]` | stable fingerprint (`<ver>:<rule>:<file>:<line>:<col>`) |
+| `runs[0].results[].partialFingerprints["slopguard/v1"]` | stable fingerprint (`slopguard:1:<rule>:<file>:<line>:<col>`) |
 | `runs[0].results[].properties.tags`                | `["security", "cwe", "cwe-22", ...]` |
 | `runs[0].results[].properties.security-severity`   | `0.0`/`4.0`/`7.0`/`9.0` |
+| `runs[0].results[].rank`                           | confidence × 100 (only when `confidence` is set) |
+| `runs[0].results[].suppressions[].kind`            | `"external"` when the finding is suppressed |
+| `runs[0].results[].properties.slopguardEvidence`   | full structured detector evidence as JSON |
+| `runs[0].results[].properties.remediation`         | longer remediation guidance when set |
+
+New properties are additive and use SARIF's standard `properties` bag, so existing SARIF consumers should ignore unknown fields gracefully.
 
 The `security-severity` mapping follows the
 [GitHub Code Scoring scale](https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/about-code-scanning-alerts#about-severity-levels):

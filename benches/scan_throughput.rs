@@ -18,9 +18,11 @@ fn bench_scan_materialized_fixtures(c: &mut Criterion) {
 
     c.bench_function("scan_materialized_fixtures", |b| {
         b.iter(|| {
-            analyzer
-                .analyze_paths([&root])
-                .expect("scan should succeed");
+            let _ = std::hint::black_box(
+                analyzer
+                    .analyze_paths(&[&root], None)
+                    .expect("scan should succeed"),
+            );
         });
     });
 }
@@ -34,7 +36,7 @@ fn bench_collect_entries_only(c: &mut Criterion) {
 
     c.bench_function("collect_entries_materialized", |b| {
         b.iter(|| {
-            collect_entries(&registry, [&root], &filter, &Default::default())
+            collect_entries(&registry, &[&root], &filter, &Default::default())
                 .expect("collect entries");
         });
     });
@@ -58,9 +60,11 @@ fn bench_scan_go_only_subset(c: &mut Criterion) {
 
     c.bench_function("scan_go_only_two_rules", |b| {
         b.iter(|| {
-            analyzer
-                .analyze_paths([&root])
-                .expect("scan should succeed");
+            let _ = std::hint::black_box(
+                analyzer
+                    .analyze_paths(&[&root], None)
+                    .expect("scan should succeed"),
+            );
         });
     });
 }

@@ -1,14 +1,33 @@
 //! A single finding emitted by a detector.
+#![allow(missing_docs)] // ratchet: document in a follow-up pass
 
 use std::borrow::Cow;
 
-use serde::{Serialize, Serializer};
+use serde::de::Deserializer;
+use serde::{Deserialize, Serialize, Serializer};
 
 use super::Severity;
+use super::evidence::DetectorEvidence;
+use super::finding_wire::FindingWire;
 use crate::cwe::CweRef;
 
+pub(crate) const FINGERPRINT_TOOL: &str = "slopguard";
+pub(crate) const FINGERPRINT_VERSION: u32 = 1;
+
+fn format_fingerprint(rule_id: &str, file: &str, line: usize, column: usize) -> String {
+    format!(
+        "{}:{}:{}:{}:{}:{}",
+        FINGERPRINT_TOOL,
+        FINGERPRINT_VERSION,
+        rule_id,
+        file.replace('\\', "/"),
+        line,
+        column
+    )
+}
+
 /// 1-indexed line and column in a source file.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, serde::Deserialize)]
 pub struct LineCol {
     pub line: usize,
     pub column: usize,
@@ -16,6 +35,7 @@ pub struct LineCol {
 
 /// Serialize `Option<Box<[T]>>` so that `None` and `Some(&[])` both emit as
 /// `[]` (preserves the historical wire shape for JSON consumers).
+// ponytail: serde lacks native "None → []" serialization. Custom fn is the shortest path.
 fn serialize_optional_cwe<S: Serializer>(
     cwe: &Option<Box<[CweRef]>>,
     serializer: S,
@@ -23,6 +43,52 @@ fn serialize_optional_cwe<S: Serializer>(
     match cwe {
         Some(slice) => slice.serialize(serializer),
         None => Vec::<CweRef>::new().serialize(serializer),
+    }
+}
+
+fn is_false(value: &bool) -> bool {
+    !*value
+}
+
+/// Core fields required to construct a [`Finding`].
+#[derive(Debug, Clone)]
+pub struct FindingInputs {
+    /// Rule id, e.g. `CWE-89`.
+    pub rule_id: &'static str,
+    /// Rule title.
+    pub rule_title: &'static str,
+    /// File path (relative to the analyzed root when possible).
+    pub file: String,
+    /// 1-indexed line and column of the match.
+    pub location: LineCol,
+    /// Free-form message.
+    pub message: String,
+    /// Severity.
+    pub severity: Severity,
+    /// Linked CWEs. An empty slice means no CWEs.
+    pub cwe: Cow<'static, [CweRef]>,
+}
+
+impl FindingInputs {
+    /// Convenience constructor for detectors, tests, and fixtures.
+    pub fn new(
+        rule_id: &'static str,
+        rule_title: &'static str,
+        file: impl Into<String>,
+        location: LineCol,
+        message: impl Into<String>,
+        severity: Severity,
+        cwe: Cow<'static, [CweRef]>,
+    ) -> Self {
+        Self {
+            rule_id,
+            rule_title,
+            file: file.into(),
+            location,
+            message: message.into(),
+            severity,
+            cwe,
+        }
     }
 }
 
@@ -39,16 +105,14 @@ pub struct Finding {
     pub line: usize,
     /// 1-indexed column.
     pub column: usize,
-    /// 1-indexed end line of the matched region, when known.
+    // ponytail: end_line/end_column/byte_offset/byte_length are always None in
+    // new findings but kept for the JSON/SARIF/finding_wire API shape.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub end_line: Option<usize>,
-    /// 1-indexed end column of the matched region, when known.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub end_column: Option<usize>,
-    /// 0-indexed byte offset of the match start within the source file.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub byte_offset: Option<usize>,
-    /// Number of bytes covered by the match, when known.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub byte_length: Option<usize>,
     /// 0-indexed byte offset of the start of the enclosing function, when
@@ -77,30 +141,37 @@ pub struct Finding {
     pub cwe: Option<Box<[CweRef]>>,
     /// Optional suggestion.
     pub fix: Option<String>,
+    /// Machine-readable structured evidence for downstream processing.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub evidence: Option<DetectorEvidence>,
+    /// Confidence score from 0.0 to 1.0.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<f32>,
+    /// Tags for filtering or grouping.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Vec<String>>,
+    /// Whether the finding is suppressed but still included in output.
+    #[serde(skip_serializing_if = "is_false")]
+    pub suppressed: bool,
+    /// Human-readable remediation guidance beyond the short fix suggestion.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub remediation: Option<String>,
 }
 
 impl Finding {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        rule_id: &'static str,
-        rule_title: &'static str,
-        file: impl Into<String>,
-        location: LineCol,
-        message: impl Into<String>,
-        severity: Severity,
-        cwe: Cow<'static, [CweRef]>,
-    ) -> Self {
-        let cwe = if cwe.is_empty() {
+    /// Construct a finding from [`FindingInputs`]; chain `with_*` methods for optional fields.
+    pub fn new(inputs: FindingInputs) -> Self {
+        let cwe = if inputs.cwe.is_empty() {
             None
         } else {
-            Some(cwe.into_owned().into_boxed_slice())
+            Some(inputs.cwe.into_owned().into_boxed_slice())
         };
         Self {
-            rule_id,
-            rule_title,
-            file: file.into(),
-            line: location.line,
-            column: location.column,
+            rule_id: inputs.rule_id,
+            rule_title: inputs.rule_title,
+            file: inputs.file,
+            line: inputs.location.line,
+            column: inputs.location.column,
             end_line: None,
             end_column: None,
             byte_offset: None,
@@ -110,10 +181,15 @@ impl Finding {
             function_start_line: None,
             function_end_line: None,
             snippet: None,
-            message: message.into(),
-            severity,
+            message: inputs.message,
+            severity: inputs.severity,
             cwe,
             fix: None,
+            evidence: None,
+            confidence: None,
+            tags: None,
+            suppressed: false,
+            remediation: None,
         }
     }
 
@@ -127,14 +203,38 @@ impl Finding {
         self
     }
 
-    /// Attach byte-range information to the finding.
+    pub fn with_evidence(mut self, evidence: DetectorEvidence) -> Self {
+        self.evidence = Some(evidence);
+        self
+    }
+
+    pub fn with_confidence(mut self, confidence: f32) -> Self {
+        self.confidence = Some(confidence);
+        self
+    }
+
+    pub fn with_tags(mut self, tags: Vec<String>) -> Self {
+        self.tags = Some(tags);
+        self
+    }
+
+    pub fn with_remediation(mut self, remediation: impl Into<String>) -> Self {
+        self.remediation = Some(remediation.into());
+        self
+    }
+
+    pub fn mark_suppressed(mut self) -> Self {
+        self.suppressed = true;
+        self
+    }
+
+    // ponytail: with_byte_range/with_end kept for API shape (reporting reads the fields).
     pub fn with_byte_range(mut self, byte_offset: usize, byte_length: usize) -> Self {
         self.byte_offset = Some(byte_offset);
         self.byte_length = Some(byte_length);
         self
     }
 
-    /// Attach end-line/end-column information to the finding.
     pub fn with_end(mut self, end_line: usize, end_column: usize) -> Self {
         self.end_line = Some(end_line);
         self.end_column = Some(end_column);
@@ -158,12 +258,40 @@ impl Finding {
         self
     }
 
-    /// Compute a stable cross-run fingerprint (`<rule>:<file>:<line>:<col>`).
-    /// Consumers can use this to deduplicate findings across CI runs.
-    pub fn fingerprint(&self) -> String {
-        format!(
-            "{}:{}:{}:{}",
-            self.rule_id, self.file, self.line, self.column
-        )
+    /// Convenience string form for wire output.
+    pub fn fingerprint_string(&self) -> String {
+        format_fingerprint(self.rule_id, &self.file, self.line, self.column)
+    }
+
+    /// Rule category derived from the rule id prefix.
+    pub fn category(&self) -> &'static str {
+        super::category_for_rule_id(self.rule_id)
+    }
+}
+
+impl<'de> Deserialize<'de> for Finding {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        Ok(FindingWire::deserialize(deserializer)?.into_finding())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn into_wire_round_trips_via_finding_wire() {
+        let f = Finding::new(FindingInputs::new(
+            "CWE-1",
+            "t",
+            "a.go",
+            LineCol { line: 1, column: 1 },
+            "m",
+            Severity::Low,
+            std::borrow::Cow::Borrowed(&[]),
+        ));
+        let wire = FindingWire::from(f.clone());
+        assert_eq!(wire.rule_id, "CWE-1");
+        assert_eq!(wire.into_finding().rule_id, f.rule_id);
     }
 }

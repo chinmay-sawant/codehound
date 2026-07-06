@@ -2,18 +2,22 @@ use super::super::facts::GoUnitFacts;
 use super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
-pub(crate) fn detect_cwe_601(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_601(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let caller_redirect = source.contains(r#""next""#)
-        && (source.contains("c.Redirect(http.StatusFound, target)")
-            || source.contains("http.Redirect(w, r, target, http.StatusFound)"));
+    let caller_redirect = facts.source_index.has(r#""next""#)
+        && (facts
+            .source_index
+            .has("c.Redirect(http.StatusFound, target)")
+            || facts
+                .source_index
+                .has("http.Redirect(w, r, target, http.StatusFound)"));
     if !caller_redirect {
         return;
     }
-    if source.contains("strings.HasPrefix(target, \"/\")")
-        || source.contains("strings.Contains(target, \"//\")")
+    if facts.source_index.has("strings.HasPrefix(target, \"/\")")
+        || facts.source_index.has("strings.Contains(target, \"//\")")
     {
         return;
     }
@@ -30,18 +34,19 @@ pub(crate) fn detect_cwe_601(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut 
     );
 }
 
-pub(crate) fn detect_cwe_918(unit: &ParsedUnit, _facts: &GoUnitFacts, out: &mut Vec<Finding>) {
+pub(crate) fn detect_cwe_918(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let ssrf_fetch = source.contains("http.Get(target)")
-        && (source.contains("c.Query(\"url\")") || source.contains("r.URL.Query().Get(\"url\")"));
+    let ssrf_fetch = facts.source_index.has("http.Get(target)")
+        && (facts.source_index.has("c.Query(\"url\")")
+            || facts.source_index.has("r.URL.Query().Get(\"url\")"));
     if !ssrf_fetch {
         return;
     }
-    if source.contains("allowedHosts")
-        || source.contains("allowedHostsPure")
-        || source.contains("Hostname()")
+    if facts.source_index.has("allowedHosts")
+        || facts.source_index.has("allowedHostsPure")
+        || facts.source_index.has("Hostname()")
     {
         return;
     }

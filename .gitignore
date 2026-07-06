@@ -5,3 +5,18 @@ target/slopguard-fixtures/
 # chunks and findings 
 scripts/chunks
 scripts/findings
+scripts/gopdfsuit
+.slopguard-cache
+
+.agents
+.grok 
+AGENTS.md 
+opencode.json 
+skills-lock.json
+
+.codex-plugin
+.cursor
+node_modules
+package.json 
+package-lock.json
+.opencode

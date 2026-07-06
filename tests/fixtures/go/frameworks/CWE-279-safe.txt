@@ -6,6 +6,7 @@ package sample
 
 import (
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -18,7 +19,8 @@ func StoreUpload(c *gin.Context) {
 	if err != nil || mode > 0644 {
 		mode = 0644
 	}
-	path := "/data/uploads/" + c.PostForm("name")
+	raw := c.PostForm("name")
+	path := "/data/uploads/" + filepath.Base(raw)
 	_ = os.WriteFile(path, []byte(c.PostForm("body")), os.FileMode(mode))
 	c.JSON(200, gin.H{"path": path})
 }

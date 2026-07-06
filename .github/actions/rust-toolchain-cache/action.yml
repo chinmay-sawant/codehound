@@ -1,0 +1,34 @@
+name: 'Rust toolchain + cache'
+description: 'Checkout, install Rust toolchain, restore/save cargo cache'
+inputs:
+  toolchain:
+    description: 'Rust toolchain version'
+    required: false
+    default: 'stable'
+  components:
+    description: 'Additional toolchain components'
+    required: false
+    default: ''
+  features:
+    description: 'Feature flags string for cache key'
+    required: false
+    default: 'go,python'
+runs:
+  using: 'composite'
+  steps:
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ inputs.toolchain }}
+        components: ${{ inputs.components }}
+    - uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry/index
+          ~/.cargo/registry/cache
+          ~/.cargo/git/db
+          target
+        key: ${{ runner.os }}-cargo-${{ inputs.features }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-${{ inputs.features }}-
+          ${{ runner.os }}-cargo-

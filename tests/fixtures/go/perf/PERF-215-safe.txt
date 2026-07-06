@@ -1,0 +1,15 @@
+# PERF-215 negative: bytes.Buffer is pre-sized
+lang: go
+file: PERF-215-safe.go
+variant: stdlib
+---
+package sample
+
+import "bytes"
+
+func Encode(payload string) string {
+	var buf bytes.Buffer
+	buf.Grow(len(payload))
+	buf.WriteString(payload)
+	return buf.String()
+}

@@ -21,7 +21,9 @@ func WriteSessionSnapshot(w http.ResponseWriter, r *http.Request) error {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return err
 	}
-	path := filepath.Join(dir, "snap-"+r.URL.Query().Get("id")+".json")
+	raw := r.URL.Query().Get("id")
+	id := filepath.Base(raw)
+	path := filepath.Join(dir, "snap-"+id+".json")
 	if err := os.WriteFile(path, []byte(r.FormValue("body")), 0600); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return err

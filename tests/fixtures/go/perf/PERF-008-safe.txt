@@ -12,7 +12,7 @@ import (
 var isoDate = "2006-01-02"
 
 func ParseTimestamps(input string) []time.Time {
-	out := make([]time.Time, 0)
+	var out []time.Time
 	for _, line := range strings.Split(input, "\n") {
 		t, _ := time.Parse(isoDate, line)
 		out = append(out, t)

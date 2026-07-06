@@ -2,8 +2,7 @@
 
 use std::collections::HashSet;
 
-use anyhow::{Result, bail};
-
+use crate::Error;
 use crate::core::LanguageId;
 use crate::engine::config::SlopguardConfig;
 use crate::engine::registry::Registry;
@@ -31,11 +30,17 @@ impl LanguageFilter {
 }
 
 /// Resolve filter: `--lang` wins over config `languages`; empty config means all.
+///
+/// # Errors
+///
+/// Returns [`Error::Config`] when `slopguard.toml` lists an unknown or
+/// disabled language for this build.
+#[must_use = "language filter resolution failures must be handled"]
 pub fn resolve_language_filter(
     cli_lang: Option<LanguageId>,
     config: Option<&SlopguardConfig>,
     registry: &Registry,
-) -> Result<LanguageFilter> {
+) -> Result<LanguageFilter, Error> {
     if let Some(id) = cli_lang {
         return Ok(LanguageFilter::One(id));
     }
@@ -52,11 +57,15 @@ pub fn resolve_language_filter(
     for name in names {
         let Some(id) = LanguageId::from_config_name(name) else {
             let known = format_known_language_names(&enabled);
-            bail!("unknown language {name:?} in slopguard.toml; expected one of: {known}");
+            return Err(Error::Config(format!(
+                "unknown language {name:?} in slopguard.toml; expected one of: {known}"
+            )));
         };
         if !enabled.contains(&id) {
             let known = format_known_language_names(&enabled);
-            bail!("language {name:?} is not enabled in this build; available: {known}");
+            return Err(Error::Config(format!(
+                "language {name:?} is not enabled in this build; available: {known}"
+            )));
         }
         allowed.insert(id);
     }

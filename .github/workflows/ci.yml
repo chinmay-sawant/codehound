@@ -6,14 +6,13 @@ on:
   pull_request:
     branches: [main, master]
 
-env:
-  CARGO_TERM_COLOR: always
-  RUSTFLAGS: -D warnings
-
 jobs:
   test:
     name: test (${{ matrix.os }} / ${{ matrix.features }})
     runs-on: ${{ matrix.os }}
+    env:
+      CARGO_TERM_COLOR: always
+      RUSTFLAGS: -D warnings
     strategy:
       fail-fast: false
       matrix:
@@ -23,21 +22,10 @@ jobs:
           - go
           - python
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: ./.github/actions/rust-toolchain-cache
         with:
           components: clippy, rustfmt
-      - name: Cache cargo registry & target
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ matrix.features }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-${{ matrix.features }}-
-            ${{ runner.os }}-cargo-
+          features: ${{ matrix.features }}
       - name: Build
         run: |
           if [ "${{ matrix.features }}" = "default" ]; then
@@ -56,58 +44,59 @@ jobs:
   lint:
     name: lint
     runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
+      RUSTFLAGS: -D warnings
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: ./.github/actions/rust-toolchain-cache
         with:
           components: clippy, rustfmt
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-lint-${{ hashFiles('**/Cargo.lock') }}
+          features: lint
       - name: rustfmt
         run: cargo fmt --all -- --check
+      - name: No production unwrap/expect
+        run: bash scripts/check_no_prod_expect.sh
       - name: clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
   msrv:
     name: MSRV (1.85)
     runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
+      RUSTFLAGS: -D warnings
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.85
       - name: Test on MSRV
         run: cargo test --all-targets
 
-  bench:
-    name: bench
+  audit:
+    name: cargo audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/cache@v4
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+      - name: Audit dependencies
+        run: cargo audit
+
+  bench:
+    name: bench
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
+      RUSTFLAGS: -D warnings
+    steps:
+      - uses: ./.github/actions/rust-toolchain-cache
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-bench-${{ hashFiles('**/Cargo.lock') }}
+          features: bench
       - name: Run criterion bench
         run: cargo bench --bench scan_throughput -- --output-format bencher 2>&1 | tee bench_output.txt
       - name: Check perf budget
-        run: |
-          THRESHOLD=65000000
-          BENCH_OUT=$(cat bench_output.txt)
-          TIME=$(echo "$BENCH_OUT" | grep 'scan_materialized_fixtures' | sed -n 's/.*bench:\s*\([0-9]*\)\s*ns\/iter.*/\1/p')
-          if [ -n "$TIME" ]; then
-            if [ "$TIME" -gt "$THRESHOLD" ]; then
-              echo "ERROR: scan_materialized_fixtures time ${TIME} ns exceeds budget ${THRESHOLD} ns"
-              exit 1
-            fi
-            echo "scan_materialized_fixtures: ${TIME} ns (budget: ${THRESHOLD} ns)"
-          else
-            echo "WARNING: scan_materialized_fixtures not found in bench output"
-          fi
+        run: bash scripts/check_bench_budget.sh
+      - name: Run incremental bench
+        run: cargo bench --bench incremental_scan -- --output-format bencher 2>&1 | tee bench_incremental_output.txt
+      - name: Check incremental bench budget
+        run: bash scripts/check_incremental_bench_budget.sh

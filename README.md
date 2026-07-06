@@ -11,6 +11,10 @@ The CWE catalog has 175+ entries auto-generated from a central sink registry,
 providing comprehensive coverage of known weakness patterns across file I/O,
 SQL, command injection, link resolution, and configuration sinks.
 
+A **PERF** (performance) rule catalog with 224 rules is also included; over 60
+detectors are shipped covering common performance anti-patterns in Go. See
+[`docs/perf-rules.md`](./docs/perf-rules.md) for the full catalog.
+
 It is designed to **complement** existing language tooling with repository-local
 heuristics, reusable fact extraction, and machine-readable findings.
 
@@ -33,8 +37,7 @@ See [`plans/`](./plans) for the detailed plan.
 | Phase | Theme | Status |
 |------:|-------|--------|
 | **p1** | Go CWE heuristic coverage | Implemented |
-| **p2** | Broader language and rule coverage | Planned |
-| **p3** | CVE (Common Vulnerabilities and Exposures) coverage | Planned |
+| **p2** | Broader language and rule coverage | In Progress |
 
 ## Installation
 
@@ -69,7 +72,22 @@ slopguard --explain CWE-89
 
 # Write a starter slopguard.toml
 slopguard init
+
+# Incremental analysis cache (enabled by default)
+#   .slopguard-cache/ stores per-file findings keyed by content hash.
+slopguard .
+
+# Force a fresh cache (purge then scan)
+slopguard --rebuild-cache .
+
+# Prune stale cache entries without scanning
+slopguard --prune-cache .
+
+# Disable the cache for this run
+slopguard --no-cache .
 ```
+
+See [`docs/incremental-cache.md`](./docs/incremental-cache.md) for details on the cache format, invalidation strategy, and configuration.
 
 ### Severity Levels
 
@@ -89,6 +107,26 @@ are documented in [`docs/output-formats.md`](./docs/output-formats.md#sarif-210)
 Look for SARIF
 compatibility notes in [`plans/v0.0.1/go/perf-heuristics-and-sarif.md`](./plans/v0.0.1/go/perf-heuristics-and-sarif.md)
 (perf-rule-specific SARIF metadata is in progress).
+
+### Diagnostics Summary
+
+Pass `--diagnostics-summary` to print a compact scan summary to stderr:
+
+```
+scanned 238 files | 195 cached | 43 fresh | 1250.3ms | slowest: PERF-141
+```
+
+### Taint Tracking
+
+SlopGuard includes an experimental intra-procedural taint-tracking engine for
+CWE-22, CWE-78, CWE-79, and CWE-89. See [`docs/taint.md`](./docs/taint.md)
+for details.
+
+### Bad Practices
+
+65 Go bad-practice rules (`BP-*`) are shipped covering error handling,
+concurrency, testing, API design, code organization, production hardening, and
+dependency hygiene. See [`docs/bad-practices.md`](./docs/bad-practices.md).
 
 ### Configuration file (`slopguard.toml`)
 

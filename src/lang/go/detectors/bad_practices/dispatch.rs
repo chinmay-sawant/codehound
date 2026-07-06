@@ -1,0 +1,101 @@
+//! Rule dispatch table and rule-ID list for Go bad-practice detectors.
+
+use std::sync::OnceLock;
+
+use crate::core::ParsedUnit;
+use crate::rules::Finding;
+
+use super::rules::*;
+use super::source_index::SourceIndex;
+
+type BadPracticeFn = fn(&ParsedUnit, &SourceIndex, &mut Vec<Finding>);
+type BadPracticeEntry = (&'static str, BadPracticeFn);
+
+pub(crate) const BAD_PRACTICE_RULES: &[BadPracticeEntry] = &[
+    ("BP-1", detect_bp_1_discarded_error),
+    ("BP-2", detect_bp_2_naked_error_return),
+    ("BP-3", detect_bp_3_panic_outside_main),
+    ("BP-4", detect_bp_4_recover_without_logging),
+    ("BP-5", detect_bp_5_ignored_close_error),
+    ("BP-6", detect_bp_6_waitgroup_add_inside_goroutine),
+    ("BP-7", detect_bp_7_mutex_passed_by_value),
+    ("BP-8", detect_bp_8_defer_unlock_on_mutex_copy),
+    ("BP-9", detect_bp_9_select_without_escape),
+    ("BP-10", detect_bp_10_time_after_in_loop),
+    ("BP-11", detect_bp_11_defer_in_loop),
+    (
+        "BP-12",
+        detect_bp_12_unbuffered_channel_send_from_multiple_goroutines,
+    ),
+    ("BP-14", detect_bp_14_goroutine_without_context_cancellation),
+    ("BP-16", detect_bp_16_time_sleep_in_test),
+    ("BP-17", detect_bp_17_t_error_followed_by_t_fatal),
+    ("BP-18", detect_bp_18_t_error_without_early_exit),
+    ("BP-19", detect_bp_19_missing_t_helper_on_test_helper),
+    ("BP-20", detect_bp_20_table_test_without_t_run),
+    ("BP-21", detect_bp_21_subtest_missing_t_parallel),
+    ("BP-22", detect_bp_22_testmain_without_os_exit),
+    ("BP-23", detect_bp_23_missing_testing_short_guard),
+    ("BP-24", detect_bp_24_test_file_without_tests),
+    ("BP-25", detect_bp_25_test_helper_returns_error),
+    ("BP-26", detect_bp_26_context_not_first_parameter),
+    (
+        "BP-27",
+        detect_bp_27_exported_function_returns_unexported_type,
+    ),
+    ("BP-28", detect_bp_28_single_method_interface),
+    ("BP-29", detect_bp_29_interface_bloat),
+    (
+        "BP-30",
+        detect_bp_30_exported_interface_without_same_package_impl,
+    ),
+    ("BP-31", detect_bp_31_constructor_returns_concrete_type),
+    ("BP-32", detect_bp_32_string_alias_error_type),
+    ("BP-33", detect_bp_33_sentinel_error_without_is_method),
+    ("BP-34", detect_bp_34_error_wrapping_without_percent_w),
+    ("BP-35", detect_bp_35_package_name_directory_mismatch),
+    ("BP-36", detect_bp_36_init_with_side_effects),
+    ("BP-37", detect_bp_37_package_level_mutable_global),
+    ("BP-38", detect_bp_38_unused_unexported_helper),
+    ("BP-39", detect_bp_39_exported_function_without_doc_comment),
+    ("BP-40", detect_bp_40_unrelated_constants_in_one_block),
+    ("BP-41", detect_bp_41_missing_package_doc_comment),
+    ("BP-42", detect_bp_42_one_off_import_alias),
+    ("BP-43", detect_bp_43_dot_import_outside_tests),
+    ("BP-44", detect_bp_44_blank_import_without_justification),
+    ("BP-45", detect_bp_45_inconsistent_receiver_name),
+    ("BP-46", detect_bp_46_http_server_missing_timeouts),
+    ("BP-47", detect_bp_47_no_graceful_shutdown),
+    ("BP-48", detect_bp_48_process_exit_in_library_code),
+    (
+        "BP-49",
+        detect_bp_49_deferred_cleanup_without_error_handling,
+    ),
+    ("BP-50", detect_bp_50_no_signal_handling_for_server),
+    ("BP-51", detect_bp_51_recover_without_repanic_in_library),
+    ("BP-52", detect_bp_52_unchecked_integer_multiplication),
+    ("BP-53", detect_bp_53_gob_registration_mismatch),
+    (
+        "BP-54",
+        detect_bp_54_public_http_endpoint_without_rate_limiting,
+    ),
+    ("BP-55", detect_bp_55_missing_request_id_propagation),
+    ("BP-56", detect_bp_56_deprecated_package_used),
+    ("BP-57", detect_bp_57_stale_go_version_in_go_mod),
+    ("BP-58", detect_bp_58_unpinned_dependency_version),
+    ("BP-59", detect_bp_59_unused_direct_dependency),
+    ("BP-60", detect_bp_60_test_only_dependency_in_main_go_mod),
+    ("BP-61", detect_bp_61_indirect_dependency_missing_annotation),
+    ("BP-62", detect_bp_62_dependency_used_in_one_file),
+    ("BP-63", detect_bp_63_dependency_with_known_cve_not_updated),
+    ("BP-64", detect_bp_64_replace_directive_local_filesystem),
+    ("BP-65", detect_bp_65_missing_go_sum_entries),
+    ("BP-13", detect_bp_13_background_context_in_library),
+    ("BP-15", detect_bp_15_recursive_once_do),
+];
+
+pub(crate) fn rule_ids() -> &'static [&'static str] {
+    static IDS: OnceLock<Vec<&'static str>> = OnceLock::new();
+    IDS.get_or_init(|| BAD_PRACTICE_RULES.iter().map(|(id, _)| *id).collect())
+        .as_slice()
+}

@@ -13,7 +13,6 @@ mod injection;
 mod input_validation;
 mod input_validation_redos;
 mod network_binding;
-mod path_traversal;
 mod request_handling;
 
 pub(crate) use access_control::*;
@@ -29,5 +28,4 @@ pub(crate) use injection::*;
 pub(crate) use input_validation::*;
 pub(crate) use input_validation_redos::*;
 pub(crate) use network_binding::*;
-pub(crate) use path_traversal::*;
 pub(crate) use request_handling::*;

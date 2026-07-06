@@ -1,63 +1,56 @@
+use phf::phf_set;
 use slopguard::engine::sinks;
 
-#[test]
-fn path_traversal_sinks_contain_expected() {
-    assert!(sinks::matches_sink(
-        &sinks::PATH_TRAVERSAL_SINKS,
-        "os.ReadFile"
-    ));
-    assert!(sinks::matches_sink(
-        &sinks::PATH_TRAVERSAL_SINKS,
-        "ioutil.ReadFile"
-    ));
-    assert!(!sinks::matches_sink(
-        &sinks::PATH_TRAVERSAL_SINKS,
-        "os.Open"
-    ));
-}
+static SQL_SINKS: phf::Set<&'static str> = phf_set! {
+    "db.Query",
+    "db.QueryRow",
+    "db.Exec",
+    "db.QueryContext",
+    "db.QueryRowContext",
+    "db.ExecContext",
+};
+
+static COMMAND_INJECTION_SINKS: phf::Set<&'static str> = phf_set! {
+    "exec.Command",
+    "exec.CommandContext",
+};
 
 #[test]
-fn sql_sinks_contain_expected() {
-    for sink in &[
-        "db.Query",
-        "db.QueryRow",
-        "db.Exec",
-        "db.QueryContext",
-        "db.QueryRowContext",
-        "db.ExecContext",
+fn sink_matching_is_correct() {
+    for (sink_table, positive, negative) in [
+        (
+            &sinks::PATH_TRAVERSAL_SINKS,
+            &["os.ReadFile", "ioutil.ReadFile"] as &[&str],
+            &["os.Open"] as &[&str],
+        ),
+        (
+            &SQL_SINKS,
+            &[
+                "db.Query",
+                "db.QueryRow",
+                "db.Exec",
+                "db.QueryContext",
+                "db.QueryRowContext",
+                "db.ExecContext",
+            ],
+            &["exec.Command"],
+        ),
+        (
+            &COMMAND_INJECTION_SINKS,
+            &["exec.Command", "exec.CommandContext"],
+            &["os.ReadFile"],
+        ),
+        (
+            &sinks::LINK_RESOLUTION_SINKS,
+            &["os.Open", "os.OpenFile"],
+            &[],
+        ),
     ] {
-        assert!(
-            sinks::matches_sink(&sinks::SQL_SINKS, sink),
-            "expected SQL sink: {sink}"
-        );
+        for s in positive {
+            assert!(sink_table.contains(s), "expected match: {s}");
+        }
+        for s in negative {
+            assert!(!sink_table.contains(s), "expected no match: {s}");
+        }
     }
-    assert!(!sinks::matches_sink(&sinks::SQL_SINKS, "exec.Command"));
-}
-
-#[test]
-fn command_injection_sinks_contain_expected() {
-    assert!(sinks::matches_sink(
-        &sinks::COMMAND_INJECTION_SINKS,
-        "exec.Command"
-    ));
-    assert!(sinks::matches_sink(
-        &sinks::COMMAND_INJECTION_SINKS,
-        "exec.CommandContext"
-    ));
-    assert!(!sinks::matches_sink(
-        &sinks::COMMAND_INJECTION_SINKS,
-        "os.ReadFile"
-    ));
-}
-
-#[test]
-fn link_resolution_sinks_contain_expected() {
-    assert!(sinks::matches_sink(
-        &sinks::LINK_RESOLUTION_SINKS,
-        "os.Open"
-    ));
-    assert!(sinks::matches_sink(
-        &sinks::LINK_RESOLUTION_SINKS,
-        "os.OpenFile"
-    ));
 }

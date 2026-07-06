@@ -1,6 +1,7 @@
 //! `.txt` text fixture format.
 
 use std::path::Path;
+use std::str::FromStr;
 
 use anyhow::{Context, Result, bail};
 
@@ -12,24 +13,25 @@ pub const FIXTURE_EXTENSION: &str = "txt";
 pub enum FixtureLanguage {
     Go,
     Python,
-    Rust,
 }
 
-impl FixtureLanguage {
-    pub fn parse(s: &str) -> Result<Self> {
+impl FromStr for FixtureLanguage {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
         match s.trim().to_lowercase().as_str() {
             "go" => Ok(Self::Go),
             "python" | "py" => Ok(Self::Python),
-            "rust" | "rs" => Ok(Self::Rust),
             other => bail!("unknown fixture language: {other}"),
         }
     }
+}
 
+impl FixtureLanguage {
     pub fn extension(self) -> &'static str {
         match self {
             Self::Go => "go",
             Self::Python => "py",
-            Self::Rust => "rs",
         }
     }
 
@@ -37,7 +39,6 @@ impl FixtureLanguage {
         match self {
             Self::Go => "go",
             Self::Python => "python",
-            Self::Rust => "rust",
         }
     }
 }
@@ -76,13 +77,13 @@ pub fn parse_fixture(text: &str, txt_path: &Path) -> Result<TextFixture> {
             continue;
         };
         match key.trim().to_lowercase().as_str() {
-            "lang" | "language" => language = Some(FixtureLanguage::parse(value)?),
+            "lang" | "language" => language = Some(value.parse()?),
             "file" | "filename" => filename = Some(value.trim().to_string()),
             _ => {}
         }
     }
 
-    let language = language.context("fixture header missing `lang:` (go | python | rust)")?;
+    let language = language.context("fixture header missing `lang:` (go | python)")?;
     let filename = filename.unwrap_or_else(|| TextFixture::default_filename(txt_path, language));
     let source = body.trim_start_matches('\n').to_string();
 

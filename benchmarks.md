@@ -90,6 +90,21 @@
 
 ---
 
+## Incremental scan benchmarks
+
+Cold and warm scan performance measured separately via `cargo bench --bench incremental_scan`:
+
+| Benchmark | Expected ratio | CI Gate |
+|-----------|:--------------:|:--------:|
+| `incremental_cold` | Full parse + detect | — |
+| `incremental_warm` | Cache-hit replay only | ≥5× faster than cold |
+
+The CI gate enforces that a warm incremental scan (all files cached) is at least 5×
+faster than a cold scan (empty cache), ensuring the cache provides meaningful
+acceleration.
+
+---
+
 ## Remaining performance targets (P2)
 
 | Optimization | Estimated impact | Effort |

@@ -20,7 +20,7 @@ fn go_only_filter_skips_python_files() {
         .build();
 
     let result = analyzer
-        .analyze_paths([materialized_root()])
+        .analyze_paths(&[materialized_root()], None)
         .expect("analyze");
 
     let ids: Vec<&str> = result.findings.iter().map(|f| f.rule_id).collect();

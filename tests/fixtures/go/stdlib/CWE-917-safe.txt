@@ -9,6 +9,7 @@ package sample
 
 import (
 	"bytes"
+	"html"
 	"net/http"
 	"text/template"
 )
@@ -19,9 +20,11 @@ func RenderReportSafePure() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		title := r.URL.Query().Get("title")
 		filter := r.URL.Query().Get("filter")
+		safeTitle := html.EscapeString(title)
+		safeFilter := html.EscapeString(filter)
 		tmpl := template.Must(template.New("report").Parse(reportTemplatePure))
 		var buf bytes.Buffer
-		data := map[string]string{"Title": title, "Filter": filter}
+		data := map[string]string{"Title": safeTitle, "Filter": safeFilter}
 		if err := tmpl.Execute(&buf, data); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

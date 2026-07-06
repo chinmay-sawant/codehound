@@ -1,0 +1,19 @@
+# PERF-114 negative: copy() builtin used instead of manual loop
+lang: go
+file: PERF-114-safe.go
+variant: stdlib
+---
+package sample
+
+import "fmt"
+
+func Copy(src []int) []int {
+	dst := make([]int, len(src))
+	copy(dst, src)
+	return dst
+}
+
+func _() {
+	out := Copy([]int{1, 2, 3})
+	fmt.Println(out)
+}

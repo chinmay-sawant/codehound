@@ -1,0 +1,17 @@
+# PERF-217 positive: static computation rebuilt per request
+lang: go
+file: PERF-217-vulnerable.go
+variant: stdlib
+---
+package sample
+
+import "net/http"
+
+func buildICCProfile() []byte {
+	return []byte("icc-profile")
+}
+
+func HandleProfile(w http.ResponseWriter, r *http.Request) {
+	_ = buildICCProfile()
+	w.WriteHeader(http.StatusOK)
+}

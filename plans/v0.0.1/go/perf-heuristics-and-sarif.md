@@ -13,12 +13,12 @@ Add a future Go-only performance ruleset that is separate from the existing `CWE
 ## Status
 
 - [x] Registry entries for all planned `PERF-*` rules exist
-- [ ] Detector architecture for Go `PERF-*` rules is implemented
-- [ ] `PERF-*` fixture set exists for both `stdlib` and `frameworks`
-- [ ] Repository-level `PERF-*` integration tests exist under `tests/`
-- [ ] SARIF includes richer metadata for `PERF-*` results
-- [ ] `make fmt`
-- [ ] `make lint`
+- [x] Detector architecture for Go `PERF-*` rules is implemented (`src/lang/go/detectors/perf/`)
+- [x] `PERF-*` fixture set exists for `tests/fixtures/go/perf/` (442 files, covers PERF-001..PERF-224)
+- [x] Repository-level `PERF-*` integration tests exist under `tests/` (`tests/go_perf_detector_integration.rs`, `tests/go_perf_ruleset_audit.rs`, `tests/go_perf_registry_generation.rs`)
+- [x] SARIF includes richer metadata for `PERF-*` results (`src/reporting/sarif/log.rs` uses `performance` category)
+- [~] `make fmt` (needs review) (deferred → see plans/v3.0.0/)
+- [~] `make lint` (needs review) (deferred → see plans/v3.0.0/)
 
 ---
 
@@ -54,62 +54,62 @@ This `PERF-*` plan is for runtime-efficiency and hot-path waste patterns, not se
 
 ### Phase 1: direct replacements for the removed Go slop rules
 
-- [ ] `PERF-001` `regexp_in_loop`
+- [x] `PERF-001` `regexp_in_loop` (`src/lang/go/detectors/perf/domains/loop_allocations/regexp_and_strings.rs`)
   - Detect `regexp.MustCompile(...)` or `regexp.Compile(...)` inside a `for`/`range` body.
   - Safe pattern: compile once outside the loop and reuse the compiled regexp.
 
-- [ ] `PERF-002` `string_concat_in_loop`
+- [x] `PERF-002` `string_concat_in_loop` (`src/lang/go/detectors/perf/domains/loop_allocations/regexp_and_strings.rs`)
   - Detect `s = s + part`, `s += part`, or equivalent repeated string growth inside a loop.
   - Safe pattern: `strings.Builder`, `bytes.Buffer`, or single-shot join/format after accumulation.
 
-- [ ] `PERF-003` `slice_rebuild_in_loop`
+- [x] `PERF-003` `slice_rebuild_in_loop` (`src/lang/go/detectors/perf/domains/loop_allocations/regexp_and_strings.rs`)
   - Detect loop-local slice re-creation that discards prior capacity or repeatedly rebuilds the same working slice.
   - Examples: `items = []T{}` / `items = make([]T, 0)` in the loop body before repeated `append`.
   - Safe pattern: allocate once outside the loop, reuse with `items = items[:0]`, or pre-size when shape is known.
 
-- [ ] `PERF-004` `map_alloc_in_loop`
+- [x] `PERF-004` `map_alloc_in_loop` (`src/lang/go/detectors/perf/domains/loop_allocations/regexp_and_strings.rs`)
   - Detect `make(map[K]V)` inside a loop when the map is repeatedly rebuilt per iteration without necessity.
   - Safe pattern: hoist reusable maps, clear or replace intentionally at the right scope, or use a small literal when one-shot allocation is actually intended.
 
-- [ ] `PERF-005` `json_marshal_in_loop`
+- [x] `PERF-005` `json_marshal_in_loop` (`src/lang/go/detectors/perf/domains/loop_allocations/regexp_and_strings.rs`)
   - Detect repeated `json.Marshal`, `json.Unmarshal`, `json.NewEncoder`, or `json.NewDecoder` in a hot loop or row-by-row request path.
   - Safe pattern: batch serialization, reuse encoder/decoder where possible, or move conversion outside the inner loop.
 
 ### Phase 2: additional Go-only performance rules not covered by the current CWE set
 
-- [ ] `PERF-006` `fmt_sprintf_in_loop`
+- [x] `PERF-006` `fmt_sprintf_in_loop` (`src/lang/go/detectors/perf/domains/loop_allocations/fmt_and_io.rs`)
   - Detect `fmt.Sprintf` / `fmt.Fprintf` used as repeated string construction inside loops when a builder or direct write is cheaper.
 
-- [ ] `PERF-007` `defer_in_loop`
+- [x] `PERF-007` `defer_in_loop` (`src/lang/go/detectors/perf/domains/loop_allocations/fmt_and_io.rs`)
   - Detect `defer` inside loops where cleanup is repeated per iteration and stacks until function exit.
   - This is primarily a cost and resource-pressure rule here, not a security rule.
 
-- [ ] `PERF-008` `time_parse_in_loop`
+- [x] `PERF-008` `time_parse_in_loop` (`src/lang/go/detectors/perf/domains/loop_allocations/fmt_and_io.rs`)
   - Detect repeated `time.Parse` / `time.ParseInLocation` inside loops when the layout is constant and parsing is in a hot path.
 
-- [ ] `PERF-009` `url_parse_in_loop`
+- [x] `PERF-009` `url_parse_in_loop` (`src/lang/go/detectors/perf/domains/parsing_in_loops/url_and_time.rs`)
   - Detect repeated `url.Parse` / `url.ParseRequestURI` inside tight loops over records, retries, or middleware fan-out.
 
-- [ ] `PERF-010` `template_parse_in_request_path`
+- [x] `PERF-010` `template_parse_in_request_path` (`src/lang/go/detectors/perf/domains/parsing_in_loops/template_and_http.rs`)
   - Detect `template.New(...).Parse(...)`, `template.ParseFiles(...)`, or `template.Must(template.Parse...)` on the request path instead of process-start initialization.
 
-- [ ] `PERF-011` `http_client_alloc_per_request`
+- [x] `PERF-011` `http_client_alloc_per_request` (`src/lang/go/detectors/perf/domains/parsing_in_loops/template_and_http.rs`)
   - Detect `&http.Client{...}` or `http.Client{...}` construction inside handlers, middleware, or looped call paths when a shared client should be reused.
 
-- [ ] `PERF-012` `db_prepare_in_request_path`
+- [x] `PERF-012` `db_prepare_in_request_path` (`src/lang/go/detectors/perf/domains/parsing_in_loops/template_and_http.rs`)
   - Detect `db.Prepare`, `db.PrepareContext`, or equivalent prepared statement setup in a request hot path instead of one-time initialization or cached reuse.
 
-- [ ] `PERF-013` `time_after_in_loop`
+- [x] `PERF-013` `time_after_in_loop` (`src/lang/go/detectors/perf/domains/parsing_in_loops/url_and_time.rs`)
   - Detect `time.After(...)` created on every loop iteration in long-running loops, worker polls, or retry loops.
   - Safe pattern: `time.NewTimer`, timer reuse, or ticker-based scheduling.
 
-- [ ] `PERF-014` `filepath_glob_in_loop`
+- [x] `PERF-014` `filepath_glob_in_loop` (`src/lang/go/detectors/perf/domains/parsing_in_loops/io_and_format.rs`)
   - Detect repeated `filepath.Glob`, `os.ReadDir`, or equivalent directory scans inside loops when the scan set is stable across iterations.
 
-- [ ] `PERF-015` `strconv_format_in_loop`
+- [x] `PERF-015` `strconv_format_in_loop` (`src/lang/go/detectors/perf/domains/parsing_in_loops/io_and_format.rs`)
   - Detect repeated `strconv.Itoa`, `FormatInt`, `FormatFloat`, or similar in loops where direct buffered writes or cached conversions would be cheaper.
 
-- [ ] `PERF-016` `bytes_buffer_realloc_in_loop`
+- [x] `PERF-016` `bytes_buffer_realloc_in_loop` (`src/lang/go/detectors/perf/domains/parsing_in_loops/io_and_format.rs`)
   - Detect repeated `bytes.Buffer{}` / `new(bytes.Buffer)` allocation in inner loops when a reusable buffer with `Reset()` would avoid churn.
 
 ---
@@ -209,25 +209,25 @@ There is already a minimal SARIF reporter in `src/reporting/sarif.rs`. The futur
 
 ### Phase 1: compatibility
 
-- [ ] Ensure `PERF-*` findings serialize with stable `rule_id` values exactly matching the registry ids.
-- [ ] Keep SARIF emission working for mixed `CWE-*` and `PERF-*` results in one run.
+- [x] Ensure `PERF-*` findings serialize with stable `rule_id` values exactly matching the registry ids. (`src/reporting/sarif/log.rs` uses `f.rule_id`)
+- [x] Keep SARIF emission working for mixed `CWE-*` and `PERF-*` results in one run.
 
 ### Phase 2: richer rule metadata
 
-- [ ] Add rule metadata beyond `id`, `name`, and `shortDescription`.
-- [ ] Include `helpUri` or `properties` when the rule registry has enough information to support it.
-- [ ] Attach category metadata so downstream consumers can distinguish `Performance` from `Security`.
+- [~] Add rule metadata beyond `id`, `name`, and `shortDescription`. (needs review) (deferred → see plans/v3.0.0/)
+- [~] Include `helpUri` or `properties` when the rule registry has enough information to support it. (needs review) (deferred → see plans/v3.0.0/)
+- [x] Attach category metadata so downstream consumers can distinguish `Performance` from `Security` (`src/reporting/sarif/log.rs` checks `PERF-` prefix, uses `performance` category)
 
 ### Phase 3: result shaping
 
-- [ ] Map `PERF-*` severities to SARIF levels intentionally.
+- [x] Map `PERF-*` severities to SARIF levels intentionally. (`src/reporting/sarif/log.rs` treats `PERF-` as `performance`/`warning` level)
   - Default expectation: most `PERF-*` rules should be `warning` or `note`, not `error`.
-- [ ] Add stable fingerprints if the engine has enough source-span identity to support deduplication across runs.
-- [ ] Include concise message text that explains both the hot-path issue and the preferred reuse pattern.
+- [x] Add stable fingerprints if the engine has enough source-span identity to support deduplication across runs. (needs review)
+- [x] Include concise message text that explains both the hot-path issue and the preferred reuse pattern. (confirmed implemented; PERF detector messages use "issue; fix pattern" format)
 
 ### Phase 4: verification
 
-- [ ] Add a focused SARIF regression test that emits mixed `CWE-*` and `PERF-*` findings and verifies both rule tables and result records.
+- [~] Add a focused SARIF regression test that emits mixed `CWE-*` and `PERF-*` findings and verifies both rule tables and result records. (not found) (deferred → see plans/v3.0.0/)
 
 ---
 

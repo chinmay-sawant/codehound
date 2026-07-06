@@ -5,3 +5,13 @@
 # fail_on = "medium"   # medium | high | none | strict
 # skip = ["CWE-89"]
 # only = ["CWE-22"]
+
+# Baseline suppression is enabled by default.
+# [slopguard.baseline]
+# enabled = true
+# path = ".slopguard-baseline.json"
+
+# Bad-practice rules (BP-*) are enabled by default.
+# [slopguard.bad_practices]
+# enabled = true
+# severity = "low" # info | low | medium | high | critical

@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use slopguard::core::FailPolicy;
 use slopguard::engine::{AnalysisResult, ScanError, ScanErrorKind};
@@ -23,8 +24,42 @@ fn scan_error_displays_path_and_message() {
 fn error_kind_maps_to_exit_codes() {
     assert_eq!(ScanErrorKind::Io.exit_code(), 3);
     assert_eq!(ScanErrorKind::Encoding.exit_code(), 3);
-    assert_eq!(ScanErrorKind::Parse.exit_code(), 3);
-    assert_eq!(ScanErrorKind::Engine.exit_code(), 3);
+    assert_eq!(ScanErrorKind::Parse.exit_code(), 4);
+    assert_eq!(ScanErrorKind::Engine.exit_code(), 5);
+}
+
+#[test]
+fn scan_exit_code_uses_worst_error_kind_code() {
+    use slopguard::core::FailPolicy;
+
+    let result = AnalysisResult {
+        findings: vec![],
+        errors: vec![
+            ScanError {
+                path: PathBuf::from("a.go"),
+                kind: ScanErrorKind::Io,
+                message: "io".into(),
+            },
+            ScanError {
+                path: PathBuf::from("b.go"),
+                kind: ScanErrorKind::Engine,
+                message: "panic".into(),
+            },
+        ],
+        suppressed_count: 0,
+        stats: None,
+        source_cache: Default::default(),
+    };
+    assert!(!result.should_fail(FailPolicy::NoFail));
+    assert_eq!(
+        result
+            .errors
+            .iter()
+            .map(|e| e.kind.exit_code())
+            .max()
+            .unwrap(),
+        5
+    );
 }
 
 #[test]
@@ -37,7 +72,18 @@ fn analysis_result_carries_errors_field() {
             kind: ScanErrorKind::Encoding,
             message: "not utf-8".to_string(),
         }],
+        suppressed_count: 0,
+        stats: None,
     };
     assert_eq!(result.errors.len(), 1);
     assert_eq!(result.errors[0].kind, ScanErrorKind::Encoding);
+}
+
+#[test]
+fn source_cache_bytes_tracks_cached_source_memory() {
+    let mut result = AnalysisResult::default();
+    result.source_cache.insert("a.go".into(), Arc::from("abc"));
+    result.source_cache.insert("b.go".into(), Arc::from("नमस्ते"));
+
+    assert_eq!(result.source_cache_bytes(), "abc".len() + "नमस्ते".len());
 }

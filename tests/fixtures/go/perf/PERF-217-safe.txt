@@ -1,0 +1,19 @@
+# PERF-217 negative: static computation cached at init
+lang: go
+file: PERF-217-safe.go
+variant: stdlib
+---
+package sample
+
+import "net/http"
+
+func buildICCProfile() []byte {
+	return []byte("icc-profile")
+}
+
+var iccProfile = buildICCProfile()
+
+func HandleProfile(w http.ResponseWriter, r *http.Request) {
+	_ = iccProfile
+	w.WriteHeader(http.StatusOK)
+}

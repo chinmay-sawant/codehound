@@ -62,7 +62,7 @@ The part_N→themed-cluster refactor left behind:
 - [x] **6.2** Remove `walk_assignments()` from `ast/walk.rs:30-32` (zero call sites)
 - [x] **6.3** Remove `--verbose: u8` CLI flag from `cli/mod.rs:61-62` (parsed but never read)
 - [x] **6.4** Add doc comment to `information_exposure/mod.rs` (only domain mod.rs missing `//!` header)
-- [x] **6.5** Remove `#[serde(skip)]` dead fields from `SarifResult` struct (`sarif.rs:80-87`) and their population code (`sarif.rs:245-248`)
+- [x] **6.5** Remove `#[serde(skip)]` dead fields from `SarifResult` struct (`sarif/schema.rs:80-87`) and their population code (`sarif/schema.rs:245-248`)
 
 ## Verification
 

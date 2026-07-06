@@ -1,29 +1,16 @@
 //! Language plugins registry.
 
+pub mod assignment;
+pub mod source_index;
+
 #[cfg(feature = "go")]
 pub mod go;
 
 #[cfg(feature = "python")]
 pub mod python;
 
-use crate::core::LanguagePlugin;
+mod parser;
+mod plugin;
+mod register;
 
-/// Plugins enabled by Cargo features.
-pub fn enabled_plugins() -> Vec<Box<dyn LanguagePlugin>> {
-    #[cfg(all(feature = "go", feature = "python"))]
-    let plugins = vec![
-        Box::new(go::GoPlugin) as Box<dyn LanguagePlugin>,
-        Box::new(python::PythonPlugin),
-    ];
-
-    #[cfg(all(feature = "go", not(feature = "python")))]
-    let plugins: Vec<Box<dyn LanguagePlugin>> = vec![Box::new(go::GoPlugin)];
-
-    #[cfg(all(feature = "python", not(feature = "go")))]
-    let plugins: Vec<Box<dyn LanguagePlugin>> = vec![Box::new(python::PythonPlugin)];
-
-    #[cfg(not(any(feature = "go", feature = "python")))]
-    let plugins: Vec<Box<dyn LanguagePlugin>> = vec![];
-
-    plugins
-}
+pub use register::enabled_plugins;

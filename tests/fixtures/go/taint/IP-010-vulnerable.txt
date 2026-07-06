@@ -1,0 +1,20 @@
+# IP-010: Goroutine with taint — vulnerable
+lang: go
+file: IP-010-vulnerable.go
+variant: taint
+---
+package sample
+
+import (
+    "net/http"
+    "os"
+)
+
+func caller() {
+    ch := make(chan string)
+    go func() {
+        s := <-ch
+        os.Open(s)
+    }()
+    ch <- r.URL.Query().Get("input")
+}
