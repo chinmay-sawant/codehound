@@ -1,3 +1,9 @@
+import type { LucideIcon } from 'lucide-react'
+import {
+  HelpCircle, BarChart3, Sparkles, GitCompare, ShieldAlert,
+  FileOutput, Coins, Blocks,
+} from 'lucide-react'
+
 export type Stat = { value: string; label: string; sub?: string }
 export type Fact = { k: string; v: string }
 export type CodeBlock = { label: string; lang: string; before?: string; after?: string; body?: string }
@@ -7,6 +13,7 @@ export type Section = {
   nav: string
   title: string
   lead: string
+  icon: LucideIcon
   body?: string[]
   stats?: Stat[]
   facts?: Fact[]
@@ -18,6 +25,7 @@ export const sections: Section[] = [
     id: 'why',
     nav: 'Why',
     title: 'Why does this exist?',
+    icon: HelpCircle,
     lead:
       'AI models are cheap today because they are subsidized. They will not stay cheap. Tomorrow you run a cheaper, less expert model — and it needs something deterministic to lean on.',
     body: [
@@ -29,6 +37,7 @@ export const sections: Section[] = [
   {
     id: 'numbers',
     nav: 'Numbers',
+    icon: BarChart3,
     title: 'What one scan turned into',
     lead:
       'One pass over a real Go codebase. Sourced — not projected, not modeled.',
@@ -46,6 +55,7 @@ export const sections: Section[] = [
   {
     id: 'skills',
     nav: 'Skills',
+    icon: Sparkles,
     title: 'Skills are no better',
     lead:
       'A "skill" is a prompt. A prompt is not a guarantee. 4–5 iterations to get the essentials flagged — days you did not have.',
@@ -59,6 +69,7 @@ export const sections: Section[] = [
   {
     id: 'evidence',
     nav: 'Evidence',
+    icon: GitCompare,
     title: 'A finding, before and after',
     lead:
       'PERF-140: regexp compiled inside a hot loop. Fix hoisted above the loop. Table rendering flows through this path thousands of times per second.',
@@ -83,6 +94,7 @@ for i := range members {
   {
     id: 'rules',
     nav: 'Rules',
+    icon: ShieldAlert,
     title: 'What it flags',
     lead:
       'Three catalogs, one AST walk. Rules are data — ship a rule, ship a finding.',
@@ -97,6 +109,7 @@ for i := range members {
   {
     id: 'outputs',
     nav: 'Outputs',
+    icon: FileOutput,
     title: 'Three formats, fits the CI you already have',
     lead:
       'Text for the terminal, NDJSON for jq, SARIF 2.1.0 for GitHub Code Scanning. One binary, no service.',
@@ -110,6 +123,7 @@ for i := range members {
   {
     id: 'cost',
     nav: 'Cost',
+    icon: Coins,
     title: 'Billed once, not per run',
     lead:
       'A model call is billed per token, per run, forever. A compiled rule is billed once — the hour you wrote it.',
@@ -122,6 +136,7 @@ for i := range members {
   {
     id: 'extend',
     nav: 'Extend',
+    icon: Blocks,
     title: 'Built to extend',
     lead:
       'The catalog is data. The CWE list is auto-generated from a sink registry. This website is the same idea — the nav is data, the page is a renderer.',
