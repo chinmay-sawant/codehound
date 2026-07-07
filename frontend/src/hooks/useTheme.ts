@@ -14,7 +14,7 @@ export function useTheme() {
     const next: Theme = theme === 'dark' ? 'light' : 'dark'
     setTheme(next)
     document.documentElement.classList.toggle('dark', next === 'dark')
-    try { localStorage.setItem('slopguard-theme', next) } catch { /* ignore */ }
+    try { localStorage.setItem('codehound-theme', next) } catch { /* ignore */ }
   }
 
   return { theme, toggle }

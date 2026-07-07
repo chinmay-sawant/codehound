@@ -12,9 +12,9 @@ export function Sidebar({ active, onNavigate }: SidebarProps) {
 
   return (
     <nav className="sidebar">
-      <a className="brand" href="#why" onClick={(e) => { e.preventDefault(); onNavigate('why') }}>
+      <a className="brand" href="#how-it-works" onClick={(e) => { e.preventDefault(); onNavigate('how-it-works') }}>
         <span className="brand-mark">$</span>
-        <span className="brand-name">slopguard</span>
+        <span className="brand-name">codehound</span>
       </a>
       <div className="tag">sections</div>
       <ol className="nav-list">

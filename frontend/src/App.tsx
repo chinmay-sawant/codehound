@@ -8,22 +8,46 @@ export default function App() {
   const [active, setActive] = useState(sections[0].id)
   const mainRef = useRef<HTMLElement>(null)
 
-  // scroll-spy: highlight the nav entry for the section in view
+  // scroll-spy: pick the section whose top has crossed the read line; pin last at bottom
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)
-        if (visible[0]) setActive(visible[0].target.id)
-      },
-      { root: mainRef.current, threshold: [0.15, 0.5, 1], rootMargin: '-10% 0px -60% 0px' },
-    )
-    sections.forEach((s) => {
-      const el = document.getElementById(s.id)
-      if (el) observer.observe(el)
-    })
-    return () => observer.disconnect()
+    const root = mainRef.current
+    if (!root) return
+
+    let ticking = false
+    const updateActive = () => {
+      const lastId = sections[sections.length - 1].id
+      const nearBottom = root.scrollHeight - root.scrollTop - root.clientHeight < 120
+
+      if (nearBottom) {
+        setActive(lastId)
+        return
+      }
+
+      const marker = root.getBoundingClientRect().top + root.clientHeight * 0.32
+      let current = sections[0].id
+      for (const s of sections) {
+        const el = document.getElementById(s.id)
+        if (el && el.getBoundingClientRect().top <= marker) current = s.id
+      }
+      setActive(current)
+    }
+
+    const onScroll = () => {
+      if (ticking) return
+      ticking = true
+      requestAnimationFrame(() => {
+        ticking = false
+        updateActive()
+      })
+    }
+
+    updateActive()
+    root.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    return () => {
+      root.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+    }
   }, [])
 
   const handleNavigate = (id: string) => {
@@ -37,11 +61,12 @@ export default function App() {
       <main ref={mainRef} className="main">
         <div className="main-inner">
           <header className="hero">
-            <div className="hero-tag">static analyzer // codename: codehound</div>
-            <h1 className="hero-title">slopguard<span className="dot">_</span></h1>
+            <div className="hero-tag">static analyzer</div>
+            <h1 className="hero-title">codehound</h1>
             <p className="hero-sub">
-              The static reviewer for the cheap-model era. Deterministic when the
-              smart models go away, and cheaper than the smart models ever were.
+              Deterministic static analysis for Go — PERF anti-patterns, bad
+              practices, and CWE findings without a prompt. Better than skills.
+              Python and Rust on the roadmap, and a rule set you can extend.
             </p>
             <div className="hero-line">
               <span>226 findings → 218 fixed</span>
@@ -57,8 +82,8 @@ export default function App() {
             <SectionView key={s.id} section={s} />
           ))}
           <footer className="footer">
-            <span>slopguard // static analysis</span>
-            <span>codename: codehound</span>
+            <span>codehound // static analysis</span>
+            <span>deterministic · offline · extendable</span>
           </footer>
         </div>
       </main>

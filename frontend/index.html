@@ -1,11 +1,22 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('codehound-theme') || localStorage.getItem('slopguard-theme')
+          if (t === 'light') document.documentElement.classList.remove('dark')
+          else document.documentElement.classList.add('dark')
+        } catch (e) {
+          document.documentElement.classList.add('dark')
+        }
+      })()
+    </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>slopguard — static, not stochastic</title>
-    <meta name="description" content="SlopGuard: a static analyzer for code that has to ship, not just look shipped." />
+    <title>codehound — static, not stochastic</title>
+    <meta name="description" content="CodeHound: deterministic static analysis for PERF, bad practices, and CWE issues in Go — with agent-ready export." />
   </head>
   <body>
     <div id="root"></div>

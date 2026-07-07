@@ -1,14 +1,21 @@
 import type { Section } from '../data/sections'
+import { WorkflowDiagram } from './WorkflowDiagram'
+import { useReveal } from '../hooks/useReveal'
 
 export function SectionView({ section }: { section: Section }) {
   const s = section
+  const { ref, visible } = useReveal<HTMLElement>()
   return (
-    <section id={s.id} className="section">
+    <section
+      id={s.id}
+      ref={ref}
+      className={`section reveal${visible ? ' is-visible' : ''}`}
+    >
       <header className="section-head">
         <span className="section-prompt">{`>${s.id}`}</span>
         <h2 className="section-title">{s.title}</h2>
       </header>
-      <p className="section-lead">{s.lead}</p>
+      <p className={`section-lead${s.flows ? ' section-lead-wide' : ''}`}>{s.lead}</p>
 
       {s.stats && (
         <div className="stats">
@@ -51,6 +58,14 @@ export function SectionView({ section }: { section: Section }) {
               <code>{s.code.body}</code>
             </pre>
           )}
+        </div>
+      )}
+
+      {s.flows && (
+        <div className="flow-grid">
+          {s.flows.map((flow) => (
+            <WorkflowDiagram key={flow.caption} diagram={flow} />
+          ))}
         </div>
       )}
 

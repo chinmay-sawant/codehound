@@ -1,8 +1,11 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   HelpCircle, BarChart3, Sparkles, GitCompare, ShieldAlert,
-  FileOutput, Coins, Blocks,
+  FileOutput, Coins, Blocks, Route, Monitor, Download, FolderGit2,
+  FolderOutput, Bot, ListChecks, ClipboardList, Hash, Bookmark,
+  RefreshCw, Terminal,
 } from 'lucide-react'
+import type { FlowDiagram } from '../components/WorkflowDiagram'
 
 export type Stat = { value: string; label: string; sub?: string }
 export type Fact = { k: string; v: string }
@@ -18,9 +21,74 @@ export type Section = {
   stats?: Stat[]
   facts?: Fact[]
   code?: CodeBlock
+  flows?: FlowDiagram[]
 }
 
 export const sections: Section[] = [
+  {
+    id: 'how-it-works',
+    nav: 'How it works',
+    icon: Route,
+    title: 'How it works',
+    lead:
+      'One binary, two output folders, you stay in control. CodeHound finds the issues — your agent helps triage and fix them.',
+    flows: [
+      {
+        caption: 'Setup → scan → export',
+        rows: [
+          {
+            segments: [
+              { kind: 'node', step: { label: 'Your machine', hint: 'Win · Linux · macOS', icon: Monitor } },
+              {
+                kind: 'fork',
+                left: { label: 'Download binary', cmd: 'codehound .', icon: Download },
+                right: { label: 'Clone repo', cmd: 'make run', icon: FolderGit2 },
+              },
+              {
+                kind: 'node',
+                step: {
+                  label: 'Artifacts on disk',
+                  hint: 'scripts/chunks · scripts/findings',
+                  icon: FolderOutput,
+                },
+              },
+            ],
+          },
+        ],
+      },
+      {
+        caption: 'Agent review → baseline → loop',
+        rows: [
+          {
+            segments: [
+              { kind: 'node', step: { label: 'Feed to agent', hint: 'OpenCode · Claude Code', icon: Bot } },
+              { kind: 'node', step: { label: 'Triage findings', hint: 'FP · fix · defer', icon: ListChecks } },
+              { kind: 'node', step: { label: 'Guide with checklist', hint: 'you pick what ships', icon: ClipboardList } },
+            ],
+          },
+          {
+            segments: [
+              { kind: 'node', step: { label: '100 findings', hint: '60 fixed · 40 remain', icon: Hash } },
+              { kind: 'node', step: { label: 'Set baseline', cmd: 'codehound . --baseline', icon: Bookmark } },
+              { kind: 'node', step: { label: 'Re-scan', cmd: 'codehound .', icon: RefreshCw } },
+            ],
+          },
+          {
+            segments: [
+              { kind: 'node', step: { label: 'Makefile target', cmd: 'make codehound', hint: 'like any linter', icon: Terminal } },
+            ],
+          },
+        ],
+        loop: { label: 'repeat until clean or baseline is stable', target: '↩ back to scan' },
+      },
+    ],
+    body: [
+      'By default CodeHound writes numbered context files to ./scripts/findings/functions/ and batched review chunks to ./scripts/chunks/. Point your agent at those paths — it can classify false positives, propose fixes, and follow a checklist you write.',
+      'You keep full control: which findings are real, which are noise, which get fixed now. When 60 of 100 are resolved and 40 remain, run with --baseline so those 40 become accepted debt. The next scan only reports regressions and new hits.',
+      'Add a make codehound target beside your other linters. The agent handles remediation from the exported chunks; you only step in for the review calls you actually want.',
+      'What would make this loop faster for your team — smaller chunk sizes, SARIF in CI, or a stricter fail policy on PERF rules?',
+    ],
+  },
   {
     id: 'why',
     nav: 'Why',
@@ -29,7 +97,7 @@ export const sections: Section[] = [
     lead:
       'AI models are cheap today because they are subsidized. They will not stay cheap. Tomorrow you run a cheaper, less expert model — and it needs something deterministic to lean on.',
     body: [
-      'SlopGuard is a static analyzer. It reads your code and tells you what is wrong, deterministically, offline, at the cost of one build — not one inference call.',
+      'CodeHound is a static analyzer. It reads your code and tells you what is wrong, deterministically, offline, at the cost of one build — not one inference call.',
       'A passing agent is not a passing build. A flattered review is not a real review. The honest reviewer is a program you can re-run and that answers the same way every time.',
       'It grew out of a real performance crisis, not a marketing exercise: a high-volume Go PDF library, weeks of low-hanging fruit already picked, "we needed something more surgical." So we built one.',
     ],
@@ -62,7 +130,7 @@ export const sections: Section[] = [
     body: [
       'We run AI skills internally too — Apollo best-practices, anti-pattern sweeps, ECC patterns. They catch things. They also miss things, and miss them differently every run.',
       'On the gopdfsuit remediation we iterated the skill output four to five times. Each pass surfaced duplicates the last one missed. Each pass cost a day that a single scan would have cost minutes.',
-      'A static rule is a program. Run it twice and you get the same answer, because the rule IS the check, not a hope about the check. When a skill says "this looks fine" that is a guess; when SlopGuard says CWE-22, that is a path-taint trace from source to sink.',
+      'A static rule is a program. Run it twice and you get the same answer, because the rule IS the check, not a hope about the check. When a skill says "this looks fine" that is a guess; when CodeHound says CWE-22, that is a path-taint trace from source to sink.',
       'Skills drift. Rules do not. That is the whole point.',
     ],
   },
