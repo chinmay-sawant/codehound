@@ -67,18 +67,18 @@ export default function App() {
             <div className="hero-tag">static analyzer</div>
             <h1 className="hero-title">codehound</h1>
             <p className="hero-sub">
-              Deterministic static analysis for Go - PERF anti-patterns, bad
-              practices, and CWE findings without a prompt. Better than skills.
-              Python and Rust on the roadmap, and a rule set you can extend.
+              Deterministic static analysis for Go — PERF, bad practices, and CWE
+              without a prompt. Export 1,042 findings to disk, triage with
+              DeepSeek for $0.25, or let Opus spend $14.75 doing it the hard way.
             </p>
             <div className="hero-line">
-              <span>226 findings → 218 fixed</span>
+              <span>1,042 findings · $0 scan</span>
               <span>·</span>
-              <span>+13% table throughput</span>
+              <span>$0.25 LLM triage</span>
               <span>·</span>
-              <span>175+ CWE rules</span>
+              <span>59× cheaper than Opus</span>
               <span>·</span>
-              <span>224 PERF detectors</span>
+              <span>175+ CWE · 224 PERF · 65 BP</span>
             </div>
           </header>
           {sections.map((s) => (

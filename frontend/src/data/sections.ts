@@ -10,6 +10,13 @@ import type { FlowDiagram } from '../components/WorkflowDiagram'
 export type Stat = { value: string; label: string; sub?: string }
 export type Fact = { k: string; v: string }
 export type CodeBlock = { label: string; lang: string; before?: string; after?: string; body?: string }
+export type DataTable = {
+  caption: string
+  headers: string[]
+  rows: string[][]
+  /** Row index to highlight (e.g. recommended tier). */
+  highlightRow?: number
+}
 
 export type Section = {
   id: string
@@ -20,6 +27,7 @@ export type Section = {
   body?: string[]
   stats?: Stat[]
   facts?: Fact[]
+  tables?: DataTable[]
   code?: CodeBlock
   flows?: FlowDiagram[]
 }
@@ -83,41 +91,58 @@ export const sections: Section[] = [
       },
     ],
     body: [
-      'By default CodeHound writes numbered context files to ./scripts/findings/functions/ and batched review chunks to ./scripts/chunks/. Point your agent at those paths - it can classify false positives, propose fixes, and follow a checklist you write.',
-      'You keep full control: which findings are real, which are noise, which get fixed now. When 60 of 100 are resolved and 40 remain, run with --baseline so those 40 become accepted debt. The next scan only reports regressions and new hits.',
-      'Add a make codehound target beside your other linters. The agent handles remediation from the exported chunks; you only step in for the review calls you actually want.',
-      'What would make this loop faster for your team - smaller chunk sizes, SARIF in CI, or a stricter fail policy on PERF rules?',
+      'By default CodeHound writes numbered context files to **./scripts/findings/functions/** and batched review chunks to **./scripts/chunks/**. Point your agent at those paths — it can classify false positives, propose fixes, and follow a checklist you write.',
+      'You keep full control: which findings are real, which are noise, which get fixed now. When **60** of **100** are resolved and **40** remain, run with **--baseline** so those **40** become accepted debt. The next scan only reports regressions and new hits.',
+      'Add a **make codehound** target beside your other linters. The agent handles remediation from the exported chunks; you only step in for the review calls you actually want.',
     ],
   },
   {
     id: 'why',
-    nav: 'Why',
-    title: 'Why does this exist?',
+    nav: 'Why this exists',
+    title: 'Why this exists',
     icon: HelpCircle,
     lead:
-      'AI models are cheap today because they are subsidized. They will not stay cheap. Tomorrow you run a cheaper, less expert model - and it needs something deterministic to lean on.',
+      'Inference is priced per token and priced again on every run. A compiled rule is priced once. As frontier models get expensive, you still need a checklist that does not drift — something a DeepSeek or Kimi pass can triage for cents, not an Opus pass for fifteen dollars.',
     body: [
-      'CodeHound is a static analyzer. It reads your code and tells you what is wrong, deterministically, offline, at the cost of one build - not one inference call.',
-      'A passing agent is not a passing build. A flattered review is not a real review. The honest reviewer is a program you can re-run and that answers the same way every time.',
-      'It grew out of a real performance crisis, not a marketing exercise: a high-volume Go PDF library, weeks of low-hanging fruit already picked, "we needed something more surgical." So we built one.',
+      'CodeHound is a static analyzer. One `make run` exports 1,042 findings to disk — PERF, CWE, bad practices — for $0. No API key, no context window, no "I forgot to check file 847." The expensive part becomes optional: point a cheap model at `scripts/chunks/` and let it classify false positives.',
+      'A passing agent is not a passing build. A flattered review is not a real review. Skills are prompts — they miss things, catch them differently every run, and on gopdfsuit needed four to five iterations over days. CodeHound is a program: run it twice, get the same 1,042 answers. When it says CWE-79, that is a rule ID with a file, line, and snippet — not a vibe.',
+      'It grew out of a real performance crisis, not a marketing exercise. A high-volume Go PDF library, weeks of low-hanging fruit already picked, profiling showing regex-in-loops and fmt.Sprintf on paths that run thousands of times per second. We needed something surgical. So we built one — and wired the export path so tomorrow\'s cheaper model has something deterministic to lean on.',
     ],
   },
   {
     id: 'numbers',
     nav: 'Numbers',
     icon: BarChart3,
-    title: 'What one scan turned into',
+    title: 'Benchmarks & latest scan',
     lead:
-      'One pass over a real Go codebase. Sourced - not projected, not modeled.',
+      'Criterion.rs on release builds for engine throughput, plus a real export run over the current tree — 1,042 findings, 42 review chunks, zero inference.',
     stats: [
-      { value: '226', label: 'findings exported', sub: 'one AST scan' },
-      { value: '218', label: 'real, all fixed', sub: '8 CWE filtered' },
-      { value: '+13%', label: 'table throughput', sub: 'table_180_rows' },
-      { value: '3.4×', label: 'downstream ops/s', sub: '573 → 9,594' },
+      { value: '1,042', label: 'findings exported', sub: 'scripts/findings/functions' },
+      { value: '42', label: 'review chunks', sub: 'scripts/chunks · ~25 each' },
+      { value: '39.5ms', label: 'full fixture scan', sub: '900 Go files · 275 rules' },
+      { value: '3.4×', label: 'downstream ops/s', sub: 'gopdfsuit · 573 → 9,594' },
+    ],
+    facts: [
+      { k: 'Severity mix', v: '202 high · 533 medium · 307 low' },
+      { k: 'Top rules', v: 'CWE-79 ×192 · BP-1 ×164 · PERF-6 ×96 · PERF-192 ×80 · PERF-32 ×43' },
+      { k: 'Categories', v: '533 PERF · 202 CWE · 307 bad practices' },
+      { k: 'Export tokens', v: '~1.52M input tokens across 42 chunks (avg ~36K/chunk)' },
+    ],
+    tables: [
+      {
+        caption: 'Engine benchmarks (Criterion.rs, release profile)',
+        headers: ['Benchmark', 'Time', 'Notes'],
+        rows: [
+          ['scan_materialized_fixtures', '39.5 ms', '275 detectors · 900 Go fixture files'],
+          ['collect_entries_materialized', '1.0 ms', 'File discovery + language classification'],
+          ['incremental warm vs cold', '≥5× faster', 'CI gate on cache-hit replay'],
+          ['gopdfsuit remediation', '226 → 218 fixed', '+13% table throughput after one pass'],
+        ],
+      },
     ],
     body: [
-      'The static pass flagged the essentials - regexes compiled inside loops, fmt.Sprintf boxing args on hot paths, defer frames allocated millions of times per hour.',
-      'Fixed in one deterministic pass. The heaviest CPU workloads jumped +4.6% to +13%. That foundation later carried the end-to-end benchmark to 3.4× its original throughput.',
+      'The static pass still flags the essentials — regexes compiled inside loops, fmt.Sprintf boxing on hot paths, defer frames in tight loops — but the export path now batches context for agents: one file per finding, chunked for batch triage.',
+      'Four outlier chunks (findings 451–550) carry ~50% of export tokens because enclosing functions are huge. Trim context before LLM review if you want triage cost to stay flat.',
     ],
   },
   {
@@ -192,13 +217,67 @@ for i := range members {
     id: 'cost',
     nav: 'Cost',
     icon: Coins,
-    title: 'Billed once, not per run',
+    title: 'Scan free. Review cheap.',
     lead:
-      'A model call is billed per token, per run, forever. A compiled rule is billed once - the hour you wrote it.',
+      'CodeHound detection costs $0 — one `make run`, ~1.5M tokens of exported context. LLM triage is optional; open-weight models make it cents, not dollars.',
+    stats: [
+      { value: '$0', label: 'CodeHound scan', sub: '1,042 findings · offline' },
+      { value: '$0.25', label: 'DeepSeek triage', sub: '42 chunk batch' },
+      { value: '$4.90', label: 'smart pipeline', sub: 'Flash → Sonnet → Opus' },
+      { value: '$14.75', label: 'Opus per-finding', sub: '1,042 separate calls' },
+    ],
+    facts: [
+      { k: 'Review workload', v: '1.55M input + 125K output tokens (42 chunk batch, 120 tok verdict each)' },
+      { k: 'Recommended path', v: 'DeepSeek V4-Flash triage all chunks → Sonnet on ~10% ambiguous → Opus on 202 high CWE' },
+      { k: 'Savings vs frontier', v: '~3× cheaper than Opus batch · ~59× cheaper than Opus per-finding' },
+      { k: 'Skills alone', v: 'No fixed token budget — re-reads the repo every pass; 4–5 iterations × days on gopdfsuit' },
+    ],
+    tables: [
+      {
+        caption: 'LLM review cost for 1,042 findings (42 chunk batch — recommended)',
+        headers: ['Model', 'Input $/M', 'Output $/M', 'Total cost', 'Notes'],
+        rows: [
+          ['DeepSeek V4-Flash', '$0.14', '$0.28', '$0.25', 'Best default for bulk triage'],
+          ['DeepSeek V4-Pro', '$0.44', '$0.87', '$0.78', 'Stronger reasoning, still cheap'],
+          ['Qwen 2.5 Coder 32B', '$0.18', '$0.18', '$0.30', 'Open-weight via DeepInfra / Together'],
+          ['GLM-5', '$0.60', '$1.92', '$1.17', 'Z.ai · strong coding tier'],
+          ['Kimi K2.7 Code', '$0.95', '$4.00', '$1.97', 'Moonshot · 256K context'],
+          ['GPT-5', '$0.63', '$5.00', '$1.59', 'Mid-tier frontier'],
+          ['Claude Haiku 4.5', '$1.00', '$5.00', '$2.18', 'Fast Anthropic tier'],
+          ['Claude Sonnet 5', '$2.00', '$10.00', '$4.35', 'Intro pricing thru Aug 2026'],
+          ['Claude Opus 4.8', '$5.00', '$25.00', '$10.88', 'Frontier — use for high CWE only'],
+          ['GPT-5.5', '$5.00', '$30.00', '$11.51', 'Frontier — 1M context'],
+        ],
+        highlightRow: 0,
+      },
+      {
+        caption: 'Per-finding review (1,042 separate API calls — not recommended)',
+        headers: ['Model', 'Input tokens', 'Output tokens', 'Total cost'],
+        rows: [
+          ['DeepSeek V4-Flash', '2.33M', '125K', '$0.36'],
+          ['DeepSeek V4-Pro', '2.33M', '125K', '$1.12'],
+          ['Kimi K2.7 Code', '2.33M', '125K', '$2.96'],
+          ['Claude Sonnet 5', '2.33M', '125K', '$5.90'],
+          ['Claude Opus 4.8', '2.33M', '125K', '$14.75'],
+          ['GPT-5.5', '2.33M', '125K', '$15.38'],
+        ],
+      },
+      {
+        caption: 'Tiered pipeline (practical — matches exported chunk layout)',
+        headers: ['Step', 'Model', 'Scope', 'Cost'],
+        rows: [
+          ['1 · Triage', 'DeepSeek V4-Flash', 'All 42 chunks · 1,042 findings', '$0.25'],
+          ['2 · Escalate', 'Claude Sonnet 5', '~104 ambiguous (10%)', '$1.96'],
+          ['3 · Deep CWE', 'Claude Opus 4.8', '202 high-severity CWE', '$2.69'],
+          ['Total', '—', 'Full smart review', '$4.90'],
+        ],
+        highlightRow: 3,
+      },
+    ],
     body: [
-      'No LLM in the loop. No API budget. No rate limits. No "context too long".',
-      'On a CI box that is the difference between cents and dollars, every push - and as the cheap-model era ends, that delta only widens.',
-      'You pay compute for a build, not inference for a review. The review becomes infrastructure; it stops being a sentence you have to buy',
+      'CodeHound never bills per token — you pay compute once per build. The exported chunks turn agent review into a bounded workload: ~1.5M input tokens, not an open-ended repo read.',
+      'Open-weight models (DeepSeek Flash, Qwen Coder, GLM-5, Kimi K2.7 Code) cover bulk triage for under $2. Reserve Opus and GPT-5.5 for the ~200 high CWE hits where exploit reasoning matters.',
+      'Compared to skills-only review: same gopdfsuit run needed 4–5 agent iterations over days. One CodeHound scan plus a $0.25 DeepSeek pass gets the same checklist in minutes.',
     ],
   },
   {

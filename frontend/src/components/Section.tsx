@@ -1,4 +1,5 @@
 import type { Section } from '../data/sections'
+import { renderInlineMarkup } from '../lib/render-inline'
 import { WorkflowDiagram } from './WorkflowDiagram'
 import { useReveal } from '../hooks/useReveal'
 
@@ -69,10 +70,43 @@ export function SectionView({ section }: { section: Section }) {
         </div>
       )}
 
+      {s.tables && (
+        <div className="table-stack">
+          {s.tables.map((table) => (
+            <figure className="data-table-wrap" key={table.caption}>
+              <figcaption className="data-table-caption">{table.caption}</figcaption>
+              <div className="data-table-scroll">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      {table.headers.map((h) => (
+                        <th key={h}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {table.rows.map((row, i) => (
+                      <tr
+                        key={i}
+                        className={table.highlightRow === i ? 'is-highlight' : undefined}
+                      >
+                        {row.map((cell, j) => (
+                          <td key={j}>{cell}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </figure>
+          ))}
+        </div>
+      )}
+
       {s.body && (
         <div className="section-body">
           {s.body.map((p, i) => (
-            <p key={i} className="section-para">{p}</p>
+            <p key={i} className="section-para">{renderInlineMarkup(p)}</p>
           ))}
         </div>
       )}
