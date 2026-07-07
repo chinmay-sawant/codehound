@@ -16,9 +16,12 @@ export default function App() {
     let ticking = false
     const updateActive = () => {
       const lastId = sections[sections.length - 1].id
-      const nearBottom = root.scrollHeight - root.scrollTop - root.clientHeight < 120
+      // ponytail: pin last section only at true bottom. A loose threshold (120px)
+      // fires while the second-to-last (e.g. cost) should still be active, because
+      // the content below it is short — skipping it in the sidebar.
+      const atBottom = root.scrollHeight - root.scrollTop - root.clientHeight < 4
 
-      if (nearBottom) {
+      if (atBottom) {
         setActive(lastId)
         return
       }
