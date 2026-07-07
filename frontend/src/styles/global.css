@@ -7,10 +7,10 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ---------------------------------------------------------------------------
-   CodeHound — Tailwind v4 theme tokens.
+   CodeHound - Tailwind v4 theme tokens.
    Two themes via `.dark` on <html>; default dark (set in index.html).
    One accent (amber) carried across both; surfaces shift.
-   Transparent sidebar: no border-right, no panel bg — draws on the body bg.
+   Transparent sidebar: no border-right, no panel bg - draws on the body bg.
    ------------------------------------------------------------------------- */
 :root {
   --background: #f7f8f8;          /* page */
@@ -22,7 +22,7 @@
   --border: #e2e5e8;
   --border-soft: #edeff1;
 
-  --accent: #c4861a;              /* amber — darker for light-mode contrast */
+  --accent: #c4861a;              /* amber - darker for light-mode contrast */
   --accent-soft: #d9a441;
   --accent-weak: #f0d9a3;
   --good: #4f7a3f;
@@ -145,7 +145,7 @@
 }
 
 /* ---------------------------------------------------------------------------
-   motion — purposeful, not decorative
+   motion - purposeful, not decorative
    ------------------------------------------------------------------------- */
 @keyframes hero-enter {
   from { opacity: 0; transform: translateY(10px); }
@@ -521,7 +521,7 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
-.code-before::before { content: "— before"; color: var(--bad); }
+.code-before::before { content: "- before"; color: var(--bad); }
 .code-after::before  { content: "+ after"; color: var(--good); }
 
 /* ---------- section body ---------- */

@@ -18,7 +18,7 @@ export default function App() {
       const lastId = sections[sections.length - 1].id
       // ponytail: pin last section only at true bottom. A loose threshold (120px)
       // fires while the second-to-last (e.g. cost) should still be active, because
-      // the content below it is short — skipping it in the sidebar.
+      // the content below it is short - skipping it in the sidebar.
       const atBottom = root.scrollHeight - root.scrollTop - root.clientHeight < 4
 
       if (atBottom) {
@@ -67,7 +67,7 @@ export default function App() {
             <div className="hero-tag">static analyzer</div>
             <h1 className="hero-title">codehound</h1>
             <p className="hero-sub">
-              Deterministic static analysis for Go — PERF anti-patterns, bad
+              Deterministic static analysis for Go - PERF anti-patterns, bad
               practices, and CWE findings without a prompt. Better than skills.
               Python and Rust on the roadmap, and a rule set you can extend.
             </p>
