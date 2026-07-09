@@ -203,7 +203,8 @@
 - [x] `cargo test --test go_perf_registry_generation`
 - [x] `cargo test --test go_perf_ruleset_audit`
 - [x] `cargo test --test fixture_manifest_integration_inventory`
-- [ ] Phase C PR(s) merged *(human / git step)*
+- [x] Commit includes Phase C rules + fixtures
+- [ ] Phase C PR pushed & merged *(same as above — auth required)*
 
 ---
 
@@ -226,7 +227,8 @@
 - [x] Update this folder README status → **Shipped (core)**
 - [x] Pointer from `pending-work/02-perf-detectors-remaining.md` → this folder
 - [x] CHANGELOG Unreleased note
-- [ ] Open/merge PR *(human step — not done in this session unless requested)*
+- [x] Local commit on `feat/enhanced-perf`
+- [ ] Push + open PR *(blocked here: no `gh` login / HTTPS credentials)*
 
 ---
 
