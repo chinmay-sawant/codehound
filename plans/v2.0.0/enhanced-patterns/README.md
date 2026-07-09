@@ -1,9 +1,9 @@
 # V2.0.0 — Enhanced PERF Patterns
 
 > **Parent:** `plans/v2.0.0/`
-> **Status:** **Core shipped** + **1:1 mapping in progress** — see [CHECKLIST.md](./CHECKLIST.md) and [05-one-to-one-mapping.md](./05-one-to-one-mapping.md)
+> **Status:** **Shipped** — core Phases A–E + **1:1 static mapping complete** — see [CHECKLIST.md](./CHECKLIST.md) and [05-one-to-one-mapping.md](./05-one-to-one-mapping.md)
 > **Date:** 2026-07-10
-> **Estimated effort:** ~1.5–2.5 weeks (core path executed in-session; 1:1 verify via parallel agents)
+> **Estimated effort:** ~1.5–2.5 weeks (core + parallel agent 1:1 pass)
 
 ---
 

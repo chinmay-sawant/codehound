@@ -1,9 +1,9 @@
 # Enhanced PERF Patterns — Master Checklist
 
 > **Parent:** `plans/v2.0.0/enhanced-patterns/README.md`
-> **Status:** **1:1 mapping in progress** — core Phase A–E shipped; parallel agents verify theme → PERF fire on real hot paths (see [05-one-to-one-mapping.md](./05-one-to-one-mapping.md))
+> **Status:** **Shipped** — Phases A–E + **1:1 static mapping complete** (Agents A–E; see [05-one-to-one-mapping.md](./05-one-to-one-mapping.md))
 > **Date:** 2026-07-10
-> **How to use:** Check boxes as you complete work. Detail / detection sketches live in `01`–`04` if needed. **1:1 evidence** goes in `05`.
+> **How to use:** Historical phase checkboxes below. **Authoritative 1:1 table** is in this section and in `05`.
 
 **Constraints (always — followed for this work):**
 
@@ -14,18 +14,38 @@
 
 ---
 
-## 1:1 plan-theme mapping (current track)
+## 1:1 plan-theme mapping — **COMPLETE**
 
-> **Living doc:** [05-one-to-one-mapping.md](./05-one-to-one-mapping.md)
+> **Living evidence doc:** [05-one-to-one-mapping.md](./05-one-to-one-mapping.md) (Agents A–E filled, acceptance checked)
 >
-> Goal: every **static-analyzable** theme from the external high-ops plan maps to a PERF rule that fires on real shapes (project-agnostic). Parallel agents A–E own themes; do not re-implement detectors already shipped in Phases A–E.
+> Goal met for every **static-analyzable** theme: maps to a PERF rule with gopdfsuit (or fixture) evidence. Permanent OOS listed separately.
 
 | Track | Status |
 |-------|--------|
-| Core ship (Phases A–E) | [x] Shipped — see sections below |
-| 1:1 verify / harden on real sites | [ ] In progress — Agents A–D |
-| OOS permanent non-goals + makefile UX | [x] Documented — Agent E (`05` + this checklist) |
+| Core ship (Phases A–E) | [x] Shipped |
+| 1:1 verify / harden on real sites | [x] **Done** — Agents A–D |
+| OOS permanent non-goals + makefile UX | [x] Documented — Agent E |
 | Visibility: `make run-perf-enhanced` | [x] Makefile target |
+| 1:1 acceptance | [x] **Complete** |
+
+### Theme → PERF outcome (authoritative)
+
+| # | Plan theme | PERF | Outcome |
+|---|------------|------|---------|
+| 1 | Double `slices.Clone` | **225** | **Yes** — e.g. `generator.go:1490` |
+| 2 | Post-compress `make`+`copy` | **226** | **Yes** — e.g. `generator.go:822` |
+| 3 | Pre-grow Buffer/Builder | **215** | **Yes** — multi-write / `len` sites |
+| 4 | Map / buffer pre-size | **192** + **215** | **Yes** — maps often already sized; buffers via 215 |
+| 5 | ICC / static recompute | **217** | **Yes** — e.g. OutputIntent / ICC rebuild |
+| 6 | flate/zlib without pool | **227** | **Yes** — e.g. xfdf / redact unpooled NewWriter |
+| 7 | BestSpeed vs Default/BestCompression | **233** | **Yes** — reclassified from OOS |
+| 8 | Tiny parallel fan-out (N≤2) | **228** | **Yes** — fixtures; dynamic N correctly silent |
+| 9 | PEM/key parse on sign path | **231** | **Yes** — e.g. `signature.go:133` |
+| 10 | drawTable props/width cache | **230** + **109** | **Yes** — parseProps / width / font resolve |
+| 11 | strconv/fmt numeric emit | **015/006/229** | **Already fixed** on draw path (no hit needed) |
+| 12 | Large `make([]byte)` in loop | **027** | **Partial** — rule+fixtures green; gopdfsuit largely pooled |
+| 13 | klauspost / GOMAXPROCS / GOMEMLIMIT / compliance | — | **OOS** (permanent) |
+| 14 | Default `make run` visibility | `run-perf-enhanced` | **Done** |
 
 **Verify the enhanced set (findings not buried by BP/CWE):**
 
