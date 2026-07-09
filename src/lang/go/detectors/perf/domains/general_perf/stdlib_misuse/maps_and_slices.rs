@@ -408,35 +408,12 @@ pub(crate) fn detect_perf_192(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 /// True when the enclosing function has a `range` loop or `len(` that could
 /// supply a map capacity hint.
 fn map_size_hint_available(source: &str, start_byte: usize) -> bool {
-    let body = enclosing_function_body(source, start_byte).unwrap_or(source);
-    body.contains(" range ") || body.contains("\trange ") || body.contains("range ") || body.contains("len(")
-}
-
-fn enclosing_function_body<'a>(source: &'a str, start_byte: usize) -> Option<&'a str> {
-    let start_byte = start_byte.min(source.len());
-    let head = &source[..start_byte];
-    let func_kw = head.rfind("func ")?;
-    let brace_rel = source[func_kw..].find('{')?;
-    let body_open = func_kw + brace_rel;
-    let mut depth = 0i32;
-    let mut end = body_open;
-    for (i, ch) in source[body_open..].char_indices() {
-        match ch {
-            '{' => depth += 1,
-            '}' => {
-                depth -= 1;
-                if depth == 0 {
-                    end = body_open + i + 1;
-                    break;
-                }
-            }
-            _ => {}
-        }
-    }
-    if end <= body_open {
-        return None;
-    }
-    Some(&source[body_open..end])
+    let body = crate::lang::go::detectors::perf::common::enclosing_function_body(source, start_byte)
+        .unwrap_or(source);
+    body.contains(" range ")
+        || body.contains("\trange ")
+        || body.contains("range ")
+        || body.contains("len(")
 }
 
 #[cfg(test)]

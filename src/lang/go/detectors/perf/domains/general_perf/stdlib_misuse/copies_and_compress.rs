@@ -72,33 +72,77 @@ pub(crate) fn detect_perf_225(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 }
 
 /// PERF-226: Post-Producer Buffer Re-Copy
+///
+/// Covers the classic pprof pattern:
+///   `cp := make([]byte, buf.Len()); copy(cp, buf.Bytes())`
+/// after compress Close / buffer production, and Clone after Bytes().
 pub(crate) fn detect_perf_226(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
+    let mut emitted = 0u32;
 
-    // Producer markers: .Bytes(), .Close() near compress/buffer usage.
+    // 1) Explicit make(len/Len) + copy(...Bytes()) — does not rely on Close proximity.
+    let mut search = 0usize;
+    while let Some(rel) = source[search..].find("make([]byte") {
+        let start = search + rel;
+        let window_end = char_boundary(source, (start + 200).min(source.len()));
+        let window = &source[start..window_end];
+        // make([]byte, x.Len()) or make([]byte, len(x)) then copy(..., x.Bytes()) / copy(..., x)
+        let make_len = window.contains(".Len()") || window.contains("len(");
+        let has_copy = window.contains("copy(");
+        let from_bytes = window.contains(".Bytes()") || window.contains("copy(");
+        if make_len && has_copy && from_bytes {
+            let (line, col) = unit.line_col(start);
+            emit::push_finding(
+                &META_PERF_226,
+                file,
+                line,
+                col,
+                "buffer is re-copied after production (make+copy); take ownership of the producer buffer",
+                out,
+            );
+            emitted += 1;
+            if emitted >= 8 {
+                return;
+            }
+        }
+        search = start + 4;
+    }
+
+    // 2) Producer markers: .Bytes() / .Close() then Clone or make+copy in a wide window.
     let producer_needles = [".Bytes()", ".Close()"];
     for needle in producer_needles {
         let mut search = 0usize;
         while let Some(rel) = source[search..].find(needle) {
             let prod = search + rel;
-            let window_end = char_boundary(source, (prod + 240).min(source.len()));
+            // Wide enough for error-handling blocks between Close and make+copy.
+            let window_end = char_boundary(source, (prod + 480).min(source.len()));
             let window = &source[prod..window_end];
             if window_has_recopy(window) {
                 let recopy_rel = window
                     .find("make([]byte")
                     .or_else(|| window.find("slices.Clone("))
                     .unwrap_or(0);
-                let (line, col) = unit.line_col(prod + recopy_rel);
-                emit::push_finding(
-                    &META_PERF_226,
-                    file,
-                    line,
-                    col,
-                    "buffer is re-copied immediately after production; take ownership instead of make+copy",
-                    out,
-                );
-                return;
+                let abs = prod + recopy_rel;
+                // Avoid double-reporting the same make site from step 1.
+                let already = out
+                    .iter()
+                    .any(|f| f.rule_id == "PERF-226" && f.line == unit.line_col(abs).0);
+                if !already {
+                    let (line, col) = unit.line_col(abs);
+                    emit::push_finding(
+                        &META_PERF_226,
+                        file,
+                        line,
+                        col,
+                        "buffer is re-copied immediately after production; take ownership instead of make+copy",
+                        out,
+                    );
+                    emitted += 1;
+                    if emitted >= 8 {
+                        return;
+                    }
+                }
             }
             search = prod + needle.len();
         }
@@ -158,12 +202,15 @@ pub(crate) fn detect_perf_228(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 }
 
 /// PERF-227: Compress Writer Allocated Without Pool
+///
+/// File-level pool helpers (GetZlibWriter) must not silence NewWriter* in
+/// *other* functions — only suppress when the enclosing function itself
+/// implements pool Get/Reset or is named like a pool factory.
 pub(crate) fn detect_perf_227(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    use crate::lang::go::detectors::perf::common::enclosing_function_name;
+
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
-
-    let has_pool_reuse = source.contains("sync.Pool")
-        && (source.contains(".Reset(") || source.contains("Reset("));
 
     let triggers = [
         "flate.NewWriter",
@@ -179,7 +226,19 @@ pub(crate) fn detect_perf_227(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         if !triggers.contains(&callee) {
             continue;
         }
-        if has_pool_reuse {
+        let fname = enclosing_function_name(source, call.start_byte).unwrap_or("");
+        let fname_l = fname.to_ascii_lowercase();
+        // Pool factory / getter — constructing the writer once for Pool.New is fine.
+        if fname_l.contains("getzlib")
+            || fname_l.contains("getflate")
+            || fname_l.contains("getgzip")
+            || fname_l.contains("newpool")
+            || (fname_l.starts_with("get") && fname_l.contains("writer"))
+        {
+            continue;
+        }
+        // Enclosing body uses Reset on the writer (proper reuse path).
+        if function_body_has_writer_reset(source, call.start_byte) {
             continue;
         }
         if !is_hot_path(
@@ -188,7 +247,15 @@ pub(crate) fn detect_perf_227(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
             &facts.source_index,
             is_in_loop(call),
         ) {
-            continue;
+            // Still flag compress construction inside any non-tiny helper that
+            // is not a one-shot main/init — encode paths often lack HTTP shape.
+            if fname.is_empty() || fname == "init" || fname == "main" {
+                continue;
+            }
+            // Require compress-shaped name for non-hot encode helpers.
+            if !compress_shaped_fname(&fname_l) {
+                continue;
+            }
         }
         let (line, col) = unit.line_col(call.start_byte);
         emit::push_finding(
@@ -196,11 +263,135 @@ pub(crate) fn detect_perf_227(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
             file,
             line,
             col,
-            "compress writer is allocated on a hot path; reuse via sync.Pool and Reset",
+            "compress writer is allocated without local pool/Reset reuse; pool writers on hot paths",
             out,
         );
-        return;
+        // Report multiple sites (main path + side paths), not only the first.
     }
+}
+
+/// PERF-233: Default / BestCompression flate level on a hot encode path.
+///
+/// Distinct from PERF-227 (pool/Reset): this flags compression *level* choice.
+/// Bulk page/stream encoders can use BestSpeed (or level 1) without changing
+/// the FlateDecode filter — static smell when DefaultCompression,
+/// BestCompression, or default NewWriter level is used on hot paths.
+pub(crate) fn detect_perf_233(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    use crate::lang::go::detectors::perf::common::enclosing_function_name;
+
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+    let mut emitted = 0u32;
+
+    for call in &facts.calls {
+        let callee = call.callee.as_ref();
+        let args_joined = call
+            .arguments
+            .iter()
+            .map(|a| a.as_ref())
+            .collect::<Vec<_>>()
+            .join(",");
+        // Explicit fast levels are fine (also silences pool factories using BestSpeed).
+        if args_joined.contains("BestSpeed")
+            || args_joined.contains("HuffmanOnly")
+            || args_joined.contains("NoCompression")
+        {
+            continue;
+        }
+        let uses_slow = match callee {
+            // zlib.NewWriter / gzip.NewWriter always use DefaultCompression.
+            "zlib.NewWriter" | "gzip.NewWriter" => true,
+            // Level APIs: only explicit slow constants (not free-form level vars).
+            "zlib.NewWriterLevel"
+            | "flate.NewWriter"
+            | "flate.NewWriterLevel"
+            | "gzip.NewWriterLevel" => {
+                args_joined.contains("DefaultCompression")
+                    || args_joined.contains("BestCompression")
+            }
+            _ => false,
+        };
+        if !uses_slow {
+            continue;
+        }
+        // Only care on hot / compress-shaped functions (align tokens with 227).
+        if !is_hot_path(
+            source,
+            call.start_byte,
+            &facts.source_index,
+            is_in_loop(call),
+        ) {
+            let fname = enclosing_function_name(source, call.start_byte)
+                .unwrap_or("")
+                .to_ascii_lowercase();
+            if fname.is_empty() || fname == "init" || fname == "main" {
+                continue;
+            }
+            if !compress_shaped_fname(&fname) {
+                continue;
+            }
+        }
+        let (line, col) = unit.line_col(call.start_byte);
+        emit::push_finding(
+            &META_PERF_233,
+            file,
+            line,
+            col,
+            "compress uses Default/BestCompression on a hot path; consider BestSpeed (or level 1) when size budget allows",
+            out,
+        );
+        emitted += 1;
+        if emitted >= 8 {
+            return;
+        }
+    }
+}
+
+/// Function-name tokens that look like bulk compress / page / form encode paths.
+/// Shared by PERF-227 (pool) and PERF-233 (level) non-hot gates.
+fn compress_shaped_fname(fname_l: &str) -> bool {
+    fname_l.contains("compress")
+        || fname_l.contains("encode")
+        || fname_l.contains("write")
+        || fname_l.contains("generate")
+        || fname_l.contains("render")
+        || fname_l.contains("export")
+        || fname_l.contains("build")
+        || fname_l.contains("stream")
+        || fname_l.contains("page")
+        || fname_l.contains("font")
+        || fname_l.contains("xfdf")
+        || fname_l.contains("redact")
+        || fname_l.contains("sign")
+        || fname_l.contains("fill")
+}
+
+fn function_body_has_writer_reset(source: &str, start_byte: usize) -> bool {
+    let head = &source[..start_byte.min(source.len())];
+    let Some(func_kw) = head.rfind("func ") else {
+        return false;
+    };
+    let Some(brace_rel) = source[func_kw..].find('{') else {
+        return false;
+    };
+    let body_open = func_kw + brace_rel;
+    let mut depth = 0i32;
+    let mut end = body_open;
+    for (i, ch) in source[body_open..].char_indices() {
+        match ch {
+            '{' => depth += 1,
+            '}' => {
+                depth -= 1;
+                if depth == 0 {
+                    end = body_open + i;
+                    break;
+                }
+            }
+            _ => {}
+        }
+    }
+    let body = &source[body_open..end.min(source.len())];
+    body.contains(".Reset(") || body.contains("Reset(")
 }
 
 /// PERF-229: Intermediate String On Byte Append Path
@@ -218,7 +409,13 @@ pub(crate) fn detect_perf_229(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         if !is_fmt {
             continue;
         }
-        let name = assignment.text.as_ref().split('=').next().unwrap_or("").trim();
+        let name = assignment
+            .text
+            .as_ref()
+            .split('=')
+            .next()
+            .unwrap_or("")
+            .trim();
         // text may be "s :=" form stored differently — use lhs from assignment
         let name = if name.is_empty() || name.contains('(') {
             // fall back: look at common pattern in source near assignment
@@ -273,9 +470,15 @@ pub(crate) fn detect_perf_229(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 }
 
 /// PERF-230: Pure Function Re-Evaluated In Loop With Stable Args
+///
+/// Targets drawTable-class smells: parseProps, EstimateTextWidth / GetTextWidth,
+/// font resolve called every cell with loop-invariant (or cacheable) props/font/size.
+///
+/// Intentionally does **not** fire on stdlib `time.Parse` / `strconv.Parse*` /
+/// pool `Get` / crypto `x509.Parse*` (PEM/key parse is PERF-231).
 pub(crate) fn detect_perf_230(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
+    let mut emitted = 0u32;
 
     for call in &facts.calls {
         if !is_in_loop(call) {
@@ -285,56 +488,191 @@ pub(crate) fn detect_perf_230(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         if impure_callee(callee) {
             continue;
         }
-        // Require at least one arg, all simple idents/literals, none looking like
-        // range element names commonly used (i, idx, v, item, cell, row, e).
-        if call.arguments.is_empty() {
+        let bare = callee
+            .rsplit('.')
+            .next()
+            .unwrap_or(callee)
+            .to_ascii_lowercase();
+        let pkg = callee
+            .rsplit_once('.')
+            .map(|(p, _)| p)
+            .unwrap_or("")
+            .to_ascii_lowercase();
+
+        // Generic pool / map get-put is never a pure measure/parse helper.
+        if is_pool_or_map_accessor(&bare, &pkg) {
             continue;
         }
-        let mut all_stable = true;
+        // stdlib / crypto Parse* and related are not drawTable-class cache targets.
+        // (PEM/x509 hot-path parse is PERF-231.)
+        if is_excluded_parse_package(&pkg) {
+            continue;
+        }
+        if !is_drawtable_class_helper(&bare) {
+            continue;
+        }
+
+        // Zero-arg pure-looking helpers (e.g. defaultProps()) — not Get/Load.
+        if call.arguments.is_empty() || call.arguments.iter().all(|a| a.trim().is_empty()) {
+            let (line, col) = unit.line_col(call.start_byte);
+            emit::push_finding(
+                &META_PERF_230,
+                file,
+                line,
+                col,
+                "pure function is re-evaluated every iteration; hoist or cache",
+                out,
+            );
+            emitted += 1;
+            if emitted >= 6 {
+                return;
+            }
+            continue;
+        }
+
+        // At least one arg is a simple ident/literal/field access that is not a
+        // bare loop variable, so we still fire when props/font are mixed with
+        // per-cell text (cache-per-key opportunity).
+        let mut any_stable = false;
         for arg in call.arguments.iter() {
             let a = arg.trim();
             if a.is_empty() {
-                all_stable = false;
-                break;
+                continue;
             }
             if is_loop_variant_name(a) {
-                all_stable = false;
-                break;
+                continue;
             }
-            if !(is_simple_ident(a) || is_literal(a)) {
-                all_stable = false;
-                break;
+            if is_simple_ident(a) || is_literal(a) {
+                any_stable = true;
+            } else if a.contains('.') {
+                // field access like cell.Props / template.Title.Props — cacheable key
+                any_stable = true;
+            } else if a.contains('{') {
+                // composite literal props/font config — treated as stable shape
+                any_stable = true;
             }
         }
-        if !all_stable {
+        if !any_stable {
             continue;
         }
-        // Prefer named pure-ish helpers (parse/measure/estimate/resolve/normalize)
-        let bare = callee.rsplit('.').next().unwrap_or(callee).to_ascii_lowercase();
-        if !(bare.contains("parse")
-            || bare.contains("measure")
-            || bare.contains("estimate")
-            || bare.contains("resolve")
-            || bare.contains("normalize")
-            || bare.contains("width")
-            || bare.contains("props")
-            || bare.starts_with("get")
-            || bare.starts_with("compute"))
-        {
-            continue;
-        }
+
         let (line, col) = unit.line_col(call.start_byte);
         emit::push_finding(
             &META_PERF_230,
             file,
             line,
             col,
-            "pure function is re-evaluated every iteration with stable args; hoist or cache",
+            "pure/helper call in loop has stable args (props/font/size); cache per distinct key",
             out,
         );
-        return;
+        emitted += 1;
+        if emitted >= 6 {
+            return;
+        }
     }
-    let _ = source;
+}
+
+/// Generic parse/measure/width/props/font/style helper names (project-agnostic).
+fn is_drawtable_class_helper(bare: &str) -> bool {
+    // Strong matches first (common PDF/table helper shapes).
+    if bare.contains("parseprops")
+        || bare.contains("estimatetext")
+        || bare.contains("gettextwidth")
+        || bare.contains("textwidth")
+        || bare.contains("text_width")
+        || bare.contains("measuretext")
+        || bare.contains("textmeasure")
+        || bare.contains("resolvefont")
+        || bare.contains("fontname")
+        || bare.contains("fontref")
+        || bare.contains("getfont")
+        || bare.contains("parsehex")
+        || bare.contains("parsestyle")
+        || bare.contains("normalizeprops")
+        || bare.contains("cellprops")
+        || bare.contains("rowprops")
+    {
+        return true;
+    }
+    bare.contains("parse")
+        || bare.contains("measure")
+        || bare.contains("estimate")
+        || bare.contains("resolve")
+        || bare.contains("normalize")
+        || bare.contains("width")
+        || bare.contains("props")
+        || bare.contains("font")
+        || bare.contains("style")
+        || bare.starts_with("compute")
+}
+
+/// Packages whose Parse*/Decode* APIs must not be PERF-230 (stdlib or crypto).
+fn is_excluded_parse_package(pkg: &str) -> bool {
+    matches!(
+        pkg,
+        "time"
+            | "strconv"
+            | "url"
+            | "json"
+            | "xml"
+            | "html"
+            | "filepath"
+            | "path"
+            | "pem"
+            | "x509"
+            | "tls"
+            | "asn1"
+            | "base64"
+            | "hex"
+            | "mime"
+            | "multipart"
+            | "csv"
+            | "template"
+            | "text/template"
+            | "html/template"
+            | "flag"
+            | "net"
+            | "http"
+            | "mail"
+            | "smtp"
+            | "crypto"
+            | "rsa"
+            | "ecdsa"
+            | "ed25519"
+    ) || pkg.ends_with("/pem")
+        || pkg.ends_with("/x509")
+        || pkg.ends_with("/json")
+        || pkg.ends_with("/xml")
+        || pkg.ends_with("/csv")
+        || pkg.ends_with("/hex")
+        || pkg.ends_with("/base64")
+        || pkg.contains("encoding/")
+}
+
+/// `pool.Get`, `sync.Pool.Get`, `cache.Load`, bare Get/Load/Put/Store accessors.
+fn is_pool_or_map_accessor(bare: &str, pkg: &str) -> bool {
+    if matches!(
+        bare,
+        "get" | "load" | "put" | "store" | "delete" | "pop" | "push" | "take" | "borrow" | "return"
+    ) {
+        return true;
+    }
+    // package or receiver name suggests a pool
+    if pkg == "pool"
+        || pkg.ends_with("pool")
+        || pkg.contains("pool")
+        || pkg == "sync"
+        || pkg.ends_with(".pool")
+    {
+        // only suppress when the method is a generic accessor, not GetTextWidth
+        if matches!(
+            bare,
+            "get" | "load" | "put" | "store" | "new" | "getbuffer" | "getbytes"
+        ) {
+            return true;
+        }
+    }
+    false
 }
 
 /// PERF-231: PEM Or Key Material Parsed On Hot Path
@@ -396,9 +734,7 @@ pub(crate) fn detect_perf_231(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 
 fn is_simple_ident(name: &str) -> bool {
     !name.is_empty()
-        && name
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '_')
+        && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
         && name
             .chars()
             .next()
@@ -450,6 +786,7 @@ fn is_loop_variant_name(a: &str) -> bool {
 
 fn impure_callee(callee: &str) -> bool {
     let lower = callee.to_ascii_lowercase();
+    let bare = lower.rsplit('.').next().unwrap_or(lower.as_str());
     lower.contains("rand")
         || lower.contains("now")
         || lower.contains("read")
@@ -459,6 +796,11 @@ fn impure_callee(callee: &str) -> bool {
         || lower.contains("sleep")
         || lower.contains("lock")
         || lower.contains("unlock")
+        // request / IO parsers — not pure measure/props helpers
+        || bare.contains("parseform")
+        || bare.contains("parsemultipart")
+        || bare.contains("decodepem")
+        || (bare == "decode" && (lower.starts_with("pem.") || lower.contains(".pem.")))
 }
 
 fn append_nil_clones(source: &str) -> Vec<(usize, String)> {
@@ -486,7 +828,10 @@ fn window_has_recopy(window: &str) -> bool {
     let has_make = window.contains("make([]byte");
     let has_copy = window.contains("copy(");
     let has_clone = window.contains("slices.Clone(");
-    (has_make && has_copy) || has_clone
+    // Require Len/len so small fixed makes (e.g. crypto scratch) near an
+    // unrelated .Bytes() are not treated as post-producer re-copies.
+    let make_from_len = window.contains(".Len()") || window.contains("len(");
+    (has_make && has_copy && make_from_len) || has_clone
 }
 
 fn loop_has_parallel_fanout(loop_text: &str) -> bool {
@@ -507,7 +852,10 @@ fn tiny_composite_slice_names(source: &str) -> Vec<String> {
             continue;
         };
         let lhs = t[..eq].trim().trim_end_matches(':').trim();
-        let rhs = t[eq..].trim_start_matches(':').trim_start_matches('=').trim();
+        let rhs = t[eq..]
+            .trim_start_matches(':')
+            .trim_start_matches('=')
+            .trim();
         if !is_simple_ident(lhs) {
             continue;
         }
@@ -575,5 +923,3 @@ fn continue_name_from_source(source: &str, start_byte: usize) -> Option<&str> {
         None
     }
 }
-
-

@@ -1,16 +1,40 @@
 # Enhanced PERF Patterns — Master Checklist
 
 > **Parent:** `plans/v2.0.0/enhanced-patterns/README.md`
-> **Status:** **Shipped** — Phase A–E done including former deferred 228 + 027 large-make
-> **Date:** 2026-07-09
-> **How to use:** Check boxes as you complete work. Detail / detection sketches live in `01`–`04` if needed.
+> **Status:** **1:1 mapping in progress** — core Phase A–E shipped; parallel agents verify theme → PERF fire on real hot paths (see [05-one-to-one-mapping.md](./05-one-to-one-mapping.md))
+> **Date:** 2026-07-10
+> **How to use:** Check boxes as you complete work. Detail / detection sketches live in `01`–`04` if needed. **1:1 evidence** goes in `05`.
 
 **Constraints (always — followed for this work):**
 
 - [x] Stay **project-agnostic** (no product-only rules; description examples OK)
 - [x] Prefer **stdlib / module-level** smells
-- [x] **Static-only** (no GOMAXPROCS / GOMEMLIMIT / compress-level policy / compliance policy)
+- [x] **Static-only** (no GOMAXPROCS / GOMEMLIMIT / third-party compress choice / compliance policy — see [Permanent non-goals](#permanent-non-goals-oos))
 - [x] Ship shape: JSON + registry + detector + vulnerable/safe fixtures + manifest + tests green
+
+---
+
+## 1:1 plan-theme mapping (current track)
+
+> **Living doc:** [05-one-to-one-mapping.md](./05-one-to-one-mapping.md)
+>
+> Goal: every **static-analyzable** theme from the external high-ops plan maps to a PERF rule that fires on real shapes (project-agnostic). Parallel agents A–E own themes; do not re-implement detectors already shipped in Phases A–E.
+
+| Track | Status |
+|-------|--------|
+| Core ship (Phases A–E) | [x] Shipped — see sections below |
+| 1:1 verify / harden on real sites | [ ] In progress — Agents A–D |
+| OOS permanent non-goals + makefile UX | [x] Documented — Agent E (`05` + this checklist) |
+| Visibility: `make run-perf-enhanced` | [x] Makefile target |
+
+**Verify the enhanced set (findings not buried by BP/CWE):**
+
+```bash
+make run-perf-enhanced
+# or: make run-perf-enhanced SCAN_PATH=/path/to/project
+```
+
+`--only` set: `PERF-018,027,032,054,109,192,215,217,218,219,225–231,233` (override via `PERF_ENHANCED_ONLY`).
 
 ---
 
@@ -156,7 +180,7 @@
 
 - [x] JSON + registry + `detect_perf_227`
 - [x] `flate`/`zlib`/`gzip` `NewWriter*` on hot path without pool+Reset
-- [x] Do **not** flag compression level choice
+- [x] Pool miss only (level choice is separate **PERF-233**)
 - [x] Fixtures + manifest
 - [x] Integration green
 
@@ -211,7 +235,8 @@
 ## Phase D — Optional / fold decisions
 
 - [x] PERF-228 final status recorded — **shipped**
-- [x] Confirm no need for extra IDs 233+ (Grow/map folded into 215/192)
+- [x] Optional Grow/map IDs folded into 215/192 (no separate PERF-234+ for growth)
+- [x] PERF-233 (slow compress level on hot path) — **shipped** for 1:1 theme #7 (was once listed OOS; reclassified as static-analyzable `*Compression` constant on hot encode)
 - [x] Noise spot-check: `clean_go_file.txt` → no slop
 - [x] Confirm clone/grow/pool/static findings **without Gin**:
   - PERF-225 (clone), PERF-226 (re-copy), PERF-215 (grow), PERF-027 (pool), PERF-217 (static), PERF-227 (compress) all fire on non-HTTP fixtures
@@ -221,27 +246,35 @@
 ## Phase E — Closeout
 
 - [x] All Phase B boxes checked (or explicitly deferred with note)
-- [x] Core new rules 225–231 shipped (232 merged into 231)
+- [x] Core new rules 225–231 shipped (232 merged into 231); PERF-233 for BestSpeed/Default
 - [x] `cargo test --test go_perf_detector_integration` final green
 - [x] `cargo test --test go_perf_ruleset_audit` final green
-- [x] Update this folder README status → **Shipped (core)**
+- [x] Update this folder README status → **Shipped (core)** + 1:1 track
 - [x] Pointer from `pending-work/02-perf-detectors-remaining.md` → this folder
-- [x] CHANGELOG Unreleased note
+- [x] CHANGELOG Unreleased note (enhanced batch + PERF-233 + `run-perf-enhanced`)
 - [x] Local commit on `feat/enhanced-perf`
+- [x] Makefile `run-perf-enhanced` for 1:1 visibility
+- [ ] 1:1 mapping acceptance complete — [05-one-to-one-mapping.md](./05-one-to-one-mapping.md)
 - [ ] Push + open PR *(blocked here: no `gh` login / HTTPS credentials)*
 
 ---
 
-## Explicitly out of scope (not work items)
+## Permanent non-goals (OOS)
 
-- [ ] ~~Compression level policy (BestSpeed)~~ — OOS
-- [ ] ~~klauspost / third-party compress library recommendation~~ — OOS
-- [ ] ~~GOMAXPROCS / GOMEMLIMIT~~ — OOS
-- [ ] ~~Product compliance (PDF/A, signatures required, workload mix)~~ — OOS
-- [ ] ~~CWE / BP catalogue changes~~ — OOS
-- [ ] ~~Auto-`--fix` for new rules~~ — later / separate plan
-- [x] ~~PERF-228 tiny fan-out~~ — **shipped**
-- [x] ~~PERF-027 large `make([]byte,n)` optional~~ — **shipped**
+These are **not** backlog items. They will not become PERF detectors in this workstream. Rationale is product/runtime/dependency policy, not static smell coverage. Full write-up: [05-one-to-one-mapping.md § Agent E](./05-one-to-one-mapping.md).
+
+| Item | Why permanent OOS |
+|------|-------------------|
+| **klauspost / third-party compress** | Dependency and license choice, not a stdlib anti-pattern. Teams pick compress implementations for size/CPU/ABI reasons; CodeHound stays vendor-neutral. |
+| **GOMAXPROCS** | Runtime / deployment tuning. Correct value depends on cgroup, container CPU quota, and workload mix — not AST. |
+| **GOMEMLIMIT** | Same class: process-wide GC/memory policy set by operators or platform, not local code shape. |
+| **Product compliance** (PDF/A, signatures required, workload mix, “must keep X enabled”) | Product/security policy. Violations are config or legal requirements, not performance smells. |
+| **CWE / BP catalogue changes** | Different product surface; this folder is PERF-only. |
+| **Auto-`--fix` for new rules** | Separate engineering plan; detection correctness first. |
+
+**Reclassified (no longer OOS):** BestSpeed vs Default/BestCompression on a **hot encode path** → **PERF-233** (static constants / `NewWriter` default level). Still **not** a global “always use BestSpeed” policy rule.
+
+**Formerly deferred, now shipped:** PERF-228 tiny fan-out; PERF-027 large `make([]byte,n)` in loop.
 
 ---
 
@@ -251,11 +284,12 @@
 |------|-------------|
 | Shared helper | `is_hot_path`, `enclosing_function_name`, `function_name_is_hot` |
 | Tightened | 018, 027, 032, 054, 109, 192, 215, 217, 218, 219 |
-| New rules | **225–231** (incl. 228) |
+| New rules | **225–231** (incl. 228), **233** (slow compress level) |
 | Merged | 232 → 231 |
 | Deferred | none from original deferred pair |
-| Chunk | `ruleset/golang/chunks/perf-225-232.json` |
+| Chunk | `ruleset/golang/chunks/perf-225-232.json` (includes 233) |
 | Detectors | `…/stdlib_misuse/copies_and_compress.rs` + tightened existing modules |
+| Makefile | `make run-perf-enhanced` → text findings for the enhanced PERF set |
 
 ---
 
@@ -266,7 +300,8 @@
 | A Shared helper | [x] |
 | B Tighten | [x] |
 | C New rules | [x] |
-| D Optional | [x] |
+| D Optional | [x] (incl. PERF-233) |
 | E Closeout | [x] code+docs (PR open left to you) |
+| **1:1 mapping** | [ ] In progress — [05](./05-one-to-one-mapping.md) |
 
-**Last updated:** 2026-07-09 (shipped PERF-228 + PERF-027 large make)
+**Last updated:** 2026-07-10 (1:1 track + permanent OOS + `run-perf-enhanced`)

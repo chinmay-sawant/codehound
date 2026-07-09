@@ -90,29 +90,70 @@ pub(crate) fn detect_perf_214(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 
 /// PERF-215: bytes.Buffer or strings.Builder Without Pre-Sizing
 pub(crate) fn detect_perf_215(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    use crate::lang::go::detectors::perf::common::{
+        enclosing_function_body, enclosing_function_is_hot,
+    };
+
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
     for name in buffer_or_builder_names(source) {
-        if source.contains(&format!("{name}.Grow(")) {
-            continue;
+        // A) write arg has matching len(arg) in the same function, no Grow there
+        if let Some(write_byte) = first_write_with_known_len(source, &name) {
+            let body = enclosing_function_body(source, write_byte).unwrap_or(source);
+            if !body.contains(&format!("{name}.Grow(")) {
+                let (line, col) = unit.line_col(write_byte);
+                emit::push_finding(
+                    &META_PERF_215,
+                    file,
+                    line,
+                    col,
+                    "bytes.Buffer or strings.Builder writes without a preceding Grow(expectedSize)",
+                    out,
+                );
+                return;
+            }
         }
-        // Only fire when a write argument has a corresponding `len(arg)` so the
-        // pre-size opportunity is clear (avoids flagging multi-part builders
-        // that only have an unrelated `len(slice)` elsewhere in the function).
-        let Some(write_byte) = first_write_with_known_len(source, &name) else {
-            continue;
-        };
-        let (line, col) = unit.line_col(write_byte);
-        emit::push_finding(
-            &META_PERF_215,
-            file,
-            line,
-            col,
-            "bytes.Buffer or strings.Builder writes without a preceding Grow(expectedSize)",
-            out,
-        );
-        return;
+        // B) multiple writes in one hot function with a size estimate (len/.Len)
+        //    and no Grow on this builder in that function.
+        let mut search_from = 0usize;
+        let write_needle = format!("{name}.Write");
+        while let Some(rel) = source[search_from..].find(&write_needle) {
+            let byte = search_from + rel;
+            let body = enclosing_function_body(source, byte).unwrap_or("");
+            if body.is_empty() {
+                search_from = byte + write_needle.len();
+                continue;
+            }
+            if body.contains(&format!("{name}.Grow(")) {
+                search_from = byte + write_needle.len();
+                continue;
+            }
+            let write_count = ["WriteString(", "Write(", "WriteByte(", "WriteRune("]
+                .iter()
+                .map(|m| body.matches(&format!("{name}.{m}")).count())
+                .sum::<usize>();
+            let size_hint = body.contains("len(")
+                || body.contains(".Len()")
+                || body.contains("cap(");
+            // Hot multi-write without Grow: size estimable, or many writes.
+            if write_count >= 3
+                && (size_hint || write_count >= 6)
+                && enclosing_function_is_hot(source, byte)
+            {
+                let (line, col) = unit.line_col(byte);
+                emit::push_finding(
+                    &META_PERF_215,
+                    file,
+                    line,
+                    col,
+                    "bytes.Buffer or strings.Builder does many writes without Grow; pre-size when output size is estimable",
+                    out,
+                );
+                return;
+            }
+            search_from = byte + write_needle.len();
+        }
     }
     let _ = facts;
 }
@@ -153,14 +194,36 @@ pub(crate) fn detect_perf_217(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 
     for call in &facts.calls {
         let callee = call.callee.as_ref();
-        if call.arguments.iter().any(|arg| !arg.trim().is_empty()) {
+        // `defer func(){ ... }()` is a call_expression whose "function" is a
+        // func_literal — never a named static builder.
+        if callee.starts_with("func") || callee.contains('{') || callee.contains('\n') {
+            continue;
+        }
+        // Pool Get/Put and reset/clear are not pure static builders.
+        if is_pool_or_reset_accessor(callee) {
+            continue;
+        }
+        // Allow zero-arg pure builders, or only literal/constant-looking args.
+        let non_empty: Vec<_> = call
+            .arguments
+            .iter()
+            .map(|a| a.trim())
+            .filter(|a| !a.is_empty())
+            .collect();
+        let args_ok = non_empty.is_empty()
+            || non_empty.iter().all(|a| {
+                a.chars().all(|c| c.is_ascii_digit())
+                    || (*a == "true" || *a == "false" || *a == "nil")
+                    || (a.starts_with('"') && a.ends_with('"'))
+            });
+        if !args_ok {
             continue;
         }
         if !looks_like_static_builder(callee) {
             continue;
         }
         // Hot path only: loop, HTTP/handler shape, or encode/build/generate-style
-        // function. Package-level init and cold helpers stay silent.
+        // function — not HTTP-only. Package-level init and cold helpers stay silent.
         if !is_hot_path(
             source,
             call.start_byte,
@@ -470,8 +533,10 @@ fn buffer_or_builder_names(source: &str) -> Vec<String> {
 }
 
 /// First `{name}.WriteString(arg)` / `{name}.Write(arg)` where `len(arg)` also
-/// appears in the unit (size is knowable).
+/// appears in the **same enclosing function** (size is knowable there).
 fn first_write_with_known_len(source: &str, name: &str) -> Option<usize> {
+    use crate::lang::go::detectors::perf::common::enclosing_function_body;
+
     for method in ["WriteString(", "Write("] {
         let needle = format!("{name}.{method}");
         let mut search_from = 0usize;
@@ -479,10 +544,16 @@ fn first_write_with_known_len(source: &str, name: &str) -> Option<usize> {
             let start = search_from + rel;
             let arg_start = start + needle.len();
             let rest = &source[arg_start..];
-            let arg_end = rest.find([')', ','])?;
+            let Some(arg_end) = rest.find([')', ',']) else {
+                search_from = arg_start;
+                continue;
+            };
             let arg = rest[..arg_end].trim();
-            if is_simple_ident(arg) && source.contains(&format!("len({arg})")) {
-                return Some(start);
+            if is_simple_ident(arg) {
+                let body = enclosing_function_body(source, start).unwrap_or(source);
+                if body.contains(&format!("len({arg})")) {
+                    return Some(start);
+                }
             }
             search_from = arg_start;
         }
@@ -585,12 +656,54 @@ fn bare_callee(callee: &str) -> &str {
 
 fn looks_like_static_builder(callee: &str) -> bool {
     let lower = bare_callee(callee).to_ascii_lowercase();
+    // Prefer ICC / OutputIntent / font / metadata / generate builders (plan theme).
+    // "compress" alone is too noisy (GetCompressBuffer); keep compress+profile /
+    // build* shapes via the other tokens.
     lower.contains("build")
         || lower.contains("profile")
         || lower.contains("template")
-        || lower.contains("compress")
         || lower.contains("serialize")
         || lower.contains("generate")
+        || lower.contains("outputintent")
+        || lower.contains("icc")
+        || lower.contains("colorspace")
+        || lower.contains("fontobject")
+        || lower.contains("truetype")
+        || lower.contains("metadata")
+        || lower.contains("xmp")
+        || (lower.contains("compress")
+            && (lower.contains("static") || lower.contains("once") || lower.contains("profile")))
+}
+
+/// Pool/buffer accessors and reset helpers are not deterministic static builders.
+fn is_pool_or_reset_accessor(callee: &str) -> bool {
+    let bare = bare_callee(callee).to_ascii_lowercase();
+    if bare.starts_with("reset") || bare.starts_with("clear") || bare.starts_with("recycle") {
+        return true;
+    }
+    if matches!(
+        bare.as_str(),
+        "get" | "put" | "load" | "store" | "delete" | "pop" | "push" | "take" | "borrow"
+    ) {
+        return true;
+    }
+    // GetCompressBuffer / getZlibWriter / PutCompressBuffer / Get*Pool
+    let get_or_put = bare.starts_with("get") || bare.starts_with("put");
+    if get_or_put
+        && (bare.contains("buffer")
+            || bare.contains("writer")
+            || bare.contains("pool")
+            || bare.ends_with("buf")
+            || bare.contains("scratch"))
+    {
+        return true;
+    }
+    // receiver/package looks like a pool: fooPool.Get already handled via bare "get"
+    let recv = callee.split('.').next().unwrap_or("").to_ascii_lowercase();
+    if recv.contains("pool") && matches!(bare.as_str(), "get" | "put" | "new") {
+        return true;
+    }
+    false
 }
 
 fn loop_target(source: &str, start: usize, end: usize) -> &str {

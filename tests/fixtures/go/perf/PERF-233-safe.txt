@@ -1,31 +1,31 @@
-# PERF-227 negative: pooled flate writer with Reset (BestSpeed)
+# PERF-233 negative: BestSpeed + pooled writer with Reset
 lang: go
-file: PERF-227-safe.go
+file: PERF-233-safe.go
 variant: stdlib
 ---
 package sample
 
 import (
 	"bytes"
-	"compress/flate"
+	"compress/zlib"
 	"sync"
 )
 
-type writerHolder struct {
-	w *flate.Writer
+type zwHolder struct {
+	w *zlib.Writer
 }
 
 var zwPool = sync.Pool{
 	New: func() any {
-		return &writerHolder{}
+		return &zwHolder{}
 	},
 }
 
 func CompressPage(page []byte) []byte {
 	var buf bytes.Buffer
-	h := zwPool.Get().(*writerHolder)
+	h := zwPool.Get().(*zwHolder)
 	if h.w == nil {
-		h.w, _ = flate.NewWriter(&buf, flate.BestSpeed)
+		h.w, _ = zlib.NewWriterLevel(&buf, zlib.BestSpeed)
 	} else {
 		h.w.Reset(&buf)
 	}

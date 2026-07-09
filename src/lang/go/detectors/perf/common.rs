@@ -181,6 +181,53 @@ pub fn enclosing_function_is_hot(source: &str, start_byte: usize) -> bool {
         .unwrap_or(false)
 }
 
+/// Byte range of the nearest enclosing function body `{ ... }` that contains
+/// `start_byte`, or `None` when the site is package-level.
+pub fn enclosing_function_body_range(source: &str, start_byte: usize) -> Option<(usize, usize)> {
+    let start_byte = start_byte.min(source.len());
+    let head = &source[..start_byte];
+    let func_kw = head.rfind("func ")?;
+    let brace_rel = source[func_kw..].find('{')?;
+    let body_open = func_kw + brace_rel;
+    // start_byte must still be inside this body
+    let mut depth = 0i32;
+    for ch in source[body_open..start_byte].chars() {
+        match ch {
+            '{' => depth += 1,
+            '}' => depth -= 1,
+            _ => {}
+        }
+    }
+    if depth <= 0 {
+        return None;
+    }
+    let mut end = body_open;
+    let mut d = 0i32;
+    for (i, ch) in source[body_open..].char_indices() {
+        match ch {
+            '{' => d += 1,
+            '}' => {
+                d -= 1;
+                if d == 0 {
+                    end = body_open + i + 1;
+                    break;
+                }
+            }
+            _ => {}
+        }
+    }
+    if end <= body_open {
+        return None;
+    }
+    Some((body_open, end))
+}
+
+/// Slice of the nearest enclosing function body, if any.
+pub fn enclosing_function_body<'a>(source: &'a str, start_byte: usize) -> Option<&'a str> {
+    let (open, end) = enclosing_function_body_range(source, start_byte)?;
+    Some(&source[open..end])
+}
+
 /// Unified hot-path predicate for enhanced PERF matching.
 ///
 /// A site is hot when any of:
@@ -247,4 +294,6 @@ mod tests {
         let byte = src.rfind("buildX()").unwrap();
         assert_eq!(enclosing_function_name(src, byte), None);
     }
+
+
 }

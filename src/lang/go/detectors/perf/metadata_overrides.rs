@@ -323,6 +323,8 @@ pub const fn fix_for(id: u32) -> Option<&'static str> {
         230 => Some("Hoist the pure call before the loop or cache its result when arguments do not change across iterations."),
         // PERF-231: PEM/key parse on hot path
         231 => Some("Parse PEM/keys once at process start (package var or sync.Once) and reuse *rsa.PrivateKey / certificates on the hot path."),
+        // PERF-233: Slow compress level on hot path
+        233 => Some("Use flate/zlib BestSpeed (or level 1) for hot page/stream compression when size budgets allow; keep /FlateDecode. Reserve Default/BestCompression for cold paths."),
         _ => None,
     }
 }
