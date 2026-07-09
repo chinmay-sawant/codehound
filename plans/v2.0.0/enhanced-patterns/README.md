@@ -51,9 +51,9 @@ make run-perf-enhanced PERF_ENHANCED_ONLY=PERF-225,PERF-226
 | **[CHECKLIST.md](./CHECKLIST.md)** | **Primary tracker** — phases A–E + permanent OOS + 1:1 pointer |
 | **[05-one-to-one-mapping.md](./05-one-to-one-mapping.md)** | **1:1 theme → PERF** living table + agent evidence |
 | [01-gap-matrix.md](./01-gap-matrix.md) | Hotspot → existing PERF → missing / tighten / OOS |
-| [02-tighten-existing.md](./02-tighten-existing.md) | Detection sketches for tighten items |
-| [03-new-rules-batch-225.md](./03-new-rules-batch-225.md) | Detection sketches for PERF-225+ |
-| [04-implementation-order.md](./04-implementation-order.md) | Phase rationale / PR titles |
+| [02-tighten-existing.md](./02-tighten-existing.md) | Tighten batch — **Shipped** (verified inventory) |
+| [03-new-rules-batch-225.md](./03-new-rules-batch-225.md) | New rules 225–233 — **Shipped** (verified inventory) |
+| [04-implementation-order.md](./04-implementation-order.md) | Phase A–E order — **Shipped** (phase checkboxes verified) |
 
 **Track phase completion in [CHECKLIST.md](./CHECKLIST.md). Track 1:1 theme acceptance in [05](./05-one-to-one-mapping.md).**
 

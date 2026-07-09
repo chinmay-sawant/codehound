@@ -1,163 +1,127 @@
 # Enhanced Patterns — Implementation Order
 
 > **Parent:** `plans/v2.0.0/enhanced-patterns/README.md`
-> **Status:** Plan only
+> **Status:** **Shipped** (verified 2026-07-10)
+> **Authority for 1:1 theme outcomes:** [05-one-to-one-mapping.md](./05-one-to-one-mapping.md)
+> **Master checklist:** [CHECKLIST.md](./CHECKLIST.md)
 
 ---
 
-## Why this order
+## Why this order (historical)
 
-1. **Tighten first** — existing rule IDs already appear in docs/baselines; better matching pays off immediately without catalogue churn.
-2. **High-value new rules next** — clone / re-copy / compress pool / PEM parse.
-3. **Loop-invariant & string chains** — good precision, medium impact.
-4. **Optional parallel-tiny fan-out last** — precision risk.
-
----
-
-## Phase A — Shared hot-path helper (0.5 day)
-
-**File:** `src/lang/go/detectors/perf/common.rs` (or adjacent)
-
-- [ ] Centralize `is_hot_function(name|source_window) -> bool` used by tighten + new rules
-- [ ] Name heuristics (non-exhaustive): `Handle`, `Serve`, `Write`, `Encode`, `Decode`, `Build`, `Generate`, `Render`, `Compress`, `Sign`, `Marshal`, `Emit`, `Serialize`
-- [ ] Loop membership remains primary signal; names are secondary
-- [ ] Unit-test the helper if pure
-
-**Exit:** Helper used by at least one tightened detector without behavior regression.
+1. Tighten first — existing IDs, broader matching.
+2. High-value new rules — clone / re-copy / compress pool / PEM.
+3. Loop-invariant & string chains.
+4. Tiny fan-out + compress level (228, 233).
+5. 1:1 verify on real trees + visibility (`run-perf-enhanced`).
 
 ---
 
-## Phase B — Tighten batch (days 1–4)
+## Phase status (verified against repo)
 
-Order inside phase (dependencies first):
+| Phase | Plan | Shipped? | Evidence |
+|-------|------|----------|----------|
+| A Shared hot-path helper | `is_hot_path` in `common.rs` | **Yes** | `fn is_hot_path`, unit tests in `common.rs` |
+| B Tighten (02) | T1–T10 | **Yes** | See [02-tighten-existing.md](./02-tighten-existing.md) inventory table |
+| C New rules (03) | 225–231, 233; 232 merged | **Yes** | See [03-new-rules-batch-225.md](./03-new-rules-batch-225.md) inventory table |
+| D Optional / residual | 228, 027 large-make, 233 | **Yes** (228/233/027 large-make) | Detectors + fixtures; suite green |
+| E Closeout + 1:1 | docs, makefile, agent pass | **Yes** | `05` Agents A–E; `make run-perf-enhanced` in makefile |
+| Push/PR | human | **Not verified here** | Branch may need `git push` |
 
-| Step | Item | Ref |
-|------|------|-----|
-| B1 | PERF-215 pre-size (name-agnostic) | `02` T6 |
-| B2 | PERF-217 static recompute (drop HTTP-only) | `02` T7 |
-| B3 | PERF-027 pool miss (non-HTTP + Builder) | `02` T2 |
-| B4 | PERF-192 map size hint | `02` T5 |
-| B5 | PERF-054 Builder reset (general domain) | `02` T4 |
-| B6 | PERF-018 + groundwork for 225 | `02` T1 |
-| B7 | PERF-032 conversion chains | `02` T3 |
-| B8 | PERF-218 / 219 pool quality | `02` T8–T9 |
-| B9 | PERF-109 lite | `02` T10 |
-
-**PR shape:** Prefer 2–3 PRs (B1–B3, B4–B6, B7–B9) to keep review small.
-
-**Exit:**
-
-```bash
-cargo test --test go_perf_detector_integration
-cargo test --test go_perf_ruleset_audit
-```
-
-- [ ] Phase B green
-- [ ] At least one non-HTTP fixture per tightened rule where applicable
+**Integration (this pass):** `cargo test --test go_perf_detector_integration` → **4/4 ok**.
 
 ---
 
-## Phase C — New core rules (days 5–10)
+## Phase A — Shared hot-path helper
 
-| Step | Rule | Depends on |
-|------|------|------------|
-| C1 | PERF-225 redundant large clone | B6 helpful |
-| C2 | PERF-226 post-producer re-copy | C1 patterns reusable |
-| C3 | PERF-227 compress writer without pool | B3 hot-path helper |
-| C4 | PERF-231 PEM/key parse on hot path | — |
-| C5 | PERF-229 intermediate string → append | B7 |
-| C6 | PERF-230 pure call loop-invariant | B9 |
-| C7 | PERF-232 merge decision / ship | C4 |
+**File:** `src/lang/go/detectors/perf/common.rs`
 
-**Chunk work at C1 start:**
+- [x] `is_hot_path` (loop \| handler window \| hot function name) — **not** whole-file request path
+- [x] `enclosing_function_name` / `enclosing_function_is_hot` / body helpers
+- [x] Name heuristics (Handle, Serve, Write, Encode, Build, Generate, Render, Compress, Sign, …)
+- [x] Unit tests in `common.rs`
+- [x] Wired into tightened + new detectors
 
-- [ ] Add `ruleset/golang/chunks/perf-225-232.json` (or similar)
-- [ ] Fix any hard-coded max-id == 224 in tests/build
-
-**Exit:**
-
-```bash
-cargo test --test go_perf_detector_integration
-cargo test --test go_perf_registry_generation
-cargo test --test fixture_manifest_integration_inventory
-```
-
-- [ ] Core IDs 225–231 (and 232 if kept) green
+**Exit:** Met.
 
 ---
 
-## Phase D — Optional / defer (0.5–1 day)
+## Phase B — Tighten batch
 
-- [ ] Spike PERF-228 tiny fan-out — ship or document defer in this file
-- [ ] Fold-or-drop optional Grow/`[]byte` IDs (233+)
-- [ ] Noise scan on a medium Go repo (stdlib-heavy library, not only fixtures)
+| Step | Item | Shipped? |
+|------|------|----------|
+| B1 | PERF-215 | [x] |
+| B2 | PERF-217 | [x] |
+| B3 | PERF-027 | [x] (large-make too; live gopdfsuit **Partial** due to pools) |
+| B4 | PERF-192 | [x] |
+| B5 | PERF-054 | [x] |
+| B6 | PERF-018 | [x] |
+| B7 | PERF-032 | [x] |
+| B8 | PERF-218 / 219 | [x] |
+| B9 | PERF-109 | [x] |
+
+- [x] Phase B green (integration)
+- [x] Non-HTTP fixtures where applicable
+
+---
+
+## Phase C — New core rules
+
+- [x] Chunk `ruleset/golang/chunks/perf-225-232.json` (includes 225–231, 233)
+- [x] Registry entries 225–231, 233
+- [x] Detectors in `copies_and_compress.rs`
+- [x] Fixtures + manifest for each shipped ID
+- [x] 232 merged into 231 (no separate ID)
+- [x] Integration green
+
+| Step | Rule | Shipped? |
+|------|------|----------|
+| C1 | 225 | [x] |
+| C2 | 226 | [x] |
+| C3 | 227 | [x] |
+| C4 | 231 | [x] |
+| C5 | 229 | [x] |
+| C6 | 230 | [x] |
+| C7 | 232 | [x] merged → 231 |
+| C8 | 228 | [x] |
+| C9 | 233 | [x] |
+
+---
+
+## Phase D — Optional / residual
+
+- [x] PERF-228 shipped (not deferred forever)
+- [x] PERF-027 large make shipped
+- [x] PERF-233 shipped (BestSpeed theme)
+- [x] Noise: integration safe fixtures + clean path covered by suite
+- [ ] Optional: finer PERF-027 pool suppress (function-scoped) — **not shipped**
 
 ---
 
 ## Phase E — Closeout
 
-- [ ] Update `plans/v2.0.0/enhanced-patterns/README.md` status → **Shipped** / partial
-- [ ] Checkboxes in `02` / `03` reflected
-- [ ] Optional: one-line pointer from `pending-work/02-perf-detectors-remaining.md` → this folder (residue)
-- [ ] Optional: note in CHANGELOG under Unreleased
+- [x] README status **Shipped**
+- [x] Checkboxes in `02` / `03` / `04` / `05` / CHECKLIST aligned to **verified** ship state
+- [x] Pointer from `pending-work/02-perf-detectors-remaining.md`
+- [x] CHANGELOG Unreleased note
+- [x] `make run-perf-enhanced`
+- [x] 1:1 mapping doc Agents A–E complete
+- [ ] Push/PR on remote (human)
 
-**Folder-level DoD** (from README):
+**Folder DoD:**
 
-- [ ] Gap matrix reviewed
-- [ ] Tighten fixtures go beyond toy shapes
-- [ ] New rules in chunks + registry + detectors + fixtures + manifest
-- [ ] Integration + audit tests green
-- [ ] Spot-scan non-web buffer-heavy path shows clone/grow/pool/static findings
-
----
-
-## Risk register
-
-| Risk | Mitigation |
-|------|------------|
-| Noise from dropping HTTP gate on 217 | Require loop **or** strong hot name; keep Once/package-var suppress |
-| 225/226 overlap double-reporting | Prefer one finding per site; 226 windows after compress/Bytes only |
-| 227 flags one-shot scripts | Suppress `main`-only single call if noisy |
-| 231 flags legitimate per-request mTLS load | Suppress obvious `Load*` startup; document residual |
-| Max-id hardcodes break CI | Grep `224` before C1 merge |
+- [x] Gap matrix reviewed (project-agnostic)
+- [x] Tighten fixtures beyond original toy shapes
+- [x] New rules in chunks + registry + detectors + fixtures + manifest
+- [x] Integration + registry generation green
+- [x] Non-web / enhanced set visible via `make run-perf-enhanced`
+- [x] 1:1 static themes **Yes** except **027 Partial** + permanent **OOS**
 
 ---
 
-## Out of scope (do not schedule here)
+## Out of scope (still)
 
-- Compression level policy (BestSpeed)
-- Third-party compress library recommendations
+- klauspost recommendation
 - GOMAXPROCS / GOMEMLIMIT
-- Product compliance (PDF/A, signatures required, workload mix)
-- CWE / BP catalogue changes
-- Auto-`--fix` for new rules (can follow later in `implement-fix.md`)
-
----
-
-## Suggested commit/PR titles
-
-```
-perf(tighten): broaden PERF-215/217/027 hot-path matching
-perf(tighten): map hints and builder reset outside HTTP
-perf(rules): add PERF-225/226 large-buffer clone and re-copy
-perf(rules): add PERF-227 compress writer pool miss
-perf(rules): add PERF-231 PEM parse on hot path + PERF-229/230
-```
-
----
-
-## Quick reference — files likely touched
-
-```
-ruleset/golang/chunks/perf-*.json
-src/lang/go/detectors/perf/common.rs
-src/lang/go/detectors/perf/registry/registry.general_perf.toml
-src/lang/go/detectors/perf/domains/general_perf/stdlib_misuse/caching_and_allocation.rs
-src/lang/go/detectors/perf/domains/general_perf/stdlib_misuse/maps_and_slices.rs
-src/lang/go/detectors/perf/domains/general_perf/allocations_and_reuse/buffer_pooling.rs
-src/lang/go/detectors/perf/domains/request_path/strings_and_copies.rs
-src/lang/go/detectors/perf/domains/request_path/crypto_and_keys.rs
-tests/fixtures/go/perf/PERF-*-{safe,vulnerable}.txt
-tests/fixtures/manifest.toml
-tests/go_perf_ruleset_audit.rs   # if max-id asserted
-```
+- Product compliance policy
+- Auto-`--fix` for these rules

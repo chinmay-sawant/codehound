@@ -234,7 +234,7 @@
     "id": 215,
     "name": "bytes.Buffer or strings.Builder Without Pre-Sizing",
     "original_description": "Detect bytes.Buffer or strings.Builder used without Grow() when final size is knowable",
-    "status": "Draft",
+    "status": "Implemented",
     "weakness_abstraction": "Base"
   },
   "PERF-216": {
@@ -262,7 +262,7 @@
     "id": 217,
     "name": "Static Computation Rebuilt Per Operation",
     "original_description": "Detect deterministic computations (ICC profiles, metadata, font objects) rebuilt per request instead of cached at init",
-    "status": "Draft",
+    "status": "Implemented",
     "weakness_abstraction": "Base"
   },
   "PERF-218": {
@@ -276,7 +276,7 @@
     "id": 218,
     "name": "sync.Pool or Cache Without Per-CPU Sharding",
     "original_description": "Detect high-contention sync.Pool or shared cache without per-CPU sharding",
-    "status": "Draft",
+    "status": "Implemented",
     "weakness_abstraction": "Base"
   },
   "PERF-219": {
@@ -290,7 +290,7 @@
     "id": 219,
     "name": "Oversized Object Returned to sync.Pool",
     "original_description": "Detect oversized buffers/objects returned to sync.Pool without capacity check",
-    "status": "Draft",
+    "status": "Implemented",
     "weakness_abstraction": "Base"
   },
   "PERF-220": {

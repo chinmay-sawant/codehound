@@ -243,11 +243,12 @@ make run-perf-enhanced PERF_ENHANCED_ONLY=PERF-233
 3. Confirm fixtures still green: `cargo test --test go_perf_detector_integration`.
 4. Update the mapping table Goal status + this file’s agent section with evidence.
 
-**Checklist closeout (Agent E):**
+**Checklist closeout (Agent E + post-verify sync 2026-07-10):**
 
-- [x] Status on checklist/README set to **1:1 mapping in progress**
+- [x] Status on checklist/README set to **Shipped / 1:1 complete** (not “in progress”)
 - [x] Link to this doc from [CHECKLIST.md](./CHECKLIST.md) and [README.md](./README.md)
 - [x] Permanent OOS table with rationale (above + checklist)
 - [x] `run-perf-enhanced` present and documented
 - [x] CHANGELOG Unreleased mentions PERF-233 + makefile target
-- [ ] Full 1:1 acceptance boxes (depends on Agents A–D evidence)
+- [x] Full 1:1 acceptance boxes — Agents A–D evidence filled; suite green
+- [x] Plan docs **02 / 03 / 04** updated only after code verification (detector + registry + fixtures + tests)

@@ -1,239 +1,105 @@
 # Enhanced Patterns — Tighten Existing Detectors
 
 > **Parent:** `plans/v2.0.0/enhanced-patterns/README.md`
-> **Status:** Plan only
-> **Estimated effort:** ~3–4 days
+> **Status:** **Shipped** (verified 2026-07-10)
+> **Verification:** detector `fn detect_perf_*` present, registry entry, vulnerable+safe fixtures, `go_perf_detector_integration` green
 > **Goal:** Same rule IDs; broader, facts-based matching so real library/hot-path code fires — not only fixture string shapes.
+> **Track progress:** [CHECKLIST.md](./CHECKLIST.md) · 1:1 evidence [05-one-to-one-mapping.md](./05-one-to-one-mapping.md)
 
 ---
 
-## Principles for every tighten
+## Verification summary (code, not intent)
 
-1. **Prefer facts** (`facts.calls`, `facts.assignments`, loops, receivers) over multi-token `source.contains("exact fixture line")`.
-2. **Hot path ≠ HTTP only.** Treat as hot when any of:
-   - enclosing loop (`enclosing_loop` / `for_ranges`)
-   - function name suggests hot work (`Serve`, `Handle`, `Write`, `Encode`, `Build`, `Generate`, `Render`, `Marshal`, `Compress`, `Sign`, …) **or**
-   - existing `is_request_path` / handler helpers (keep as *sufficient*, not *necessary*)
-3. **Safe fixtures must still silence** after broaden — add new vulnerable variants rather than only rewriting one pair.
-4. **No new product APIs** in match lists.
+| Item | PERF | Detector | Registry | Fixtures | JSON status | Result |
+|------|------|----------|----------|----------|-------------|--------|
+| T1 | 018 | `detect_perf_18` | yes | yes | Implemented | **Shipped** — no `processItems` hard-code; `make(..., 0, len(src))+append` |
+| T2 | 027 | `detect_perf_27` | yes | yes | Implemented | **Shipped** — hot path + Buffer/Builder + large `make([]byte,N≥4KiB)` in loop |
+| T3 | 032 | `detect_perf_32` | yes | yes | Implemented | **Shipped** — hot path + loop/request |
+| T4 | 054 | `detect_perf_54` | yes | yes | Implemented | **Shipped** — hot path, non-Gin fixtures |
+| T5 | 192 | `detect_perf_192` | yes | yes | Implemented | **Shipped** — map without hint when `range`/`len` knowable |
+| T6 | 215 | `detect_perf_215` | yes | yes | **Implemented** (was Draft; fixed after verify) | **Shipped** — name-agnostic + Grow / multi-write |
+| T7 | 217 | `detect_perf_217` | yes | yes | **Implemented** (was Draft; fixed after verify) | **Shipped** — not HTTP-only; static builder names |
+| T8 | 218 | `detect_perf_218` | yes | yes | **Implemented** (was Draft; fixed after verify) | **Shipped** — zero-value pool + concurrency |
+| T9 | 219 | `detect_perf_219` | yes | yes | **Implemented** (was Draft; fixed after verify) | **Shipped** — Put without cap on []byte-ish helpers |
+| T10 | 109 | `detect_perf_109` | yes | yes | Implemented | **Shipped** — expensive map-key in loop |
 
-Acceptance for each item:
+**Shared prerequisite (Phase A):** `is_hot_path` / `enclosing_function_name` in `src/lang/go/detectors/perf/common.rs` — **present** (unit tests in same file).
 
-- [ ] Vulnerable fixture(s) still fire
-- [ ] ≥1 **additional** realistic vulnerable fixture (non-HTTP where applicable) fires
-- [ ] Safe fixture silent
-- [ ] No catastrophic noise on `tests/fixtures/go/perf_real_world/clean_go_file.txt` (or equivalent clean smoke)
-
----
-
-## T1 — PERF-018 Unnecessary Slice Copy
-
-**Today:** Hard-codes `func processItems(` + `append(result, items...)`.
-
-**Target heuristic:**
-
-- Flag `slices.Clone(x)` when `x` is already a fresh `make`/`append` result in the same function and is not mutated before clone **or**
-- Flag `append([]T(nil), src...)` / `append([]T{}, src...)` when a simple reslice or ownership transfer would suffice **or**
-- Keep a conservative: two sequential full clones of the same logical buffer in one function (`Clone`/`copy` pairs)
-
-**Files:** `request_path/strings_and_copies.rs` (or move to `stdlib_misuse/maps_and_slices.rs` if non-request).
-
-**Fixtures:**
-
-- [ ] Keep existing processItems pair if still useful
-- [ ] Add `slices.Clone` double-clone vulnerable
-- [ ] Add safe: clone once because callee mutates / escapes
-
-- [ ] Implement broader matching
-- [ ] Fixtures + manifest
-- [ ] Integration green
+**Integration:** `cargo test --test go_perf_detector_integration` — **green** (verified this pass).
 
 ---
 
-## T2 — PERF-027 Missed sync.Pool Reuse Opportunity
+## Principles (kept for reference)
 
-**Today:** Request-path only; only `bytes.Buffer{}` / `new(bytes.Buffer)`.
+1. Prefer facts over multi-token `source.contains("exact fixture line")`.
+2. Hot path ≠ HTTP only (`is_hot_path`).
+3. Safe fixtures must silence after broaden.
+4. No product-only APIs in match lists.
 
-**Target heuristic:**
+Acceptance (batch):
 
-- Fire on hot functions (see principles) for:
-  - `bytes.Buffer{}`, `new(bytes.Buffer)`, `strings.Builder{}`
-  - optionally `make([]byte, n)` when `n` is a large constant (≥4KiB) **and** allocated inside a loop
-- Suppress when `sync.Pool` already appears in the same function/file for that type
-- Suppress tiny stack-friendly buffers (`make([]byte, 64)` etc.)
-
-**Files:** `general_perf/allocations_and_reuse/buffer_pooling.rs`
-
-- [ ] Broaden hot-path gate
-- [ ] Add non-HTTP loop fixture (e.g. encode loop allocating Buffer)
-- [ ] Safe: pooled Get/Put
-- [ ] Integration green
+- [x] Vulnerable fixture(s) still fire (suite green)
+- [x] Non-HTTP / realistic fixtures for tighten set where applicable
+- [x] Safe fixtures silent for rule class
+- [x] Clean smoke / integration green
 
 ---
 
-## T3 — PERF-032 String Byte Conversion In Hot Path
+## Per-item notes (shipped state)
 
-**Today:** Often limited to obvious loop/request conversions.
+### T1 — PERF-018
 
-**Target:**
+- [x] Broader than `processItems` fixture shape
+- [x] Classic `make([]T, 0, len(src)); append(dst, src...)`
+- [x] Fixtures + integration green
 
-- Flag `string(b)` / `[]byte(s)` inside loops **or** functions that immediately pass the result into `Write`/`WriteString`/`append`/`Escape` style calls (conversion only to feed a byte API)
-- Suppress when conversion is required by a typed API boundary once and stored
+### T2 — PERF-027
 
-- [ ] Extend matching with call-site adjacency (conversion expr used as Write arg)
-- [ ] Fixtures: encode helper converting every chunk; safe: write `[]byte` directly
-- [ ] Integration green
+- [x] Hot-path Buffer/Builder without pool
+- [x] Large `make([]byte, N)` in loop (N≥4096)
+- [x] File-level `sync.Pool` still suppresses whole unit (known coarseness; 1:1 **Partial** on live pooled trees)
 
----
+### T3 — PERF-032
 
-## T4 — PERF-054 strings.Builder Reset Missed
+- [x] string↔[]byte on hot path / loop
+- [x] Fixtures + integration green
 
-**Today:** Registered under gin_framework; may not see general Go.
+### T4 — PERF-054
 
-**Target:**
+- [x] Builder on hot path without Reset/pool
+- [x] Non-Gin fixtures
 
-- Any hot function / loop that does `strings.Builder{}` or `var b strings.Builder` per iteration instead of `b.Reset()`
-- Domain stays **golang**, not gin-only (update `applicable_to` / registry domain if needed)
+### T5 — PERF-192
 
-- [ ] Move or dual-register under general_perf if gin-gated
-- [ ] Fixtures outside gin
-- [ ] Integration green
+- [x] `make(map)` without size hint when bound knowable
+- [x] Status Implemented in JSON
 
----
+### T6 — PERF-215
 
-## T5 — PERF-192 Map Without Size Hint
+- [x] Buffer/Builder without Grow when size estimable
+- [x] Function-scoped Grow checks (post–Agent B)
 
-**Today:** Draft; may be incomplete.
+### T7 — PERF-217
 
-**Target:**
+- [x] Static recompute on hot path without HTTP-only gate
+- [x] ICC / generate / profile-style names
 
-- `make(map[K]V)` without second arg when, in the same function, a known bound exists:
-  - `len(xs)` used later as iteration count for fills
-  - literal capacity nearby (`n := 100; make(map…)` without using `n`)
-- Suppress empty maps that only get a few fixed Store keys
-- Suppress `make(map[K]V, hint)` already correct
+### T8 — PERF-218
 
-**Files:** `stdlib_misuse/maps_and_slices.rs`
+- [x] Unsharded zero-value `sync.Pool` under concurrency
 
-- [ ] Facts-based size-hint opportunity detection
-- [ ] Vulnerable: fill map from `len(items)` without hint
-- [ ] Safe: `make(map[K]V, len(items))`
-- [ ] Mark status Implemented in JSON when green
+### T9 — PERF-219
 
----
+- [x] Oversized Put without cap guard (not Recycle-only)
 
-## T6 — PERF-215 Buffer/Builder Without Pre-Sizing
+### T10 — PERF-109
 
-**Today:** Only `var buf bytes.Buffer` / `var builder strings.Builder` + `WriteString(payload)` + `len(payload)`.
-
-**Target:**
-
-- Match:
-  - `var x bytes.Buffer` / `strings.Builder`
-  - `x := bytes.Buffer{}` / `strings.Builder{}`
-  - `x.Reset()` then write without `Grow`
-- Size knowable if same function has `len(...)`, `cap(...)`, or arithmetic on known lengths before writes
-- Suppress if any `Grow(` on that name appears before first Write* in the function (order-sensitive window)
-
-- [ ] Name-agnostic receiver tracking (not only `buf`/`builder`)
-- [ ] Support `Write` / `WriteByte` / `WriteRune` / `WriteString`
-- [ ] Non-HTTP fixtures (assembly/encode helpers)
-- [ ] Integration green
+- [x] Expensive map-key computation in loop
+- [x] Loop-invariant pure helpers also covered by **PERF-230** (new rules batch)
 
 ---
 
-## T7 — PERF-217 Static Computation Rebuilt Per Operation
+## Not claimed as shipped in this file
 
-**Today:** Requires `http.ResponseWriter` / gin / echo context.
-
-**Target:**
-
-- Remove hard HTTP requirement
-- Fire when:
-  - callee looks like a static builder (`build*`, `load*`, `generate*` with **no args** or only package-level constants) **and**
-  - call sits in a loop **or** in a hot-named function **and**
-  - no package-level `var x = build…()` / `sync.Once` cache for that result
-- Keep description examples (ICC, font objects, metadata) — detection stays generic
-
-- [ ] Drop exclusive HTTP gate
-- [ ] Vulnerable: `GenerateDoc()` calls `buildStaticProfile()` every time
-- [ ] Safe: package `var profile = buildStaticProfile()`
-- [ ] Integration green; re-check noise on clean fixtures
-
----
-
-## T8 — PERF-218 Pool Without Per-CPU Sharding
-
-**Today:** Requires handler file or `go` starts; `var name sync.Pool` text shape.
-
-**Target:**
-
-- Flag package-level single `sync.Pool` with Get/Put from functions that also have `go ` / errgroup / many concurrent entry points
-- Suppress when source has sharding markers: `[]sync.Pool`, `shard`, `NumCPU`, `runtime_procPin` (existing)
-
-- [ ] Package-level pool + concurrent use without HTTP
-- [ ] Safe sharded fixture remains silent
-- [ ] Integration green
-
----
-
-## T9 — PERF-219 Oversized Object Returned to Pool
-
-**Today:** Requires `func Recycle(buf []byte)` and arg contains `buf`.
-
-**Target:**
-
-- Any `pool.Put(x)` where `x` is `[]byte` / `*bytes.Buffer` and within a small pre-window there is **no** `cap(...) >` / `cap(...) >=` guard
-- Suppress tiny fixed buffers
-
-- [ ] Remove Recycle-only coupling
-- [ ] Vulnerable/safe pair with generic helper names
-- [ ] Integration green
-
----
-
-## T10 — PERF-109 Map Key Recomputed In Loop Without Caching
-
-**Today:** Draft / weak.
-
-**Target (lite, no full CSE):**
-
-- Same callee + identical argument expression text inside a loop body appearing ≥2 times → flag
-- Or: pure-looking helper called each iteration with loop-invariant args (arg names not derived from range value)
-
-- [ ] Implement lite heuristic
-- [ ] Vulnerable: `parseProps(props)` every cell with invariant `props`
-- [ ] Safe: hoist `parsed := parseProps(props)` before loop
-- [ ] Integration green
-
----
-
-## Batch checklist (T1–T10)
-
-### Shared engineering
-
-- [ ] Prefer helpers in `perf/common.rs` for “hot function name” lists (single place)
-- [ ] Update `detection_notes` in chunk JSON to match real heuristics
-- [ ] Status field: set **Implemented** for any Draft rules that now ship solid detection
-- [ ] `metadata_overrides.rs` / fix_for only if messages change materially
-
-### Validation
-
-```bash
-cargo test --test go_perf_detector_integration
-cargo test --test go_perf_ruleset_audit
-cargo test --test fixture_manifest_integration_inventory
-# optional noise check
-cargo run --quiet -- scan tests/fixtures/go/perf_real_world/clean_go_file.txt
-```
-
-- [ ] All commands green
-- [ ] Document any intentional residual false-negative classes in PR notes
-
----
-
-## Explicit non-goals for tighten pass
-
-- Do **not** invent product type names (`drawTable`, `StructureManager`, …)
-- Do **not** change CWE/BP catalogues in this pass
-- Do **not** land PERF-225+ here — see `03-new-rules-batch-225.md`
+- Product-named `drawTable` APIs — intentionally generic (PERF-230)
+- File-scoped pool suppress refinements for PERF-027 — open gap (Partial)
