@@ -131,7 +131,7 @@
     "id": 109,
     "name": "Map Key Recomputed In Loop Without Caching",
     "original_description": "Repeated expensive map key computation inside loops without caching",
-    "status": "Draft",
+    "status": "Implemented",
     "weakness_abstraction": "Base"
   },
   "PERF-110": {

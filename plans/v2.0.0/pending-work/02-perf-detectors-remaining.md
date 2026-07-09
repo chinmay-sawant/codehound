@@ -4,6 +4,9 @@
 > **Status:** **109 of 112** PERF-101..212 rules shipped across 9+ batches. 3 intentionally dropped (PERF-104, 136, 208). Category B ✅, Category C ✅. Code review findings ✅ All fixed.
 > **Estimated effort:** Complete
 > **See also:** `plans/perf-category-breakdown.md`, `plans/perf-batch-{4,5,6}.md`
+>
+> **Follow-on (shipped core):** post-224 enhanced patterns — tighten + `PERF-225..231` —
+> tracked in [`plans/v2.0.0/enhanced-patterns/CHECKLIST.md`](../enhanced-patterns/CHECKLIST.md).
 
 ---
 

@@ -1,4 +1,4 @@
-use super::super::super::super::common::is_request_path;
+use super::super::super::super::common::{is_hot_path, is_request_path};
 use super::super::super::super::facts::GoPerfFacts;
 use super::super::super::super::metadata::*;
 use super::super::common::*;
@@ -44,23 +44,31 @@ pub(crate) fn detect_perf_53(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     );
 }
 
-/// PERF-54: `strings.Builder{}` allocated in a request handler.
+/// PERF-54: `strings.Builder{}` allocated on a hot path without Reset/pool.
 pub(crate) fn detect_perf_54(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let source = unit.source.as_ref();
-    if !is_request_path(&facts.source_index) || !facts.source_index.has("strings.Builder{}") {
+    let Some(byte) = source.find("strings.Builder{}") else {
         return;
-    }
+    };
     if facts.source_index.has("Reset()")
         || facts.source_index.has("var builderPool =")
         || facts.source_index.has("sync.Pool")
+        || source.contains(".Reset()")
     {
+        return;
+    }
+    let in_loop = facts
+        .for_ranges
+        .iter()
+        .any(|(s, e)| byte >= *s && byte < *e);
+    if !is_hot_path(source, byte, &facts.source_index, in_loop) {
         return;
     }
     emit_at(
         unit,
         &META_PERF_54,
-        source.find("strings.Builder{}").unwrap_or(0),
-        "strings.Builder is allocated per request; pool or hoist the builder and call Reset",
+        byte,
+        "strings.Builder is allocated on a hot path; pool or hoist the builder and call Reset",
         out,
     );
 }

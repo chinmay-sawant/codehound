@@ -372,6 +372,7 @@ pub(crate) fn detect_perf_129(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 /// as it grows; pass `len(src)` as the hint.
 pub(crate) fn detect_perf_192(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
 
     for call in &facts.calls {
         if call.callee.as_ref() != "make" {
@@ -385,6 +386,12 @@ pub(crate) fn detect_perf_192(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         if !first.starts_with("map[") {
             continue;
         }
+        // Only flag when a bound is knowable in the enclosing function
+        // (range over a collection, or a `len(...)` that could supply the hint).
+        // Bare `make(map[K]V)` for a few fixed keys stays silent.
+        if !map_size_hint_available(source, call.start_byte) {
+            continue;
+        }
         let (line, col) = unit.line_col(call.start_byte);
         emit::push_finding(
             &META_PERF_192,
@@ -394,7 +401,42 @@ pub(crate) fn detect_perf_192(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
             "make(map[K]V) without a size hint; pass len(src) to avoid map growth",
             out,
         );
+        return;
     }
+}
+
+/// True when the enclosing function has a `range` loop or `len(` that could
+/// supply a map capacity hint.
+fn map_size_hint_available(source: &str, start_byte: usize) -> bool {
+    let body = enclosing_function_body(source, start_byte).unwrap_or(source);
+    body.contains(" range ") || body.contains("\trange ") || body.contains("range ") || body.contains("len(")
+}
+
+fn enclosing_function_body<'a>(source: &'a str, start_byte: usize) -> Option<&'a str> {
+    let start_byte = start_byte.min(source.len());
+    let head = &source[..start_byte];
+    let func_kw = head.rfind("func ")?;
+    let brace_rel = source[func_kw..].find('{')?;
+    let body_open = func_kw + brace_rel;
+    let mut depth = 0i32;
+    let mut end = body_open;
+    for (i, ch) in source[body_open..].char_indices() {
+        match ch {
+            '{' => depth += 1,
+            '}' => {
+                depth -= 1;
+                if depth == 0 {
+                    end = body_open + i + 1;
+                    break;
+                }
+            }
+            _ => {}
+        }
+    }
+    if end <= body_open {
+        return None;
+    }
+    Some(&source[body_open..end])
 }
 
 #[cfg(test)]

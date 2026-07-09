@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Enhanced PERF patterns (tighten + PERF-225..231).** Shared `is_hot_path`
+  helper (loop / local handler window / encode-style function names — not
+  whole-file request path). Tightened existing detectors for real hot paths:
+  `PERF-018`, `027`, `032`, `054`, `109`, `192`, `215`, `217`, `218`, `219`.
+  New rules: `PERF-225` redundant large-slice clone, `PERF-226` post-producer
+  re-copy, `PERF-227` compress writer without pool, `PERF-229` intermediate
+  string on byte append path, `PERF-230` pure call re-evaluated in loop,
+  `PERF-231` PEM/key parse on hot path. (`PERF-232` folded into 231;
+  `PERF-228` deferred.) Chunk: `ruleset/golang/chunks/perf-225-232.json`.
+  Plan/checklist: `plans/v2.0.0/enhanced-patterns/`.
+
 - **PERF-106 extension + PERF-213..224 batch.** Extended `PERF-106` beyond
   write-heavy `sync.Map` usage to also catch package-level cache shapes with
   reads+writes but no eviction bound. Added 12 new PERF detectors:

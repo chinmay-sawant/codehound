@@ -1,18 +1,17 @@
-# PERF-027 positive: bytes.Buffer allocated per request with no sync.Pool
+# PERF-027 positive: bytes.Buffer allocated on hot path with no sync.Pool
 lang: go
 file: PERF-027-vulnerable.go
 ---
 package sample
 
-import (
-	"bytes"
-	"net/http"
+import "bytes"
 
-	"github.com/gin-gonic/gin"
-)
-
-func Render(c *gin.Context) {
-	buf := bytes.Buffer{}
-	buf.WriteString("hello")
-	c.Data(http.StatusOK, "text/plain", buf.Bytes())
+func EncodeChunks(chunks []string) string {
+	var out bytes.Buffer
+	for _, c := range chunks {
+		buf := bytes.Buffer{}
+		buf.WriteString(c)
+		out.Write(buf.Bytes())
+	}
+	return out.String()
 }

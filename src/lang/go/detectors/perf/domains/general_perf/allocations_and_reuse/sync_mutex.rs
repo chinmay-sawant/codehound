@@ -1,4 +1,4 @@
-use super::super::super::super::common::is_request_path;
+use super::super::super::super::common::{is_hot_path, is_request_path};
 use super::super::super::super::facts::{GoPerfFacts, VarKind};
 use super::super::super::super::metadata::*;
 use crate::ast::nearest_loop;
@@ -66,12 +66,10 @@ pub(crate) fn detect_perf_28(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     );
 }
 
-/// PERF-29: unbounded `go func(){}` spawn inside a loop or request handler.
+/// PERF-032: string ↔ []byte conversion on a hot path (loop / handler / encode).
 pub(crate) fn detect_perf_32(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
-
-    let on_hot_path = is_request_path(&facts.source_index);
 
     walk_nodes(
         unit.tree.root_node(),
@@ -112,7 +110,16 @@ pub(crate) fn detect_perf_32(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
                     }
                 }
             }
-            if !on_hot_path && nearest_loop(node, LOOP_NODE_KINDS).is_none() {
+            let in_loop = nearest_loop(node, LOOP_NODE_KINDS).is_some();
+            // Hot path: loop, request/handler window, or encode-style function.
+            // Keep is_request_path as a whole-file fallback for classic Gin fixtures.
+            if !is_hot_path(
+                source,
+                node.start_byte(),
+                &facts.source_index,
+                in_loop,
+            ) && !is_request_path(&facts.source_index)
+            {
                 return;
             }
             let (line, col) = unit.line_col(node.start_byte());

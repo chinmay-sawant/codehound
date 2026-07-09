@@ -5,7 +5,8 @@
 use super::common::{cache_has_eviction_bound, method_name, package_level_caches};
 use crate::core::ParsedUnit;
 use crate::lang::go::detectors::perf::common::{
-    char_boundary, file_has_handler, is_handler_shaped, is_request_path,
+    char_boundary, file_has_concurrency, file_has_handler, is_handler_shaped, is_hot_path,
+    is_in_loop, is_request_path,
 };
 use crate::lang::go::detectors::perf::facts::GoPerfFacts;
 use crate::lang::go::detectors::perf::metadata::*;
@@ -92,27 +93,17 @@ pub(crate) fn detect_perf_215(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let candidates = [
-        ("var buf bytes.Buffer", "buf"),
-        ("var builder strings.Builder", "builder"),
-    ];
-    for (decl, name) in candidates {
-        if !source.contains(decl) {
-            continue;
-        }
-        if !source.contains(&format!("{name}.WriteString(payload)")) {
-            continue;
-        }
+    for name in buffer_or_builder_names(source) {
         if source.contains(&format!("{name}.Grow(")) {
             continue;
         }
-        if !source.contains("size := len(payload)") && !source.contains("len(payload)") {
+        // Only fire when a write argument has a corresponding `len(arg)` so the
+        // pre-size opportunity is clear (avoids flagging multi-part builders
+        // that only have an unrelated `len(slice)` elsewhere in the function).
+        let Some(write_byte) = first_write_with_known_len(source, &name) else {
             continue;
-        }
-        let byte = source
-            .find(&format!("{name}.WriteString(payload)"))
-            .unwrap_or(0);
-        let (line, col) = unit.line_col(byte);
+        };
+        let (line, col) = unit.line_col(write_byte);
         emit::push_finding(
             &META_PERF_215,
             file,
@@ -159,12 +150,6 @@ pub(crate) fn detect_perf_216(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 pub(crate) fn detect_perf_217(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
-    if !source.contains("http.ResponseWriter")
-        && !source.contains("*gin.Context")
-        && !source.contains("echo.Context")
-    {
-        return;
-    }
 
     for call in &facts.calls {
         let callee = call.callee.as_ref();
@@ -174,16 +159,14 @@ pub(crate) fn detect_perf_217(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         if !looks_like_static_builder(callee) {
             continue;
         }
-        if source.contains(&format!("var {} =", bare_callee(callee)))
-            || source.contains(&format!(
-                "{} = {}()",
-                bare_callee(callee),
-                bare_callee(callee)
-            ))
-        {
-            continue;
-        }
-        if !is_handler_shaped(source, call.start_byte) {
+        // Hot path only: loop, HTTP/handler shape, or encode/build/generate-style
+        // function. Package-level init and cold helpers stay silent.
+        if !is_hot_path(
+            source,
+            call.start_byte,
+            &facts.source_index,
+            is_in_loop(call),
+        ) {
             continue;
         }
         let (line, col) = unit.line_col(call.start_byte);
@@ -192,7 +175,7 @@ pub(crate) fn detect_perf_217(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
             file,
             line,
             col,
-            "deterministic static computation is rebuilt on the request path instead of cached at init",
+            "deterministic static computation is rebuilt on a hot path instead of cached at init",
             out,
         );
         return;
@@ -209,10 +192,16 @@ pub(crate) fn detect_perf_218(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     if source.contains("[runtime.NumCPU()]sync.Pool")
         || source.contains("runtime_procPin")
         || source.contains("shard")
+        || source.contains("[]sync.Pool")
     {
         return;
     }
-    if !file_has_handler(source) && facts.go_starts.is_empty() {
+    // Concurrent fan-out: handlers, go statements, errgroup/WaitGroup.
+    // Do not flag every package-level pool just because a hot *name* exists.
+    let concurrent = file_has_handler(source)
+        || !facts.go_starts.is_empty()
+        || file_has_concurrency(source);
+    if !concurrent {
         return;
     }
     for call in &facts.calls {
@@ -221,7 +210,17 @@ pub(crate) fn detect_perf_218(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
             continue;
         }
         let recv = receiver_name(call.callee.as_ref());
+        // Zero-value package pool (`var p sync.Pool`) — the classic unsharded
+        // global. `var p = sync.Pool{New: ...}` is the normal correct form and
+        // is left to sharding heuristics only when explicit zero-value pools
+        // are used under concurrency (matches pre-enhance fixtures).
         if recv.is_empty() || !source.contains(&format!("var {recv} sync.Pool")) {
+            continue;
+        }
+        // Avoid matching `var p = sync.Pool` via a substring of `var p sync.Pool`
+        // when only the composite form exists: require a line that is the
+        // zero-value form (no `=` between name and sync.Pool on that decl).
+        if !has_zero_value_pool_decl(source, recv) {
             continue;
         }
         let (line, col) = unit.line_col(call.start_byte);
@@ -241,6 +240,9 @@ pub(crate) fn detect_perf_218(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 pub(crate) fn detect_perf_219(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
+    if !source.contains("sync.Pool") {
+        return;
+    }
 
     for call in &facts.calls {
         if method_name(call.callee.as_ref()) != "Put" {
@@ -249,12 +251,21 @@ pub(crate) fn detect_perf_219(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         let Some(arg) = call.arguments.first().map(|arg| arg.as_ref()) else {
             continue;
         };
-        if !arg.contains("buf") || !source.contains("func Recycle(buf []byte)") {
+        let arg = arg.trim();
+        if !looks_like_buffer_arg(arg) {
             continue;
         }
-        let window_start = char_boundary(source, call.start_byte.saturating_sub(160));
+        // Only flag helpers that take a growable `[]byte` (or *bytes.Buffer)
+        // parameter — not every `pool.Put(buf)` of a *bytes.Buffer from Get.
+        if !enclosing_func_has_slice_buf_param(source, call.start_byte, arg) {
+            continue;
+        }
+        let window_start = char_boundary(source, call.start_byte.saturating_sub(200));
         let window = &source[window_start..call.start_byte];
-        if window.contains("cap(buf) >") || window.contains("cap(buf) >=") {
+        if window.contains(&format!("cap({arg}) >"))
+            || window.contains(&format!("cap({arg}) >="))
+            || window.contains(&format!("cap({arg})>"))
+        {
             continue;
         }
         let (line, col) = unit.line_col(call.start_byte);
@@ -422,6 +433,114 @@ pub(crate) fn detect_perf_224(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         );
         return;
     }
+}
+
+/// Collect local names bound to `bytes.Buffer` / `strings.Builder`.
+fn buffer_or_builder_names(source: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    for line in source.lines() {
+        let trimmed = line.trim();
+        // var name bytes.Buffer / var name strings.Builder
+        if let Some(rest) = trimmed.strip_prefix("var ") {
+            let rest = rest.trim_start();
+            let Some(name_end) = rest.find(char::is_whitespace) else {
+                continue;
+            };
+            let name = rest[..name_end].trim();
+            let ty = rest[name_end..].trim_start();
+            if ty.starts_with("bytes.Buffer") || ty.starts_with("strings.Builder") {
+                if is_simple_ident(name) {
+                    names.push(name.to_string());
+                }
+            }
+            continue;
+        }
+        // name := bytes.Buffer{} / name := strings.Builder{}
+        if let Some(eq) = trimmed.find(":=") {
+            let name = trimmed[..eq].trim();
+            let rhs = trimmed[eq + 2..].trim();
+            if (rhs.starts_with("bytes.Buffer{") || rhs.starts_with("strings.Builder{"))
+                && is_simple_ident(name)
+            {
+                names.push(name.to_string());
+            }
+        }
+    }
+    names
+}
+
+/// First `{name}.WriteString(arg)` / `{name}.Write(arg)` where `len(arg)` also
+/// appears in the unit (size is knowable).
+fn first_write_with_known_len(source: &str, name: &str) -> Option<usize> {
+    for method in ["WriteString(", "Write("] {
+        let needle = format!("{name}.{method}");
+        let mut search_from = 0usize;
+        while let Some(rel) = source[search_from..].find(&needle) {
+            let start = search_from + rel;
+            let arg_start = start + needle.len();
+            let rest = &source[arg_start..];
+            let arg_end = rest.find([')', ','])?;
+            let arg = rest[..arg_end].trim();
+            if is_simple_ident(arg) && source.contains(&format!("len({arg})")) {
+                return Some(start);
+            }
+            search_from = arg_start;
+        }
+    }
+    None
+}
+
+fn is_simple_ident(name: &str) -> bool {
+    !name.is_empty()
+        && name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_')
+        && name
+            .chars()
+            .next()
+            .is_some_and(|c| c.is_ascii_alphabetic() || c == '_')
+}
+
+fn looks_like_buffer_arg(arg: &str) -> bool {
+    if !is_simple_ident(arg) {
+        return false;
+    }
+    let lower = arg.to_ascii_lowercase();
+    // Keep this tight — single-letter names (`b`) are common for builders
+    // and would false-positive on every pool.Put(b).
+    lower.contains("buf")
+        || lower.contains("scratch")
+        || lower.contains("tmp")
+        || lower.ends_with("buffer")
+}
+
+fn has_zero_value_pool_decl(source: &str, name: &str) -> bool {
+    for line in source.lines() {
+        let t = line.trim();
+        // `var name sync.Pool` optionally followed by comment; no `=`.
+        if t.starts_with(&format!("var {name} sync.Pool")) && !t.contains('=') {
+            return true;
+        }
+    }
+    false
+}
+
+/// True when the enclosing function signature includes `name []byte` (or
+/// similar slice/buffer param), so Put is recycling a growable byte buffer.
+fn enclosing_func_has_slice_buf_param(source: &str, start_byte: usize, name: &str) -> bool {
+    let head = &source[..start_byte.min(source.len())];
+    let Some(func_kw) = head.rfind("func ") else {
+        return false;
+    };
+    let sig = &source[func_kw..start_byte.min(source.len())];
+    let Some(brace) = sig.find('{') else {
+        return false;
+    };
+    let sig = &sig[..brace];
+    // `name []byte` / `name []T` / `name *bytes.Buffer`
+    sig.contains(&format!("{name} []byte"))
+        || sig.contains(&format!("{name} []"))
+        || sig.contains(&format!("{name} *bytes.Buffer"))
 }
 
 fn cache_is_written(source: &str, facts: &GoPerfFacts, name: &str, is_sync_map: bool) -> bool {

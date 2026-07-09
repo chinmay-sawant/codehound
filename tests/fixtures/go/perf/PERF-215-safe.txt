@@ -1,4 +1,4 @@
-# PERF-215 negative: bytes.Buffer is pre-sized
+# PERF-215 negative: bytes.Buffer is pre-sized with Grow
 lang: go
 file: PERF-215-safe.go
 variant: stdlib
@@ -8,8 +8,8 @@ package sample
 import "bytes"
 
 func Encode(payload string) string {
-	var buf bytes.Buffer
-	buf.Grow(len(payload))
-	buf.WriteString(payload)
-	return buf.String()
+	var out bytes.Buffer
+	out.Grow(len(payload))
+	out.WriteString(payload)
+	return out.String()
 }

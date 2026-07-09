@@ -1,6 +1,7 @@
 pub(crate) mod caching_and_allocation;
 pub(crate) mod cli_and_orm;
 pub(crate) mod common;
+pub(crate) mod copies_and_compress;
 pub(crate) mod db_and_sql;
 pub(crate) mod header_allowlist;
 pub(crate) mod http_client;
@@ -14,6 +15,7 @@ pub(crate) mod sync_and_locks;
 
 pub(crate) use caching_and_allocation::*;
 pub(crate) use cli_and_orm::*;
+pub(crate) use copies_and_compress::*;
 pub(crate) use db_and_sql::*;
 pub(crate) use http_client::*;
 pub(crate) use http_server::*;

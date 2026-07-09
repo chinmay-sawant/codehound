@@ -1,17 +1,15 @@
-# PERF-217 positive: static computation rebuilt per request
+# PERF-217 positive: static computation rebuilt on hot encode path (non-HTTP)
 lang: go
 file: PERF-217-vulnerable.go
 variant: stdlib
 ---
 package sample
 
-import "net/http"
-
 func buildICCProfile() []byte {
 	return []byte("icc-profile")
 }
 
-func HandleProfile(w http.ResponseWriter, r *http.Request) {
-	_ = buildICCProfile()
-	w.WriteHeader(http.StatusOK)
+func GenerateDoc() []byte {
+	// Deterministic profile rebuilt on every generate call.
+	return buildICCProfile()
 }

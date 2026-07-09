@@ -1,0 +1,20 @@
+# PERF-230 positive: pure helper re-evaluated with stable args in loop
+lang: go
+file: PERF-230-vulnerable.go
+variant: stdlib
+---
+package sample
+
+func parseProps(props string) int {
+	return len(props)
+}
+
+func DrawCells(cells []string, props string) int {
+	total := 0
+	for _, cell := range cells {
+		// props is loop-invariant; re-parsing every cell is wasteful.
+		w := parseProps(props)
+		total += w + len(cell)
+	}
+	return total
+}

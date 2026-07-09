@@ -93,3 +93,158 @@ pub fn is_handler_shaped(source: &str, start_byte: usize) -> bool {
 pub fn file_has_handler(source: &str) -> bool {
     is_handler_shaped(source, source.len())
 }
+
+/// Function-name tokens that usually mark encode / emit / serve hot paths
+/// (libraries and services alike — not HTTP-only).
+const HOT_FUNCTION_TOKENS: &[&str] = &[
+    "handle",
+    "serve",
+    "write",
+    "encode",
+    "decode",
+    "build",
+    "generate",
+    "render",
+    "compress",
+    "sign",
+    "marshal",
+    "unmarshal",
+    "emit",
+    "serialize",
+    "deserialize",
+    "process",
+    "transform",
+    "flush",
+    "draw",
+    "layout",
+];
+
+/// True when `name` looks like a hot-path function (case-insensitive substring).
+pub fn function_name_is_hot(name: &str) -> bool {
+    if name.is_empty() {
+        return false;
+    }
+    let lower = name.to_ascii_lowercase();
+    HOT_FUNCTION_TOKENS.iter().any(|tok| lower.contains(tok))
+}
+
+/// Walk backward from `start_byte` to the nearest `func` declaration and
+/// return its simple name (`Foo` from `func Foo` / `func (r *T) Foo`).
+///
+/// Returns `None` when `start_byte` is not inside that function body (e.g.
+/// package-level `var x = build()` between top-level decls).
+pub fn enclosing_function_name(source: &str, start_byte: usize) -> Option<&str> {
+    let start_byte = start_byte.min(source.len());
+    let head = &source[..start_byte];
+    let func_kw = head.rfind("func ")?;
+    let after_kw = &source[func_kw + "func ".len()..start_byte];
+    let after = after_kw.trim_start();
+    // Method: (recv Type) Name
+    let after = if after.starts_with('(') {
+        let close = after.find(')')?;
+        after[close + 1..].trim_start()
+    } else {
+        after
+    };
+    let name_end = after
+        .find(|c: char| !c.is_ascii_alphanumeric() && c != '_')
+        .unwrap_or(after.len());
+    let name = &after[..name_end];
+    if name.is_empty() {
+        return None;
+    }
+
+    // Ensure start_byte is still inside this function body: open `{` after the
+    // func keyword and brace-depth at start_byte remains positive.
+    let Some(brace_rel) = source[func_kw..start_byte].find('{') else {
+        return None;
+    };
+    let body_open = func_kw + brace_rel;
+    let mut depth = 0i32;
+    for ch in source[body_open..start_byte].chars() {
+        match ch {
+            '{' => depth += 1,
+            '}' => depth -= 1,
+            _ => {}
+        }
+    }
+    if depth <= 0 {
+        return None;
+    }
+    Some(name)
+}
+
+/// True when the nearest enclosing function name looks hot.
+pub fn enclosing_function_is_hot(source: &str, start_byte: usize) -> bool {
+    enclosing_function_name(source, start_byte)
+        .map(function_name_is_hot)
+        .unwrap_or(false)
+}
+
+/// Unified hot-path predicate for enhanced PERF matching.
+///
+/// A site is hot when any of:
+/// - it sits inside a loop
+/// - the **local** window is handler-shaped (not whole-file — package init
+///   in a handler file must stay cold)
+/// - the enclosing function name matches encode/serve/build-style tokens
+///
+/// Whole-file `is_request_path` is intentionally **not** used here: it would
+/// mark every call in a handler-containing file as hot (including package
+/// `var x = build()` init sites).
+pub fn is_hot_path(
+    source: &str,
+    start_byte: usize,
+    _index: &PerfSourceIndex,
+    in_loop: bool,
+) -> bool {
+    if in_loop {
+        return true;
+    }
+    if is_handler_shaped(source, start_byte) {
+        return true;
+    }
+    enclosing_function_is_hot(source, start_byte)
+}
+
+/// True when the file as a whole looks concurrent (goroutine fan-out).
+pub fn file_has_concurrency(source: &str) -> bool {
+    source.contains("go ")
+        || source.contains("go\t")
+        || source.contains("go\n")
+        || source.contains("errgroup")
+        || source.contains("WaitGroup")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn function_name_is_hot_matches_common_tokens() {
+        assert!(function_name_is_hot("GenerateDoc"));
+        assert!(function_name_is_hot("encodePage"));
+        assert!(function_name_is_hot("SignPDF"));
+        assert!(!function_name_is_hot("init"));
+        assert!(!function_name_is_hot("helper"));
+    }
+
+    #[test]
+    fn enclosing_function_name_finds_plain_and_method() {
+        let src = "package p\nfunc GenerateDoc() {\n\tx := 1\n}\n";
+        let byte = src.find("x :=").unwrap();
+        assert_eq!(enclosing_function_name(src, byte), Some("GenerateDoc"));
+
+        let src = "package p\nfunc (g *Gen) Encode() {\n\ty := 2\n}\n";
+        let byte = src.find("y :=").unwrap();
+        assert_eq!(enclosing_function_name(src, byte), Some("Encode"));
+    }
+
+    #[test]
+    fn enclosing_function_name_ignores_package_level_between_funcs() {
+        let src = "package p\nfunc buildX() []byte { return nil }\nvar x = buildX()\nfunc Handle() {}\n";
+        // First occurrence is the func name itself; use the package var call.
+        let byte = src.rfind("buildX()").unwrap();
+        assert_eq!(enclosing_function_name(src, byte), None);
+    }
+}

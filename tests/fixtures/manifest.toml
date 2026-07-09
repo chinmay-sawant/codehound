@@ -6433,3 +6433,63 @@ lang = "go"
 path = "tests/fixtures/go/heuristics/cache/concurrent-command-injection.txt"
 required_rules = ["CWE-78"]
 
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-225-vulnerable.txt"
+required_rules = ["PERF-225"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-225-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-226-vulnerable.txt"
+required_rules = ["PERF-226"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-226-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-227-vulnerable.txt"
+required_rules = ["PERF-227"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-227-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-229-vulnerable.txt"
+required_rules = ["PERF-229"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-229-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-230-vulnerable.txt"
+required_rules = ["PERF-230"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-230-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-231-vulnerable.txt"
+required_rules = ["PERF-231"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-231-safe.txt"
+required_rules = []

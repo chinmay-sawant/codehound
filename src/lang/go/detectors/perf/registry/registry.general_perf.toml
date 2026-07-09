@@ -729,3 +729,33 @@ function = "detect_perf_223"
 perf = 224
 domain = "general_perf"
 function = "detect_perf_224"
+
+[[detector]]
+perf = 225
+domain = "general_perf"
+function = "detect_perf_225"
+
+[[detector]]
+perf = 226
+domain = "general_perf"
+function = "detect_perf_226"
+
+[[detector]]
+perf = 227
+domain = "general_perf"
+function = "detect_perf_227"
+
+[[detector]]
+perf = 229
+domain = "general_perf"
+function = "detect_perf_229"
+
+[[detector]]
+perf = 230
+domain = "general_perf"
+function = "detect_perf_230"
+
+[[detector]]
+perf = 231
+domain = "general_perf"
+function = "detect_perf_231"

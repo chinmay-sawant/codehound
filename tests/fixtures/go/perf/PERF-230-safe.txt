@@ -1,0 +1,19 @@
+# PERF-230 negative: pure helper hoisted before loop
+lang: go
+file: PERF-230-safe.go
+variant: stdlib
+---
+package sample
+
+func parseProps(props string) int {
+	return len(props)
+}
+
+func DrawCells(cells []string, props string) int {
+	w := parseProps(props)
+	total := 0
+	for _, cell := range cells {
+		total += w + len(cell)
+	}
+	return total
+}

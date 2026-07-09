@@ -1,4 +1,4 @@
-# PERF-027 negative: bytes.Buffer is served from a sync.Pool
+# PERF-027 negative: bytes.Buffer is served from a sync.Pool on hot path
 lang: go
 file: PERF-027-safe.go
 ---
@@ -6,10 +6,7 @@ package sample
 
 import (
 	"bytes"
-	"net/http"
 	"sync"
-
-	"github.com/gin-gonic/gin"
 )
 
 var bufPool = sync.Pool{
@@ -18,10 +15,14 @@ var bufPool = sync.Pool{
 	},
 }
 
-func Render(c *gin.Context) {
-	buf := bufPool.Get().(*bytes.Buffer)
-	buf.Reset()
-	buf.WriteString("hello")
-	c.Data(http.StatusOK, "text/plain", buf.Bytes())
-	bufPool.Put(buf)
+func EncodeChunks(chunks []string) string {
+	var out bytes.Buffer
+	for _, c := range chunks {
+		buf := bufPool.Get().(*bytes.Buffer)
+		buf.Reset()
+		buf.WriteString(c)
+		out.Write(buf.Bytes())
+		bufPool.Put(buf)
+	}
+	return out.String()
 }

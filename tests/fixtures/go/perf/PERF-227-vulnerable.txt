@@ -1,0 +1,22 @@
+# PERF-227 positive: zlib.NewWriterLevel on hot path without pool
+lang: go
+file: PERF-227-vulnerable.go
+variant: stdlib
+---
+package sample
+
+import (
+	"bytes"
+	"compress/zlib"
+)
+
+func CompressPage(page []byte) []byte {
+	var buf bytes.Buffer
+	w, err := zlib.NewWriterLevel(&buf, zlib.DefaultCompression)
+	if err != nil {
+		return nil
+	}
+	_, _ = w.Write(page)
+	_ = w.Close()
+	return buf.Bytes()
+}
