@@ -1,38 +1,30 @@
-# CodeHound
+# CodeHound — Go PERF scanner + framework footgun detector
 
-> A static code analyzer written in Rust for detecting statically visible code
-> weaknesses in supported codebases.
+> A Rust static analyzer for Go. Finds **performance hot-path** regressions and
+> **framework footguns** (Gin/Echo/GORM/sqlx) that lang linters miss. Curated
+> CWE heuristics included. Runs offline, no toolchain required.
 
-CodeHound is a fast, opinionated analyzer focused on **statically detectable
-weaknesses** with the current Go implementation centered on bundled CWE
-heuristics and fixture-backed regression coverage.
+CodeHound is a fast, opinionated analyzer that **complements** golangci-lint,
+staticcheck, and govulncheck — it targets what they don't see:
 
-The CWE catalog has 175+ entries auto-generated from a central sink registry,
-providing comprehensive coverage of known weakness patterns across file I/O,
-SQL, command injection, link resolution, and configuration sinks.
-
-A **PERF** (performance) rule catalog with 224 rules is also included; over 60
-detectors are shipped covering common performance anti-patterns in Go. See
-[`docs/perf-rules.md`](./docs/perf-rules.md) for the full catalog.
-
-It is designed to **complement** existing language tooling with repository-local
-heuristics, reusable fact extraction, and machine-readable findings.
+- **PERF** — 224 rules across 60+ detectors: regex-in-loops, `fmt.Sprintf` on hot paths, defer in tight loops, `http.ServeFile` body leaks, request-path allocation thrash. See [`docs/perf-rules.md`](./docs/perf-rules.md).
+- **Framework footguns** — Gin/Echo/GORM/sqlx aware: unclosed response bodies, unbounded query rows, missing timeouts, context leaks.
+- **CWE heuristics** — 175+ fixture-backed entries for file I/O, SQL injection, command injection, link resolution, and config sinks. Auto-generated from a central sink registry.
+- **Bad practices** — 65 rules across error handling, concurrency, testing, API design, and prod hardening.
+- **Taint tracking (experimental)** — intra-procedural for CWE-22/78/79/89. Name-string based; not security-grade — use for triage, not hard gating.
 
 ## Goals
 
-- Detect statically visible weakness patterns with reusable fact extraction.
-- Map findings to **CWE** references for compliance workflows.
+- Detect statically visible performance and weakness patterns in Go services.
+- Map findings to **PERF** rule IDs and **CWE** references.
 - Emit machine-readable output (text, JSON, SARIF) — see [`docs/output-formats.md`](./docs/output-formats.md).
 - Run as a single static binary, no external services.
 
 ## Status
 
-CodeHound is under active development. The current Go implementation centers on
-fixture-backed CWE detection.
+Under active development. **Go is the production language** — Python (1 rule) and TypeScript (stub) are not yet meaningful. 
 
 ## Roadmap
-
-See [`plans/`](./plans) for the detailed plan.
 
 | Phase | Theme | Status |
 |------:|-------|--------|
@@ -89,6 +81,10 @@ codehound --no-cache .
 
 See [`docs/incremental-cache.md`](./docs/incremental-cache.md) for details on the cache format, invalidation strategy, and configuration.
 
+## Recommendation
+
+**Use CodeHound after** golangci-lint + govulncheck for **app-level Go PERF + framework footguns + curated CWE heuristics** — not instead of them. Scoped packs (PERF-only or high-severity CWE) give the best signal-to-noise ratio.
+
 ### Severity Levels
 
 | Level    | Description                        | Exit Code |
@@ -116,17 +112,16 @@ Pass `--diagnostics-summary` to print a compact scan summary to stderr:
 scanned 238 files | 195 cached | 43 fresh | 1250.3ms | slowest: PERF-141
 ```
 
-### Taint Tracking
+### Taint Tracking (experimental)
 
 CodeHound includes an experimental intra-procedural taint-tracking engine for
-CWE-22, CWE-78, CWE-79, and CWE-89. See [`docs/taint.md`](./docs/taint.md)
-for details.
+CWE-22, CWE-78, CWE-79, and CWE-89. **Not security-grade** — name-string sink matching, no types, `filepath.Clean` is not a real sanitizer. Use for triage, not hard gating. See [`docs/taint.md`](./docs/taint.md).
 
 ### Bad Practices
 
-65 Go bad-practice rules (`BP-*`) are shipped covering error handling,
+65 Go bad-practice rules (`BP-*`) covering error handling,
 concurrency, testing, API design, code organization, production hardening, and
-dependency hygiene. See [`docs/bad-practices.md`](./docs/bad-practices.md).
+dependency hygiene. Note: partial overlap with staticcheck/errcheck — CodeHound is best used as a complement, not a replacement. See [`docs/bad-practices.md`](./docs/bad-practices.md).
 
 ### Configuration file (`codehound.toml`)
 

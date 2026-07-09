@@ -130,7 +130,7 @@ export default function App() {
             <div className="hero-line">
               <span>1,042 findings · $0 scan</span>
               <span aria-hidden="true">·</span>
-              <span>175+ CWE · 224 PERF · 65 BP</span>
+              <span>224 PERF · 175+ CWE · 65 BP</span>
               <span aria-hidden="true">·</span>
               <span>~15× cheaper bulk triage vs Grok 4.5</span>
             </div>
