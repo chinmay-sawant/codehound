@@ -91,5 +91,6 @@ Ruleset chunk: `ruleset/golang/chunks/perf-225-232.json` (includes PERF-233)
 - [x] Non-web fixtures fire clone / grow / pool / static / compress smells without Gin
 - [x] Permanent OOS documented (klauspost, GOMAXPROCS, GOMEMLIMIT, compliance, auto-fix)
 - [x] `make run-perf-enhanced` for 1:1 scan visibility
-- [ ] 1:1 mapping acceptance complete ([05](./05-one-to-one-mapping.md))
-- [ ] PR merged *(human step)*
+- [x] 1:1 mapping acceptance complete ([05](./05-one-to-one-mapping.md)) — static themes **Yes** except **027 Partial** + permanent **OOS**
+- [x] Plan docs 02 / 03 / 04 / 05 / CHECKLIST status aligned after code verification
+- [ ] PR merged / remote push *(human step)*
