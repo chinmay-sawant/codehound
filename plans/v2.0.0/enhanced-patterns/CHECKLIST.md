@@ -124,7 +124,8 @@
 - [x] `cargo test --test go_perf_detector_integration`
 - [x] `cargo test --test go_perf_ruleset_audit`
 - [x] Scan `tests/fixtures/go/perf_real_world/clean_go_file.txt` — no catastrophic noise (`no slop detected`)
-- [ ] Phase B PR(s) merged *(human / git step)*
+- [x] Commit on `feat/enhanced-perf` (`05f6343`)
+- [ ] Phase B/C PR pushed & merged *(needs GitHub auth: `gh auth login` or SSH remote)*
 
 ---
 
