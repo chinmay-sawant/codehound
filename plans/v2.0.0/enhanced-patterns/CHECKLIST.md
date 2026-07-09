@@ -274,8 +274,8 @@ make run-perf-enhanced
 - [x] CHANGELOG Unreleased note (enhanced batch + PERF-233 + `run-perf-enhanced`)
 - [x] Local commit on `feat/enhanced-perf`
 - [x] Makefile `run-perf-enhanced` for 1:1 visibility
-- [ ] 1:1 mapping acceptance complete — [05-one-to-one-mapping.md](./05-one-to-one-mapping.md)
-- [ ] Push + open PR *(blocked here: no `gh` login / HTTPS credentials)*
+- [x] 1:1 mapping acceptance complete — [05-one-to-one-mapping.md](./05-one-to-one-mapping.md) (Agents A–E; table above)
+- [ ] Push latest commits to PR *(human step if remote not yet updated)*
 
 ---
 
@@ -321,7 +321,7 @@ These are **not** backlog items. They will not become PERF detectors in this wor
 | B Tighten | [x] |
 | C New rules | [x] |
 | D Optional | [x] (incl. PERF-233) |
-| E Closeout | [x] code+docs (PR open left to you) |
-| **1:1 mapping** | [ ] In progress — [05](./05-one-to-one-mapping.md) |
+| E Closeout | [x] code+docs |
+| **1:1 mapping** | [x] **Complete** — [05](./05-one-to-one-mapping.md); only **027 Partial** + permanent **OOS** remain as exceptions |
 
-**Last updated:** 2026-07-10 (1:1 track + permanent OOS + `run-perf-enhanced`)
+**Last updated:** 2026-07-10 (checklist synced: 1:1 **complete**, not in-progress)
