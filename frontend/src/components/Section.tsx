@@ -6,6 +6,8 @@ import { useReveal } from '../hooks/useReveal'
 export function SectionView({ section }: { section: Section }) {
   const s = section
   const { ref, visible } = useReveal<HTMLElement>()
+  const Icon = s.icon
+
   return (
     <section
       id={s.id}
@@ -13,9 +15,15 @@ export function SectionView({ section }: { section: Section }) {
       className={`section reveal${visible ? ' is-visible' : ''}`}
     >
       <header className="section-head">
-        <span className="section-prompt">{`>${s.id}`}</span>
+        <div className="section-meta">
+          <span className="section-icon" aria-hidden="true">
+            <Icon size={14} strokeWidth={1.75} />
+          </span>
+          <span className="section-prompt">{`>${s.id}`}</span>
+        </div>
         <h2 className="section-title">{s.title}</h2>
       </header>
+
       <p className={`section-lead${s.flows ? ' section-lead-wide' : ''}`}>{s.lead}</p>
 
       {s.stats && (
@@ -106,7 +114,9 @@ export function SectionView({ section }: { section: Section }) {
       {s.body && (
         <div className="section-body">
           {s.body.map((p, i) => (
-            <p key={i} className="section-para">{renderInlineMarkup(p)}</p>
+            <p key={i} className="section-para">
+              {renderInlineMarkup(p)}
+            </p>
           ))}
         </div>
       )}

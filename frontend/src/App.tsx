@@ -4,6 +4,13 @@ import { Sidebar } from './components/Sidebar'
 import { SectionView } from './components/Section'
 import './styles/global.css'
 
+const HERO_STATS = [
+  { value: '~2.7k', label: 'ops/sec', sub: 'after CodeHound fixes' },
+  { value: '+35%', label: 'throughput', sub: 'from ~2,000 ops/sec' },
+  { value: '$0', label: 'to scan', sub: 'offline · deterministic' },
+  { value: '$3.85', label: 'Grok 4.5 batch', sub: 'vs ~$19 skills ×5' },
+] as const
+
 export default function App() {
   const [active, setActive] = useState(sections[0].id)
   const mainRef = useRef<HTMLElement>(null)
@@ -16,9 +23,6 @@ export default function App() {
     let ticking = false
     const updateActive = () => {
       const lastId = sections[sections.length - 1].id
-      // ponytail: pin last section only at true bottom. A loose threshold (120px)
-      // fires while the second-to-last (e.g. cost) should still be active, because
-      // the content below it is short - skipping it in the sidebar.
       const atBottom = root.scrollHeight - root.scrollTop - root.clientHeight < 4
 
       if (atBottom) {
@@ -64,26 +68,78 @@ export default function App() {
       <main ref={mainRef} className="main">
         <div className="main-inner">
           <header className="hero">
-            <div className="hero-tag">static analyzer</div>
-            <h1 className="hero-title">codehound</h1>
+            <div className="hero-eyebrow">
+              <span className="hero-tag">static analyzer</span>
+              <span className="hero-dot" aria-hidden="true" />
+              <span className="hero-tag-muted">deterministic · offline · agent-ready</span>
+            </div>
+            <h1 className="hero-title">
+              Find the bugs.<br />
+              <span className="hero-title-accent">Skip the token bill.</span>
+            </h1>
             <p className="hero-sub">
-              Deterministic static analysis for Go — PERF, bad practices, and CWE
-              without a prompt. Export 1,042 findings to disk, triage with
-              DeepSeek for $0.25, or let Opus spend $14.75 doing it the hard way.
+              CodeHound is deterministic static analysis for Go — PERF, bad
+              practices, and CWE without a prompt. On gopdfsuit, fixing its
+              findings lifted throughput from ~2,000 to ~2,700 ops/sec. Scan
+              free, then triage with Grok 4.5 for $3.85 — or DeepSeek for $0.25.
             </p>
+
+            <div className="hero-stats" role="list">
+              {HERO_STATS.map((s) => (
+                <div className="hero-stat" key={s.label} role="listitem">
+                  <div className="hero-stat-value">{s.value}</div>
+                  <div className="hero-stat-label">{s.label}</div>
+                  <div className="hero-stat-sub">{s.sub}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="hero-cta-row">
+              <a
+                className="hero-cta hero-cta-primary"
+                href="#impact"
+                onClick={(e) => {
+                  e.preventDefault()
+                  handleNavigate('impact')
+                }}
+              >
+                See the impact
+              </a>
+              <a
+                className="hero-cta hero-cta-ghost"
+                href="#cost"
+                onClick={(e) => {
+                  e.preventDefault()
+                  handleNavigate('cost')
+                }}
+              >
+                Grok 4.5 cost math
+              </a>
+              <a
+                className="hero-cta hero-cta-ghost"
+                href="#how-it-works"
+                onClick={(e) => {
+                  e.preventDefault()
+                  handleNavigate('how-it-works')
+                }}
+              >
+                How it works
+              </a>
+            </div>
+
             <div className="hero-line">
               <span>1,042 findings · $0 scan</span>
-              <span>·</span>
-              <span>$0.25 LLM triage</span>
-              <span>·</span>
-              <span>59× cheaper than Opus</span>
-              <span>·</span>
+              <span aria-hidden="true">·</span>
               <span>175+ CWE · 224 PERF · 65 BP</span>
+              <span aria-hidden="true">·</span>
+              <span>~15× cheaper bulk triage vs Grok 4.5</span>
             </div>
           </header>
+
           {sections.map((s) => (
             <SectionView key={s.id} section={s} />
           ))}
+
           <footer className="footer">
             <span>codehound // static analysis</span>
             <span>deterministic · offline · extendable</span>
