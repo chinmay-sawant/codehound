@@ -30,6 +30,22 @@ All deferred files have been converted to standardized phase-wise checklist form
 | D4 | `deferred/agent4-pending-work.md` | Taint tracking remaining (substring fallback, sanitizers, CLI, inter-procedural), cache/incremental, cross-cutting, gopdfsuit (external) |
 | D5 | `deferred/agent5-v0.0.1.md` | Legacy TODOs, CWE/perf fixtures, SARIF metadata, PR reviews, callee-indexed scheduling, tree-sitter cache |
 
+## Feature plans (v3.0.0)
+
+| Plan | Focus |
+|------|--------|
+| **[new-bad-practices/](./new-bad-practices/)** | **100 new Go BP rules (BP-66..BP-165)** — checklist plan split by domain; frameworks Gin/Echo/Fiber/Chi/GORM/sqlx; **requires `.txt` snippet fixtures** |
+
+### New bad practices (quick links)
+
+- Master checklist: [`new-bad-practices/CHECKLIST.md`](./new-bad-practices/CHECKLIST.md)
+- Scope / linter gaps: [`new-bad-practices/00-gap-and-scope.md`](./new-bad-practices/00-gap-and-scope.md)
+- Parts A–F: core → concurrency → HTTP frameworks → data → observability → testing tail
+- Implementation order: [`new-bad-practices/07-implementation-order.md`](./new-bad-practices/07-implementation-order.md)
+
+---
+
 ## Next Steps
 
-Pick deferred items from any of the above files and design them as vertical-slice tickets for v3.0.0 implementation sprints.
+1. Execute **[new-bad-practices](./new-bad-practices/)** in PR-sized batches (see `07-implementation-order.md`).
+2. Pick deferred items from any of the D1–D5 files and design them as vertical-slice tickets for other v3.0.0 sprints.
