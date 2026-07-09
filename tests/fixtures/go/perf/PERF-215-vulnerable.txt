@@ -1,4 +1,4 @@
-# PERF-215 positive: bytes.Buffer writes without Grow
+# PERF-215 positive: bytes.Buffer writes without Grow when len is known
 lang: go
 file: PERF-215-vulnerable.go
 variant: stdlib
@@ -8,9 +8,9 @@ package sample
 import "bytes"
 
 func Encode(payload string) string {
-	var buf bytes.Buffer
+	var out bytes.Buffer
 	size := len(payload)
 	_ = size
-	buf.WriteString(payload)
-	return buf.String()
+	out.WriteString(payload)
+	return out.String()
 }

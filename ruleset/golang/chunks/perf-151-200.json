@@ -618,7 +618,7 @@
     "id": 192,
     "name": "Map Without Size Hint",
     "original_description": "make(map[K]V) without capacity hint when eventual size can be determined",
-    "status": "Draft",
+    "status": "Implemented",
     "weakness_abstraction": "Base"
   },
   "PERF-193": {

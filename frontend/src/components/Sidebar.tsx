@@ -58,7 +58,7 @@ export function Sidebar({ active, onNavigate }: SidebarProps) {
         <div className="foot-line">
           <strong>// static, not stochastic</strong>
           <br />
-          rust · single binary · no service
+          Go PERF scanner · single binary · no service
         </div>
         <div className="theme-row">
           <button

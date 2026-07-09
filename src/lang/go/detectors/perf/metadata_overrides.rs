@@ -309,6 +309,22 @@ pub const fn fix_for(id: u32) -> Option<&'static str> {
         223 => Some("Retain backing array capacity on pool return: use obj.Reset() (obj.Slice = obj.Slice[:0]) instead of obj.Slice = nil so the backing array is reused on next acquire."),
         // PERF-224: Iterative tree walk
         224 => Some("Replace the recursive tree walk with an iterative loop over the existing flat pre-ordered representation of the same data."),
+        // PERF-225: Redundant large slice clone
+        225 => Some("Keep a single owned buffer: clone once, or mutate in place when the source is exclusive. Avoid chaining slices.Clone / append([]T(nil), …) on the same data."),
+        // PERF-226: Post-producer re-copy
+        226 => Some("Return or use the producer buffer directly after Bytes()/Close(). Only copy when the source must go back to a pool, and copy before Put — not after an exclusive local."),
+        // PERF-227: Compress writer pool
+        227 => Some("Pool flate/zlib/gzip writers and call Reset(dst) on each use instead of NewWriter on every encode."),
+        // PERF-228: Tiny parallel fan-out
+        228 => Some("For worksets of 1–2 items, run the work serially instead of errgroup/WaitGroup/go fan-out; spawn cost usually dominates."),
+        // PERF-229: Intermediate string → append
+        229 => Some("Write numbers/text into the destination with strconv.AppendInt / AppendUint / AppendFloat (or Builder) instead of Itoa/Sprintf then append([]byte(s))."),
+        // PERF-230: Loop-invariant pure call
+        230 => Some("Hoist the pure call before the loop or cache its result when arguments do not change across iterations."),
+        // PERF-231: PEM/key parse on hot path
+        231 => Some("Parse PEM/keys once at process start (package var or sync.Once) and reuse *rsa.PrivateKey / certificates on the hot path."),
+        // PERF-233: Slow compress level on hot path
+        233 => Some("Use flate/zlib BestSpeed (or level 1) for hot page/stream compression when size budgets allow; keep /FlateDecode. Reserve Default/BestCompression for cold paths."),
         _ => None,
     }
 }

@@ -1,18 +1,13 @@
-# PERF-032 positive: string <-> []byte conversion inside a hot loop
+# PERF-032 positive: string -> []byte conversion inside a hot encode loop
 lang: go
 file: PERF-032-vulnerable.go
 ---
 package sample
 
-import "net/http"
-
-import "github.com/gin-gonic/gin"
-
-func Echo(c *gin.Context) {
-	out := make([][]byte, 0, 16)
-	for _, v := range []string{"a", "b", "c"} {
-		_ = v
+func EncodeParts(parts []string) [][]byte {
+	out := make([][]byte, 0, len(parts))
+	for _, v := range parts {
 		out = append(out, []byte(v))
 	}
-	c.Data(http.StatusOK, "text/plain", []byte("ok"))
+	return out
 }

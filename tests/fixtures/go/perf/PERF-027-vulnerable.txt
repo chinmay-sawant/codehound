@@ -1,18 +1,15 @@
-# PERF-027 positive: bytes.Buffer allocated per request with no sync.Pool
+# PERF-027 positive: large []byte make inside loop without pool
 lang: go
 file: PERF-027-vulnerable.go
 ---
 package sample
 
-import (
-	"bytes"
-	"net/http"
-
-	"github.com/gin-gonic/gin"
-)
-
-func Render(c *gin.Context) {
-	buf := bytes.Buffer{}
-	buf.WriteString("hello")
-	c.Data(http.StatusOK, "text/plain", buf.Bytes())
+func EncodeChunks(chunks []string) int {
+	total := 0
+	for range chunks {
+		// Large scratch buffer re-allocated every iteration.
+		buf := make([]byte, 8192)
+		total += len(buf)
+	}
+	return total
 }

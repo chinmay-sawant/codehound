@@ -31,7 +31,7 @@ CodeHound is a **single static binary** static analyzer written in Rust. It requ
 
 | Capability | Details |
 |------------|---------|
-| **Languages** | Go (175+ CWE, 224 PERF, 65 BP-* rules), Python (`SLOP101`) |
+| **Languages** | Go (175+ CWE, 230+ PERF, 65 BP-* rules), Python (`SLOP101`) |
 | **Output formats** | `text` (default), `json` (NDJSON or envelope), `sarif` 2.1.0 |
 | **Features** | Incremental cache, baseline suppression, taint tracking (experimental), bad-practice rules |
 | **MSRV** | Rust 1.85+ (only needed to *build*; the binary runs standalone) |

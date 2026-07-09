@@ -311,11 +311,11 @@ for i := range members {
     lead:
       'Three catalogs, one AST walk. Rules are data — ship a rule, ship a finding.',
     facts: [
-      { k: 'CWE rules', v: '175+ auto-generated from a central sink registry, mapped to MITRE' },
-      { k: 'PERF rules', v: '224 across 60+ detectors — regex-in-loops, fmt.Sprintf on hot paths, defer in hot funcs' },
+      { k: 'PERF rules', v: '224 across 60+ detectors — regex-in-loops, fmt.Sprintf on hot paths, defer in hot funcs, request-path allocation thrash' },
+      { k: 'CWE heuristics', v: '175+ fixture-backed entries for file I/O, SQL injection, command injection; auto-generated from sink registry' },
       { k: 'Bad practices', v: '65 across 7 categories: errors, concurrency, testing, API design, prod hardening' },
-      { k: 'Taint', v: 'intra-procedural, 5 sources → 6 sinks, 6 sanitizer families; CWE-22/78/79/89 live' },
-      { k: 'Languages', v: 'Go (production), Python (default-on), TypeScript (gated)' },
+      { k: 'Taint (experimental)', v: 'intra-procedural, name-string sinks; CWE-22/78/79/89 — use for triage, not hard gates' },
+      { k: 'Languages', v: 'Go (production), Python (stub), TypeScript (stub)' },
     ],
   },
   {

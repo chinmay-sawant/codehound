@@ -5,26 +5,22 @@ file: PERF-054-safe.go
 package sample
 
 import (
-	"net/http"
 	"strings"
 	"sync"
-
-	"github.com/gin-gonic/gin"
 )
 
 var builderPool = sync.Pool{
 	New: func() any { return &strings.Builder{} },
 }
 
-func BuildPathSafe(c *gin.Context) {
+func EncodePath(segments []string) string {
 	b := builderPool.Get().(*strings.Builder)
 	b.Reset()
-	for _, seg := range []string{"a", "b", "c"} {
+	for _, seg := range segments {
 		b.WriteString(seg)
 		b.WriteString("/")
 	}
 	out := b.String()
 	builderPool.Put(b)
-	c.JSON(http.StatusOK, gin.H{"path": out})
-	_ = http.StatusOK
+	return out
 }

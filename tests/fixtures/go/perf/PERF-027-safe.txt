@@ -1,27 +1,25 @@
-# PERF-027 negative: bytes.Buffer is served from a sync.Pool
+# PERF-027 negative: large buffer pooled and reused across iterations
 lang: go
 file: PERF-027-safe.go
 ---
 package sample
 
-import (
-	"bytes"
-	"net/http"
-	"sync"
-
-	"github.com/gin-gonic/gin"
-)
+import "sync"
 
 var bufPool = sync.Pool{
 	New: func() interface{} {
-		return &bytes.Buffer{}
+		b := make([]byte, 8192)
+		return &b
 	},
 }
 
-func Render(c *gin.Context) {
-	buf := bufPool.Get().(*bytes.Buffer)
-	buf.Reset()
-	buf.WriteString("hello")
-	c.Data(http.StatusOK, "text/plain", buf.Bytes())
-	bufPool.Put(buf)
+func EncodeChunks(chunks []string) int {
+	total := 0
+	for range chunks {
+		bp := bufPool.Get().(*[]byte)
+		buf := *bp
+		total += len(buf)
+		bufPool.Put(bp)
+	}
+	return total
 }

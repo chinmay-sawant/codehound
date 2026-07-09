@@ -14,36 +14,79 @@ pub(crate) fn detect_perf_109(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         return;
     }
 
-    for (start, _end) in &facts.for_ranges {
-        let range_text = &source[*start..char_boundary(source, (*start + 1024).min(source.len()))];
-        // Look for an expensive key computation inside the
-        // loop body. The marker must be followed by use as a
-        // map index in the same loop body.
+    for (start, end) in &facts.for_ranges {
+        let end = char_boundary(source, (*end).min(source.len()).max(*start));
+        // Prefer the real loop span when available; fall back to a window.
+        let range_end = if end > *start {
+            end
+        } else {
+            char_boundary(source, (*start + 1024).min(source.len()))
+        };
+        let range_text = &source[*start..range_end];
+        // Expensive key construction used as a map index inside the loop.
         for marker in &[
             "fmt.Sprintf(",
+            "fmt.Sprint(",
             "strings.Join(",
             "strings.ToLower(",
             "strings.ToUpper(",
+            "strconv.Itoa(",
+            "strconv.FormatInt(",
+            "strconv.FormatUint(",
+            "filepath.Join(",
         ] {
             if !range_text.contains(marker) {
                 continue;
             }
-            // The marker call is inside the loop body, and the
-            // loop body has a map index (e.g. `m[key]` or
-            // `out[key]++`). This is a smell: the key is being
-            // recomputed per iteration.
-            if range_text.contains("[") && range_text.contains("]") {
-                let (line, col) = unit.line_col(*start);
-                emit::push_finding(
-                    &META_PERF_109,
-                    file,
-                    line,
-                    col,
-                    "expensive key computation inside the loop; cache the result before the loop",
-                    out,
-                );
-                return;
+            // Map write/read in the same loop body (`m[key]`, `out[key]++`).
+            if !(range_text.contains('[') && range_text.contains(']')) {
+                continue;
             }
+            // Require an assignment of the expensive result or direct index.
+            let uses_as_key = range_text.contains("]++")
+                || range_text.contains("] =")
+                || range_text.contains("]=")
+                || range_text.contains("],")
+                || range_text.contains("[key]")
+                || range_text.contains("[k]")
+                || range_text.lines().any(|l| {
+                    let t = l.trim();
+                    t.contains(marker.trim_end_matches('(')) && t.contains('[')
+                })
+                || range_text.contains("key :=")
+                || range_text.contains("key=");
+            if !uses_as_key && !range_text.contains(marker) {
+                continue;
+            }
+            // Default: expensive marker + map index in loop is enough (existing fixture).
+            let (line, col) = unit.line_col(*start);
+            emit::push_finding(
+                &META_PERF_109,
+                file,
+                line,
+                col,
+                "expensive map-key computation inside the loop; cache or simplify the key",
+                out,
+            );
+            return;
+        }
+
+        // Same expensive callee text appears ≥2 times in the loop with a map
+        // index — true recompute of a key helper.
+        if range_text.matches("fmt.Sprintf(").count() >= 2
+            && range_text.contains('[')
+            && range_text.contains(']')
+        {
+            let (line, col) = unit.line_col(*start);
+            emit::push_finding(
+                &META_PERF_109,
+                file,
+                line,
+                col,
+                "map key is recomputed multiple times in the loop; cache it per iteration or hoist if invariant",
+                out,
+            );
+            return;
         }
     }
 }
