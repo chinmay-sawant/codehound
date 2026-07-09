@@ -746,6 +746,11 @@ domain = "general_perf"
 function = "detect_perf_227"
 
 [[detector]]
+perf = 228
+domain = "general_perf"
+function = "detect_perf_228"
+
+[[detector]]
 perf = 229
 domain = "general_perf"
 function = "detect_perf_229"

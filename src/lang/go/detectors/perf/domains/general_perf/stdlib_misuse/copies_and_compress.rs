@@ -106,6 +106,57 @@ pub(crate) fn detect_perf_226(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     let _ = facts;
 }
 
+/// PERF-228: Parallel Fan-Out For Tiny Workset (N ≤ 2).
+///
+/// Spawning errgroup/WaitGroup/go over a 1–2 element composite often costs more
+/// than doing the work serially.
+pub(crate) fn detect_perf_228(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
+
+    // Named slices assigned from small composite literals in this unit.
+    let tiny_names = tiny_composite_slice_names(source);
+    // Also accept inline `range []T{...}` with ≤2 elems (handled per-loop).
+
+    for &(loop_start, loop_end) in &facts.for_ranges {
+        let end = loop_end.min(source.len()).max(loop_start);
+        let loop_text = &source[loop_start..end];
+        if !loop_has_parallel_fanout(loop_text) {
+            continue;
+        }
+        // Inline composite: `for _, x := range []T{a}` / `[]T{a, b}`
+        if let Some(n) = composite_elem_count_after_range(loop_text) {
+            if n >= 1 && n <= 2 {
+                let (line, col) = unit.line_col(loop_start);
+                emit::push_finding(
+                    &META_PERF_228,
+                    file,
+                    line,
+                    col,
+                    "parallel fan-out over a 1–2 element workset; prefer a serial path for tiny N",
+                    out,
+                );
+                return;
+            }
+        }
+        // Named target from a tiny composite in the same function/file.
+        if let Some(target) = range_target_name(loop_text) {
+            if tiny_names.iter().any(|n| n == target) {
+                let (line, col) = unit.line_col(loop_start);
+                emit::push_finding(
+                    &META_PERF_228,
+                    file,
+                    line,
+                    col,
+                    "parallel fan-out over a 1–2 element workset; prefer a serial path for tiny N",
+                    out,
+                );
+                return;
+            }
+        }
+    }
+}
+
 /// PERF-227: Compress Writer Allocated Without Pool
 pub(crate) fn detect_perf_227(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
@@ -436,6 +487,75 @@ fn window_has_recopy(window: &str) -> bool {
     let has_copy = window.contains("copy(");
     let has_clone = window.contains("slices.Clone(");
     (has_make && has_copy) || has_clone
+}
+
+fn loop_has_parallel_fanout(loop_text: &str) -> bool {
+    loop_text.contains(".Go(")
+        || loop_text.contains("g.Go(")
+        || loop_text.contains("group.Go(")
+        || loop_text.contains("go func")
+        || (loop_text.contains("wg.Add(") && loop_text.contains("go "))
+        || (loop_text.contains("WaitGroup") && loop_text.contains("go "))
+}
+
+/// Names assigned from `name := []T{...}` / `name = []T{...}` with 1–2 elements.
+fn tiny_composite_slice_names(source: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    for line in source.lines() {
+        let t = line.trim();
+        let Some(eq) = t.find(":=").or_else(|| t.find('=')) else {
+            continue;
+        };
+        let lhs = t[..eq].trim().trim_end_matches(':').trim();
+        let rhs = t[eq..].trim_start_matches(':').trim_start_matches('=').trim();
+        if !is_simple_ident(lhs) {
+            continue;
+        }
+        if let Some(n) = composite_literal_elem_count(rhs) {
+            if (1..=2).contains(&n) {
+                names.push(lhs.to_string());
+            }
+        }
+    }
+    names
+}
+
+fn range_target_name(loop_text: &str) -> Option<&str> {
+    let idx = loop_text.find("range")?;
+    let rest = loop_text[idx + "range".len()..].trim_start();
+    let name = rest
+        .split(|c: char| c == '{' || c.is_whitespace())
+        .next()?
+        .trim();
+    if is_simple_ident(name) {
+        Some(name)
+    } else {
+        None
+    }
+}
+
+fn composite_elem_count_after_range(loop_text: &str) -> Option<usize> {
+    let idx = loop_text.find("range")?;
+    let rest = loop_text[idx + "range".len()..].trim_start();
+    composite_literal_elem_count(rest)
+}
+
+/// Count elements in a leading `[]T{...}` / `[]pkg.T{...}` composite literal.
+fn composite_literal_elem_count(s: &str) -> Option<usize> {
+    let s = s.trim_start();
+    if !s.starts_with('[') {
+        return None;
+    }
+    let brace = s.find('{')?;
+    let after = &s[brace + 1..];
+    let close = after.find('}')?;
+    let inner = after[..close].trim();
+    if inner.is_empty() {
+        return Some(0);
+    }
+    // Rough element count: top-level commas (no nested composites in fixtures).
+    let n = inner.split(',').filter(|p| !p.trim().is_empty()).count();
+    Some(n)
 }
 
 fn continue_name_from_source(source: &str, start_byte: usize) -> Option<&str> {

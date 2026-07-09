@@ -1,28 +1,25 @@
-# PERF-027 negative: bytes.Buffer is served from a sync.Pool on hot path
+# PERF-027 negative: large buffer pooled and reused across iterations
 lang: go
 file: PERF-027-safe.go
 ---
 package sample
 
-import (
-	"bytes"
-	"sync"
-)
+import "sync"
 
 var bufPool = sync.Pool{
 	New: func() interface{} {
-		return &bytes.Buffer{}
+		b := make([]byte, 8192)
+		return &b
 	},
 }
 
-func EncodeChunks(chunks []string) string {
-	var out bytes.Buffer
-	for _, c := range chunks {
-		buf := bufPool.Get().(*bytes.Buffer)
-		buf.Reset()
-		buf.WriteString(c)
-		out.Write(buf.Bytes())
-		bufPool.Put(buf)
+func EncodeChunks(chunks []string) int {
+	total := 0
+	for range chunks {
+		bp := bufPool.Get().(*[]byte)
+		buf := *bp
+		total += len(buf)
+		bufPool.Put(bp)
 	}
-	return out.String()
+	return total
 }

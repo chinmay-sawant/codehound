@@ -1,7 +1,7 @@
 # V2.0.0 — Enhanced PERF Patterns
 
 > **Parent:** `plans/v2.0.0/`
-> **Status:** **Shipped (core)** — see [CHECKLIST.md](./CHECKLIST.md)
+> **Status:** **Shipped** — see [CHECKLIST.md](./CHECKLIST.md)
 > **Date:** 2026-07-09
 > **Estimated effort:** ~1.5–2.5 weeks (executed in-session for core path)
 
@@ -45,9 +45,9 @@ Source of truth for “what’s missing”:
 |--------|--------|
 | **Shared hot-path helper** | `is_hot_path` / enclosing function name heuristics in `perf/common.rs` |
 | **Tighten existing** | PERF-018, 027, 032, 054, 109, 192, 215, 217, 218, 219 |
-| **New rules** | PERF-225, 226, 227, 229, 230, 231 |
+| **New rules** | PERF-225–231 (incl. 228 tiny fan-out) |
 | **Merged** | PERF-232 → 231 |
-| **Deferred** | PERF-228 (tiny parallel fan-out); optional large `make([]byte)` in 027 |
+| **PERF-027 extra** | Large `make([]byte, N≥4KiB)` inside loops without pool |
 
 Detectors live mainly in:
 

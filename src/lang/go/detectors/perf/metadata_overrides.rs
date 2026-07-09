@@ -315,6 +315,8 @@ pub const fn fix_for(id: u32) -> Option<&'static str> {
         226 => Some("Return or use the producer buffer directly after Bytes()/Close(). Only copy when the source must go back to a pool, and copy before Put — not after an exclusive local."),
         // PERF-227: Compress writer pool
         227 => Some("Pool flate/zlib/gzip writers and call Reset(dst) on each use instead of NewWriter on every encode."),
+        // PERF-228: Tiny parallel fan-out
+        228 => Some("For worksets of 1–2 items, run the work serially instead of errgroup/WaitGroup/go fan-out; spawn cost usually dominates."),
         // PERF-229: Intermediate string → append
         229 => Some("Write numbers/text into the destination with strconv.AppendInt / AppendUint / AppendFloat (or Builder) instead of Itoa/Sprintf then append([]byte(s))."),
         // PERF-230: Loop-invariant pure call

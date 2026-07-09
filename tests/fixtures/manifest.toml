@@ -6493,3 +6493,13 @@ required_rules = ["PERF-231"]
 lang = "go"
 path = "tests/fixtures/go/perf/PERF-231-safe.txt"
 required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-228-vulnerable.txt"
+required_rules = ["PERF-228"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-228-safe.txt"
+required_rules = []

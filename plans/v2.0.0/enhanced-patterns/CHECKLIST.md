@@ -1,7 +1,7 @@
 # Enhanced PERF Patterns — Master Checklist
 
 > **Parent:** `plans/v2.0.0/enhanced-patterns/README.md`
-> **Status:** **Shipped (core)** — Phase A–C done; 228 deferred; PR merge is human step
+> **Status:** **Shipped** — Phase A–E done including former deferred 228 + 027 large-make
 > **Date:** 2026-07-09
 > **How to use:** Check boxes as you complete work. Detail / detection sketches live in `01`–`04` if needed.
 
@@ -61,7 +61,7 @@
 
 - [x] Broaden beyond request-path-only gate (use hot helper)
 - [x] Flag `bytes.Buffer{}` / `new(bytes.Buffer)` / `strings.Builder{}` on hot path
-- [x] ~~Optional: large `make([]byte, n)` in loop~~ — **deferred** (noise; not needed for plan exit)
+- [x] Large `make([]byte, n)` in loop when `n` ≥ 4096 (pool miss)
 - [x] Suppress when `sync.Pool` already used in file
 - [x] Non-HTTP loop vulnerable fixture + pooled safe
 - [x] Integration green for PERF-027
@@ -191,11 +191,11 @@
 
 > **Decision:** merged into PERF-231 for v1.
 
-### C8 — PERF-228 Parallel fan-out for tiny workset (optional / low prio)
+### C8 — PERF-228 Parallel fan-out for tiny workset
 
-- [x] Decide: **defer** (precision risk / low value vs noise)
-- [x] Note under Phase D
-- [ ] Spike / ship later if needed
+- [x] Shipped: JSON + registry + `detect_perf_228` + fixtures + manifest
+- [x] Detect errgroup/Go/go fan-out over 1–2 element composite worksets
+- [x] Integration green
 
 ### Phase C validation
 
@@ -210,7 +210,7 @@
 
 ## Phase D — Optional / fold decisions
 
-- [x] PERF-228 final status recorded — **deferred**
+- [x] PERF-228 final status recorded — **shipped**
 - [x] Confirm no need for extra IDs 233+ (Grow/map folded into 215/192)
 - [x] Noise spot-check: `clean_go_file.txt` → no slop
 - [x] Confirm clone/grow/pool/static findings **without Gin**:
@@ -221,7 +221,7 @@
 ## Phase E — Closeout
 
 - [x] All Phase B boxes checked (or explicitly deferred with note)
-- [x] Core new rules 225, 226, 227, 229, 230, 231 shipped (232 merged; 228 deferred)
+- [x] Core new rules 225–231 shipped (232 merged into 231)
 - [x] `cargo test --test go_perf_detector_integration` final green
 - [x] `cargo test --test go_perf_ruleset_audit` final green
 - [x] Update this folder README status → **Shipped (core)**
@@ -240,8 +240,8 @@
 - [ ] ~~Product compliance (PDF/A, signatures required, workload mix)~~ — OOS
 - [ ] ~~CWE / BP catalogue changes~~ — OOS
 - [ ] ~~Auto-`--fix` for new rules~~ — later / separate plan
-- [ ] ~~PERF-228 tiny fan-out~~ — deferred
-- [ ] ~~PERF-027 large `make([]byte,n)` optional~~ — deferred
+- [x] ~~PERF-228 tiny fan-out~~ — **shipped**
+- [x] ~~PERF-027 large `make([]byte,n)` optional~~ — **shipped**
 
 ---
 
@@ -251,9 +251,9 @@
 |------|-------------|
 | Shared helper | `is_hot_path`, `enclosing_function_name`, `function_name_is_hot` |
 | Tightened | 018, 027, 032, 054, 109, 192, 215, 217, 218, 219 |
-| New rules | **225, 226, 227, 229, 230, 231** |
+| New rules | **225–231** (incl. 228) |
 | Merged | 232 → 231 |
-| Deferred | 228; optional large `make([]byte)` in 027 |
+| Deferred | none from original deferred pair |
 | Chunk | `ruleset/golang/chunks/perf-225-232.json` |
 | Detectors | `…/stdlib_misuse/copies_and_compress.rs` + tightened existing modules |
 
@@ -265,8 +265,8 @@
 |-------|--------|
 | A Shared helper | [x] |
 | B Tighten | [x] |
-| C New rules | [x] core (228 deferred) |
+| C New rules | [x] |
 | D Optional | [x] |
 | E Closeout | [x] code+docs (PR open left to you) |
 
-**Last updated:** 2026-07-09 (checklist synced + Phase D/E closeout)
+**Last updated:** 2026-07-09 (shipped PERF-228 + PERF-027 large make)
