@@ -1,0 +1,804 @@
+# CodeHound — Action Items (from 2026-07-10 feedback)
+
+| Field | Value |
+|-------|--------|
+| **Date** | 2026-07-11 |
+| **Sources** | [ultra-senior-go-rust-product-review.md](./ultra-senior-go-rust-product-review.md) · [improvements.md](./improvements.md) · [go.md](./go.md) · [rust.md](./rust.md) |
+| **Version baseline** | `0.0.1` → target `≥0.1.0` after Phase 7 gates |
+| **Scan method** | 3 parallel agents (full inventory, action catalog, phase plan) + direct source read |
+
+## North star
+
+> **One job, done well:** a fast, offline Go **PERF + framework-footgun** analyzer that also ships a **curated** CWE pack — complementary to golangci-lint and govulncheck, not a replacement for either.
+
+Everything below should be judged by whether it moves toward that north star or dilutes it.
+
+## How to use this document
+
+- Work **phase order** (0 → 7 for ship; 8–9 after). Prefer Track A (product/trust) before adding more rules.
+- Tags: **`[Product]`** · **`[Go]`** · **`[Rust]`**
+- Multi-source agreement: **`×N`** (item appears in N of the 4 feedback files).
+- Checkboxes are the backlog of record for this feedback set.
+- Deferred / non-goals live at the end — do not re-open without an ADR.
+
+### Parallel tracks (after Phase 0)
+
+```
+Track A (product/trust):  0 → 1 → 2 → 3 → 7
+Track B (engine):         0.9 → 4 → 5.1–5.4 → 6.4–6.6 → 8.4–8.5
+Track C (quality):        1.2 + 5.5–5.7 canaries (after packs exist)
+Merge for 0.1.0 when A + C minimum is met.
+```
+
+### Phase summary
+
+| Phase | One-liner | Cadence | Scope |
+|------:|-----------|---------|-------|
+| **0** | Fix lies: SARIF, license, export, sanitizers, leaks | 3–7 days | Product + Go + Rust |
+| **1** | Curated packs; quarantine fixture museum | 2–4 weeks | Product + Go |
+| **2** | PERF tiers + frameworks = product wedge | 2–4 weeks | Go |
+| **3** | BP honest vs staticcheck | 1–2 weeks | Go |
+| **4** | O(1) indexes, lazy facts, honest benches | 2–3 weeks | Rust |
+| **5** | Cache truth + canaries + oracles | 2–4 weeks | Product + Rust + Go |
+| **6** | Baseline / ignore / CLI / API maturity | 2–4 weeks | Product + Rust |
+| **7** | Tag `0.1.0` and ship binaries | 2–3 weeks | Product + Rust |
+| **8** | Taint depth + optional architecture | 1–3 months | Go + Rust |
+| **9** | Multi-lang only if funded | Later | Product |
+
+---
+
+## Phase 0 — “Would install without fear”
+
+**Theme:** Correctness bugs, CI blockers, honesty  
+**Goal:** Fresh clone scan is side-effect free, SARIF/GitHub-usable, license/docs not lying, CLI doesn’t no-op, security sanitizers don’t lie.
+
+### Success criteria
+
+- [ ] Clean Go module scan produces **zero filesystem side effects** by default
+- [ ] SARIF validates / uploads without post-processing
+- [ ] License files match `Cargo.toml` claims; README links work
+- [ ] Docs, schema, and runtime agree on taint default + `fail_on`
+- [ ] No production no-op or self-conflicting flags left undocumented
+- [ ] Clean-only path still **flags** CWE-22 (not silent suppress via `Clean`)
+- [ ] No `Box::leak` on finding wire path; poisoned mutex cannot hard-crash CLI after isolated panic
+
+### Checklist
+
+#### 0.1 Defaults that don’t dirt the workspace `[Product]` ×3
+
+- [ ] Default **context/chunks export OFF** (require `--export-context` / config)
+- [ ] Canonical CI one-liner documented to match new defaults
+- [ ] Acceptance: fresh clone scan of clean module → no writes under `scripts/` or project root
+
+#### 0.2 SARIF 2.1.0 correctness `[Product]` + `[Rust]` ×3
+
+- [ ] Emit camelCase nested fields (`physicalLocation`, `startLine`, …) via serde renames
+- [ ] Update insta snapshots that freeze snake_case
+- [ ] Align `security-severity` mapping with docs
+- [ ] Emit real `workingDirectory.uri` (scan root / CWD), not always `"."`
+- [ ] Optional: richer rule metadata (`fullDescription` / `helpUri` from `RuleMetadata`)
+- [ ] Add schema / GitHub-upload validation test
+
+#### 0.3 License & packaging honesty `[Product]` ×3
+
+- [ ] Ship `LICENSE-MIT` + `LICENSE-APACHE` **or** drop dual claim to match disk
+- [ ] Fix README broken dual-license links
+- [ ] Align `Cargo.toml` license field with files on disk
+
+#### 0.4 Docs / schema / runtime lockstep `[Product]` ×2
+
+- [ ] Single source of truth for **taint default** (README + `docs/taint.md` + `ScanContext`)
+- [ ] `severity_overrides`: **implement parse** or remove from schema/template
+- [ ] Auto-generate PERF/CWE/BP counts from registry (README/CHANGELOG stop lagging)
+- [ ] `fail_on`: enum + reject unknown values (no silent fallback to medium)
+- [ ] Refresh contributor docs paths (`adding-a-language`, perf-dev) against `chunks/` layout
+- [ ] Acceptance: `codehound init` template parses; schema only describes real fields; README numbers match `--list-rules`
+
+#### 0.5 Dead / conflicting CLI flags `[Product]` + `[Rust]` ×2
+
+- [ ] `--warnings-as-errors`: implement real semantics **or** remove with deprecation note
+- [ ] `--baseline` + `--no-baseline`: clap `conflicts_with`
+- [ ] Split `--no-snippet` vs `--sarif-compact` (stop dual-meaning)
+- [ ] (Subcommands deferred → Phase 6; only fix broken surface here)
+
+#### 0.6 Go taint trust — sanitizer & confinement (security-critical) `[Go]` ×2
+
+- [ ] **Stop treating `filepath.Clean` / `path.Clean` alone as path-safe** (`SanitizerKind::Path`)
+  - Require confinement on **same dataflow path** (join under root + Abs/EvalSymlinks + prefix check), not file-level co-presence
+- [ ] **CWE-78:** use command-specific sanitizers only; do **not** use Path sanitizers
+- [ ] Tighten name-regex sanitizers (`sanitize|clean|escape|…`): require call on tainted value / known-safe APIs; else drop or low confidence
+- [ ] `len` as Bounded / `Prepare` without same-Stmt proof: tighten Prepare only if same variable reaches Query/Exec
+- [ ] **Path confinement locality:** replace whole-file `Abs`+`HasPrefix` scan with guard that dominates sink on taint path / same function
+- [ ] Prefer facts: calls on same binding over string co-presence
+- [ ] Acceptance: Clean-only still **flags** CWE-22 (or documented low-confidence limitation, not silent suppress); safe fixtures still pass
+- [ ] Touch: `cwe/taint/rules/cwe_22.rs`, path helpers, `facts/`, `taint/extract/classify.rs`
+
+#### 0.7 Injection rule soundness checklist (core only) `[Go]`
+
+- [ ] **CWE-22:** keep first-arg-only taint; apply Clean + confinement fixes
+- [ ] **CWE-78:** keep shell (`sh -c`) focus; careful common variants; fix sanitizer kinds
+- [ ] **CWE-89:** document literal-first-arg heuristic; add GORM/sqlx concat shapes **without** claiming full SQLi
+- [ ] **CWE-79:** wire `HTTPWrite` / template sinks consistently; don’t claim full XSS
+- [ ] **CWE-90/91:** real sources/sinks or quarantine from security pack
+
+#### 0.8 Taint defaults & flags UX `[Go]` + `[Product]` ×2
+
+- [ ] **Decide:** taint **on** for `security`; **off** for `recommended`/`perf` (or document global-on clearly)
+- [ ] Sync `docs/taint.md`, README, schema, `ScanContext`
+- [ ] `--taint` / `--no-taint` + config must match explain output
+
+#### 0.9 Rust integrity quick wins `[Rust]` ×2
+
+- [ ] **Error taxonomy start:** split `Error::Walk` misuse → separate `Io` / `Cache` / `Walk` (stop landfill)
+- [ ] Prefer `#[source]` / thiserror chains; preserve `std::io::Error`
+- [ ] Map CLI exit codes from error kind consistently
+- [ ] Keep detector `run()` infallible; document panics → `ScanError`
+- [ ] **Eliminate `Box::leak`** on finding wire (`finding_wire.rs`): pick `Arc`/`CompactString` **or** intern catalog IDs at startup (`Cow<'static, str>`) — recommend C or A
+- [ ] **Mutex poison policy:** `parking_lot` or recover poison → `ScanError` (no process death after isolated detector panic)
+- [ ] Document cross-file detector concurrency contract
+- [ ] **Untrusted input hardening:**
+  - [ ] Scan-time max file size (separate from cache eligibility)
+  - [ ] Fixture `filename` join: reject `..` and absolute paths (`fixture/materialize.rs`)
+  - [ ] `--rebuild-cache` + `remove_dir_all`: resolve/canon path; refuse delete outside project
+- [ ] Acceptance: multi-GB file cannot OOM by default; fixture materialize cannot escape; cache load of 100k findings doesn’t leak unique strings × N
+
+---
+
+## Phase 1 — “Would trust the default gate”
+
+**Theme:** Packs, catalog honesty, signal  
+**Goal:** Recommended profile is small and high-signal; BP off; fixture museum quarantined; severities honest; homepage leads with PERF.
+
+### Success criteria
+
+- [ ] `recommended` pack ≪ full catalog (directionally ≤ ~30 rules)
+- [ ] No `fixture-only` rules in `recommended` or `security` (audit script)
+- [ ] Senior Go triage of ~20 recommended findings: ≥70% actionable (sampled)
+- [ ] BP pack off by default in recommended; micro-opts not medium/CI-failing
+- [ ] Homepage / README lead with PERF + frameworks (positioning)
+
+### Checklist
+
+#### 1.1 Profiles instead of “everything on” `[Product]` ×3
+
+- [ ] Implement `--profile recommended|perf|security|style|all` (names may map to packs)
+- [ ] Pack definitions:
+  - [ ] **`recommended`** — curated PERF (timeouts, body close, regex-in-loop, request thrash) + top taint CWEs · **default CI yes**
+  - [ ] **`perf`** — framework + hot-path PERF · opt-in
+  - [ ] **`security`** — taint CWE core + high-value non-fixture CWEs · opt-in
+  - [ ] **`style` / `bp`** — bad practices, advisory · **off by default**
+  - [ ] **`all`** — full catalog · explicit only
+- [ ] Document: `codehound --profile recommended .` and security fail-high recipe
+- [ ] Align fail policy with profile (e.g. recommended fails high, not medium noise)
+
+#### 1.2 Rule maturity tags + quarantine `[Product]` + `[Go]` ×3
+
+- [ ] Tag every CWE (and ideally PERF/BP): `taint-core` | `structural` | `heuristic` | `fixture-only` | `reserved`
+- [ ] Default pack membership by tag (`fixture-only` **never** in recommended/security; `reserved` disabled)
+- [ ] Audit + quarantine/delete rules that only match:
+  - [ ] Magic fixture numbers (`Intn(4096)`, PRNG formulas)
+  - [ ] Exact fixture ids (`lastOTP++`)
+  - [ ] Exact multi-token snippets never in production
+  - [ ] Hard-coded test-corpus path strings
+- [ ] Enforce rewrite bar for promotion to `structural`:
+  1. Pattern via facts/calls/args, not one literal needle
+  2. ≥1 safe + ≥1 vuln + ≥1 variant fixture
+  3. Clean-file + cross-rule FP check pass
+  4. Runs on one real module without nonsense hits
+- [ ] Track hit rate on canaries; plan delete zero-hit after N months (mechanism in Phase 5)
+
+#### 1.3 NEEDLES hygiene (first pass) `[Go]`
+
+- [ ] Split needles: cheap structural prefilters vs rule-local checks
+- [ ] Prefer call facts + callee classification over `SourceIndex.has("…")` style primary detect
+- [ ] Use needles as **negative gates** where possible
+- [ ] Delete/rewrite top ~20 worst fixture-shaped needles
+- [ ] Comment remaining needles: why production code contains this substring
+
+#### 1.4 Severity & confidence discipline `[Product]` + `[Go]` ×2
+
+- [ ] Micro-opts → `info`/`low`; proven footguns only → `medium`+
+- [ ] BP pack off in recommended; when on almost all info/low; concurrency footguns vet misses → medium max
+- [ ] Never fail CI on “missing godoc” style by default
+- [ ] Populate `confidence` for taint vs needle heuristics
+- [ ] Fix bad PERF advice patterns:
+  - [ ] Don’t always prefer `http.Get` over `NewRequest` (only when no headers/context/custom client)
+  - [ ] Static `fmt.Errorf` medium → info or drop
+  - [ ] Window-scan Body.Close → same-fn + defer detection
+
+#### 1.5 Product repositioning (docs-first) `[Product]` ×2
+
+- [ ] README sample finding: prefer **PERF** over CWE-22 theater
+- [ ] Explicit complementary positioning vs staticcheck / govulncheck / golangci-lint
+- [ ] Non-goals stated: no full CodeQL parity, no CVE replacement, no default-on full BP
+
+#### 1.6 Sample CI recipe `[Product]`
+
+- [ ] Sample `.github/workflows/codehound.yml` (path/`cargo install` OK until binary release)
+- [ ] Document baseline + ignore brownfield workflow
+
+---
+
+## Phase 2 — “PERF is the product”
+
+**Theme:** PERF tiers, hot-path signal, frameworks  
+**Goal:** S-tier PERF shippable in CI; hot_path not a name soup; framework plan started without catalog inflation.
+
+### Success criteria
+
+- [ ] PERF tiers S/A/B/C defined and wired into packs
+- [ ] Cold CLI/config builders not flooded by hot_path false positives
+- [ ] Top S-tier rules have real-world-ish fixtures (not only `package sample`)
+- [ ] Framework gap list published; ≤10 new high-value rules max this phase
+
+### Checklist
+
+#### 2.1 Split PERF into tiers `[Go]`
+
+- [ ] **S (ship):** regex compile in loop; `http.Server` without timeouts; Body not closed; defer in loop; clear N+1 / Query thrash → **CI default yes**
+- [ ] **A (framework):** Gin logger mutex I/O; static handlers without cache headers; GORM preload/session footguns → yes in `perf` profile
+- [ ] **B (micro-opt):** `time.Since`, TrimPrefix, fmt verbs, string/`[]byte` churn → **off / info only**
+- [ ] **C (overlap):** staticcheck/gocritic/prealloc territory → drop or document “duplicate, disabled by default”
+
+#### 2.2 Fix `is_hot_path` over-breadth `[Go]` ×2
+
+- [ ] Prefer HTTP handler signatures, middleware shapes, loops in request path, annotations
+- [ ] Drop “any `func (` makes file handler-shaped”
+- [ ] Drop broad name contains `handle|serve|build|process|…` as primary
+- [ ] Optional suppress: package `main` init / `cmd/` cold paths
+
+#### 2.3 PERF advice quality `[Go]` (if not finished in 1.4)
+
+- [ ] Conditional advice for NewRequest vs Get (headers/context/custom client)
+- [ ] Body.Close: dataflow / same function + defer detection
+
+#### 2.4 Framework coverage plan (execute top priority) `[Go]` ×2
+
+- [ ] Priority order: **net/http** → **Gin** (complete) → **Echo / Chi / Fiber** → **GORM / sqlx / pgx** → **gRPC / redis** (later)
+- [ ] Each new rule: real-world safe/vuln fixtures, not only synthetic sample packages
+- [ ] Cap: top 10 new rules max this phase (avoid catalog inflation)
+
+#### 2.5 Sink / source classification (no `go/types` yet) `[Go]`
+
+- [ ] Package-aware callees via import map heuristics (`db.Query` when `db` looks like `*sql.DB` / `*sql.Tx`)
+- [ ] Reduce bare `.Query` / `.Exec` soup; prefer stdlib + popular ORM patterns
+- [ ] Shared sink registry: expand `engine/sinks` or Go-local phf maps from **data**
+- [ ] Complete Gin/Echo/Chi/Fiber request sources + tests
+- [ ] Design detector APIs so typed facts can plug later (optional `--typed` does **not** block 0.1.0)
+
+---
+
+## Phase 3 — “Stop losing to staticcheck on BP”
+
+**Theme:** BP dedup + broken detectors  
+**Goal:** BP is an honest policy pack, not a worse staticcheck.
+
+### Success criteria
+
+- [ ] Overlap matrix published (`docs/bad-practices.md`)
+- [ ] BP-8 / 9 / 1 / 6 fixed or disabled
+- [ ] BP off in recommended; unique policy rules only in style pack
+- [ ] Reserved/empty (CVE feed) wired or removed from catalog
+
+### Checklist
+
+#### 3.1 Dedup matrix vs golangci ecosystem `[Go]` ×2
+
+- [ ] For each BP-1..65 classify:
+  - [ ] Strictly weaker than go vet / staticcheck / errcheck → **default-off or delete**
+  - [ ] Same idea, worse precision → **fix or drop**
+  - [ ] Unique policy (rate limits, dep hygiene with real signal) → **style pack only**
+  - [ ] Reserved / empty (CVE feed, e.g. BP-63) → **wire govulncheck-style feed or remove**
+- [ ] Document: “Overlaps X — enable only if you don’t run X”
+
+#### 3.2 Fix known broken BP detectors `[Go]` ×2
+
+- [ ] **BP-8 Unlock:** same lock object / AST pairing (not file-level mutex + any defer Unlock)
+- [ ] **BP-9 select:** proper tree-sitter block matching (not first `{` to first `}`)
+- [ ] **BP-1 discarded err:** assignment shapes for `_, err :=`; don’t flag non-error `_`
+- [ ] **BP-6 WaitGroup:** AST go-stmt + Add/Done facts (not line state machine)
+- [ ] **BP-21 Parallel:** keep low; off in recommended
+- [ ] **BP-28 single-method iface:** off by default
+
+#### 3.3 BP severity & pack membership `[Go]` ×2
+
+- [ ] Default BP pack **off** in recommended CI profile
+- [ ] When on: almost all **info/low**; only concurrency footguns vet misses → medium
+- [ ] Never fail CI on “missing godoc” style rules by default
+
+---
+
+## Phase 4 — “Fast claim is real” (Rust hot path + memory)
+
+**Theme:** Engine performance craft  
+**Goal:** SourceIndex O(1), no export RAM tax, honest benches, lazy facts, taint accumulate without Mutex choke.
+
+### Success criteria
+
+- [ ] `SourceIndex::has` not linear over ~737 needles (Criterion microbench)
+- [ ] Two-rule / filtered scans don’t pay full fact cost
+- [ ] `source_cache` only when export/snippets need it
+- [ ] Bench gates reflect real p95; cold Criterion not cache-contaminated
+- [ ] No `Box::leak` remaining on finding path (if Phase 0 incomplete)
+
+### Checklist
+
+#### 4.1 SourceIndex O(1) key lookup `[Rust]` ×2
+
+- [ ] Codegen const indices **or** `phf::Map` **or** sorted + binary_search
+- [ ] Keep build-time `source.contains` pass; fix **lookup** only
+- [ ] Acceptance: microbench; no `position` linear scan in `has`
+
+#### 4.2 Lazy / selective fact extraction `[Rust]` + `[Product]` ×2
+
+- [ ] Feature flags on fact builders from active rule set
+- [ ] Skip taint annotations when taint disabled **and** no rule needs them
+- [ ] Align with targeted-scan regression (two-rule slower today)
+
+#### 4.3 Memory product modes `[Rust]` + `[Product]` ×2
+
+- [ ] Default CI: no `source_cache`; JSON/SARIF only
+- [ ] Export mode: retain sources for context/chunks
+- [ ] Streaming SARIF → Phase 8 / deferred
+
+#### 4.4 Project taint accumulation under parallel scan `[Rust]` ×2
+
+- [ ] Per-thread `Vec<ProjectUnit>`, merge in `finalize` (avoid Mutex choke)
+- [ ] `Arc<[usize]>` line_starts if shared
+- [ ] Prefer path + sparse annotations over full source in project state
+
+#### 4.5 Hash maps on hot path `[Rust]`
+
+- [ ] `hashbrown` + ahash/FxHash for analysis maps (taint, facts, cache session) **or** document intentional SipHash + ADR
+
+#### 4.6 Warm path performance `[Rust]` + `[Product]` ×2
+
+- [ ] Optional mtime+size prefilter then hash confirm
+- [ ] Parallel preflight per chunk (careful with cache store locking)
+- [ ] Only reparse cache hits that need project state / finalize consumers
+
+#### 4.7 Benchmark honesty `[Rust]` ×2
+
+- [ ] Re-bench; set gates from current p95 surface (drop stale ~40ms / 65ms claims)
+- [ ] Fresh cache dir **per Criterion iteration** (no cold-as-warm)
+- [ ] Hard fail if expected bench lines missing
+- [ ] Split `perf_smoke` vs `perf_budget` (loose 32s vs tight gates)
+- [ ] `check_bench_budget.sh` fails CI on throughput regression > X%; `benchmarks.md` date-synced
+
+---
+
+## Phase 5 — “Cache & quality loop match the docs”
+
+**Theme:** Cache correctness + testing oracles + canaries  
+**Goal:** Same-scan cascade, tool-version bust, real-repo canaries, exclusive oracles.
+
+### Success criteria
+
+- [ ] Documented cache semantics match tests (same-scan cascade, tool version)
+- [ ] Project-relative path keys consistent for cache/deps/findings
+- [ ] CI canary on 3 pinned Go modules with finding-count budgets
+- [ ] Core rules assert line + exclusive fire + evidence kind
+- [ ] Python safe-test class inference fixed (if Python retained)
+
+### Checklist
+
+#### 5.1 Same-scan cascade invalidation `[Rust]` + `[Product]` ×2
+
+- [ ] After miss, requeue dependents in **same** scan (or two-phase dirty fixpoint)
+
+#### 5.2 Tool-version invalidation `[Rust]` + `[Product]` ×2
+
+- [ ] If `tool_version` ≠ current: mass stale **or** schema bump + wipe (docs claim it; code only warns today)
+
+#### 5.3 Path identity `[Rust]` + `[Product]` ×2
+
+- [ ] Canonicalize project-relative keys everywhere (manifest, deps, findings)
+- [ ] Single ADR + optional `ProjectPath` type
+- [ ] Fix relative vs absolute cascade misses
+
+#### 5.4 Cache concurrency policy `[Rust]`
+
+- [ ] File lock on manifest (optional) **or** document single-writer; tests beyond “doesn’t panic”
+
+#### 5.5 Fixture & test oracle bar `[Go]` + `[Product]` ×2
+
+- [ ] Variant fixtures for taint core: renamed ids, wrappers, different imports
+- [ ] `perf_real_world` / multi-file packages for S-tier rules
+- [ ] Assert **line**, exclusive fire (no extra CWE-X), evidence kind for taint core
+- [ ] Rule-specific silence (not only class prefix) for safe tests
+- [ ] Keep dual stdlib/framework CWE inventories; extend PERF framework pairs
+- [ ] Cross-rule FP suite:
+  - [ ] Safe SQL param ↛ injection family
+  - [ ] Confined path ↛ CWE-22
+  - [ ] Staticcheck-clean code quiet under recommended
+- [ ] Fix Python safe-test class inference (`SLOP101` silence actually tested) — only if Python kept
+
+#### 5.6 Canary corpus CI `[Go]` + `[Product]` ×3
+
+- [ ] Pin 3 modules (commit SHAs):
+  1. Small clean library (expect ~0 recommended findings)
+  2. Medium HTTP service (Gin or chi)
+  3. Dogfood target (e.g. gopdfsuit)
+- [ ] Track finding counts by pack/rule; fail on unexpected spike
+- [ ] Script: TP/FP vs golden labels (start internal)
+- [ ] Dogfood gate every release
+
+#### 5.7 Observability seeds `[Product]`
+
+- [ ] Per-rule hit rate telemetry (local opt-in)
+- [ ] `--explain` includes confidence + analysis mode (taint vs needle)
+- [ ] CHUNK_VALIDATOR / LLM review → quarantine candidates (process, not product feature)
+
+---
+
+## Phase 6 — “CI product surface maturity”
+
+**Theme:** Baseline, ignore, CLI structure, API boundaries  
+**Goal:** Brownfield adoption tools complete; public API narrower; incremental subcommands.
+
+### Success criteria
+
+- [ ] Baseline list/prune/update/diff + show-baselined
+- [ ] Block/range/EOL ignore; multi-lang comments when relevant
+- [ ] CLI subcommands started without breaking core scan UX
+- [ ] New language can add dep extraction without editing engine match (trait)
+
+### Checklist
+
+#### 6.1 Baseline maturity `[Product]`
+
+- [ ] Prefer fingerprint + optional content/AST-stable identity (reduce line-shift fragility)
+- [ ] `codehound baseline list|prune|update|diff`
+- [ ] `--show-baselined` (mirror `--show-ignored`)
+- [ ] Optional `reason`, `expires` in baseline schema
+
+#### 6.2 Ignore system completeness `[Product]`
+
+- [ ] Python `#` comments (if Python retained); language-aware comments eventually
+- [ ] `codehound-ignore-start` / `-end` block ranges
+- [ ] Trailing end-of-line ignore
+- [ ] Optional `nolint`-style alias: implement **or** document non-goal
+
+#### 6.3 CLI structure `[Product]` + `[Rust]` ×2
+
+- [ ] Subcommands: `scan`, `rules`, `cache`, `baseline`, `init` (incremental migration)
+- [ ] clap derive groups; keep env vars
+
+#### 6.4 Narrow public surface & engine←language leaks `[Rust]` ×2
+
+- [ ] `pub use` façade: Analyzer, Finding, config, reporters; internals `pub(crate)` where possible
+- [ ] Ratchet `missing_docs` on public façade
+- [ ] Move `engine/sinks.rs` Go API sets → `lang/go/sinks.rs` (or tagged shared analysis sinks)
+- [ ] Move `scratch_contains` to ast/lang util
+- [ ] `LanguagePlugin::extract_deps` — stop engine match arms for Go/Python
+- [ ] Acceptance: new language dep extraction without engine edit
+
+#### 6.5 ScanContext / config god-object `[Rust]` + `[Product]`
+
+- [ ] Grouped subconfigs: finish `TaintConfig`, `CacheConfig`, `BadPracticesConfig`
+- [ ] Soft `fail_on` string → enum in serde (if not done Phase 0)
+
+#### 6.6 Detector finalize model documented `[Rust]`
+
+- [ ] Document/test: parallel `run` → optional `accumulate_state` → single-threaded `finalize`
+- [ ] Avoid shared mutable state during `run` when possible
+
+---
+
+## Phase 7 — “Ship 0.1.0”
+
+**Theme:** Release engineering + Go packaging docs + process  
+**Goal:** Tagged multi-arch release, honest docs, CONTRIBUTING/ADRs, 0.1.0 bar from review.
+
+### Success criteria
+
+- [ ] Tagged release ≥ `0.1.0` with multi-arch binaries + checksums
+- [ ] SARIF green on GitHub without transform (from Phase 0)
+- [ ] FP canary on ≥3 real Go repos with published/internal rates
+- [ ] Dual license correct; SBOM + audit in pipeline
+- [ ] Live roadmap single source; old plans archived
+
+### Checklist
+
+#### 7.1 Release pipeline `[Product]` + `[Rust]` ×2
+
+- [ ] GH Actions: linux / mac / windows targets
+- [ ] Checksums; optional crates.io
+- [ ] SBOM (e.g. cargo cyclonedx) + `cargo audit` / `cargo deny`
+- [ ] Dependabot/renovate for Cargo.lock
+- [ ] Version bump policy for rule-breaking changes
+- [ ] Optional Homebrew / deb later
+
+#### 7.2 GitHub Action packaging `[Product]`
+
+- [ ] Action: install binary → scan → upload SARIF
+- [ ] Sample workflow finalized (may supersede Phase 1 sample)
+
+#### 7.3 Go product packaging of rules `[Go]`
+
+- [ ] Rule RFC template: threat model, FP examples, staticcheck overlap, pack assignment
+- [ ] `detection_notes` quality gate (no vague “taint analysis…” without implementation match)
+- [ ] Codegen validates function exists; registry ↔ fixture inventory CI (strengthen partial)
+- [ ] PERF detector dev guide: chunks paths not flat `golang.json`
+- [ ] Docs:
+  - [ ] `docs/go-recommended-pack.md` — exact rule list + why
+  - [ ] `docs/go-vs-staticcheck.md` — overlap matrix
+  - [ ] Expanded `docs/taint.md` limitations (Clean, fields, channels, depth)
+
+#### 7.4 Embedder docs `[Rust]`
+
+- [ ] Minimal stable API example in `lib.rs` (include PERF/BP, not only CWE)
+- [ ] Feature matrix table
+- [ ] Semver guarantees for `Finding` wire format
+
+#### 7.5 Process & branding hygiene `[Product]`
+
+- [ ] Short `docs/adr/` for taint model, default profile, cache identity
+- [ ] One live roadmap; archive v0.0.1 session notes / plan sprawl
+- [ ] Branding leftovers (`slop`, SLOP101, slopguard): rename or document historical alias
+- [ ] CONTRIBUTING: add a rule, run fixtures, land a PR
+- [ ] CONTEXT.md if useful
+
+#### 7.6 Internal quality gates `[Rust]`
+
+- [ ] CI: no new `Error::Walk` for non-walk (rg/clippy)
+- [ ] CI: no `Box::leak` in src/ (allowlist)
+- [ ] Module ≤400 lines policy enforced if not already
+- [ ] Public items documented ratchet
+
+#### 7.7 0.1.0 gate (review strategic #8) `[Product]` ×2
+
+Ship **only after**:
+
+- [ ] SARIF validated against GitHub
+- [ ] One public binary release
+- [ ] FP canary on ≥3 real Go repos with rates
+- [ ] License fixed
+- [ ] Recommended pack curated
+
+---
+
+## Phase 8 — “Depth & differentiation”
+
+**Theme:** Taint depth, optional architecture  
+**Goal:** Honest deeper analysis without claiming CodeQL; optional crate split when pain measured.
+
+### Success criteria
+
+- [ ] Intra-proc taint upgrades shipped with documented limitations
+- [ ] Optional multi-hop summary behind depth flag
+- [ ] Channels/goroutines explicit unsupported FNs (not silent pretends)
+- [ ] Compile-time pain measured before multi-crate split
+
+### Checklist
+
+#### 8.1 Intra-procedural taint upgrades `[Go]`
+
+- [ ] Versioned assignments / branch-aware last-write
+- [ ] Limited field keys (`user.Path` vs whole struct)
+- [ ] Map/slice index conservative taint (optional, low confidence)
+- [ ] Channel/goroutine: explicit “unsupported”; document FNs
+
+#### 8.2 Inter-procedural summary upgrades `[Go]` + `[Rust]`
+
+- [ ] Fixpoint or bounded multi-hop with depth flag
+- [ ] Prefer same-package path + signature arity; avoid cross-package name collisions
+- [ ] Explicit import-map skip rules + tests for external methods
+- [ ] Full source clone under Mutex → address via Phase 4 accumulate model
+
+#### 8.3 Optional hybrid `go/packages` (big bet — do **not** block 0.1.0) `[Go]`
+
+- [ ] Design detector APIs so typed fact layer can feed same rules later
+- [ ] Optional `--typed` only after 0.1.0; needs Go toolchain
+- [ ] **Deferred as product milestone until PERF pack trusted**
+
+#### 8.4 Codegen & build system polish `[Rust]`
+
+- [ ] Validate TOML `function` identifier regex `^[A-Za-z_][A-Za-z0-9_]*$`
+- [ ] Full Rust string escaping or `quote!` / proc-macro2
+- [ ] One generic TOML registry reader
+- [ ] Needle index codegen for SourceIndex (if not Phase 4)
+- [ ] Optional `codehound-build` crate / clearer build modules
+- [ ] Parameterize ruleset root by language for future multi-lang codegen
+- [ ] Prefer one of walkdir/ignore; document dual if kept
+- [ ] Remove empty `typescript` feature until real
+- [ ] Optional `parking_lot` if Mutex retained
+
+#### 8.5 Optional crate split `[Rust]` + `[Product]` ×2
+
+- [ ] When compile times hurt: `codehound-core` / `engine` / `go` / `cli`
+- [ ] Not urgent until `cargo build` pain measured
+
+#### 8.6 Streaming SARIF / monorepo RAM (future) `[Rust]`
+
+- [ ] Incremental findings write — after default memory modes proven
+
+---
+
+## Phase 9 — Platform & multi-lang (later / decision-gated)
+
+**Theme:** Growth only if funded  
+**Goal:** Marketing matches capability; no multi-lang cosplay.
+
+### Success criteria
+
+- [ ] Explicit invest **or** demote decision recorded in ADR
+- [ ] Marketing matches capability
+
+### Checklist
+
+#### 9.1 Multi-language honesty `[Product]` ×2
+
+- [ ] **Option A — Invest:** 10–20 high-value Python rules + fixtures
+- [ ] **Option B — Demote:** feature-flag Python; README “Go-first” only
+- [ ] Remove empty `typescript` feature until real plugin
+- [ ] Fixture `lang: rust` docs match `FixtureLanguage` or implement
+
+#### 9.2 Dynamic plugins `[Product]` — out of scope
+
+- [ ] ~~Runtime loadable plugins~~ — inventory + features enough for years (permanent non-goal)
+
+#### 9.3 Ecosystem extras `[Product]`
+
+- [ ] Homebrew / deb if demand
+- [ ] Public FP / TP dashboard (from Phase 5 metrics)
+
+---
+
+## Explicitly deferred / non-goals
+
+| Item | Source | Reason |
+|------|--------|--------|
+| Full sound interprocedural taint | go non-goals | Wrong cost model for tree-sitter MVP |
+| Replace govulncheck for CVEs | all | Different job; BP-63 reserved → wire feed or remove only |
+| Replace errcheck / staticcheck / golangci-lint | all | Permanent non-goal; BP/PERF overlap must defer not compete |
+| Claiming every CWE “covered” in audit sense | go | Catalog honesty over marketing |
+| Full CodeQL parity | improvements non-goals | Wrong cost model |
+| Runtime loadable plugins / dynamic `.so` | improvements / rust | Compile-time inventory enough |
+| Default-on full BP pack in CI | all | Noise death spiral |
+| Add 100 more CWE IDs without precision bar | improvements / review | Inflation destroys trust |
+| Async Tokio engine rewrite | rust non-goals | Rayon file parallel is fine |
+| Zero-copy / arena allocators pre-profile | rust non-goals | Profile first |
+| Full typed Go analysis as 0.1.0 blocker | go P2.18 | Optional later `--typed` |
+| `nolint` alias | improvements | Optional; may stay non-goal |
+| Streaming SARIF | rust P2.25 | After memory modes |
+| Multi-crate split | all | Only when compile pain measured |
+| Public crates.io if policy prefers GH releases only | packaging | Optional |
+
+---
+
+## Decisions still required (before coding lockstep)
+
+| # | Decision | Options | Blocks |
+|---|----------|---------|--------|
+| D1 | **Taint default** | On for `security` only vs global on with docs | Phase 0.4 / 0.8 |
+| D2 | **Dual license** | Ship both files vs drop dual claim | Phase 0.3 |
+| D3 | **`--warnings-as-errors`** | Implement vs remove | Phase 0.5 |
+| D4 | **Multi-lang** | Invest Python vs demote Go-first | Phase 9 / branding |
+| D5 | **Finding ownership** | Arc/CompactString vs Cow+intern for rule IDs | Phase 0.9 |
+| D6 | **Mutex strategy** | parking_lot vs poison recovery vs TLS merge | Phase 0.9 / 4.4 |
+| D7 | **`nolint` alias** | Implement vs document non-goal | Phase 6.2 |
+
+---
+
+## System success metrics (definition of done)
+
+| Metric | Baseline (today) | Target |
+|--------|------------------|--------|
+| Recommended-pack FP rate on canary repos | Unknown | < 15% of findings dismissed as noise (sampled) |
+| Default scan side effects | Writes `scripts/` | Zero unless opted in |
+| SARIF GitHub upload | Broken/unreliable | Green without transform |
+| Rule catalog honesty | ~470 “on” | Tagged maturity; recommended ≪ all |
+| Release | Source-only `0.0.1` | Tagged `≥0.1.0` binary |
+| Docs drift incidents | Several known | Zero known schema/README lies |
+| Recommended pack trust | Unmeasured | Senior Go triage: ≥70% of 20 findings actionable |
+| Sanitizer correctness | Clean-only may suppress | Dedicated tests: Clean-only still flags CWE-22 |
+| SourceIndex lookup | O(N) ~737 | O(1) / binary_search; microbench gated |
+| Canary stability | None | ±N findings budget on pinned modules |
+
+---
+
+## Source coverage matrix
+
+| Feedback cluster | Phase |
+|------------------|-------|
+| Export default off | 0.1 |
+| SARIF camelCase / severity / workingDirectory | 0.2 |
+| License dual claim | 0.3, 7.1 |
+| Docs/schema drift (taint, counts, severity_overrides, fail_on) | 0.4 |
+| CLI no-ops / conflicts / snippet split | 0.5, 6.3 |
+| Sanitizer Clean / Path / CWE-78 | 0.6 |
+| Path confinement dataflow-local | 0.6 |
+| Injection core CWE-22/78/79/89/90/91 | 0.7 |
+| Taint default + `--taint` UX | 0.8 |
+| Error::Walk taxonomy | 0.9, 7.6 |
+| Box::leak findings | 0.9, 4 |
+| Mutex poison | 0.9, 4.4 |
+| Max file size / fixture path / rebuild-cache safety | 0.9 |
+| Profiles recommended/perf/security/style/all | 1.1 |
+| Maturity tags + fixture-only quarantine | 1.2 |
+| NEEDLES museum / rewrite bar | 1.3, 2.5 |
+| Severity/confidence / BP-off recommended | 1.4, 3.3 |
+| PERF-first positioning | 1.5, 7.3 |
+| Sample workflow | 1.6, 7.2 |
+| PERF S/A/B/C tiers | 2.1 |
+| is_hot_path | 2.2 |
+| PERF advice quality | 1.4 / 2.3 |
+| Framework Gin/Echo/Chi/GORM plan | 2.4 |
+| Sink classification without types | 2.5 |
+| BP vs staticcheck matrix | 3.1 |
+| BP-8/9/1/6/21/28 | 3.2 |
+| SourceIndex O(1) | 4.1 |
+| Lazy facts | 4.2 |
+| source_cache / memory modes | 4.3 |
+| Taint parallel accumulate | 4.4 |
+| FxHash / hashbrown | 4.5 |
+| mtime prefilter / warm path | 4.6 |
+| Bench honesty | 4.7 |
+| Same-scan cascade | 5.1 |
+| Tool-version bust | 5.2 |
+| Path keys ProjectPath | 5.3 |
+| Cache multi-process policy | 5.4 |
+| Fixture variants / exclusive oracles / FP suite | 5.5 |
+| Canary 3 modules + dogfood | 5.6 |
+| Hit-rate telemetry / explain confidence | 5.7 |
+| Baseline list/prune/fingerprint/expires | 6.1 |
+| Ignore block/EOL/lang comments | 6.2 |
+| CLI subcommands | 6.3 |
+| Pub surface + sinks move + dep trait | 6.4 |
+| Config subobjects | 6.5 |
+| finalize model | 6.6 |
+| Release multi-arch / SBOM / audit | 7.1 |
+| GH Action | 7.2 |
+| Go docs packs + RFC + detection_notes | 7.3 |
+| Embedder docs / Finding semver | 7.4 |
+| ADR / CONTRIBUTING / branding / roadmap | 7.5 |
+| Internal CI quality gates | 7.6 |
+| Intra/inter taint depth | 8.1–8.2 |
+| Optional go/packages typed | 8.3 deferred |
+| Codegen safety / build layout | 8.4 |
+| Crate split | 8.5 |
+| Streaming SARIF | 8.6 deferred |
+| Multi-lang invest vs demote | 9.1 |
+| Dynamic plugins | 9.2 OOS |
+| Review composite scores / competitive table | framing only |
+| Non-goals lists | deferred table above |
+
+---
+
+## Critical file map (likely touch points)
+
+| Area | Paths |
+|------|--------|
+| SARIF | `src/reporting/sarif/`, snapshots |
+| CLI / config | `src/cli/`, `src/app/`, schema/templates |
+| Taint / sanitizers | `src/lang/go/detectors/cwe/taint/` |
+| CWE / needles | `.../cwe/domains/`, `.../cwe/source_index.rs` |
+| PERF | `src/lang/go/detectors/perf/` |
+| BP | `src/lang/go/detectors/bad_practices/` |
+| Findings / leak | `src/rules/finding.rs`, `finding_wire.rs` |
+| Errors | `src/error.rs`, `src/engine/io.rs`, cache |
+| SourceIndex | `src/lang/source_index.rs`, build codegen |
+| Cache | `src/engine/cache/*`, `src/engine/analyzer/scan.rs` |
+| Parallel / taint state | `src/engine/walk/parallel.rs` |
+| Sinks | `src/engine/sinks.rs` → move to lang/go |
+| Fixtures safety | `src/fixture/materialize.rs` |
+| Registries | `ruleset/golang/`, `.../registry/*.toml` |
+| Fixtures | `tests/fixtures/go/` |
+| Benches | `benches/*`, `scripts/check_bench_budget.sh` |
+| Docs | `docs/taint.md`, `docs/bad-practices.md`, README, LICENSE* |
+
+---
+
+## Related docs
+
+| Doc | Use for |
+|-----|---------|
+| [ultra-senior-go-rust-product-review.md](./ultra-senior-go-rust-product-review.md) | Ratings, evidence, strategic recommendations |
+| [improvements.md](./improvements.md) | Product priorities, packs, CI, packaging |
+| [go.md](./go.md) | Detectors, taint, PERF, BP, fixtures |
+| [rust.md](./rust.md) | Engine errors, perf craft, cache, API, codegen |
+
+---
+
+*Checklist covers all actionable feedback from the four source files under `plans/feedback/10072026/`. Ratings and competitive narrative from the review are treated as framing, not implementable tasks.*
