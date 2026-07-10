@@ -329,8 +329,22 @@ pub const fn fix_for(id: u32) -> Option<&'static str> {
         233 => Some("Use flate/zlib BestSpeed (or level 1) for hot stream compression when size budgets allow. Reserve Default/BestCompression for cold or archival paths."),
         // PERF-234: Bulk buffer without workload sizing
         234 => Some("Grow bulk buffers from a workload estimate (payload length, item count), not a large fixed default or bare pool Reset."),
+        // PERF-235: Intermediate strings.Builder bridge
+        235 => Some("Write into the destination *bytes.Buffer or []byte directly instead of building a temporary strings.Builder and flushing with .String()."),
         // PERF-236: Full buffer clone on signing path
         236 => Some("Keep an owned writable buffer with reserved holes, or mutate in place, instead of bytes.Clone of the entire document on the signing path."),
+        // PERF-237: Always-parallel without tiny-N serial path
+        237 => Some("Before errgroup fan-out, handle len(items) <= 2 on a serial path; spawn only when concurrency pays off."),
+        // PERF-238: map[rune]bool membership in loop
+        238 => Some("Replace map[rune]bool membership on hot paths with a bitset or denser set when the code-point domain is bounded."),
+        // PERF-239: Dense integer map write churn
+        239 => Some("Prefer a slice (or append-only {id,offset} records + one index pass) instead of many map[int] writes for dense keys."),
+        // PERF-240: Unpooled len-sized scratch
+        240 => Some("Pool a []byte scratch (sync.Pool + Reset/[:0]) instead of make([]byte, len(src)) on every hot call."),
+        // PERF-241: ASN.1 re-marshal with time.Now on sign path
+        241 => Some("Pre-marshal immutable ASN.1/CMS components; only re-marshal time-varying authenticated attributes each sign."),
+        // PERF-242: Per-iteration encode scratch
+        242 => Some("Hoist make([]byte, len(x)*N) out of the loop and reuse one buffer with append/[:0]."),
         _ => None,
     }
 }

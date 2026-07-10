@@ -381,6 +381,9 @@ pub(crate) fn detect_perf_220(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 }
 
 /// PERF-221: map[int]T for Dense Sequential Integer Keys
+///
+/// Fires when an integer-keyed map is written with sequential/index-style keys
+/// (`i`, `i+1`, `idx`, `len(...)`) — not only the identifier `m`.
 pub(crate) fn detect_perf_221(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -390,10 +393,27 @@ pub(crate) fn detect_perf_221(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 
     for assignment in &facts.assignments {
         let text = assignment.text.as_ref();
-        if !text.starts_with("m[") {
+        // name[key] = … form
+        let Some(bracket) = text.find('[') else {
+            continue;
+        };
+        if !text[..bracket]
+            .chars()
+            .last()
+            .is_some_and(|c| c.is_ascii_alphanumeric() || c == '_')
+        {
             continue;
         }
-        if !(text.contains("[i+1]") || text.contains("[idx]") || text.contains("[len(")) {
+        let key = text[bracket..].to_ascii_lowercase();
+        let sequential = key.contains("[i]")
+            || key.contains("[i+")
+            || key.contains("[i +")
+            || key.contains("[idx")
+            || key.contains("[index")
+            || key.contains("[len(")
+            || key.contains("[j]")
+            || key.contains("[n]");
+        if !sequential {
             continue;
         }
         let (line, col) = unit.line_col(assignment.start_byte);

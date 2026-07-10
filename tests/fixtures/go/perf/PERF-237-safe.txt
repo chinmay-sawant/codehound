@@ -1,6 +1,6 @@
-# PERF-232 negative: errgroup fan-out is explicitly bounded (and has tiny-N serial)
+# PERF-237 negative: tiny worksets run serially before fan-out
 lang: go
-file: PERF-232-safe.go
+file: PERF-237-safe.go
 variant: stdlib
 ---
 package sample
@@ -17,7 +17,7 @@ func ProcessItems(items []Item) error {
 		return nil
 	}
 	var group errgroup.Group
-	group.SetLimit(4)
+	group.SetLimit(8)
 	for _, item := range items {
 		item := item
 		group.Go(func() error {

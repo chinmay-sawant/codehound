@@ -1,6 +1,6 @@
-# PERF-232 negative: errgroup fan-out is explicitly bounded (and has tiny-N serial)
+# PERF-237 positive: errgroup always fans out with no tiny-N serial path
 lang: go
-file: PERF-232-safe.go
+file: PERF-237-vulnerable.go
 variant: stdlib
 ---
 package sample
@@ -8,16 +8,8 @@ package sample
 import "golang.org/x/sync/errgroup"
 
 func ProcessItems(items []Item) error {
-	if len(items) <= 2 {
-		for _, item := range items {
-			if err := work(item); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
 	var group errgroup.Group
-	group.SetLimit(4)
+	group.SetLimit(8)
 	for _, item := range items {
 		item := item
 		group.Go(func() error {

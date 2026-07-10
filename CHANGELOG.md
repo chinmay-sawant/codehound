@@ -24,6 +24,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ruleset/fix copy, renamed loop-helper matcher for `PERF-230`. Plan note:
   `plans/feedback/10072026/generic-perf-boundary.md`.
 
+- **Generic throughput rules `PERF-235`, `PERF-237`, `PERF-238`.** Portable
+  shapes only: intermediate `strings.Builder` flushed via `.String()` into a
+  sink (`PERF-235`), errgroup fan-out without a tiny-N serial short-circuit
+  (`PERF-237`), and `map[rune]bool` membership updates in a loop (`PERF-238`).
+  Checklist: `plans/feedback/10072026/generic-throughput-checklist.md`.
+
+- **Close remaining “no / partial” detection gaps (`PERF-239`–`242` + PERF-221).**
+  `PERF-239` dense `map[int]` write churn (≥6 index writes after make),
+  `PERF-240` unpooled `make([]byte, len(src))` on hot/encode paths,
+  `PERF-241` `asn1.Marshal` + `time.Now` on sign/CMS-named helpers,
+  `PERF-242` per-loop `make([]byte, len(x)*N)`. Tightened `PERF-221` sequential
+  map keys beyond only the name `m`.
+
 - **Enhanced PERF patterns (tighten + PERF-225..231 + 228 + 233).** Shared `is_hot_path`
   helper (loop / local handler window / encode-style function names — not
   whole-file request path). Tightened existing detectors for real hot paths:
