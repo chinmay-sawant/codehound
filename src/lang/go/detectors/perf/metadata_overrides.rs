@@ -302,7 +302,7 @@ pub const fn fix_for(id: u32) -> Option<&'static str> {
         // PERF-220: Double-scan merge
         220 => Some("Merge the consecutive loops over the same data into a single pass that does all required work, eliminating the redundant iteration overhead."),
         // PERF-221: map[int] → []T
-        221 => Some("Replace map[int]T with []T when the integer keys are dense and sequential (e.g., ObjectIDs, page numbers). Use make([]T, maxKey+1) and direct index access."),
+        221 => Some("Replace map[int]T with []T when the integer keys are dense and sequential (e.g. indices, counters). Use make([]T, maxKey+1) and direct index access."),
         // PERF-222: Generics in hot path
         222 => Some("Replace the generic function on the measured hot path with a concrete type or use code generation. Shape-based dispatch prevents inlining and adds call overhead."),
         // PERF-223: Pool backing array retention
@@ -323,8 +323,14 @@ pub const fn fix_for(id: u32) -> Option<&'static str> {
         230 => Some("Hoist the pure call before the loop or cache its result when arguments do not change across iterations."),
         // PERF-231: PEM/key parse on hot path
         231 => Some("Parse PEM/keys once at process start (package var or sync.Once) and reuse *rsa.PrivateKey / certificates on the hot path."),
+        // PERF-232: Unbounded parallel fan-out
+        232 => Some("Cap fan-out with errgroup.SetLimit or a semaphore before spawning per-item work."),
         // PERF-233: Slow compress level on hot path
-        233 => Some("Use flate/zlib BestSpeed (or level 1) for hot page/stream compression when size budgets allow; keep /FlateDecode. Reserve Default/BestCompression for cold paths."),
+        233 => Some("Use flate/zlib BestSpeed (or level 1) for hot stream compression when size budgets allow. Reserve Default/BestCompression for cold or archival paths."),
+        // PERF-234: Bulk buffer without workload sizing
+        234 => Some("Grow bulk buffers from a workload estimate (payload length, item count), not a large fixed default or bare pool Reset."),
+        // PERF-236: Full buffer clone on signing path
+        236 => Some("Keep an owned writable buffer with reserved holes, or mutate in place, instead of bytes.Clone of the entire document on the signing path."),
         _ => None,
     }
 }

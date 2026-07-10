@@ -12,11 +12,13 @@ pub(crate) mod ranges_and_types;
 pub(crate) mod sort_and_search;
 pub(crate) mod strings_bytes;
 pub(crate) mod sync_and_locks;
+pub(crate) mod fanout_and_buffers;
 
 pub(crate) use caching_and_allocation::*;
 pub(crate) use cli_and_orm::*;
 pub(crate) use copies_and_compress::*;
 pub(crate) use db_and_sql::*;
+pub(crate) use fanout_and_buffers::*;
 pub(crate) use http_client::*;
 pub(crate) use http_server::*;
 pub(crate) use io_runtime::*;

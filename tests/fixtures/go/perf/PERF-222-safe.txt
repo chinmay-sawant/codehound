@@ -5,18 +5,18 @@ variant: stdlib
 ---
 package sample
 
-type Row struct {
+type Item struct {
 	Value int
 }
 
-func formatRow(v Row) int {
+func processItem(v Item) int {
 	return 1
 }
 
-func Render(rows []Row) int {
+func Render(items []Item) int {
 	total := 0
-	for _, row := range rows {
-		total += formatRow(row)
+	for _, item := range items {
+		total += processItem(item)
 	}
 	return total
 }

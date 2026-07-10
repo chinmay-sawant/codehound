@@ -271,7 +271,7 @@ mod tests {
     fn function_name_is_hot_matches_common_tokens() {
         assert!(function_name_is_hot("GenerateDoc"));
         assert!(function_name_is_hot("encodePage"));
-        assert!(function_name_is_hot("SignPDF"));
+        assert!(function_name_is_hot("SignRequest"));
         assert!(!function_name_is_hot("init"));
         assert!(!function_name_is_hot("helper"));
     }

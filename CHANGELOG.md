@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Generic fan-out / buffer / signing PERF rules (`PERF-232`, `PERF-234`,
+  `PERF-236`).** Portable stdlib shapes only: unbounded parallel fan-out without
+  `SetLimit`/semaphore (`PERF-232`), large fixed `Grow(N)` or pooled
+  `*bytes.Buffer` Reset without sizing (`PERF-234`), and full-buffer
+  `bytes.Clone` on a signing-named path (`PERF-236`). Project-local document/font
+  needles were **not** shipped in the default catalog. Detectors:
+  `stdlib_misuse/fanout_and_buffers.rs`.
+
+- **Zero project-specific DNA in remaining enhanced PERF gates.** Generalized
+  `PERF-222` (any generic `func name[T]` + `name[Type](` in a loop), `PERF-223`
+  (`x = nil` before `sync.Pool.Put(x)` without a fixed helper name), stripped
+  product tokens from `PERF-217` / `PERF-227` / `PERF-233` name gates and
+  ruleset/fix copy, renamed loop-helper matcher for `PERF-230`. Plan note:
+  `plans/feedback/10072026/generic-perf-boundary.md`.
+
 - **Enhanced PERF patterns (tighten + PERF-225..231 + 228 + 233).** Shared `is_hot_path`
   helper (loop / local handler window / encode-style function names — not
   whole-file request path). Tightened existing detectors for real hot paths:

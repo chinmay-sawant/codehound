@@ -102,7 +102,7 @@
       "golang"
     ],
     "category": "Performance",
-    "description": "A flate/zlib/gzip writer is created with DefaultCompression, BestCompression, or the default NewWriter level on a hot encode path. For bulk page/stream compression where output size budgets allow, BestSpeed (or level 1) typically cuts CPU substantially while remaining FlateDecode-compatible.",
+    "description": "A flate/zlib/gzip writer is created with DefaultCompression, BestCompression, or the default NewWriter level on a hot encode path. For bulk stream compression where output size budgets allow, BestSpeed (or level 1) typically cuts CPU substantially while remaining compatible with standard flate decoders.",
     "detection_notes": "Match zlib.NewWriter/gzip.NewWriter (default level) or *NewWriterLevel/flate.NewWriter with DefaultCompression or BestCompression inside hot or compress-shaped functions. Suppress BestSpeed/HuffmanOnly/NoCompression. Distinct from PERF-227 (pool/Reset).",
     "go_relevance": "High",
     "id": 233,

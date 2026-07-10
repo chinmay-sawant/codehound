@@ -299,7 +299,7 @@
     ],
     "category": "Performance",
     "description": "The same data structure (slice, map, tree) is iterated multiple times sequentially in the same function or call chain, performing the same or related work on each pass. Repeated scanning multiplies CPU time proportional to the data size times the number of passes. Merge the passes into a single iteration that does all required work in one go.",
-    "detection_notes": "Flag consecutive for/range loops over the same slice or map variable in the same function scope where loop bodies operate on the same elements. Look for MarkCharsUsed-style double-scan patterns.",
+    "detection_notes": "Flag consecutive for/range loops over the same slice or map variable in the same function scope where loop bodies operate on the same elements.",
     "go_relevance": "Medium",
     "id": 220,
     "name": "Sequential Scans Over Identical Data",
@@ -312,7 +312,7 @@
       "golang"
     ],
     "category": "Performance",
-    "description": "A map[int]T or map[int64]T is used to store values keyed by dense sequential integers (e.g., ObjectIDs, page numbers, array indices). For sequential integer keys, a []T slice provides O(1) access with no hashing overhead, better cache locality, and no per-entry heap allocation for key/value pairs. Replace map[int]T with []T when keys are sequential or can be made sequential.",
+    "description": "A map[int]T or map[int64]T is used to store values keyed by dense sequential integers (e.g. array indices or counters). For sequential integer keys, a []T slice provides O(1) access with no hashing overhead, better cache locality, and no per-entry heap allocation for key/value pairs. Replace map[int]T with []T when keys are sequential or can be made sequential.",
     "detection_notes": "Flag map[int]T or map[int64]T where entries are inserted in order with sequentially incrementing keys (i.e., the key is a counter or index).",
     "go_relevance": "Medium",
     "id": 221,

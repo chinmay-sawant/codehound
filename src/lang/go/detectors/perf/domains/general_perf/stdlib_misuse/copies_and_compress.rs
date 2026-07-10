@@ -273,9 +273,9 @@ pub(crate) fn detect_perf_227(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 /// PERF-233: Default / BestCompression flate level on a hot encode path.
 ///
 /// Distinct from PERF-227 (pool/Reset): this flags compression *level* choice.
-/// Bulk page/stream encoders can use BestSpeed (or level 1) without changing
-/// the FlateDecode filter — static smell when DefaultCompression,
-/// BestCompression, or default NewWriter level is used on hot paths.
+/// Hot stream encoders can use BestSpeed (or level 1) when size budgets allow —
+/// static smell when DefaultCompression, BestCompression, or default NewWriter
+/// level is used on hot paths.
 pub(crate) fn detect_perf_233(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     use crate::lang::go::detectors::perf::common::enclosing_function_name;
 
@@ -347,8 +347,9 @@ pub(crate) fn detect_perf_233(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     }
 }
 
-/// Function-name tokens that look like bulk compress / page / form encode paths.
+/// Function-name tokens that look like bulk compress / encode paths.
 /// Shared by PERF-227 (pool) and PERF-233 (level) non-hot gates.
+/// Portable verbs only — no product- or document-format tokens.
 fn compress_shaped_fname(fname_l: &str) -> bool {
     fname_l.contains("compress")
         || fname_l.contains("encode")
@@ -358,12 +359,8 @@ fn compress_shaped_fname(fname_l: &str) -> bool {
         || fname_l.contains("export")
         || fname_l.contains("build")
         || fname_l.contains("stream")
-        || fname_l.contains("page")
-        || fname_l.contains("font")
-        || fname_l.contains("xfdf")
-        || fname_l.contains("redact")
-        || fname_l.contains("sign")
-        || fname_l.contains("fill")
+        || fname_l.contains("serialize")
+        || fname_l.contains("marshal")
 }
 
 fn function_body_has_writer_reset(source: &str, start_byte: usize) -> bool {
@@ -471,8 +468,8 @@ pub(crate) fn detect_perf_229(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 
 /// PERF-230: Pure Function Re-Evaluated In Loop With Stable Args
 ///
-/// Targets drawTable-class smells: parseProps, EstimateTextWidth / GetTextWidth,
-/// font resolve called every cell with loop-invariant (or cacheable) props/font/size.
+/// Targets loop-invariant parse / measure / resolve / width helpers re-called
+/// with stable args every iteration.
 ///
 /// Intentionally does **not** fire on stdlib `time.Parse` / `strconv.Parse*` /
 /// pool `Get` / crypto `x509.Parse*` (PEM/key parse is PERF-231).
@@ -503,12 +500,12 @@ pub(crate) fn detect_perf_230(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         if is_pool_or_map_accessor(&bare, &pkg) {
             continue;
         }
-        // stdlib / crypto Parse* and related are not drawTable-class cache targets.
+        // stdlib / crypto Parse* and related are not cache-helper targets.
         // (PEM/x509 hot-path parse is PERF-231.)
         if is_excluded_parse_package(&pkg) {
             continue;
         }
-        if !is_drawtable_class_helper(&bare) {
+        if !is_stable_arg_helper(&bare) {
             continue;
         }
 
@@ -531,8 +528,8 @@ pub(crate) fn detect_perf_230(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         }
 
         // At least one arg is a simple ident/literal/field access that is not a
-        // bare loop variable, so we still fire when props/font are mixed with
-        // per-cell text (cache-per-key opportunity).
+        // bare loop variable, so we still fire when config/style is mixed with
+        // per-item text (cache-per-key opportunity).
         let mut any_stable = false;
         for arg in call.arguments.iter() {
             let a = arg.trim();
@@ -545,10 +542,10 @@ pub(crate) fn detect_perf_230(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
             if is_simple_ident(a) || is_literal(a) {
                 any_stable = true;
             } else if a.contains('.') {
-                // field access like cell.Props / template.Title.Props — cacheable key
+                // field access like item.Props / cfg.Title — cacheable key
                 any_stable = true;
             } else if a.contains('{') {
-                // composite literal props/font config — treated as stable shape
+                // composite literal config — treated as stable shape
                 any_stable = true;
             }
         }
@@ -562,7 +559,7 @@ pub(crate) fn detect_perf_230(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
             file,
             line,
             col,
-            "pure/helper call in loop has stable args (props/font/size); cache per distinct key",
+            "pure/helper call in loop has stable args; hoist or cache per distinct key",
             out,
         );
         emitted += 1;
@@ -572,9 +569,8 @@ pub(crate) fn detect_perf_230(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     }
 }
 
-/// Generic parse/measure/width/props/font/style helper names (project-agnostic).
-fn is_drawtable_class_helper(bare: &str) -> bool {
-    // Strong matches first (common PDF/table helper shapes).
+/// Parse / measure / resolve / style helper names (portable English verbs).
+fn is_stable_arg_helper(bare: &str) -> bool {
     if bare.contains("parseprops")
         || bare.contains("estimatetext")
         || bare.contains("gettextwidth")
@@ -582,15 +578,12 @@ fn is_drawtable_class_helper(bare: &str) -> bool {
         || bare.contains("text_width")
         || bare.contains("measuretext")
         || bare.contains("textmeasure")
-        || bare.contains("resolvefont")
-        || bare.contains("fontname")
-        || bare.contains("fontref")
-        || bare.contains("getfont")
+        || bare.contains("resolvename")
+        || bare.contains("resolveid")
         || bare.contains("parsehex")
         || bare.contains("parsestyle")
         || bare.contains("normalizeprops")
-        || bare.contains("cellprops")
-        || bare.contains("rowprops")
+        || bare.contains("defaultprops")
     {
         return true;
     }
@@ -601,8 +594,8 @@ fn is_drawtable_class_helper(bare: &str) -> bool {
         || bare.contains("normalize")
         || bare.contains("width")
         || bare.contains("props")
-        || bare.contains("font")
         || bare.contains("style")
+        || bare.contains("lookup")
         || bare.starts_with("compute")
 }
 

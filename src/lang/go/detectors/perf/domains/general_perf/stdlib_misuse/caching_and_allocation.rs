@@ -1,6 +1,5 @@
-//! PERF-213–224: caching discipline, buffer management, allocation patterns,
-//! and cross-cutting hot-path concerns identified in the gopdfsuit
-//! optimization campaign (June 2026).
+//! PERF-213–224: caching discipline, buffer management, and allocation patterns
+//! on generic Go hot paths (stdlib shapes only).
 
 use super::common::{cache_has_eviction_bound, method_name, package_level_caches};
 use crate::core::ParsedUnit;
@@ -411,55 +410,82 @@ pub(crate) fn detect_perf_221(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 }
 
 /// PERF-222: Generic Function on Measured Hot Path
+///
+/// Explicit type-instantiation calls inside loops (e.g. `process[T](x)`) prevent
+/// monomorphization/inlining on hot paths. Matches any generic `func name[…]`
+/// invoked as `name[Type](` in a loop — not a single product helper name.
 pub(crate) fn detect_perf_222(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
-    if !source.contains("func formatElem[T any]") {
+    let generic_names = generic_func_names(source);
+    if generic_names.is_empty() {
         return;
     }
 
     for (start, end) in &facts.for_ranges {
         let loop_text = &source[*start..char_boundary(source, (*end + 64).min(source.len()))];
-        if loop_text.contains("formatElem[Row](") {
-            let (line, col) = unit.line_col(*start);
-            emit::push_finding(
-                &META_PERF_222,
-                file,
-                line,
-                col,
-                "generic function call appears on a measured hot path; prefer a concrete specialization",
-                out,
-            );
-            return;
+        for name in &generic_names {
+            let needle = format!("{name}[");
+            let mut search = 0usize;
+            while let Some(rel) = loop_text[search..].find(&needle) {
+                let at = search + rel;
+                let after = &loop_text[at + needle.len()..];
+                if is_type_instantiation_call(after) {
+                    let (line, col) = unit.line_col(*start + at);
+                    emit::push_finding(
+                        &META_PERF_222,
+                        file,
+                        line,
+                        col,
+                        "generic function call appears on a measured hot path; prefer a concrete specialization",
+                        out,
+                    );
+                    return;
+                }
+                search = at + needle.len();
+            }
         }
     }
 }
 
 /// PERF-223: sync.Pool Backing Array Discarded on Return
+///
+/// Flags `x = nil` immediately before `pool.Put(x)` when a `sync.Pool` is in the
+/// unit — any helper name, any slice/buffer identifier.
 pub(crate) fn detect_perf_223(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
+    if !source.contains("sync.Pool") {
+        return;
+    }
 
     for call in &facts.calls {
         if method_name(call.callee.as_ref()) != "Put" {
             continue;
         }
-        let Some(arg) = call.arguments.first().map(|arg| arg.as_ref()) else {
+        let Some(arg) = call.arguments.first().map(|arg| arg.trim()) else {
             continue;
         };
-        if !arg.contains("buf") || !source.contains("func Recycle(buf []byte)") {
+        // Simple identifier only (avoid `pool.Put(make(...))` noise).
+        if arg.is_empty() || !is_simple_ident_token(arg) {
             continue;
         }
-        let window_start = char_boundary(source, call.start_byte.saturating_sub(128));
+        let window_start = char_boundary(source, call.start_byte.saturating_sub(160));
         let window = &source[window_start..call.start_byte];
-        if window.contains(&format!("{arg} = nil")) || window.contains(&format!("{arg}= nil")) {
+        let nil_assign = format!("{arg} = nil");
+        let nil_assign_tight = format!("{arg}=nil");
+        let nil_assign_sp = format!("{arg}= nil");
+        if window.contains(&nil_assign)
+            || window.contains(&nil_assign_tight)
+            || window.contains(&nil_assign_sp)
+        {
             let (line, col) = unit.line_col(call.start_byte);
             emit::push_finding(
                 &META_PERF_223,
                 file,
                 line,
                 col,
-                "slice is nil-ed before pool return, so the backing array is discarded instead of reused",
+                "value is set to nil before pool return, so the backing array is discarded instead of reused",
                 out,
             );
             return;
@@ -635,15 +661,16 @@ fn cache_is_written(source: &str, facts: &GoPerfFacts, name: &str, is_sync_map: 
 
 fn volatile_cache_key(key: &str) -> bool {
     let lower = key.to_ascii_lowercase();
+    // Request/trace/index-scoped keys are portable web/service smells.
     key.contains('&')
         || lower.contains("requestid")
         || lower.contains("reqid")
         || lower.contains("trace")
-        || lower.contains("coord")
-        || lower.contains("page")
+        || lower.contains("session")
         || lower.contains(" idx")
         || lower.contains("index")
-        || lower.contains(", y")
+        || lower.contains("timestamp")
+        || lower.contains("time.now")
 }
 
 fn receiver_name(callee: &str) -> &str {
@@ -656,23 +683,84 @@ fn bare_callee(callee: &str) -> &str {
 
 fn looks_like_static_builder(callee: &str) -> bool {
     let lower = bare_callee(callee).to_ascii_lowercase();
-    // Prefer ICC / OutputIntent / font / metadata / generate builders (plan theme).
-    // "compress" alone is too noisy (GetCompressBuffer); keep compress+profile /
-    // build* shapes via the other tokens.
+    // Generic builder/generate/template/metadata shapes only — no product tokens.
     lower.contains("build")
         || lower.contains("profile")
         || lower.contains("template")
         || lower.contains("serialize")
         || lower.contains("generate")
-        || lower.contains("outputintent")
-        || lower.contains("icc")
-        || lower.contains("colorspace")
-        || lower.contains("fontobject")
-        || lower.contains("truetype")
         || lower.contains("metadata")
-        || lower.contains("xmp")
+        || lower.contains("defaultconfig")
+        || lower.contains("loadconfig")
         || (lower.contains("compress")
             && (lower.contains("static") || lower.contains("once") || lower.contains("profile")))
+}
+
+/// Names of functions declared with type parameters: `func name[T …]`.
+fn generic_func_names(source: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut search = 0usize;
+    while let Some(rel) = source[search..].find("func ") {
+        let at = search + rel;
+        let after = source[at + "func ".len()..].trim_start();
+        // Skip methods: func (recv T) Name[
+        let after = if after.starts_with('(') {
+            match after.find(')') {
+                Some(i) => after[i + 1..].trim_start(),
+                None => {
+                    search = at + 4;
+                    continue;
+                }
+            }
+        } else {
+            after
+        };
+        let name_end = after
+            .find(|c: char| !c.is_ascii_alphanumeric() && c != '_')
+            .unwrap_or(after.len());
+        if name_end == 0 {
+            search = at + 4;
+            continue;
+        }
+        let name = &after[..name_end];
+        let rest = after[name_end..].trim_start();
+        if rest.starts_with('[') {
+            names.push(name.to_string());
+        }
+        search = at + 4;
+    }
+    names
+}
+
+/// After `name[`, is this `Type](` (explicit instantiation call)?
+fn is_type_instantiation_call(after_bracket: &str) -> bool {
+    let s = after_bracket.trim_start();
+    if s.is_empty() {
+        return false;
+    }
+    // Type args are identifiers / constraints; require closing `](` soon.
+    let Some(close) = s.find(']') else {
+        return false;
+    };
+    // Reject empty `[](` and non-type noise.
+    let inside = s[..close].trim();
+    if inside.is_empty() {
+        return false;
+    }
+    let first = inside.chars().next().unwrap_or('\0');
+    if !(first.is_ascii_alphabetic() || first == '_') {
+        return false;
+    }
+    s[close + 1..].trim_start().starts_with('(')
+}
+
+fn is_simple_ident_token(s: &str) -> bool {
+    let mut chars = s.chars();
+    match chars.next() {
+        Some(c) if c.is_ascii_alphabetic() || c == '_' => {}
+        _ => return false,
+    }
+    chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
 }
 
 /// Pool/buffer accessors and reset helpers are not deterministic static builders.

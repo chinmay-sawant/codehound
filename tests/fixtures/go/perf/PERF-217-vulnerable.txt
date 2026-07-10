@@ -1,15 +1,15 @@
-# PERF-217 positive: static computation rebuilt on hot encode path (non-HTTP)
+# PERF-217 positive: static computation rebuilt on hot generate path
 lang: go
 file: PERF-217-vulnerable.go
 variant: stdlib
 ---
 package sample
 
-func buildICCProfile() []byte {
-	return []byte("icc-profile")
+func buildStaticConfig() []byte {
+	return []byte("static-config")
 }
 
-func GenerateDoc() []byte {
-	// Deterministic profile rebuilt on every generate call.
-	return buildICCProfile()
+func GenerateReport() []byte {
+	// Deterministic config rebuilt on every generate call.
+	return buildStaticConfig()
 }

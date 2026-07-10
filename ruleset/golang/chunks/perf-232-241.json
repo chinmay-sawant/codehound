@@ -1,0 +1,38 @@
+{
+  "PERF-232": {
+    "applicable_to": ["golang"],
+    "category": "Performance",
+    "description": "Parallel work is fanned out from a loop without a concurrency bound such as errgroup.SetLimit or a semaphore. Unbounded fan-out can overwhelm CPU, memory, and pooled resources.",
+    "detection_notes": "Match loop-contained errgroup.Go, go func, or WaitGroup fan-out when the enclosing function has no SetLimit or semaphore acquisition.",
+    "go_relevance": "High",
+    "id": 232,
+    "name": "Unbounded Parallel Fan-Out",
+    "original_description": "Detect unbounded per-item parallelism on bulk work paths",
+    "status": "Implemented",
+    "weakness_abstraction": "Base"
+  },
+  "PERF-234": {
+    "applicable_to": ["golang"],
+    "category": "Performance",
+    "description": "A bulk output buffer uses a large fixed Grow capacity or is taken from a pool, reset, and written without an estimated Grow. Prefer sizing from a known workload estimate when possible.",
+    "detection_notes": "Match .Grow(N) with a large fixed integer literal (N>=4096), or Get().(*bytes.Buffer) plus Reset and Write without any Grow in the unit.",
+    "go_relevance": "High",
+    "id": 234,
+    "name": "Bulk Buffer Without Workload Sizing",
+    "original_description": "Detect fixed or absent capacity planning for bulk buffers",
+    "status": "Implemented",
+    "weakness_abstraction": "Base"
+  },
+  "PERF-236": {
+    "applicable_to": ["golang"],
+    "category": "Performance",
+    "description": "A signing helper clones an entire buffer before patching fixed-width fields. Prefer an owned writable buffer or in-place mutation when the caller already owns the data.",
+    "detection_notes": "Match bytes.Clone inside functions whose name contains sign or signature.",
+    "go_relevance": "Medium",
+    "id": 236,
+    "name": "Full Buffer Clone On Signing Path",
+    "original_description": "Detect full-buffer copies in signature patching paths",
+    "status": "Implemented",
+    "weakness_abstraction": "Base"
+  }
+}
