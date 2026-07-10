@@ -187,7 +187,7 @@ pub fn enclosing_function_body_range(source: &str, start_byte: usize) -> Option<
     let start_byte = start_byte.min(source.len());
     let head = &source[..start_byte];
     let func_kw = head.rfind("func ")?;
-    let brace_rel = source[func_kw..].find('{')?;
+    let brace_rel = head[func_kw..].find('{')?;
     let body_open = func_kw + brace_rel;
     // start_byte must still be inside this body
     let mut depth = 0i32;
