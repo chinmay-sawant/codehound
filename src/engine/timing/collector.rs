@@ -13,19 +13,21 @@ use super::summary::TimingSummary;
 
 static GLOBAL: Mutex<Option<TimingCollector>> = Mutex::new(None);
 
+fn global_lock() -> std::sync::MutexGuard<'static, Option<TimingCollector>> {
+    GLOBAL
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
 /// Initialise the global collector for the scope of a scan chunk.
 pub(crate) fn init_global(enabled: bool) {
-    *GLOBAL
-        .lock()
-        .expect("global timing collector mutex poisoned") = Some(TimingCollector::new(enabled));
+    *global_lock() = Some(TimingCollector::new(enabled));
 }
 
 /// Start a span on the global collector. Returns the span index (0 when
 /// disabled / uninitialised).
 pub(crate) fn global_start(name: &'static str) -> usize {
-    GLOBAL
-        .lock()
-        .expect("global timing collector mutex poisoned")
+    global_lock()
         .as_mut()
         .map(|c| c.start(name))
         .unwrap_or(0)
@@ -33,21 +35,14 @@ pub(crate) fn global_start(name: &'static str) -> usize {
 
 /// Stop a span started with [`global_start`].
 pub(crate) fn global_stop(idx: usize) {
-    if let Some(ref mut c) = *GLOBAL
-        .lock()
-        .expect("global timing collector mutex poisoned")
-    {
+    if let Some(ref mut c) = *global_lock() {
         c.stop(idx);
     }
 }
 
 /// Drain the global collector into `target`. Resets the global to `None`.
 pub(crate) fn drain_global(target: &mut TimingCollector) {
-    if let Some(c) = GLOBAL
-        .lock()
-        .expect("global timing collector mutex poisoned")
-        .take()
-    {
+    if let Some(c) = global_lock().take() {
         target.merge(&c);
     }
 }
@@ -62,16 +57,10 @@ pub(crate) fn drain_global(target: &mut TimingCollector) {
 pub fn with_timing<R>(f: impl FnOnce() -> R) -> (R, Option<TimingSummary>) {
     init_global(true);
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f));
-    let summary = GLOBAL
-        .lock()
-        .expect("global timing collector mutex poisoned")
-        .take()
-        .map(|c| c.to_summary());
+    let summary = global_lock().take().map(|c| c.to_summary());
     // Reset even if the closure panicked so the global is clean for the
     // next test.
-    *GLOBAL
-        .lock()
-        .expect("global timing collector mutex poisoned") = None;
+    *global_lock() = None;
     match result {
         Ok(val) => (val, summary),
         Err(e) => std::panic::resume_unwind(e),

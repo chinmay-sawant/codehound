@@ -88,10 +88,14 @@ fn is_first_arg_tainted(graph: &TaintGraph, path: &TaintPath) -> bool {
     false
 }
 
-/// Check if any variable in the taint path is protected by a
-/// `strings.HasPrefix` confinement guard (with `filepath.Abs` upfront).
+/// Check if any variable in the taint path is protected by a confinement
+/// guard: `filepath.Abs` or `filepath.EvalSymlinks` plus `strings.HasPrefix`
+/// on that same binding. File-level co-presence of Clean is intentionally
+/// **not** treated as safe.
 fn is_path_confined(source: &str, path: &TaintPath, graph: &TaintGraph) -> bool {
-    if !source.contains("filepath.Abs(") || !source.contains("strings.HasPrefix(") {
+    let has_abs = source.contains("filepath.Abs(");
+    let has_eval = source.contains("filepath.EvalSymlinks(");
+    if (!has_abs && !has_eval) || !source.contains("strings.HasPrefix(") {
         return false;
     }
     for node_id in &path.node_ids {

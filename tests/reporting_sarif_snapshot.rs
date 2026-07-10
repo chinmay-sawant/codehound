@@ -41,6 +41,15 @@ fn redact_sarif_timestamps(mut s: String) -> String {
                     for inv in invocations {
                         if let Some(obj) = inv.as_object_mut() {
                             obj.remove("endTimeUtc");
+                            // Working directory is host-specific; stabilize snapshot.
+                            if let Some(wd) = obj.get_mut("workingDirectory") {
+                                if let Some(wd_obj) = wd.as_object_mut() {
+                                    wd_obj.insert(
+                                        "uri".into(),
+                                        serde_json::Value::String("<cwd>".into()),
+                                    );
+                                }
+                            }
                         }
                     }
                 }

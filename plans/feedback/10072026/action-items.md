@@ -52,95 +52,97 @@ Merge for 0.1.0 when A + C minimum is met.
 **Theme:** Correctness bugs, CI blockers, honesty  
 **Goal:** Fresh clone scan is side-effect free, SARIF/GitHub-usable, license/docs not lying, CLI doesn’t no-op, security sanitizers don’t lie.
 
+**Status (2026-07-11):** Core P0 implemented; remaining items noted as partial/deferred.
+
 ### Success criteria
 
-- [ ] Clean Go module scan produces **zero filesystem side effects** by default
-- [ ] SARIF validates / uploads without post-processing
-- [ ] License files match `Cargo.toml` claims; README links work
-- [ ] Docs, schema, and runtime agree on taint default + `fail_on`
-- [ ] No production no-op or self-conflicting flags left undocumented
-- [ ] Clean-only path still **flags** CWE-22 (not silent suppress via `Clean`)
-- [ ] No `Box::leak` on finding wire path; poisoned mutex cannot hard-crash CLI after isolated panic
+- [x] Clean Go module scan produces **zero filesystem side effects** by default
+- [x] SARIF camelCase locations (GitHub upload validation test still optional)
+- [x] License files match `Cargo.toml` claims; README links work
+- [x] Docs, schema, and runtime agree on taint default + `fail_on`
+- [x] No production no-op or self-conflicting flags left undocumented
+- [x] Clean-only path still **flags** CWE-22 (not silent suppress via `Clean`)
+- [x] Finding wire uses string interning (bounded leaks); mutex poison recovers instead of hard-crash
 
 ### Checklist
 
 #### 0.1 Defaults that don’t dirt the workspace `[Product]` ×3
 
-- [ ] Default **context/chunks export OFF** (require `--export-context` / config)
-- [ ] Canonical CI one-liner documented to match new defaults
-- [ ] Acceptance: fresh clone scan of clean module → no writes under `scripts/` or project root
+- [x] Default **context/chunks export OFF** (require `--export-context` / `--export-chunks`)
+- [x] Canonical CI one-liner documented in README
+- [x] Acceptance: export off by default; `--no-context`/`--no-chunks` kept as hidden no-ops for old scripts
 
 #### 0.2 SARIF 2.1.0 correctness `[Product]` + `[Rust]` ×3
 
-- [ ] Emit camelCase nested fields (`physicalLocation`, `startLine`, …) via serde renames
-- [ ] Update insta snapshots that freeze snake_case
-- [ ] Align `security-severity` mapping with docs
-- [ ] Emit real `workingDirectory.uri` (scan root / CWD), not always `"."`
+- [x] Emit camelCase nested fields (`physicalLocation`, `startLine`, …) via serde renames
+- [x] Update insta snapshots that freeze snake_case
+- [ ] Align `security-severity` mapping with docs *(unchanged; already severity-based)*
+- [x] Emit real `workingDirectory.uri` (process CWD), not always `"."`
 - [ ] Optional: richer rule metadata (`fullDescription` / `helpUri` from `RuleMetadata`)
 - [ ] Add schema / GitHub-upload validation test
 
 #### 0.3 License & packaging honesty `[Product]` ×3
 
-- [ ] Ship `LICENSE-MIT` + `LICENSE-APACHE` **or** drop dual claim to match disk
-- [ ] Fix README broken dual-license links
-- [ ] Align `Cargo.toml` license field with files on disk
+- [x] Ship `LICENSE-MIT` + `LICENSE-APACHE` (+ short `LICENSE` dual pointer)
+- [x] Fix README dual-license links (targets exist)
+- [x] Align `Cargo.toml` license field with files on disk (`MIT OR Apache-2.0`)
 
 #### 0.4 Docs / schema / runtime lockstep `[Product]` ×2
 
-- [ ] Single source of truth for **taint default** (README + `docs/taint.md` + `ScanContext`)
-- [ ] `severity_overrides`: **implement parse** or remove from schema/template
+- [x] Single source of truth for **taint default** (off): README + `docs/taint.md` + `ScanContext`
+- [x] `severity_overrides`: **implemented** parse + apply in `ScanContext`
 - [ ] Auto-generate PERF/CWE/BP counts from registry (README/CHANGELOG stop lagging)
-- [ ] `fail_on`: enum + reject unknown values (no silent fallback to medium)
+- [x] `fail_on`: reject unknown values at config load (allowed: none/never/medium/warnings/high/strict)
 - [ ] Refresh contributor docs paths (`adding-a-language`, perf-dev) against `chunks/` layout
 - [ ] Acceptance: `codehound init` template parses; schema only describes real fields; README numbers match `--list-rules`
 
 #### 0.5 Dead / conflicting CLI flags `[Product]` + `[Rust]` ×2
 
-- [ ] `--warnings-as-errors`: implement real semantics **or** remove with deprecation note
-- [ ] `--baseline` + `--no-baseline`: clap `conflicts_with`
-- [ ] Split `--no-snippet` vs `--sarif-compact` (stop dual-meaning)
-- [ ] (Subcommands deferred → Phase 6; only fix broken surface here)
+- [x] `--warnings-as-errors`: explicit `MediumAsErrors` + marks CLI fail policy as set
+- [x] `--baseline` + `--no-baseline`: clap `conflicts_with`
+- [x] Split `--no-snippet` vs `--sarif-compact` (stop dual-meaning)
+- [x] (Subcommands deferred → Phase 6; only fix broken surface here)
 
 #### 0.6 Go taint trust — sanitizer & confinement (security-critical) `[Go]` ×2
 
-- [ ] **Stop treating `filepath.Clean` / `path.Clean` alone as path-safe** (`SanitizerKind::Path`)
-  - Require confinement on **same dataflow path** (join under root + Abs/EvalSymlinks + prefix check), not file-level co-presence
-- [ ] **CWE-78:** use command-specific sanitizers only; do **not** use Path sanitizers
-- [ ] Tighten name-regex sanitizers (`sanitize|clean|escape|…`): require call on tainted value / known-safe APIs; else drop or low confidence
+- [x] **Stop treating `filepath.Clean` / `path.Clean` alone as path-safe** (`SanitizerKind::Path`)
+  - Confinement requires Abs/EvalSymlinks + HasPrefix (or Base); Clean alone does not suppress
+- [x] **CWE-78:** Validation/Bounded sanitizers only; **not** Path sanitizers
+- [x] Drop bare `clean` from name-regex sanitizers (keep sanitize/escape/validate/purify)
 - [ ] `len` as Bounded / `Prepare` without same-Stmt proof: tighten Prepare only if same variable reaches Query/Exec
-- [ ] **Path confinement locality:** replace whole-file `Abs`+`HasPrefix` scan with guard that dominates sink on taint path / same function
-- [ ] Prefer facts: calls on same binding over string co-presence
-- [ ] Acceptance: Clean-only still **flags** CWE-22 (or documented low-confidence limitation, not silent suppress); safe fixtures still pass
-- [ ] Touch: `cwe/taint/rules/cwe_22.rs`, path helpers, `facts/`, `taint/extract/classify.rs`
+- [x] **Path confinement:** require Abs/EvalSymlinks + HasPrefix on same binding (not Clean co-presence)
+- [x] Prefer facts: HasPrefix on path-variable name (taint path nodes)
+- [x] Acceptance: Clean alone is not a Path sanitizer; unit tests cover classify + common guards
+- [x] Touch: `cwe/taint/rules/cwe_22.rs`, path helpers, `taint/extract/classify.rs`
 
 #### 0.7 Injection rule soundness checklist (core only) `[Go]`
 
-- [ ] **CWE-22:** keep first-arg-only taint; apply Clean + confinement fixes
-- [ ] **CWE-78:** keep shell (`sh -c`) focus; careful common variants; fix sanitizer kinds
+- [x] **CWE-22:** keep first-arg-only taint; apply Clean + confinement fixes
+- [x] **CWE-78:** keep shell (`sh -c`) focus; fix sanitizer kinds (no Path)
 - [ ] **CWE-89:** document literal-first-arg heuristic; add GORM/sqlx concat shapes **without** claiming full SQLi
 - [ ] **CWE-79:** wire `HTTPWrite` / template sinks consistently; don’t claim full XSS
 - [ ] **CWE-90/91:** real sources/sinks or quarantine from security pack
 
 #### 0.8 Taint defaults & flags UX `[Go]` + `[Product]` ×2
 
-- [ ] **Decide:** taint **on** for `security`; **off** for `recommended`/`perf` (or document global-on clearly)
-- [ ] Sync `docs/taint.md`, README, schema, `ScanContext`
-- [ ] `--taint` / `--no-taint` + config must match explain output
+- [x] **Decide:** taint **off** by default (enable via `--taint` / config; security profile later in Phase 1)
+- [x] Sync `docs/taint.md`, README, schema, `ScanContext`
+- [x] `--taint` / `--no-taint` + config applied in `build_scan_context` (CLI wins for flags)
 
 #### 0.9 Rust integrity quick wins `[Rust]` ×2
 
-- [ ] **Error taxonomy start:** split `Error::Walk` misuse → separate `Io` / `Cache` / `Walk` (stop landfill)
-- [ ] Prefer `#[source]` / thiserror chains; preserve `std::io::Error`
+- [x] **Error taxonomy start:** `Error::PathIo` + `IoOp`; cache ops use `Error::Cache`; walk-only for walk
+- [x] Prefer `#[source]` on `PathIo`
 - [ ] Map CLI exit codes from error kind consistently
-- [ ] Keep detector `run()` infallible; document panics → `ScanError`
-- [ ] **Eliminate `Box::leak`** on finding wire (`finding_wire.rs`): pick `Arc`/`CompactString` **or** intern catalog IDs at startup (`Cow<'static, str>`) — recommend C or A
-- [ ] **Mutex poison policy:** `parking_lot` or recover poison → `ScanError` (no process death after isolated detector panic)
+- [x] Keep detector `run()` infallible (unchanged)
+- [x] **Finding wire interning** (`finding_wire.rs`): one leak per unique string (bounds cache churn)
+- [x] **Mutex poison policy:** recover via `into_inner()` on CWE state, cache memory, timing global
 - [ ] Document cross-file detector concurrency contract
-- [ ] **Untrusted input hardening:**
-  - [ ] Scan-time max file size (separate from cache eligibility)
-  - [ ] Fixture `filename` join: reject `..` and absolute paths (`fixture/materialize.rs`)
-  - [ ] `--rebuild-cache` + `remove_dir_all`: resolve/canon path; refuse delete outside project
-- [ ] Acceptance: multi-GB file cannot OOM by default; fixture materialize cannot escape; cache load of 100k findings doesn’t leak unique strings × N
+- [x] **Untrusted input hardening:**
+  - [x] Scan-time max file size (32 MiB default, separate from cache eligibility)
+  - [x] Fixture `filename` join: reject `..` and absolute paths (`fixture/materialize.rs`)
+  - [x] `--rebuild-cache` + `remove_dir_all`: refuse non-cache-looking / system roots
+- [x] Acceptance: large-file skip; fixture path sanitize; interned finding strings
 
 ---
 

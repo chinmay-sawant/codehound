@@ -39,10 +39,11 @@ pub fn build_scan_context(params: ScanContextParams) -> ScanContext {
         diagnostics: params.diagnostics,
         diagnostics_summary: params.diagnostics_summary,
         verbose: params.verbose,
-        taint_enabled: true,
+        taint_enabled: false,
         taint_show_paths: false,
         bad_practices_enabled: true,
         bad_practice_severity: None,
+        severity_overrides: Default::default(),
     };
     if let Some(cfg) = params.config {
         ctx = cfg.merge_into(ctx, params.cli_set_fail_policy);

@@ -9,7 +9,8 @@
 # Skip the union of these rule IDs and any passed via --skip.
 # skip = ["CWE-15"]
 
-# Exit policy: "none" | "high" | "strict" | anything else = mediums as errors.
+# Exit policy: "none" | "never" | "medium" | "warnings" | "high" | "strict".
+# Unknown values are rejected at load time (no silent fallback).
 # fail_on = "high"
 
 # Optional include/exclude gitignore-style globs, relative to each scan root.
@@ -44,6 +45,7 @@
 # severity_overrides = { "BP-1" = "high", "BP-10" = "low" }  # per-rule overrides
 
 # Experimental taint-tracking engine for CWE-22/78/79/89.
+# Disabled by default; enable for security-oriented scans.
 # [codehound.taint]
 # enabled = true
 # show_paths = true

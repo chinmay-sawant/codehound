@@ -93,7 +93,10 @@ impl Detector for GoCweScan {
         if ctx.taint_enabled {
             build_taint_graph_for_facts(&mut facts);
         }
-        let mut state = self.state.lock().expect("lock CweDetector state");
+        let mut state = self
+            .state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         push_project_unit(&mut state, unit, &facts);
     }
 
@@ -107,7 +110,10 @@ impl Detector for GoCweScan {
         }
 
         {
-            let mut state = self.state.lock().expect("lock CweDetector state");
+            let mut state = self
+                .state
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
             push_project_unit(&mut state, unit, &facts);
         }
 
@@ -123,7 +129,10 @@ impl Detector for GoCweScan {
             return;
         }
 
-        let mut state = self.state.lock().expect("lock CweDetector state");
+        let mut state = self
+            .state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         if state.units.is_empty() {
             return;
         }

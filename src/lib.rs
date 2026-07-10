@@ -75,4 +75,4 @@ pub mod reporting;
 pub mod rules;
 
 pub use engine::{AnalysisResult, Analyzer, AnalyzerBuilder};
-pub use error::Error;
+pub use error::{Error, IoOp};

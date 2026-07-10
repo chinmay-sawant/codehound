@@ -28,6 +28,9 @@ pub struct ScanContext {
     pub bad_practices_enabled: bool,
     /// Optional severity override for BP-* bad-practice findings.
     pub bad_practice_severity: Option<Severity>,
+    /// Per-rule severity overrides (e.g. BP-1 → High). Applied after the
+    /// global BP severity override when present.
+    pub severity_overrides: std::collections::HashMap<String, Severity>,
     /// When true, text output includes extra scan stats (bytes, phase timing).
     pub verbose: bool,
 }
@@ -42,10 +45,12 @@ impl Default for ScanContext {
             debug_timing: false,
             diagnostics: false,
             diagnostics_summary: false,
-            taint_enabled: true,
+            // Off by default; enable via --taint or [codehound.taint] enabled = true.
+            taint_enabled: false,
             taint_show_paths: false,
             bad_practices_enabled: true,
             bad_practice_severity: None,
+            severity_overrides: std::collections::HashMap::new(),
             verbose: false,
         }
     }
@@ -80,6 +85,9 @@ impl ScanContext {
             if let Some(severity) = self.bad_practice_severity {
                 finding.severity = severity;
             }
+        }
+        if let Some(severity) = self.severity_overrides.get(finding.rule_id) {
+            finding.severity = *severity;
         }
     }
 

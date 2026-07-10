@@ -19,7 +19,12 @@ impl CodehoundConfig {
     #[must_use = "config load failures must be handled"]
     pub fn load(path: &std::path::Path) -> Result<Self, Error> {
         let text = std::fs::read_to_string(path).map_err(Error::from)?;
-        toml::from_str(&text).map_err(|e| Error::Config(format!("parsing {}: {e}", path.display())))
+        let cfg: Self = toml::from_str(&text)
+            .map_err(|e| Error::Config(format!("parsing {}: {e}", path.display())))?;
+        if let Some(fail_on) = cfg.codehound.fail_on.as_deref() {
+            parse_fail_on(fail_on).map_err(Error::Config)?;
+        }
+        Ok(cfg)
     }
 
     /// Merge this config into a `ScanContext`. CLI-set fields take precedence:
@@ -37,7 +42,11 @@ impl CodehoundConfig {
         }
         if let Some(fail_on) = self.codehound.fail_on.as_deref() {
             if !cli_set_fail_policy {
-                ctx.fail_policy = fail_on_to_policy(fail_on);
+                // Unknown values fall through to MediumAsErrors at load time via
+                // parse_fail_on; prefer the Result form when validating configs.
+                if let Some(policy) = try_fail_on_to_policy(fail_on) {
+                    ctx.fail_policy = policy;
+                }
             }
         }
         if let Some(enabled) = self.codehound.taint.enabled {
@@ -48,6 +57,8 @@ impl CodehoundConfig {
         }
         ctx.bad_practices_enabled = self.codehound.bad_practices.enabled;
         ctx.bad_practice_severity = self.codehound.bad_practices.severity;
+        ctx.severity_overrides
+            .extend(self.codehound.bad_practices.severity_overrides);
         ctx
     }
 }
@@ -68,14 +79,36 @@ pub fn discover_cache_dir(start: &Path) -> Option<std::path::PathBuf> {
     })
 }
 
-pub(crate) fn fail_on_to_policy(s: &str) -> FailPolicy {
+/// Map a known `fail_on` string to a policy. Returns `None` for unknown values.
+pub(crate) fn try_fail_on_to_policy(s: &str) -> Option<FailPolicy> {
     if s.eq_ignore_ascii_case("none") || s.eq_ignore_ascii_case("never") {
-        FailPolicy::NoFail
+        Some(FailPolicy::NoFail)
     } else if s.eq_ignore_ascii_case("high") || s.eq_ignore_ascii_case("strict") {
-        FailPolicy::Strict
+        Some(FailPolicy::Strict)
+    } else if s.eq_ignore_ascii_case("medium")
+        || s.eq_ignore_ascii_case("warnings")
+        || s.eq_ignore_ascii_case("default")
+    {
+        Some(FailPolicy::MediumAsErrors)
     } else {
-        FailPolicy::MediumAsErrors
+        None
     }
+}
+
+/// Parse `fail_on`, rejecting unknown values (no silent fallback).
+pub(crate) fn parse_fail_on(s: &str) -> Result<FailPolicy, String> {
+    try_fail_on_to_policy(s).ok_or_else(|| {
+        format!(
+            "unknown fail_on value {s:?}; expected one of: none, never, medium, warnings, high, strict"
+        )
+    })
+}
+
+/// Legacy helper: map known values; unknown → MediumAsErrors.
+/// Prefer [`parse_fail_on`] for new call sites that should reject typos.
+#[allow(dead_code)]
+pub(crate) fn fail_on_to_policy(s: &str) -> FailPolicy {
+    try_fail_on_to_policy(s).unwrap_or(FailPolicy::MediumAsErrors)
 }
 
 /// Walk from `start` upward looking for the closest `codehound.toml`.

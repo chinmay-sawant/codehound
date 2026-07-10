@@ -36,10 +36,33 @@ pub(super) fn scan_err(
     }
 }
 
+/// Default max source file size for a scan (independent of cache eligibility).
+/// Prevents multi-GB single-file OOM by default.
+pub(crate) const DEFAULT_MAX_SCAN_FILE_BYTES: u64 = 32 * 1024 * 1024; // 32 MiB
+
 /// Read file at `entry.path`, decode as UTF-8, return `(Arc<str>, display_path)`.
 pub(super) fn read_entry_utf8(
     entry: &ScanEntry,
 ) -> Result<(std::sync::Arc<str>, String), ScanError> {
+    let meta = std::fs::metadata(&entry.path).map_err(|e| {
+        scan_err(
+            entry,
+            ScanErrorKind::Io,
+            format!("stat {}: {e}", entry.path.display()),
+        )
+    })?;
+    if meta.len() > DEFAULT_MAX_SCAN_FILE_BYTES {
+        return Err(scan_err(
+            entry,
+            ScanErrorKind::Io,
+            format!(
+                "skipping {}: file size {} bytes exceeds scan limit of {} bytes",
+                entry.path.display(),
+                meta.len(),
+                DEFAULT_MAX_SCAN_FILE_BYTES
+            ),
+        ));
+    }
     let bytes = std::fs::read(&entry.path).map_err(|e| {
         scan_err(
             entry,

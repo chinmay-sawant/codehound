@@ -115,7 +115,22 @@ scanned 238 files | 195 cached | 43 fresh | 1250.3ms | slowest: PERF-141
 ### Taint Tracking (experimental)
 
 CodeHound includes an experimental intra-procedural taint-tracking engine for
-CWE-22, CWE-78, CWE-79, and CWE-89. **Not security-grade** — name-string sink matching, no types, `filepath.Clean` is not a real sanitizer. Use for triage, not hard gating. See [`docs/taint.md`](./docs/taint.md).
+CWE-22, CWE-78, CWE-79, and CWE-89. **Disabled by default** — pass `--taint` or
+set `[codehound.taint] enabled = true`. **Not security-grade** — name-string sink
+matching, no types; `filepath.Clean` alone is **not** treated as a path sanitizer.
+Use for triage, not hard gating. See [`docs/taint.md`](./docs/taint.md).
+
+### Canonical CI one-liner
+
+Export is **off** by default (no writes under `scripts/`). Example:
+
+```bash
+# Advisory scan: SARIF for Code Scanning, no workspace dirt, fail on high only
+codehound --format sarif --strict --no-bp . > codehound.sarif
+
+# Security-oriented scan with taint core
+codehound --taint --format sarif --strict . > codehound.sarif
+```
 
 ### Bad Practices
 
@@ -138,7 +153,8 @@ All fields are optional. See `codehound init` for a starter template.
 # Skip specific rules.
 # skip = ["CWE-15"]
 
-# Exit policy: "none" | "high" | "strict" | anything else = warnings as errors.
+# Exit policy: "none" | "never" | "medium" | "warnings" | "high" | "strict".
+# Unknown values are rejected at load time.
 # fail_on = "high"
 
 # Include/exclude gitignore-style globs.

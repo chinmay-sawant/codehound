@@ -38,9 +38,9 @@ Override discovery with `--config <PATH>` or `CODEHOUND_CONFIG=<PATH>`.
 # Skip these rule IDs. Appended to any --skip passed on the CLI.
 # skip = ["CWE-15"]
 
-# Failure policy: "none", "high", "strict", or anything else for
-# warnings-as-errors. The CLI --strict / --no-fail / --warnings-as-errors
-# always win when set.
+# Failure policy: "none" | "never" | "medium" | "warnings" | "high" | "strict".
+# Unknown values are rejected (no silent fallback). CLI --strict / --no-fail /
+# --warnings-as-errors always win when set.
 # fail_on = "high"
 
 # Glob patterns to include. The default is the language's supported extensions.

@@ -1,6 +1,7 @@
 //! SARIF log builder: converts an `AnalysisResult` into a `SarifLog`.
 
 use std::collections::BTreeMap;
+use std::sync::OnceLock;
 
 use crate::engine::AnalysisResult;
 use crate::rules::{FindingView, Severity};
@@ -84,7 +85,9 @@ pub(super) fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
     let invocation = SarifInvocation {
         execution_successful: result.errors.is_empty(),
         end_time_utc: iso8601_utc_now(),
-        working_directory: SarifArtifactLocation { uri: "." },
+        working_directory: SarifArtifactLocation {
+            uri: working_directory_uri(),
+        },
         properties: (result.suppressed_count > 0).then_some(SarifInvocationProperties {
             suppressed_findings: result.suppressed_count,
         }),
@@ -113,6 +116,17 @@ pub(super) fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
             properties: run_properties,
         }],
     }
+}
+
+/// Process CWD as a stable URI for SARIF `workingDirectory` (not always `"."`).
+fn working_directory_uri() -> &'static str {
+    static CWD: OnceLock<String> = OnceLock::new();
+    CWD.get_or_init(|| {
+        std::env::current_dir()
+            .map(|p| p.display().to_string())
+            .unwrap_or_else(|_| ".".to_string())
+    })
+    .as_str()
 }
 
 fn sarif_severity_fields(severity: Severity, category: &str) -> (&'static str, &'static str) {

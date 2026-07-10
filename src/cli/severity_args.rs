@@ -7,9 +7,9 @@ use crate::core::FailPolicy;
 #[derive(Debug, Clone, Copy, Args)]
 #[group(multiple = false)]
 pub struct SeverityArgs {
-    /// Exit non-zero on warnings (default).
-    // ponytail: dead — fail_policy() always returns MediumAsErrors regardless
-    // of this flag; kept to avoid breaking the CLI interface.
+    /// Exit non-zero on medium+ findings (same as default medium-as-errors).
+    ///
+    /// Marks the policy as CLI-explicit so config `fail_on` cannot override it.
     #[arg(long)]
     pub warnings_as_errors: bool,
 
@@ -28,6 +28,8 @@ impl SeverityArgs {
             FailPolicy::NoFail
         } else if self.strict {
             FailPolicy::Strict
+        } else if self.warnings_as_errors {
+            FailPolicy::MediumAsErrors
         } else {
             FailPolicy::MediumAsErrors
         }

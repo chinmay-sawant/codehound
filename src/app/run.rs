@@ -5,8 +5,8 @@ use anyhow::{Context, Result};
 use codehound::cli::{Cli, Command, OutputFormat};
 use codehound::engine::{
     AnalysisResult, Analyzer, BASELINE_FILE_NAME, Baseline, CacheSession, CacheStore, Diagnostics,
-    FilesystemWalker, LanguageFilter, PathFilters, Registry, RunConfigParams, ScanContextParams,
-    CodehoundConfig, TimingCollector, build_run_config, collect_entries_with,
+    DEFAULT_CACHE_DIR, FilesystemWalker, LanguageFilter, PathFilters, Registry, RunConfigParams,
+    ScanContextParams, CodehoundConfig, TimingCollector, build_run_config, collect_entries_with,
     resolve_language_filter,
 };
 use codehound::export::{ExportOptions, ExportSummary, export_findings};
@@ -38,9 +38,11 @@ pub fn run(cli: Cli) -> Result<ExitCode> {
 }
 
 fn export_options_for_run(cli: &Cli) -> ExportOptions {
+    // Export is off by default; require explicit --export-context / --export-chunks.
+    // --no-context / --no-chunks remain accepted as no-ops for older scripts.
     ExportOptions {
-        export_context: !cli.no_context,
-        export_chunks: !cli.no_chunks,
+        export_context: cli.export_context,
+        export_chunks: cli.export_chunks,
         chunk_size: cli.chunk_size,
         context_output_dir: cli.context_output_dir.clone(),
         chunks_output_dir: cli.chunks_output_dir.clone(),
@@ -185,6 +187,12 @@ fn rebuild_cache_if_requested(
     if !dir.is_dir() {
         return;
     }
+    if let Err(reason) = validate_cache_purge_path(&dir) {
+        if !cli.quiet {
+            eprintln!("warning: refusing to purge cache at {}: {reason}", dir.display());
+        }
+        return;
+    }
     if let Err(e) = std::fs::remove_dir_all(&dir) {
         if !cli.quiet {
             eprintln!("warning: could not purge cache at {}: {e}", dir.display());
@@ -193,6 +201,37 @@ fn rebuild_cache_if_requested(
         eprintln!("Purged cache at {}", dir.display());
     }
     *cache_store = open_cache_store(cli, config);
+}
+
+/// Refuse to `remove_dir_all` paths that look like project roots or the FS root.
+fn validate_cache_purge_path(dir: &Path) -> Result<(), String> {
+    let name = dir.file_name().and_then(|s| s.to_str()).unwrap_or("");
+    // Prefer directories that look like a cache (default name or explicit cache_dir).
+    let looks_like_cache = name == DEFAULT_CACHE_DIR.trim_start_matches("./")
+        || name == ".codehound-cache"
+        || name.contains("codehound-cache")
+        || name.contains("cache");
+    if !looks_like_cache {
+        return Err(
+            "path does not look like a codehound cache directory (name must contain 'cache')"
+                .into(),
+        );
+    }
+    let canon = dir
+        .canonicalize()
+        .map_err(|e| format!("could not resolve path: {e}"))?;
+    if canon.parent().is_none() {
+        return Err("refusing to delete filesystem root".into());
+    }
+    // Refuse common sensitive roots if someone pointed --cache-dir at them.
+    let forbidden = ["/etc", "/usr", "/bin", "/home", "/root", "/var", "/tmp"];
+    let canon_str = canon.to_string_lossy();
+    for f in forbidden {
+        if canon_str == f {
+            return Err(format!("refusing to delete system path {f}"));
+        }
+    }
+    Ok(())
 }
 
 fn resolve_scan_paths(paths: &[String]) -> Result<Vec<PathBuf>> {
@@ -376,7 +415,7 @@ fn emit_output(
                 envelope: cli.json_envelope,
             }),
             OutputFormat::Sarif => Box::new(reporting::SarifReporter {
-                compact: cli.no_snippet,
+                compact: cli.sarif_compact,
             }),
         }
     };

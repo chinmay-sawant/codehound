@@ -111,9 +111,13 @@ pub(super) fn classify_sink(
     None
 }
 
-pub(super) fn classify_sanitizer(func_text: &str) -> Option<SanitizerKind> {
+pub(crate) fn classify_sanitizer(func_text: &str) -> Option<SanitizerKind> {
     let call = func_text;
-    if call == "filepath.Clean" || call == "path.Clean" || call == "filepath.Base" {
+    // filepath.Clean / path.Clean alone are NOT path-traversal safe — they do not
+    // confine the path under a root. Only Base (strips to final component) and
+    // confinement helpers count as Path sanitizers; confinement is also checked
+    // separately via Abs/EvalSymlinks + HasPrefix on the taint path.
+    if call == "filepath.Base" {
         return Some(SanitizerKind::Path);
     }
     if call == "html.EscapeString"
@@ -149,14 +153,12 @@ pub(super) fn classify_sanitizer(func_text: &str) -> Option<SanitizerKind> {
     if call.ends_with(".Prepare") {
         return Some(SanitizerKind::SQL);
     }
-    // ponytail: name-based heuristic catches user-defined sanitize/clean/escape/
-    // validate/purify functions. Imprecise — may match unrelated functions with
-    // these prefixes. Upgrade: use type info or call-graph to verify the function
-    // actually sanitizes user input.
+    // Name-based heuristic: only well-known sanitizer prefixes. Intentionally
+    // does NOT match bare "clean" (filepath.Clean is not path-safe by itself).
+    // Imprecise — may still match unrelated functions; prefer known-safe APIs.
     if let Some(name) = call.rsplit('.').next().or(Some(call)) {
         let lower = name.to_lowercase();
         if lower.starts_with("sanitize")
-            || lower.starts_with("clean")
             || lower.starts_with("escape")
             || lower.starts_with("validate")
             || lower.starts_with("purify")

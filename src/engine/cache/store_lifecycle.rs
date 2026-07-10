@@ -26,9 +26,7 @@ impl CacheStore {
             findings,
             cached_at: cached_at.to_string(),
         };
-        self.backend
-            .store_entry(&cache_key, &entry)
-            .map_err(|e| Error::Walk(format!("storing cache entry {cache_key}: {e}")))?;
+        self.backend.store_entry(&cache_key, &entry).map_err(Error::from)?;
         let meta = FileCacheMeta {
             content_hash: content_hash.to_string(),
             dependencies: dependencies.to_vec(),
@@ -46,7 +44,7 @@ impl CacheStore {
             let cache_key = cache_key_for_path(file);
             self.backend
                 .delete_entry(&cache_key)
-                .map_err(|e| Error::Walk(format!("removing cache entry {cache_key}: {e}")))?;
+                .map_err(Error::from)?;
             self.dirty = true;
         }
         Ok(())
@@ -88,7 +86,7 @@ impl CacheStore {
             active_keys.iter().map(String::as_str).collect();
         self.backend
             .clean_orphans(&active_refs)
-            .map_err(|e| Error::Walk(format!("cleaning cache orphans: {e}")))
+            .map_err(Error::from)
     }
 
     /// Invalidate the entry for `file`, removing it from the manifest

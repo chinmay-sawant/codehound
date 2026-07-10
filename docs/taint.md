@@ -50,18 +50,26 @@ paths to recognized sources.
 
 | Kind | Examples |
 |------|----------|
-| `Path` | `filepath.Clean()`, `path.Clean()` |
+| `Path` | `filepath.Base()` only (strips to final component). **`filepath.Clean` / `path.Clean` alone are not path-safe** and are not treated as sanitizers. |
 | `HTML` | `html.EscapeString()`, `template.HTMLEscaper()` |
 | `URL` | `url.QueryEscape()`, `url.PathEscape()` |
-| `SQL` | `(*sql.DB).Prepare()` + `(*sql.Stmt).Query/Exec` |
-| `Validation` | `strconv.Atoi()`, `strconv.ParseInt()` |
-| `Bounded` | `len(s) < N` then `s[:N]` |
+| `SQL` | `(*sql.DB).Prepare()` + `(*sql.Stmt).Query/Exec` (same variable must reach Query/Exec) |
+| `Validation` | `strconv.Atoi()`, `strconv.ParseInt()`, allowlist-style `sanitize*` / `escape*` / `validate*` helpers |
+| `Bounded` | `len` (weak; prefer explicit validation) |
 
-When a sanitizer is found on every path from the source to the sink, the
-finding is suppressed.
+**Path confinement (CWE-22):** findings are suppressed only when a path
+variable is confined with `filepath.Abs` / `filepath.EvalSymlinks` **and**
+`strings.HasPrefix` on that same binding — not file-level co-presence of
+`Clean`.
+
+When a recognized sanitizer is found on every path from the source to the
+sink, the finding is suppressed. CWE-78 (command injection) does **not**
+accept Path sanitizers.
 
 ## Limitations
 
+- **`filepath.Clean` is not a path sanitizer.** Clean-only code should still
+  flag CWE-22 (or show low confidence in a future release).
 - **Inter-procedural tracking is depth-limited.** Cross-function analysis
   works for direct chains (A→B→C), return propagation, method calls, and
   recursion, but does not iterate to a fixed point. Mutual recursion and

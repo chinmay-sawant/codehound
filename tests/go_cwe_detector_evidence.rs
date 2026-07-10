@@ -3,14 +3,24 @@
 #[path = "helpers/mod.rs"]
 mod helpers;
 
+use codehound::core::ScanContext;
 use codehound::engine::Analyzer;
 use codehound::rules::DetectorEvidence;
+
+fn taint_analyzer() -> Analyzer {
+    Analyzer::builder()
+        .scan_context(ScanContext {
+            taint_enabled: true,
+            ..ScanContext::default()
+        })
+        .build()
+}
 
 #[test]
 fn cwe_78_finding_includes_dangerous_call_evidence() {
     let source_path =
         helpers::assert_fixture_materializes("tests/fixtures/go/stdlib/CWE-78-vulnerable.txt");
-    let analyzer = Analyzer::builder().build();
+    let analyzer = taint_analyzer();
     let result = analyzer.analyze_paths(&[&source_path], None).unwrap();
 
     let finding = result
@@ -32,7 +42,7 @@ fn cwe_78_finding_includes_dangerous_call_evidence() {
 fn cwe_22_finding_includes_dangerous_call_evidence() {
     let source_path =
         helpers::assert_fixture_materializes("tests/fixtures/go/stdlib/CWE-22-vulnerable.txt");
-    let analyzer = Analyzer::builder().build();
+    let analyzer = taint_analyzer();
     let result = analyzer.analyze_paths(&[&source_path], None).unwrap();
 
     let finding = result
@@ -54,7 +64,7 @@ fn cwe_22_finding_includes_dangerous_call_evidence() {
 fn cwe_89_finding_includes_dangerous_call_evidence() {
     let source_path =
         helpers::assert_fixture_materializes("tests/fixtures/go/stdlib/CWE-89-vulnerable.txt");
-    let analyzer = Analyzer::builder().build();
+    let analyzer = taint_analyzer();
     let result = analyzer.analyze_paths(&[&source_path], None).unwrap();
 
     let finding = result
@@ -80,13 +90,7 @@ fn is_path_traversal_sink(function: &str) -> bool {
 }
 
 fn is_sql_sink(function: &str) -> bool {
-    matches!(
-        function,
-        "db.Query"
-            | "db.Exec"
-            | "db.QueryRow"
-            | "db.QueryContext"
-            | "db.QueryRowContext"
-            | "db.ExecContext"
-    )
+    function.ends_with(".Query")
+        || function.ends_with(".Exec")
+        || function.ends_with(".QueryRow")
 }

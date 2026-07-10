@@ -16,6 +16,8 @@ use clap::Parser;
         codehound ./cmd/foo.go               # scan a single file\n  \
         codehound --only CWE-22,CWE-89       # only the named rules\n  \
         codehound --format sarif > out.sarif # SARIF for CI\n  \
+        codehound --no-context --no-chunks   # (no-ops: export is off by default)\n  \
+        codehound --export-context --export-chunks  # opt-in filesystem export\n  \
         codehound --taint                    # enable experimental taint tracking\n  \
         codehound --taint-show-paths         # emit taint-path evidence\n  \
         codehound --diagnostics-summary      # compact scan stats\n  \
@@ -94,17 +96,29 @@ pub struct Cli {
     #[arg(long)]
     pub no_terminal: bool,
 
-    /// Do not write per-finding context files.
+    /// Write per-finding context files (default: off — opt-in only).
     #[arg(long)]
+    pub export_context: bool,
+
+    /// Write chunk files (default: off — opt-in only).
+    #[arg(long)]
+    pub export_chunks: bool,
+
+    /// Deprecated alias: context export is off by default.
+    #[arg(long, hide = true)]
     pub no_context: bool,
 
-    /// Do not write chunk files.
-    #[arg(long)]
+    /// Deprecated alias: chunk export is off by default.
+    #[arg(long, hide = true)]
     pub no_chunks: bool,
 
     /// Suppress the source snippet in text output.
     #[arg(long)]
     pub no_snippet: bool,
+
+    /// Emit compact SARIF (omit optional verbose fields). Independent of `--no-snippet`.
+    #[arg(long)]
+    pub sarif_compact: bool,
 
     /// Show canonical finding fingerprints in text output.
     #[arg(long)]
@@ -145,11 +159,11 @@ pub struct Cli {
     pub json_envelope: bool,
 
     /// Save current findings as the baseline and exit.
-    #[arg(long)]
+    #[arg(long, conflicts_with = "no_baseline")]
     pub baseline: bool,
 
     /// Ignore any existing `.codehound-baseline.json` file.
-    #[arg(long)]
+    #[arg(long, conflicts_with = "baseline")]
     pub no_baseline: bool,
 
     /// Report findings suppressed by codehound-ignore comments.

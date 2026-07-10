@@ -10,7 +10,7 @@ expression: s
         {
           "executionSuccessful": true,
           "workingDirectory": {
-            "uri": "."
+            "uri": "<cwd>"
           }
         }
       ],
@@ -19,13 +19,13 @@ expression: s
           "level": "error",
           "locations": [
             {
-              "physical_location": {
-                "artifact_location": {
+              "physicalLocation": {
+                "artifactLocation": {
                   "uri": "a.go"
                 },
                 "region": {
-                  "start_column": 1,
-                  "start_line": 1
+                  "startColumn": 1,
+                  "startLine": 1
                 }
               }
             }
@@ -51,13 +51,13 @@ expression: s
           "level": "error",
           "locations": [
             {
-              "physical_location": {
-                "artifact_location": {
+              "physicalLocation": {
+                "artifactLocation": {
                   "uri": "b.go"
                 },
                 "region": {
-                  "start_column": 3,
-                  "start_line": 2
+                  "startColumn": 3,
+                  "startLine": 2
                 }
               }
             }
@@ -88,14 +88,14 @@ expression: s
             {
               "id": "CWE-22",
               "name": "Path traversal",
-              "short_description": {
+              "shortDescription": {
                 "text": "Path traversal"
               }
             },
             {
               "id": "CWE-89",
               "name": "SQL injection",
-              "short_description": {
+              "shortDescription": {
                 "text": "SQL injection"
               }
             }

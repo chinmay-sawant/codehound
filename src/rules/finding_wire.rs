@@ -3,8 +3,11 @@
 //! `String`s. The cache writes this struct and converts back to
 //! [`Finding`] on read.
 //!
-//! ponytail: Needed because CweRef has &'static str fields (can't Deserialize).
-//! The leak-to-static pattern is acceptable — bounded working set per cache load.
+//! Strings are interned (one leak per unique value) so cache churn does
+//! not grow RSS unbounded.
+
+use std::collections::HashMap;
+use std::sync::{Mutex, OnceLock};
 
 use serde::{Deserialize, Serialize};
 
@@ -13,16 +16,27 @@ use crate::cwe::CweRef;
 use super::finding::Finding;
 use super::finding_view::FindingView;
 
+/// Intern a string into process-lifetime storage, reusing prior entries.
+/// Bounds leak growth to unique strings (rule IDs, titles, CWE names/URLs).
+fn intern_str(s: String) -> &'static str {
+    static TABLE: OnceLock<Mutex<HashMap<String, &'static str>>> = OnceLock::new();
+    let table = TABLE.get_or_init(|| Mutex::new(HashMap::new()));
+    let mut guard = match table.lock() {
+        Ok(g) => g,
+        Err(poisoned) => poisoned.into_inner(),
+    };
+    if let Some(&existing) = guard.get(&s) {
+        return existing;
+    }
+    let leaked: &'static str = Box::leak(s.clone().into_boxed_str());
+    guard.insert(s, leaked);
+    leaked
+}
+
 /// Owned CWE reference used during deserialization. [`CweRef`] holds
 /// `&'static str` so it cannot be `Deserialize` directly; this mirror
 /// owns its strings and is converted back into `CweRef` when the cache
 /// loads a finding.
-///
-/// Only the fields the cache actually needs are preserved. We leak the
-/// strings into `'static` storage so the resulting `CweRef` is valid for
-/// the rest of the process. This is acceptable for the cache use case
-/// because the working set is bounded by the number of unique CWE IDs
-/// across all cache entries — typically a few hundred.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct OwnedCweRef {
     id: u32,
@@ -34,8 +48,8 @@ impl OwnedCweRef {
     fn into_static(self) -> CweRef {
         CweRef {
             id: self.id,
-            name: Box::leak(self.name.into_boxed_str()),
-            url: Box::leak(self.url.into_boxed_str()),
+            name: intern_str(self.name),
+            url: intern_str(self.url),
         }
     }
 }
@@ -142,9 +156,7 @@ impl FindingWire {
 }
 
 impl FindingWire {
-    /// Convert back to [`Finding`], leaking the CWE strings into
-    /// `'static` storage. See [`OwnedCweRef`] for why this is acceptable
-    /// for the cache use case.
+    /// Convert back to [`Finding`], interning rule id/title and CWE strings.
     pub fn into_finding(self) -> Finding {
         let FindingWire {
             rule_id,
@@ -171,8 +183,8 @@ impl FindingWire {
             suppressed,
             remediation,
         } = self;
-        let rule_id_static = Box::leak(rule_id.into_boxed_str());
-        let rule_title_static = Box::leak(rule_title.into_boxed_str());
+        let rule_id_static = intern_str(rule_id);
+        let rule_title_static = intern_str(rule_title);
         let cwe = if cwe.is_empty() {
             None
         } else {
