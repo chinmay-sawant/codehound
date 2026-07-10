@@ -36,10 +36,10 @@ pub fn detect_cwe_89_taint(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec
             continue;
         };
 
-        // ponytail: parameterized queries (literal SQL string as first arg)
-        // are safe. Only flag when the SQL string is dynamically constructed.
-        // Upgrade: trace which argument carries the taint through the graph
-        // edge labels instead of source scanning.
+        // Parameterized queries (literal SQL string as first arg) are treated
+        // as safe. This is a *heuristic*, not full SQLi analysis — GORM/sqlx
+        // string-concat shapes still fire when the SQL arg is dynamic.
+        // Upgrade: trace which argument carries the taint via edge labels.
         if is_parameterized_query(source, sink_range) {
             continue;
         }
@@ -50,7 +50,7 @@ pub fn detect_cwe_89_taint(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec
             file,
             line,
             col,
-            "user-controlled input reaches an SQL execution sink",
+            "user-controlled input reaches an SQL execution sink (heuristic; not full SQLi coverage)",
             DetectorEvidence::TaintFlow {
                 source: source_info(graph, &path),
                 sink: TaintSinkInfo::new("SQLQuery", sink_fn.to_string()),

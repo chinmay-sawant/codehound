@@ -7,9 +7,9 @@
 CodeHound is a fast, opinionated analyzer that **complements** golangci-lint,
 staticcheck, and govulncheck — it targets what they don't see:
 
-- **PERF** — 224 rules across 60+ detectors: regex-in-loops, `fmt.Sprintf` on hot paths, defer in tight loops, `http.ServeFile` body leaks, request-path allocation thrash. See [`docs/perf-rules.md`](./docs/perf-rules.md).
+- **PERF** — 239 rules: regex-in-loops, `fmt.Sprintf` on hot paths, defer in tight loops, `http.ServeFile` body leaks, request-path allocation thrash. See [`docs/perf-rules.md`](./docs/perf-rules.md). Counts come from the live registry (`codehound --list-rules`).
 - **Framework footguns** — Gin/Echo/GORM/sqlx aware: unclosed response bodies, unbounded query rows, missing timeouts, context leaks.
-- **CWE heuristics** — 175+ fixture-backed entries for file I/O, SQL injection, command injection, link resolution, and config sinks. Auto-generated from a central sink registry.
+- **CWE heuristics** — 175 fixture-backed entries for file I/O, SQL injection, command injection, link resolution, and config sinks.
 - **Bad practices** — 65 rules across error handling, concurrency, testing, API design, and prod hardening.
 - **Taint tracking (experimental)** — intra-procedural for CWE-22/78/79/89. Name-string based; not security-grade — use for triage, not hard gating.
 

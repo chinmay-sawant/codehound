@@ -64,7 +64,7 @@ codehound --format sarif ./... > out.sarif
 Or compact (one line, no indentation) for machine consumers:
 
 ```sh
-codehound --format sarif --no-snippet ./... | jq > out.sarif
+codehound --format sarif --sarif-compact ./... | jq > out.sarif
 ```
 
 The output conforms to
@@ -83,16 +83,19 @@ and includes:
 | `runs[0].tool.driver.rules[]`                      | sorted alphabetically by id |
 | `runs[0].invocations[0].executionSuccessful`       | `true` if no per-file errors |
 | `runs[0].invocations[0].endTimeUtc`                | ISO 8601 UTC at scan end |
-| `runs[0].invocations[0].workingDirectory.uri`      | `.` |
+| `runs[0].invocations[0].workingDirectory.uri`      | process CWD (absolute when available) |
+| `runs[0].tool.driver.rules[].shortDescription`     | rule title |
+| `runs[0].tool.driver.rules[].fullDescription`      | rule title (same when longer text unavailable) |
+| `runs[0].tool.driver.rules[].helpUri`              | CWE definition URL when the finding carries CWE refs |
 | `runs[0].results[].ruleId`                         | rule id |
 | `runs[0].results[].ruleIndex`                      | index into the `rules` array |
 | `runs[0].results[].level`                          | `note` / `warning` / `error` |
 | `runs[0].results[].message.text`                   | detector message |
 | `runs[0].results[].locations[].physicalLocation.artifactLocation.uri` | file path |
-| `runs[0].results[].locations[].physicalLocation.region.startLine`/`startColumn` | 1-indexed |
+| `runs[0].results[].locations[].physicalLocation.region.startLine`/`startColumn` | 1-indexed camelCase SARIF 2.1.0 |
 | `runs[0].results[].partialFingerprints["codehound/v1"]` | stable fingerprint (`codehound:1:<rule>:<file>:<line>:<col>`) |
 | `runs[0].results[].properties.tags`                | `["security", "cwe", "cwe-22", ...]` |
-| `runs[0].results[].properties.security-severity`   | `0.0`/`4.0`/`7.0`/`9.0` |
+| `runs[0].results[].properties.security-severity`   | info `0.0` / low `2.0` / medium `5.0` / high `7.5` / critical `9.5` (BP pack fixed `5.0`) |
 | `runs[0].results[].rank`                           | confidence × 100 (only when `confidence` is set) |
 | `runs[0].results[].suppressions[].kind`            | `"external"` when the finding is suppressed |
 | `runs[0].results[].properties.codehoundEvidence`   | full structured detector evidence as JSON |

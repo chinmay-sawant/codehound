@@ -7,5 +7,5 @@ mod init_cmd;
 mod rule_info;
 mod run;
 
-pub use exit_codes::EXIT_CONFIG;
+pub use exit_codes::{EXIT_CONFIG, exit_code_for_error};
 pub use run::run;

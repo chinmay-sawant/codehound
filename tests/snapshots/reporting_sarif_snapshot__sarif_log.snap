@@ -86,6 +86,9 @@ expression: s
           "name": "codehound",
           "rules": [
             {
+              "fullDescription": {
+                "text": "Path traversal"
+              },
               "id": "CWE-22",
               "name": "Path traversal",
               "shortDescription": {
@@ -93,6 +96,9 @@ expression: s
               }
             },
             {
+              "fullDescription": {
+                "text": "SQL injection"
+              },
               "id": "CWE-89",
               "name": "SQL injection",
               "shortDescription": {

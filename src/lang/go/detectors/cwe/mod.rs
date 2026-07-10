@@ -46,6 +46,16 @@ struct ProjectUnit {
     import_map: HashMap<String, String>,
 }
 
+/// Cross-file detector concurrency contract:
+///
+/// - `run(unit)` may execute in parallel across files (Rayon).
+/// - Shared state is protected by a `Mutex`; poison is recovered via
+///   `into_inner()` so an isolated detector panic does not hard-crash the CLI.
+/// - Prefer accumulating per-file data in `run`/`accumulate_state`, then
+///   merging in single-threaded `finalize(project)` for inter-file analysis.
+/// - Detectors must not assume exclusive access to global process state during
+///   `run`; write only through this detector's locked project state.
+///
 /// Shared state accumulated across all files in a scan.
 struct ProjectTaintState {
     units: Vec<ProjectUnit>,

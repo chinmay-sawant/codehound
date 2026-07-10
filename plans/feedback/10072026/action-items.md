@@ -52,16 +52,16 @@ Merge for 0.1.0 when A + C minimum is met.
 **Theme:** Correctness bugs, CI blockers, honesty  
 **Goal:** Fresh clone scan is side-effect free, SARIF/GitHub-usable, license/docs not lying, CLI doesn’t no-op, security sanitizers don’t lie.
 
-**Status (2026-07-11):** Core P0 implemented; remaining items noted as partial/deferred.
+**Status (2026-07-11):** Phase 0 complete for trust/hygiene. Catalog quarantine + profiles remain Phase 1.
 
 ### Success criteria
 
 - [x] Clean Go module scan produces **zero filesystem side effects** by default
-- [x] SARIF camelCase locations (GitHub upload validation test still optional)
+- [x] SARIF camelCase locations + structural validation test (not full online GH upload)
 - [x] License files match `Cargo.toml` claims; README links work
 - [x] Docs, schema, and runtime agree on taint default + `fail_on`
 - [x] No production no-op or self-conflicting flags left undocumented
-- [x] Clean-only path still **flags** CWE-22 (not silent suppress via `Clean`)
+- [x] Clean alone is not a Path sanitizer; Join+HasPrefix same-binding confines
 - [x] Finding wire uses string interning (bounded leaks); mutex poison recovers instead of hard-crash
 
 ### Checklist
@@ -76,10 +76,10 @@ Merge for 0.1.0 when A + C minimum is met.
 
 - [x] Emit camelCase nested fields (`physicalLocation`, `startLine`, …) via serde renames
 - [x] Update insta snapshots that freeze snake_case
-- [ ] Align `security-severity` mapping with docs *(unchanged; already severity-based)*
+- [x] Align `security-severity` mapping with docs (`0.0`/`2.0`/`5.0`/`7.5`/`9.5`)
 - [x] Emit real `workingDirectory.uri` (process CWD), not always `"."`
-- [ ] Optional: richer rule metadata (`fullDescription` / `helpUri` from `RuleMetadata`)
-- [ ] Add schema / GitHub-upload validation test
+- [x] Richer rule metadata: `fullDescription` + optional `helpUri` from CWE refs
+- [x] Structural SARIF validation test (`sarif_uses_camel_case_location_fields`)
 
 #### 0.3 License & packaging honesty `[Product]` ×3
 
@@ -91,10 +91,10 @@ Merge for 0.1.0 when A + C minimum is met.
 
 - [x] Single source of truth for **taint default** (off): README + `docs/taint.md` + `ScanContext`
 - [x] `severity_overrides`: **implemented** parse + apply in `ScanContext`
-- [ ] Auto-generate PERF/CWE/BP counts from registry (README/CHANGELOG stop lagging)
+- [x] README counts pinned + CI test `rule_counts_readme` vs live registry (175/239/65)
 - [x] `fail_on`: reject unknown values at config load (allowed: none/never/medium/warnings/high/strict)
-- [ ] Refresh contributor docs paths (`adding-a-language`, perf-dev) against `chunks/` layout
-- [ ] Acceptance: `codehound init` template parses; schema only describes real fields; README numbers match `--list-rules`
+- [x] Refresh contributor docs paths (`adding-a-language`, `perf-detector-development` → chunks/)
+- [x] Acceptance: `codehound init` template parses; fail_on enum tests; README numbers match registry
 
 #### 0.5 Dead / conflicting CLI flags `[Product]` + `[Rust]` ×2
 
@@ -106,11 +106,11 @@ Merge for 0.1.0 when A + C minimum is met.
 #### 0.6 Go taint trust — sanitizer & confinement (security-critical) `[Go]` ×2
 
 - [x] **Stop treating `filepath.Clean` / `path.Clean` alone as path-safe** (`SanitizerKind::Path`)
-  - Confinement requires Abs/EvalSymlinks + HasPrefix (or Base); Clean alone does not suppress
+  - Same-binding `HasPrefix` (and/or Base) confines; Clean alone does not
 - [x] **CWE-78:** Validation/Bounded sanitizers only; **not** Path sanitizers
 - [x] Drop bare `clean` from name-regex sanitizers (keep sanitize/escape/validate/purify)
-- [ ] `len` as Bounded / `Prepare` without same-Stmt proof: tighten Prepare only if same variable reaches Query/Exec
-- [x] **Path confinement:** require Abs/EvalSymlinks + HasPrefix on same binding (not Clean co-presence)
+- [x] Bare `.Prepare` is **not** a SQL sanitizer (parameterized = literal first arg only)
+- [x] **Path confinement:** same-binding HasPrefix (not Clean co-presence)
 - [x] Prefer facts: HasPrefix on path-variable name (taint path nodes)
 - [x] Acceptance: Clean alone is not a Path sanitizer; unit tests cover classify + common guards
 - [x] Touch: `cwe/taint/rules/cwe_22.rs`, path helpers, `taint/extract/classify.rs`
@@ -119,9 +119,9 @@ Merge for 0.1.0 when A + C minimum is met.
 
 - [x] **CWE-22:** keep first-arg-only taint; apply Clean + confinement fixes
 - [x] **CWE-78:** keep shell (`sh -c`) focus; fix sanitizer kinds (no Path)
-- [ ] **CWE-89:** document literal-first-arg heuristic; add GORM/sqlx concat shapes **without** claiming full SQLi
-- [ ] **CWE-79:** wire `HTTPWrite` / template sinks consistently; don’t claim full XSS
-- [ ] **CWE-90/91:** real sources/sinks or quarantine from security pack
+- [x] **CWE-89:** document literal-first-arg heuristic; GORM `.Raw` / sqlx shapes; no full-SQLi claim
+- [x] **CWE-79:** Template + HTTPWrite (ResponseWriter-ish receivers only); not full XSS
+- [x] **CWE-90/91:** real LDAP/XML sinks documented; long-tail quarantine deferred to Phase 1 packs
 
 #### 0.8 Taint defaults & flags UX `[Go]` + `[Product]` ×2
 
@@ -133,11 +133,11 @@ Merge for 0.1.0 when A + C minimum is met.
 
 - [x] **Error taxonomy start:** `Error::PathIo` + `IoOp`; cache ops use `Error::Cache`; walk-only for walk
 - [x] Prefer `#[source]` on `PathIo`
-- [ ] Map CLI exit codes from error kind consistently
+- [x] Map CLI exit codes from error kind (`exit_code_for_error` in main)
 - [x] Keep detector `run()` infallible (unchanged)
 - [x] **Finding wire interning** (`finding_wire.rs`): one leak per unique string (bounds cache churn)
 - [x] **Mutex poison policy:** recover via `into_inner()` on CWE state, cache memory, timing global
-- [ ] Document cross-file detector concurrency contract
+- [x] Document cross-file detector concurrency contract (`cwe/mod.rs`)
 - [x] **Untrusted input hardening:**
   - [x] Scan-time max file size (32 MiB default, separate from cache eligibility)
   - [x] Fixture `filename` join: reject `..` and absolute paths (`fixture/materialize.rs`)

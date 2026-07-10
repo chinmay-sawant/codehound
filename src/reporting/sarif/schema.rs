@@ -61,6 +61,10 @@ pub struct SarifRule<'a> {
     pub name: &'a str,
     #[serde(rename = "shortDescription")]
     pub short_description: SarifText<'a>,
+    #[serde(rename = "fullDescription", skip_serializing_if = "Option::is_none")]
+    pub full_description: Option<SarifText<'a>>,
+    #[serde(rename = "helpUri", skip_serializing_if = "Option::is_none")]
+    pub help_uri: Option<&'a str>,
 }
 
 #[derive(Serialize)]

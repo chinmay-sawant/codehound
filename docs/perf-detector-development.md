@@ -5,30 +5,31 @@
 ## Architecture Overview
 
 ```
-ruleset/golang/golang.json  ──→  build.rs  ──→  go_perf_metadata.rs (generated)
-                                    │
-src/lang/go/detectors/perf/         │
-  registry/*.toml        ────────→  │  ──→  go_perf_registry.rs (generated)
-  dispatch.rs            ←──────────┘
-  domains/*.rs           ←── implements detect_perf_NNN
-  facts.rs               ←── GoPerfFacts + PerfSourceIndex pre-filter
+ruleset/golang/chunks/perf-*.json  ──→  build.rs  ──→  go_perf_metadata.rs (generated)
+                                          │
+src/lang/go/detectors/perf/               │
+  registry/*.toml              ────────→  │  ──→  go_perf_registry.rs (generated)
+  mod.rs / domains/            ←──────────┘
+  domains/**/*.rs              ←── implements detect_perf_NNN
+  facts/                       ←── GoPerfFacts + PerfSourceIndex pre-filter
 ```
 
 Each PERF rule has three things:
 
-1. **JSON metadata entry** in `ruleset/golang/golang.json` (id, name, description, severity, etc.)
+1. **JSON metadata entry** in `ruleset/golang/chunks/perf-*.json` (id, name, description, severity, etc.)
 2. **Registry TOML entry** in `src/lang/go/detectors/perf/registry/registry.{domain}.toml` (wires rule → implementation)
-3. **Detector function** in `src/lang/go/detectors/perf/domains/{domain}.rs` (the actual detection logic)
+3. **Detector function** under `src/lang/go/detectors/perf/domains/` (the actual detection logic)
 
 `build.rs` reads both sources and generates:
-- `go_perf_metadata.rs` — `META_PERF_N` constants from `golang.json`
+- `go_perf_metadata.rs` — `META_PERF_N` constants from the chunk JSON files
 - `go_perf_registry.rs` — dispatch table mapping perf IDs to `detect_perf_N` function pointers
 
 ## Adding a New PERF Rule
 
 ### Step 1: Add JSON metadata
 
-Add an entry to the appropriate section in `ruleset/golang/golang.json`:
+Add an entry to the appropriate chunk under `ruleset/golang/chunks/perf-*.json`
+(or create a new chunk file if the id range needs one):
 
 ```json
 {
@@ -127,7 +128,7 @@ pub(crate) fn detect_perf_213(
 cargo build
 ```
 
-`build.rs` reads all `registry.*.toml` files and `golang.json`, then:
+`build.rs` reads all `registry.*.toml` files and `ruleset/golang/chunks/perf-*.json`, then:
 1. Generates `META_PERF_213` from the JSON metadata
 2. Wires `PERF-213 → detect_perf_213` in the dispatch table
 3. Both generated files land in `$OUT_DIR` and are `include!`-ed
@@ -268,9 +269,9 @@ If the new rule doesn't fit any existing domain:
 ## Developer Workflow Summary
 
 ```bash
-# 1. Edit golang.json for metadata (if new rule id)
+# 1. Edit ruleset/golang/chunks/perf-*.json for metadata (if new rule id)
 # 2. Add registry entry in registry/{domain}.toml
-# 3. Implement detector in domains/{domain}.rs
+# 3. Implement detector in domains/{domain}/
 # 4. Create fixture pair in tests/fixtures/go/perf/
 # 5. Register fixture in tests/fixtures/manifest.toml
 # 6. cargo build          # regenerate dispatch + metadata

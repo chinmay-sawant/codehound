@@ -73,6 +73,44 @@ fn results_have_security_severity_in_properties() {
     let log = render_to_string(&sample_result()).expect("render SARIF");
     assert!(log.contains("\"security-severity\""), "got: {log}");
     assert!(log.contains("\"tags\""), "got: {log}");
+    // Severity mapping: High → 7.5, Critical → 9.5 (aligned with docs/output-formats.md)
+    assert!(log.contains("\"7.5\""), "expected high security-severity 7.5, got: {log}");
+    assert!(log.contains("\"9.5\""), "expected critical security-severity 9.5, got: {log}");
+}
+
+/// Structural SARIF 2.1.0 shape checks (camelCase locations, required fields).
+/// Not a full JSON Schema download — validates the GitHub Code Scanning–critical keys.
+#[test]
+fn sarif_uses_camel_case_location_fields() {
+    let log = render_to_string(&sample_result()).expect("render SARIF");
+    let v: serde_json::Value = serde_json::from_str(&log).expect("valid JSON");
+    assert_eq!(v["version"], "2.1.0");
+    assert!(v["$schema"].as_str().unwrap_or("").contains("sarif-2.1.0"));
+
+    let run = &v["runs"][0];
+    let loc = &run["results"][0]["locations"][0]["physicalLocation"];
+    assert!(
+        loc.get("artifactLocation").is_some(),
+        "expected physicalLocation.artifactLocation camelCase, got: {loc}"
+    );
+    assert!(
+        loc["region"].get("startLine").is_some(),
+        "expected region.startLine camelCase, got: {loc}"
+    );
+    assert!(
+        loc["region"].get("startColumn").is_some(),
+        "expected region.startColumn camelCase, got: {loc}"
+    );
+    // Snake_case must not appear on nested location fields.
+    assert!(loc.get("artifact_location").is_none());
+    assert!(loc["region"].get("start_line").is_none());
+
+    let rule = &run["tool"]["driver"]["rules"][0];
+    assert!(rule.get("shortDescription").is_some());
+    assert!(rule.get("fullDescription").is_some());
+
+    let wd = &run["invocations"][0]["workingDirectory"]["uri"];
+    assert!(wd.is_string() && !wd.as_str().unwrap_or("").is_empty());
 }
 
 #[test]

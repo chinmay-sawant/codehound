@@ -15,39 +15,54 @@ pub fn detect_cwe_79_taint(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec
     };
     let file = unit.display_path.as_str();
 
-    let paths = find_taint_paths(
-        graph,
-        SourceKind::UserInput,
-        SinkKind::Template,
-        &[SanitizerKind::HTML],
-    );
-
-    for path in paths {
-        if path.sanitized {
-            continue;
-        }
-        let Some(TaintNode::Sink {
-            function: sink_fn,
-            byte_range: sink_range,
-            ..
-        }) = graph.nodes.get(path.sink_id)
-        else {
-            continue;
-        };
-        let (line, col) = unit.line_col(sink_range.start);
-        emit::push_finding_with_evidence(
-            &META_CWE_79,
-            file,
-            line,
-            col,
+    // Template sinks (html/template.Execute*) and HTTP write sinks (w.Write,
+    // fmt.Fprintf). Not full XSS coverage — no DOM, no framework auto-escape model.
+    for (sink_kind, sink_label, message) in [
+        (
+            SinkKind::Template,
+            "Template",
             "user-controlled input reaches a template execution sink without HTML escaping",
-            DetectorEvidence::TaintFlow {
-                source: source_info(graph, &path),
-                sink: TaintSinkInfo::new("Template", sink_fn.to_string()),
-                hops: path.node_ids.len().saturating_sub(1),
-                sanitized: false,
-            },
-            out,
+        ),
+        (
+            SinkKind::HTTPWrite,
+            "HTTPWrite",
+            "user-controlled input reaches an HTTP write sink without HTML escaping",
+        ),
+    ] {
+        let paths = find_taint_paths(
+            graph,
+            SourceKind::UserInput,
+            sink_kind,
+            &[SanitizerKind::HTML],
         );
+
+        for path in paths {
+            if path.sanitized {
+                continue;
+            }
+            let Some(TaintNode::Sink {
+                function: sink_fn,
+                byte_range: sink_range,
+                ..
+            }) = graph.nodes.get(path.sink_id)
+            else {
+                continue;
+            };
+            let (line, col) = unit.line_col(sink_range.start);
+            emit::push_finding_with_evidence(
+                &META_CWE_79,
+                file,
+                line,
+                col,
+                message,
+                DetectorEvidence::TaintFlow {
+                    source: source_info(graph, &path),
+                    sink: TaintSinkInfo::new(sink_label, sink_fn.to_string()),
+                    hops: path.node_ids.len().saturating_sub(1),
+                    sanitized: false,
+                },
+                out,
+            );
+        }
     }
 }

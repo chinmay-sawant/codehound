@@ -34,16 +34,15 @@ pub fn is_path_confined(
     source: &str,
     assignment: &facts::AssignmentFact,
 ) -> bool {
-    // filepath.Clean alone is NOT confinement — it does not root a path.
-    // Accept: Base (final component only), or Abs/EvalSymlinks + HasPrefix on
-    // the same binding (canonical + prefix guard).
+    // filepath.Clean alone is NOT confinement.
+    // Accept: Base (final component only), or HasPrefix on the same binding
+    // (optionally with Abs/EvalSymlinks / Join under a root).
     if assignment.expr.contains("filepath.Base(") {
         return true;
     }
-    if assignment.expr.contains("filepath.Abs(")
-        || assignment.expr.contains("filepath.EvalSymlinks(")
-    {
-        return has_canonical_path_guard(index, source, &assignment.name);
+    // Same-binding HasPrefix is the confinement evidence.
+    if has_canonical_path_guard(index, source, &assignment.name) {
+        return true;
     }
     false
 }

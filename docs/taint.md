@@ -53,7 +53,7 @@ paths to recognized sources.
 | `Path` | `filepath.Base()` only (strips to final component). **`filepath.Clean` / `path.Clean` alone are not path-safe** and are not treated as sanitizers. |
 | `HTML` | `html.EscapeString()`, `template.HTMLEscaper()` |
 | `URL` | `url.QueryEscape()`, `url.PathEscape()` |
-| `SQL` | `(*sql.DB).Prepare()` + `(*sql.Stmt).Query/Exec` (same variable must reach Query/Exec) |
+| `SQL` | **Not** bare `.Prepare` (dynamic Prepare is still injectable). Safe path today: **literal** first arg at Query/Exec (parameterized query heuristic). |
 | `Validation` | `strconv.Atoi()`, `strconv.ParseInt()`, allowlist-style `sanitize*` / `escape*` / `validate*` helpers |
 | `Bounded` | `len` (weak; prefer explicit validation) |
 
@@ -70,6 +70,14 @@ accept Path sanitizers.
 
 - **`filepath.Clean` is not a path sanitizer.** Clean-only code should still
   flag CWE-22 (or show low confidence in a future release).
+- **CWE-89 is a heuristic, not full SQLi.** Literal-first-arg Query/Exec is
+  treated as parameterized/safe; GORM `.Raw` / sqlx helpers with dynamic SQL
+  still fire. No claim of complete ORM coverage.
+- **CWE-79 is not full XSS.** Template + HTTPWrite sinks only; no DOM model.
+- **CWE-90/91** use real LDAP/XML sink classification; quarantine long-tail
+  CWE IDs that only match fixture needles (catalog honesty — Phase 1).
+- **Bare `.Prepare` is not a sanitizer.** Same-stmt Prepare→Stmt.Query proof
+  is not implemented; do not rely on Prepare alone to silence CWE-89.
 - **Inter-procedural tracking is depth-limited.** Cross-function analysis
   works for direct chains (A→B→C), return propagation, method calls, and
   recursion, but does not iterate to a fixed point. Mutual recursion and

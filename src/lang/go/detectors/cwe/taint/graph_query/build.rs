@@ -349,24 +349,21 @@ fn is_source_or_sanitizer_assignment(rhs: &str) -> bool {
     if is_source {
         return true;
     }
-    let is_sanitizer = call_name == "filepath.Clean"
-        || call_name == "path.Clean"
-        || call_name == "filepath.Base"
+    // Align with classify_sanitizer: Clean/Prepare are not path/SQL safe alone.
+    let is_sanitizer = call_name == "filepath.Base"
         || call_name == "html.EscapeString"
         || call_name == "html.UnescapeString"
         || call_name == "url.QueryEscape"
         || call_name == "url.PathEscape"
         || call_name == "ldap.EscapeFilter"
         || call_name == "xml.EscapeText"
-        || call_name == "xml.Marshal"
-        || call_name.ends_with(".Prepare");
+        || call_name == "xml.Marshal";
     if is_sanitizer {
         return true;
     }
     if let Some(name) = call_name.rsplit('.').next() {
         let lower = name.to_lowercase();
         if lower.starts_with("sanitize")
-            || lower.starts_with("clean")
             || lower.starts_with("escape")
             || lower.starts_with("validate")
             || lower.starts_with("purify")

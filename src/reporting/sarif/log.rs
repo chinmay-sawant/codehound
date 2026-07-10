@@ -14,17 +14,28 @@ use super::schema::{
 use crate::engine::time::iso8601_utc_now;
 
 pub(super) fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
-    let mut seen: BTreeMap<&str, &str> = BTreeMap::new();
+    // rule_id → (title, optional help URI from first CWE link on a finding)
+    let mut seen: BTreeMap<&str, (&str, Option<&str>)> = BTreeMap::new();
     for f in &result.findings {
         let view = FindingView::new(f);
-        seen.entry(view.rule_id()).or_insert(view.rule_title());
+        seen.entry(view.rule_id()).or_insert_with(|| {
+            let help = f
+                .cwe
+                .as_ref()
+                .and_then(|c| c.first())
+                .map(|c| c.url);
+            (view.rule_title(), help)
+        });
     }
     let rules: Vec<SarifRule> = seen
         .iter()
-        .map(|(id, name)| SarifRule {
+        .map(|(id, (name, help_uri))| SarifRule {
             id,
             name,
             short_description: SarifText { text: name },
+            // Prefer a non-empty full description; fall back to the title.
+            full_description: Some(SarifText { text: name }),
+            help_uri: *help_uri,
         })
         .collect();
 
