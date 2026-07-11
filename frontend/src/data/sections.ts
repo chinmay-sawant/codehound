@@ -3,7 +3,7 @@ import {
   HelpCircle, BarChart3, Sparkles, GitCompare, ShieldAlert,
   FileOutput, Coins, Blocks, Route, Monitor, Download, FolderGit2,
   FolderOutput, Bot, ListChecks, ClipboardList, Hash, Bookmark,
-  RefreshCw, Terminal, Gauge, Users,
+  RefreshCw, Terminal, Gauge, Users, Scale,
 } from 'lucide-react'
 import type { FlowDiagram } from '../components/WorkflowDiagram'
 
@@ -156,19 +156,21 @@ export const sections: Section[] = [
     id: 'audience',
     nav: 'Who for',
     icon: Users,
-    title: 'Who is this for',
+    title: 'Who this is built for',
     lead:
-      'Cloud AI is subsidized today. This tool is for hobby and small-scale projects that need some optimization — and a deadline — not an SRE org.',
+      'Hobby and small-scale Go projects that want less slop, clearer architecture, and real bad-practice coverage — after your normal linters, not instead of them.',
     facts: [
       { k: 'Built for', v: 'Hobby projects, side services, small Go codebases' },
-      { k: 'You need', v: 'Some PERF / footgun coverage, not enterprise-grade optimization' },
-      { k: 'Constraint', v: 'Ship on a timeline — not weeks of open-ended agent loops' },
-      { k: 'Origin', v: 'Personal use first — a checklist that runs offline for $0' },
+      { k: 'Run after', v: 'golangci-lint, staticcheck, and the rest of your Go CI — CodeHound is a complement' },
+      { k: 'Language (now)', v: 'Go-first production rules; not a multi-lang platform yet' },
+      { k: 'Instead of skills', v: 'Deterministic PERF, BP, and footgun checks — same answer every run' },
     ],
     body: [
       'We all know the current ChatGPT / cloud subscription model is heavily **subsidized**. That will not last forever — and even while it does, unbounded agent review still burns days and dollars.',
-      'CodeHound is targeted at **hobby projects** and **small-scale work**: places where you do not need that much optimization, but you might need *some*, and delivery time matters. It was built for personal use under those constraints.',
-      'If you need full CodeQL / org-wide security platform coverage, use those tools. If you want a fast, deterministic PERF + footgun pass you can optionally hand to a cheap model with a fixed token budget — this is the software for that.',
+      '**Who this is built for:** hobby projects and **small-scale** work where you do not need enterprise-grade optimization, but you still want *some* PERF discipline, cleaner architecture, and less **slop** in the tree — under a real delivery deadline. It was built for personal use under those constraints.',
+      '**When to run it:** after your existing Go CI and linters (**golangci-lint**, staticcheck, govulncheck, and whatever else you already trust). CodeHound targets hot-path PERF, framework footguns, and **bad practices** those tools often miss — it does not replace them.',
+      'Anyone who wants less agent-shaped mess, proper architecture habits, or a concrete **bad-practices** catalog can use this instead of (or before) open-ended skills: rules with IDs, files, and lines — not a vibe that drifts every pass. Optional agent triage stays bounded; the checklist does not.',
+      'If you need full CodeQL / org-wide security platform coverage, use those tools. If you want a fast, deterministic pass for a side project or small Go service — with optional cheap-model triage — this is for you.',
     ],
   },
   {
@@ -232,6 +234,26 @@ export const sections: Section[] = [
       'By default CodeHound writes numbered context files to **./scripts/findings/functions/** and batched review chunks to **./scripts/chunks/**. Point your agent at those paths — it can classify false positives, propose fixes, and follow a checklist you write.',
       'You keep full control: which findings are real, which are noise, which get fixed now. When **60** of **100** are resolved and **40** remain, run with **--baseline** so those **40** become accepted debt. The next scan only reports regressions and new hits.',
       'Add a **make codehound** target beside your other linters. The agent handles remediation from the exported chunks; you only step in for the review calls you actually want.',
+    ],
+  },
+  {
+    id: 'your-call',
+    nav: 'Your call',
+    icon: Scale,
+    title: 'Findings are automatic. Architecture is yours.',
+    lead:
+      'CodeHound reports what the rules match. You decide what ships — including whether a fix is safe, wrong, or a breaking change.',
+    facts: [
+      { k: 'Analysis owns', v: 'Finding the issue — rule ID, file, line, snippet' },
+      { k: 'You own', v: 'Architectural decisions: fix, defer, redesign, or ignore' },
+      { k: 'Before you apply', v: 'Read the surrounding code; do not rubber-stamp agent patches' },
+      { k: 'Safety net', v: 'Solid tests — remediations can break behavior on purpose or by accident' },
+    ],
+    body: [
+      'The analyzer does the **code findings**. The **final architectural decision** is yours alone. A PERF hit or CWE heuristic is a signal, not a mandate to merge whatever an agent proposes next.',
+      'You need to **understand the code** before changing it. Agents (and fix hints) can suggest refactors that are correct for the rule and wrong for your system — public API breaks, subtle behavior shifts, or "optimizations" that trade correctness for speed.',
+      '**Proper tests are non-negotiable.** There is a real chance remediation breaks something, or that an agent asks for a breaking change. Tests, review, and your judgment are how you catch that. CodeHound will not run your suite or sign off on design.',
+      'Use the exported reports as a checklist. Ship only what you have read, understood, and covered — not everything the scan (or the model) printed.',
     ],
   },
   {

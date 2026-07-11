@@ -23,7 +23,7 @@ npm run lint   # oxlint
 | Path | What |
 |---|---|
 | `src/App.tsx` | Hero section, stat bar, section renderer, footer |
-| `src/data/sections.ts` | All marketing content — 10 sections as data |
+| `src/data/sections.ts` | All marketing content — 11 sections as data |
 | `src/components/Sidebar.tsx` | Scroll-spy sidebar nav |
 | `src/components/Section.tsx` | Generic section renderer |
 | `src/styles/global.css` | Dark-first, amber-accented theme, layout |
