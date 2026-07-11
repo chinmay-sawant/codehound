@@ -11,4 +11,10 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    // Emit into repo-root docs/ (GitHub Pages source folder).
+    outDir: path.resolve(__dirname, '../docs'),
+    // Wipe previous assets/html so only the latest build remains.
+    emptyOutDir: true,
+  },
 })

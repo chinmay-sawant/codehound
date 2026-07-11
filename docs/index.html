@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('codehound-theme') || localStorage.getItem('slopguard-theme')
+          if (t === 'light') document.documentElement.classList.remove('dark')
+          else document.documentElement.classList.add('dark')
+        } catch (e) {
+          document.documentElement.classList.add('dark')
+        }
+      })()
+    </script>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <title>CodeHound — Go PERF scanner + framework footgun detector</title>
+    <meta
+      name="description"
+      content="CodeHound: offline Go static analysis for performance hot-path regressions, framework footguns (Gin/Echo/GORM), bad practices, and curated CWE heuristics. Complements golangci-lint. Scan free; triage with Grok 4.5 for $3.85 or DeepSeek for $0.25."
+    />
+    <meta name="color-scheme" content="dark light" />
+    <script type="module" crossorigin src="/assets/index-BJ0jFPpF.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-B-ntgPOI.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

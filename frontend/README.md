@@ -21,9 +21,21 @@ or ink on paper (light). Everything is monospace. Content lives in
 
 ```sh
 npm run dev    # Vite dev server
-npm run build  # production build → dist/
+npm run build  # production build → ../docs/
 npm run lint   # oxlint
 ```
+
+## Production build
+
+`npm run build` typechecks, then runs Vite with output aimed at the **repo-root**
+`docs/` directory (one level up from `frontend/`).
+
+- If `docs/` already exists (previous `assets/`, `index.html`, fonts, etc.), Vite
+  **empties it first** (`emptyOutDir: true`), then writes only the latest build.
+- Result: `docs/` always reflects the most recent production build — no stale
+  hashed assets left behind.
+
+Configured in `vite.config.ts` (`build.outDir` → `../docs`).
 
 ## Structure
 
