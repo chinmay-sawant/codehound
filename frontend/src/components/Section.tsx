@@ -3,123 +3,156 @@ import { renderInlineMarkup } from '../lib/render-inline'
 import { WorkflowDiagram } from './WorkflowDiagram'
 import { useReveal } from '../hooks/useReveal'
 
-export function SectionView({ section }: { section: Section }) {
+export function SectionView({
+  section,
+  index,
+}: {
+  section: Section
+  index: number
+}) {
   const s = section
   const { ref, visible } = useReveal<HTMLElement>()
   const Icon = s.icon
+  const idx = String(index).padStart(2, '0')
+
+  const hasWide =
+    Boolean(s.tables?.length) || Boolean(s.flows?.length) || Boolean(s.code)
+  const hasSide = Boolean(s.facts?.length) || Boolean(s.stats?.length)
 
   return (
     <section
       id={s.id}
       ref={ref}
-      className={`section reveal${visible ? ' is-visible' : ''}`}
+      className={`section reveal${visible ? ' is-visible' : ''}${hasWide ? ' section-wide' : ''}`}
     >
-      <header className="section-head">
-        <div className="section-meta">
-          <span className="section-icon" aria-hidden="true">
-            <Icon size={14} strokeWidth={1.75} />
-          </span>
-          <span className="section-prompt">{`>${s.id}`}</span>
-        </div>
-        <h2 className="section-title">{s.title}</h2>
-      </header>
+      <div className="section-rail" aria-hidden="true">
+        <span className="section-rail-idx">{idx}</span>
+        <span className="section-rail-line" />
+        <span className="section-rail-id">{s.id}</span>
+      </div>
 
-      <p className={`section-lead${s.flows ? ' section-lead-wide' : ''}`}>{s.lead}</p>
+      <div className="section-main">
+        <header className="section-head">
+          <div className="section-meta">
+            <span className="section-icon" aria-hidden="true">
+              <Icon size={12} strokeWidth={1.75} />
+            </span>
+            <span className="section-prompt">
+              <span className="prompt-sym">$</span>
+              {s.id}
+            </span>
+          </div>
+          <h2 className="section-title">{s.title}</h2>
+          <p className="section-lead">{s.lead}</p>
+        </header>
 
-      {s.stats && (
-        <div className="stats">
-          {s.stats.map((st) => (
-            <div className="stat" key={st.label}>
-              <div className="stat-value">{st.value}</div>
-              <div className="stat-label">{st.label}</div>
-              {st.sub && <div className="stat-sub">{st.sub}</div>}
-            </div>
-          ))}
-        </div>
-      )}
+        {s.callout && (
+          <div className="callout">{renderInlineMarkup(s.callout)}</div>
+        )}
 
-      {s.facts && (
-        <dl className="facts">
-          {s.facts.map((f) => (
-            <div className="fact" key={f.k}>
-              <dt className="fact-k">{f.k}</dt>
-              <dd className="fact-v">{f.v}</dd>
-            </div>
-          ))}
-        </dl>
-      )}
-
-      {s.code && (
-        <div className="code">
-          <div className="code-label">{s.code.label}</div>
-          {s.code.before && (
-            <pre className="code-block code-before">
-              <code>{s.code.before}</code>
-            </pre>
-          )}
-          {s.code.after && (
-            <pre className="code-block code-after">
-              <code>{s.code.after}</code>
-            </pre>
-          )}
-          {s.code.body && (
-            <pre className="code-block">
-              <code>{s.code.body}</code>
-            </pre>
-          )}
-        </div>
-      )}
-
-      {s.flows && (
-        <div className="flow-grid">
-          {s.flows.map((flow) => (
-            <WorkflowDiagram key={flow.caption} diagram={flow} />
-          ))}
-        </div>
-      )}
-
-      {s.tables && (
-        <div className="table-stack">
-          {s.tables.map((table) => (
-            <figure className="data-table-wrap" key={table.caption}>
-              <figcaption className="data-table-caption">{table.caption}</figcaption>
-              <div className="data-table-scroll">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      {table.headers.map((h) => (
-                        <th key={h}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {table.rows.map((row, i) => (
-                      <tr
-                        key={i}
-                        className={table.highlightRow === i ? 'is-highlight' : undefined}
-                      >
-                        {row.map((cell, j) => (
-                          <td key={j}>{cell}</td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+        {s.stats && (
+          <div className="stats">
+            {s.stats.map((st) => (
+              <div className="stat" key={st.label}>
+                <div className="stat-value">{st.value}</div>
+                <div className="stat-label">{st.label}</div>
+                {st.sub && <div className="stat-sub">{st.sub}</div>}
               </div>
-            </figure>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
 
-      {s.body && (
-        <div className="section-body">
-          {s.body.map((p, i) => (
-            <p key={i} className="section-para">
-              {renderInlineMarkup(p)}
-            </p>
-          ))}
+        <div className={hasSide && s.body ? 'section-split' : undefined}>
+          <div className="section-primary">
+            {s.code && (
+              <div className="code">
+                <div className="code-label">{s.code.label}</div>
+                {s.code.before && (
+                  <pre className="code-block code-before">
+                    <code>{s.code.before}</code>
+                  </pre>
+                )}
+                {s.code.after && (
+                  <pre className="code-block code-after">
+                    <code>{s.code.after}</code>
+                  </pre>
+                )}
+                {s.code.body && (
+                  <pre className="code-block">
+                    <code>{s.code.body}</code>
+                  </pre>
+                )}
+              </div>
+            )}
+
+            {s.flows && (
+              <div className="flow-grid">
+                {s.flows.map((flow) => (
+                  <WorkflowDiagram key={flow.caption} diagram={flow} />
+                ))}
+              </div>
+            )}
+
+            {s.tables && (
+              <div className="table-stack">
+                {s.tables.map((table) => (
+                  <figure className="data-table-wrap" key={table.caption}>
+                    <figcaption className="data-table-caption">
+                      {table.caption}
+                    </figcaption>
+                    <div className="data-table-scroll">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            {table.headers.map((h) => (
+                              <th key={h}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {table.rows.map((row, i) => (
+                            <tr
+                              key={i}
+                              className={
+                                table.highlightRow === i ? 'is-highlight' : undefined
+                              }
+                            >
+                              {row.map((cell, j) => (
+                                <td key={j}>{cell}</td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </figure>
+                ))}
+              </div>
+            )}
+
+            {s.body && (
+              <div className="section-body">
+                {s.body.map((p, i) => (
+                  <p key={i} className="section-para">
+                    {renderInlineMarkup(p)}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {s.facts && (
+            <dl className="facts">
+              {s.facts.map((f) => (
+                <div className="fact" key={f.k}>
+                  <dt className="fact-k">{f.k}</dt>
+                  <dd className="fact-v">{f.v}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
         </div>
-      )}
+      </div>
     </section>
   )
 }

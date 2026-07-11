@@ -1,6 +1,6 @@
 # CodeHound — frontend
 
-Marketing site for [CodeHound](https://github.com/anomalyco/codehound): a Rust
+Marketing site for [CodeHound](https://github.com/chinmay-sawant/codehound): a Rust
 static analyzer for Go performance hot-path regressions, framework footguns,
 and curated CWE heuristics.
 
@@ -8,7 +8,14 @@ and curated CWE heuristics.
 
 - React 19 · TypeScript 6 · Vite 8
 - Tailwind CSS v4 · shadcn/ui (Button)
-- lucide-react icons · Inter + JetBrains Mono fonts
+- lucide-react icons
+- **Geist Mono** + JetBrains Mono (computer type, mono-first)
+
+## Design
+
+Flat terminal aesthetic. No gradients. Phosphor accent on near-black (dark)
+or ink on paper (light). Everything is monospace. Content lives in
+`src/data/sections.ts` — add a section, the nav and layout follow.
 
 ## Development
 
@@ -22,11 +29,11 @@ npm run lint   # oxlint
 
 | Path | What |
 |---|---|
-| `src/App.tsx` | Hero section, stat bar, section renderer, footer |
-| `src/data/sections.ts` | All marketing content — 11 sections as data |
-| `src/components/Sidebar.tsx` | Scroll-spy sidebar nav |
-| `src/components/Section.tsx` | Generic section renderer |
-| `src/styles/global.css` | Dark-first, amber-accented theme, layout |
+| `src/App.tsx` | Full-width hero grid, sections, footer |
+| `src/data/sections.ts` | All marketing content as data |
+| `src/components/TopNav.tsx` | Sticky top nav + scroll-spy |
+| `src/components/Section.tsx` | Section with left rail + split layout |
+| `src/styles/global.css` | Flat mono, full-width, no sidebar |
 
 ## Positioning
 

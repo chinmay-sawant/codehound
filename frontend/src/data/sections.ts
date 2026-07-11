@@ -3,7 +3,7 @@ import {
   HelpCircle, BarChart3, Sparkles, GitCompare, ShieldAlert,
   FileOutput, Coins, Blocks, Route, Monitor, Download, FolderGit2,
   FolderOutput, Bot, ListChecks, ClipboardList, Hash, Bookmark,
-  RefreshCw, Terminal, Gauge, Users, Scale,
+  RefreshCw, Terminal, Gauge, Users, Scale, Package,
 } from 'lucide-react'
 import type { FlowDiagram } from '../components/WorkflowDiagram'
 
@@ -24,6 +24,7 @@ export type Section = {
   title: string
   lead: string
   icon: LucideIcon
+  callout?: string
   body?: string[]
   stats?: Stat[]
   facts?: Fact[]
@@ -53,6 +54,8 @@ export const sections: Section[] = [
     title: 'Real results, not vibes',
     lead:
       'On gopdfsuit, fixing CodeHound findings moved throughput from ~2,000 ops/sec to ~2,700 ops/sec — about +35% on the same hardware, before later optimization phases stacked on top.',
+    callout:
+      '**Not a benchmark theater.** Same machines, same harness, same library. The lift came from deterministic PERF findings — regex hoists, fmt→strconv, defer off hot paths — not from guessing with an agent.',
     stats: [
       { value: '~2k→2.7k', label: 'ops/sec after fixes', sub: 'gopdfsuit · CodeHound pass' },
       { value: '+35%', label: 'throughput lift', sub: 'same machines · same harness' },
@@ -68,6 +71,7 @@ export const sections: Section[] = [
     body: [
       'CodeHound does not "suggest" that a loop is slow. It pins **PERF-*** rules to file, line, and snippet — the same findings you fix in a PR. On gopdfsuit that was **218** actionable performance hits, all fixed.',
       'The ~**2,000 → ~2,700 ops/sec** jump is the immediate payoff of that pass. Capacity you would have bought with more boxes or more Grok time, you get from a **$0** static scan plus targeted edits.',
+      'This is the product wedge: hot-path PERF you can measure, not a wall of unused security noise. Run it after golangci-lint. Fix what moves the needle. Baseline the rest.',
     ],
   },
   {
@@ -77,6 +81,8 @@ export const sections: Section[] = [
     title: 'Scan free. Review bounded.',
     lead:
       'Detection is $0. Review is optional and sized to exported chunks — so Grok 4.5 (and every other model) has a fixed token budget instead of re-reading the repo forever.',
+    callout:
+      '**The math is the product.** Skills re-walk the tree every pass. CodeHound writes findings once; you pay only for the models you choose to point at `scripts/chunks/`.',
     stats: [
       { value: '$0', label: 'CodeHound scan', sub: '1,042 findings · offline' },
       { value: '$3.85', label: 'Grok 4.5 batch', sub: '1.55M in · 125K out' },
@@ -159,11 +165,14 @@ export const sections: Section[] = [
     title: 'Who this is built for',
     lead:
       'Hobby and small-scale Go projects that want less slop, clearer architecture, and real bad-practice coverage — after your normal linters, not instead of them.',
+    callout:
+      '**Cloud AI is subsidized.** That will not last forever. Even while it does, unbounded agent review still burns days and dollars. CodeHound is the offline checklist you run first.',
     facts: [
-      { k: 'Built for', v: 'Hobby projects, side services, small Go codebases' },
-      { k: 'Run after', v: 'golangci-lint, staticcheck, and the rest of your Go CI — CodeHound is a complement' },
-      { k: 'Language (now)', v: 'Go-first production rules; not a multi-lang platform yet' },
+      { k: 'Built for', v: 'Hobby projects, side services, small Go codebases under a real delivery deadline' },
+      { k: 'Run after', v: 'golangci-lint, staticcheck, govulncheck — CodeHound is a complement, never a replacement' },
+      { k: 'Language (now)', v: 'Go-first production rules; Python opt-in experimental; no TypeScript plugin' },
       { k: 'Instead of skills', v: 'Deterministic PERF, BP, and footgun checks — same answer every run' },
+      { k: 'Not for', v: 'Full CodeQL / org-wide SRE platforms — use the tools built for that scale' },
     ],
     body: [
       'We all know the current ChatGPT / cloud subscription model is heavily **subsidized**. That will not last forever — and even while it does, unbounded agent review still burns days and dollars.',
@@ -180,6 +189,8 @@ export const sections: Section[] = [
     title: 'How it works',
     lead:
       'One binary, two output folders, you stay in control. CodeHound finds the issues — your agent helps triage and fix them.',
+    callout:
+      '**You own the architecture.** Findings are automatic. What ships is your call — fix, defer, baseline, or ignore. Agents propose; you decide.',
     flows: [
       {
         caption: 'Setup → scan → export',
@@ -343,6 +354,9 @@ for i := range members {
     }
 }`,
     },
+    body: [
+      'This is the shape of a CodeHound finding: **rule ID**, file, line, snippet, and a fix that is usually local. Multiply by hundreds of hot-path sites and you get the +35% throughput story — not a single heroic refactor.',
+    ],
   },
   {
     id: 'rules',
@@ -350,13 +364,20 @@ for i := range members {
     icon: ShieldAlert,
     title: 'What it flags',
     lead:
-      'Three catalogs, one AST walk. Rules are data — ship a rule, ship a finding.',
+      'Three catalogs, one AST walk. Rules are data — ship a rule, ship a finding. Go-first; production bar is 0.1.0.',
+    callout:
+      '**Complements, does not replace.** Run after golangci-lint + govulncheck for app-level PERF, framework footguns, and curated CWE heuristics.',
     facts: [
       { k: 'PERF rules', v: '224 across 60+ detectors — regex-in-loops, fmt.Sprintf on hot paths, defer in hot funcs, request-path allocation thrash' },
       { k: 'CWE heuristics', v: '175+ fixture-backed entries for file I/O, SQL injection, command injection; auto-generated from sink registry' },
       { k: 'Bad practices', v: '65 across 7 categories: errors, concurrency, testing, API design, prod hardening' },
+      { k: 'Framework footguns', v: 'Gin / Echo / GORM / sqlx aware — unclosed bodies, unbounded rows, missing timeouts, context leaks' },
       { k: 'Taint (experimental)', v: 'intra-procedural, name-string sinks; CWE-22/78/79/89 — use for triage, not hard gates' },
-      { k: 'Languages', v: 'Go (production); Python opt-in (1 experimental rule)' },
+      { k: 'Languages', v: 'Go (production); Python opt-in (1 experimental rule, SLOP101)' },
+    ],
+    body: [
+      'Default profile is the **recommended pack**: S-tier PERF + taint-core CWEs, BP off, fail on high. Switch packs with `--profile security` or `--profile all`. List everything with `codehound --list-rules`; deep-dive one rule with `codehound --explain PERF-101`.',
+      'Non-goals, stated plainly: not a golangci-lint / staticcheck / govulncheck / CodeQL replacement; not a CVE scanner; not default-on full BP in CI.',
     ],
   },
   {
@@ -371,6 +392,57 @@ for i := range members {
       { k: 'JSON', v: 'NDJSON stream, stable fingerprint (codehound:2:rule:file:msghash), jq-able' },
       { k: 'SARIF', v: '2.1.0, security-severity mapped, partialFingerprints, runs in GitHub Code Scanning' },
       { k: 'Cache', v: 'per-file content-hash, ~27× speedup on repeat scans, enabled by default' },
+      { k: 'Agent export', v: 'scripts/findings/functions + scripts/chunks — fixed context for batch triage' },
+    ],
+    body: [
+      'Wire it into CI the same way you wire any linter: `codehound --format sarif ./... > out.sarif`, or keep text for humans and JSON for scripts. Incremental cache is on by default; force rebuild with `--rebuild-cache` when you need a cold pass.',
+    ],
+  },
+  {
+    id: 'install',
+    nav: 'Install',
+    icon: Package,
+    title: 'Install & common commands',
+    lead:
+      'Single static binary. No toolchain required at scan time. Go-first default build; Python is an optional Cargo feature.',
+    code: {
+      label: 'quick start',
+      lang: 'sh',
+      body: `# install
+cargo install --path .
+
+# optional experimental Python (SLOP101 only)
+cargo install --path . --features python
+
+# default = recommended pack (S-tier PERF + taint-core CWEs)
+codehound .
+
+# product wedge — request-path / timeouts
+codehound --profile recommended --only PERF-101 .
+
+# security pack or full catalog
+codehound --profile security .
+codehound --profile all .
+
+# machine-readable
+codehound --format json ./...
+codehound --format sarif ./... > out.sarif
+
+# test files excluded by default
+codehound --include-tests .
+
+# rule browser
+codehound --list-rules
+codehound --explain PERF-101
+
+# starter config
+codehound init`,
+    },
+    facts: [
+      { k: 'Profiles', v: 'recommended · security · all — see docs/go-recommended-pack.md' },
+      { k: 'Cache', v: '--rebuild-cache · --prune-cache · --no-cache' },
+      { k: 'Baseline', v: 'accept known debt; next scan only reports new / regressed findings' },
+      { k: 'CI sample', v: '.github/workflows/codehound.yml in the repo' },
     ],
   },
   {
