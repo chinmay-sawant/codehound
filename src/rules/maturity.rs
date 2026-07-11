@@ -86,8 +86,10 @@ fn is_fixture_only(rule_id: &str) -> bool {
 }
 
 fn is_reserved(rule_id: &str) -> bool {
-    // BP reserved slots / empty CVE feed placeholders when present.
-    matches!(rule_id, "BP-63" | "BP-64" | "BP-65")
+    // BP-63 is a curated advisory *snapshot*, not a live govulncheck feed.
+    // Keep it out of recommended/security until a real vulnerability feed
+    // is wired. BP-64/65 have real project-level detectors and are not reserved.
+    matches!(rule_id, "BP-63")
 }
 
 #[cfg(test)]
@@ -105,5 +107,12 @@ mod tests {
     #[test]
     fn taint_core_tagged() {
         assert_eq!(maturity_for("CWE-89"), RuleMaturity::TaintCore);
+    }
+
+    #[test]
+    fn bp_63_only_is_reserved() {
+        assert_eq!(maturity_for("BP-63"), RuleMaturity::Reserved);
+        assert_ne!(maturity_for("BP-64"), RuleMaturity::Reserved);
+        assert_ne!(maturity_for("BP-65"), RuleMaturity::Reserved);
     }
 }

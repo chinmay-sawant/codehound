@@ -109,5 +109,17 @@ pub fn build_scan_context(params: ScanContextParams) -> ScanContext {
         ctx.fail_policy = FailPolicy::NoFail;
     }
 
+    // Opinion / low-value BP rules: off by default in style unless the user
+    // explicitly requested them via --only (exact id).
+    for id in params.profile.style_default_skip() {
+        let explicitly_requested = ctx
+            .only
+            .as_ref()
+            .is_some_and(|only| only.iter().any(|p| p == id));
+        if !explicitly_requested {
+            ctx.skip.insert((*id).to_string());
+        }
+    }
+
     ctx
 }

@@ -46,7 +46,7 @@ Taint analysis is **off** under `recommended` unless you pass `--taint`. The CWE
 | `recommended` | table above | off | off | strict |
 | `perf` | broader PERF pack | off | off | strict |
 | `security` | structural + taint-core CWEs | **on** | off | strict |
-| `style` | `BP-*` only | off | on | no-fail |
+| `style` | `BP-*` (BP-21/28 default-off) | off | on | no-fail |
 | `all` | full catalog | off | on | medium-as-errors |
 
 ## Fixture-only quarantine

@@ -107,10 +107,14 @@ fn go_bad_practice_text_fixtures_also_work_via_cli_scan_path() {
         let safe = go_bp_cases::fixture_path(case, false);
         let expected_rule = go_bp_cases::expected_rule_id(case);
 
+        // Pin the rule with --only so style's default-off opinion rules
+        // (BP-21 / BP-28) still get fixture coverage when explicitly requested.
         let vulnerable_run = Command::new(exe)
             .args([
                 "--profile",
                 "style",
+                "--only",
+                expected_rule.as_str(),
                 "--include-tests",
                 vulnerable.as_str(),
             ])
@@ -128,7 +132,14 @@ fn go_bad_practice_text_fixtures_also_work_via_cli_scan_path() {
         }
 
         let safe_run = Command::new(exe)
-            .args(["--profile", "style", "--include-tests", safe.as_str()])
+            .args([
+                "--profile",
+                "style",
+                "--only",
+                expected_rule.as_str(),
+                "--include-tests",
+                safe.as_str(),
+            ])
             .output()
             .unwrap_or_else(|e| panic!("run {safe}: {e}"));
         let safe_stdout = String::from_utf8_lossy(&safe_run.stdout);

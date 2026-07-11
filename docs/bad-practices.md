@@ -2,6 +2,68 @@
 
 This document summarizes the Go bad-practice (`BP-*`) rules shipped by CodeHound. Each rule records the rationale for the heuristic and the canonical fix the detector expects.
 
+## Product policy
+
+| Profile | BP rules | Fail policy |
+|---------|----------|-------------|
+| `recommended` / `perf` / `security` | **off** | strict (high+) |
+| `style` (`--profile style` / `bp`) | **on** (with a few default-off) | **no-fail** (advisory) |
+| `all` | full catalog | medium-as-errors |
+
+Default-off under `style` (opt back in with `--only BP-21` / `--only BP-28`):
+
+- `BP-21` — missing `t.Parallel` (policy preference, not correctness)
+- `BP-28` — single-method interface (opinionated API style)
+
+Severity discipline when BP is on:
+
+- **medium** — concurrency footguns that still repay attention: `BP-6`, `BP-7`, `BP-8`, `BP-15`
+- **low** — most correctness-adjacent heuristics
+- **info** — godoc / interface-shape / one-file-dep opinion (`BP-21`, `BP-28`–`31`, `BP-39`–`42`, `BP-45`, `BP-62`)
+
+Godoc-style rules never fail CI under `style` (no-fail + info severity).
+
+`BP-63` is **reserved**: a curated module-advisory *snapshot* (`ruleset/golang/go_module_advisories.csv`), **not** a live [govulncheck](https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck) feed. It is quarantined from recommended/security packs. Prefer govulncheck in CI for real CVE coverage until a feed is wired.
+
+## Overlap matrix vs golangci ecosystem
+
+Classify each rule before treating CodeHound BP as a substitute for `go vet` / staticcheck / errcheck / revive.  
+**Policy:** overlaps mean “enable only if you do not already run X” (or want a second signal). CodeHound’s unique value is **style pack policy** + a few concurrency heuristics, not a better staticcheck.
+
+| Outcome | Meaning |
+|---------|---------|
+| **weaker** | Strictly weaker or redundant vs named tool → prefer the tool; keep off in recommended |
+| **fix** | Same idea; detector precision improved (or still heuristic) |
+| **unique** | Policy / framework hygiene staticcheck does not own |
+| **reserved** | Placeholder or incomplete feed |
+
+| Rule | Class | Overlaps | Notes |
+|------|-------|----------|-------|
+| BP-1 | weaker / fixed | errcheck, staticcheck | Assignment shapes for discarded `_`; skips non-error builtins; still no types |
+| BP-2 | weaker | wrapcheck, errorlint | Naked `return err` |
+| BP-3 | weaker | go vet / staticcheck | panic outside main/test |
+| BP-4 | unique-ish | — | recover without logging |
+| BP-5 | weaker | errcheck | ignored `Close()` |
+| BP-6 | fixed | staticcheck SA2000 | WaitGroup.Add inside goroutine (brace-matched body) |
+| BP-7 | weaker / medium | go vet `-copylocks` | mutex by value |
+| BP-8 | fixed / medium | vet copylocks | defer Unlock **only** with by-value mutex param |
+| BP-9 | fixed / unique | — | select without escape (brace-depth body) |
+| BP-10 | weaker | staticcheck SA1015, PERF | `time.After` in loop |
+| BP-11 | weaker | staticcheck SA2006-ish | defer in loop |
+| BP-12 | unique / heuristic | — | multi-sender unbuffered channel |
+| BP-13 | unique-ish | — | `context.Background` in library |
+| BP-14 | unique / heuristic | — | goroutine without cancellation |
+| BP-15 | unique / medium | — | recursive `sync.Once.Do` |
+| BP-16–25 | unique / opinion | tparallel, testifylint | test hygiene; **BP-21 default-off** |
+| BP-26–35 | mixed | revive, staticcheck | API design; **BP-28 default-off** |
+| BP-36–45 | mixed | revive, unused | org/docs; godoc rules are **info** |
+| BP-46–55 | unique | — | production hardening (timeouts, signals, rate limits) |
+| BP-56–62 | mixed | govulncheck, go mod tidy | dep hygiene heuristics |
+| BP-63 | reserved | **govulncheck** | curated snapshot only — not a feed |
+| BP-64–65 | unique-ish | — | local `replace`, missing `go.sum` |
+
+If you already run `golangci-lint` with errcheck + staticcheck + revive, prefer `--profile recommended` (PERF + optional taint) and treat `style` as an optional policy pack—not a replacement gate.
+
 ## Error Handling
 
 - `BP-1` flags discarded error returns because `_ = err` suppresses failure handling; keep the error, wrap it with context, or return it to the caller.

@@ -78,6 +78,31 @@ fn style_is_bp_only_advisory() {
     assert!(ctx.allows("BP-1"));
     assert!(!ctx.allows("PERF-101"));
     assert_eq!(ctx.fail_policy, codehound::core::FailPolicy::NoFail);
+    // Opinion rules off by default in style.
+    assert!(!ctx.allows("BP-21"));
+    assert!(!ctx.allows("BP-28"));
+}
+
+#[test]
+fn style_can_opt_into_opinion_rules_via_only() {
+    let ctx = build_scan_context(ScanContextParams {
+        profile: ScanProfile::Style,
+        only: vec!["BP-28".to_string()],
+        ..Default::default()
+    });
+    assert!(ctx.allows("BP-28"));
+    assert!(!ctx.allows("BP-21"), "unrequested opinion rule stays off");
+}
+
+#[test]
+fn bp_63_reserved_quarantined_from_recommended() {
+    assert_eq!(maturity_for("BP-63"), RuleMaturity::Reserved);
+    assert!(is_quarantined_from_default_packs("BP-63"));
+    let ctx = build_scan_context(ScanContextParams {
+        profile: ScanProfile::Recommended,
+        ..Default::default()
+    });
+    assert!(!ctx.allows("BP-63"));
 }
 
 #[test]

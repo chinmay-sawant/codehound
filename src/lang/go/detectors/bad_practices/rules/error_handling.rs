@@ -7,7 +7,13 @@ use super::helpers::{line_start_byte, push_at};
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
-/// BP-1: `_ = f()` where `f` likely returns an `error`.
+/// BP-1: discarded error-shaped return via `_`.
+///
+/// Flags:
+/// - `_ = call(...)` when the call is not a known non-error builtin
+/// - `x, _ := call(...)` / `_, _ := call(...)` (typical discarded `error`)
+///
+/// Does **not** flag non-call discards (`_ = x`) or pure builtins (`_ = len(s)`).
 pub(crate) fn detect_bp_1_discarded_error(
     unit: &ParsedUnit,
     _index: &SourceIndex,
@@ -20,26 +26,20 @@ pub(crate) fn detect_bp_1_discarded_error(
     fn walk(node: Node, src: &[u8], file: &str, unit: &ParsedUnit, out: &mut Vec<Finding>) {
         if node.kind() == "assignment_statement" || node.kind() == "short_var_declaration" {
             if let Ok(text) = node.utf8_text(src) {
-                if text.contains('_') && text.contains('(') && text.contains(')') {
-                    let lhs = text
-                        .split_once(":=")
-                        .map(|(l, _)| l)
-                        .or_else(|| text.split_once('=').map(|(l, _)| l));
-                    if let Some(lhs) = lhs {
-                        let names: Vec<&str> = lhs.split(',').map(str::trim).collect();
-                        let discards_error = names.contains(&"_")
-                            && !names.iter().any(|name| name.eq_ignore_ascii_case("err"));
-                        if discards_error {
-                            let (line, col) = unit.line_col(node.start_byte());
-                            emit::push_finding(
-                                &crate::lang::go::detectors::bad_practices::BP_1_META,
-                                file,
-                                line,
-                                col,
-                                "discarded error return; handle or explicitly ignore with a comment",
-                                out,
-                            );
-                        }
+                if let Some((lhs, rhs)) = split_assign(text) {
+                    if rhs.contains('(')
+                        && !is_non_error_builtin_rhs(rhs)
+                        && lhs_discards_possible_error(lhs)
+                    {
+                        let (line, col) = unit.line_col(node.start_byte());
+                        emit::push_finding(
+                            &crate::lang::go::detectors::bad_practices::BP_1_META,
+                            file,
+                            line,
+                            col,
+                            "discarded error return; handle or explicitly ignore with a comment",
+                            out,
+                        );
                     }
                 }
             }
@@ -51,6 +51,40 @@ pub(crate) fn detect_bp_1_discarded_error(
     }
 
     walk(root, src, file, unit, out);
+}
+
+fn split_assign(text: &str) -> Option<(&str, &str)> {
+    text.split_once(":=")
+        .or_else(|| text.split_once('='))
+        .map(|(l, r)| (l.trim(), r.trim()))
+}
+
+fn lhs_discards_possible_error(lhs: &str) -> bool {
+    let names: Vec<&str> = lhs.split(',').map(str::trim).collect();
+    let has_blank = names.iter().any(|n| *n == "_");
+    let binds_err = names
+        .iter()
+        .any(|n| *n == "err" || *n == "error" || n.ends_with("Err"));
+    has_blank && !binds_err
+}
+
+/// Builtins / helpers that are not error-returning (or not errcheck targets).
+fn is_non_error_builtin_rhs(rhs: &str) -> bool {
+    let t = rhs.trim();
+    let name = t
+        .split('(')
+        .next()
+        .unwrap_or(t)
+        .rsplit('.')
+        .next()
+        .unwrap_or(t)
+        .trim();
+    matches!(
+        name,
+        "len" | "cap" | "append" | "make" | "new" | "copy" | "delete" | "clear" | "min"
+            | "max" | "real" | "imag" | "complex" | "close" | "panic" | "recover" | "print"
+            | "println"
+    )
 }
 
 /// BP-2: `return err` without contextual wrapping.

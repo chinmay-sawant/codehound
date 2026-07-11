@@ -62,6 +62,17 @@ impl ScanProfile {
         matches!(self, Self::Style | Self::All)
     }
 
+    /// Opinion / low-value BP rules skipped by default in the style pack.
+    ///
+    /// Opt back in with `--only BP-28` (and friends) under `--profile all`, or
+    /// by clearing skip via config. Recommended never enables BP at all.
+    pub fn style_default_skip(self) -> &'static [&'static str] {
+        match self {
+            Self::Style => STYLE_DEFAULT_SKIP,
+            _ => &[],
+        }
+    }
+
     /// Rule allow-list patterns for this profile.
     ///
     /// `None` means no `only` filter (full catalog, still subject to skip/BP flags).
@@ -171,6 +182,12 @@ const SECURITY_PACK_RULES: &[&str] = &[
     "CWE-93",
 ];
 
+/// Default-off under `--profile style` (opt-in noise / opinion).
+/// BP-21: missing `t.Parallel` is policy, not correctness — off in recommended
+/// already; keep out of style defaults too.
+/// BP-28: single-method interface is opinionated API style.
+const STYLE_DEFAULT_SKIP: &[&str] = &["BP-21", "BP-28"];
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -188,5 +205,12 @@ mod tests {
         assert_eq!(ScanProfile::parse("ci"), Some(ScanProfile::Recommended));
         assert_eq!(ScanProfile::parse("bp"), Some(ScanProfile::Style));
         assert_eq!(ScanProfile::parse("ALL"), Some(ScanProfile::All));
+    }
+
+    #[test]
+    fn style_skips_opinion_rules() {
+        assert!(ScanProfile::Style.style_default_skip().contains(&"BP-21"));
+        assert!(ScanProfile::Style.style_default_skip().contains(&"BP-28"));
+        assert!(ScanProfile::Recommended.style_default_skip().is_empty());
     }
 }

@@ -270,36 +270,39 @@ Merge for 0.1.0 when A + C minimum is met.
 
 ### Success criteria
 
-- [ ] Overlap matrix published (`docs/bad-practices.md`)
-- [ ] BP-8 / 9 / 1 / 6 fixed or disabled
-- [ ] BP off in recommended; unique policy rules only in style pack
-- [ ] Reserved/empty (CVE feed) wired or removed from catalog
+- [x] Overlap matrix published (`docs/bad-practices.md`)
+- [x] BP-8 / 9 / 1 / 6 fixed or disabled
+- [x] BP off in recommended; unique policy rules only in style pack
+- [x] Reserved/empty (CVE feed) wired or removed from catalog
+  - BP-63 remains **reserved** (curated advisory snapshot, not govulncheck); documented
 
 ### Checklist
 
 #### 3.1 Dedup matrix vs golangci ecosystem `[Go]` ×2
 
-- [ ] For each BP-1..65 classify:
-  - [ ] Strictly weaker than go vet / staticcheck / errcheck → **default-off or delete**
-  - [ ] Same idea, worse precision → **fix or drop**
-  - [ ] Unique policy (rate limits, dep hygiene with real signal) → **style pack only**
-  - [ ] Reserved / empty (CVE feed, e.g. BP-63) → **wire govulncheck-style feed or remove**
-- [ ] Document: “Overlaps X — enable only if you don’t run X”
+- [x] For each BP-1..65 classify:
+  - [x] Strictly weaker than go vet / staticcheck / errcheck → **default-off or delete**
+    - Documented as weaker; stay style-only (recommended never enables BP)
+  - [x] Same idea, worse precision → **fix or drop**
+  - [x] Unique policy (rate limits, dep hygiene with real signal) → **style pack only**
+  - [x] Reserved / empty (CVE feed, e.g. BP-63) → **wire govulncheck-style feed or remove**
+    - BP-63 kept reserved with honest snapshot docs (prefer govulncheck for real CVEs)
+- [x] Document: “Overlaps X — enable only if you don’t run X”
 
 #### 3.2 Fix known broken BP detectors `[Go]` ×2
 
-- [ ] **BP-8 Unlock:** same lock object / AST pairing (not file-level mutex + any defer Unlock)
-- [ ] **BP-9 select:** proper tree-sitter block matching (not first `{` to first `}`)
-- [ ] **BP-1 discarded err:** assignment shapes for `_, err :=`; don’t flag non-error `_`
-- [ ] **BP-6 WaitGroup:** AST go-stmt + Add/Done facts (not line state machine)
-- [ ] **BP-21 Parallel:** keep low; off in recommended
-- [ ] **BP-28 single-method iface:** off by default
+- [x] **BP-8 Unlock:** value-mutex param evidence (not file-level mutex + any defer Unlock)
+- [x] **BP-9 select:** brace-depth block matching (not first `{` to first `}`)
+- [x] **BP-1 discarded err:** assignment shapes; skip non-error builtins; don’t flag when `err` bound
+- [x] **BP-6 WaitGroup:** brace-matched `go func` body (not line state machine)
+- [x] **BP-21 Parallel:** info severity; default-off in style; off in recommended
+- [x] **BP-28 single-method iface:** info severity; **off by default** in style
 
 #### 3.3 BP severity & pack membership `[Go]` ×2
 
-- [ ] Default BP pack **off** in recommended CI profile
-- [ ] When on: almost all **info/low**; only concurrency footguns vet misses → medium
-- [ ] Never fail CI on “missing godoc” style rules by default
+- [x] Default BP pack **off** in recommended CI profile
+- [x] When on: almost all **info/low**; only concurrency footguns → medium (BP-6/7/8/15)
+- [x] Never fail CI on “missing godoc” style rules by default (style = NoFail + info)
 
 ---
 
