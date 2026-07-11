@@ -11,8 +11,6 @@ pub(crate) fn extensions_for(lang: LanguageId) -> &'static [&'static str] {
     match lang {
         LanguageId::Go => &["go"],
         LanguageId::Python => &["py"],
-        #[cfg(feature = "typescript")]
-        LanguageId::TypeScript => &["ts", "tsx", "js", "jsx"],
     }
 }
 

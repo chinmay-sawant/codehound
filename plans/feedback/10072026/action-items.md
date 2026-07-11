@@ -623,26 +623,26 @@ Merge for 0.1.0 when A + C minimum is met.
 
 ### Success criteria
 
-- [ ] Explicit invest **or** demote decision recorded in ADR
-- [ ] Marketing matches capability
+- [x] Explicit **demote (Go-first)** decision recorded in ADR 0005
+- [x] Marketing matches capability (README, ROADMAP, frontend copy, schema)
 
 ### Checklist
 
 #### 9.1 Multi-language honesty `[Product]` ×2
 
-- [ ] **Option A — Invest:** 10–20 high-value Python rules + fixtures
-- [ ] **Option B — Demote:** feature-flag Python; README “Go-first” only
-- [ ] Remove empty `typescript` feature until real plugin
-- [ ] Fixture `lang: rust` docs match `FixtureLanguage` or implement
+- [x] **Option A — Invest:** rejected for 0.1.x (revisit only with funding + new ADR)
+- [x] **Option B — Demote:** Python opt-in feature; default features Go-only; README Go-first
+- [x] Remove empty `typescript` feature + `LanguageId::TypeScript`
+- [x] Fixture languages: only `go` / `python`; `lang: rust` rejected with clear error + test
 
 #### 9.2 Dynamic plugins `[Product]` — out of scope
 
-- [ ] ~~Runtime loadable plugins~~ — inventory + features enough for years (permanent non-goal)
+- [x] ~~Runtime loadable plugins~~ — permanent non-goal (ADR 0005)
 
 #### 9.3 Ecosystem extras `[Product]`
 
-- [ ] Homebrew / deb if demand
-- [ ] Public FP / TP dashboard (from Phase 5 metrics)
+- [ ] Homebrew / deb if demand — deferred
+- [ ] Public FP / TP dashboard — deferred
 
 ---
 

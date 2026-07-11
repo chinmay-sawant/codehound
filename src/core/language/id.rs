@@ -1,12 +1,10 @@
-//! Supported (or planned) languages.
+//! Supported languages (honest: Go is production; Python is opt-in).
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LanguageId {
     Go,
+    /// Available when the `python` Cargo feature is enabled (experimental).
     Python,
-    /// Reserved for a future tree-sitter plugin; requires `typescript` feature.
-    #[cfg(feature = "typescript")]
-    TypeScript,
 }
 
 impl LanguageId {
@@ -14,8 +12,6 @@ impl LanguageId {
         match ext {
             "go" => Some(Self::Go),
             "py" => Some(Self::Python),
-            #[cfg(feature = "typescript")]
-            "ts" | "tsx" | "js" | "jsx" => Some(Self::TypeScript),
             _ => None,
         }
     }
@@ -28,10 +24,6 @@ impl LanguageId {
         } else if name.eq_ignore_ascii_case("python") || name.eq_ignore_ascii_case("py") {
             Some(Self::Python)
         } else {
-            #[cfg(feature = "typescript")]
-            if name.eq_ignore_ascii_case("typescript") || name.eq_ignore_ascii_case("ts") {
-                return Some(Self::TypeScript);
-            }
             None
         }
     }
@@ -40,19 +32,14 @@ impl LanguageId {
         match self {
             Self::Go => &["go"],
             Self::Python => &["python", "py"],
-            #[cfg(feature = "typescript")]
-            Self::TypeScript => &["typescript", "ts"],
         }
     }
 
-    /// Canonical lowercase id used by the cache (`"go"`, `"python"`,
-    /// `"typescript"`).
+    /// Canonical lowercase id used by the cache (`"go"`, `"python"`).
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Go => "go",
             Self::Python => "python",
-            #[cfg(feature = "typescript")]
-            Self::TypeScript => "typescript",
         }
     }
 
@@ -61,8 +48,6 @@ impl LanguageId {
         match s {
             "go" => Some(Self::Go),
             "python" => Some(Self::Python),
-            #[cfg(feature = "typescript")]
-            "typescript" | "ts" => Some(Self::TypeScript),
             _ => None,
         }
     }

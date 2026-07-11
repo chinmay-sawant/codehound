@@ -20,11 +20,12 @@ path = "src/main.rs"
 required-features = ["cli"]
 
 [features]
-# Default: all shipped languages — mixed Go + Python repos work out of the box.
-default = ["go", "python", "terminal-output", "cli"]
+# Default: Go-first production pack. Python is opt-in (one experimental rule).
+# See docs/adr/0005-multi-lang-honesty.md.
+default = ["go", "terminal-output", "cli"]
 cli = ["dep:clap"]
-typescript = []
 go = ["dep:tree-sitter-go"]
+# Experimental: enables Python plugin + SLOP101 only (not a full Python SAST).
 python = ["dep:tree-sitter-python"]
 terminal-output = ["dep:colored"]
 
@@ -92,7 +93,7 @@ name = "incremental_scan"
 harness = false
 
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("go", "python", "terminal-output", "cli", "typescript"))'] }
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("go", "python", "terminal-output", "cli"))'] }
 
 [lints.clippy]
 all = { level = "deny", priority = 10 }

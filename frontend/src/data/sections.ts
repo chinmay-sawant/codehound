@@ -315,7 +315,7 @@ for i := range members {
       { k: 'CWE heuristics', v: '175+ fixture-backed entries for file I/O, SQL injection, command injection; auto-generated from sink registry' },
       { k: 'Bad practices', v: '65 across 7 categories: errors, concurrency, testing, API design, prod hardening' },
       { k: 'Taint (experimental)', v: 'intra-procedural, name-string sinks; CWE-22/78/79/89 — use for triage, not hard gates' },
-      { k: 'Languages', v: 'Go (production), Python (stub), TypeScript (stub)' },
+      { k: 'Languages', v: 'Go (production); Python opt-in (1 experimental rule)' },
     ],
   },
   {
@@ -327,7 +327,7 @@ for i := range members {
       'Text for the terminal, NDJSON for jq, SARIF 2.1.0 for GitHub Code Scanning. One binary, no service.',
     facts: [
       { k: 'Text', v: 'color-coded severity, per-finding snippet, fix hint, summary footer' },
-      { k: 'JSON', v: 'NDJSON stream, stable fingerprint (codehound:1:rule:file:line:col), jq-able' },
+      { k: 'JSON', v: 'NDJSON stream, stable fingerprint (codehound:2:rule:file:msghash), jq-able' },
       { k: 'SARIF', v: '2.1.0, security-severity mapped, partialFingerprints, runs in GitHub Code Scanning' },
       { k: 'Cache', v: 'per-file content-hash, ~27× speedup on repeat scans, enabled by default' },
     ],
@@ -341,7 +341,7 @@ for i := range members {
       'The catalog is data. The CWE list is auto-generated from a sink registry. This website is the same idea — the nav is data, the page is a renderer.',
     body: [
       'New analyzer? Add one entry to the sink registry. The CWE catalog (175+) regenerates.',
-      'New language? Ship a plugin — Python is already live behind a feature flag, TypeScript is gated.',
+      'New language? Ship a real plugin — Go is production; Python is opt-in (one rule); no TypeScript stub.',
       'New section on this page? Add one entry to src/data/sections.ts. The sidebar, the scroll target, the layout all follow — no special cases.',
     ],
   },

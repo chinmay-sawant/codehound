@@ -10,3 +10,14 @@ fn parses_minimal_header() {
     assert_eq!(f.filename, "sample.py");
     assert!(f.source.contains("import re"));
 }
+
+#[test]
+fn rejects_unsupported_fixture_language_rust() {
+    // FixtureLanguage only knows go/python — no silent "lang: rust" partial support.
+    let text = "lang: rust\n---\nfn main() {}\n";
+    let err = parse_fixture(text, Path::new("x.txt")).unwrap_err();
+    assert!(
+        err.to_string().contains("unknown fixture language"),
+        "unexpected: {err}"
+    );
+}

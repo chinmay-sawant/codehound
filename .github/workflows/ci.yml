@@ -20,7 +20,8 @@ jobs:
         features:
           - default
           - go
-          - python
+          # Opt-in Python (ADR 0005): build with go+python so Go tests still run.
+          - go,python
     steps:
       - uses: ./.github/actions/rust-toolchain-cache
         with:

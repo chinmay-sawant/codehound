@@ -1,3 +1,4 @@
+#![cfg(feature = "python")]
 mod helpers;
 
 use helpers::baseline::{

@@ -93,7 +93,7 @@ and includes:
 | `runs[0].results[].message.text`                   | detector message |
 | `runs[0].results[].locations[].physicalLocation.artifactLocation.uri` | file path |
 | `runs[0].results[].locations[].physicalLocation.region.startLine`/`startColumn` | 1-indexed camelCase SARIF 2.1.0 |
-| `runs[0].results[].partialFingerprints["codehound/v1"]` | stable fingerprint (`codehound:1:<rule>:<file>:<line>:<col>`) |
+| `runs[0].results[].partialFingerprints["codehound/v1"]` | stable fingerprint (`codehound:2:<rule>:<file>:<msg_hash>` — key name kept for SARIF consumers) |
 | `runs[0].results[].properties.tags`                | `["security", "cwe", "cwe-22", ...]` |
 | `runs[0].results[].properties.security-severity`   | info `0.0` / low `2.0` / medium `5.0` / high `7.5` / critical `9.5` (BP pack fixed `5.0`) |
 | `runs[0].results[].rank`                           | confidence × 100 (only when `confidence` is set) |

@@ -13,6 +13,12 @@ First **0.1.0** product bar after the feedback-driven phases 0–8.
 - Channel/goroutine sites recorded as explicit unsupported FNs
 - `--taint-depth N` bounded multi-hop summary refinement (1–4)
 
+### Multi-lang honesty (Phase 9)
+
+- **Go-first default features** (Python no longer in `default`)
+- Empty `typescript` feature and `LanguageId::TypeScript` stub **removed**
+- ADR 0005 records demote decision; Python remains `--features python` opt-in
+
 ### Product
 
 - Default CLI profile: **recommended** (PERF S-tier + taint-core allow-list; BP off; fail high)

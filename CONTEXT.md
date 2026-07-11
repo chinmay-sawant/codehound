@@ -41,3 +41,9 @@ codehound .   # --profile recommended, fail high, no BP, no export
 Historical names **slop** / **SLOP101** / **slopguard** may appear in Python rule
 IDs and old plans. Product name is **CodeHound**; Python’s `SLOP101` is retained
 as a stable rule id (not renamed in 0.1.0).
+
+## Multi-lang (ADR 0005)
+
+- **Default build = Go only.**
+- Python is opt-in (`--features python`); not a multi-lang SAST claim.
+- TypeScript feature removed until a real plugin exists.

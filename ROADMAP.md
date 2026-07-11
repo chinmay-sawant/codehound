@@ -17,8 +17,14 @@
 
 | Phase | Theme | Notes |
 |-------|-------|-------|
-| **9** | Multi-lang honesty | Invest in Python or demote; remove empty typescript |
 | Later | Typed Go facts | Optional `--typed` / go/packages only if PERF pack trusted |
+| Later | Python invest | Only if funded — reverse ADR 0005 demote with a new ADR |
+
+## Multi-lang decision (Phase 9)
+
+**Demote / Go-first** ([ADR 0005](./docs/adr/0005-multi-lang-honesty.md)): default
+features exclude Python; TypeScript stub removed; marketing matches Go production
+capability.
 
 ## Non-goals (0.1.x)
 

@@ -22,9 +22,11 @@ staticcheck, and govulncheck — it targets what they don't see:
 
 ## Status
 
-**0.1.0** product bar. **Go is the production language** — Python (1 rule,
-`SLOP101`) and TypeScript (stub) are secondary. Complements golangci-lint;
-see [`docs/go-vs-staticcheck.md`](./docs/go-vs-staticcheck.md).
+**0.1.0** product bar. **Go-first:** production rules and packs target Go.
+Python is an **opt-in** Cargo feature with a single experimental rule
+(`SLOP101`). There is no TypeScript plugin. Complements golangci-lint;
+see [`docs/go-vs-staticcheck.md`](./docs/go-vs-staticcheck.md) and
+[`docs/adr/0005-multi-lang-honesty.md`](./docs/adr/0005-multi-lang-honesty.md).
 
 ## Roadmap
 
@@ -34,7 +36,11 @@ are archive notes, not the backlog.
 ## Installation
 
 ```sh
+# Go-first default build
 cargo install --path .
+
+# Optional experimental Python (SLOP101 only)
+cargo install --path . --features python
 ```
 
 ## Usage

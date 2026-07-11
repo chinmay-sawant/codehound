@@ -7,8 +7,9 @@
 //! framework footguns, and curated CWE heuristics. Complements golangci-lint /
 //! staticcheck / govulncheck — does not replace them.
 //!
-//! - **Go** — PERF, CWE (structural + optional taint), bad-practice (style pack)
-//! - **Python** — `SLOP101` (`re.compile` in a loop); historical id, kept stable
+//! - **Go** (default) — PERF, CWE (structural + optional taint), bad-practice (style pack)
+//! - **Python** (opt-in feature) — single experimental rule `SLOP101`; not a full Python SAST
+//!   (see [`docs/adr/0005-multi-lang-honesty.md`](../docs/adr/0005-multi-lang-honesty.md))
 //!
 //! ## Quick start (library)
 //!
@@ -43,13 +44,13 @@
 //!
 //! | Feature | Default | Role |
 //! |---------|---------|------|
-//! | `go` | yes | Go tree-sitter + CWE/PERF/BP |
-//! | `python` | yes | Python grammar + `SLOP101` |
+//! | `go` | yes | Go tree-sitter + CWE/PERF/BP (production language) |
+//! | `python` | **no** | Experimental Python + `SLOP101` only |
 //! | `cli` | yes | clap CLI types |
 //! | `terminal-output` | yes | colored text reporter |
-//! | `typescript` | no | LanguageId stub only |
 //!
-//! Minimal: `cargo build --no-default-features --features go,cli`.
+//! Minimal: `cargo build --no-default-features --features go,cli`.  
+//! Python: `cargo build --features python`.
 //!
 //! ## Semver (Finding wire)
 //!

@@ -41,7 +41,7 @@
             },
             "fingerprint": {
               "type": "string",
-              "pattern": "^codehound:1:"
+              "pattern": "^codehound:2:"
             }
           }
         }

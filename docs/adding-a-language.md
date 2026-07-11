@@ -42,4 +42,5 @@ Reference implementation: `src/lang/go/` (CWE + PERF + BP) and `src/lang/python/
 
 ## Default build
 
-`default = ["go", "python"]` — mixed Go + Python repositories work without flags.
+`default = ["go", "terminal-output", "cli"]` — **Go-first**. Enable Python with
+`--features python` (experimental). See [ADR 0005](./adr/0005-multi-lang-honesty.md).

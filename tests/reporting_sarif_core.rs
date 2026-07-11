@@ -63,8 +63,8 @@ fn results_have_partial_fingerprints() {
         "missing partialFingerprints, got: {log}"
     );
     assert!(
-        log.contains("\"codehound/v1\": \"codehound:1:CWE-22:a.go:1:1\""),
-        "missing canonical fingerprint, got: {log}"
+        log.contains("\"codehound/v1\": \"codehound:2:CWE-22:a.go:"),
+        "missing canonical v2 fingerprint, got: {log}"
     );
 }
 

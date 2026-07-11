@@ -10,8 +10,13 @@ Thanks for helping. This doc is the short path to a good PR.
 ## Build & test
 
 ```sh
+# Default = Go-first (no Python)
 cargo build --bin codehound
 cargo test --all-targets
+
+# Optional experimental Python (SLOP101)
+cargo test --features python --test python_integration
+
 cargo fmt --all -- --check
 cargo clippy --all-targets --all-features -- -D warnings
 bash scripts/check_no_prod_expect.sh

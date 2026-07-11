@@ -21,11 +21,12 @@ Each file is read, parsed, analyzed, and dropped independently so peak memory st
 - **Size-based LRU pruning**: on `flush()`, if `total_size() > max_size_mb`, oldest entries (by `cached_at`) are evicted until the cache is at or below 90% of the limit.
 - **Fair warning in `--diagnostics`**: The document includes total cache size via `CacheStore::total_size()`.
 
-## Multi-language default
+## Multi-language (Go-first)
 
-- **Cargo `default` features**: `go` + `python` (not Go-only).
-- **`--lang auto`**: extension-based plugin selection; a walk over `.` parses `.go` and `.py` in one run.
-- **No `--lang` required** for mixed monorepos.
+- **Cargo `default` features**: `go` + `cli` + `terminal-output` (**Python not default**).
+- **Python**: opt-in `--features python` (one experimental rule). See ADR 0005.
+- **`--lang auto`**: only languages compiled into the binary are scanned.
+- TypeScript: **not supported** (no empty feature stub).
 
 ## Performance choices
 
