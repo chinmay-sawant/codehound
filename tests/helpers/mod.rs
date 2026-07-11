@@ -40,6 +40,9 @@ fn infer_rule_class(txt_path: &str) -> &'static str {
         "PERF-"
     } else if txt_path.contains("/bad_practices/") {
         "BP-"
+    } else if txt_path.contains("/python/") {
+        // Python rules use SLOP* ids, not CWE-*.
+        "SLOP"
     } else {
         "CWE-"
     }

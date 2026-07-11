@@ -184,16 +184,28 @@ func Handle() { db.Run() }
             .unwrap();
     }
     let m2 = cache2.manifest();
-    // After invalidation, handler.go's manifest entry is dropped,
-    // so the next read will re-parse it from scratch.
+    // Same-scan cascade: handler.go is dirty because it depends on
+    // changed db.go, so it is re-parsed in this scan and rewritten.
     let handler_key = m2
         .files
         .keys()
         .find(|k| k.ends_with("pkg/handler.go"))
         .cloned();
     assert!(
-        handler_key.is_none(),
-        "handler.go should have been cascade-invalidated; still in manifest: {handler_key:?}"
+        handler_key.is_some(),
+        "handler.go should be re-scanned and re-tracked after same-scan cascade"
+    );
+    let handler_meta = m2
+        .files
+        .get(handler_key.as_ref().unwrap())
+        .expect("handler meta");
+    assert!(
+        handler_meta
+            .dependencies
+            .iter()
+            .any(|d| d.ends_with("db.go")),
+        "re-scanned handler must still record db.go deps, got {:?}",
+        handler_meta.dependencies
     );
     // db.go was rescanned and is back in the manifest.
     assert!(
@@ -247,13 +259,21 @@ fn transitive_invalidation_works_without_go_mod_using_cwd_fallback_paths() {
     let _ = analyzer
         .analyze_paths(&[&root], Some(CacheSession::open(&mut cache2)))
         .unwrap();
+    // Same-scan cascade re-parses dependents; handler is rewritten, not dropped.
     assert!(
         cache2
             .manifest()
             .files
             .keys()
-            .find(|k| k.ends_with("pkg/handler.go"))
-            .is_none(),
-        "handler.go should have been invalidated after db.go changed"
+            .any(|k| k.ends_with("pkg/handler.go")),
+        "handler.go should be re-scanned after db.go changed (same-scan cascade)"
+    );
+    assert!(
+        cache2
+            .manifest()
+            .files
+            .keys()
+            .any(|k| k.ends_with("pkg/db/db.go")),
+        "db.go should be re-tracked after re-scan"
     );
 }

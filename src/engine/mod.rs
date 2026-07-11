@@ -10,6 +10,7 @@ mod ignore;
 mod io;
 mod language_filter;
 mod parse_pool;
+mod path_identity;
 mod path_walk;
 pub mod prelude;
 mod registry;
@@ -35,6 +36,7 @@ pub use dependencies::{discover_project_root, extract_dependencies, go_module_pr
 pub use diagnostics::Diagnostics;
 pub use ignore::{IgnoreDirective, parse_file_ignore, parse_inline_ignores};
 pub use language_filter::{LanguageFilter, resolve_language_filter};
+pub use path_identity::{normalize_project_path, project_paths_eq};
 pub use registry::Registry;
 pub(crate) use result::PipelineAccumulator;
 pub use result::{AnalysisResult, ScanError, ScanErrorKind};

@@ -71,4 +71,71 @@ mod t {
             cache_key_for_path("a/b/c.go")
         );
     }
+
+    #[test]
+    fn put_normalizes_manifest_keys_and_deps() {
+        let mut store = CacheStore::in_memory();
+        store
+            .put(
+                r".\pkg\handler.go",
+                "sha256:abc",
+                &[r"pkg\db.go".to_string(), "./pkg/util.go".to_string()],
+                vec![finding("CWE-78", "pkg/handler.go", 1, 1)],
+                "2026-07-11T00:00:00Z",
+            )
+            .unwrap();
+        let keys: Vec<_> = store.manifest().files.keys().cloned().collect();
+        assert_eq!(keys, vec!["pkg/handler.go".to_string()]);
+        let meta = store.manifest().files.get("pkg/handler.go").unwrap();
+        assert!(meta.dependencies.iter().any(|d| d == "pkg/db.go"));
+        assert!(meta.dependencies.iter().any(|d| d == "pkg/util.go"));
+    }
+
+    #[test]
+    fn expand_dirty_fixpoint_marks_dependents() {
+        let mut store = CacheStore::in_memory();
+        store
+            .put(
+                "pkg/db.go",
+                "sha256:db1",
+                &[],
+                vec![finding("CWE-78", "pkg/db.go", 1, 1)],
+                "2026-07-11T00:00:00Z",
+            )
+            .unwrap();
+        store
+            .put(
+                "pkg/handler.go",
+                "sha256:h1",
+                &["pkg/db.go".to_string()],
+                vec![finding("CWE-78", "pkg/handler.go", 1, 1)],
+                "2026-07-11T00:00:00Z",
+            )
+            .unwrap();
+        let mut dirty = std::collections::HashSet::from(["pkg/db.go".to_string()]);
+        store.expand_dirty_fixpoint(&mut dirty);
+        assert!(dirty.contains("pkg/db.go"));
+        assert!(
+            dirty.contains("pkg/handler.go"),
+            "handler must be dirty via reverse dep edge: {dirty:?}"
+        );
+    }
+
+    #[test]
+    fn mass_stale_clears_all_entries() {
+        let mut store = CacheStore::in_memory();
+        store
+            .put(
+                "a.go",
+                "sha256:a",
+                &[],
+                vec![finding("CWE-78", "a.go", 1, 1)],
+                "2026-07-11T00:00:00Z",
+            )
+            .unwrap();
+        assert_eq!(store.len(), 1);
+        store.mass_stale_for_tool_version();
+        assert_eq!(store.len(), 0);
+        assert_eq!(store.manifest().tool_version, env!("CARGO_PKG_VERSION"));
+    }
 }

@@ -142,7 +142,18 @@ fn preflight_cache_hits(
         };
     };
 
-    let mut cached_files = Vec::new();
+    // Phase 1: read + hash every eligible file; collect provisional hits/misses.
+    struct Provisional {
+        index: usize,
+        source: Arc<str>,
+        rel: String,
+        hash: String,
+        hit: Option<CacheEntry>,
+        language: LanguageId,
+    }
+    let mut provisional: Vec<Provisional> = Vec::with_capacity(total);
+    let mut dirty: std::collections::HashSet<String> = std::collections::HashSet::new();
+
     for (i, entry) in entries.iter().enumerate() {
         if !cache.should_cache_path(entry.path.as_ref()) {
             to_scan.push((i, None));
@@ -155,25 +166,60 @@ fn preflight_cache_hits(
                 continue;
             }
         };
+        let rel = crate::engine::path_identity::normalize_project_path(&rel);
         let hash = content_hash(&source);
         match cache.lookup(&rel, &hash) {
             CacheLookup::Hit(cached) => {
-                cache_hit_count += 1;
-                cached_outcomes.push(process_cache_hit(ctx, cached, source.clone()));
-                cached_files.push(CachedFileInfo {
+                provisional.push(Provisional {
+                    index: i,
                     source,
-                    display_path: rel,
+                    rel,
+                    hash,
+                    hit: Some(cached),
                     language: entry.language,
                 });
             }
-            _ => to_scan.push((
-                i,
-                Some(PreloadedSource {
+            _ => {
+                dirty.insert(rel.clone());
+                provisional.push(Provisional {
+                    index: i,
                     source,
-                    content_hash: hash,
-                }),
-            )),
+                    rel,
+                    hash,
+                    hit: None,
+                    language: entry.language,
+                });
+            }
         }
+    }
+
+    // Phase 2: same-scan cascade — reverse-dep fixpoint through the manifest.
+    // If A depends on B and B is dirty, force A dirty so we re-parse A now
+    // (not only on the next scan).
+    cache.expand_dirty_fixpoint(&mut dirty);
+
+    // Phase 3: emit hits only when not dirty; otherwise force re-scan.
+    let mut cached_files = Vec::new();
+    for p in provisional {
+        if let Some(cached) = p.hit {
+            if !dirty.contains(&p.rel) {
+                cache_hit_count += 1;
+                cached_outcomes.push(process_cache_hit(ctx, cached, p.source.clone()));
+                cached_files.push(CachedFileInfo {
+                    source: p.source,
+                    display_path: p.rel,
+                    language: p.language,
+                });
+                continue;
+            }
+        }
+        to_scan.push((
+            p.index,
+            Some(PreloadedSource {
+                source: p.source,
+                content_hash: p.hash,
+            }),
+        ));
     }
 
     PreflightResult {

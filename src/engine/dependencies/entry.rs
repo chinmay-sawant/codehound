@@ -3,6 +3,7 @@
 use std::path::Path;
 
 use crate::core::{LanguageId, ParsedUnit};
+use crate::engine::path_identity::normalize_project_path;
 
 use super::go_imports;
 use super::python_imports;
@@ -56,6 +57,16 @@ pub fn extract_dependencies(
         }
         #[cfg(feature = "typescript")]
         LanguageId::TypeScript => {}
+    }
+    // Prefer project-relative keys so cascade matching agrees with
+    // display_path / manifest keys (absolute paths used to miss reverse edges).
+    for path in &mut out {
+        let as_path = Path::new(path.as_str());
+        if let Ok(rel) = as_path.strip_prefix(project_root) {
+            *path = normalize_project_path(&rel.to_string_lossy());
+        } else {
+            *path = normalize_project_path(path);
+        }
     }
     out.sort();
     out.dedup();

@@ -54,6 +54,9 @@ pub(crate) fn print_rule_explanation(rule_id: &str) {
             println!("{} — {}", m.id, m.title);
             println!();
             println!("{}", m.description);
+            println!();
+            println!("Analysis mode: {}", analysis_mode_for(rule_id));
+            println!("Confidence: {}", confidence_for(rule_id));
             if let Some(fix) = m.fix {
                 println!();
                 println!("Fix: {fix}");
@@ -75,6 +78,30 @@ pub(crate) fn print_rule_explanation(rule_id: &str) {
         }
     }
     eprintln!("unknown rule: {rule_id}");
+}
+
+/// High-level analysis mode for `--explain` (taint vs structural vs style).
+fn analysis_mode_for(rule_id: &str) -> &'static str {
+    match rule_id {
+        "CWE-22" | "CWE-78" | "CWE-79" | "CWE-89" | "CWE-90" | "CWE-91" => {
+            "taint (enable with --taint / --profile security)"
+        }
+        id if id.starts_with("BP-") => "style / bad-practice heuristic",
+        id if id.starts_with("PERF-") => "structural / hot-path heuristic",
+        id if id.starts_with("CWE-") => "structural CWE heuristic (needle + AST facts)",
+        _ => "heuristic",
+    }
+}
+
+fn confidence_for(rule_id: &str) -> &'static str {
+    use codehound::rules::{RuleMaturity, maturity_for};
+    match maturity_for(rule_id) {
+        RuleMaturity::TaintCore => "medium–high when taint is on (graph reachability)",
+        RuleMaturity::Structural => "medium (AST / structural patterns)",
+        RuleMaturity::Heuristic => "low–medium (heuristic; may FP)",
+        RuleMaturity::FixtureOnly => "fixture-only (not for production CI packs)",
+        RuleMaturity::Reserved => "reserved / incomplete (not for production CI packs)",
+    }
 }
 
 fn load_descriptions() -> &'static HashMap<String, RuleDescription> {

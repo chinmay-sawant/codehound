@@ -93,11 +93,35 @@ suppressions is essentially free.
   `files/<key>.json` entries whose keys are not in the manifest.
 - `--rebuild-cache` deletes the entire cache directory and starts fresh.
 
-## Limitations
+## Same-scan cascade (Phase 5)
 
-- Concurrent CodeHound processes on the same cache directory may race on the
-  manifest. Individual entry files are written atomically, and a torn manifest
-  is detected on the next `open()` and falls back to an empty manifest.
+When a file’s content hash changes, every cached file that listed it as a
+dependency is marked **dirty in the same scan** (reverse-dep fixpoint) and
+re-parsed immediately. Dependents are no longer left on stale cache hits until
+the next process run.
+
+## Tool-version invalidation
+
+If `manifest.tool_version` ≠ the running `CARGO_PKG_VERSION`, the store
+**mass-stales**: all entries are dropped and rebuilt on this scan (not only a
+warning). Schema mismatches still refuse to open (`CACHE_VERSION`).
+
+## Path identity
+
+Manifest keys and dependency paths use `normalize_project_path` (forward
+slashes, no `./` prefix). See [ADR 0002](./adr/0002-project-path-identity.md).
+
+## Limitations / concurrency policy
+
+- **Single-writer assumption:** one CodeHound process owns a given cache
+  directory per scan. Concurrent writers on the same `.codehound-cache/` may
+  race on `manifest.json`.
+- Entry files are written as whole JSON documents; a torn manifest is detected
+  on the next `open()` and falls back to an empty manifest.
+- File locking is intentionally **not** implemented yet; prefer exclusive CI
+  jobs or distinct `--cache-dir` paths for parallel scans.
+- Tests (`engine_cache_concurrent`) assert concurrent open/scan does not panic;
+  they do not guarantee merge correctness under dual writers.
 - Size-based LRU eviction (`max_size_mb`) is enforced on `flush()` via
   `CacheStore::evict_to_size()`. `evict_target_ratio` controls how far the
   cache is trimmed once the limit is exceeded.

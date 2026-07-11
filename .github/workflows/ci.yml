@@ -82,6 +82,23 @@ jobs:
       - name: Audit dependencies
         run: cargo audit
 
+  canary:
+    name: canary budgets
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
+      RUSTFLAGS: -D warnings
+    steps:
+      - uses: ./.github/actions/rust-toolchain-cache
+        with:
+          features: default
+      - name: Build release binary
+        run: cargo build --release --bin codehound
+      - name: Run canary finding-count budgets
+        env:
+          CODEHOUND_BIN: ${{ github.workspace }}/target/release/codehound
+        run: bash scripts/canary/run_canaries.sh
+
   bench:
     name: bench
     runs-on: ubuntu-latest
