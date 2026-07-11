@@ -93,8 +93,9 @@ accept Path sanitizers.
   works for direct chains (A→B→C), return propagation, method calls, and
   recursion, but does not iterate to a fixed point. Mutual recursion and
   deep chains may miss flows.
-- **No field/array tracking.** `r.URL.Query()["name"][0]` is traced as one
-  node; the engine does not track individual struct fields or array elements.
+- **Limited field keys (not full field-sensitive analysis).** Qualified names
+  like `user.Path` are tracked as keys; map/slice index writes taint the base
+  (`m[k] = t` → `m`). No full field-sensitive / element-precise model.
 - **String concatenation via `+` only.** `fmt.Sprintf` is partially handled
   but not all format-string call graphs are resolved.
 - **No type-based aliasing.** Two variables of the same type pointing to the

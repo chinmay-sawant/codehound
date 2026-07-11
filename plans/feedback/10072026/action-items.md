@@ -194,11 +194,11 @@ Merge for 0.1.0 when A + C minimum is met.
 
 #### 1.4 Severity & confidence discipline `[Product]` + `[Go]` ×2
 
-- [ ] Micro-opts → `info`/`low` across full PERF catalog (Phase 2 tiers)
+- [x] Micro-opts → `info`/`low` via PERF S/A/B/C tiers (`severity_for_tier`; B/C → Info)
 - [x] BP pack off in recommended; style pack is advisory (`NoFail`)
 - [x] Never fail CI on godoc-style rules under recommended (BP not in pack)
 - [x] Populate `confidence` for taint-core findings (~0.7–0.75) and fixture needles (~0.35)
-- [ ] Fix bad PERF advice patterns (http.Get, fmt.Errorf, Body.Close) — Phase 2
+- [x] Fix bad PERF advice patterns (http.Get / fmt.Errorf / Body.Close retunes in metadata_overrides)
 
 #### 1.5 Product repositioning (docs-first) `[Product]` ×2
 
@@ -597,14 +597,14 @@ Merge for 0.1.0 when A + C minimum is met.
 #### 8.4 Codegen & build system polish `[Rust]`
 
 - [x] Validate TOML `function` identifier regex `^[A-Za-z_][A-Za-z0-9_]*$`
-- [ ] Full Rust string escaping or `quote!` / proc-macro2 — deferred
-- [ ] One generic TOML registry reader — deferred
+- [ ] Full Rust string escaping or `quote!` / proc-macro2 — deferred (backlog)
+- [ ] One generic TOML registry reader — deferred (backlog)
 - [x] Needle index O(1) lookup (Phase 4)
-- [ ] Optional `codehound-build` crate — deferred
-- [ ] Parameterize ruleset root by language — deferred
-- [ ] Prefer one of walkdir/ignore — deferred
-- [ ] Remove empty `typescript` feature — deferred to Phase 9
-- [ ] Optional `parking_lot` — deferred (std Mutex + poison recovery OK)
+- [ ] Optional `codehound-build` crate — deferred (backlog)
+- [ ] Parameterize ruleset root by language — deferred (backlog)
+- [ ] Prefer one of walkdir/ignore — deferred (backlog)
+- [x] Remove empty `typescript` feature — **done Phase 9** (ADR 0005)
+- [x] Optional `parking_lot` — **wontfix for 0.1.x** (std Mutex + `into_inner` poison recovery sufficient)
 
 #### 8.5 Optional crate split `[Rust]` + `[Product]` ×2
 
@@ -668,34 +668,76 @@ Merge for 0.1.0 when A + C minimum is met.
 
 ---
 
-## Decisions still required (before coding lockstep)
+## Decisions (resolved after phases 0–9)
 
-| # | Decision | Options | Blocks |
-|---|----------|---------|--------|
-| D1 | **Taint default** | On for `security` only vs global on with docs | Phase 0.4 / 0.8 |
-| D2 | **Dual license** | Ship both files vs drop dual claim | Phase 0.3 |
-| D3 | **`--warnings-as-errors`** | Implement vs remove | Phase 0.5 |
-| D4 | **Multi-lang** | Invest Python vs demote Go-first | Phase 9 / branding |
-| D5 | **Finding ownership** | Arc/CompactString vs Cow+intern for rule IDs | Phase 0.9 |
-| D6 | **Mutex strategy** | parking_lot vs poison recovery vs TLS merge | Phase 0.9 / 4.4 |
-| D7 | **`nolint` alias** | Implement vs document non-goal | Phase 6.2 |
+| # | Decision | Resolution |
+|---|----------|------------|
+| D1 | **Taint default** | **Done:** off except `security` profile / `--taint` |
+| D2 | **Dual license** | **Done:** MIT OR Apache-2.0 files present |
+| D3 | **`--warnings-as-errors`** | **Done:** fail-policy flags / strict |
+| D4 | **Multi-lang** | **Done:** demote Go-first (ADR 0005) |
+| D5 | **Finding ownership** | **Done for 0.1.x:** fingerprint v2 + intern allowlist |
+| D6 | **Mutex strategy** | **Done for 0.1.x:** poison `into_inner` + off-lock taint units |
+| D7 | **`nolint` alias** | **Done:** documented non-goal |
 
 ---
 
 ## System success metrics (definition of done)
 
-| Metric | Baseline (today) | Target |
-|--------|------------------|--------|
-| Recommended-pack FP rate on canary repos | Unknown | < 15% of findings dismissed as noise (sampled) |
-| Default scan side effects | Writes `scripts/` | Zero unless opted in |
-| SARIF GitHub upload | Broken/unreliable | Green without transform |
-| Rule catalog honesty | ~470 “on” | Tagged maturity; recommended ≪ all |
-| Release | Source-only `0.0.1` | Tagged `≥0.1.0` binary |
-| Docs drift incidents | Several known | Zero known schema/README lies |
-| Recommended pack trust | Unmeasured | Senior Go triage: ≥70% of 20 findings actionable |
-| Sanitizer correctness | Clean-only may suppress | Dedicated tests: Clean-only still flags CWE-22 |
-| SourceIndex lookup | O(N) ~737 | O(1) / binary_search; microbench gated |
-| Canary stability | None | ±N findings budget on pinned modules |
+| Metric | Pre-feedback | After phases 0–9 | Residual |
+|--------|--------------|------------------|----------|
+| Recommended-pack FP rate on canary repos | Unknown | In-repo canary budgets only | External pilot still open |
+| Default scan side effects | Wrote `scripts/` | Export off unless flags | — |
+| SARIF GitHub upload | Broken | camelCase + composite action | Needs live GH upload smoke |
+| Rule catalog honesty | ~470 “on” | Maturity + packs + fixture quarantine | Long-tail audit ongoing |
+| Release | Source-only `0.0.1` | Version **0.1.0** + multi-arch workflow | Tag `v0.1.0` after push |
+| Docs drift | Several known | Major drifts fixed | Keep ratchet |
+| Recommended pack trust | Unmeasured | Pack curated; no senior pilot yet | Real-repo triage |
+| Sanitizer correctness | Clean over-trust | Clean not Path sanitizer + tests | More variants OK |
+| SourceIndex lookup | O(N) | O(1) HashMap lookup | — |
+| Canary stability | None | 3 in-repo budgets | External SHA pins |
+
+---
+
+## Post-0.1 backlog (remaining open items)
+
+> **Drift fixed 2026-07-11:** typescript removed marked done; PERF tier/advice marked done; parking_lot wontfix.  
+> Remaining open checkboxes consolidated here with ETA and pursue guidance.
+
+| # | Item | How to implement (short) | ETA | Pursue? |
+|---|------|--------------------------|-----|:-------:|
+| B01 | Senior Go triage of ~20 recommended findings (≥70% actionable) | Run `--profile recommended` on 1–3 real services; label TP/FP; write short report | 1–2 d | **Yes** — only real trust metric left |
+| B02 | Full audit of every CWE long-tail needle | Expand `maturity` tags; quarantine/delete fixture-shaped needles; rewrite bar per rule | 2–4 wk | **Yes (ongoing)** — highest catalog trust work |
+| B03 | Enforce rewrite bar for promotion to `structural` | Document gate in CONTRIBUTING/RFC; PR checklist; optional CI label | 0.5–1 d | **Yes** — cheap process |
+| B04 | Track hit rate on canaries; delete zero-hit after N months | Telemetry file or CI artifact counting rule_ids; quarterly delete PR | 3–5 d + calendar | **Yes** after B01 |
+| B05 | Prefer call facts + callee classification over `SourceIndex.has` primary detect | Migrate detectors to `CallFact`/`callee` facts; needles as prefilter only | 2–4 wk | **Yes** (incremental; high craft value) |
+| B06 | Use needles as **negative gates** where possible | Early-return `!has(needle)` before expensive AST | 3–5 d | **Yes** — cheap perf win |
+| B07 | Full comment pass on remaining ~700 NEEDLES | Annotate fixture vs production needles in `source_index.rs` | 3–5 d | **Maybe** — hygiene; pair with B02 |
+| B08 | Package-aware `*sql.DB` assign facts | Track typed/simple assignment facts for DB handles in facts layer | 1–2 wk | **Maybe** — only if SQLi FP/FN pain |
+| B09 | Optional mtime+size prefilter then hash confirm | Extend `FileCacheMeta` with mtime/size; skip hash when unchanged | 2–3 d | **Yes** if warm-path CI is slow |
+| B10 | Parallel preflight per chunk | Rayon over hash+lookup with read-only store | 1–2 d | **Yes** if preflight shows in profiles |
+| B11 | External commit-SHA module pins + golden TP/FP labels | Pin 3 public modules in CI; store expected finding budgets | 3–5 d | **Yes** before hard public claims |
+| B12 | Per-rule hit rate telemetry (local opt-in) | `--diagnostics` counters or JSON summary by rule_id | 2–3 d | **Maybe** — supports B04 |
+| B13 | CHUNK_VALIDATOR / LLM review process | Human process doc only; not product code | 0.5 d | **No** as product; process optional |
+| B14 | Full `pub use` façade / missing_docs ratchet | `pub(crate)` internals; document public modules; enable warn per module | 1–2 wk | **Yes** for embedders / 0.2 |
+| B15 | Full grouped ScanContext subconfigs | Nest `TaintConfig` / `CacheConfig` / `BadPracticesConfig` in context+TOML | 3–5 d | **Maybe** — readability, not urgent |
+| B16 | Homebrew / deb packages | Tap + formula after tagged multi-arch release | 1–2 d after release | **Maybe** if demand |
+| B17 | Codegen validates function exists + fixture inventory CI | build.rs resolve symbol or `rg` CI; fixture inventory vs registry | 2–4 d | **Yes** — integrity |
+| B18 | Full public-items missing_docs ratchet | Same as B14 module-by-module | (see B14) | **Yes** with B14 |
+| B19 | Detector APIs for future typed fact layer | Trait seams / fact IR stable for go/packages later | 1 wk design | **Defer** until PERF pack trusted |
+| B20 | Optional `--typed` (go/packages) | Optional feature + Go toolchain; big product bet | 4–8 wk | **No for 0.1.x** |
+| B21 | Full Rust string escaping / `quote!` in codegen | Migrate build gen to `quote`/`syn` or escape helper | 2–3 d | **Maybe** if injection risk in registry |
+| B22 | One generic TOML registry reader | Unify CWE/PERF registry parse | 1–2 d | **Maybe** — DRY only |
+| B23 | Optional `codehound-build` crate | Split build.rs modules to crate | 2–3 d | **No** until compile pain |
+| B24 | Parameterize ruleset root by language | Env/path for multi-lang rulesets | 1–2 d | **No** until multi-lang invest |
+| B25 | Prefer one of walkdir/ignore | Document dual use or consolidate walk | 0.5–1 d | **Yes** (docs) / **Maybe** (code) |
+| B26 | Incremental findings write (streaming SARIF) | Write results as scan progresses; bound RAM | 1–2 wk | **Maybe** for monorepos |
+| B27 | Public FP/TP dashboard | External product; not core engine | weeks | **No** for 0.1.x |
+| B28 | Homebrew/deb (dup of B16) | — | — | merge with B16 |
+
+**Pursue now (next 1–2 sprints):** B01, B03, B06, B09–B11, B14/B18, B17, B25(docs).  
+**Ongoing catalog:** B02, B04, B05, B07.  
+**Defer / no:** B13, B19–B20, B23–B24, B27, B16 until release demand.
 
 ---
 
