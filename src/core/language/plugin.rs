@@ -48,4 +48,17 @@ pub trait LanguagePlugin: Send + Sync {
         self.configure_parser(&mut parser)?;
         self.parse_with(&mut parser, path, source)
     }
+
+    /// Project-local dependency paths for cache cascade (relative to `project_root`).
+    ///
+    /// Default: no dependencies. Languages override without editing the engine
+    /// match arm in [`crate::engine::extract_dependencies`].
+    fn extract_deps(
+        &self,
+        _unit: &ParsedUnit,
+        _project_root: &Path,
+        _module_prefix: Option<&str>,
+    ) -> Vec<String> {
+        Vec::new()
+    }
 }

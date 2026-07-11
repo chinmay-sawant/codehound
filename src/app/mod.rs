@@ -1,5 +1,6 @@
 //! Application orchestration and subcommands.
 
+mod baseline_cmd;
 mod cache;
 mod config;
 mod exit_codes;

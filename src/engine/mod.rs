@@ -4,7 +4,7 @@ mod analyzer;
 mod baseline;
 mod cache;
 mod config;
-mod dependencies;
+pub(crate) mod dependencies;
 mod diagnostics;
 mod ignore;
 mod io;

@@ -5,9 +5,9 @@ use std::path::Path;
 
 use tree_sitter::Node;
 
-use super::entry::{extensions_for, resolve_local_path};
+use super::resolve::{extensions_for, resolve_local_path};
 
-pub(super) fn extract(
+pub(crate) fn extract(
     root: &Node,
     source: &str,
     project_root: &Path,

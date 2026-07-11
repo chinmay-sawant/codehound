@@ -9,20 +9,27 @@
 /// [`TreeSitterLang`](crate::lang::parser::TreeSitterLang) AND the
 /// [`LanguagePlugin`](crate::core::LanguagePlugin) impl in one call.
 ///
-/// # Arguments
-///
-/// 1. `$marker:ident` — marker type name (e.g. `GoLang`)
-/// 2. `$plugin:ident` — plugin struct name (e.g. `GoPlugin`)
-/// 3. `$lang_id:expr` — [`LanguageId`](crate::core::LanguageId) variant
-/// 4. `$grammar:expr` — tree-sitter `Language` value
-/// 5. `$error_tag:expr` — string constant for error messages
-/// 6. `$extensions:expr` — `&'static [&'static str]` of file extensions
-/// 7. `$detectors:expr` — expression returning `Vec<Box<dyn Detector>>`
-/// 8. `$fn_kinds:expr` — `&'static [&'static str]` of function node kinds
-/// 9. `$loop_kinds:expr` — `&'static [&'static str]` of loop node kinds
+/// Optional 10th argument: `extract_deps` closure
+/// `|unit, project_root, module_prefix| -> Vec<String>`.
 macro_rules! tree_sitter_lang {
     ($marker:ident, $plugin:ident, $lang_id:expr, $grammar:expr, $error_tag:expr,
      $extensions:expr, $detectors:expr, $fn_kinds:expr, $loop_kinds:expr) => {
+        $crate::lang::plugin::tree_sitter_lang!(
+            $marker,
+            $plugin,
+            $lang_id,
+            $grammar,
+            $error_tag,
+            $extensions,
+            $detectors,
+            $fn_kinds,
+            $loop_kinds,
+            |_, _, _| Vec::new()
+        );
+    };
+    ($marker:ident, $plugin:ident, $lang_id:expr, $grammar:expr, $error_tag:expr,
+     $extensions:expr, $detectors:expr, $fn_kinds:expr, $loop_kinds:expr,
+     $extract_deps:expr) => {
         pub struct $marker;
         impl crate::lang::parser::TreeSitterLang for $marker {
             const ID: crate::core::LanguageId = $lang_id;
@@ -61,6 +68,14 @@ macro_rules! tree_sitter_lang {
             }
             fn loop_node_kinds(&self) -> &'static [&'static str] {
                 $loop_kinds
+            }
+            fn extract_deps(
+                &self,
+                unit: &crate::core::ParsedUnit,
+                project_root: &std::path::Path,
+                module_prefix: Option<&str>,
+            ) -> Vec<String> {
+                $extract_deps(unit, project_root, module_prefix)
             }
         }
     };

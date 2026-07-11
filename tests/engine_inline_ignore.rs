@@ -270,3 +270,46 @@ func ReadFile(r *http.Request) {
         std::fs::remove_dir_all(root).unwrap();
     }
 }
+
+#[test]
+fn parse_eol_ignore_applies_to_same_line() {
+    let ignores = parse_inline_ignores(
+        r#"
+value := input // codehound-ignore: CWE-22
+"#,
+    );
+    assert_eq!(
+        ignores.get(&2),
+        Some(&IgnoreDirective::rules(vec!["CWE-22".to_string()]))
+    );
+}
+
+#[test]
+fn parse_block_ignore_range() {
+    let ignores = parse_inline_ignores(
+        r#"
+// codehound-ignore-start: CWE-22
+a := 1
+b := 2
+// codehound-ignore-end
+c := 3
+"#,
+    );
+    assert!(ignores.get(&3).is_some());
+    assert!(ignores.get(&4).is_some());
+    assert!(ignores.get(&6).is_none());
+}
+
+#[test]
+fn parse_python_hash_comment_ignore() {
+    let ignores = parse_inline_ignores(
+        r#"
+# codehound-ignore: SLOP101
+re.compile(x)
+"#,
+    );
+    assert_eq!(
+        ignores.get(&3),
+        Some(&IgnoreDirective::rules(vec!["SLOP101".to_string()]))
+    );
+}

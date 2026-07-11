@@ -176,6 +176,10 @@ pub struct Cli {
     #[arg(long)]
     pub show_ignored: bool,
 
+    /// Report findings suppressed by the baseline (mirror `--show-ignored`).
+    #[arg(long)]
+    pub show_baselined: bool,
+
     /// Path to a custom baseline file.
     #[arg(long, value_name = "PATH")]
     pub baseline_file: Option<PathBuf>,

@@ -17,5 +17,18 @@ tree_sitter_lang!(
     &["py"],
     detectors::all(),
     &[],
-    LOOP_NODE_KINDS
+    LOOP_NODE_KINDS,
+    |unit: &crate::core::ParsedUnit,
+     project_root: &std::path::Path,
+     _module_prefix: Option<&str>| {
+        let mut out = Vec::new();
+        crate::engine::dependencies::python_imports::extract(
+            &unit.tree.root_node(),
+            &unit.source,
+            project_root,
+            &unit.display_path,
+            &mut out,
+        );
+        out
+    }
 );

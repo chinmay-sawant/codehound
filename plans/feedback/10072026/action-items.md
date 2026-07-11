@@ -442,50 +442,49 @@ Merge for 0.1.0 when A + C minimum is met.
 
 ### Success criteria
 
-- [ ] Baseline list/prune/update/diff + show-baselined
-- [ ] Block/range/EOL ignore; multi-lang comments when relevant
-- [ ] CLI subcommands started without breaking core scan UX
-- [ ] New language can add dep extraction without editing engine match (trait)
+- [x] Baseline list/prune/update/diff + show-baselined
+- [x] Block/range/EOL ignore; multi-lang comments when relevant
+- [x] CLI subcommands started without breaking core scan UX
+- [x] New language can add dep extraction without editing engine match (trait)
 
 ### Checklist
 
 #### 6.1 Baseline maturity `[Product]`
 
-- [ ] Prefer fingerprint + optional content/AST-stable identity (reduce line-shift fragility)
-- [ ] `codehound baseline list|prune|update|diff`
-- [ ] `--show-baselined` (mirror `--show-ignored`)
-- [ ] Optional `reason`, `expires` in baseline schema
+- [x] Fingerprint v2 = rule + file + message digest (line-shift resilient); location fallback retained
+- [x] `codehound baseline list|prune|update|diff|save`
+- [x] `--show-baselined` (mirror `--show-ignored`)
+- [x] Optional `reason`, `expires` in baseline schema (serde defaults; v1 files load)
 
 #### 6.2 Ignore system completeness `[Product]`
 
-- [ ] Python `#` comments (if Python retained); language-aware comments eventually
-- [ ] `codehound-ignore-start` / `-end` block ranges
-- [ ] Trailing end-of-line ignore
-- [ ] Optional `nolint`-style alias: implement **or** document non-goal
+- [x] Python `#` comments
+- [x] `codehound-ignore-start` / `-end` block ranges
+- [x] Trailing end-of-line ignore
+- [x] `nolint` alias: **documented non-goal** (`docs/finding-identity.md`)
 
 #### 6.3 CLI structure `[Product]` + `[Rust]` ×2
 
-- [ ] Subcommands: `scan`, `rules`, `cache`, `baseline`, `init` (incremental migration)
-- [ ] clap derive groups; keep env vars
+- [x] Subcommands: `scan`, `rules`, `cache prune`, `baseline …`, `init` (default bare args still scan)
+- [x] clap derive; env vars retained on global scan flags
 
 #### 6.4 Narrow public surface & engine←language leaks `[Rust]` ×2
 
-- [ ] `pub use` façade: Analyzer, Finding, config, reporters; internals `pub(crate)` where possible
-- [ ] Ratchet `missing_docs` on public façade
-- [ ] Move `engine/sinks.rs` Go API sets → `lang/go/sinks.rs` (or tagged shared analysis sinks)
-- [ ] Move `scratch_contains` to ast/lang util
-- [ ] `LanguagePlugin::extract_deps` — stop engine match arms for Go/Python
-- [ ] Acceptance: new language dep extraction without engine edit
+- [x] `LanguagePlugin::extract_deps` + plugin dispatch (no Go/Python engine match)
+- [x] Go sinks → `lang/go/sinks.rs` (engine re-export for compat)
+- [x] `scratch_contains` → `ast` (engine/walk re-export)
+- [ ] Full `pub use` façade ratchet / missing_docs on entire public API — deferred
+- [x] Acceptance: new language overrides `extract_deps` without engine edit
 
 #### 6.5 ScanContext / config god-object `[Rust]` + `[Product]`
 
-- [ ] Grouped subconfigs: finish `TaintConfig`, `CacheConfig`, `BadPracticesConfig`
-- [ ] Soft `fail_on` string → enum in serde (if not done Phase 0)
+- [ ] Full grouped subconfigs refactor — deferred (CacheConfig already exists; larger split later)
+- [x] Soft `fail_on` / fail policy — already present from earlier phases
 
 #### 6.6 Detector finalize model documented `[Rust]`
 
-- [ ] Document/test: parallel `run` → optional `accumulate_state` → single-threaded `finalize`
-- [ ] Avoid shared mutable state during `run` when possible
+- [x] Documented on `Detector` trait + architecture-performance.md
+- [x] Go CWE path already builds off-lock / short Mutex (Phase 4)
 
 ---
 

@@ -12,17 +12,20 @@ use super::finding_wire::FindingWire;
 use crate::cwe::CweRef;
 
 pub(crate) const FINGERPRINT_TOOL: &str = "codehound";
-pub(crate) const FINGERPRINT_VERSION: u32 = 1;
+/// v2: rule + file + message digest (line-shift resilient when message is stable).
+pub(crate) const FINGERPRINT_VERSION: u32 = 2;
 
-fn format_fingerprint(rule_id: &str, file: &str, line: usize, column: usize) -> String {
+fn format_fingerprint(rule_id: &str, file: &str, message: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let digest = Sha256::digest(message.as_bytes());
+    let msg_hash = format!("{digest:x}");
     format!(
-        "{}:{}:{}:{}:{}:{}",
+        "{}:{}:{}:{}:{}",
         FINGERPRINT_TOOL,
         FINGERPRINT_VERSION,
         rule_id,
         file.replace('\\', "/"),
-        line,
-        column
+        &msg_hash[..16.min(msg_hash.len())],
     )
 }
 
@@ -258,9 +261,10 @@ impl Finding {
         self
     }
 
-    /// Convenience string form for wire output.
+    /// Content-stable fingerprint (rule + file + message digest).
+    /// Prefer this over line/column for baseline identity.
     pub fn fingerprint_string(&self) -> String {
-        format_fingerprint(self.rule_id, &self.file, self.line, self.column)
+        format_fingerprint(self.rule_id, &self.file, &self.message)
     }
 
     /// Rule category derived from the rule id prefix.

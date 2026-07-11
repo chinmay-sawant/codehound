@@ -4,6 +4,18 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use crate::core::LanguageId;
+
+/// File extensions scanned for each supported language.
+pub(crate) fn extensions_for(lang: LanguageId) -> &'static [&'static str] {
+    match lang {
+        LanguageId::Go => &["go"],
+        LanguageId::Python => &["py"],
+        #[cfg(feature = "typescript")]
+        LanguageId::TypeScript => &["ts", "tsx", "js", "jsx"],
+    }
+}
+
 /// Resolve `abs` to one or more concrete files. Returns `Some(vec)`
 /// when at least one matching file exists, `None` otherwise.
 pub(super) fn resolve_local_path(abs: &Path, extensions: &[&str]) -> Option<Vec<PathBuf>> {

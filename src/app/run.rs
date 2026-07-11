@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use anyhow::{Context, Result};
-use codehound::cli::{Cli, Command, OutputFormat};
+use codehound::cli::{CacheAction, Cli, Command, OutputFormat};
 use codehound::engine::{
     AnalysisResult, Analyzer, BASELINE_FILE_NAME, Baseline, CacheSession, CacheStore, Diagnostics,
     DEFAULT_CACHE_DIR, FilesystemWalker, LanguageFilter, PathFilters, Registry, RunConfigParams,
@@ -16,14 +16,42 @@ use codehound::reporting;
 use super::cache::{cache_directory, open_cache_store};
 use super::config::{baseline_load_path, baseline_loading_enabled, load_config};
 use super::exit_codes::{EXIT_CLEAN, EXIT_FAILING, EXIT_INTERNAL};
+use super::baseline_cmd::run_baseline_command;
 use super::init_cmd::init_subcommand;
 use super::rule_info::{print_rule_explanation, print_rules};
 
 pub fn run(cli: Cli) -> Result<ExitCode> {
     configure_terminal_color(&cli);
 
-    if let Some(Command::Init) = &cli.command {
-        return Ok(init_subcommand());
+    // Take subcommand ownership first so we can move `cli` into handlers.
+    let command = cli.command.clone();
+    match command {
+        Some(Command::Init) => return Ok(init_subcommand()),
+        Some(Command::Rules { category, explain }) => {
+            if let Some(rule_id) = explain {
+                return run_explain(&rule_id);
+            }
+            print_rules(category);
+            return Ok(ExitCode::from(EXIT_CLEAN));
+        }
+        Some(Command::Cache {
+            action: CacheAction::Prune,
+        }) => {
+            let mut cli = cli;
+            cli.prune_cache = true;
+            return run_scan(cli);
+        }
+        Some(Command::Baseline { action }) => {
+            return run_baseline_command(&cli, &action);
+        }
+        Some(Command::Scan { paths }) => {
+            let mut cli = cli;
+            if !paths.is_empty() {
+                cli.paths = paths;
+            }
+            return run_scan(cli);
+        }
+        None => {}
     }
 
     if cli.list_rules {
@@ -155,7 +183,10 @@ fn run_scan(cli: Cli) -> Result<ExitCode> {
     ScanRun::new(cli).execute()
 }
 
-fn scan_context_params_for_run(cli: &Cli, config: Option<CodehoundConfig>) -> ScanContextParams {
+pub(crate) fn scan_context_params_for_run(
+    cli: &Cli,
+    config: Option<CodehoundConfig>,
+) -> ScanContextParams {
     ScanContextParams {
         only: cli.only.clone(),
         skip: cli.skip.clone(),
@@ -237,7 +268,7 @@ fn validate_cache_purge_path(dir: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn resolve_scan_paths(paths: &[String]) -> Result<Vec<PathBuf>> {
+pub(crate) fn resolve_scan_paths(paths: &[String]) -> Result<Vec<PathBuf>> {
     paths.iter().map(|path| resolve_scan_path(path)).collect()
 }
 
@@ -356,10 +387,25 @@ fn apply_baseline_filter(cli: &Cli, config: Option<&CodehoundConfig>, result: &m
                 );
             }
             let before = result.findings.len();
-            result
-                .findings
-                .retain(|finding| !baseline.contains_finding(finding));
-            result.suppressed_count += before.saturating_sub(result.findings.len());
+            if cli.show_baselined {
+                // Mirror --show-ignored: keep baselined findings, mark as suppressed.
+                for finding in &mut result.findings {
+                    if baseline.contains_finding(finding) {
+                        finding.severity = codehound::rules::Severity::Info;
+                        finding.suppressed = true;
+                        if !finding.message.ends_with(" (baselined)") {
+                            finding.message.push_str(" (baselined)");
+                        }
+                    }
+                }
+                let baselined = result.findings.iter().filter(|f| f.suppressed).count();
+                result.suppressed_count += baselined;
+            } else {
+                result
+                    .findings
+                    .retain(|finding| !baseline.contains_finding(finding));
+                result.suppressed_count += before.saturating_sub(result.findings.len());
+            }
             if !cli.quiet {
                 eprintln!(
                     "Using baseline with {} entr{} from {} (suppressed {})",

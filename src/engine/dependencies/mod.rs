@@ -27,10 +27,10 @@
 //! keys and `display_path` used by [`crate::engine::walk`].
 
 mod entry;
-mod go_imports;
+pub(crate) mod go_imports;
 mod go_module;
 mod project_root;
-mod python_imports;
+pub(crate) mod python_imports;
 mod resolve;
 #[cfg(test)]
 mod tests;

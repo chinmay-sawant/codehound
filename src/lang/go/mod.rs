@@ -1,6 +1,7 @@
 //! Go language plugin.
 
 pub mod detectors;
+pub mod sinks;
 mod register;
 
 const FUNCTION_NODE_KINDS: &[&str] = &["function_declaration", "method_declaration"];
@@ -29,5 +30,18 @@ tree_sitter_lang!(
     &["go"],
     detectors::all(),
     FUNCTION_NODE_KINDS,
-    LOOP_NODE_KINDS
+    LOOP_NODE_KINDS,
+    |unit: &crate::core::ParsedUnit,
+     project_root: &std::path::Path,
+     module_prefix: Option<&str>| {
+        let mut out = Vec::new();
+        crate::engine::dependencies::go_imports::extract(
+            &unit.tree.root_node(),
+            &unit.source,
+            project_root,
+            module_prefix.unwrap_or(""),
+            &mut out,
+        );
+        out
+    }
 );

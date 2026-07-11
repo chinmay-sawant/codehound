@@ -57,8 +57,24 @@ avoid accidental mismatches.
 
 ## Suppression and the incremental cache
 
-`// codehound-ignore: RULE_ID` and `// codehound-ignore-file` directives are
-re-applied on every cache hit. The cache stores the raw findings; the current
-run's suppression context filters them before they are reported. This means a
-finding suppressed after the first scan is dropped on the next warm-cache run
-even though the file content hash has not changed.
+Supported ignore directives (Go `//` and Python `#` comments):
+
+| Form | Effect |
+|------|--------|
+| `codehound-ignore: RULES` | Next non-comment line |
+| `… code // codehound-ignore: RULES` | Same-line (EOL) |
+| `codehound-ignore-file[: RULES]` | Whole file (header) |
+| `codehound-ignore-start` / `-end` | Block range |
+
+**Non-goal:** golangci `//nolint` aliases are not accepted — use `codehound-ignore`.
+
+Directives are re-applied on every cache hit. The cache stores raw findings; the
+current run's suppression context filters them before report.
+
+## Baseline identity
+
+Fingerprints are `codehound:2:RULE:file:msg_hash` (message-stable; line drift
+resilient when the message is unchanged). Location (rule+file+line+col) remains
+a fallback for matching. Optional entry fields: `reason`, `expires` (ISO-8601).
+
+CLI: `codehound baseline list|prune|update|diff|save` and `--show-baselined`.
