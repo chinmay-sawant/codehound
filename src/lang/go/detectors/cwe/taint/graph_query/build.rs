@@ -12,10 +12,10 @@ use super::super::{
 pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
     let mut graph = TaintGraph::default();
 
-    // Map each assignment to a variable node, keyed by (scope, name).
-    // We keep only the *latest* assignment per variable within a scope for
-    // the MVP; re-assignments overwrite the previous decl node.
-    let mut decl_nodes: HashMap<(ScopeId, SharedText), TaintNodeId> = HashMap::new();
+    // Versioned last-write: each assignment gets its own node; resolve picks
+    // the latest decl with `decl_byte <= use_byte` (not pure overwrite).
+    // Key is (scope, name) including field-qualified names (`user.Path`).
+    let mut decl_nodes: HashMap<(ScopeId, SharedText), Vec<(usize, TaintNodeId)>> = HashMap::new();
 
     // Index scopes by id for parent lookups.
     let scope_by_id: HashMap<ScopeId, &ScopeInfo> =
@@ -40,12 +40,18 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
                 decl_byte: func_scope.byte_range.start,
             };
             let id = graph.add_node(node);
-            decl_nodes.insert((func_scope.id, Arc::clone(param)), id);
+            decl_nodes
+                .entry((func_scope.id, Arc::clone(param)))
+                .or_default()
+                .push((func_scope.byte_range.start, id));
         }
     }
 
-    // Create variable nodes for every assignment.
+    // Create variable nodes for every non-channel assignment (versioned).
     for assignment in &annotations.assignments {
+        if assignment.is_channel_send {
+            continue;
+        }
         let node = TaintNode::Variable {
             name: Arc::clone(&assignment.lhs),
             type_hint: None,
@@ -53,7 +59,15 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
             decl_byte: assignment.byte_range.start,
         };
         let id = graph.add_node(node);
-        decl_nodes.insert((assignment.scope, Arc::clone(&assignment.lhs)), id);
+        decl_nodes
+            .entry((assignment.scope, Arc::clone(&assignment.lhs)))
+            .or_default()
+            .push((assignment.byte_range.start, id));
+    }
+
+    // Keep versions sorted by decl_byte for binary search / last-write.
+    for versions in decl_nodes.values_mut() {
+        versions.sort_by_key(|(byte, _)| *byte);
     }
 
     // Add source / sink / sanitizer nodes and wire them to result variables
@@ -111,10 +125,10 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
             argument_index: sink.argument_index,
             byte_range: sink.byte_range.clone(),
         });
-        // Wire any identifier argument (including inside compound expressions
-        // like `"prefix" + tainted`) to its declaring variable.
+        // Wire any identifier / field key argument (including inside compound
+        // expressions like `"prefix" + tainted`) to its declaring variable.
         for (idx, arg) in sink.all_arguments.iter().enumerate() {
-            for name in referenced_identifiers(arg) {
+            for name in referenced_names(arg) {
                 if let Some(source_id) =
                     resolve_variable(&decl_nodes, &scope_by_id, sink.byte_range.start, name)
                 {
@@ -134,12 +148,12 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
                     Some(t) => t,
                     None => continue,
                 };
-                let out_names = referenced_identifiers(out_text);
+                let out_names = referenced_names(out_text);
                 for (in_idx, in_arg) in sink.all_arguments.iter().enumerate() {
                     if in_idx == out_idx {
                         continue;
                     }
-                    for in_name in referenced_identifiers(in_arg) {
+                    for in_name in referenced_names(in_arg) {
                         for out_name in &out_names {
                             if let (Some(src), Some(dst)) = (
                                 resolve_variable(
@@ -166,7 +180,15 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
 
     // Wire assignments: `x := y` or `x := sanitize(y)`.
     for assignment in &annotations.assignments {
-        let Some(target) = decl_nodes.get(&(assignment.scope, Arc::clone(&assignment.lhs))) else {
+        if assignment.is_channel_send {
+            continue;
+        }
+        let Some(target) = resolve_decl_at(
+            &decl_nodes,
+            assignment.scope,
+            assignment.lhs.as_ref(),
+            assignment.byte_range.start,
+        ) else {
             continue;
         };
         if assignment.from_source_or_sanitizer {
@@ -192,31 +214,38 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
             continue;
         }
 
-        for name in referenced_identifiers(&assignment.rhs_text) {
+        for name in referenced_names(&assignment.rhs_text) {
             if let Some(source_id) =
                 resolve_variable(&decl_nodes, &scope_by_id, assignment.byte_range.start, name)
             {
-                graph.add_edge(source_id, *target, EdgeKind::Assignment);
+                graph.add_edge(source_id, target, EdgeKind::Assignment);
             }
         }
     }
 
-    // ponytail: bridge map/slice writes (`m[key] = tainted`) to the base
-    // variable (`m`) so subsequent reads (`val := m[key]`) propagate taint.
-    // Per-key tracking is per-key — we track at map-variable granularity.
+    // Map/slice index: conservative whole-base taint (`m[k] = t` taints `m`).
+    // Per-key precision is intentionally low-confidence / not modeled.
     for assignment in &annotations.assignments {
+        if assignment.is_channel_send {
+            continue;
+        }
         if let Some(bracket) = assignment.lhs.find('[') {
-            let base = &assignment.lhs[..bracket];
-            if let Some(base_id) = decl_nodes.get(&(assignment.scope, Arc::from(base))) {
+            let base = assignment.lhs[..bracket].trim();
+            if let Some(base_id) = resolve_decl_at(
+                &decl_nodes,
+                assignment.scope,
+                base,
+                assignment.byte_range.start,
+            ) {
                 if !assignment.from_source_or_sanitizer {
-                    for name in referenced_identifiers(&assignment.rhs_text) {
+                    for name in referenced_names(&assignment.rhs_text) {
                         if let Some(source_id) = resolve_variable(
                             &decl_nodes,
                             &scope_by_id,
                             assignment.byte_range.start,
                             name,
                         ) {
-                            graph.add_edge(source_id, *base_id, EdgeKind::Assignment);
+                            graph.add_edge(source_id, base_id, EdgeKind::Assignment);
                         }
                     }
                 }
@@ -231,14 +260,14 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
 /// climbing the scope tree as needed.
 fn wire_arguments(
     graph: &mut TaintGraph,
-    decl_nodes: &HashMap<(ScopeId, SharedText), TaintNodeId>,
+    decl_nodes: &HashMap<(ScopeId, SharedText), Vec<(usize, TaintNodeId)>>,
     scope_by_id: &HashMap<ScopeId, &ScopeInfo>,
     node_id: TaintNodeId,
     byte_offset: usize,
     arguments: &[SharedText],
 ) {
     for (idx, arg) in arguments.iter().enumerate() {
-        for name in referenced_identifiers(arg) {
+        for name in referenced_names(arg) {
             if let Some(source_id) = resolve_variable(decl_nodes, scope_by_id, byte_offset, name) {
                 graph.add_edge(source_id, node_id, EdgeKind::Argument(idx));
             }
@@ -246,8 +275,23 @@ fn wire_arguments(
     }
 }
 
+/// Latest version of `name` in `scope` with `decl_byte <= use_byte`.
+fn resolve_decl_at(
+    decl_nodes: &HashMap<(ScopeId, SharedText), Vec<(usize, TaintNodeId)>>,
+    scope: ScopeId,
+    name: &str,
+    use_byte: usize,
+) -> Option<TaintNodeId> {
+    let versions = decl_nodes.get(&(scope, Arc::from(name)))?;
+    versions
+        .iter()
+        .rev()
+        .find(|(byte, _)| *byte <= use_byte)
+        .map(|(_, id)| *id)
+}
+
 fn resolve_variable(
-    decl_nodes: &HashMap<(ScopeId, SharedText), TaintNodeId>,
+    decl_nodes: &HashMap<(ScopeId, SharedText), Vec<(usize, TaintNodeId)>>,
     scope_by_id: &HashMap<ScopeId, &ScopeInfo>,
     byte_offset: usize,
     name: &str,
@@ -259,12 +303,59 @@ fn resolve_variable(
         .min_by_key(|s| s.byte_range.end - s.byte_range.start)?;
 
     loop {
-        let key = (current.id, Arc::from(name));
-        if let Some(id) = decl_nodes.get(&key) {
-            return Some(*id);
+        // Prefer field-qualified key, then climb scopes for last-write version.
+        if let Some(id) = resolve_decl_at(decl_nodes, current.id, name, byte_offset) {
+            return Some(id);
+        }
+        // If name is `base.field`, also try base alone (conservative).
+        if let Some((base, _)) = name.split_once('.') {
+            if let Some(id) = resolve_decl_at(decl_nodes, current.id, base, byte_offset) {
+                return Some(id);
+            }
         }
         current = scope_by_id.get(&current.parent?)?;
     }
+}
+
+/// Identifiers **and** field-access chains (`user.Path`) from an expression.
+fn referenced_names(expr: &str) -> Vec<&str> {
+    let mut out = referenced_identifiers(expr);
+    // Also collect `ident.field` / `ident.field.field` as whole keys.
+    let mut start = 0usize;
+    let bytes = expr.as_bytes();
+    while start < bytes.len() {
+        // skip non-ident
+        while start < bytes.len()
+            && !(bytes[start].is_ascii_alphabetic() || bytes[start] == b'_')
+        {
+            start += 1;
+        }
+        if start >= bytes.len() {
+            break;
+        }
+        let mut end = start;
+        while end < bytes.len()
+            && (bytes[end].is_ascii_alphanumeric()
+                || bytes[end] == b'_'
+                || bytes[end] == b'.')
+        {
+            end += 1;
+        }
+        // trim trailing dots
+        while end > start && bytes[end - 1] == b'.' {
+            end -= 1;
+        }
+        let token = &expr[start..end];
+        if token.contains('.')
+            && !token.is_empty()
+            && !out.iter().any(|t| *t == token)
+            && token.len() < 256
+        {
+            out.push(token);
+        }
+        start = end.max(start + 1);
+    }
+    out
 }
 
 /// Naive identifier extraction from an RHS expression.

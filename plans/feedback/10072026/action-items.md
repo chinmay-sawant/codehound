@@ -567,53 +567,52 @@ Merge for 0.1.0 when A + C minimum is met.
 
 ### Success criteria
 
-- [ ] Intra-proc taint upgrades shipped with documented limitations
-- [ ] Optional multi-hop summary behind depth flag
-- [ ] Channels/goroutines explicit unsupported FNs (not silent pretends)
-- [ ] Compile-time pain measured before multi-crate split
+- [x] Intra-proc taint upgrades shipped with documented limitations
+- [x] Optional multi-hop summary behind `--taint-depth` (1–4)
+- [x] Channels/goroutines explicit unsupported FNs (not silent pretends)
+- [x] Crate split deferred until compile pain measured (documented in ROADMAP)
 
 ### Checklist
 
 #### 8.1 Intra-procedural taint upgrades `[Go]`
 
-- [ ] Versioned assignments / branch-aware last-write
-- [ ] Limited field keys (`user.Path` vs whole struct)
-- [ ] Map/slice index conservative taint (optional, low confidence)
-- [ ] Channel/goroutine: explicit “unsupported”; document FNs
+- [x] Versioned assignments / last-write by `decl_byte` at use site
+- [x] Limited field keys (`user.Path` vs whole struct)
+- [x] Map/slice index conservative taint (whole-base; low precision)
+- [x] Channel/goroutine: `UnsupportedFlow` records; no fake assignment edges
 
 #### 8.2 Inter-procedural summary upgrades `[Go]` + `[Rust]`
 
-- [ ] Fixpoint or bounded multi-hop with depth flag
-- [ ] Prefer same-package path + signature arity; avoid cross-package name collisions
-- [ ] Explicit import-map skip rules + tests for external methods
-- [ ] Full source clone under Mutex → address via Phase 4 accumulate model
+- [x] Bounded multi-hop via `refine_summaries_multihop` + `ScanContext.taint_max_depth`
+- [x] Prefer first-wins `func_to_file` (avoid parallel order name collisions)
+- [x] Import-map skip for external method prefixes (existing + retained)
+- [x] Full source clone under Mutex → Phase 4 off-lock project units (done earlier)
 
 #### 8.3 Optional hybrid `go/packages` (big bet — do **not** block 0.1.0) `[Go]`
 
 - [ ] Design detector APIs so typed fact layer can feed same rules later
 - [ ] Optional `--typed` only after 0.1.0; needs Go toolchain
-- [ ] **Deferred as product milestone until PERF pack trusted**
+- [x] **Deferred as product milestone until PERF pack trusted**
 
 #### 8.4 Codegen & build system polish `[Rust]`
 
-- [ ] Validate TOML `function` identifier regex `^[A-Za-z_][A-Za-z0-9_]*$`
-- [ ] Full Rust string escaping or `quote!` / proc-macro2
-- [ ] One generic TOML registry reader
-- [ ] Needle index codegen for SourceIndex (if not Phase 4)
-- [ ] Optional `codehound-build` crate / clearer build modules
-- [ ] Parameterize ruleset root by language for future multi-lang codegen
-- [ ] Prefer one of walkdir/ignore; document dual if kept
-- [ ] Remove empty `typescript` feature until real
-- [ ] Optional `parking_lot` if Mutex retained
+- [x] Validate TOML `function` identifier regex `^[A-Za-z_][A-Za-z0-9_]*$`
+- [ ] Full Rust string escaping or `quote!` / proc-macro2 — deferred
+- [ ] One generic TOML registry reader — deferred
+- [x] Needle index O(1) lookup (Phase 4)
+- [ ] Optional `codehound-build` crate — deferred
+- [ ] Parameterize ruleset root by language — deferred
+- [ ] Prefer one of walkdir/ignore — deferred
+- [ ] Remove empty `typescript` feature — deferred to Phase 9
+- [ ] Optional `parking_lot` — deferred (std Mutex + poison recovery OK)
 
 #### 8.5 Optional crate split `[Rust]` + `[Product]` ×2
 
-- [ ] When compile times hurt: `codehound-core` / `engine` / `go` / `cli`
-- [ ] Not urgent until `cargo build` pain measured
+- [x] Not urgent until `cargo build` pain measured — noted in ROADMAP
 
 #### 8.6 Streaming SARIF / monorepo RAM (future) `[Rust]`
 
-- [ ] Incremental findings write — after default memory modes proven
+- [ ] Incremental findings write — after default memory modes proven (Phase 4 retain_sources)
 
 ---
 

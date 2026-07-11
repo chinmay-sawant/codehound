@@ -14,9 +14,20 @@ intercepts the flow.
 | Config file | `[codehound.taint]\nenabled = true` |
 | Disable | `--no-taint` or `[codehound.taint]\nenabled = false` |
 | Show paths | `--taint-show-paths` or `[codehound.taint]\nshow_paths = true` |
+| Inter-proc depth | `--taint-depth N` (1–4, default **1** = direct caller→callee only) |
 
 Taint is disabled by default. The substring-based heuristic still runs as a
 fallback when taint is off.
+
+### Intra-proc precision (Phase 8)
+
+- **Versioned last-write:** each assignment is a versioned node; uses resolve to
+  the latest declaration with `decl_byte ≤ use_byte` (overwrite with a constant
+  kills live taint).
+- **Field keys:** LHS/RHS like `user.Path` are tracked as qualified keys (not
+  only the base `user`).
+- **Map/slice index:** `m[k] = t` conservatively taints base `m` (low precision;
+  no per-key model).
 
 ## Model
 
@@ -92,8 +103,10 @@ accept Path sanitizers.
   opaque — taint flows through arguments but the return value is not tracked
   because the concrete implementation is unknown.
 - **Channel/goroutine.** Channel sends and receives are **explicitly
-  unsupported**. Taint that flows through a `chan` is lost at the goroutine
-  boundary (false negative by design — do not assume coverage).
+  unsupported**. Extractor records `UnsupportedFlow::{Channel,Goroutine}` sites
+  and does **not** create fake assignment edges through channels or `go`
+  statements (honest FN). Taint that flows through a `chan` is lost at the
+  goroutine boundary.
 - **Pointer dereference.** `*p = tainted` and `json.Unmarshal(data, &target)`
   are handled for a small set of known functions (`json.Unmarshal`,
   `xml.Unmarshal`). General pointer tracking requires type inference.

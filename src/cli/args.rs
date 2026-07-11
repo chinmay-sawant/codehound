@@ -79,6 +79,10 @@ pub struct Cli {
     #[arg(long)]
     pub taint_show_paths: bool,
 
+    /// Inter-procedural taint summary hops (1 = direct only; max 4).
+    #[arg(long, value_name = "N", default_value_t = 1)]
+    pub taint_depth: u32,
+
     /// Exit policy for findings.
     #[command(flatten)]
     pub severity: super::severity_args::SeverityArgs,

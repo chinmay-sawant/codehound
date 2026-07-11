@@ -22,6 +22,8 @@ pub struct ScanContextParams {
     pub taint: bool,
     pub no_taint: bool,
     pub taint_show_paths: bool,
+    /// Inter-procedural hops (clamped 1..=4 when applied).
+    pub taint_depth: u32,
     pub show_ignored: bool,
     /// Product pack. Default [`ScanProfile::Recommended`] for CLI; library callers may use `All`.
     pub profile: ScanProfile,
@@ -46,6 +48,7 @@ pub fn build_scan_context(params: ScanContextParams) -> ScanContext {
         verbose: params.verbose,
         taint_enabled: false,
         taint_show_paths: false,
+        taint_max_depth: 1,
         bad_practices_enabled: true,
         bad_practice_severity: None,
         severity_overrides: Default::default(),
@@ -84,6 +87,9 @@ pub fn build_scan_context(params: ScanContextParams) -> ScanContext {
     }
     if params.taint_show_paths {
         ctx.taint_show_paths = true;
+    }
+    if params.taint_depth > 0 {
+        ctx.taint_max_depth = params.taint_depth.clamp(1, 4);
     }
     if params.show_ignored {
         ctx.show_ignored = true;

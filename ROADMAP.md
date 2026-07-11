@@ -3,7 +3,7 @@
 **Live product roadmap** for CodeHound. Historical session plans live under
 `plans/` and are **not** the source of truth for what ships next.
 
-## Current (0.1.0)
+## Current (0.1.x)
 
 - Recommended pack as default CI profile
 - PERF tiers (S/A/B/C) + hot-path tightening
@@ -11,13 +11,14 @@
 - Engine: O(1) SourceIndex, lazy taint facts, same-scan cache cascade
 - Baseline list/prune/update/diff; richer ignores
 - Canary budgets + multi-arch release workflow
+- **Taint depth (Phase 8):** versioned last-write, field keys, explicit channel/goroutine FNs, `--taint-depth`
 
 ## Next
 
 | Phase | Theme | Notes |
 |-------|-------|-------|
-| **8** | Taint depth | Field keys, versioned assigns, explicit channel/goroutine FNs |
-| **9+** | Language depth | Python/TS only if product demand; keep Go strong |
+| **9** | Multi-lang honesty | Invest in Python or demote; remove empty typescript |
+| Later | Typed Go facts | Optional `--typed` / go/packages only if PERF pack trusted |
 
 ## Non-goals (0.1.x)
 

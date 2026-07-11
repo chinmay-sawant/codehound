@@ -202,6 +202,7 @@ pub(crate) fn scan_context_params_for_run(
         taint: cli.taint,
         no_taint: cli.no_taint,
         taint_show_paths: cli.taint_show_paths,
+        taint_depth: cli.taint_depth,
         show_ignored: cli.show_ignored,
         profile: cli.profile.to_profile(),
         // Only pay the monorepo source_cache cost when export needs it.

@@ -4,7 +4,14 @@ All notable changes to CodeHound are documented here.
 
 ## [0.1.0] — 2026-07-11
 
-First **0.1.0** product bar after the feedback-driven phases 0–6.
+First **0.1.0** product bar after the feedback-driven phases 0–8.
+
+### Taint depth (Phase 8)
+
+- Versioned last-write resolution at use sites
+- Field-qualified keys (`user.Path`)
+- Channel/goroutine sites recorded as explicit unsupported FNs
+- `--taint-depth N` bounded multi-hop summary refinement (1–4)
 
 ### Product
 

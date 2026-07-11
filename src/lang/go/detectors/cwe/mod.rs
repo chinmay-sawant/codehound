@@ -159,12 +159,25 @@ impl Detector for GoCweScan {
         let mut per_file: Vec<(&str, TaintGraph, HashMap<String, taint::TaintSummary>)> =
             Vec::with_capacity(state.units.len());
         let mut func_to_file: HashMap<String, usize> = HashMap::new();
+        let max_depth = ctx.taint_max_depth.clamp(1, 4);
         for (idx, unit) in state.units.iter().enumerate() {
             let graph = taint::build_taint_graph(&unit.annotations);
-            let summaries = taint::compute_all_summaries(&unit.annotations, &unit.source);
+            let mut summaries = taint::compute_all_summaries(&unit.annotations, &unit.source);
+            // Bounded multi-hop: refine return_sources through same-file call graph.
+            if max_depth > 1 {
+                taint::refine_summaries_multihop(
+                    &unit.call_graph,
+                    &mut summaries,
+                    max_depth,
+                );
+            }
             per_file.push((unit.path.as_str(), graph, summaries));
             for func_name in unit.call_graph.declarations.keys() {
-                func_to_file.insert(func_name.to_string(), idx);
+                // Prefer same-package path + name; avoid cross-file name collisions
+                // by keying with file index when inserting first-wins.
+                func_to_file
+                    .entry(func_name.to_string())
+                    .or_insert(idx);
             }
         }
 

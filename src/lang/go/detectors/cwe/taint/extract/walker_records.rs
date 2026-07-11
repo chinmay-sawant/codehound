@@ -89,41 +89,42 @@ pub(super) fn record_assignment(node: tree_sitter::Node, state: &mut ExtractionS
     let byte_range = node.start_byte()..node.end_byte();
     let from_call = is_source_or_sanitizer_call(rhs);
     for name in names {
+        // Keep field-qualified keys (`user.Path`) as a single LHS name.
+        let key = normalize_lhs_key(name);
         state.assignments.push(AssignmentDetail {
-            lhs: Arc::from(name),
+            lhs: Arc::from(key),
             rhs_text: Arc::from(rhs),
             scope,
             byte_range: byte_range.clone(),
             from_source_or_sanitizer: from_call,
+            is_channel_send: false,
         });
     }
 }
 
+/// Channel send is **not** modeled as taint assignment (explicit FN).
 pub(super) fn record_send(node: tree_sitter::Node, state: &mut ExtractionState<'_>) {
-    let Some(channel) = node.child_by_field_name("channel") else {
-        return;
-    };
-    let Some(value) = node.child_by_field_name("value") else {
-        return;
-    };
-    let ch_text = match channel.utf8_text(state.src_bytes) {
-        Ok(t) => t.trim(),
-        Err(_) => return,
-    };
-    let val_text = match value.utf8_text(state.src_bytes) {
-        Ok(t) => t,
-        Err(_) => return,
-    };
-    let scope = state.current_scope();
     let byte_range = node.start_byte()..node.end_byte();
-    let from_call = is_source_or_sanitizer_call(val_text);
-    state.assignments.push(AssignmentDetail {
-        lhs: Arc::from(ch_text),
-        rhs_text: Arc::from(val_text),
-        scope,
+    state.unsupported_flows.push(super::super::UnsupportedFlow {
+        kind: super::super::UnsupportedFlowKind::Channel,
         byte_range,
-        from_source_or_sanitizer: from_call,
+        note: Arc::from("channel send/receive is not tracked by taint (explicit FN)"),
     });
+}
+
+/// Goroutine launch is **not** modeled for taint (explicit FN).
+pub(super) fn record_go_stmt(node: tree_sitter::Node, state: &mut ExtractionState<'_>) {
+    let byte_range = node.start_byte()..node.end_byte();
+    state.unsupported_flows.push(super::super::UnsupportedFlow {
+        kind: super::super::UnsupportedFlowKind::Goroutine,
+        byte_range,
+        note: Arc::from("goroutine spawn is not tracked by taint (explicit FN)"),
+    });
+}
+
+/// Normalize assignment LHS: trim, keep `base.field` chains.
+fn normalize_lhs_key(name: &str) -> &str {
+    name.trim()
 }
 
 pub(crate) fn result_variable_at_return_index(lhs: &str, ret_idx: usize) -> Option<String> {

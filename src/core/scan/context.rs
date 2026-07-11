@@ -24,6 +24,9 @@ pub struct ScanContext {
     pub taint_enabled: bool,
     /// When true, emit taint paths in finding evidence.
     pub taint_show_paths: bool,
+    /// Max inter-procedural summary hops (1 = direct caller→callee only).
+    /// Higher values enable bounded multi-hop refinement within a package.
+    pub taint_max_depth: u32,
     /// When false, suppress all BP-* bad-practice rules.
     pub bad_practices_enabled: bool,
     /// Optional severity override for BP-* bad-practice findings.
@@ -52,6 +55,7 @@ impl Default for ScanContext {
             // Off by default; enable via --taint or [codehound.taint] enabled = true.
             taint_enabled: false,
             taint_show_paths: false,
+            taint_max_depth: 1,
             bad_practices_enabled: true,
             bad_practice_severity: None,
             severity_overrides: std::collections::HashMap::new(),

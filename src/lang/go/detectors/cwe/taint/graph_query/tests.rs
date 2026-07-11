@@ -105,4 +105,83 @@ func sanitizeCmd(s string) string { return s }
         assert_eq!(paths.len(), 1);
         assert!(paths[0].sanitized);
     }
+
+    #[test]
+    fn channel_send_is_unsupported_not_assignment() {
+        let source = r#"package main
+func f(r *http.Request, ch chan string) {
+    x := r.URL.Query().Get("q")
+    ch <- x
+}
+"#;
+        let unit = parse(source);
+        let facts = extract_taint_facts(&unit);
+        assert!(
+            facts
+                .unsupported_flows
+                .iter()
+                .any(|u| matches!(u.kind, crate::lang::go::detectors::cwe::taint::UnsupportedFlowKind::Channel)),
+            "expected channel unsupported flow, got {:?}",
+            facts.unsupported_flows
+        );
+        assert!(
+            !facts.assignments.iter().any(|a| a.is_channel_send),
+            "channel sends must not be graph assignments"
+        );
+    }
+
+    #[test]
+    fn field_key_assignment_tracks_qualified_lhs() {
+        let source = r#"package main
+func f(r *http.Request) {
+    var user struct{ Path string }
+    user.Path = r.URL.Query().Get("p")
+    _ = os.Open(user.Path)
+}
+"#;
+        let unit = parse(source);
+        let facts = extract_taint_facts(&unit);
+        assert!(
+            facts.assignments.iter().any(|a| a.lhs.as_ref() == "user.Path"),
+            "expected field-qualified LHS, got {:?}",
+            facts.assignments.iter().map(|a| a.lhs.as_ref()).collect::<Vec<_>>()
+        );
+        let graph = build_taint_graph(&facts);
+        let paths = find_taint_paths(
+            &graph,
+            SourceKind::UserInput,
+            SinkKind::FileOpen,
+            &[SanitizerKind::Path],
+        );
+        assert!(
+            !paths.is_empty(),
+            "field-qualified path should reach FileOpen sink"
+        );
+    }
+
+    #[test]
+    fn versioned_last_write_prefers_assignment_before_use() {
+        // Second assignment overwrites taint with constant; sink should not fire.
+        let source = r#"package main
+func f(r *http.Request) {
+    name := r.URL.Query().Get("name")
+    name = "safe"
+    _ = db.Query(name)
+}
+"#;
+        let unit = parse(source);
+        let facts = extract_taint_facts(&unit);
+        let graph = build_taint_graph(&facts);
+        let paths = find_taint_paths(
+            &graph,
+            SourceKind::UserInput,
+            SinkKind::SQLQuery,
+            &[SanitizerKind::SQL],
+        );
+        // Last write is constant — no unsanitized path from source to sink.
+        assert!(
+            paths.is_empty() || paths.iter().all(|p| p.sanitized),
+            "expected no live taint after overwrite, got {paths:?}"
+        );
+    }
 }
