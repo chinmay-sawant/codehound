@@ -3,7 +3,7 @@ import {
   HelpCircle, BarChart3, Sparkles, GitCompare, ShieldAlert,
   FileOutput, Coins, Blocks, Route, Monitor, Download, FolderGit2,
   FolderOutput, Bot, ListChecks, ClipboardList, Hash, Bookmark,
-  RefreshCw, Terminal, Gauge,
+  RefreshCw, Terminal, Gauge, Users,
 } from 'lucide-react'
 import type { FlowDiagram } from '../components/WorkflowDiagram'
 
@@ -150,6 +150,25 @@ export const sections: Section[] = [
       '**Grok 4.5** is excellent at coding — and priced like a flagship ($2 / $6 per M). CodeHound keeps that spend **bounded**: export once, review chunks, never re-walk the tree for free every agent pass.',
       'Skills-only review on gopdfsuit needed **4–5** iterations over days. At Grok rates that is roughly **$19+** of open-ended reads with no stable rule IDs. One scan plus a **$0.25** DeepSeek pass (or a **$3.85** Grok batch) finishes the same checklist in minutes.',
       'Pair the **+35%** ops/sec capacity win with the token math: fewer boxes *and* fewer dollars for review.',
+    ],
+  },
+  {
+    id: 'audience',
+    nav: 'Who for',
+    icon: Users,
+    title: 'Who is this for',
+    lead:
+      'Cloud AI is subsidized today. This tool is for hobby and small-scale projects that need some optimization — and a deadline — not an SRE org.',
+    facts: [
+      { k: 'Built for', v: 'Hobby projects, side services, small Go codebases' },
+      { k: 'You need', v: 'Some PERF / footgun coverage, not enterprise-grade optimization' },
+      { k: 'Constraint', v: 'Ship on a timeline — not weeks of open-ended agent loops' },
+      { k: 'Origin', v: 'Personal use first — a checklist that runs offline for $0' },
+    ],
+    body: [
+      'We all know the current ChatGPT / cloud subscription model is heavily **subsidized**. That will not last forever — and even while it does, unbounded agent review still burns days and dollars.',
+      'CodeHound is targeted at **hobby projects** and **small-scale work**: places where you do not need that much optimization, but you might need *some*, and delivery time matters. It was built for personal use under those constraints.',
+      'If you need full CodeQL / org-wide security platform coverage, use those tools. If you want a fast, deterministic PERF + footgun pass you can optionally hand to a cheap model with a fixed token budget — this is the software for that.',
     ],
   },
   {

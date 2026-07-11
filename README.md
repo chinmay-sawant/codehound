@@ -20,6 +20,23 @@ staticcheck, and govulncheck — it targets what they don't see:
 - Emit machine-readable output (text, JSON, SARIF) — see [`docs/output-formats.md`](./docs/output-formats.md).
 - Run as a single static binary, no external services.
 
+## Who is this for
+
+Cloud AI subscriptions (ChatGPT, Claude, and the rest) are heavily
+**subsidized** right now. That will not last forever — and even while it does,
+open-ended agent loops still cost real money and real days.
+
+CodeHound is aimed at **hobby projects** and **small-scale work**: places where
+you do not need enterprise-grade performance engineering, but you still want
+*some* optimization, and you have a delivery deadline. It was built for
+personal use under those constraints — a deterministic, offline checklist you
+can run before (or instead of) burning tokens on unbounded review.
+
+If you need full SRE / CodeQL-class coverage for a large org, use the tools
+built for that. If you need a fast PERF + footgun pass for a side project or
+small service and want optional agent triage with a fixed budget, this is for
+you.
+
 ## Status
 
 **0.1.0** product bar. **Go-first:** production rules and packs target Go.
