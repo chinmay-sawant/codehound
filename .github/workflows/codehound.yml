@@ -1,8 +1,5 @@
 # Sample CodeHound CI recipe (high-signal recommended pack).
-# Copy into your repo or include as a reusable workflow.
-#
-# Default pack: --profile recommended (S-tier PERF + taint-core CWEs, BP off).
-# Fail on high only. No filesystem export side effects.
+# Copy into your app repo, or use the composite action from this monorepo.
 name: codehound
 
 on:
@@ -13,43 +10,16 @@ on:
 jobs:
   scan:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache cargo
-        uses: actions/cache@v4
+      - name: CodeHound scan (recommended + SARIF)
+        uses: ./.github/actions/codehound-scan
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-codehound-${{ hashFiles('**/Cargo.lock') }}
-
-      # Until multi-arch release binaries ship, build from source (or pin a release tag).
-      - name: Build codehound
-        run: cargo build --release --bin codehound
-
-      - name: Scan (recommended pack, SARIF)
-        run: |
-          ./target/release/codehound \
-            --profile recommended \
-            --format sarif \
-            --strict \
-            . > codehound.sarif
-        # Export is off by default — no scripts/ dirt.
-        # Brownfield: add a baseline file and // codehound-ignore comments as needed.
-
-      - name: Upload SARIF (optional — enable GitHub Advanced Security)
-        if: github.event_name != 'pull_request' || true
-        continue-on-error: true
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: codehound.sarif
-
-      # Optional security-oriented job (uncomment to run taint core):
-      # - name: Security pack
-      #   run: |
-      #     ./target/release/codehound --profile security --format sarif --strict . > codehound-security.sarif
+          profile: recommended
+          paths: .
+          strict: "true"
+          upload-sarif: "true"

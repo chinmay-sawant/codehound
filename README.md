@@ -22,14 +22,14 @@ staticcheck, and govulncheck — it targets what they don't see:
 
 ## Status
 
-Under active development. **Go is the production language** — Python (1 rule) and TypeScript (stub) are not yet meaningful. 
+**0.1.0** product bar. **Go is the production language** — Python (1 rule,
+`SLOP101`) and TypeScript (stub) are secondary. Complements golangci-lint;
+see [`docs/go-vs-staticcheck.md`](./docs/go-vs-staticcheck.md).
 
 ## Roadmap
 
-| Phase | Theme | Status |
-|------:|-------|--------|
-| **p1** | Go CWE heuristic coverage | Implemented |
-| **p2** | Broader language and rule coverage | In Progress |
+Live roadmap: **[`ROADMAP.md`](./ROADMAP.md)**. Historical plans under `plans/`
+are archive notes, not the backlog.
 
 ## Installation
 

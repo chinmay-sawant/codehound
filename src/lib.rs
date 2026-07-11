@@ -3,63 +3,72 @@
 
 //! # CodeHound
 //!
-//! CodeHound is a multi-language static analyzer for performance bottlenecks
-//! and security weaknesses ("slop"). It currently ships with:
+//! Multi-language static analyzer focused on **Go performance hot paths**,
+//! framework footguns, and curated CWE heuristics. Complements golangci-lint /
+//! staticcheck / govulncheck — does not replace them.
 //!
-//! - **Go** — 175 CWE heuristic detectors
-//! - **Python** — 1 performance rule (`SLOP101`: `re.compile` inside a loop)
+//! - **Go** — PERF, CWE (structural + optional taint), bad-practice (style pack)
+//! - **Python** — `SLOP101` (`re.compile` in a loop); historical id, kept stable
 //!
-//! ## Quick start (as a library)
+//! ## Quick start (library)
 //!
 //! ```no_run
+//! use codehound::core::{ScanContext, ScanProfile};
 //! use codehound::engine::{Analyzer, CodehoundConfig, resolve_language_filter, Registry};
-//! use codehound::core::ScanContext;
+//! use codehound::engine::{ScanContextParams, build_scan_context};
+//!
+//! // Match CLI recommended pack defaults for embedders who want CI-like gates.
+//! let ctx = build_scan_context(ScanContextParams {
+//!     profile: ScanProfile::Recommended,
+//!     ..Default::default()
+//! });
 //!
 //! let registry = Registry::default();
 //! let config = CodehoundConfig::default();
 //! let filter = resolve_language_filter(None, Some(&config), &registry).unwrap();
 //!
 //! let analyzer = Analyzer::builder()
-//!     .scan_context(ScanContext::default())
+//!     .scan_context(ctx)
 //!     .language_filter(filter)
 //!     .build();
 //!
 //! let result = analyzer.analyze_paths(&["."], None).unwrap();
-//! println!("{} findings", result.findings.len());
+//! for f in &result.findings {
+//!     // PERF-*, CWE-*, BP-* share the same Finding wire shape.
+//!     println!("{} {}:{} {}", f.rule_id, f.file, f.line, f.message);
+//! }
 //! ```
 //!
 //! ## Feature flags
 //!
-//! - `go` (default) — Go tree-sitter grammar and the CWE bundle
-//! - `python` (default) — Python tree-sitter grammar and the `SLOP101` rule
-//! - `cli` (default) — clap-derived CLI types (`codehound::cli`)
-//! - `typescript` (optional) — reserves `LanguageId::TypeScript` (no plugin yet)
-//! - `default` — `go`, `python`, `terminal-output`, and `cli`
+//! | Feature | Default | Role |
+//! |---------|---------|------|
+//! | `go` | yes | Go tree-sitter + CWE/PERF/BP |
+//! | `python` | yes | Python grammar + `SLOP101` |
+//! | `cli` | yes | clap CLI types |
+//! | `terminal-output` | yes | colored text reporter |
+//! | `typescript` | no | LanguageId stub only |
 //!
-//! Minimal build: `cargo build --no-default-features --features go`.
+//! Minimal: `cargo build --no-default-features --features go,cli`.
+//!
+//! ## Semver (Finding wire)
+//!
+//! - **Stable enough for 0.1.x:** `rule_id`, `file`, `line`, `column`, `message`,
+//!   `severity`, optional `evidence` / `snippet`.
+//! - **May change in 0.x:** fingerprint format (regenerate baselines), optional
+//!   fields, SARIF property bags.
+//! - Prefer reading published fields; ignore unknown JSON keys.
 //!
 //! ## Architecture
 //!
-//! - [`engine`] — orchestration: scan, registry, parallel parse, analysis
-//! - [`core`] — traits: `LanguagePlugin`, `Detector`, `ParsedUnit`,
-//!   `ScanContext`, `FailPolicy`
+//! - [`engine`] — orchestration: scan, registry, parallel parse, cache, baseline
+//! - [`core`] — `LanguagePlugin`, `Detector`, `ParsedUnit`, `ScanContext`, profiles
 //! - [`lang`] — language plugins (Go, Python)
-//! - [`rules`] — finding + metadata + severity
-//! - [`cwe`] — curated CWE reference catalog
-//! - [`reporting`] — text, JSON, SARIF output
-//! - [`export`] — per-finding context files and chunk files
-//! - [`fixture`] — `.txt` test fixture materialization
-//! - [`ast`] — tree-sitter helpers (`line_col_with_starts`, `walk_nodes`, ...)
-//! - [`cli`] — clap-derived argument definitions (binary only)
+//! - [`rules`] — finding + metadata + severity + maturity
+//! - [`reporting`] — text, JSON, SARIF
+//! - [`export`] — optional context/chunk files (off by default)
 //!
-//! See `docs/architecture-performance.md` for the pipeline diagram and
-//! `docs/configuration.md` for `codehound.toml` schema.
-//!
-//! ## Documentation ratchet (v2.0.0)
-//!
-//! Crate-wide `#![warn(missing_docs)]` is deferred until the public API surface
-//! is documented module-by-module. Planned order: `rules` → `core` → `engine` →
-//! `lang`, then enable `#![deny(missing_docs)]` on each module as coverage lands.
+//! See `docs/architecture-performance.md`, `ROADMAP.md`, and `CONTRIBUTING.md`.
 
 pub mod ast;
 #[cfg(feature = "cli")]

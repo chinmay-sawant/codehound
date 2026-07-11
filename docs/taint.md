@@ -91,12 +91,22 @@ accept Path sanitizers.
 - **Interface dispatch.** Methods called on interface types are treated as
   opaque — taint flows through arguments but the return value is not tracked
   because the concrete implementation is unknown.
-- **Channel/goroutine.** Channel sends and receives are not modeled in the
-  taint graph. Taint that flows through a `chan` is lost at the goroutine
-  boundary.
+- **Channel/goroutine.** Channel sends and receives are **explicitly
+  unsupported**. Taint that flows through a `chan` is lost at the goroutine
+  boundary (false negative by design — do not assume coverage).
 - **Pointer dereference.** `*p = tainted` and `json.Unmarshal(data, &target)`
   are handled for a small set of known functions (`json.Unmarshal`,
   `xml.Unmarshal`). General pointer tracking requires type inference.
+- **Name-string sinks.** Callees are matched by identifier text, not types —
+  renamed wrappers and interface methods may FN or FP.
+- **No SSA / no Go types.** Intra-proc last-write and call facts are AST-level.
+- **Depth.** Inter-procedural summary is bounded (not a full fixpoint). Mutual
+  recursion and deep chains may miss flows.
+- **Product positioning.** Enable with `--profile security` or `--taint` for
+  triage. **Do not use as a sole security gate** — pair with govulncheck,
+  code review, and stronger SAST where required.
+
+See also [ADR 0003 — taint model honesty](./adr/0003-taint-model.md).
 
 ## Output
 

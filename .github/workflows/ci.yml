@@ -56,6 +56,10 @@ jobs:
         run: cargo fmt --all -- --check
       - name: No production unwrap/expect
         run: bash scripts/check_no_prod_expect.sh
+      - name: No unbounded Box::leak on finding path (allowlist)
+        run: bash scripts/check_no_box_leak.sh
+      - name: Module size policy (src ≤ 400 lines)
+        run: bash scripts/check_module_size.sh
       - name: clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
