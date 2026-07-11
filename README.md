@@ -7,7 +7,7 @@
 CodeHound is a fast, opinionated analyzer that **complements** golangci-lint,
 staticcheck, and govulncheck — it targets what they don't see:
 
-- **PERF** — 239 rules: regex-in-loops, `fmt.Sprintf` on hot paths, defer in tight loops, `http.ServeFile` body leaks, request-path allocation thrash. See [`docs/perf-rules.md`](./docs/perf-rules.md). Counts come from the live registry (`codehound --list-rules`).
+- **PERF** — 239 rules: regex-in-loops, `fmt.Sprintf` on hot paths, defer in tight loops, `http.ServeFile` body leaks, request-path allocation thrash. See [`documents/perf-rules.md`](./documents/perf-rules.md). Counts come from the live registry (`codehound --list-rules`).
 - **Framework footguns** — Gin/Echo/GORM/sqlx aware: unclosed response bodies, unbounded query rows, missing timeouts, context leaks.
 - **CWE heuristics** — 175 fixture-backed entries for file I/O, SQL injection, command injection, link resolution, and config sinks.
 - **Bad practices** — 65 rules across error handling, concurrency, testing, API design, and prod hardening.
@@ -17,7 +17,7 @@ staticcheck, and govulncheck — it targets what they don't see:
 
 - Detect statically visible performance and weakness patterns in Go services.
 - Map findings to **PERF** rule IDs and **CWE** references.
-- Emit machine-readable output (text, JSON, SARIF) — see [`docs/output-formats.md`](./docs/output-formats.md).
+- Emit machine-readable output (text, JSON, SARIF) — see [`documents/output-formats.md`](./documents/output-formats.md).
 - Run as a single static binary, no external services.
 
 ## Who this is built for
@@ -53,8 +53,8 @@ for you.
 **0.1.0** product bar. **Go-first:** production rules and packs target Go.
 Python is an **opt-in** Cargo feature with a single experimental rule
 (`SLOP101`). There is no TypeScript plugin. Complements golangci-lint;
-see [`docs/go-vs-staticcheck.md`](./docs/go-vs-staticcheck.md) and
-[`docs/adr/0005-multi-lang-honesty.md`](./docs/adr/0005-multi-lang-honesty.md).
+see [`documents/go-vs-staticcheck.md`](./documents/go-vs-staticcheck.md) and
+[`documents/adr/0005-multi-lang-honesty.md`](./documents/adr/0005-multi-lang-honesty.md).
 
 ## Roadmap
 
@@ -109,8 +109,8 @@ codehound --prune-cache .
 codehound --no-cache .
 ```
 
-Profiles: [`docs/go-recommended-pack.md`](./docs/go-recommended-pack.md).  
-Cache: [`docs/incremental-cache.md`](./docs/incremental-cache.md).  
+Profiles: [`documents/go-recommended-pack.md`](./documents/go-recommended-pack.md).  
+Cache: [`documents/incremental-cache.md`](./documents/incremental-cache.md).  
 Sample CI: [`.github/workflows/codehound.yml`](./.github/workflows/codehound.yml).
 
 ## Recommendation
@@ -134,7 +134,7 @@ Default pack is **`recommended`** (high signal, fail-on-high). Use `--profile al
 ### SARIF output
 
 Detailed SARIF schema reference, field mapping, and `security-severity` scoring
-are documented in [`docs/output-formats.md`](./docs/output-formats.md#sarif-210).
+are documented in [`documents/output-formats.md`](./documents/output-formats.md#sarif-210).
 
 Look for SARIF
 compatibility notes in [`plans/v0.0.1/go/perf-heuristics-and-sarif.md`](./plans/v0.0.1/go/perf-heuristics-and-sarif.md)
@@ -154,7 +154,7 @@ CodeHound includes an experimental intra-procedural taint-tracking engine for
 CWE-22, CWE-78, CWE-79, and CWE-89. **Disabled by default** — pass `--taint` or
 set `[codehound.taint] enabled = true`. **Not security-grade** — name-string sink
 matching, no types; `filepath.Clean` alone is **not** treated as a path sanitizer.
-Use for triage, not hard gating. See [`docs/taint.md`](./docs/taint.md).
+Use for triage, not hard gating. See [`documents/taint.md`](./documents/taint.md).
 
 ### Canonical CI one-liner
 
@@ -172,7 +172,7 @@ codehound --profile security --format sarif . > codehound.sarif
 
 65 Go bad-practice rules (`BP-*`) covering error handling,
 concurrency, testing, API design, code organization, production hardening, and
-dependency hygiene. Note: partial overlap with staticcheck/errcheck — CodeHound is best used as a complement, not a replacement. See [`docs/bad-practices.md`](./docs/bad-practices.md).
+dependency hygiene. Note: partial overlap with staticcheck/errcheck — CodeHound is best used as a complement, not a replacement. See [`documents/bad-practices.md`](./documents/bad-practices.md).
 
 ### Configuration file (`codehound.toml`)
 

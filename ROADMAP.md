@@ -22,7 +22,7 @@
 
 ## Multi-lang decision (Phase 9)
 
-**Demote / Go-first** ([ADR 0005](./docs/adr/0005-multi-lang-honesty.md)): default
+**Demote / Go-first** ([ADR 0005](./documents/adr/0005-multi-lang-honesty.md)): default
 features exclude Python; TypeScript stub removed; marketing matches Go production
 capability.
 
@@ -38,7 +38,7 @@ capability.
 - **Rule-breaking** severity/pack changes: bump minor (0.x) or document in
   CHANGELOG under “Breaking rules”.
 - **Fingerprint / baseline wire** changes: bump fingerprint version + regenerate
-  baselines (see `docs/finding-identity.md`).
+  baselines (see `documents/finding-identity.md`).
 
 ## Historical plans
 

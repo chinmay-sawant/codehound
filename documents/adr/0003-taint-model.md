@@ -13,7 +13,7 @@ Taint analysis is valuable for triage but was historically oversold in copy.
 1. Taint is **off** under `--profile recommended` unless `--taint` is set.
 2. Security profile enables taint and taint-core CWEs.
 3. Documented limitations (Clean, fields, channels, name-string sinks, depth)
-   live in `docs/taint.md` and must stay accurate.
+   live in `documents/taint.md` and must stay accurate.
 4. FP/FN policy: prefer honest FNs over pretending channels/interfaces work.
 
 ## Consequences

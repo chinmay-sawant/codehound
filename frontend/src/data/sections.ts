@@ -385,7 +385,7 @@ codehound --explain PERF-101
 codehound init`,
     },
     facts: [
-      { k: 'Profiles', v: 'recommended · security · all — see docs/go-recommended-pack.md' },
+      { k: 'Profiles', v: 'recommended · security · all — see documents/go-recommended-pack.md' },
       { k: 'Cache', v: '--rebuild-cache · --prune-cache · --no-cache' },
       { k: 'Baseline', v: 'accept known debt; next scan only reports new / regressed findings' },
       { k: 'CI sample', v: '.github/workflows/codehound.yml in the repo' },

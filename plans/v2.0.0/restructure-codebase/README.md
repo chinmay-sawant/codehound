@@ -73,7 +73,7 @@ ceiling** into smaller, more maintainable units. The work is structured as
 - [x] Apply `src/cli/mod.rs` split — converted to `cli/` directory
 - [x] Apply `src/rules/finding.rs` split — added `finding_wire.rs`
 - [x] Apply `src/app.rs` split — converted to `app/` directory
-- [x] Update doc paths in `docs/architecture-performance.md`, `plans/v0.0.1/*`, `plans/p2-implementation/02-baseline-ignore.md`
+- [x] Update doc paths in `documents/architecture-performance.md`, `plans/v0.0.1/*`, `plans/p2-implementation/02-baseline-ignore.md`
 - [x] Verify: `cargo test --test app_baseline --test app_inline_ignore --test reporting_text --test reporting_json --test reporting_sarif --test export`
 
 ## Phase 3: CWE Detectors (covered in `phase-3-cwe-detectors.md`)
@@ -174,7 +174,7 @@ The detailed plan for each phase lives in its own file:
 - [x] Net source-line delta after de-duplication: −400 to −600 lines — partially achieved; `iso8601_utc_now` centralized, FLAG_METHODS removed, protocols deduped
 - [x] Public API surface delta: 0 — preserved
 - [x] Test file changes: ~3 (one for `tests/go_perf_registry_generation.rs`; optional updates skipped) — completed
-- [x] Doc path updates: ~6 references in `docs/`, `plans/`, and `CHANGELOG.md` — completed
+- [x] Doc path updates: ~6 references in `documents/`, `plans/`, and `CHANGELOG.md` — completed
 
 ---
 

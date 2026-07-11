@@ -9,7 +9,7 @@
 //!
 //! - **Go** (default) — PERF, CWE (structural + optional taint), bad-practice (style pack)
 //! - **Python** (opt-in feature) — single experimental rule `SLOP101`; not a full Python SAST
-//!   (see [`docs/adr/0005-multi-lang-honesty.md`](../docs/adr/0005-multi-lang-honesty.md))
+//!   (see [`documents/adr/0005-multi-lang-honesty.md`](../documents/adr/0005-multi-lang-honesty.md))
 //!
 //! ## Quick start (library)
 //!
@@ -69,7 +69,7 @@
 //! - [`reporting`] — text, JSON, SARIF
 //! - [`export`] — optional context/chunk files (off by default)
 //!
-//! See `docs/architecture-performance.md`, `ROADMAP.md`, and `CONTRIBUTING.md`.
+//! See `documents/architecture-performance.md`, `ROADMAP.md`, and `CONTRIBUTING.md`.
 
 pub mod ast;
 #[cfg(feature = "cli")]

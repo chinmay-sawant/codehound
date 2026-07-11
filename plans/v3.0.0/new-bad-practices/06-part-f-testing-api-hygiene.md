@@ -94,7 +94,7 @@
 
 - [ ] BP-161..BP-165 shipped
 - [ ] **Text fixtures** for each
-- [ ] `docs/bad-practices.md` updated
+- [ ] `documents/bad-practices.md` updated
 - [ ] Full BP-66..BP-165 integration pass (or per-batch as merged)
 
 ---
@@ -132,7 +132,7 @@ Use these **only** to replace dropped IDs so the release still ships ~100 net-ne
 
 ## Documentation / release wrap (Part F owns the bow)
 
-- [ ] Final pass on `docs/bad-practices.md` for BP-66..BP-165
+- [ ] Final pass on `documents/bad-practices.md` for BP-66..BP-165
 - [ ] README rule count update (65 → 165)
 - [ ] CHANGELOG v3.0.0 section draft
 - [ ] Optional makefile: `run-bp-new` with `--only` list or prefix helper

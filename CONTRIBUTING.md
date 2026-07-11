@@ -33,10 +33,10 @@ CODEHOUND_BIN=./target/release/codehound bash scripts/canary/run_canaries.sh
 
 ## Add a Go rule (checklist)
 
-1. Open [`docs/rule-rfc-template.md`](./docs/rule-rfc-template.md) and fill overlap + pack.
+1. Open [`documents/rule-rfc-template.md`](./documents/rule-rfc-template.md) and fill overlap + pack.
 2. **PERF:** metadata in `ruleset/golang/chunks/perf-*.json`, registry TOML under
    `src/lang/go/detectors/perf/registry/`, detector under `domains/`.
-   See [`docs/perf-detector-development.md`](./docs/perf-detector-development.md).
+   See [`documents/perf-detector-development.md`](./documents/perf-detector-development.md).
 3. **BP:** `ruleset/golang/bad-practices.json` + detector under
    `src/lang/go/detectors/bad_practices/rules/`.
 4. **CWE:** registry TOML + domain module under `detectors/cwe/`.

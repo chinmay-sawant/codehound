@@ -3,7 +3,7 @@
 # Limit analysis to specific languages.
 # languages = ["go", "python"]
 
-# CLI default pack is --profile recommended (see docs/go-recommended-pack.md).
+# CLI default pack is --profile recommended (see documents/go-recommended-pack.md).
 # Profiles: recommended | perf | security | style | all
 
 # Only run the union of these rule IDs and any passed via --only.

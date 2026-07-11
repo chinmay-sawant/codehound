@@ -77,7 +77,7 @@ Everything below should be judged by whether it moves toward that north star or 
 
 | Drift | Fix |
 |-------|-----|
-| Taint default (docs vs `ScanContext`) | Single source of truth; document in README + `docs/taint.md` |
+| Taint default (docs vs `ScanContext`) | Single source of truth; document in README + `documents/taint.md` |
 | `severity_overrides` in schema/template but not parsed | Implement **or** remove from schema/template |
 | PERF/CWE/BP counts lag README/CHANGELOG | Auto-generate counts from registry at build/docs time |
 | `fail_on` free-string typos → silent medium | Enum + reject unknown values |
@@ -222,7 +222,7 @@ Details for SourceIndex/errors/leaks: [rust.md](./rust.md).
 
 | Gap | Improvement |
 |-----|-------------|
-| No CONTEXT.md / ADRs | Short `docs/adr/` for taint model, default profile, cache identity |
+| No CONTEXT.md / ADRs | Short `documents/adr/` for taint model, default profile, cache identity |
 | Plan sprawl / status drift | One live roadmap; archive v0.0.1 session notes |
 | Branding leftovers (`slop`, SLOP101, slopguard docs) | Rename or document historical alias |
 | CONTRIBUTING missing | How to add a rule, run fixtures, land a PR |
@@ -237,7 +237,7 @@ Details for SourceIndex/errors/leaks: [rust.md](./rust.md).
 2. SARIF camelCase + schema validate  
 3. License files fixed  
 4. Profiles: `recommended` / `all`  
-5. Docs/schema/runtime alignment (taint, fail_on, counts)  
+5. documents/schema/runtime alignment (taint, fail_on, counts)  
 6. Canonical CI recipe + sample workflow  
 
 ### Phase B — “Would trust findings” (1–2 months)

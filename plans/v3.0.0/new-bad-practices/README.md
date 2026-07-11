@@ -29,7 +29,7 @@ This plan adds **100 more** common Golang bad practices that:
 
 | Bucket | IDs / notes |
 |--------|-------------|
-| BP shipped | BP-1..BP-65 (`ruleset/golang/bad-practices.json`, `docs/bad-practices.md`) |
+| BP shipped | BP-1..BP-65 (`ruleset/golang/bad-practices.json`, `documents/bad-practices.md`) |
 | CWE | Security / CWE catalog (path traversal, SQLi, XSS, weak crypto, …) |
 | PERF | Perf / hot-path catalog (incl. many **Gin / Echo / GORM / sqlx** *performance* rules) |
 | Stock linters | `go vet`, `staticcheck` (SA/S/ST/QF), `errcheck`, `ineffassign`, `govet`, bodyclose, noctx, sqlclosecheck, etc. via golangci-lint |
@@ -89,7 +89,7 @@ Mirror existing BP work. For **each** of BP-66..BP-165:
    - `tests/fixtures/go/bad_practices/BP-N-safe.txt`
    - Framework / multi-file cases may use `tests/fixtures/go/bad_practices_projects/` when a single file is insufficient.
 6. **`tests/fixtures/manifest.toml`** entries for both variants.
-7. **Docs** line in `docs/bad-practices.md` (rationale + canonical fix).
+7. **Docs** line in `documents/bad-practices.md` (rationale + canonical fix).
 8. **Integration green:** `cargo test --test go_bad_practice_integration` (and project integration where used).
 
 ### Snippet / fixture format (mandatory reminder)
@@ -160,7 +160,7 @@ Extensions of existing BP domains:
 - [ ] Scaffold: category enum + dispatch + SourceIndex needles ready for new domains
 - [ ] BP-66..BP-165 in `bad-practices.json` + detectors + **txt fixtures** + manifest + docs
 - [ ] `cargo test --test go_bad_practice_integration` green
-- [ ] `docs/bad-practices.md` updated for all new rules
+- [ ] `documents/bad-practices.md` updated for all new rules
 - [ ] Optional: `make run-bp-new` (`--only BP-66,…` or range helper) so findings are not buried by CWE/PERF
 - [ ] PR(s) merged *(human step)*
 

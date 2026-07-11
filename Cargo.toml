@@ -21,7 +21,7 @@ required-features = ["cli"]
 
 [features]
 # Default: Go-first production pack. Python is opt-in (one experimental rule).
-# See docs/adr/0005-multi-lang-honesty.md.
+# See documents/adr/0005-multi-lang-honesty.md.
 default = ["go", "terminal-output", "cli"]
 cli = ["dep:clap"]
 go = ["dep:tree-sitter-go"]

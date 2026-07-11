@@ -3,7 +3,7 @@
 > **Parent:** `plans/p2-implementation/03-incremental-analysis.md` — P2.3
 > **Status:** **Phases 1–7 fully implemented.** Phase 4.2 deferred, Phase 8.4 deferred. Minor config/observability/hygiene items remaining.
 > **Estimated effort:** 1–2 days total
-> **See also:** `docs/incremental-cache.md`, `docs/architecture-performance.md`
+> **See also:** `documents/incremental-cache.md`, `documents/architecture-performance.md`
 
 ---
 
@@ -50,7 +50,7 @@ let target = (self.max_size_bytes as f64 * 9.0 / 10.0) as u64; // hardcoded 0.9
 - [x] Wire through `CacheStore::open_with_capacity()` and use in `evict_to_size()`
 - [x] Validate range (0.1–0.99) with a `tracing::warn!` on out-of-range values (clamp to 0.9)
 - [x] Update `codehound.schema.json` with `cache.evict_target_ratio` field
-- [x] Update `docs/incremental-cache.md` with the new config option
+- [x] Update `documents/incremental-cache.md` with the new config option
 - [~] Add a test: `flush_evicts_to_configured_ratio` in `tests/engine_cache_store.rs`
 
 ### 1.2 `max_file_size_mb` config field
@@ -61,7 +61,7 @@ Currently every file under ~4 MiB is cached; the threshold is implicit (based on
 - [x] In the scan preflight / cache-lookup step, skip caching for files larger than this threshold
 - [x] Log a `tracing::debug!` when a file is skipped due to size
 - [x] Update `codehound.schema.json` with `cache.max_file_size_mb`
-- [x] Update `docs/incremental-cache.md`
+- [x] Update `documents/incremental-cache.md`
 
 ---
 
@@ -103,7 +103,7 @@ Currently every file under ~4 MiB is cached; the threshold is implicit (based on
   - Verify both complete successfully and neither loses entries (or manifest falls back gracefully)
   - Use a temp dir with a known Go fixture as the scan target
   - Mark as `#[ignore]` if it proves flaky on CI (documented as non-portable in the plan)
-- [~] Update `docs/incremental-cache.md` limitations section to mention this test exists
+- [~] Update `documents/incremental-cache.md` limitations section to mention this test exists
 
 ### 3.2 Transitive invalidation test without `go.mod` (Phase 8.2)
 
@@ -137,13 +137,13 @@ Currently every file under ~4 MiB is cached; the threshold is implicit (based on
 > **Status:** ⏳ Documentation is slightly stale in one area.
 > **Effort:** 30 minutes
 
-### 4.1 Fix `docs/incremental-cache.md` claims
+### 4.1 Fix `documents/incremental-cache.md` claims
 
-- [x] Update line 99–100 which states "Size-based LRU eviction (`max_size_mb`) is wired in config but not yet enforced on `flush()`." — this is **incorrect**; `evict_to_size()` IS implemented and called from `flush()`. Change to: "Size-based LRU eviction (`max_size_mb`) is enforced on `flush()`. See `store_flush.rs:40`." **Already fixed** in current `docs/incremental-cache.md:99-100`
+- [x] Update line 99–100 which states "Size-based LRU eviction (`max_size_mb`) is wired in config but not yet enforced on `flush()`." — this is **incorrect**; `evict_to_size()` IS implemented and called from `flush()`. Change to: "Size-based LRU eviction (`max_size_mb`) is enforced on `flush()`. See `store_flush.rs:40`." **Already fixed** in current `documents/incremental-cache.md:99-100`
 - [x] Add a note that `evict_target_ratio` (default 0.9) controls how aggressively the cache prunes (once Phase 1.1 lands)
 - [x] Add a note that `max_file_size_mb` (default 4) controls per-file caching threshold (once Phase 1.2 lands)
 
-### 4.2 Update `docs/architecture-performance.md`
+### 4.2 Update `documents/architecture-performance.md`
 
 - [x] Ensure the cache architecture section reflects the current state: `files/<sha256>.json` format, manifest, LRU eviction, dependency extraction
 - [x] Add a note about the `--prune-cache` flag (was added after the doc was written)

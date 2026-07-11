@@ -375,7 +375,7 @@ codehound init    # writes templates/codehound.toml → ./codehound.toml
 - `.gitignore` and `.ignore` — respected automatically
 
 Full schema: `codehound.schema.json`  
-Full docs: `docs/configuration.md`
+Full docs: `documents/configuration.md`
 
 ---
 
@@ -731,4 +731,4 @@ codehound --explain CWE-89
 | Config discovery | `src/app/config.rs` |
 | Build config | `Cargo.toml` |
 | Config template | `templates/codehound.toml` |
-| User docs | `README.md`, `docs/configuration.md`, `docs/output-formats.md` |
+| User docs | `README.md`, `documents/configuration.md`, `documents/output-formats.md` |

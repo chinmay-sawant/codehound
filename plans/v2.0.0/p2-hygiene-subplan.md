@@ -18,8 +18,8 @@ All 212 PERF rules are implemented (109 new + 100 original + 3 dropped). The rem
 
 | Phase | Item | Effort | Key Deliverable | Status |
 |-------|------|--------|-----------------|--------|
-| 1 | Benchmark regression investigation | 1–2d | `docs/architecture-performance.md` findings | ✅ Complete |
-| 2 | Create `docs/perf-detector-development.md` | 1d | Complete developer guide for PERF rules | ✅ Complete |
+| 1 | Benchmark regression investigation | 1–2d | `documents/architecture-performance.md` findings | ✅ Complete |
+| 2 | Create `documents/perf-detector-development.md` | 1d | Complete developer guide for PERF rules | ✅ Complete |
 | 3 | Test fixture audit | 0.5d | Verified fixtures + cleanup | ✅ Complete |
 | 4 | Edge-case hardening (3 rules) | 0.5d | Verified via existing fixtures (separate files deferred) | ✅ Complete |
 
@@ -61,11 +61,11 @@ All 212 PERF rules are implemented (109 new + 100 original + 3 dropped). The rem
   - Profile with `perf record --call-graph dwarf ./target/release/examples/bench_overhead`
   - Identify hot functions using `perf report`
   - Check if the culprit is a new PERF detector's source scan or tree walk
-  - Document in `docs/architecture-performance.md`
+  - Document in `documents/architecture-performance.md`
 
 ### 1.4 Document findings
 
-- [x] If regression is structural (not noise), add a section to `docs/architecture-performance.md`:
+- [x] If regression is structural (not noise), add a section to `documents/architecture-performance.md`:
   - Date of measurement
   - Before/after numbers
   - Root cause (which detector, which scan pattern)
@@ -74,7 +74,7 @@ All 212 PERF rules are implemented (109 new + 100 original + 3 dropped). The rem
 
 ---
 
-## Phase 2: Create `docs/perf-detector-development.md`
+## Phase 2: Create `documents/perf-detector-development.md`
 
 ### 2.1 Document structure
 

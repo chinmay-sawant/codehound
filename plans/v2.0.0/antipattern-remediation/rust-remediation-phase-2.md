@@ -17,7 +17,7 @@ Phase 1 closed the lint gate, introduced `codehound::Error`, split `app::run`, e
 ## Executive Summary
 
 - **Problem:** Residual `anyhow` in 7 engine modules, 3 public config/catalog APIs still untyped, `scan_entries_parallel` is the new 273-line god function, and 949 string-heuristic `source.contains` calls remain architectural debt.
-- **Approach:** Three parallel workstreams aligned to the three review lenses — error boundaries (best-practices + patterns), walk-layer structure (anti-pattern), docs/tests hygiene (best-practices).
+- **Approach:** Three parallel workstreams aligned to the three review lenses — error boundaries (best-practices + patterns), walk-layer structure (anti-pattern), documents/tests hygiene (best-practices).
 - **Success criteria:** `anyhow` only in `app/` + `fixture/`; 0 production `.expect()`; `scan_entries_parallel` split into ≤4 functions each <80 lines; 3 public config APIs on `Error`; `insta` snapshots for stable outputs; ratings hit phase-2 targets.
 - **Deferred to later:** Full fact-driven detector migration (949 `contains`), v2 file-split restructure (88 `mod.rs`), type-state `AnalyzerBuilder`.
 

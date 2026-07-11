@@ -20,7 +20,7 @@ Split every oversized file under `src/app.rs`, `src/rules/`, `src/reporting/`, `
 
 - **Problem:** `app.rs` (18.7 KB) is the top-level entry point and the most cross-referenced file. `reporting/sarif.rs` (12.0 KB) and `reporting/text.rs` (10.1 KB) are large single-purpose files. `cli/mod.rs` (8.5 KB) is mostly a single declarative struct.
 - **Approach:** Convert each `.rs` file into a folder of focused sub-modules. Every new `mod.rs` is private; public surface is re-exported with `pub use`. `src/main.rs` is untouched (it only uses re-exports).
-- **Success criteria:** All 7 files in scope are split. `src/lib.rs` is confirmed doc-only. Doc paths in `docs/architecture-performance.md` and 5 plan files are updated to the new locations.
+- **Success criteria:** All 7 files in scope are split. `src/lib.rs` is confirmed doc-only. Doc paths in `documents/architecture-performance.md` and 5 plan files are updated to the new locations.
 - **Trade-offs:** `app/run.rs` will still be ~6 000 chars after the first split (extracting baseline/reporting helpers brings it to the maximum). `cli/args.rs` will be ~6 000 chars (single declarative struct with no logic). Both are in the 4 000–6 000 exception band.
 - **Open questions:** None — the path updates are well-enumerated.
 
@@ -220,7 +220,7 @@ in every case.
 
 The following references are doc-only; update them as part of the PR:
 
-- [x] `docs/architecture-performance.md` line 53 — `src/app.rs` → `src/app/` (or `src/app/run.rs`)
+- [x] `documents/architecture-performance.md` line 53 — `src/app.rs` → `src/app/` (or `src/app/run.rs`)
 - [x] `plans/v0.0.1/architecture-performance-enhancement/PR/pr-architecture-performance-enhancement-sprint.md` line 209 — same
 - [x] `plans/p2-implementation/02-baseline-ignore.md` line 126 — `src/app.rs` → `src/app/run.rs`
 - [x] `plans/v0.0.1/architecture-enchancement-2/Review2.md` line 65 — `sarif.rs:80-87` → `sarif/schema.rs`
@@ -274,7 +274,7 @@ The following references are doc-only; update them as part of the PR:
   - `src/main.rs` references `codehound::cli::Cli` and `codehound::app::{run, EXIT_CONFIG}`. Both paths must remain reachable through the new `mod.rs` re-exports.
   - The `Envelope` and `FindingJson` types are imported by name in `tests/reporting_json.rs` — `json/types.rs` re-exports them through the new `json/mod.rs`.
   - `app/run.rs` will still be ~6 000 chars even after extracting the baseline/reporting helpers. That is the maximum allowed for a top-level file with a non-trivial public API.
-  - Doc paths in `docs/architecture-performance.md` and 5 plan files reference `src/app.rs` and `sarif.rs:80-87`. These are prose-only updates; they do not affect the build. **All 6 paths updated** on 2026-06-26: `docs/architecture-performance.md` line 53, `plans/v0.0.1/.../pr-architecture-performance-enhancement-sprint.md` lines 167+209, `plans/p2-implementation/02-baseline-ignore.md` line 126, and the 3 sarif.rs references in the Review2/MODULE_CLEANUP/pr-implementation-summary files.
+  - Doc paths in `documents/architecture-performance.md` and 5 plan files reference `src/app.rs` and `sarif.rs:80-87`. These are prose-only updates; they do not affect the build. **All 6 paths updated** on 2026-06-26: `documents/architecture-performance.md` line 53, `plans/v0.0.1/.../pr-architecture-performance-enhancement-sprint.md` lines 167+209, `plans/p2-implementation/02-baseline-ignore.md` line 126, and the 3 sarif.rs references in the Review2/MODULE_CLEANUP/pr-implementation-summary files.
 
 ## Phase 2 final state
 

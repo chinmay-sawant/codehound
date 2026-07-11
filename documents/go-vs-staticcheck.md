@@ -16,7 +16,7 @@ when the check is strictly weaker or lower precision in CodeHound.
 
 ## Overlap summary
 
-Full BP overlap matrix: [`docs/bad-practices.md`](./bad-practices.md).
+Full BP overlap matrix: [`documents/bad-practices.md`](./bad-practices.md).
 
 | Area | Prefer | CodeHound role |
 |------|--------|----------------|

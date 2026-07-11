@@ -17,7 +17,7 @@ All 9 phases of the additional-findings report implemented. 70 tests pass
 - `Cargo.toml`, `README.md`, `makefile`, `CHANGELOG.md` (new)
 - 31 source files (`src/**/*.rs`)
 - 4 test files
-- `docs/configuration.md`, `docs/output-formats.md` (new)
+- `documents/configuration.md`, `documents/output-formats.md` (new)
 - `.github/workflows/ci.yml` (new)
 - `tests/fixtures/python/safe.txt` (new negative case)
 - `plans/p2.md`, `plans/p3.md` deleted (stale placeholders)
@@ -151,9 +151,9 @@ All 9 phases of the additional-findings report implemented. 70 tests pass
   perf number, the new tests, the bug fixes
 - `src/lib.rs` — crate-level doc comment with quick-start example, feature
   flags, and module map
-- `docs/configuration.md` (new) — schema, precedence table, env vars,
+- `documents/configuration.md` (new) — schema, precedence table, env vars,
   `.codehoundignore`, `init` command
-- `docs/output-formats.md` (new) — text/JSON/SARIF examples, exit codes,
+- `documents/output-formats.md` (new) — text/JSON/SARIF examples, exit codes,
   security-severity mapping
 - `plans/p1.md` — updated to reflect actual shipped work
 - `plans/p2.md`, `plans/p3.md` — deleted (stale placeholders that

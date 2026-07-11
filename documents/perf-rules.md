@@ -89,4 +89,4 @@ This document summarizes the shipped Go performance (`PERF-*`) detectors in Code
 
 ## Per-Detector Development
 
-See [`docs/perf-detector-development.md`](./perf-detector-development.md) for the step-by-step guide to adding a new PERF detector.
+See [`documents/perf-detector-development.md`](./perf-detector-development.md) for the step-by-step guide to adding a new PERF detector.

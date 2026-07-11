@@ -124,9 +124,9 @@ A follow-up forensic read (`additional-architecture-performance-findings.md`) sh
 ### H. Documentation & project hygiene
 
 - `CHANGELOG.md` — full unreleased changelog
-- `docs/configuration.md` — schema, precedence, env vars, `.codehoundignore`, `init`
-- `docs/output-formats.md` — text/JSON/SARIF examples, exit codes, severity mapping
-- `docs/architecture-performance.md` — updated pipeline, performance choices, codebase conventions
+- `documents/configuration.md` — schema, precedence, env vars, `.codehoundignore`, `init`
+- `documents/output-formats.md` — text/JSON/SARIF examples, exit codes, severity mapping
+- `documents/architecture-performance.md` — updated pipeline, performance choices, codebase conventions
 - `src/lib.rs` — crate-level doc with quick-start example, feature flags, module map
 - `README.md` — updated with real features, corrected SARIF status
 - `plans/p1.md` — updated to reflect shipped work
@@ -193,7 +193,7 @@ A follow-up forensic read (`additional-architecture-performance-findings.md`) sh
 | `build.rs` | Codegen from `ruleset/golang/golang.json` |
 | `codehound.schema.json` | New — JSON Schema draft-07 |
 | `CHANGELOG.md` | New |
-| `docs/configuration.md`, `docs/output-formats.md` | New |
+| `documents/configuration.md`, `documents/output-formats.md` | New |
 | `tests/` | 25+ test files, 96+ tests |
 | `.github/workflows/ci.yml` | New — CI matrix |
 

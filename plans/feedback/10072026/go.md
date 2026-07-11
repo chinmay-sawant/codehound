@@ -62,7 +62,7 @@ tree-sitter-go parse
 | Action | Detail |
 |--------|--------|
 | Decide default | On for `security` profile; off for `recommended`/`perf` **or** document clearly if on globally |
-| Sync | `docs/taint.md`, README, schema, `ScanContext` |
+| Sync | `documents/taint.md`, README, schema, `ScanContext` |
 | UX | `--taint` / `--no-taint` + config must match explain output |
 
 ### 4. Injection rule soundness checklist
@@ -182,7 +182,7 @@ For each BP-1..65:
 | Unique policy (rate limits, dep hygiene with real signal) | Keep in `style` pack only |
 | Reserved / empty (CVE feed) | Wire govulncheck-style feed **or** remove from catalog |
 
-Document matrix in `docs/bad-practices.md`: “Overlaps X — enable only if you don’t run X.”
+Document matrix in `documents/bad-practices.md`: “Overlaps X — enable only if you don’t run X.”
 
 ### 14. Fix known broken BP detectors
 
@@ -281,9 +281,9 @@ Expand beyond single CWE-393 ↛ CWE-89 case:
 
 | Doc | Content |
 |-----|---------|
-| `docs/go-recommended-pack.md` | Exact rule list + why |
-| `docs/go-vs-staticcheck.md` | Overlap matrix (start from existing comparison notes) |
-| `docs/taint.md` | Limitations table expanded: Clean, fields, channels, depth |
+| `documents/go-recommended-pack.md` | Exact rule list + why |
+| `documents/go-vs-staticcheck.md` | Overlap matrix (start from existing comparison notes) |
+| `documents/taint.md` | Limitations table expanded: Clean, fields, channels, depth |
 | README sample | Prefer PERF finding over only CWE-22 theater |
 
 ---
@@ -359,7 +359,7 @@ Expand beyond single CWE-393 ↛ CWE-89 case:
 | BP | `.../bad_practices/rules/`, `dispatch.rs` |
 | Registries | `.../registry/*.toml`, `ruleset/golang/chunks/` |
 | Fixtures | `tests/fixtures/go/` |
-| Docs | `docs/taint.md`, `docs/perf-rules.md`, `docs/bad-practices.md` |
+| Docs | `documents/taint.md`, `documents/perf-rules.md`, `documents/bad-practices.md` |
 
 ---
 

@@ -152,7 +152,7 @@ flowchart LR
 | `src/rules/emit.rs` | **New** — finding helpers + `rule_meta` |
 | `src/reporting/sarif.rs` | Stream JSON, borrow strings |
 | `Cargo.toml` | `rayon`; remove unused deps |
-| `docs/architecture-performance.md` | Updated pipeline docs |
+| `documents/architecture-performance.md` | Updated pipeline docs |
 
 ---
 

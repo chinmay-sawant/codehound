@@ -20,7 +20,7 @@ Items marked "not started" in plan documents that are actually implemented are e
 | Cache Config + Tests | P1 | ⚠️ Partial | 1 week | `evict_target_ratio`, `max_file_size_mb`, 4 missing tests, eviction logging |
 | Taint Reporting | P1 | ⚠️ Partial | 2–3 days | JSON/SARIF `taint_show_paths` wire-up |
 | CI/CD + Test Hygiene | P2 | ✅ Done | — | GitHub Actions bench CI gate, real-world smoke fixtures, clean-Go verification |
-| Cross-cutting Docs | P2 | ✅ Done | — | `docs/perf-rules.md`, README refs, CHANGELOG, schema/template updates, `--diagnostics-summary` |
+| Cross-cutting Docs | P2 | ✅ Done | — | `documents/perf-rules.md`, README refs, CHANGELOG, schema/template updates, `--diagnostics-summary` |
 | BP Prose Fixes | P3 | ⚠️ Partial | 1 day | `fix_for()` for BP-16..BP-65 |
 | Phase 5 Confidence Score | P4 | ❌ Not started | 2–3 weeks | Confidence scoring for taint paths |
 | Rule-Pack Extensibility | P4 | ❌ Not started | TBD | External rule-pack loading (scoping done) |
@@ -102,7 +102,7 @@ All detectors exist. No structured patches. Add policy/precondition gate:
 - [x] In scan preflight/cache-lookup, skip caching for files larger than threshold
 - [x] Log `tracing::debug!` when file skipped due to size
 - [x] Update `codehound.schema.json` with both new fields
-- [x] Update `docs/incremental-cache.md` with both new config options
+- [x] Update `documents/incremental-cache.md` with both new config options
 
 ### Eviction Logging
 
@@ -157,7 +157,7 @@ All detectors exist. No structured patches. Add policy/precondition gate:
 ## P2 — Cross-Cutting Docs + Schema
 
 > **Parent:** `plans/v2.0.0/pending-work/05-cross-cutting-remaining.md` §1, §2.2, §2.3, §4, §5
-> **Status:** ✅ Done. `docs/perf-rules.md` created, README/CHANGELOG/schema/template updated, `--diagnostics-summary` wired.
+> **Status:** ✅ Done. `documents/perf-rules.md` created, README/CHANGELOG/schema/template updated, `--diagnostics-summary` wired.
 > **Estimated effort:** 3–4 days
 
 ### `--diagnostics-summary` CLI Flag
@@ -169,8 +169,8 @@ All detectors exist. No structured patches. Add policy/precondition gate:
 
 ### Documentation
 
-- [x] Create `docs/perf-rules.md` — one paragraph per shipped PERF rule with fix example
-- [x] Add README.md cross-references to `docs/taint.md`, `docs/bad-practices.md`, `docs/perf-rules.md`
+- [x] Create `documents/perf-rules.md` — one paragraph per shipped PERF rule with fix example
+- [x] Add README.md cross-references to `documents/taint.md`, `documents/bad-practices.md`, `documents/perf-rules.md`
 
 ### CHANGELOG
 
@@ -274,7 +274,7 @@ P4 (Public surface narrowing)
 | **P1** | Cache config + tests | `evict_target_ratio`, `max_file_size_mb`, 4 tests, eviction logging | 1w | — |
 | **P1** | Taint reporting | JSON/SARIF `taint_show_paths` | 2–3d | `--taint-show-paths` ✅ |
 | **P2** | CI/CD + test hygiene | Bench CI gate, real-world smoke fixtures, clean-Go-file | 1w | — |
-| **P2** | Cross-cutting docs | `docs/perf-rules.md`, README refs, CHANGELOG, schema/template | 3–4d | — |
+| **P2** | Cross-cutting docs | `documents/perf-rules.md`, README refs, CHANGELOG, schema/template | 3–4d | — |
 | **P2** | `--diagnostics-summary` | New CLI flag | 1d | — |
 | **P3** | BP prose fixes | `fix_for()` BP-16..BP-65 | 1d | — |
 | **P4** | Confidence scoring | Phase 5 taint scoring | 2–3w | Taint graph ✅ |

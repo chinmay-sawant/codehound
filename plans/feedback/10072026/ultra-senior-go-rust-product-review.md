@@ -244,7 +244,7 @@ Plus direct sampling of `Cargo.toml`, taint rules, detectors, and tree layout (~
 - Catalog inflation (~470 rules) without precision engineering  
 - Fixture-overfitted CWE tail destroys trust for the good rules too  
 - Noise-default product (medium fail, BP on, broad PERF, export on)  
-- Docs/schema/code drift (taint, counts, severity_overrides, SARIF, licenses)  
+- documents/schema/code drift (taint, counts, severity_overrides, SARIF, licenses)  
 - Multi-lang story is cosplay until non-Go means something  
 - 0.0.1 packaging (no releases, broken dual license, no GH Action recipe)  
 - Benchmarks and “fast” claims need an honesty reboot  
@@ -306,15 +306,15 @@ If repositioned (PERF-first packs):  8.0 / 10  (potential)
 | Topic | Paths |
 |-------|--------|
 | Product claims | `README.md`, `Cargo.toml` |
-| Engine | `src/engine/`, `docs/architecture-performance.md` |
+| Engine | `src/engine/`, `documents/architecture-performance.md` |
 | Go CWE / taint | `src/lang/go/detectors/cwe/` |
 | PERF | `src/lang/go/detectors/perf/` |
 | BP | `src/lang/go/detectors/bad_practices/` |
 | Ruleset data | `ruleset/golang/` |
 | Plugin trait | `src/core/language/plugin.rs` |
-| Benchmarks | `benchmarks.md`, `benches/`, `docs/architecture-performance.md` |
+| Benchmarks | `benchmarks.md`, `benches/`, `documents/architecture-performance.md` |
 | Tests / fixtures | `tests/`, `tests/fixtures/go/` |
-| Config / CLI | `src/cli/`, `src/app/`, `docs/configuration.md` |
+| Config / CLI | `src/cli/`, `src/app/`, `documents/configuration.md` |
 | SARIF | `src/reporting/sarif/`, `tests/snapshots/reporting_sarif_snapshot__sarif_log.snap` |
 | License | `LICENSE`, `Cargo.toml`, `README.md` |
 

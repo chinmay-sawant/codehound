@@ -198,7 +198,7 @@ cargo run -- tests/fixtures
 - [ ] No unrelated changes in diff
 - [ ] Public API / CLI changes documented
 - [ ] New rules have fixture coverage in `tests/fixtures/`
-- [ ] `docs/architecture-performance.md` updated if pipeline changed
+- [ ] `documents/architecture-performance.md` updated if pipeline changed
 - [ ] No secrets or generated artifacts committed
 
 ---

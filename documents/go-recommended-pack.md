@@ -24,7 +24,7 @@ Bad practices (`BP-*`) are **off**. Fail policy defaults to **strict** (high+ on
 | `PERF-189` | HTTP response body not drained before close |
 | `PERF-190` | HTTP client missing timeout |
 
-See also [`docs/perf-tiers.md`](./perf-tiers.md) for S/A/B/C policy.
+See also [`documents/perf-tiers.md`](./perf-tiers.md) for S/A/B/C policy.
 
 ### CWE (taint-core)
 

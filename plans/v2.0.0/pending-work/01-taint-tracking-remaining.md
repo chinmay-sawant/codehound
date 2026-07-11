@@ -35,7 +35,7 @@ The taint-tracking foundation is in place: `TaintGraph` data model, tree-sitter 
 ### 1.1 Prerequisites
 
 - [x] Land Phase E (CLI flags) so users can discover and enable taint without editing `codehound.toml`
-- [x] Land `docs/taint.md` so users understand what taint does and how to disable it
+- [x] Land `documents/taint.md` so users understand what taint does and how to disable it
 - [x] Ensure `--no-taint` / `--taint` flags exist (see Phase E)
 
 ### 1.2 Code changes
@@ -84,7 +84,7 @@ Add the following sanitizer functions to the classifier in `src/lang/go/detector
 ### 2.4 Name-based heuristic sanitizer detection
 
 - [x] Add heuristic: functions matching `/^(sanitize|clean|escape|validate|purify)/i` are treated as `SanitizerKind::Validation` with a `tracing::debug!` note
-- [x] Document this in `docs/taint.md` so users know they can create custom sanitizers by naming convention
+- [x] Document this in `documents/taint.md` so users know they can create custom sanitizers by naming convention
 - [~] Add test fixture using a custom `sanitizeInput()` function
 
 ---
@@ -127,9 +127,9 @@ Add the following to `src/cli/args.rs` and wire in `src/cli/args_impl.rs`:
 - [x] In `src/reporting/text/render.rs`: when `--taint-show-paths` is set, print the taint path (source → hop → sink) in the text output
 - [x] Test: `tests/reporting_json_finding.rs` — add a test that a taint finding with `show_paths=true` includes path details
 
-### 3.3 Documentation: `docs/taint.md`
+### 3.3 Documentation: `documents/taint.md`
 
-Create `docs/taint.md` covering:
+Create `documents/taint.md` covering:
 
 - [x] **Overview**: what taint tracking is and which CWE rules use it (CWE-22, 78, 79, 89)
 - [x] **Enabling**: via config (`[codehound.taint] enabled = true`) and via CLI (`--taint`)
@@ -202,7 +202,7 @@ Create `docs/taint.md` covering:
 - **Phase D** is independent; can be done in parallel with E
 - **Phase F** depends on existing intra-procedural infrastructure (Phases A–B)
 - **Phase F** may overlap with P2.4 Category C (multi-file/semantic PERF rules) which also needs call-graph infrastructure
-- Cross-cutting: `docs/taint.md` (Phase E) is also tracked in `05-cross-cutting-remaining.md`
+- Cross-cutting: `documents/taint.md` (Phase E) is also tracked in `05-cross-cutting-remaining.md`
 
 ## Quick reference
 

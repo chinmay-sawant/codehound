@@ -18,7 +18,7 @@ Complements golangci-lint; does not replace it.
 | `src/rules/` | Finding, severity, maturity, fingerprints |
 | `ruleset/` | JSON rule metadata (codegen via `build.rs`) |
 | `tests/fixtures/` | Mandatory `.txt` fixtures |
-| `docs/` | Product + architecture docs |
+| `documents/` | Product + architecture docs |
 | `plans/` | Historical plans (not live roadmap) |
 | `scripts/` | CI gates, canaries, bench budgets |
 
@@ -31,9 +31,9 @@ codehound .   # --profile recommended, fail high, no BP, no export
 ## Docs to read first
 
 1. `ROADMAP.md`
-2. `docs/go-recommended-pack.md`
-3. `docs/go-vs-staticcheck.md`
-4. `docs/taint.md`
+2. `documents/go-recommended-pack.md`
+3. `documents/go-vs-staticcheck.md`
+4. `documents/taint.md`
 5. `CONTRIBUTING.md`
 
 ## Branding note

@@ -185,9 +185,9 @@ cargo run -- tests/fixtures
 
 - [x] Behavior matches summary and test plan (parser pool reuse via map_init, LanguageFilter + resolve_language_filter, SCAN_CHUNK_SIZE, O(1) by_extension HashMap, perf_regression.rs guardrails)
 - [~] No unrelated changes in diff (needs review — PR diff check) (deferred → see plans/v3.0.0/)
-- [x] Public API / CLI changes documented (docs/architecture-performance.md and docs/configuration.md updated)
-- [~] ~~Config `languages` example added to repo `codehound.toml` if desired~~ (skipped: not in repo codehound.toml; present in templates/codehound.toml and docs/configuration.md)
-- [x] `docs/architecture-performance.md` updated if pipeline docs exist (pipeline docs exist at docs/architecture-performance.md and are current)
+- [x] Public API / CLI changes documented (documents/architecture-performance.md and documents/configuration.md updated)
+- [~] ~~Config `languages` example added to repo `codehound.toml` if desired~~ (skipped: not in repo codehound.toml; present in templates/codehound.toml and documents/configuration.md)
+- [x] `documents/architecture-performance.md` updated if pipeline docs exist (pipeline docs exist at documents/architecture-performance.md and are current)
 
 ---
 

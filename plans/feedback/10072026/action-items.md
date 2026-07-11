@@ -89,7 +89,7 @@ Merge for 0.1.0 when A + C minimum is met.
 
 #### 0.4 Docs / schema / runtime lockstep `[Product]` ×2
 
-- [x] Single source of truth for **taint default** (off): README + `docs/taint.md` + `ScanContext`
+- [x] Single source of truth for **taint default** (off): README + `documents/taint.md` + `ScanContext`
 - [x] `severity_overrides`: **implemented** parse + apply in `ScanContext`
 - [x] README counts pinned + CI test `rule_counts_readme` vs live registry (175/239/65)
 - [x] `fail_on`: reject unknown values at config load (allowed: none/never/medium/warnings/high/strict)
@@ -126,7 +126,7 @@ Merge for 0.1.0 when A + C minimum is met.
 #### 0.8 Taint defaults & flags UX `[Go]` + `[Product]` ×2
 
 - [x] **Decide:** taint **off** by default (enable via `--taint` / config; security profile later in Phase 1)
-- [x] Sync `docs/taint.md`, README, schema, `ScanContext`
+- [x] Sync `documents/taint.md`, README, schema, `ScanContext`
 - [x] `--taint` / `--no-taint` + config applied in `build_scan_context` (CLI wins for flags)
 
 #### 0.9 Rust integrity quick wins `[Rust]` ×2
@@ -172,7 +172,7 @@ Merge for 0.1.0 when A + C minimum is met.
   - [x] **`security`** — taint CWE core (+ structural neighbors); taint **on** · opt-in
   - [x] **`style` / `bp`** — bad practices only, advisory (`NoFail`)
   - [x] **`all`** — full catalog · explicit only
-- [x] Document: `docs/go-recommended-pack.md` + README CI recipes
+- [x] Document: `documents/go-recommended-pack.md` + README CI recipes
 - [x] Align fail policy with profile (recommended/security/perf → strict)
 
 #### 1.2 Rule maturity tags + quarantine `[Product]` + `[Go]` ×3
@@ -209,7 +209,7 @@ Merge for 0.1.0 when A + C minimum is met.
 #### 1.6 Sample CI recipe `[Product]`
 
 - [x] Sample `.github/workflows/codehound.yml` (cargo build until binary release)
-- [x] Document baseline + ignore brownfield workflow (`docs/go-recommended-pack.md`)
+- [x] Document baseline + ignore brownfield workflow (`documents/go-recommended-pack.md`)
 
 ---
 
@@ -225,7 +225,7 @@ Merge for 0.1.0 when A + C minimum is met.
 - [x] PERF tiers S/A/B/C defined and wired into packs (`perf/tiers.rs` + profiles)
 - [x] Cold CLI/config builders not flooded by hot_path false positives (`main`/`init`/package-level cold; no bare `func (`)
 - [x] Top S-tier rules have real-world-ish fixtures (`perf_real_world/http_handler_timeouts-vulnerable`)
-- [x] Framework gap list published (`docs/perf-tiers.md`); no catalog inflation this phase
+- [x] Framework gap list published (`documents/perf-tiers.md`); no catalog inflation this phase
 
 ### Checklist
 
@@ -270,7 +270,7 @@ Merge for 0.1.0 when A + C minimum is met.
 
 ### Success criteria
 
-- [x] Overlap matrix published (`docs/bad-practices.md`)
+- [x] Overlap matrix published (`documents/bad-practices.md`)
 - [x] BP-8 / 9 / 1 / 6 fixed or disabled
 - [x] BP off in recommended; unique policy rules only in style pack
 - [x] Reserved/empty (CVE feed) wired or removed from catalog
@@ -349,7 +349,7 @@ Merge for 0.1.0 when A + C minimum is met.
 #### 4.5 Hash maps on hot path `[Rust]`
 
 - [x] ADR: intentional SipHash for general maps; SourceIndex uses shared HashMap lookup
-  - See `docs/adr/0001-hash-maps-on-hot-path.md`
+  - See `documents/adr/0001-hash-maps-on-hot-path.md`
 
 #### 4.6 Warm path performance `[Rust]` + `[Product]` ×2
 
@@ -395,12 +395,12 @@ Merge for 0.1.0 when A + C minimum is met.
 #### 5.3 Path identity `[Rust]` + `[Product]` ×2
 
 - [x] `normalize_project_path` on put, deps, cascade match, cache keys
-- [x] ADR `docs/adr/0002-project-path-identity.md`
+- [x] ADR `documents/adr/0002-project-path-identity.md`
 - [x] Fix absolute vs relative cascade misses (strip to project-relative deps)
 
 #### 5.4 Cache concurrency policy `[Rust]`
 
-- [x] Document **single-writer** policy in `docs/incremental-cache.md`
+- [x] Document **single-writer** policy in `documents/incremental-cache.md`
 - [x] Concurrent open/scan test retained (no panic); correctness not claimed under dual writers
 
 #### 5.5 Fixture & test oracle bar `[Go]` + `[Product]` ×2
@@ -461,7 +461,7 @@ Merge for 0.1.0 when A + C minimum is met.
 - [x] Python `#` comments
 - [x] `codehound-ignore-start` / `-end` block ranges
 - [x] Trailing end-of-line ignore
-- [x] `nolint` alias: **documented non-goal** (`docs/finding-identity.md`)
+- [x] `nolint` alias: **documented non-goal** (`documents/finding-identity.md`)
 
 #### 6.3 CLI structure `[Product]` + `[Rust]` ×2
 
@@ -519,14 +519,14 @@ Merge for 0.1.0 when A + C minimum is met.
 
 #### 7.3 Go product packaging of rules `[Go]`
 
-- [x] Rule RFC template: `docs/rule-rfc-template.md`
+- [x] Rule RFC template: `documents/rule-rfc-template.md`
 - [x] detection_notes quality called out in RFC + CONTRIBUTING
 - [ ] Codegen validates function exists / fixture inventory CI — partial (existing build.rs + tests); full gate deferred
-- [x] PERF detector guide already points at chunks paths (`docs/perf-detector-development.md`)
+- [x] PERF detector guide already points at chunks paths (`documents/perf-detector-development.md`)
 - [x] Docs:
-  - [x] `docs/go-recommended-pack.md`
-  - [x] `docs/go-vs-staticcheck.md`
-  - [x] Expanded `docs/taint.md` limitations
+  - [x] `documents/go-recommended-pack.md`
+  - [x] `documents/go-vs-staticcheck.md`
+  - [x] Expanded `documents/taint.md` limitations
 
 #### 7.4 Embedder docs `[Rust]`
 
@@ -748,7 +748,7 @@ Merge for 0.1.0 when A + C minimum is met.
 | Export default off | 0.1 |
 | SARIF camelCase / severity / workingDirectory | 0.2 |
 | License dual claim | 0.3, 7.1 |
-| Docs/schema drift (taint, counts, severity_overrides, fail_on) | 0.4 |
+| documents/schema drift (taint, counts, severity_overrides, fail_on) | 0.4 |
 | CLI no-ops / conflicts / snippet split | 0.5, 6.3 |
 | Sanitizer Clean / Path / CWE-78 | 0.6 |
 | Path confinement dataflow-local | 0.6 |
@@ -829,7 +829,7 @@ Merge for 0.1.0 when A + C minimum is met.
 | Registries | `ruleset/golang/`, `.../registry/*.toml` |
 | Fixtures | `tests/fixtures/go/` |
 | Benches | `benches/*`, `scripts/check_bench_budget.sh` |
-| Docs | `docs/taint.md`, `docs/bad-practices.md`, README, LICENSE* |
+| Docs | `documents/taint.md`, `documents/bad-practices.md`, README, LICENSE* |
 
 ---
 

@@ -73,7 +73,7 @@ fn results_have_security_severity_in_properties() {
     let log = render_to_string(&sample_result()).expect("render SARIF");
     assert!(log.contains("\"security-severity\""), "got: {log}");
     assert!(log.contains("\"tags\""), "got: {log}");
-    // Severity mapping: High → 7.5, Critical → 9.5 (aligned with docs/output-formats.md)
+    // Severity mapping: High → 7.5, Critical → 9.5 (aligned with documents/output-formats.md)
     assert!(
         log.contains("\"7.5\""),
         "expected high security-severity 7.5, got: {log}"

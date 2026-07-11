@@ -18,4 +18,4 @@ Full catalog noise blocked brownfield adoption.
 
 ## Consequences
 
-See `docs/go-recommended-pack.md` and `src/core/profile.rs`.
+See `documents/go-recommended-pack.md` and `src/core/profile.rs`.

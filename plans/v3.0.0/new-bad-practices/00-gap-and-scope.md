@@ -16,7 +16,7 @@ A candidate becomes a BP-66+ rule only if:
 5. **Not a default linter duplicate** without added value:
    - If `staticcheck` / `go vet` / `errcheck` already catch the *same* AST shape at high precision, skip.
    - OK to ship a **related but distinct** rule (e.g. framework-aware, multi-statement lifecycle, request-path correctness).
-6. **Actionable fix** can be stated in one short “canonical fix” sentence for `docs/bad-practices.md`.
+6. **Actionable fix** can be stated in one short “canonical fix” sentence for `documents/bad-practices.md`.
 7. **Fixtures exist as `.txt` snippets** (vulnerable + safe) — see README shipping shape.
 
 ---
@@ -135,6 +135,6 @@ import "github.com/gin-gonic/gin"
 
 - [ ] Confirm highest existing BP id is **65**
 - [ ] Grep for hard-coded max BP assumptions in tests/build
-- [ ] Read `docs/bad-practices.md` and `ruleset/golang/bad-practices.json`
+- [ ] Read `documents/bad-practices.md` and `ruleset/golang/bad-practices.json`
 - [ ] Skim PERF Gin/GORM/Echo names to avoid PERF duplicates
 - [ ] Agree category enum extensions (if any) in one PR before mass rules

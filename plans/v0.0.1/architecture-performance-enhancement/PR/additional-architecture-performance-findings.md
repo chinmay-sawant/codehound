@@ -195,7 +195,7 @@ NDJSON only (`serde_json::to_writer` at `src/reporting/json.rs:13`) — no envel
 - No `plans/INDEX.md`.
 
 ### 7.9 Docs gaps
-Only two files in `docs/`: `adding-a-language.md` (43 lines) and `architecture-performance.md` (44 lines). Missing: `configuration.md`, `output-formats.md`, `rules-catalog.md`, `perf-tuning.md`, `contributing.md`, `security.md`, `architecture.md`, `internals/facts.md`, `internals/registry.md`. No `examples/` directory. No `CHANGELOG.md`. `src/lib.rs:1` is a one-line crate doc with no usage example. No `#![warn(missing_docs)]`.
+Only two files in `documents/`: `adding-a-language.md` (43 lines) and `architecture-performance.md` (44 lines). Missing: `configuration.md`, `output-formats.md`, `rules-catalog.md`, `perf-tuning.md`, `contributing.md`, `security.md`, `architecture.md`, `internals/facts.md`, `internals/registry.md`. No `examples/` directory. No `CHANGELOG.md`. `src/lib.rs:1` is a one-line crate doc with no usage example. No `#![warn(missing_docs)]`.
 
 ---
 
@@ -238,4 +238,4 @@ Only two files in `docs/`: `adding-a-language.md` (43 lines) and `architecture-p
 
 ---
 
-*Generated from forensic static read of all 55 files in `src/`, all 7 files in `tests/`, `benches/`, `docs/`, `plans/`, `ruleset/`, `scripts/`, `makefile`, and `Cargo.toml`, with `rg` exhaustively verifying every claim in the existing review.*
+*Generated from forensic static read of all 55 files in `src/`, all 7 files in `tests/`, `benches/`, `documents/`, `plans/`, `ruleset/`, `scripts/`, `makefile`, and `Cargo.toml`, with `rg` exhaustively verifying every claim in the existing review.*

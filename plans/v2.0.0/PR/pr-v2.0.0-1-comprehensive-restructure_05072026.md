@@ -121,7 +121,7 @@ PERF-213 (Cache Without Eviction), PERF-214 (Cache Key Volatility), PERF-215 (Bu
 - **P1 Cache Config + Tests**: ✅ Done — `evict_target_ratio`, `max_file_size_mb`, 4 missing tests, eviction logging
 - **P1 Taint Reporting**: ⚠️ Partially populated — CLI→config→JSON/SARIF/text pipe fully wired, but 6 intra-procedural rules (`cwe_22/78/79/89/90/91`) never populate `hop_details`. Only cross-function inter-procedural path emits per-hop evidence. Deferred to v3.0.0 Phase 1.
 - **P2 CI/CD + Test Hygiene**: ✅ Done — bench CI gate, real-world smoke fixtures, clean-Go verification
-- **P2 Cross-cutting Docs**: ✅ Done — `docs/perf-rules.md`, README refs, CHANGELOG, schema/template, `--diagnostics-summary`
+- **P2 Cross-cutting Docs**: ✅ Done — `documents/perf-rules.md`, README refs, CHANGELOG, schema/template, `--diagnostics-summary`
 - **P3 BP Prose Fixes**: ⚠️ Partial — `fix_for()` only covers BP-1..BP-15; BP-16..BP-65 deferred to v3.0.0
 - **P4 Confidence Scoring / Rule-Pack Extensibility / Public Surface Narrowing**: ❌ Not started — all deferred to v3.0.0
 

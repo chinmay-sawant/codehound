@@ -33,11 +33,11 @@ This plan consolidates all cross-cutting items that don't fit neatly into a sing
 > **Status:** ❌ Not started. All 3 are planned but not written.
 > **Effort:** 3 days total
 
-### 1.1 `docs/taint.md`
+### 1.1 `documents/taint.md`
 
 > Also tracked in `01-taint-tracking-remaining.md` Phase E 3.3.
 
-- [x] Create `docs/taint.md` covering:
+- [x] Create `documents/taint.md` covering:
   - Overview: what taint tracking is (intra-procedural data-flow analysis)
   - Which CWE rules use it: CWE-22, CWE-78, CWE-79, CWE-89
   - Enabling: via `[codehound.taint] enabled = true` in config, or `--taint` CLI flag
@@ -46,13 +46,13 @@ This plan consolidates all cross-cutting items that don't fit neatly into a sing
   - Reading output: `evidence.taint_path` in JSON output (source → hops → sink)
   - Custom sanitizers: name-based heuristic detection (`sanitize*`, `clean*`, etc.)
   - Performance: extraction always performed, graph-building lazy
-- [x] Add reference from `README.md` to `docs/taint.md`
+- [x] Add reference from `README.md` to `documents/taint.md`
 
-### 1.2 `docs/bad-practices.md`
+### 1.2 `documents/bad-practices.md`
 
 > Also tracked in `03-bad-practices-remaining.md` (documentation section).
 
-- [x] Create `docs/bad-practices.md` covering:
+- [x] Create `documents/bad-practices.md` covering:
   - Overview: what Bad Practices detection catches (beyond CWE/PERF)
   - Per-rule index: one paragraph per BP rule with rationale and canonical fix
   - Source: adapted from `plans/v2.0.0/antipattern-remediation/bad-practices-scope.md`
@@ -61,13 +61,13 @@ This plan consolidates all cross-cutting items that don't fit neatly into a sing
   - Category grouping: Error Handling, Concurrency/Sync, Loops, Panics
   - How to enable/disable: `--no-bp`, `--bp-only`, `[bad_practices]` config block
 - [x] Update with each new phase (BP-16..BP-25, BP-26..BP-45, BP-46..BP-65) as they ship
-- [x] Add reference from `README.md` to `docs/bad-practices.md`
+- [x] Add reference from `README.md` to `documents/bad-practices.md`
 
-### 1.3 `docs/perf-rules.md`
+### 1.3 `documents/perf-rules.md`
 
 > Also tracked in `02-perf-detectors-remaining.md` (plan mentions this as B.3).
 
-- [x] Create `docs/perf-rules.md` covering:
+- [x] Create `documents/perf-rules.md` covering:
   - Overview: what PERF rules detect (performance anti-patterns)
   - Per-rule index: one paragraph per shipped PERF rule with fix suggestion and example
   - Source: the current `--explain` output and `golang.json` `detection_notes` fields
@@ -76,7 +76,7 @@ This plan consolidates all cross-cutting items that don't fit neatly into a sing
   - Domain grouping: loop allocations, parsing, request path, Gin framework, data access, protocols, general performance
   - How to enable/disable: `--only PERF-*`, `--skip PERF-*`, `--rule-category performance`
 - [x] Update with each new PERF batch as rules ship
-- [x] Add reference from `README.md` to `docs/perf-rules.md`
+- [x] Add reference from `README.md` to `documents/perf-rules.md`
 
 ---
 
