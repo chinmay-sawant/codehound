@@ -76,7 +76,7 @@ fn go_perf_text_fixtures_also_work_via_cli_scan_path() {
         let expected_rule = format!("PERF-{perf_id}");
 
         let vulnerable_run = Command::new(exe)
-            .args(["scan", vulnerable.as_str()])
+            .args(["--profile", "all", vulnerable.as_str()])
             .output()
             .unwrap_or_else(|e| panic!("run {vulnerable}: {e}"));
         let vulnerable_stdout = String::from_utf8_lossy(&vulnerable_run.stdout);
@@ -93,7 +93,7 @@ fn go_perf_text_fixtures_also_work_via_cli_scan_path() {
         }
 
         let safe_run = Command::new(exe)
-            .args(["scan", safe.as_str()])
+            .args(["--profile", "all", safe.as_str()])
             .output()
             .unwrap_or_else(|e| panic!("run {safe}: {e}"));
         let safe_stdout = String::from_utf8_lossy(&safe_run.stdout);

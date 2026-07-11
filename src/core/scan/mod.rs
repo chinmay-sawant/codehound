@@ -5,3 +5,4 @@ mod policy;
 
 pub use context::ScanContext;
 pub use policy::FailPolicy;
+// Profile lives in `core::profile` (re-exported from `core`).

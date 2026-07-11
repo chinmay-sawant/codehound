@@ -5,5 +5,5 @@ mod enums;
 mod severity_args;
 
 pub use args::Cli;
-pub use enums::{Command, LangMode, OutputFormat, RuleCategory};
+pub use enums::{Command, LangMode, OutputFormat, ProfileArg, RuleCategory};
 pub use severity_args::SeverityArgs;

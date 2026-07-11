@@ -56,6 +56,7 @@ pub fn detect_cwe_22_taint(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec
             continue;
         };
         let (line, col) = unit.line_col(sink_range.start);
+        let at = out.len();
         emit::push_finding_with_evidence(
             &META_CWE_22,
             file,
@@ -70,6 +71,10 @@ pub fn detect_cwe_22_taint(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec
             },
             out,
         );
+        // Taint-core confidence higher than needle heuristics.
+        for f in out.iter_mut().skip(at) {
+            f.confidence = Some(0.75);
+        }
     }
 }
 

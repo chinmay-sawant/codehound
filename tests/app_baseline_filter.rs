@@ -6,6 +6,8 @@ use helpers::baseline::{
 
 const BASELINE_FILE: &str = ".codehound-baseline.json";
 const SCAN_ARGS: &[&str] = &[
+    "--profile",
+    "all",
     "--format",
     "json",
     "--no-context",
@@ -53,6 +55,8 @@ fn default_baseline_auto_discovery_suppresses_findings() {
 
     let save = run_codehound(
         &[
+            "--profile",
+            "all",
             "--baseline",
             "--no-context",
             "--no-chunks",

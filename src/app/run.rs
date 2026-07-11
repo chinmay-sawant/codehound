@@ -172,6 +172,7 @@ fn scan_context_params_for_run(cli: &Cli, config: Option<CodehoundConfig>) -> Sc
         no_taint: cli.no_taint,
         taint_show_paths: cli.taint_show_paths,
         show_ignored: cli.show_ignored,
+        profile: cli.profile.to_profile(),
     }
 }
 

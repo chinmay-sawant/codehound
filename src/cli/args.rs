@@ -16,7 +16,9 @@ use clap::Parser;
         codehound ./cmd/foo.go               # scan a single file\n  \
         codehound --only CWE-22,CWE-89       # only the named rules\n  \
         codehound --format sarif > out.sarif # SARIF for CI\n  \
-        codehound --no-context --no-chunks   # (no-ops: export is off by default)\n  \
+        codehound --profile recommended .    # default high-signal CI pack\n  \
+        codehound --profile security --taint # taint CWE core (taint on with security)\n  \
+        codehound --profile all              # full catalog\n  \
         codehound --export-context --export-chunks  # opt-in filesystem export\n  \
         codehound --taint                    # enable experimental taint tracking\n  \
         codehound --taint-show-paths         # emit taint-path evidence\n  \
@@ -40,6 +42,10 @@ pub struct Cli {
     /// Output format.
     #[arg(long, value_enum, default_value_t = super::enums::OutputFormat::Text)]
     pub format: super::enums::OutputFormat,
+
+    /// Product pack: recommended (default CI), perf, security, style, all.
+    #[arg(long, value_enum, default_value_t = super::enums::ProfileArg::Recommended, env = "CODEHOUND_PROFILE")]
+    pub profile: super::enums::ProfileArg,
 
     /// Path to a `codehound.toml` (overrides auto-discovery).
     #[arg(long, env = "CODEHOUND_CONFIG")]

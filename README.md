@@ -40,11 +40,15 @@ cargo install --path .
 ## Usage
 
 ```sh
-# Analyze the current directory
+# Default = recommended pack (S-tier PERF + taint-core CWEs; BP off; fail high)
 codehound .
 
-# Analyze a single file
-codehound path/to/file.go
+# Example PERF-style finding (request path / timeouts) — the product wedge
+codehound --profile recommended --only PERF-101 .
+
+# Security pack (enables taint) or full catalog
+codehound --profile security .
+codehound --profile all .
 
 # JSON or SARIF output
 codehound --format json ./...
@@ -53,47 +57,45 @@ codehound --format sarif ./... > out.sarif
 # Test files (*_test.go, etc.) are excluded by default; include them with:
 codehound --include-tests .
 
-# Limit to specific rules
+# Limit to specific rules (merged with pack allow-list)
 codehound --only CWE-22,CWE-89 .
 
 # Show every registered rule
 codehound --list-rules
 
 # Show details for a single rule
-codehound --explain CWE-89
+codehound --explain PERF-101
 
 # Write a starter codehound.toml
 codehound init
 
 # Incremental analysis cache (enabled by default)
-#   .codehound-cache/ stores per-file findings keyed by content hash.
-codehound .
-
-# Force a fresh cache (purge then scan)
 codehound --rebuild-cache .
-
-# Prune stale cache entries without scanning
 codehound --prune-cache .
-
-# Disable the cache for this run
 codehound --no-cache .
 ```
 
-See [`docs/incremental-cache.md`](./docs/incremental-cache.md) for details on the cache format, invalidation strategy, and configuration.
+Profiles: [`docs/go-recommended-pack.md`](./docs/go-recommended-pack.md).  
+Cache: [`docs/incremental-cache.md`](./docs/incremental-cache.md).  
+Sample CI: [`.github/workflows/codehound.yml`](./.github/workflows/codehound.yml).
 
 ## Recommendation
 
-**Use CodeHound after** golangci-lint + govulncheck for **app-level Go PERF + framework footguns + curated CWE heuristics** — not instead of them. Scoped packs (PERF-only or high-severity CWE) give the best signal-to-noise ratio.
+**Use CodeHound after** golangci-lint + govulncheck for **app-level Go PERF + framework footguns + curated CWE heuristics** — not instead of them.
+
+**Non-goals:** not a golangci-lint / staticcheck / govulncheck / CodeQL replacement; not a CVE scanner; not default-on full BP in CI.
+
+Default pack is **`recommended`** (high signal, fail-on-high). Use `--profile all` only when you intentionally want the full catalog.
 
 ### Severity Levels
 
-| Level    | Description                        | Exit Code |
-|----------|------------------------------------|-----------|
-| Info     | Advisory, no action needed         | 0         |
-| Low      | Minor concern, review recommended  | 0         |
-| Medium   | Should be fixed (default fail threshold) | 1    |
-| High     | Likely a real issue                | 1         |
-| Critical | Must fix immediately               | 1         |
+| Level    | Description                        | Exit (recommended pack) |
+|----------|------------------------------------|-------------------------|
+| Info     | Advisory                           | 0                       |
+| Low      | Minor concern                      | 0                       |
+| Medium   | Review (does not fail recommended) | 0                       |
+| High     | Likely a real issue                | 1                       |
+| Critical | Must fix immediately               | 1                       |
 
 ### SARIF output
 
@@ -125,11 +127,11 @@ Use for triage, not hard gating. See [`docs/taint.md`](./docs/taint.md).
 Export is **off** by default (no writes under `scripts/`). Example:
 
 ```bash
-# Advisory scan: SARIF for Code Scanning, no workspace dirt, fail on high only
-codehound --format sarif --strict --no-bp . > codehound.sarif
+# Default recommended pack → SARIF (fail high; no BP; no workspace dirt)
+codehound --profile recommended --format sarif . > codehound.sarif
 
-# Security-oriented scan with taint core
-codehound --taint --format sarif --strict . > codehound.sarif
+# Security pack (taint on)
+codehound --profile security --format sarif . > codehound.sarif
 ```
 
 ### Bad Practices

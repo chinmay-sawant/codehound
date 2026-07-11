@@ -151,73 +151,65 @@ Merge for 0.1.0 when A + C minimum is met.
 **Theme:** Packs, catalog honesty, signal  
 **Goal:** Recommended profile is small and high-signal; BP off; fixture museum quarantined; severities honest; homepage leads with PERF.
 
+**Status (2026-07-11):** Core Phase 1 shipped (profiles, maturity quarantine, docs, sample CI). PERF advice retunes and full NEEDLES rewrite continue in Phase 2.
+
 ### Success criteria
 
-- [ ] `recommended` pack ≪ full catalog (directionally ≤ ~30 rules)
-- [ ] No `fixture-only` rules in `recommended` or `security` (audit script)
-- [ ] Senior Go triage of ~20 recommended findings: ≥70% actionable (sampled)
-- [ ] BP pack off by default in recommended; micro-opts not medium/CI-failing
-- [ ] Homepage / README lead with PERF + frameworks (positioning)
+- [x] `recommended` pack ≪ full catalog (14 rules; ≤30)
+- [x] No `fixture-only` rules in `recommended` or `security` (`tests/profile_packs.rs`)
+- [ ] Senior Go triage of ~20 recommended findings: ≥70% actionable (sampled) — needs real-repo pilot
+- [x] BP pack off by default in recommended; fail policy strict (high+)
+- [x] Homepage / README lead with PERF + frameworks (positioning)
 
 ### Checklist
 
 #### 1.1 Profiles instead of “everything on” `[Product]` ×3
 
-- [ ] Implement `--profile recommended|perf|security|style|all` (names may map to packs)
-- [ ] Pack definitions:
-  - [ ] **`recommended`** — curated PERF (timeouts, body close, regex-in-loop, request thrash) + top taint CWEs · **default CI yes**
-  - [ ] **`perf`** — framework + hot-path PERF · opt-in
-  - [ ] **`security`** — taint CWE core + high-value non-fixture CWEs · opt-in
-  - [ ] **`style` / `bp`** — bad practices, advisory · **off by default**
-  - [ ] **`all`** — full catalog · explicit only
-- [ ] Document: `codehound --profile recommended .` and security fail-high recipe
-- [ ] Align fail policy with profile (e.g. recommended fails high, not medium noise)
+- [x] Implement `--profile recommended|perf|security|style|all` (`ScanProfile`, CLI default recommended)
+- [x] Pack definitions:
+  - [x] **`recommended`** — curated PERF + taint-core CWEs · **CLI default**
+  - [x] **`perf`** — broader hot-path PERF · opt-in
+  - [x] **`security`** — taint CWE core (+ structural neighbors); taint **on** · opt-in
+  - [x] **`style` / `bp`** — bad practices only, advisory (`NoFail`)
+  - [x] **`all`** — full catalog · explicit only
+- [x] Document: `docs/go-recommended-pack.md` + README CI recipes
+- [x] Align fail policy with profile (recommended/security/perf → strict)
 
 #### 1.2 Rule maturity tags + quarantine `[Product]` + `[Go]` ×3
 
-- [ ] Tag every CWE (and ideally PERF/BP): `taint-core` | `structural` | `heuristic` | `fixture-only` | `reserved`
-- [ ] Default pack membership by tag (`fixture-only` **never** in recommended/security; `reserved` disabled)
-- [ ] Audit + quarantine/delete rules that only match:
-  - [ ] Magic fixture numbers (`Intn(4096)`, PRNG formulas)
-  - [ ] Exact fixture ids (`lastOTP++`)
-  - [ ] Exact multi-token snippets never in production
-  - [ ] Hard-coded test-corpus path strings
-- [ ] Enforce rewrite bar for promotion to `structural`:
-  1. Pattern via facts/calls/args, not one literal needle
-  2. ≥1 safe + ≥1 vuln + ≥1 variant fixture
-  3. Clean-file + cross-rule FP check pass
-  4. Runs on one real module without nonsense hits
-- [ ] Track hit rate on canaries; plan delete zero-hit after N months (mechanism in Phase 5)
+- [x] Tag lookup via `rules::maturity` (`taint-core` | `structural` | `heuristic` | `fixture-only` | `reserved`)
+- [x] Default pack membership filters fixture-only/reserved out of recommended/security/perf
+- [x] Quarantine known fixture-only CWEs (334/335/338/342/343 PRNG museum + reserved BP)
+- [ ] Full audit of every CWE long-tail needle (ongoing; expand maturity table)
+- [ ] Enforce rewrite bar for promotion to `structural` (process — Phase 2 authoring)
+- [ ] Track hit rate on canaries; plan delete zero-hit after N months (Phase 5)
 
 #### 1.3 NEEDLES hygiene (first pass) `[Go]`
 
-- [ ] Split needles: cheap structural prefilters vs rule-local checks
-- [ ] Prefer call facts + callee classification over `SourceIndex.has("…")` style primary detect
-- [ ] Use needles as **negative gates** where possible
-- [ ] Delete/rewrite top ~20 worst fixture-shaped needles
-- [ ] Comment remaining needles: why production code contains this substring
+- [x] Document hygiene policy on `NEEDLES` + annotate worst fixture needles
+- [ ] Prefer call facts + callee classification over `SourceIndex.has` primary detect (Phase 2 depth)
+- [ ] Use needles as **negative gates** where possible (Phase 2)
+- [x] Flag top fixture-shaped needles (`Intn(4096)`, `lastOTP++`, PRNG formulas, hard-coded paths)
+- [ ] Full comment pass on remaining ~700 needles (incremental)
 
 #### 1.4 Severity & confidence discipline `[Product]` + `[Go]` ×2
 
-- [ ] Micro-opts → `info`/`low`; proven footguns only → `medium`+
-- [ ] BP pack off in recommended; when on almost all info/low; concurrency footguns vet misses → medium max
-- [ ] Never fail CI on “missing godoc” style by default
-- [ ] Populate `confidence` for taint vs needle heuristics
-- [ ] Fix bad PERF advice patterns:
-  - [ ] Don’t always prefer `http.Get` over `NewRequest` (only when no headers/context/custom client)
-  - [ ] Static `fmt.Errorf` medium → info or drop
-  - [ ] Window-scan Body.Close → same-fn + defer detection
+- [ ] Micro-opts → `info`/`low` across full PERF catalog (Phase 2 tiers)
+- [x] BP pack off in recommended; style pack is advisory (`NoFail`)
+- [x] Never fail CI on godoc-style rules under recommended (BP not in pack)
+- [x] Populate `confidence` for taint-core findings (~0.7–0.75) and fixture needles (~0.35)
+- [ ] Fix bad PERF advice patterns (http.Get, fmt.Errorf, Body.Close) — Phase 2
 
 #### 1.5 Product repositioning (docs-first) `[Product]` ×2
 
-- [ ] README sample finding: prefer **PERF** over CWE-22 theater
-- [ ] Explicit complementary positioning vs staticcheck / govulncheck / golangci-lint
-- [ ] Non-goals stated: no full CodeQL parity, no CVE replacement, no default-on full BP
+- [x] README sample: prefer **PERF-101** over CWE theater
+- [x] Explicit complementary positioning vs staticcheck / govulncheck / golangci-lint
+- [x] Non-goals stated: no CodeQL parity, no CVE replacement, no default-on full BP
 
 #### 1.6 Sample CI recipe `[Product]`
 
-- [ ] Sample `.github/workflows/codehound.yml` (path/`cargo install` OK until binary release)
-- [ ] Document baseline + ignore brownfield workflow
+- [x] Sample `.github/workflows/codehound.yml` (cargo build until binary release)
+- [x] Document baseline + ignore brownfield workflow (`docs/go-recommended-pack.md`)
 
 ---
 

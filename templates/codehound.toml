@@ -3,6 +3,9 @@
 # Limit analysis to specific languages.
 # languages = ["go", "python"]
 
+# CLI default pack is --profile recommended (see docs/go-recommended-pack.md).
+# Profiles: recommended | perf | security | style | all
+
 # Only run the union of these rule IDs and any passed via --only.
 # only = ["CWE-22", "CWE-89"]
 
@@ -11,6 +14,7 @@
 
 # Exit policy: "none" | "never" | "medium" | "warnings" | "high" | "strict".
 # Unknown values are rejected at load time (no silent fallback).
+# recommended/security/perf profiles default fail_on to high when unset on CLI.
 # fail_on = "high"
 
 # Optional include/exclude gitignore-style globs, relative to each scan root.

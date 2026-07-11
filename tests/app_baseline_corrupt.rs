@@ -6,6 +6,8 @@ use helpers::baseline::{
 
 const BASELINE_FILE: &str = ".codehound-baseline.json";
 const SCAN_ARGS: &[&str] = &[
+    "--profile",
+    "all",
     "--format",
     "json",
     "--no-context",

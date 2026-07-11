@@ -83,6 +83,8 @@ pub fn parse_findings(output: &str) -> Vec<FindingStub> {
 
 pub fn save_baseline(project: &TempProject, source_path: &str, baseline_path: &str) {
     let args = [
+        "--profile",
+        "all",
         "--baseline",
         "--baseline-file",
         baseline_path,

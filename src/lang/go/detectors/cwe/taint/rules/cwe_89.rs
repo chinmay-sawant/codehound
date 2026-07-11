@@ -45,6 +45,7 @@ pub fn detect_cwe_89_taint(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec
         }
 
         let (line, col) = unit.line_col(sink_range.start);
+        let at = out.len();
         emit::push_finding_with_evidence(
             &META_CWE_89,
             file,
@@ -59,6 +60,9 @@ pub fn detect_cwe_89_taint(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec
             },
             out,
         );
+        for f in out.iter_mut().skip(at) {
+            f.confidence = Some(0.7);
+        }
     }
 }
 
