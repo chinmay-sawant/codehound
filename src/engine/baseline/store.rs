@@ -224,14 +224,7 @@ impl Baseline {
         let live_fps: HashSet<String> = live.iter().map(Finding::fingerprint_string).collect();
         let live_locs: HashSet<(String, String, usize, usize)> = live
             .iter()
-            .map(|f| {
-                (
-                    f.rule_id.to_string(),
-                    f.file.clone(),
-                    f.line,
-                    f.column,
-                )
-            })
+            .map(|f| (f.rule_id.to_string(), f.file.clone(), f.line, f.column))
             .collect();
         self.iter_entries()
             .filter(|(rule, e)| {
@@ -243,9 +236,7 @@ impl Baseline {
 
     /// Live findings not covered by this baseline (new noise candidates).
     pub fn new_findings<'a>(&'a self, live: &'a [Finding]) -> Vec<&'a Finding> {
-        live.iter()
-            .filter(|f| !self.contains_finding(f))
-            .collect()
+        live.iter().filter(|f| !self.contains_finding(f)).collect()
     }
 
     fn rebuild_index(&mut self) {
@@ -315,7 +306,11 @@ mod tests {
     #[test]
     fn expired_entry_does_not_match() {
         let f = finding("CWE-22", "a.go", 1, "m");
-        let base = Baseline::from_findings_with_meta(&[f.clone()], None, Some("2000-01-01T00:00:00Z"));
+        let base = Baseline::from_findings_with_meta(
+            std::slice::from_ref(&f),
+            None,
+            Some("2000-01-01T00:00:00Z"),
+        );
         assert!(!base.contains_finding_with_now(&f, "2026-07-11T00:00:00Z"));
     }
 }

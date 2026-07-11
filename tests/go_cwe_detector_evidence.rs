@@ -44,9 +44,7 @@ fn assert_taint_oracle(path: &str, rule: &str, line_min: usize, sink_ok: impl Fn
     let other_core: Vec<_> = result
         .findings
         .iter()
-        .filter(|f| {
-            matches!(f.rule_id, "CWE-22" | "CWE-78" | "CWE-89") && f.rule_id != rule
-        })
+        .filter(|f| matches!(f.rule_id, "CWE-22" | "CWE-78" | "CWE-89") && f.rule_id != rule)
         .map(|f| f.rule_id)
         .collect();
     assert!(
@@ -108,9 +106,7 @@ fn is_path_traversal_sink(function: &str) -> bool {
 }
 
 fn is_sql_sink(function: &str) -> bool {
-    function.ends_with(".Query")
-        || function.ends_with(".Exec")
-        || function.ends_with(".QueryRow")
+    function.ends_with(".Query") || function.ends_with(".Exec") || function.ends_with(".QueryRow")
 }
 
 #[test]

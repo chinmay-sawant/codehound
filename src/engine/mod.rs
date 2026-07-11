@@ -28,8 +28,8 @@ pub use cache::{
     DEFAULT_CACHE_DIR, InMemoryBackend, cache_key_for_path, content_hash,
 };
 pub use config::{
-    CacheConfig, PathFilters, RunConfig, RunConfigParams, ScanContextParams, CodehoundConfig,
-    CodehoundSection, build_run_config, build_scan_context, discover_cache_dir, discover_config,
+    CacheConfig, CodehoundConfig, CodehoundSection, PathFilters, RunConfig, RunConfigParams,
+    ScanContextParams, build_run_config, build_scan_context, discover_cache_dir, discover_config,
     path_filters_from_config,
 };
 pub use dependencies::{discover_project_root, extract_dependencies, go_module_prefix};

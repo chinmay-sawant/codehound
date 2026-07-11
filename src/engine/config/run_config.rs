@@ -3,7 +3,7 @@
 use crate::core::ScanContext;
 
 use super::scan_context::{ScanContextParams, build_scan_context};
-use super::types::{PathFilters, CodehoundConfig};
+use super::types::{CodehoundConfig, PathFilters};
 
 /// Scan context and path filters built together from CLI + TOML.
 #[derive(Debug, Clone)]

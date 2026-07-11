@@ -61,7 +61,7 @@ fn split_assign(text: &str) -> Option<(&str, &str)> {
 
 fn lhs_discards_possible_error(lhs: &str) -> bool {
     let names: Vec<&str> = lhs.split(',').map(str::trim).collect();
-    let has_blank = names.iter().any(|n| *n == "_");
+    let has_blank = names.contains(&"_");
     let binds_err = names
         .iter()
         .any(|n| *n == "err" || *n == "error" || n.ends_with("Err"));
@@ -81,8 +81,23 @@ fn is_non_error_builtin_rhs(rhs: &str) -> bool {
         .trim();
     matches!(
         name,
-        "len" | "cap" | "append" | "make" | "new" | "copy" | "delete" | "clear" | "min"
-            | "max" | "real" | "imag" | "complex" | "close" | "panic" | "recover" | "print"
+        "len"
+            | "cap"
+            | "append"
+            | "make"
+            | "new"
+            | "copy"
+            | "delete"
+            | "clear"
+            | "min"
+            | "max"
+            | "real"
+            | "imag"
+            | "complex"
+            | "close"
+            | "panic"
+            | "recover"
+            | "print"
             | "println"
     )
 }

@@ -9,7 +9,7 @@ use clap::Parser;
 use codehound::cli::{Cli, RuleCategory};
 use codehound::core::ScanContext;
 use codehound::engine::{
-    AnalysisResult, Analyzer, PathFilters, ScanContextParams, CodehoundConfig, build_scan_context,
+    AnalysisResult, Analyzer, CodehoundConfig, PathFilters, ScanContextParams, build_scan_context,
 };
 use codehound::reporting::json::FindingJson;
 use codehound::reporting::sarif::render_to_string;

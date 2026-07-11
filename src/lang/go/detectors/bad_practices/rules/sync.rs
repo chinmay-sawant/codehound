@@ -125,7 +125,8 @@ pub(crate) fn detect_bp_9_select_without_escape(
             search = start + 6;
             continue;
         }
-        let brace_pos = start + "select".len() + (source[start + "select".len()..].len() - after.len());
+        let brace_pos =
+            start + "select".len() + (source[start + "select".len()..].len() - after.len());
         let Some(block) = braced_block(source, brace_pos) else {
             search = brace_pos + 1;
             continue;
@@ -153,7 +154,7 @@ pub(crate) fn detect_bp_9_select_without_escape(
 
 /// Extract a `{ ... }` block starting at `open` (must point at `{`).
 fn braced_block(source: &str, open: usize) -> Option<&str> {
-    if !source.as_bytes().get(open).is_some_and(|b| *b == b'{') {
+    if source.as_bytes().get(open).is_none_or(|b| *b != b'{') {
         return None;
     }
     let mut depth = 0i32;

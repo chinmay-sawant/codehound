@@ -30,6 +30,7 @@ mod entry;
 pub(crate) mod go_imports;
 mod go_module;
 mod project_root;
+#[cfg(feature = "python")]
 pub(crate) mod python_imports;
 mod resolve;
 #[cfg(test)]

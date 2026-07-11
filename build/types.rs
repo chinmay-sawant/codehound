@@ -47,7 +47,9 @@ fn validate_function_ident(kind: &str, id: u32, function: &str) {
             .chars()
             .next()
             .is_some_and(|c| c.is_ascii_alphabetic() || c == '_')
-        && function.chars().all(|c| c.is_ascii_alphanumeric() || c == '_');
+        && function
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_');
     if !ok {
         panic!(
             "{kind}-{id}: invalid function identifier `{function}` (expected ^[A-Za-z_][A-Za-z0-9_]*$)"

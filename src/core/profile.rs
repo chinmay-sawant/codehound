@@ -90,96 +90,66 @@ impl ScanProfile {
     ///
     /// CLI `--only` is merged (union) with the pack when both are present.
     /// Explicit fail policy / taint / no-bp flags should be applied by the caller after this.
-    pub fn apply_base(
-        self,
-        only: &mut Option<HashSet<String>>,
-        fail_policy: &mut FailPolicy,
-        cli_set_fail_policy: bool,
-        taint_enabled: &mut bool,
-        bad_practices_enabled: &mut bool,
-        cli_set_taint: bool,
-        cli_set_bp: bool,
-    ) {
+    pub fn apply_base(self, target: ProfileApplyTarget<'_>) {
         if let Some(patterns) = self.only_patterns() {
             let mut pack: HashSet<String> = patterns.iter().map(|s| (*s).to_string()).collect();
-            if let Some(existing) = only.take() {
+            if let Some(existing) = target.only.take() {
                 pack.extend(existing);
             }
-            *only = Some(pack);
+            *target.only = Some(pack);
         }
-        if !cli_set_fail_policy {
-            *fail_policy = self.default_fail_policy();
+        if !target.cli_set_fail_policy {
+            *target.fail_policy = self.default_fail_policy();
         }
-        if !cli_set_taint {
-            *taint_enabled = self.enables_taint();
+        if !target.cli_set_taint {
+            *target.taint_enabled = self.enables_taint();
         }
-        if !cli_set_bp {
-            *bad_practices_enabled = self.enables_bad_practices();
+        if !target.cli_set_bp {
+            *target.bad_practices_enabled = self.enables_bad_practices();
         }
     }
+}
+
+/// Mutable knobs updated when applying a [`ScanProfile`].
+pub struct ProfileApplyTarget<'a> {
+    /// Rule allow-list; pack patterns are unioned with any existing entries.
+    pub only: &'a mut Option<HashSet<String>>,
+    /// Exit policy; overwritten unless `cli_set_fail_policy` is set.
+    pub fail_policy: &'a mut FailPolicy,
+    /// When true, leave `fail_policy` unchanged (CLI already chose).
+    pub cli_set_fail_policy: bool,
+    /// Whether taint analysis runs.
+    pub taint_enabled: &'a mut bool,
+    /// Whether bad-practice rules run.
+    pub bad_practices_enabled: &'a mut bool,
+    /// When true, leave `taint_enabled` unchanged.
+    pub cli_set_taint: bool,
+    /// When true, leave `bad_practices_enabled` unchanged.
+    pub cli_set_bp: bool,
 }
 
 /// S-tier PERF + taint-core CWEs (≤ ~30 rules). Directional CI default pack.
 /// PERF membership mirrors [`crate::lang::go::detectors::perf::tiers::TIER_S`].
 const RECOMMENDED_RULES: &[&str] = &[
     // PERF S-tier
-    "PERF-1",
-    "PERF-7",
-    "PERF-50",
-    "PERF-58",
-    "PERF-71",
-    "PERF-101",
-    "PERF-103",
-    "PERF-189",
-    "PERF-190",
-    // Taint-core CWEs
-    "CWE-22",
-    "CWE-78",
-    "CWE-79",
-    "CWE-89",
-    "CWE-90",
-    "CWE-91",
+    "PERF-1", "PERF-7", "PERF-50", "PERF-58", "PERF-71", "PERF-101", "PERF-103", "PERF-189",
+    "PERF-190", // Taint-core CWEs
+    "CWE-22", "CWE-78", "CWE-79", "CWE-89", "CWE-90", "CWE-91",
 ];
 
 /// S + A PERF tiers (see `perf::tiers`).
 const PERF_PACK_RULES: &[&str] = &[
     // S
-    "PERF-1",
-    "PERF-7",
-    "PERF-50",
-    "PERF-58",
-    "PERF-71",
-    "PERF-101",
-    "PERF-103",
-    "PERF-189",
-    "PERF-190",
-    // A
-    "PERF-11",
-    "PERF-12",
-    "PERF-22",
-    "PERF-31",
-    "PERF-82",
-    "PERF-85",
-    "PERF-142",
-    "PERF-143",
-    "PERF-164",
-    "PERF-183",
-    "PERF-210",
-    "PERF-213",
+    "PERF-1", "PERF-7", "PERF-50", "PERF-58", "PERF-71", "PERF-101", "PERF-103", "PERF-189",
+    "PERF-190", // A
+    "PERF-11", "PERF-12", "PERF-22", "PERF-31", "PERF-82", "PERF-85", "PERF-142", "PERF-143",
+    "PERF-164", "PERF-183", "PERF-210", "PERF-213",
 ];
 
 /// Security pack: taint core + a few structural path/injection neighbors.
 /// Fixture-only CWEs are intentionally absent (see [`crate::rules::maturity`]).
 const SECURITY_PACK_RULES: &[&str] = &[
-    "CWE-22",
-    "CWE-41",
-    "CWE-59",
-    "CWE-78",
-    "CWE-79",
-    "CWE-89",
-    "CWE-90",
-    "CWE-91",
-    "CWE-93",
+    "CWE-22", "CWE-41", "CWE-59", "CWE-78", "CWE-79", "CWE-89", "CWE-90", "CWE-91", "CWE-93",
 ];
 
 /// Default-off under `--profile style` (opt-in noise / opinion).

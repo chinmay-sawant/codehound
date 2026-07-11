@@ -28,12 +28,16 @@ fn baseline_from_findings_groups_entries_by_rule() {
 
     assert_eq!(baseline.version, "1");
     assert_eq!(baseline.entry_count(), 2);
-    assert!(baseline.entries["CWE-22"][0]
-        .fingerprint
-        .starts_with("codehound:2:CWE-22:a.go:"));
-    assert!(baseline.entries["CWE-89"][0]
-        .fingerprint
-        .starts_with("codehound:2:CWE-89:b.go:"));
+    assert!(
+        baseline.entries["CWE-22"][0]
+            .fingerprint
+            .starts_with("codehound:2:CWE-22:a.go:")
+    );
+    assert!(
+        baseline.entries["CWE-89"][0]
+            .fingerprint
+            .starts_with("codehound:2:CWE-89:b.go:")
+    );
 }
 
 #[test]

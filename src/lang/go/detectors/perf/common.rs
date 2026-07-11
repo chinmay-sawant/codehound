@@ -173,9 +173,7 @@ pub fn enclosing_function_name(source: &str, start_byte: usize) -> Option<&str> 
 
     // Ensure start_byte is still inside this function body: open `{` after the
     // func keyword and brace-depth at start_byte remains positive.
-    let Some(brace_rel) = source[func_kw..start_byte].find('{') else {
-        return None;
-    };
+    let brace_rel = source[func_kw..start_byte].find('{')?;
     let body_open = func_kw + brace_rel;
     let mut depth = 0i32;
     for ch in source[body_open..start_byte].chars() {
@@ -240,7 +238,7 @@ pub fn enclosing_function_body_range(source: &str, start_byte: usize) -> Option<
 }
 
 /// Slice of the nearest enclosing function body, if any.
-pub fn enclosing_function_body<'a>(source: &'a str, start_byte: usize) -> Option<&'a str> {
+pub fn enclosing_function_body(source: &str, start_byte: usize) -> Option<&str> {
     let (open, end) = enclosing_function_body_range(source, start_byte)?;
     Some(&source[open..end])
 }
@@ -316,12 +314,14 @@ mod tests {
         const EMPTY: &[&str] = &[];
         let src = "package main\nfunc main() {\n\tx := fmt.Sprintf(\"%d\", 1)\n}\n";
         let byte = src.find("fmt.Sprintf").unwrap();
-        let index = crate::lang::go::detectors::perf::source_index::PerfSourceIndex::build(EMPTY, src);
+        let index =
+            crate::lang::go::detectors::perf::source_index::PerfSourceIndex::build(EMPTY, src);
         assert!(!is_hot_path(src, byte, &index, false));
 
         let src = "package p\nvar x = fmt.Sprintf(\"%d\", 1)\n";
         let byte = src.find("fmt.Sprintf").unwrap();
-        let index = crate::lang::go::detectors::perf::source_index::PerfSourceIndex::build(EMPTY, src);
+        let index =
+            crate::lang::go::detectors::perf::source_index::PerfSourceIndex::build(EMPTY, src);
         assert!(!is_hot_path(src, byte, &index, false));
     }
 
@@ -334,7 +334,8 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 }
 "#;
         let byte = src.find("fmt.Sprintf").unwrap();
-        let index = crate::lang::go::detectors::perf::source_index::PerfSourceIndex::build(EMPTY, src);
+        let index =
+            crate::lang::go::detectors::perf::source_index::PerfSourceIndex::build(EMPTY, src);
         assert!(is_hot_path(src, byte, &index, false));
     }
 
@@ -351,11 +352,10 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 
     #[test]
     fn enclosing_function_name_ignores_package_level_between_funcs() {
-        let src = "package p\nfunc buildX() []byte { return nil }\nvar x = buildX()\nfunc Handle() {}\n";
+        let src =
+            "package p\nfunc buildX() []byte { return nil }\nvar x = buildX()\nfunc Handle() {}\n";
         // First occurrence is the func name itself; use the package var call.
         let byte = src.rfind("buildX()").unwrap();
         assert_eq!(enclosing_function_name(src, byte), None);
     }
-
-
 }

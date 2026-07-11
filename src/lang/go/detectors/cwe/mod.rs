@@ -17,9 +17,7 @@ use crate::rules::{
     DetectorEvidence, Finding, RuleMetadata, TaintHop, TaintSinkInfo, TaintSourceInfo,
 };
 use domains::*;
-use facts::{
-    FactBuildOpts, GoUnitFacts, build_go_unit_facts_with, build_taint_graph_for_facts,
-};
+use facts::{FactBuildOpts, GoUnitFacts, build_go_unit_facts_with, build_taint_graph_for_facts};
 use taint::{
     CallGraph, SinkKind, TaintAnnotations, TaintGraph, TaintNode, TaintNodeId, build_import_map,
     detect_cwe_22_taint, detect_cwe_78_taint, detect_cwe_79_taint, detect_cwe_89_taint,
@@ -165,19 +163,13 @@ impl Detector for GoCweScan {
             let mut summaries = taint::compute_all_summaries(&unit.annotations, &unit.source);
             // Bounded multi-hop: refine return_sources through same-file call graph.
             if max_depth > 1 {
-                taint::refine_summaries_multihop(
-                    &unit.call_graph,
-                    &mut summaries,
-                    max_depth,
-                );
+                taint::refine_summaries_multihop(&unit.call_graph, &mut summaries, max_depth);
             }
             per_file.push((unit.path.as_str(), graph, summaries));
             for func_name in unit.call_graph.declarations.keys() {
                 // Prefer same-package path + name; avoid cross-file name collisions
                 // by keying with file index when inserting first-wins.
-                func_to_file
-                    .entry(func_name.to_string())
-                    .or_insert(idx);
+                func_to_file.entry(func_name.to_string()).or_insert(idx);
             }
         }
 

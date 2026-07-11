@@ -27,10 +27,7 @@ pub(crate) fn init_global(enabled: bool) {
 /// Start a span on the global collector. Returns the span index (0 when
 /// disabled / uninitialised).
 pub(crate) fn global_start(name: &'static str) -> usize {
-    global_lock()
-        .as_mut()
-        .map(|c| c.start(name))
-        .unwrap_or(0)
+    global_lock().as_mut().map(|c| c.start(name)).unwrap_or(0)
 }
 
 /// Stop a span started with [`global_start`].

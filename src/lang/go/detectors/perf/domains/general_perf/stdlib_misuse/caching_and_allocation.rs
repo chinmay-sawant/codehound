@@ -132,9 +132,8 @@ pub(crate) fn detect_perf_215(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
                 .iter()
                 .map(|m| body.matches(&format!("{name}.{m}")).count())
                 .sum::<usize>();
-            let size_hint = body.contains("len(")
-                || body.contains(".Len()")
-                || body.contains("cap(");
+            let size_hint =
+                body.contains("len(") || body.contains(".Len()") || body.contains("cap(");
             // Hot multi-write without Grow: size estimable, or many writes.
             if write_count >= 3
                 && (size_hint || write_count >= 6)
@@ -260,9 +259,8 @@ pub(crate) fn detect_perf_218(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     }
     // Concurrent fan-out: handlers, go statements, errgroup/WaitGroup.
     // Do not flag every package-level pool just because a hot *name* exists.
-    let concurrent = file_has_handler(source)
-        || !facts.go_starts.is_empty()
-        || file_has_concurrency(source);
+    let concurrent =
+        file_has_handler(source) || !facts.go_starts.is_empty() || file_has_concurrency(source);
     if !concurrent {
         return;
     }
@@ -557,10 +555,10 @@ fn buffer_or_builder_names(source: &str) -> Vec<String> {
             };
             let name = rest[..name_end].trim();
             let ty = rest[name_end..].trim_start();
-            if ty.starts_with("bytes.Buffer") || ty.starts_with("strings.Builder") {
-                if is_simple_ident(name) {
-                    names.push(name.to_string());
-                }
+            if (ty.starts_with("bytes.Buffer") || ty.starts_with("strings.Builder"))
+                && is_simple_ident(name)
+            {
+                names.push(name.to_string());
             }
             continue;
         }
@@ -609,9 +607,7 @@ fn first_write_with_known_len(source: &str, name: &str) -> Option<usize> {
 
 fn is_simple_ident(name: &str) -> bool {
     !name.is_empty()
-        && name
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '_')
+        && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
         && name
             .chars()
             .next()

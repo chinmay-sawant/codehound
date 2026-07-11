@@ -107,4 +107,26 @@ impl ScanContext {
     }
     // ponytail: collect_detector_timing was identical to collect_stats — merged.
     // Callers migrated to collect_stats().
+
+    /// Stable hash of settings that change which detectors run / findings
+    /// are stored. Used to invalidate the incremental cache when the pack
+    /// or filter set changes (e.g. recommended → all).
+    pub fn rule_config_fingerprint(&self) -> String {
+        use std::collections::BTreeSet;
+        use std::hash::{Hash, Hasher};
+
+        let mut only: BTreeSet<&str> = BTreeSet::new();
+        if let Some(set) = &self.only {
+            only.extend(set.iter().map(String::as_str));
+        }
+        let skip: BTreeSet<&str> = self.skip.iter().map(String::as_str).collect();
+        // Hash via a portable string so disk caches are stable across processes.
+        let payload = format!(
+            "only={only:?}|skip={skip:?}|taint={}|bp={}|depth={}",
+            self.taint_enabled, self.bad_practices_enabled, self.taint_max_depth
+        );
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        payload.hash(&mut hasher);
+        format!("{:016x}", hasher.finish())
+    }
 }

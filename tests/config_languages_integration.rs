@@ -5,7 +5,7 @@ use std::path::Path;
 
 use codehound::core::{LanguageId, ScanContext};
 use codehound::engine::{
-    Analyzer, LanguageFilter, Registry, CodehoundConfig, CodehoundSection, resolve_language_filter,
+    Analyzer, CodehoundConfig, CodehoundSection, LanguageFilter, Registry, resolve_language_filter,
 };
 use codehound::fixture::{materialize_tree, materialized_root};
 

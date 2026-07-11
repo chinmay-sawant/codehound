@@ -170,7 +170,7 @@ pub(crate) fn detect_perf_228(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         }
         // Inline composite: `for _, x := range []T{a}` / `[]T{a, b}`
         if let Some(n) = composite_elem_count_after_range(loop_text) {
-            if n >= 1 && n <= 2 {
+            if (1..=2).contains(&n) {
                 let (line, col) = unit.line_col(loop_start);
                 emit::push_finding(
                     &META_PERF_228,
@@ -425,7 +425,7 @@ pub(crate) fn detect_perf_229(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         }
         let after = &source[assignment.start_byte..];
         let window = &after[..after.len().min(200)];
-        if window.contains(&format!("append(")) && window.contains(name)
+        if window.contains("append(") && window.contains(name)
             || window.contains(&format!("WriteString({name})"))
             || window.contains(&format!("[]byte({name})"))
         {

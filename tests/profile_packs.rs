@@ -1,8 +1,8 @@
 //! Profile packs: size, membership, and quarantine guarantees.
 
-use codehound::core::{ScanProfile, ScanContext};
+use codehound::core::{ScanContext, ScanProfile};
 use codehound::engine::{ScanContextParams, build_scan_context};
-use codehound::rules::{is_quarantined_from_default_packs, maturity_for, RuleMaturity};
+use codehound::rules::{RuleMaturity, is_quarantined_from_default_packs, maturity_for};
 
 #[test]
 fn recommended_pack_is_small_and_bp_free() {
@@ -10,9 +10,21 @@ fn recommended_pack_is_small_and_bp_free() {
     let mut fail = codehound::core::FailPolicy::MediumAsErrors;
     let mut taint = false;
     let mut bp = true;
-    ScanProfile::Recommended.apply_base(&mut only, &mut fail, false, &mut taint, &mut bp, false, false);
+    ScanProfile::Recommended.apply_base(codehound::core::ProfileApplyTarget {
+        only: &mut only,
+        fail_policy: &mut fail,
+        cli_set_fail_policy: false,
+        taint_enabled: &mut taint,
+        bad_practices_enabled: &mut bp,
+        cli_set_taint: false,
+        cli_set_bp: false,
+    });
     let only = only.expect("recommended has only filter");
-    assert!(only.len() <= 30, "recommended pack too large: {}", only.len());
+    assert!(
+        only.len() <= 30,
+        "recommended pack too large: {}",
+        only.len()
+    );
     assert!(!bp, "recommended must disable BP");
     assert!(!taint, "recommended keeps taint off by default");
     assert_eq!(fail, codehound::core::FailPolicy::Strict);
@@ -29,7 +41,10 @@ fn security_enables_taint_and_skips_fixture_only() {
     });
     assert!(ctx.taint_enabled);
     assert!(!ctx.bad_practices_enabled);
-    assert!(!ctx.allows("CWE-334"), "fixture-only must not run in security");
+    assert!(
+        !ctx.allows("CWE-334"),
+        "fixture-only must not run in security"
+    );
     assert!(ctx.allows("CWE-22"));
     assert!(!ctx.allows("PERF-101"), "security pack is CWE-focused");
 }

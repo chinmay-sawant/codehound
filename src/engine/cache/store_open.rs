@@ -98,7 +98,7 @@ impl CacheStore {
 
         Ok(Self {
             cache_dir,
-            files_dir: files_dir.clone(),
+            files_dir,
             manifest,
             dirty: tool_version_mismatch,
             max_size_bytes: max_size_mb.saturating_mul(1024 * 1024),
@@ -118,11 +118,7 @@ impl CacheStore {
         Self {
             cache_dir: PathBuf::new(),
             files_dir: PathBuf::new(),
-            manifest: CacheManifest {
-                schema_version: CACHE_VERSION,
-                tool_version: env!("CARGO_PKG_VERSION").to_string(),
-                files: HashMap::new(),
-            },
+            manifest: Self::empty_manifest(),
             dirty: false,
             max_size_bytes: 0,
             evict_target_ratio: 0.9,
@@ -152,11 +148,7 @@ impl CacheStore {
         Self {
             cache_dir: PathBuf::new(),
             files_dir: PathBuf::new(),
-            manifest: CacheManifest {
-                schema_version: CACHE_VERSION,
-                tool_version: env!("CARGO_PKG_VERSION").to_string(),
-                files: HashMap::new(),
-            },
+            manifest: Self::empty_manifest(),
             dirty: false,
             max_size_bytes: max_size_mb.saturating_mul(1024 * 1024),
             evict_target_ratio,
@@ -197,8 +189,33 @@ impl CacheStore {
         CacheManifest {
             schema_version: CACHE_VERSION,
             tool_version: env!("CARGO_PKG_VERSION").to_string(),
+            rule_config_hash: String::new(),
             files: HashMap::new(),
         }
+    }
+
+    /// Ensure cached findings were produced under the same rule filters.
+    ///
+    /// When `hash` differs from the manifest, mass-stale entries so a
+    /// previous `--profile recommended` run cannot suppress findings for
+    /// `--profile all` (cache stores filtered detector output, not raw AST).
+    pub fn ensure_rule_config_hash(&mut self, hash: &str) {
+        if self.manifest.rule_config_hash == hash {
+            return;
+        }
+        if !self.manifest.rule_config_hash.is_empty() || !self.manifest.files.is_empty() {
+            let keys: Vec<String> = self.manifest.files.keys().cloned().collect();
+            for file in keys {
+                self.invalidate_file(&file);
+            }
+            tracing::warn!(
+                previous = %self.manifest.rule_config_hash,
+                current = %hash,
+                "rule config changed; mass-staling cache entries"
+            );
+        }
+        self.manifest.rule_config_hash = hash.to_string();
+        self.dirty = true;
     }
 
     /// Path to the cache root.

@@ -4,19 +4,19 @@ use std::process::ExitCode;
 use anyhow::{Context, Result};
 use codehound::cli::{CacheAction, Cli, Command, OutputFormat};
 use codehound::engine::{
-    AnalysisResult, Analyzer, BASELINE_FILE_NAME, Baseline, CacheSession, CacheStore, Diagnostics,
-    DEFAULT_CACHE_DIR, FilesystemWalker, LanguageFilter, PathFilters, Registry, RunConfigParams,
-    ScanContextParams, CodehoundConfig, TimingCollector, build_run_config, collect_entries_with,
-    resolve_language_filter,
+    AnalysisResult, Analyzer, BASELINE_FILE_NAME, Baseline, CacheSession, CacheStore,
+    CodehoundConfig, DEFAULT_CACHE_DIR, Diagnostics, FilesystemWalker, LanguageFilter, PathFilters,
+    Registry, RunConfigParams, ScanContextParams, TimingCollector, build_run_config,
+    collect_entries_with, resolve_language_filter,
 };
 use codehound::export::{ExportOptions, ExportSummary, export_findings};
 use codehound::fixture::{FIXTURE_EXTENSION, materialize_fixture, parse_fixture};
 use codehound::reporting;
 
+use super::baseline_cmd::run_baseline_command;
 use super::cache::{cache_directory, open_cache_store};
 use super::config::{baseline_load_path, baseline_loading_enabled, load_config};
 use super::exit_codes::{EXIT_CLEAN, EXIT_FAILING, EXIT_INTERNAL};
-use super::baseline_cmd::run_baseline_command;
 use super::init_cmd::init_subcommand;
 use super::rule_info::{print_rule_explanation, print_rules};
 
@@ -127,6 +127,9 @@ impl ScanRun {
             .build();
 
         let mut cache_store = open_cache_store(&cli, config.as_ref());
+        if let Some(store) = cache_store.as_mut() {
+            store.ensure_rule_config_hash(&run_config.scan_context.rule_config_fingerprint());
+        }
         rebuild_cache_if_requested(&cli, config.as_ref(), &mut cache_store);
 
         if cli.prune_cache {
@@ -224,7 +227,10 @@ fn rebuild_cache_if_requested(
     }
     if let Err(reason) = validate_cache_purge_path(&dir) {
         if !cli.quiet {
-            eprintln!("warning: refusing to purge cache at {}: {reason}", dir.display());
+            eprintln!(
+                "warning: refusing to purge cache at {}: {reason}",
+                dir.display()
+            );
         }
         return;
     }

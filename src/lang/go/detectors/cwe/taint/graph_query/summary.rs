@@ -55,8 +55,8 @@ pub fn refine_summaries_multihop(
             let Some(callee_sum) = summaries.get(callee_key).cloned() else {
                 continue;
             };
-            let returns_taint = callee_sum.return_sources.iter().any(|b| *b)
-                || callee_sum.has_direct_sink;
+            let returns_taint =
+                callee_sum.return_sources.iter().any(|b| *b) || callee_sum.has_direct_sink;
             if !returns_taint {
                 continue;
             }

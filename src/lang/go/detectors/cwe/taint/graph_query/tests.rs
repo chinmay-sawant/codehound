@@ -117,10 +117,10 @@ func f(r *http.Request, ch chan string) {
         let unit = parse(source);
         let facts = extract_taint_facts(&unit);
         assert!(
-            facts
-                .unsupported_flows
-                .iter()
-                .any(|u| matches!(u.kind, crate::lang::go::detectors::cwe::taint::UnsupportedFlowKind::Channel)),
+            facts.unsupported_flows.iter().any(|u| matches!(
+                u.kind,
+                crate::lang::go::detectors::cwe::taint::UnsupportedFlowKind::Channel
+            )),
             "expected channel unsupported flow, got {:?}",
             facts.unsupported_flows
         );
@@ -142,9 +142,16 @@ func f(r *http.Request) {
         let unit = parse(source);
         let facts = extract_taint_facts(&unit);
         assert!(
-            facts.assignments.iter().any(|a| a.lhs.as_ref() == "user.Path"),
+            facts
+                .assignments
+                .iter()
+                .any(|a| a.lhs.as_ref() == "user.Path"),
             "expected field-qualified LHS, got {:?}",
-            facts.assignments.iter().map(|a| a.lhs.as_ref()).collect::<Vec<_>>()
+            facts
+                .assignments
+                .iter()
+                .map(|a| a.lhs.as_ref())
+                .collect::<Vec<_>>()
         );
         let graph = build_taint_graph(&facts);
         let paths = find_taint_paths(

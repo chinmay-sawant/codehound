@@ -32,9 +32,7 @@ fn manifest_entries_exist_and_fire() {
         let rules: Vec<&str> = entry.required_rules.iter().map(String::as_str).collect();
         // Product default is taint off. Core injection/XSS rules are taint-only
         // detectors; enable taint for those fixtures (and explicit `taint = true`).
-        const TAINT_CORE: &[&str] = &[
-            "CWE-22", "CWE-78", "CWE-79", "CWE-89", "CWE-90", "CWE-91",
-        ];
+        const TAINT_CORE: &[&str] = &["CWE-22", "CWE-78", "CWE-79", "CWE-89", "CWE-90", "CWE-91"];
         let needs_taint = entry.taint
             || entry.path.contains("CWE-")
             || entry.path.contains("/taint/")

@@ -35,7 +35,9 @@ impl CacheStore {
             findings,
             cached_at: cached_at.to_string(),
         };
-        self.backend.store_entry(&cache_key, &entry).map_err(Error::from)?;
+        self.backend
+            .store_entry(&cache_key, &entry)
+            .map_err(Error::from)?;
         let meta = FileCacheMeta {
             content_hash: content_hash.to_string(),
             dependencies: deps,
@@ -51,9 +53,7 @@ impl CacheStore {
     pub fn remove(&mut self, file: &str) -> Result<(), Error> {
         if self.manifest.files.remove(file).is_some() {
             let cache_key = cache_key_for_path(file);
-            self.backend
-                .delete_entry(&cache_key)
-                .map_err(Error::from)?;
+            self.backend.delete_entry(&cache_key).map_err(Error::from)?;
             self.dirty = true;
         }
         Ok(())
@@ -148,10 +148,8 @@ impl CacheStore {
     /// is re-parsed in **this** scan rather than only on the next run.
     pub fn expand_dirty_fixpoint(&self, dirty: &mut std::collections::HashSet<String>) {
         // Normalize inputs.
-        let mut normalized: std::collections::HashSet<String> = dirty
-            .iter()
-            .map(|p| normalize_project_path(p))
-            .collect();
+        let mut normalized: std::collections::HashSet<String> =
+            dirty.iter().map(|p| normalize_project_path(p)).collect();
         loop {
             let mut added = Vec::new();
             for (file, meta) in &self.manifest.files {

@@ -137,8 +137,7 @@ fn parse_block_start(line: &str) -> Option<IgnoreDirective> {
 }
 
 fn is_block_end(line: &str) -> bool {
-    comment_body(line)
-        .is_some_and(|b| b.starts_with("codehound-ignore-end"))
+    comment_body(line).is_some_and(|b| b.starts_with("codehound-ignore-end"))
 }
 
 fn parse_file_ignore_line(line: &str) -> Option<IgnoreDirective> {

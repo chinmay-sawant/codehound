@@ -3,9 +3,7 @@
 //! These detectors match **stdlib shapes** only (no product-local API names).
 
 use crate::core::ParsedUnit;
-use crate::lang::go::detectors::perf::common::{
-    enclosing_function_body, enclosing_function_name,
-};
+use crate::lang::go::detectors::perf::common::{enclosing_function_body, enclosing_function_name};
 use crate::lang::go::detectors::perf::facts::GoPerfFacts;
 use crate::lang::go::detectors::perf::metadata::*;
 use crate::rules::{Finding, emit};
@@ -260,16 +258,7 @@ fn has_serial_short_circuit_near(source: &str, loop_start: usize) -> bool {
     let window_start = loop_start.saturating_sub(600);
     let window = &source[window_start..loop_start];
     const NEEDLES: &[&str] = &[
-        "<= 2",
-        "<=2",
-        "< 2",
-        "<2",
-        "< 3",
-        "<3",
-        "== 1",
-        "==1",
-        "<= 1",
-        "<=1",
+        "<= 2", "<=2", "< 2", "<2", "< 3", "<3", "== 1", "==1", "<= 1", "<=1",
     ];
     // Require a len(...) check near the threshold so we do not match unrelated `<= 2`.
     if !window.contains("len(") {
@@ -282,7 +271,13 @@ fn has_serial_short_circuit_near(source: &str, loop_start: usize) -> bool {
 /// bare `return b.String()` or assignment used with a pooled builder.
 fn is_string_bridged_into_sink(source: &str, string_dot: usize) -> bool {
     let before = &source[string_dot.saturating_sub(96)..string_dot];
-    for needle in ["WriteString(", "WriteString (", "[]byte(", "append(", "append ("] {
+    for needle in [
+        "WriteString(",
+        "WriteString (",
+        "[]byte(",
+        "append(",
+        "append (",
+    ] {
         let Some(pos) = before.rfind(needle) else {
             continue;
         };

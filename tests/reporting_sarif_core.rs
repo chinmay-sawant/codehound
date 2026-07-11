@@ -74,8 +74,14 @@ fn results_have_security_severity_in_properties() {
     assert!(log.contains("\"security-severity\""), "got: {log}");
     assert!(log.contains("\"tags\""), "got: {log}");
     // Severity mapping: High → 7.5, Critical → 9.5 (aligned with docs/output-formats.md)
-    assert!(log.contains("\"7.5\""), "expected high security-severity 7.5, got: {log}");
-    assert!(log.contains("\"9.5\""), "expected critical security-severity 9.5, got: {log}");
+    assert!(
+        log.contains("\"7.5\""),
+        "expected high security-severity 7.5, got: {log}"
+    );
+    assert!(
+        log.contains("\"9.5\""),
+        "expected critical security-severity 9.5, got: {log}"
+    );
 }
 
 /// Structural SARIF 2.1.0 shape checks (camelCase locations, required fields).

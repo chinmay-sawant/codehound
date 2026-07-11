@@ -325,9 +325,7 @@ fn referenced_names(expr: &str) -> Vec<&str> {
     let bytes = expr.as_bytes();
     while start < bytes.len() {
         // skip non-ident
-        while start < bytes.len()
-            && !(bytes[start].is_ascii_alphabetic() || bytes[start] == b'_')
-        {
+        while start < bytes.len() && !(bytes[start].is_ascii_alphabetic() || bytes[start] == b'_') {
             start += 1;
         }
         if start >= bytes.len() {
@@ -335,9 +333,7 @@ fn referenced_names(expr: &str) -> Vec<&str> {
         }
         let mut end = start;
         while end < bytes.len()
-            && (bytes[end].is_ascii_alphanumeric()
-                || bytes[end] == b'_'
-                || bytes[end] == b'.')
+            && (bytes[end].is_ascii_alphanumeric() || bytes[end] == b'_' || bytes[end] == b'.')
         {
             end += 1;
         }
@@ -346,11 +342,7 @@ fn referenced_names(expr: &str) -> Vec<&str> {
             end -= 1;
         }
         let token = &expr[start..end];
-        if token.contains('.')
-            && !token.is_empty()
-            && !out.iter().any(|t| *t == token)
-            && token.len() < 256
-        {
+        if token.contains('.') && !token.is_empty() && !out.contains(&token) && token.len() < 256 {
             out.push(token);
         }
         start = end.max(start + 1);

@@ -1,8 +1,8 @@
 //! Go language plugin.
 
 pub mod detectors;
-pub mod sinks;
 mod register;
+pub mod sinks;
 
 const FUNCTION_NODE_KINDS: &[&str] = &["function_declaration", "method_declaration"];
 const LOOP_NODE_KINDS: &[&str] = &["for_statement"];

@@ -19,11 +19,7 @@ pub(super) fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
     for f in &result.findings {
         let view = FindingView::new(f);
         seen.entry(view.rule_id()).or_insert_with(|| {
-            let help = f
-                .cwe
-                .as_ref()
-                .and_then(|c| c.first())
-                .map(|c| c.url);
+            let help = f.cwe.as_ref().and_then(|c| c.first()).map(|c| c.url);
             (view.rule_title(), help)
         });
     }

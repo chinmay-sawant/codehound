@@ -21,6 +21,10 @@ pub(super) const FILES_SUBDIR: &str = "files";
 pub struct CacheManifest {
     pub schema_version: u32,
     pub tool_version: String,
+    /// Fingerprint of rule-filter settings (profile/only/skip/taint/bp).
+    /// Mismatch mass-stales entries so a narrow pack cannot poison a full run.
+    #[serde(default)]
+    pub rule_config_hash: String,
     pub files: HashMap<String, FileCacheMeta>,
 }
 

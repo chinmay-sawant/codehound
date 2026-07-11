@@ -80,12 +80,12 @@ fn write_fixture_at(root: &Path, fixture: &TextFixture) -> Result<PathBuf> {
     fs::create_dir_all(&out_dir)?;
     let out_path = out_dir.join(filename);
     // Ensure the resolved path still lives under out_dir (defense in depth).
-    let out_canon_parent = out_dir
-        .canonicalize()
-        .unwrap_or_else(|_| out_dir.clone());
+    let out_canon_parent = out_dir.canonicalize().unwrap_or_else(|_| out_dir.clone());
     if let Some(parent) = out_path.parent() {
         fs::create_dir_all(parent)?;
-        let parent_check = parent.canonicalize().unwrap_or_else(|_| parent.to_path_buf());
+        let parent_check = parent
+            .canonicalize()
+            .unwrap_or_else(|_| parent.to_path_buf());
         if !parent_check.starts_with(&out_canon_parent) {
             anyhow::bail!(
                 "fixture path escapes materialize root: {}",

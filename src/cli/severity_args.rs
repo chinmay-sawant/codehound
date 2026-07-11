@@ -28,9 +28,8 @@ impl SeverityArgs {
             FailPolicy::NoFail
         } else if self.strict {
             FailPolicy::Strict
-        } else if self.warnings_as_errors {
-            FailPolicy::MediumAsErrors
         } else {
+            // Default and `--warnings-as-errors` both use medium-as-errors.
             FailPolicy::MediumAsErrors
         }
     }

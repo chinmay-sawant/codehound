@@ -17,6 +17,7 @@ pub enum RuleMaturity {
 }
 
 impl RuleMaturity {
+    /// Stable string tag for this maturity level (e.g. `taint-core`).
     pub fn as_str(self) -> &'static str {
         match self {
             Self::TaintCore => "taint-core",

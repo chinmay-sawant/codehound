@@ -112,8 +112,8 @@ fn go_module_prefix_returns_none_for_missing_go_mod() {
 
 #[test]
 fn transitive_invalidation_clears_dependents() {
-    use dep_helpers::*;
     use codehound::engine::discover_cache_dir;
+    use dep_helpers::*;
 
     let root = unique_temp_root("transitive");
     std::fs::create_dir_all(root.join("pkg/db")).unwrap();

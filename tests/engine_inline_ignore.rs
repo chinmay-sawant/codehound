@@ -75,9 +75,9 @@ mod cache_inline {
 
     #[test]
     fn inline_ignore_re_applied_on_cache_hit() {
-        use dep_helpers::*;
         use codehound::core::ScanContext;
         use codehound::engine::Analyzer;
+        use dep_helpers::*;
 
         let root = unique_temp_root("inline-ignore-cache");
         std::fs::create_dir_all(&root).unwrap();
@@ -142,9 +142,9 @@ func Run(w http.ResponseWriter, r *http.Request) {
 
     #[test]
     fn inline_ignore_applied_on_cache_hit_when_source_unchanged() {
-        use dep_helpers::*;
         use codehound::core::ScanContext;
         use codehound::engine::Analyzer;
+        use dep_helpers::*;
 
         let root = unique_temp_root("inline-cache-hit");
         std::fs::create_dir_all(&root).unwrap();
@@ -186,9 +186,9 @@ func Run(w http.ResponseWriter, r *http.Request) {
 
     #[test]
     fn skip_flag_filters_cached_findings() {
-        use dep_helpers::*;
         use codehound::core::ScanContext;
         use codehound::engine::Analyzer;
+        use dep_helpers::*;
 
         let root = unique_temp_root("skip-cache-hit");
         std::fs::create_dir_all(&root).unwrap();
@@ -295,9 +295,9 @@ b := 2
 c := 3
 "#,
     );
-    assert!(ignores.get(&3).is_some());
-    assert!(ignores.get(&4).is_some());
-    assert!(ignores.get(&6).is_none());
+    assert!(ignores.contains_key(&3));
+    assert!(ignores.contains_key(&4));
+    assert!(!ignores.contains_key(&6));
 }
 
 #[test]

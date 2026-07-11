@@ -63,19 +63,38 @@ pub(crate) fn write_summary(
     }
 
     if let Some(stats) = result.stats.as_ref() {
+        let wall = stats
+            .timing
+            .as_ref()
+            .map(|t| t.total_wall_time)
+            .unwrap_or(Duration::ZERO);
         writeln!(
             out,
-            "scanned {} file{} ({} line{}) in {:.2}s",
+            "scanned {} file{} ({} line{}) in {}",
             stats.files_scanned,
             if stats.files_scanned == 1 { "" } else { "s" },
             stats.lines_scanned,
             if stats.lines_scanned == 1 { "" } else { "s" },
-            stats
-                .timing
-                .as_ref()
-                .map(|t| t.total_wall_time.as_secs_f64())
-                .unwrap_or(0.0)
+            format_duration(wall),
         )?;
+        // Always surface cache vs fresh so a sub-10ms run is not mysterious.
+        if stats.cache_hits > 0 || stats.cache_misses > 0 {
+            writeln!(
+                out,
+                "  cache: {} hit{}, {} miss{}{}",
+                stats.cache_hits,
+                if stats.cache_hits == 1 { "" } else { "s" },
+                stats.cache_misses,
+                if stats.cache_misses == 1 { "" } else { "es" },
+                if stats.cache_hits > 0 && stats.cache_misses == 0 {
+                    " (results from cache; not re-analyzed)"
+                } else if stats.cache_hits == 0 {
+                    " (full re-analysis)"
+                } else {
+                    ""
+                },
+            )?;
+        }
         if stats.files_skipped > 0 {
             writeln!(
                 out,
@@ -90,6 +109,12 @@ pub(crate) fn write_summary(
     }
 
     if n == 0 {
+        let msg = if options.color {
+            super::style::green_bold("no slop detected").to_string()
+        } else {
+            "no slop detected".to_string()
+        };
+        writeln!(out, "{msg}")?;
         return Ok(());
     }
 
@@ -171,4 +196,14 @@ fn write_phase_timing_line(
         percentage
     )?;
     Ok(())
+}
+
+/// Human-readable duration: milliseconds under 1s, seconds otherwise.
+fn format_duration(d: Duration) -> String {
+    let secs = d.as_secs_f64();
+    if secs < 1.0 {
+        format!("{:.1}ms", secs * 1000.0)
+    } else {
+        format!("{secs:.2}s")
+    }
 }

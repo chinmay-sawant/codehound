@@ -3,6 +3,7 @@ pub(crate) mod cli_and_orm;
 pub(crate) mod common;
 pub(crate) mod copies_and_compress;
 pub(crate) mod db_and_sql;
+pub(crate) mod fanout_and_buffers;
 pub(crate) mod header_allowlist;
 pub(crate) mod http_client;
 pub(crate) mod http_server;
@@ -12,7 +13,6 @@ pub(crate) mod ranges_and_types;
 pub(crate) mod sort_and_search;
 pub(crate) mod strings_bytes;
 pub(crate) mod sync_and_locks;
-pub(crate) mod fanout_and_buffers;
 
 pub(crate) use caching_and_allocation::*;
 pub(crate) use cli_and_orm::*;

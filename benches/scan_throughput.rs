@@ -3,11 +3,11 @@
 use std::path::Path;
 use std::time::Duration;
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use codehound::core::ScanContext;
 use codehound::engine::{Analyzer, LanguageFilter, Registry, collect_entries};
 use codehound::fixture::{materialize_tree, materialized_root};
 use codehound::lang::source_index::SourceIndex;
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 
 fn bench_scan_materialized_fixtures(c: &mut Criterion) {
     materialize_tree(Path::new("tests/fixtures")).expect("materialize integration fixtures");
@@ -75,12 +75,13 @@ fn bench_scan_go_only_subset(c: &mut Criterion) {
 /// Microbench: many `has` lookups against a large needle table (CWE-sized).
 fn bench_source_index_has_lookup(c: &mut Criterion) {
     // ~700 synthetic needles (order of CWE table size).
-    let needles_owned: Vec<String> = (0..700).map(|i| format!("needle_token_{i:04}")).collect();
     // Leak once for 'static table (bench-only).
     let needles: &'static [&'static str] = Box::leak(
-        needles_owned
-            .into_iter()
-            .map(|s| &*Box::leak(s.into_boxed_str()))
+        (0..700)
+            .map(|i| {
+                let s = format!("needle_token_{i:04}");
+                &*Box::leak(s.into_boxed_str())
+            })
             .collect::<Vec<_>>()
             .into_boxed_slice(),
     );

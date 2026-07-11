@@ -6,8 +6,8 @@ use codehound::rules::{Finding, FindingInputs, LineCol, Severity};
 #[path = "helpers/mod.rs"]
 mod helpers;
 
-use insta::assert_snapshot;
 use codehound::reporting::sarif::render_to_string;
+use insta::assert_snapshot;
 
 fn sample_result() -> AnalysisResult {
     helpers::reporting::sample_result(vec![

@@ -55,7 +55,7 @@ fn lookup_for(needles: &'static [&'static str]) -> &'static NeedleLookup {
         Err(poisoned) => poisoned.into_inner(),
     };
     if let Some(existing) = guard.get(&key) {
-        return *existing;
+        return existing;
     }
     let mut by_name = HashMap::with_capacity(needles.len());
     for (i, needle) in needles.iter().enumerate() {
