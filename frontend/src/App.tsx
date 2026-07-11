@@ -213,7 +213,13 @@ export default function App() {
             >
               github.com/chinmay-sawant/codehound
             </a>
-            <span>deterministic · offline · extendable</span>
+            <span className="footer-credit">
+              made with{' '}
+              <span className="footer-heart" aria-label="love">
+                ❤️
+              </span>{' '}
+              by chinmay sawant
+            </span>
           </div>
         </footer>
       </main>

@@ -1,6 +1,8 @@
 import type { Section } from '../data/sections'
 import { renderInlineMarkup } from '../lib/render-inline'
-import { WorkflowDiagram } from './WorkflowDiagram'
+import { ExtendDiagram } from './ExtendDiagram'
+import { HowItWorksDiagram } from './HowItWorksDiagram'
+import { WhyExistsDiagram } from './WhyExistsDiagram'
 import { useReveal } from '../hooks/useReveal'
 
 export function SectionView({
@@ -16,7 +18,11 @@ export function SectionView({
   const idx = String(index).padStart(2, '0')
 
   const hasWide =
-    Boolean(s.tables?.length) || Boolean(s.flows?.length) || Boolean(s.code)
+    Boolean(s.tables?.length) ||
+    Boolean(s.code) ||
+    s.id === 'how-it-works' ||
+    s.id === 'extend' ||
+    s.id === 'why'
   const hasSide = Boolean(s.facts?.length) || Boolean(s.stats?.length)
 
   return (
@@ -85,13 +91,11 @@ export function SectionView({
               </div>
             )}
 
-            {s.flows && (
-              <div className="flow-grid">
-                {s.flows.map((flow) => (
-                  <WorkflowDiagram key={flow.caption} diagram={flow} />
-                ))}
-              </div>
-            )}
+            {s.id === 'how-it-works' && <HowItWorksDiagram />}
+
+            {s.id === 'why' && <WhyExistsDiagram />}
+
+            {s.id === 'extend' && <ExtendDiagram />}
 
             {s.tables && (
               <div className="table-stack">

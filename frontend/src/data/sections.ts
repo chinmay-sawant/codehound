@@ -1,11 +1,8 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   HelpCircle, BarChart3, Sparkles, GitCompare, ShieldAlert,
-  FileOutput, Coins, Blocks, Route, Monitor, Download, FolderGit2,
-  FolderOutput, Bot, ListChecks, ClipboardList, Hash, Bookmark,
-  RefreshCw, Terminal, Gauge, Users, Scale, Package,
+  FileOutput, Coins, Blocks, Route, Gauge, Users, Scale, Package,
 } from 'lucide-react'
-import type { FlowDiagram } from '../components/WorkflowDiagram'
 
 export type Stat = { value: string; label: string; sub?: string }
 export type Fact = { k: string; v: string }
@@ -30,7 +27,6 @@ export type Section = {
   facts?: Fact[]
   tables?: DataTable[]
   code?: CodeBlock
-  flows?: FlowDiagram[]
 }
 
 /**
@@ -191,56 +187,6 @@ export const sections: Section[] = [
       'One binary, two output folders, you stay in control. CodeHound finds the issues — your agent helps triage and fix them.',
     callout:
       '**You own the architecture.** Findings are automatic. What ships is your call — fix, defer, baseline, or ignore. Agents propose; you decide.',
-    flows: [
-      {
-        caption: 'Setup → scan → export',
-        rows: [
-          {
-            segments: [
-              { kind: 'node', step: { label: 'Your machine', hint: 'Win · Linux · macOS', icon: Monitor } },
-              {
-                kind: 'fork',
-                left: { label: 'Download binary', cmd: 'codehound .', icon: Download },
-                right: { label: 'Clone repo', cmd: 'make run', icon: FolderGit2 },
-              },
-              {
-                kind: 'node',
-                step: {
-                  label: 'Artifacts on disk',
-                  hint: 'scripts/chunks · scripts/findings',
-                  icon: FolderOutput,
-                },
-              },
-            ],
-          },
-        ],
-      },
-      {
-        caption: 'Agent review → baseline → loop',
-        rows: [
-          {
-            segments: [
-              { kind: 'node', step: { label: 'Feed to agent', hint: 'OpenCode · Claude Code · Grok', icon: Bot } },
-              { kind: 'node', step: { label: 'Triage findings', hint: 'FP · fix · defer', icon: ListChecks } },
-              { kind: 'node', step: { label: 'Guide with checklist', hint: 'you pick what ships', icon: ClipboardList } },
-            ],
-          },
-          {
-            segments: [
-              { kind: 'node', step: { label: '100 findings', hint: '60 fixed · 40 remain', icon: Hash } },
-              { kind: 'node', step: { label: 'Set baseline', cmd: 'codehound . --baseline', icon: Bookmark } },
-              { kind: 'node', step: { label: 'Re-scan', cmd: 'codehound .', icon: RefreshCw } },
-            ],
-          },
-          {
-            segments: [
-              { kind: 'node', step: { label: 'Makefile target', cmd: 'make codehound', hint: 'like any linter', icon: Terminal } },
-            ],
-          },
-        ],
-        loop: { label: 'repeat until clean or baseline is stable', target: '↩ back to scan' },
-      },
-    ],
     body: [
       'By default CodeHound writes numbered context files to **./scripts/findings/functions/** and batched review chunks to **./scripts/chunks/**. Point your agent at those paths — it can classify false positives, propose fixes, and follow a checklist you write.',
       'You keep full control: which findings are real, which are noise, which get fixed now. When **60** of **100** are resolved and **40** remain, run with **--baseline** so those **40** become accepted debt. The next scan only reports regressions and new hits.',
@@ -455,7 +401,7 @@ codehound init`,
     body: [
       'New analyzer? Add one entry to the sink registry. The CWE catalog (175+) regenerates.',
       'New language? Ship a real plugin — Go is production; Python is opt-in (one rule); no TypeScript stub.',
-      'New section on this page? Add one entry to src/data/sections.ts. The sidebar, the scroll target, the layout all follow — no special cases.',
+      'New section on this page? Add one entry to src/data/sections.ts. The nav, the scroll target, the layout all follow — no special cases.',
     ],
   },
 ]
