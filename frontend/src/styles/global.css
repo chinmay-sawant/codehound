@@ -312,6 +312,9 @@
   flex-shrink: 0;
 }
 .topnav-gh {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   color: var(--muted);
   font-size: 11px;
   text-decoration: none;
@@ -320,6 +323,26 @@
   transition: color 150ms ease;
 }
 .topnav-gh:hover { color: var(--accent); }
+.topnav-stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+  transition: border-color 150ms ease, color 150ms ease;
+}
+.topnav-gh:hover .topnav-stars {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.topnav-stars svg {
+  color: var(--accent);
+}
 
 .theme-toggle {
   width: 30px;
@@ -685,7 +708,7 @@
   margin-top: 4px;
 }
 
-/* split: body + facts side by side on wide */
+/* split: primary (head + content) + facts aligned to title */
 .section-split {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
@@ -697,6 +720,9 @@
   display: flex;
   flex-direction: column;
   gap: 0;
+}
+.section-split .section-head {
+  margin-bottom: 16px;
 }
 
 /* stats strip */
@@ -1194,15 +1220,8 @@
 }
 
 /* how-it-works animated diagrams */
-.how-diagrams {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin: 0 0 24px;
-  width: 100%;
-}
 .how-diagram {
-  margin: 0;
+  margin: 0 0 24px;
   border: 1px solid var(--border);
   background: var(--background-soft);
   overflow: hidden;
@@ -1224,10 +1243,25 @@
   color: var(--muted-weak);
   padding: 6px 0 4px;
 }
+.how-svg-full {
+  max-height: 480px;
+}
+.how-phase {
+  fill: var(--muted-weak);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
 .how-wire {
   stroke: var(--border);
   stroke-dasharray: 4 4;
   animation: wire-dash 1.2s linear infinite;
+}
+.how-wire-pipe {
+  stroke: var(--accent);
+  stroke-opacity: 0.55;
+  stroke-dasharray: 6 4;
+  animation: wire-dash 0.9s linear infinite;
 }
 .how-wire-loop {
   stroke: var(--accent);
@@ -1237,8 +1271,21 @@
   fill: var(--accent);
   opacity: 0.9;
 }
-.how-pulse-loop {
+.how-pulse-loop,
+.how-pulse-pipe {
   fill: var(--accent);
+}
+.how-pipe-box {
+  fill: var(--background-elev);
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-opacity: 0.45;
+  stroke-dasharray: 4 3;
+}
+.how-pipe-text {
+  fill: var(--accent);
+  font-size: 10px;
+  letter-spacing: 0.04em;
 }
 .how-node-box {
   fill: var(--background-elev);
@@ -1303,12 +1350,153 @@
 
 @media (prefers-reduced-motion: reduce) {
   .how-wire,
+  .how-wire-pipe,
   .how-folder-1,
   .how-folder-2,
   .how-node {
     animation: none;
   }
   .how-pulses {
+    display: none;
+  }
+}
+
+/* skills diagram */
+.skills-diagram {
+  margin: 0 0 24px;
+  border: 1px solid var(--border);
+  background: var(--background-soft);
+  overflow: hidden;
+  width: 100%;
+}
+.skills-diagram-caption {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--accent);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.skills-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 280px;
+  color: var(--muted-weak);
+  padding: 8px 0 4px;
+}
+.skills-col-label {
+  fill: var(--bad);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.skills-col-label-good {
+  fill: var(--accent);
+}
+.skills-vs {
+  fill: var(--muted-weak);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.skills-divider {
+  stroke: var(--border);
+}
+.skills-node-box {
+  fill: var(--background-elev);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.skills-node-bad .skills-node-box {
+  stroke: var(--bad);
+  stroke-opacity: 0.45;
+}
+.skills-node-good .skills-node-box {
+  stroke: var(--accent);
+  stroke-opacity: 0.45;
+}
+.skills-node-label {
+  fill: var(--foreground);
+  font-size: 11px;
+  font-weight: 500;
+}
+.skills-node-hint {
+  fill: var(--muted-weak);
+  font-size: 9.5px;
+}
+.skills-wire {
+  stroke-dasharray: 4 4;
+  animation: wire-dash 1.2s linear infinite;
+}
+.skills-wire-bad {
+  stroke: var(--bad);
+  stroke-opacity: 0.45;
+}
+.skills-wire-good {
+  stroke: var(--accent);
+  stroke-opacity: 0.5;
+}
+.skills-pulse-bad { fill: var(--bad); }
+.skills-pulse-good { fill: var(--accent); }
+.skills-float-1 { animation: skills-drift 2.8s ease-in-out infinite; }
+.skills-float-2 { animation: skills-drift 2.8s ease-in-out infinite 0.35s; }
+.skills-float-3 { animation: skills-drift 2.8s ease-in-out infinite 0.7s; }
+.skills-float-4 { animation: skills-drift 2.8s ease-in-out infinite 1.05s; }
+@keyframes skills-drift {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.72; }
+}
+.skills-ghost-box {
+  fill: var(--background-elev);
+  stroke: var(--bad);
+  stroke-width: 1;
+  stroke-opacity: 0.35;
+  stroke-dasharray: 3 3;
+}
+.skills-ghost-text {
+  fill: var(--bad);
+  font-size: 10px;
+  opacity: 0.75;
+}
+.skills-ghost-1 { animation: ghost-flicker 2.4s ease-in-out infinite; }
+.skills-ghost-2 { animation: ghost-flicker 2.4s ease-in-out infinite 0.5s; }
+.skills-ghost-3 { animation: ghost-flicker 2.4s ease-in-out infinite 1s; }
+@keyframes ghost-flicker {
+  0%, 100% { opacity: 0.15; }
+  40%, 60% { opacity: 0.9; }
+}
+.skills-stable-box {
+  fill: var(--background-elev);
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-opacity: 0.45;
+}
+.skills-stable-line {
+  fill: var(--accent);
+  font-size: 11px;
+}
+.skills-stable-hint {
+  fill: var(--muted-weak);
+  font-size: 9.5px;
+}
+.skills-node-good {
+  animation: node-breathe 3.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skills-wire,
+  .skills-float-1,
+  .skills-float-2,
+  .skills-float-3,
+  .skills-float-4,
+  .skills-ghost-1,
+  .skills-ghost-2,
+  .skills-ghost-3,
+  .skills-node-good {
+    animation: none;
+  }
+  .skills-pulses {
     display: none;
   }
 }

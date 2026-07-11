@@ -3,6 +3,7 @@ import { renderInlineMarkup } from '../lib/render-inline'
 import { ExtendDiagram } from './ExtendDiagram'
 import { HowItWorksDiagram } from './HowItWorksDiagram'
 import { WhyExistsDiagram } from './WhyExistsDiagram'
+import { SkillsDiagram } from './SkillsDiagram'
 import { useReveal } from '../hooks/useReveal'
 
 export function SectionView({
@@ -17,13 +18,14 @@ export function SectionView({
   const Icon = s.icon
   const idx = String(index).padStart(2, '0')
 
+  const hasFacts = Boolean(s.facts?.length)
   const hasWide =
     Boolean(s.tables?.length) ||
     Boolean(s.code) ||
     s.id === 'how-it-works' ||
     s.id === 'extend' ||
-    s.id === 'why'
-  const hasSide = Boolean(s.facts?.length) || Boolean(s.stats?.length)
+    s.id === 'why' ||
+    s.id === 'skills'
 
   return (
     <section
@@ -38,38 +40,42 @@ export function SectionView({
       </div>
 
       <div className="section-main">
-        <header className="section-head">
-          <div className="section-meta">
-            <span className="section-icon" aria-hidden="true">
-              <Icon size={12} strokeWidth={1.75} />
-            </span>
-            <span className="section-prompt">
-              <span className="prompt-sym">$</span>
-              {s.id}
-            </span>
-          </div>
-          <h2 className="section-title">{s.title}</h2>
-          <p className="section-lead">{s.lead}</p>
-        </header>
-
-        {s.callout && (
-          <div className="callout">{renderInlineMarkup(s.callout)}</div>
-        )}
-
-        {s.stats && (
-          <div className="stats">
-            {s.stats.map((st) => (
-              <div className="stat" key={st.label}>
-                <div className="stat-value">{st.value}</div>
-                <div className="stat-label">{st.label}</div>
-                {st.sub && <div className="stat-sub">{st.sub}</div>}
+        {/*
+          When facts exist, put head + body in the left column so the right
+          facts card aligns with the title (not dropped under the lead).
+        */}
+        <div className={hasFacts ? 'section-split' : undefined}>
+          <div className={hasFacts ? 'section-primary' : undefined}>
+            <header className="section-head">
+              <div className="section-meta">
+                <span className="section-icon" aria-hidden="true">
+                  <Icon size={12} strokeWidth={1.75} />
+                </span>
+                <span className="section-prompt">
+                  <span className="prompt-sym">$</span>
+                  {s.id}
+                </span>
               </div>
-            ))}
-          </div>
-        )}
+              <h2 className="section-title">{s.title}</h2>
+              <p className="section-lead">{s.lead}</p>
+            </header>
 
-        <div className={hasSide && s.body ? 'section-split' : undefined}>
-          <div className="section-primary">
+            {s.callout && (
+              <div className="callout">{renderInlineMarkup(s.callout)}</div>
+            )}
+
+            {s.stats && (
+              <div className="stats">
+                {s.stats.map((st) => (
+                  <div className="stat" key={st.label}>
+                    <div className="stat-value">{st.value}</div>
+                    <div className="stat-label">{st.label}</div>
+                    {st.sub && <div className="stat-sub">{st.sub}</div>}
+                  </div>
+                ))}
+              </div>
+            )}
+
             {s.code && (
               <div className="code">
                 <div className="code-label">{s.code.label}</div>
@@ -92,9 +98,8 @@ export function SectionView({
             )}
 
             {s.id === 'how-it-works' && <HowItWorksDiagram />}
-
             {s.id === 'why' && <WhyExistsDiagram />}
-
+            {s.id === 'skills' && <SkillsDiagram />}
             {s.id === 'extend' && <ExtendDiagram />}
 
             {s.tables && (

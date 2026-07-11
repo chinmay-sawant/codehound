@@ -1,6 +1,7 @@
-import { Moon, Sun } from 'lucide-react'
+import { Moon, Star, Sun } from 'lucide-react'
 import { sections } from '../data/sections'
 import { useTheme } from '../hooks/useTheme'
+import { formatStarCount, useGithubStars } from '../hooks/useGithubStars'
 
 type TopNavProps = {
   active: string
@@ -9,6 +10,7 @@ type TopNavProps = {
 
 export function TopNav({ active, onNavigate }: TopNavProps) {
   const { theme, toggle } = useTheme()
+  const { stars } = useGithubStars()
 
   return (
     <header className="topnav">
@@ -53,7 +55,13 @@ export function TopNav({ active, onNavigate }: TopNavProps) {
             target="_blank"
             rel="noreferrer"
           >
-            github
+            <span>github</span>
+            {stars !== null && (
+              <span className="topnav-stars" title={`${stars.toLocaleString()} GitHub stars`}>
+                <Star size={11} strokeWidth={1.75} aria-hidden="true" />
+                <span>{formatStarCount(stars)}</span>
+              </span>
+            )}
           </a>
           <button
             type="button"
