@@ -35,6 +35,7 @@ fn scan_context_from_cli(cli: &Cli, config: Option<CodehoundConfig>) -> ScanCont
         taint_show_paths: cli.taint_show_paths,
         show_ignored: cli.show_ignored,
         profile: cli.profile.to_profile(),
+        retain_sources: cli.export_context || cli.export_chunks,
     })
 }
 

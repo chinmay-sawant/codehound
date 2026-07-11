@@ -173,6 +173,8 @@ fn scan_context_params_for_run(cli: &Cli, config: Option<CodehoundConfig>) -> Sc
         taint_show_paths: cli.taint_show_paths,
         show_ignored: cli.show_ignored,
         profile: cli.profile.to_profile(),
+        // Only pay the monorepo source_cache cost when export needs it.
+        retain_sources: cli.export_context || cli.export_chunks,
     }
 }
 

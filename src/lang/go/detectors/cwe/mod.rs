@@ -17,7 +17,9 @@ use crate::rules::{
     DetectorEvidence, Finding, RuleMetadata, TaintHop, TaintSinkInfo, TaintSourceInfo,
 };
 use domains::*;
-use facts::{GoUnitFacts, build_go_unit_facts, build_taint_graph_for_facts};
+use facts::{
+    FactBuildOpts, GoUnitFacts, build_go_unit_facts_with, build_taint_graph_for_facts,
+};
 use taint::{
     CallGraph, SinkKind, TaintAnnotations, TaintGraph, TaintNode, TaintNodeId, build_import_map,
     detect_cwe_22_taint, detect_cwe_78_taint, detect_cwe_79_taint, detect_cwe_89_taint,
@@ -37,10 +39,13 @@ type GoRuleEntry = (&'static str, GoRuleFn, &'static RuleMetadata);
 include!(concat!(env!("OUT_DIR"), "/go_cwe_registry.rs"));
 
 /// Accumulated per-file data for project-level taint analysis.
+///
+/// Built **outside** the project lock, then pushed under a short critical
+/// section. `line_starts` is `Arc` so finalize can share without cloning.
 struct ProjectUnit {
     path: String,
     source: Arc<str>,
-    line_starts: Vec<usize>,
+    line_starts: Arc<[usize]>,
     call_graph: CallGraph,
     annotations: TaintAnnotations,
     import_map: HashMap<String, String>,
@@ -49,12 +54,12 @@ struct ProjectUnit {
 /// Cross-file detector concurrency contract:
 ///
 /// - `run(unit)` may execute in parallel across files (Rayon).
-/// - Shared state is protected by a `Mutex`; poison is recovered via
-///   `into_inner()` so an isolated detector panic does not hard-crash the CLI.
-/// - Prefer accumulating per-file data in `run`/`accumulate_state`, then
-///   merging in single-threaded `finalize(project)` for inter-file analysis.
-/// - Detectors must not assume exclusive access to global process state during
-///   `run`; write only through this detector's locked project state.
+/// - Project units are assembled off-lock, then pushed under a `Mutex`.
+///   Poison is recovered via `into_inner()` so an isolated detector panic
+///   does not hard-crash the CLI.
+/// - When taint is **disabled**, no project state is retained (no Mutex
+///   traffic, no source clone into project state).
+/// - `finalize` runs single-threaded after workers finish.
 ///
 /// Shared state accumulated across all files in a scan.
 struct ProjectTaintState {
@@ -96,35 +101,34 @@ impl Detector for GoCweScan {
     }
 
     fn accumulate_state(&self, ctx: &ScanContext, unit: &ParsedUnit) {
-        if !self.rule_ids().iter().any(|id| ctx.allows(id)) {
+        // Project state is only consumed by taint finalize.
+        if !ctx.taint_enabled || !self.rule_ids().iter().any(|id| ctx.allows(id)) {
             return;
         }
-        let mut facts = build_go_unit_facts(unit);
-        if ctx.taint_enabled {
-            build_taint_graph_for_facts(&mut facts);
-        }
+        let mut facts = build_go_unit_facts_with(unit, FactBuildOpts::TAINT);
+        build_taint_graph_for_facts(&mut facts);
+        let project_unit = make_project_unit(unit, &facts);
         let mut state = self
             .state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        push_project_unit(&mut state, unit, &facts);
+        state.units.push(project_unit);
     }
 
     fn run(&self, ctx: &ScanContext, unit: &ParsedUnit, out: &mut Vec<Finding>) {
         if !self.rule_ids().iter().any(|id| ctx.allows(id)) {
             return;
         }
-        let mut facts = build_go_unit_facts(unit);
+        let opts = FactBuildOpts::for_scan(ctx.taint_enabled);
+        let mut facts = build_go_unit_facts_with(unit, opts);
         if ctx.taint_enabled {
             build_taint_graph_for_facts(&mut facts);
-        }
-
-        {
+            let project_unit = make_project_unit(unit, &facts);
             let mut state = self
                 .state
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
-            push_project_unit(&mut state, unit, &facts);
+            state.units.push(project_unit);
         }
 
         for (rule_id, detector, _) in GO_RULES {
@@ -283,15 +287,15 @@ impl Detector for GoCweScan {
 
 // --- Inter-procedural analysis helpers ---
 
-fn push_project_unit(state: &mut ProjectTaintState, unit: &ParsedUnit, facts: &GoUnitFacts) {
-    state.units.push(ProjectUnit {
+fn make_project_unit(unit: &ParsedUnit, facts: &GoUnitFacts) -> ProjectUnit {
+    ProjectUnit {
         path: unit.display_path.clone(),
         source: Arc::clone(&unit.source),
-        line_starts: unit.line_starts.clone(),
+        line_starts: Arc::from(unit.line_starts.as_slice()),
         call_graph: facts.call_graph.clone().unwrap_or_default(),
         annotations: facts.taint.clone(),
         import_map: build_import_map(unit),
-    });
+    }
 }
 
 /// Find a callee's TaintSummary across all files.

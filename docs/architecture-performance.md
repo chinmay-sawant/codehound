@@ -38,7 +38,10 @@ Each file is read, parsed, analyzed, and dropped independently so peak memory st
 | CWE metadata | Static `CWE_REFS_*` slices in `cwe/catalog.rs` |
 | File pipeline | Parallel read → parse → detect → drop per file (`rayon`). Cache hits skip parse+detect entirely. |
 | Source load | `String::from_utf8(bytes)` into `Arc<str>` |
-| Source cache | Successful UTF-8 files are retained in `AnalysisResult.source_cache` as `Arc<str>` so export and downstream consumers avoid second disk reads |
+| Source cache | Retained in `AnalysisResult.source_cache` **only** when `ScanContext.retain_sources` is true (CLI: `--export-context` / `--export-chunks`). Default CI/JSON/SARIF scans drop sources after each file |
+| SourceIndex | One `contains` pass per needle at build; `has()` is O(1) via a process-lifetime needle→index map (not linear scan) |
+| Taint project state | Built only when taint is enabled; units assembled off-lock, short Mutex push; `line_starts` as `Arc<[usize]>` |
+| Hash maps | See [adr/0001-hash-maps-on-hot-path.md](./adr/0001-hash-maps-on-hot-path.md) |
 | Export | Stream context files and chunk files (no upfront `Vec` of all blocks) |
 | Timing / stats | Collection enabled by `--debug-timing` or `--diagnostics`; zero-cost `TimingCollector` no-ops when disabled; `ScanStats` merged from per-file `TimingSpan` values |
 | Diagnostics | Optional `--diagnostics <FILE>` writes a JSON document with phase timing, detector timing, scan params, and file-level stats |

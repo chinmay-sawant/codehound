@@ -85,11 +85,13 @@ pub(crate) fn scan_entries_parallel(
         &mut cache,
         preflight.cache_hit_count,
         total,
+        ctx.retain_sources,
     );
 
     // Accumulate cross-file detector state for cache-hit files
     // so finalize() can emit the same findings regardless of cache.
-    if !preflight.cached_files.is_empty() {
+    // Only needed when taint finalize will consume project state.
+    if ctx.taint_enabled && !preflight.cached_files.is_empty() {
         accumulate_state_for_cached(registry, ctx, &preflight.cached_files);
     }
 
@@ -267,11 +269,16 @@ fn merge_parallel_results(
     cache: &mut Option<&mut CacheSession<'_>>,
     cache_hit_count: usize,
     total: usize,
+    retain_sources: bool,
 ) -> MergedScan {
     let mut merged = MergedScan {
         findings: Vec::new(),
         errors: Vec::new(),
-        source_cache: HashMap::with_capacity(total),
+        source_cache: if retain_sources {
+            HashMap::with_capacity(total)
+        } else {
+            HashMap::new()
+        },
         suppressed_count: 0,
         stats: ScanStats::default(),
         rescan_files: Vec::new(),
@@ -296,6 +303,7 @@ fn merge_parallel_results(
                     result.source,
                     &result.stats,
                     result.suppressed_count,
+                    retain_sources,
                 );
             }
             ScanOutcome::Err(e) => {
@@ -315,7 +323,15 @@ fn merge_parallel_results(
                 stats: file_stats,
                 ..
             } => {
-                append_file_contribution(&mut merged, &mut f, cache_key, source, &file_stats, 0);
+                append_file_contribution(
+                    &mut merged,
+                    &mut f,
+                    cache_key,
+                    source,
+                    &file_stats,
+                    0,
+                    retain_sources,
+                );
             }
             ScanOutcome::Err(e) => {
                 merged.errors.push(e);
@@ -337,9 +353,12 @@ fn append_file_contribution(
     source: Arc<str>,
     stats: &ScanStats,
     suppressed_count: usize,
+    retain_sources: bool,
 ) {
     merged.findings.append(findings);
-    merged.source_cache.insert(cache_key, source);
+    if retain_sources {
+        merged.source_cache.insert(cache_key, source);
+    }
     merged.suppressed_count += suppressed_count;
     merged.stats.merge(stats);
 }

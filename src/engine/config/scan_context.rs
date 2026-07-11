@@ -25,6 +25,8 @@ pub struct ScanContextParams {
     pub show_ignored: bool,
     /// Product pack. Default [`ScanProfile::Recommended`] for CLI; library callers may use `All`.
     pub profile: ScanProfile,
+    /// Retain file sources for export/context (default off).
+    pub retain_sources: bool,
 }
 
 /// Build scan context from CLI + optional config file.
@@ -47,6 +49,7 @@ pub fn build_scan_context(params: ScanContextParams) -> ScanContext {
         bad_practices_enabled: true,
         bad_practice_severity: None,
         severity_overrides: Default::default(),
+        retain_sources: params.retain_sources,
     };
 
     let cli_set_taint = params.taint || params.no_taint;

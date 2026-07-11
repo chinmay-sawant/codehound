@@ -33,6 +33,10 @@ pub struct ScanContext {
     pub severity_overrides: std::collections::HashMap<String, Severity>,
     /// When true, text output includes extra scan stats (bytes, phase timing).
     pub verbose: bool,
+    /// When true, retain per-file sources in `AnalysisResult.source_cache`
+    /// (needed for `--export-context` / `--export-chunks`). Default CI/JSON/SARIF
+    /// paths leave this false to avoid a monorepo RAM tax.
+    pub retain_sources: bool,
 }
 
 impl Default for ScanContext {
@@ -52,6 +56,7 @@ impl Default for ScanContext {
             bad_practice_severity: None,
             severity_overrides: std::collections::HashMap::new(),
             verbose: false,
+            retain_sources: false,
         }
     }
 }

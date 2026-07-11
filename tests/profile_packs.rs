@@ -111,4 +111,17 @@ fn scan_context_default_library_is_unfiltered() {
     let ctx = ScanContext::default();
     assert!(ctx.only.is_none());
     assert!(ctx.allows("BP-1"));
+    assert!(
+        !ctx.retain_sources,
+        "default CI path must not retain source_cache"
+    );
+}
+
+#[test]
+fn retain_sources_opt_in_via_params() {
+    let ctx = build_scan_context(ScanContextParams {
+        retain_sources: true,
+        ..Default::default()
+    });
+    assert!(ctx.retain_sources);
 }

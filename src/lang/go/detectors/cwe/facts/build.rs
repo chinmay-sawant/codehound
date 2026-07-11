@@ -9,7 +9,52 @@ use super::super::taint::{build_taint_graph, extract_call_graph, extract_taint_f
 use super::interner::{SharedTextInterner, record_assignment_fact, record_call_fact};
 use super::types::GoUnitFacts;
 
+/// What expensive extractions to run for a unit.
+///
+/// Structural detectors need the tree walk + `SourceIndex`. Taint annotations
+/// and call graphs are only required when inter-procedural taint is on.
+#[derive(Debug, Clone, Copy)]
+pub struct FactBuildOpts {
+    pub extract_taint: bool,
+    pub extract_call_graph: bool,
+}
+
+impl Default for FactBuildOpts {
+    fn default() -> Self {
+        Self {
+            extract_taint: true,
+            extract_call_graph: true,
+        }
+    }
+}
+
+impl FactBuildOpts {
+    /// Cheap structural facts only (no taint annotations / call graph).
+    pub const STRUCTURAL: Self = Self {
+        extract_taint: false,
+        extract_call_graph: false,
+    };
+
+    /// Full facts for taint-enabled scans.
+    pub const TAINT: Self = Self {
+        extract_taint: true,
+        extract_call_graph: true,
+    };
+
+    pub fn for_scan(taint_enabled: bool) -> Self {
+        if taint_enabled {
+            Self::TAINT
+        } else {
+            Self::STRUCTURAL
+        }
+    }
+}
+
 pub fn build_go_unit_facts(unit: &ParsedUnit) -> GoUnitFacts {
+    build_go_unit_facts_with(unit, FactBuildOpts::default())
+}
+
+pub fn build_go_unit_facts_with(unit: &ParsedUnit, opts: FactBuildOpts) -> GoUnitFacts {
     let src = unit.source.as_bytes();
     let root = unit.tree.root_node();
     let mut facts = GoUnitFacts::default();
@@ -30,8 +75,12 @@ pub fn build_go_unit_facts(unit: &ParsedUnit) -> GoUnitFacts {
     );
 
     facts.source_index = SourceIndex::build(NEEDLES, unit.source.as_ref());
-    facts.taint = extract_taint_facts(unit);
-    facts.call_graph = Some(extract_call_graph(unit));
+    if opts.extract_taint {
+        facts.taint = extract_taint_facts(unit);
+    }
+    if opts.extract_call_graph {
+        facts.call_graph = Some(extract_call_graph(unit));
+    }
     facts
 }
 
