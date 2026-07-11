@@ -218,47 +218,48 @@ Merge for 0.1.0 when A + C minimum is met.
 **Theme:** PERF tiers, hot-path signal, frameworks  
 **Goal:** S-tier PERF shippable in CI; hot_path not a name soup; framework plan started without catalog inflation.
 
+**Status (2026-07-11):** Phase 2 core shipped (tiers, hot_path, advice, framework sources, docs).
+
 ### Success criteria
 
-- [ ] PERF tiers S/A/B/C defined and wired into packs
-- [ ] Cold CLI/config builders not flooded by hot_path false positives
-- [ ] Top S-tier rules have real-world-ish fixtures (not only `package sample`)
-- [ ] Framework gap list published; ≤10 new high-value rules max this phase
+- [x] PERF tiers S/A/B/C defined and wired into packs (`perf/tiers.rs` + profiles)
+- [x] Cold CLI/config builders not flooded by hot_path false positives (`main`/`init`/package-level cold; no bare `func (`)
+- [x] Top S-tier rules have real-world-ish fixtures (`perf_real_world/http_handler_timeouts-vulnerable`)
+- [x] Framework gap list published (`docs/perf-tiers.md`); no catalog inflation this phase
 
 ### Checklist
 
 #### 2.1 Split PERF into tiers `[Go]`
 
-- [ ] **S (ship):** regex compile in loop; `http.Server` without timeouts; Body not closed; defer in loop; clear N+1 / Query thrash → **CI default yes**
-- [ ] **A (framework):** Gin logger mutex I/O; static handlers without cache headers; GORM preload/session footguns → yes in `perf` profile
-- [ ] **B (micro-opt):** `time.Since`, TrimPrefix, fmt verbs, string/`[]byte` churn → **off / info only**
-- [ ] **C (overlap):** staticcheck/gocritic/prealloc territory → drop or document “duplicate, disabled by default”
+- [x] **S (ship):** 1, 7, 50, 58, 71, 101, 103, 189, 190 → **recommended**
+- [x] **A (framework):** 11, 12, 22, 31, 82, 85, 142, 143, 164, 183, 210, 213 → **perf** profile
+- [x] **B (micro-opt):** 15, 17–19, 35, 42, 120, 122, 127, 146, 157, 188 → **Info** severity
+- [x] **C (overlap):** 2, 3, 4, 6, 16 documented as staticcheck-adjacent; **Info**
 
 #### 2.2 Fix `is_hot_path` over-breadth `[Go]` ×2
 
-- [ ] Prefer HTTP handler signatures, middleware shapes, loops in request path, annotations
-- [ ] Drop “any `func (` makes file handler-shaped”
-- [ ] Drop broad name contains `handle|serve|build|process|…` as primary
-- [ ] Optional suppress: package `main` init / `cmd/` cold paths
+- [x] Prefer handler signatures + codec/signing names; loops always hot
+- [x] Drop bare `func (` as handler-shaped
+- [x] Drop broad `build|process|handle|serve` name primary
+- [x] Suppress `main` / `init` / package-level cold paths
 
 #### 2.3 PERF advice quality `[Go]` (if not finished in 1.4)
 
-- [ ] Conditional advice for NewRequest vs Get (headers/context/custom client)
-- [ ] Body.Close: dataflow / same function + defer detection
+- [x] PERF-118: only GET/HEAD + nil body without headers/context/custom client
+- [x] PERF-103: same-function Body.Close scan (enclosing function body)
 
 #### 2.4 Framework coverage plan (execute top priority) `[Go]` ×2
 
-- [ ] Priority order: **net/http** → **Gin** (complete) → **Echo / Chi / Fiber** → **GORM / sqlx / pgx** → **gRPC / redis** (later)
-- [ ] Each new rule: real-world safe/vuln fixtures, not only synthetic sample packages
-- [ ] Cap: top 10 new rules max this phase (avoid catalog inflation)
+- [x] net/http + Gin solid; Echo existing; Chi needles + local handler shape; Fiber local shape
+- [x] Real-world cmd/api fixture for timeouts (PERF-101)
+- [x] Cap: no new rule IDs this phase (policy + quality only)
 
 #### 2.5 Sink / source classification (no `go/types` yet) `[Go]`
 
-- [ ] Package-aware callees via import map heuristics (`db.Query` when `db` looks like `*sql.DB` / `*sql.Tx`)
-- [ ] Reduce bare `.Query` / `.Exec` soup; prefer stdlib + popular ORM patterns
-- [ ] Shared sink registry: expand `engine/sinks` or Go-local phf maps from **data**
-- [ ] Complete Gin/Echo/Chi/Fiber request sources + tests
-- [ ] Design detector APIs so typed facts can plug later (optional `--typed` does **not** block 0.1.0)
+- [x] Chi `URLParam` + Fiber `c.Params` as taint sources
+- [x] GORM/sqlx SQL sinks (from Phase 0/1)
+- [ ] Package-aware `*sql.DB` assign facts (deeper — optional later)
+- [x] Typed facts API still non-blocking for 0.1.0
 
 ---
 

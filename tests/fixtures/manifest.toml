@@ -6410,6 +6410,10 @@ required_rules = []
 
 [[fixture]]
 lang = "go"
+path = "tests/fixtures/go/perf_real_world/http_handler_timeouts-vulnerable.txt"
+required_rules = ["PERF-101"]
+[[fixture]]
+lang = "go"
 path = "tests/fixtures/go/perf_real_world/clean_go_file.txt"
 required_rules = []
 

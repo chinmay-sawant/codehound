@@ -109,17 +109,19 @@ impl ScanProfile {
 }
 
 /// S-tier PERF + taint-core CWEs (≤ ~30 rules). Directional CI default pack.
+/// PERF membership mirrors [`crate::lang::go::detectors::perf::tiers::TIER_S`].
 const RECOMMENDED_RULES: &[&str] = &[
-    // PERF S-tier (hot-path / framework footguns)
-    "PERF-1",   // regex compile in loop
-    "PERF-7",   // defer in loop
-    "PERF-50",  // regexp.MatchString in loop
-    "PERF-58",  // Gin request body not closed
-    "PERF-71",  // GORM N+1
-    "PERF-101", // http.Server timeouts
-    "PERF-189", // response body not drained before close
-    "PERF-190", // HTTP client missing timeout
-    // Taint-core CWEs (require --taint or security profile; listed so only-filter keeps them)
+    // PERF S-tier
+    "PERF-1",
+    "PERF-7",
+    "PERF-50",
+    "PERF-58",
+    "PERF-71",
+    "PERF-101",
+    "PERF-103",
+    "PERF-189",
+    "PERF-190",
+    // Taint-core CWEs
     "CWE-22",
     "CWE-78",
     "CWE-79",
@@ -128,24 +130,29 @@ const RECOMMENDED_RULES: &[&str] = &[
     "CWE-91",
 ];
 
-/// Broader PERF pack (recommended PERF + common framework/hot-path extras).
+/// S + A PERF tiers (see `perf::tiers`).
 const PERF_PACK_RULES: &[&str] = &[
+    // S
     "PERF-1",
     "PERF-7",
-    "PERF-11",
-    "PERF-12",
-    "PERF-22",
-    "PERF-31",
     "PERF-50",
     "PERF-58",
     "PERF-71",
     "PERF-101",
+    "PERF-103",
+    "PERF-189",
+    "PERF-190",
+    // A
+    "PERF-11",
+    "PERF-12",
+    "PERF-22",
+    "PERF-31",
+    "PERF-82",
+    "PERF-85",
     "PERF-142",
     "PERF-143",
     "PERF-164",
     "PERF-183",
-    "PERF-189",
-    "PERF-190",
     "PERF-210",
     "PERF-213",
 ];

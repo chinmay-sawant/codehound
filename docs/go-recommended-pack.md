@@ -20,8 +20,11 @@ Bad practices (`BP-*`) are **off**. Fail policy defaults to **strict** (high+ on
 | `PERF-58` | Gin `c.Request.Body` not closed |
 | `PERF-71` | GORM N+1 query pattern |
 | `PERF-101` | `http.Server` missing timeouts |
+| `PERF-103` | HTTP response body not closed |
 | `PERF-189` | HTTP response body not drained before close |
 | `PERF-190` | HTTP client missing timeout |
+
+See also [`docs/perf-tiers.md`](./perf-tiers.md) for S/A/B/C policy.
 
 ### CWE (taint-core)
 

@@ -33,12 +33,14 @@ pub fn is_regexp_compile(callee: &str) -> bool {
 }
 
 /// Returns true if the source file shows evidence of a request handler
-/// (Gin / Echo / net/http). Used to decide whether a call is on the hot path.
+/// (Gin / Echo / net/http). Used by whole-file detectors.
+///
+/// Chi/Fiber are handled via local [`is_handler_shaped`] windows so we do not
+/// mark every Fiber util file as a request path (cross-rule FPs on safe fixtures).
 pub fn is_request_path(index: &PerfSourceIndex) -> bool {
     index.has("gin.HandlerFunc")
         || index.has("echo.HandlerFunc")
         || index.has("http.HandlerFunc")
-        || index.has("func Handle")
         || index.has("func ServeHTTP")
         || index.has("c.JSON(")
         || index.has("c.String(")
@@ -48,7 +50,7 @@ pub fn is_request_path(index: &PerfSourceIndex) -> bool {
         || has_gin_handler(index)
         || has_echo_handler(index)
         || has_http_handler(index)
-        || index.has("func (")
+    // Intentionally NOT: bare `func (` — that marks every method file as a "handler".
 }
 
 /// `func Xxx(c *gin.Context) { ... }` — Gin handlers with a `*gin.Context`
@@ -68,9 +70,22 @@ pub fn has_http_handler(index: &PerfSourceIndex) -> bool {
     index.has("http.ResponseWriter")
 }
 
+/// Chi router handlers typically take `http.ResponseWriter` + `*http.Request`
+/// or use `chi.URLParam` in the same file.
+pub fn has_chi_handler(index: &PerfSourceIndex) -> bool {
+    index.has("chi.URLParam") || index.has("chi.Router") || index.has("chi.NewRouter")
+}
+
+/// Fiber handlers take `*fiber.Ctx`.
+pub fn has_fiber_handler(index: &PerfSourceIndex) -> bool {
+    index.has("*fiber.Ctx") || index.has("fiber.Ctx") || index.has("fiber.Handler")
+}
+
 /// Returns true if the 1 KiB window before `start_byte` contains a
 /// request-handler signature token (http.ResponseWriter, gin.Context,
-/// echo.Context, fiber.Ctx, or common response methods).
+/// echo.Context, fiber.Ctx, chi, or common response methods).
+///
+/// Does **not** treat bare `func (` as handler-shaped (too broad for CLI/tools).
 pub fn is_handler_shaped(source: &str, start_byte: usize) -> bool {
     let window_start = char_boundary(source, start_byte.saturating_sub(1024));
     let window = &source[window_start..start_byte];
@@ -81,8 +96,8 @@ pub fn is_handler_shaped(source: &str, start_byte: usize) -> bool {
         || window.contains("c echo.Context")
         || window.contains("*fiber.Ctx")
         || window.contains("c *fiber.Ctx")
-        || window.contains("func Handle")
-        || window.contains("func (")
+        || window.contains("chi.URLParam")
+        || window.contains("func ServeHTTP")
         || window.contains("c.JSON(")
         || window.contains("c.String(")
         || window.contains("c.HTML(")
@@ -94,38 +109,40 @@ pub fn file_has_handler(source: &str) -> bool {
     is_handler_shaped(source, source.len())
 }
 
-/// Function-name tokens that usually mark encode / emit / serve hot paths
-/// (libraries and services alike — not HTTP-only).
-const HOT_FUNCTION_TOKENS: &[&str] = &[
-    "handle",
-    "serve",
-    "write",
-    "encode",
-    "decode",
-    "build",
-    "generate",
-    "render",
-    "compress",
-    "sign",
-    "marshal",
-    "unmarshal",
-    "emit",
-    "serialize",
-    "deserialize",
-    "process",
-    "transform",
-    "flush",
-    "draw",
-    "layout",
+/// Request/middleware names (primary).
+const HANDLER_HOT_TOKENS: &[&str] = &[
+    "handler",
+    "middleware",
+    "servehttp",
+    "handlerequest",
+    "handlemessage",
 ];
 
-/// True when `name` looks like a hot-path function (case-insensitive substring).
+/// Library codec/pipeline names (secondary). Excludes broad CLI tokens:
+/// `build`, `process`, `serve`, `handle` alone (cold config/CLI FPs).
+const LIBRARY_HOT_TOKENS: &[&str] = &[
+    "encode",
+    "decode",
+    "marshal",
+    "unmarshal",
+    "serialize",
+    "deserialize",
+    "render",
+    "compress",
+    "generate", // report/document generators — keep; not bare `build`
+    "sign",     // crypto signing paths (pem/x509 parse smells)
+];
+
+/// True when `name` looks like a hot-path function (handler or codec pipeline).
 pub fn function_name_is_hot(name: &str) -> bool {
     if name.is_empty() {
         return false;
     }
     let lower = name.to_ascii_lowercase();
-    HOT_FUNCTION_TOKENS.iter().any(|tok| lower.contains(tok))
+    HANDLER_HOT_TOKENS.iter().any(|tok| lower.contains(tok))
+        || LIBRARY_HOT_TOKENS.iter().any(|tok| lower.contains(tok))
+        || lower.ends_with("handler")
+        || lower.ends_with("middleware")
 }
 
 /// Walk backward from `start_byte` to the nearest `func` declaration and
@@ -232,13 +249,16 @@ pub fn enclosing_function_body<'a>(source: &'a str, start_byte: usize) -> Option
 ///
 /// A site is hot when any of:
 /// - it sits inside a loop
-/// - the **local** window is handler-shaped (not whole-file — package init
-///   in a handler file must stay cold)
-/// - the enclosing function name matches encode/serve/build-style tokens
+/// - the **local** window is handler-shaped (ResponseWriter / gin / echo / fiber)
+/// - the enclosing function name looks like a Handler/Middleware
+///
+/// Not hot by default:
+/// - package `main` / `init` cold paths (unless inside a loop)
+/// - bare method receivers without handler signatures
+/// - broad name tokens (`build`, `process`, …) — removed in Phase 2
 ///
 /// Whole-file `is_request_path` is intentionally **not** used here: it would
-/// mark every call in a handler-containing file as hot (including package
-/// `var x = build()` init sites).
+/// mark every call in a handler-containing file as hot (including package init).
 pub fn is_hot_path(
     source: &str,
     start_byte: usize,
@@ -247,6 +267,15 @@ pub fn is_hot_path(
 ) -> bool {
     if in_loop {
         return true;
+    }
+    // Suppress cold package init / main CLI unless looped.
+    if let Some(name) = enclosing_function_name(source, start_byte) {
+        if name == "init" || name == "main" {
+            return false;
+        }
+    } else {
+        // Package-level site: cold unless looped (already handled).
+        return false;
     }
     if is_handler_shaped(source, start_byte) {
         return true;
@@ -268,12 +297,45 @@ mod tests {
     use super::*;
 
     #[test]
-    fn function_name_is_hot_matches_common_tokens() {
-        assert!(function_name_is_hot("GenerateDoc"));
+    fn function_name_is_hot_matches_handler_and_codec_tokens() {
+        assert!(function_name_is_hot("UserHandler"));
+        assert!(function_name_is_hot("AuthMiddleware"));
+        assert!(function_name_is_hot("ServeHTTP"));
         assert!(function_name_is_hot("encodePage"));
-        assert!(function_name_is_hot("SignRequest"));
+        assert!(function_name_is_hot("EncodePath"));
+        assert!(function_name_is_hot("GenerateReport"));
+        // Dropped broad tokens that flood CLI/config code
+        assert!(!function_name_is_hot("buildConfig"));
+        assert!(!function_name_is_hot("processJob"));
         assert!(!function_name_is_hot("init"));
         assert!(!function_name_is_hot("helper"));
+    }
+
+    #[test]
+    fn is_hot_path_skips_main_and_package_level() {
+        const EMPTY: &[&str] = &[];
+        let src = "package main\nfunc main() {\n\tx := fmt.Sprintf(\"%d\", 1)\n}\n";
+        let byte = src.find("fmt.Sprintf").unwrap();
+        let index = crate::lang::go::detectors::perf::source_index::PerfSourceIndex::build(EMPTY, src);
+        assert!(!is_hot_path(src, byte, &index, false));
+
+        let src = "package p\nvar x = fmt.Sprintf(\"%d\", 1)\n";
+        let byte = src.find("fmt.Sprintf").unwrap();
+        let index = crate::lang::go::detectors::perf::source_index::PerfSourceIndex::build(EMPTY, src);
+        assert!(!is_hot_path(src, byte, &index, false));
+    }
+
+    #[test]
+    fn is_hot_path_true_for_http_handler_window() {
+        const EMPTY: &[&str] = &[];
+        let src = r#"package p
+func Handle(w http.ResponseWriter, r *http.Request) {
+    _ = fmt.Sprintf("%d", 1)
+}
+"#;
+        let byte = src.find("fmt.Sprintf").unwrap();
+        let index = crate::lang::go::detectors::perf::source_index::PerfSourceIndex::build(EMPTY, src);
+        assert!(is_hot_path(src, byte, &index, false));
     }
 
     #[test]

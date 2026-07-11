@@ -87,17 +87,38 @@ pub(crate) fn detect_perf_31(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     if !is_request_path(&facts.source_index) {
         return;
     }
-    // Suppress resource-cleanup defer patterns (`defer x.Close()`,
-    // `defer cancel()`, `defer x.Stop()`) — those are idiomatic Go and
-    // should not trip the hot-path heuristic.
+    // Suppress idiomatic cleanup defers — Close/cancel/Stop/pool Put/Unlock.
+    let source = unit.source.as_ref();
     let has_resource_defer = facts.source_index.has(".Close()")
         || facts.source_index.has("cancel()")
-        || facts.source_index.has(".Stop()");
+        || facts.source_index.has(".Stop()")
+        || source.contains("defer")
+            && (source.contains(".Put(")
+                || source.contains(".Unlock()")
+                || source.contains(".RUnlock()")
+                || source.contains("bufPool")
+                || source.contains("sync.Pool"));
     if has_resource_defer {
         return;
     }
 
     for &(start_byte, _end_byte) in &facts.defer_starts {
+        // Prefer same-function body: skip defers that are clearly pool/mutex cleanup.
+        if let Some(body) =
+            crate::lang::go::detectors::perf::common::enclosing_function_body(source, start_byte)
+        {
+            let defer_snip = &source[start_byte..(start_byte + 80).min(source.len())];
+            if defer_snip.contains(".Put(")
+                || defer_snip.contains(".Close(")
+                || defer_snip.contains("cancel(")
+                || defer_snip.contains(".Unlock(")
+                || defer_snip.contains(".RUnlock(")
+                || defer_snip.contains(".Stop(")
+            {
+                continue;
+            }
+            let _ = body;
+        }
         let (line, col) = unit.line_col(start_byte);
         emit::push_finding(
             &META_PERF_31,

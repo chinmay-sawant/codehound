@@ -1,10 +1,10 @@
-/// Default severity for Go performance rules.
+/// Severity for Go PERF rules by product tier (see [`super::tiers`]).
 ///
-/// PERF rules are medium severity by default: they do not block compilation or
-/// deployment, they signal a likely hot-path improvement. Individual rule ids
-/// can override this in [`fix_for`] / [`severity_for`] pairs.
-pub const fn severity_for(_id: u32) -> crate::rules::Severity {
-    crate::rules::Severity::Medium
+/// - **S/A** → Medium (actionable hot-path / framework)
+/// - **B/C** → Info (micro-opts / staticcheck overlap)
+/// - unlisted → Low
+pub const fn severity_for(id: u32) -> crate::rules::Severity {
+    super::tiers::severity_for_tier(id)
 }
 
 pub const fn fix_for(id: u32) -> Option<&'static str> {
@@ -23,6 +23,8 @@ pub const fn fix_for(id: u32) -> Option<&'static str> {
         6 => Some("Use a bytes.Buffer, strings.Builder, or pool of buffers to avoid repeated fmt allocations."),
         // PERF-7: Defer in loop
         7 => Some("Replace the defer with explicit close calls inside the loop or move the work into a helper function."),
+        // PERF-118: NewRequest vs Get — only when truly trivial (headers/context need NewRequest)
+        118 => Some("Use http.Get/http.Head only for simple no-header GET/HEAD; keep NewRequest when setting headers, context, or a custom client."),
         // PERF-8: time.Parse in loop
         8 => Some("Hoist time.Parse out of the loop or cache parsed time values keyed by layout."),
         // PERF-9: url.Parse in loop

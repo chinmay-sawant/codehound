@@ -11,10 +11,15 @@ pub(super) fn classify_source(func_text: &str) -> Option<SourceKind> {
         || call == "io.ReadAll(r.Body)"
         || call.contains(".PathValue")
         || call.contains(".Param")
-        // Gin/Echo framework: c.Query("name"), c.DefaultQuery("name","default")
+        // Gin/Echo: c.Query / c.DefaultQuery / c.QueryArray
         || call == "c.Query"
         || call == "c.DefaultQuery"
         || call == "c.QueryArray"
+        // Chi
+        || call.contains("chi.URLParam")
+        // Fiber params
+        || call == "c.Params"
+        || (call.ends_with(".Params") && call.starts_with("c."))
     {
         return Some(SourceKind::UserInput);
     }
