@@ -397,11 +397,22 @@ codehound init`,
     icon: Blocks,
     title: 'Built to extend',
     lead:
-      'The catalog is data. The CWE list is auto-generated from a sink registry. This website is the same idea — the nav is data, the page is a renderer.',
+      'Rules are not a closed box. Add a heuristic for Go, Python, or another language the architecture supports — metadata, tests, detection logic — then open a PR to ship it officially, or keep custom patterns on your fork.',
+    callout:
+      '**Official path = PR. Local path = your tree.** Same shape either way: describe the pattern, prove it with fixtures, implement the detector, register it.',
+    facts: [
+      { k: '1 · Metadata', v: 'Heuristic entry for the language — e.g. ruleset/golang/chunks for PERF, sink registry for CWE' },
+      { k: '2 · Tests', v: 'Vulnerable + safe fixtures; exclusive-fire / line oracles where the rule is gate-grade' },
+      { k: '3 · Detector', v: 'Detection logic in the language plugin (domains, facts, registry) per project architecture' },
+      { k: '4 · Ship', v: 'Open a PR to land it upstream — or maintain the same layout on a private fork' },
+      { k: 'Guide', v: 'documents/perf-detector-development.md · documents/rule-rfc-template.md · documents/adding-a-language.md' },
+      { k: 'Languages', v: 'Go production; Python opt-in (experimental); new languages need a real plugin, not a stub' },
+    ],
     body: [
-      'New analyzer? Add one entry to the sink registry. The CWE catalog (175+) regenerates.',
-      'New language? Ship a real plugin — Go is production; Python is opt-in (one rule); no TypeScript stub.',
-      'New section on this page? Add one entry to src/data/sections.ts. The nav, the scroll target, the layout all follow — no special cases.',
+      '**Add the heuristic text/metadata** for the target language (Go chunk JSON, CWE sink entry, BP rule table — whatever that catalog uses). That gives the rule an ID, name, severity, and description the reporters already understand.',
+      '**Add tests next** — fixture sources that must fire and must stay silent. Without fixtures, the rule does not ship.',
+      '**Implement detection** in the right place under the language plugin (e.g. Go PERF domains + registry TOML). Follow the existing architecture; do not invent a parallel path.',
+      '**Contribute or keep local:** open a PR to get the rule into the official catalog, or keep custom patterns on your own branch/fork and build the binary yourself. Upstream prefers quality over volume — see the rule RFC template.',
     ],
   },
 ]

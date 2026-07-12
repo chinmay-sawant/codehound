@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { sections } from './data/sections'
+import { GrokBuildLogo, OpenCodeLogo } from './components/AgentLogos'
 import { TopNav } from './components/TopNav'
 import { SectionView } from './components/Section'
 import {
@@ -270,6 +271,35 @@ export default function App() {
                 ❤️
               </span>{' '}
               by chinmay sawant
+              <span className="footer-agents" aria-label="Built with AI coding agents">
+                <span className="footer-agents-sep" aria-hidden="true">
+                  ·
+                </span>
+                with
+                <a
+                  className="footer-agent"
+                  href="https://grok.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Grok Build by xAI"
+                >
+                  <GrokBuildLogo className="footer-agent-logo" />
+                  Grok Build
+                </a>
+                <span className="footer-agents-sep" aria-hidden="true">
+                  &
+                </span>
+                <a
+                  className="footer-agent"
+                  href="https://opencode.ai"
+                  target="_blank"
+                  rel="noreferrer"
+                  title="OpenCode"
+                >
+                  <OpenCodeLogo className="footer-agent-logo" />
+                  OpenCode
+                </a>
+              </span>
             </span>
           </div>
         </footer>
