@@ -119,6 +119,9 @@ pub struct TaintConfig {
 pub struct BadPracticesConfig {
     pub enabled: bool,
     pub severity: Option<Severity>,
+    /// Per-rule severity overrides keyed by rule ID (e.g. `"BP-1" = "high"`).
+    #[serde(default)]
+    pub severity_overrides: std::collections::HashMap<String, Severity>,
 }
 
 impl Default for BadPracticesConfig {
@@ -126,6 +129,7 @@ impl Default for BadPracticesConfig {
         Self {
             enabled: true,
             severity: None,
+            severity_overrides: std::collections::HashMap::new(),
         }
     }
 }

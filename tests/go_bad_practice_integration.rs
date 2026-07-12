@@ -9,7 +9,7 @@ use clap::Parser;
 use codehound::cli::{Cli, RuleCategory};
 use codehound::core::ScanContext;
 use codehound::engine::{
-    AnalysisResult, Analyzer, PathFilters, ScanContextParams, CodehoundConfig, build_scan_context,
+    AnalysisResult, Analyzer, CodehoundConfig, PathFilters, ScanContextParams, build_scan_context,
 };
 use codehound::reporting::json::FindingJson;
 use codehound::reporting::sarif::render_to_string;
@@ -33,7 +33,10 @@ fn scan_context_from_cli(cli: &Cli, config: Option<CodehoundConfig>) -> ScanCont
         taint: cli.taint,
         no_taint: cli.no_taint,
         taint_show_paths: cli.taint_show_paths,
+        taint_depth: cli.taint_depth,
         show_ignored: cli.show_ignored,
+        profile: cli.profile.to_profile(),
+        retain_sources: cli.export_context || cli.export_chunks,
     })
 }
 
@@ -106,8 +109,17 @@ fn go_bad_practice_text_fixtures_also_work_via_cli_scan_path() {
         let safe = go_bp_cases::fixture_path(case, false);
         let expected_rule = go_bp_cases::expected_rule_id(case);
 
+        // Pin the rule with --only so style's default-off opinion rules
+        // (BP-21 / BP-28) still get fixture coverage when explicitly requested.
         let vulnerable_run = Command::new(exe)
-            .args(["scan", "--include-tests", vulnerable.as_str()])
+            .args([
+                "--profile",
+                "style",
+                "--only",
+                expected_rule.as_str(),
+                "--include-tests",
+                vulnerable.as_str(),
+            ])
             .output()
             .unwrap_or_else(|e| panic!("run {vulnerable}: {e}"));
         let vulnerable_stdout = String::from_utf8_lossy(&vulnerable_run.stdout);
@@ -122,7 +134,14 @@ fn go_bad_practice_text_fixtures_also_work_via_cli_scan_path() {
         }
 
         let safe_run = Command::new(exe)
-            .args(["scan", "--include-tests", safe.as_str()])
+            .args([
+                "--profile",
+                "style",
+                "--only",
+                expected_rule.as_str(),
+                "--include-tests",
+                safe.as_str(),
+            ])
             .output()
             .unwrap_or_else(|e| panic!("run {safe}: {e}"));
         let safe_stdout = String::from_utf8_lossy(&safe_run.stdout);

@@ -34,6 +34,59 @@ pub fn compute_all_summaries(
     summaries
 }
 
+/// Bounded multi-hop refinement of return-source summaries through a call graph.
+///
+/// If `A` calls `B` and `B` returns taint, mark `A` as return-tainted when
+/// `A` returns `B`'s result (or always if `B` has a direct source). Iterates
+/// up to `max_depth` times. Same-package only (caller provides file-local graph).
+pub fn refine_summaries_multihop(
+    call_graph: &super::super::CallGraph,
+    summaries: &mut HashMap<String, TaintSummary>,
+    max_depth: u32,
+) {
+    let depth = max_depth.clamp(1, 4);
+    for _ in 1..depth {
+        let mut changed = false;
+        for site in &call_graph.sites {
+            let caller = site.caller.as_ref();
+            let callee = site.callee.as_ref();
+            // Strip package prefix for method calls: `recv.Method` → `Method`
+            let callee_key = callee.rsplit('.').next().unwrap_or(callee);
+            let Some(callee_sum) = summaries.get(callee_key).cloned() else {
+                continue;
+            };
+            let returns_taint =
+                callee_sum.return_sources.iter().any(|b| *b) || callee_sum.has_direct_sink;
+            if !returns_taint {
+                continue;
+            }
+            let Some(caller_sum) = summaries.get_mut(caller) else {
+                continue;
+            };
+            // Expand caller's return_sources if still false.
+            if caller_sum.return_sources.iter().all(|b| !*b) {
+                if caller_sum.return_sources.is_empty() {
+                    caller_sum.return_sources.push(true);
+                } else {
+                    for b in &mut caller_sum.return_sources {
+                        *b = true;
+                    }
+                }
+                // Propagate sink kinds upward conservatively.
+                for sk in &callee_sum.sink_kinds {
+                    if !caller_sum.sink_kinds.contains(sk) {
+                        caller_sum.sink_kinds.push(*sk);
+                    }
+                }
+                changed = true;
+            }
+        }
+        if !changed {
+            break;
+        }
+    }
+}
+
 /// Compute a `TaintSummary` for one function.
 fn compute_summary_for(
     graph: &TaintGraph,

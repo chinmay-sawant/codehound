@@ -22,15 +22,16 @@
 //! would never trigger a cache invalidation.
 //!
 //! Both functions return paths **relative to `project_root`**, using
-//! forward slashes, so the result is comparable with the keys stored
-//! in [`CacheManifest`](crate::engine::cache::CacheManifest) and the
-//! `display_path` used by [`crate::engine::walk`].
+//! [`normalize_project_path`](crate::engine::normalize_project_path)
+//! (forward slashes, no `./`), so reverse-dep cascade matches manifest
+//! keys and `display_path` used by [`crate::engine::walk`].
 
 mod entry;
-mod go_imports;
+pub(crate) mod go_imports;
 mod go_module;
 mod project_root;
-mod python_imports;
+#[cfg(feature = "python")]
+pub(crate) mod python_imports;
 mod resolve;
 #[cfg(test)]
 mod tests;

@@ -4,6 +4,19 @@ use crate::core::{LanguageId, ParsedUnit, ScanContext};
 use crate::rules::Finding;
 
 /// Walks one parsed unit and appends findings.
+///
+/// # Concurrency model
+///
+/// 1. **`run`** — may execute in parallel across files (Rayon). Must not
+///    assume exclusive access to shared process state; write only through
+///    carefully locked or thread-local project state.
+/// 2. **`accumulate_state`** — also may run for cache-hit files (often after
+///    parallel scan). Same constraints as `run`.
+/// 3. **`finalize`** — single-threaded, after all units. Emit cross-file
+///    findings here; merge any per-thread project state first.
+///
+/// Prefer building project units off-lock and pushing under a short critical
+/// section (see Go CWE taint accumulation).
 pub trait Detector: Send + Sync {
     fn language(&self) -> LanguageId;
 

@@ -45,7 +45,7 @@ Each PR must include:
 - [ ] Detectors
 - [ ] `BP-N-vulnerable.txt` + `BP-N-safe.txt` for every N in the PR
 - [ ] `manifest.toml` rows
-- [ ] `docs/bad-practices.md` bullets
+- [ ] `documents/bad-practices.md` bullets
 - [ ] `cargo test --test go_bad_practice_integration` green
 
 **PR titles:**
@@ -107,7 +107,7 @@ Each PR must include:
 | PR | Rules | Focus |
 |----|-------|--------|
 | PR15 | BP-161..BP-165 | Testing + API lifecycle |
-| PR16 | docs/makefile/changelog | Release polish |
+| PR16 | documents/makefile/changelog | Release polish |
 
 - [ ] Replace any dropped rules from stretch backlog
 - [ ] Final count = **100** net-new (BP-66..BP-165 contiguous or documented holes)

@@ -21,13 +21,26 @@ fn has_symlink_guard_matches_known_pattern() {
 }
 
 #[test]
-fn is_path_confined_recognises_filepath_clean() {
+fn is_path_confined_rejects_filepath_clean_alone() {
     let a = AssignmentFact {
         name: "p".into(),
         expr: r#"filepath.Clean(p)"#.into(),
         start_byte: 0,
     };
+    // Clean + HasPrefix co-presence is NOT sufficient confinement.
     let src = r#"if strings.HasPrefix(p, "/safe/") { return p }"#;
+    let index = SourceIndex::build(NEEDLES, src);
+    assert!(!is_path_confined(&index, src, &a));
+}
+
+#[test]
+fn is_path_confined_recognises_abs_plus_has_prefix() {
+    let a = AssignmentFact {
+        name: "p".into(),
+        expr: r#"filepath.Abs(p)"#.into(),
+        start_byte: 0,
+    };
+    let src = r#"p, _ = filepath.Abs(p); if strings.HasPrefix(p, "/safe/") { return p }"#;
     let index = SourceIndex::build(NEEDLES, src);
     assert!(is_path_confined(&index, src, &a));
 }

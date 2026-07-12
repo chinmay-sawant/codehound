@@ -7,12 +7,14 @@ mod evidence;
 mod finding;
 pub(crate) mod finding_view;
 pub(crate) mod finding_wire;
+pub mod maturity;
 mod severity;
 
 pub use emit::{push_finding, push_finding_with_evidence, push_finding_with_snippet, rule_meta};
 pub use evidence::{ControlFlowKind, DetectorEvidence, TaintHop, TaintSinkInfo, TaintSourceInfo};
 pub use finding::{Finding, FindingInputs, LineCol};
 pub use finding_view::FindingView;
+pub use maturity::{RuleMaturity, is_quarantined_from_default_packs, maturity_for};
 pub use severity::Severity;
 
 use serde::Serialize;

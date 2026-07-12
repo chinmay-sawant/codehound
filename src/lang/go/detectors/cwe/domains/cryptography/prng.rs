@@ -6,12 +6,15 @@ pub(crate) fn detect_cwe_334(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
+    // Fixture-only needle (see rules::maturity::FixtureOnly / CWE-334 quarantine).
+    // Keep detector for --profile all corpus tests; never in recommended/security packs.
     if !facts.source_index.has("Intn(4096)") {
         return;
     }
 
     let start_byte = source.find("Intn(4096)").unwrap_or(0);
     let (line, col) = unit.line_col(start_byte);
+    let at = out.len();
     emit::push_finding(
         &META_CWE_334,
         file,
@@ -20,6 +23,9 @@ pub(crate) fn detect_cwe_334(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         "the generated token comes from a very small 4096-value space and is easy to guess",
         out,
     );
+    for f in out.iter_mut().skip(at) {
+        f.confidence = Some(0.35); // needle / fixture-shaped
+    }
 }
 
 pub(crate) fn detect_cwe_335(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {

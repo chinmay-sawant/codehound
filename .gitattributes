@@ -54,6 +54,6 @@ Makefile text eol=lf
 makefile linguist-vendored
 Makefile linguist-vendored
 
-/docs/ linguist-vendored
-/docs/ linguist-vendored
+/documents/ linguist-vendored
+/documents/ linguist-vendored
 *.md export-ignore

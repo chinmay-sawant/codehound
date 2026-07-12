@@ -72,7 +72,7 @@ fn text_output_can_show_fingerprint() {
     let rendered = String::from_utf8(out).unwrap();
 
     assert!(
-        rendered.contains("fingerprint: codehound:1:CWE-89:a.go:1:1"),
+        rendered.contains("fingerprint: codehound:2:CWE-89:a.go:"),
         "{rendered}"
     );
 }

@@ -24,12 +24,22 @@ pub struct ScanContext {
     pub taint_enabled: bool,
     /// When true, emit taint paths in finding evidence.
     pub taint_show_paths: bool,
+    /// Max inter-procedural summary hops (1 = direct caller→callee only).
+    /// Higher values enable bounded multi-hop refinement within a package.
+    pub taint_max_depth: u32,
     /// When false, suppress all BP-* bad-practice rules.
     pub bad_practices_enabled: bool,
     /// Optional severity override for BP-* bad-practice findings.
     pub bad_practice_severity: Option<Severity>,
+    /// Per-rule severity overrides (e.g. BP-1 → High). Applied after the
+    /// global BP severity override when present.
+    pub severity_overrides: std::collections::HashMap<String, Severity>,
     /// When true, text output includes extra scan stats (bytes, phase timing).
     pub verbose: bool,
+    /// When true, retain per-file sources in `AnalysisResult.source_cache`
+    /// (needed for `--export-context` / `--export-chunks`). Default CI/JSON/SARIF
+    /// paths leave this false to avoid a monorepo RAM tax.
+    pub retain_sources: bool,
 }
 
 impl Default for ScanContext {
@@ -42,11 +52,15 @@ impl Default for ScanContext {
             debug_timing: false,
             diagnostics: false,
             diagnostics_summary: false,
-            taint_enabled: true,
+            // Off by default; enable via --taint or [codehound.taint] enabled = true.
+            taint_enabled: false,
             taint_show_paths: false,
+            taint_max_depth: 1,
             bad_practices_enabled: true,
             bad_practice_severity: None,
+            severity_overrides: std::collections::HashMap::new(),
             verbose: false,
+            retain_sources: false,
         }
     }
 }
@@ -81,6 +95,9 @@ impl ScanContext {
                 finding.severity = severity;
             }
         }
+        if let Some(severity) = self.severity_overrides.get(finding.rule_id) {
+            finding.severity = *severity;
+        }
     }
 
     /// True if the run should collect scan statistics, phase timings, and
@@ -90,4 +107,26 @@ impl ScanContext {
     }
     // ponytail: collect_detector_timing was identical to collect_stats — merged.
     // Callers migrated to collect_stats().
+
+    /// Stable hash of settings that change which detectors run / findings
+    /// are stored. Used to invalidate the incremental cache when the pack
+    /// or filter set changes (e.g. recommended → all).
+    pub fn rule_config_fingerprint(&self) -> String {
+        use std::collections::BTreeSet;
+        use std::hash::{Hash, Hasher};
+
+        let mut only: BTreeSet<&str> = BTreeSet::new();
+        if let Some(set) = &self.only {
+            only.extend(set.iter().map(String::as_str));
+        }
+        let skip: BTreeSet<&str> = self.skip.iter().map(String::as_str).collect();
+        // Hash via a portable string so disk caches are stable across processes.
+        let payload = format!(
+            "only={only:?}|skip={skip:?}|taint={}|bp={}|depth={}",
+            self.taint_enabled, self.bad_practices_enabled, self.taint_max_depth
+        );
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        payload.hash(&mut hasher);
+        format!("{:016x}", hasher.finish())
+    }
 }

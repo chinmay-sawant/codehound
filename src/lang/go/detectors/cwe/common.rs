@@ -34,11 +34,17 @@ pub fn is_path_confined(
     source: &str,
     assignment: &facts::AssignmentFact,
 ) -> bool {
-    (assignment.expr.contains("filepath.Clean(")
-        && crate::engine::scratch_contains(source, "strings.HasPrefix(", &assignment.name, ","))
-        || assignment.expr.contains("filepath.Base(")
-        || (assignment.expr.contains("filepath.Abs(")
-            && has_canonical_path_guard(index, source, &assignment.name))
+    // filepath.Clean alone is NOT confinement.
+    // Accept: Base (final component only), or HasPrefix on the same binding
+    // (optionally with Abs/EvalSymlinks / Join under a root).
+    if assignment.expr.contains("filepath.Base(") {
+        return true;
+    }
+    // Same-binding HasPrefix is the confinement evidence.
+    if has_canonical_path_guard(index, source, &assignment.name) {
+        return true;
+    }
+    false
 }
 
 pub fn has_canonical_path_guard(index: &SourceIndex, source: &str, path_name: &str) -> bool {

@@ -1,6 +1,6 @@
 use codehound::core::LanguageId;
 use codehound::engine::{
-    LanguageFilter, Registry, CodehoundConfig, CodehoundSection, resolve_language_filter,
+    CodehoundConfig, CodehoundSection, LanguageFilter, Registry, resolve_language_filter,
 };
 
 #[test]

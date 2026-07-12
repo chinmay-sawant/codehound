@@ -1,4 +1,7 @@
 //! Python integration tests — must use `tests/fixtures/python/` only.
+//! Requires `--features python` (Python is not in default features; ADR 0005).
+
+#![cfg(feature = "python")]
 
 use codehound::engine::Analyzer;
 

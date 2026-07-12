@@ -2,9 +2,9 @@ use std::collections::HashSet;
 use std::path::Path;
 use std::time::Duration;
 
-use criterion::{Criterion, criterion_group, criterion_main};
 use codehound::engine::{CacheStore, collect_entries, content_hash};
 use codehound::fixture::{materialize_tree, materialized_root};
+use criterion::{Criterion, criterion_group, criterion_main};
 
 #[path = "common/mod.rs"]
 mod common;

@@ -164,13 +164,13 @@ The remaining work is exclusively hygiene: benchmark regression investigation, f
 
 ### 8.1 Benchmark regression investigation
 
-- [x] Investigate criterion bench regression noted in P2.4 batch 3 — documented in `docs/architecture-performance.md` (commit 5ce018f)
+- [x] Investigate criterion bench regression noted in P2.4 batch 3 — documented in `documents/architecture-performance.md` (commit 5ce018f)
 - [x] Verify cold/warm/partial/in-memory benchmarks are within 20% of saved local baseline — smoke budget bumped to 16s (commit 5ce018f)
-- [x] Document findings in `docs/architecture-performance.md` if regression is structural — completed (commit 5ce018f)
+- [x] Document findings in `documents/architecture-performance.md` if regression is structural — completed (commit 5ce018f)
 
 ### 8.2 Diagnostic documentation
 
-- [x] Create `docs/perf-detector-development.md` — created with 9-step guide for adding new PERF rules (commit 5ce018f)
+- [x] Create `documents/perf-detector-development.md` — created with 9-step guide for adding new PERF rules (commit 5ce018f)
 - [x] Registry TOML format and domain module layout — documented in the guide
 - [x] Function-pointer dispatch pattern — documented in the guide
 - [x] Fixture creation and `manifest.toml` registration — documented in the guide

@@ -6,8 +6,8 @@ use codehound::rules::{Finding, FindingInputs, LineCol, Severity};
 #[path = "helpers/mod.rs"]
 mod helpers;
 
-use insta::assert_snapshot;
 use codehound::reporting::text::{TextOptions, write_with_options};
+use insta::assert_snapshot;
 
 fn sample_result() -> AnalysisResult {
     helpers::reporting::sample_result(vec![

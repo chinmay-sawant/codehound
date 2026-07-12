@@ -15,7 +15,12 @@ fn main() -> ExitCode {
         Ok(code) => code,
         Err(err) => {
             eprintln!("error: {err:#}");
-            ExitCode::from(app::EXIT_CONFIG)
+            // Prefer Error kind when available; fall back to config for clap/anyhow.
+            let code = err
+                .downcast_ref::<codehound::Error>()
+                .map(app::exit_code_for_error)
+                .unwrap_or(app::EXIT_CONFIG);
+            ExitCode::from(code)
         }
     }
 }

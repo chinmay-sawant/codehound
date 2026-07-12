@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use codehound::cli::Cli;
-use codehound::engine::{CacheStore, DEFAULT_CACHE_DIR, CodehoundConfig, discover_cache_dir};
+use codehound::engine::{CacheStore, CodehoundConfig, DEFAULT_CACHE_DIR, discover_cache_dir};
 
 /// Resolve and open the incremental-analysis cache when enabled by
 /// CLI flags + `codehound.toml`. Returns `None` when the cache is

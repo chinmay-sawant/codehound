@@ -1,3 +1,4 @@
+#![cfg(feature = "python")]
 mod helpers;
 
 use helpers::baseline::{
@@ -6,6 +7,8 @@ use helpers::baseline::{
 
 const BASELINE_FILE: &str = ".codehound-baseline.json";
 const SCAN_ARGS: &[&str] = &[
+    "--profile",
+    "all",
     "--format",
     "json",
     "--no-context",
@@ -98,6 +101,8 @@ fn baseline_save_mode_ignores_disabled_config() {
 
     let output = run_codehound(
         &[
+            "--profile",
+            "all",
             "--baseline",
             "--no-context",
             "--no-chunks",

@@ -30,25 +30,21 @@ impl InMemoryBackend {
     }
 }
 
+fn lock_or_recover<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
+    mutex
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
 impl CacheBackend for InMemoryBackend {
     fn load_entry(&self, cache_key: &str) -> Option<CacheEntry> {
-        self.entries
-            .lock()
-            .expect("in-memory cache entries mutex poisoned")
-            .get(cache_key)
-            .cloned()
+        lock_or_recover(&self.entries).get(cache_key).cloned()
     }
 
     fn store_entry(&mut self, cache_key: &str, entry: &CacheEntry) -> Result<(), CacheError> {
         let new_len = serialized_len(entry);
-        let mut entries = self
-            .entries
-            .lock()
-            .expect("in-memory cache entries mutex poisoned");
-        let mut total = self
-            .total_bytes
-            .lock()
-            .expect("in-memory cache size mutex poisoned");
+        let mut entries = lock_or_recover(&self.entries);
+        let mut total = lock_or_recover(&self.total_bytes);
         if let Some(old) = entries.insert(cache_key.to_string(), entry.clone()) {
             *total = total.saturating_sub(serialized_len(&old));
         }
@@ -57,14 +53,8 @@ impl CacheBackend for InMemoryBackend {
     }
 
     fn delete_entry(&mut self, cache_key: &str) -> Result<(), CacheError> {
-        let mut entries = self
-            .entries
-            .lock()
-            .expect("in-memory cache entries mutex poisoned");
-        let mut total = self
-            .total_bytes
-            .lock()
-            .expect("in-memory cache size mutex poisoned");
+        let mut entries = lock_or_recover(&self.entries);
+        let mut total = lock_or_recover(&self.total_bytes);
         if let Some(old) = entries.remove(cache_key) {
             *total = total.saturating_sub(serialized_len(&old));
         }
@@ -72,10 +62,7 @@ impl CacheBackend for InMemoryBackend {
     }
 
     fn total_size(&self) -> u64 {
-        *self
-            .total_bytes
-            .lock()
-            .expect("in-memory cache size mutex poisoned")
+        *lock_or_recover(&self.total_bytes)
     }
 
     fn clean_orphans(&self, _active_keys: &HashSet<&str>) -> Result<usize, CacheError> {

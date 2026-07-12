@@ -1,5 +1,6 @@
 #![cfg(feature = "go")]
 
+use codehound::core::ScanContext;
 use codehound::engine::Analyzer;
 use codehound::fixture::materialize_fixture;
 
@@ -9,7 +10,12 @@ fn go_cwe_findings_include_structured_cwe_refs() {
     let source_path = materialize_fixture(std::path::Path::new(fixture))
         .unwrap_or_else(|e| panic!("materialize {fixture}: {e:#}"));
 
-    let analyzer = Analyzer::builder().build();
+    let analyzer = Analyzer::builder()
+        .scan_context(ScanContext {
+            taint_enabled: true,
+            ..ScanContext::default()
+        })
+        .build();
     let result = analyzer
         .analyze_paths(&[&source_path], None)
         .unwrap_or_else(|e| panic!("analyze {}: {e:#}", source_path.display()));

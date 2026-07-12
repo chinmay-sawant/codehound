@@ -199,6 +199,8 @@ pub struct TaintAnnotations {
     pub function_params: HashMap<SharedText, Vec<SharedText>>,
     /// Function name → byte range of the function declaration.
     pub function_ranges: HashMap<SharedText, Range<usize>>,
+    /// Sites where taint flow is intentionally not modeled (channels, goroutines).
+    pub unsupported_flows: Vec<UnsupportedFlow>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -240,6 +242,26 @@ pub struct AssignmentDetail {
     /// True when the RHS is a direct source or sanitizer call; identifier
     /// references inside it should not create extra assignment edges.
     pub from_source_or_sanitizer: bool,
+    /// True when this is a channel send (`ch <- v`). Treated as **unsupported**
+    /// for taint flow (explicit FN) — not modeled as a normal assignment.
+    pub is_channel_send: bool,
+}
+
+/// Record of an unsupported taint flow site (channels, goroutine handoff).
+/// Used for honest FNs and diagnostics — not for graph edges that pretend to work.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UnsupportedFlow {
+    pub kind: UnsupportedFlowKind,
+    pub byte_range: Range<usize>,
+    pub note: SharedText,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub enum UnsupportedFlowKind {
+    /// `ch <- value` or receive forms — taint does not cross channels.
+    Channel,
+    /// `go f(...)` — taint does not track into spawned goroutines.
+    Goroutine,
 }
 
 // --- Call Graph ---

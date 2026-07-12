@@ -408,8 +408,9 @@ pub(crate) fn detect_perf_192(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 /// True when the enclosing function has a `range` loop or `len(` that could
 /// supply a map capacity hint.
 fn map_size_hint_available(source: &str, start_byte: usize) -> bool {
-    let body = crate::lang::go::detectors::perf::common::enclosing_function_body(source, start_byte)
-        .unwrap_or(source);
+    let body =
+        crate::lang::go::detectors::perf::common::enclosing_function_body(source, start_byte)
+            .unwrap_or(source);
     body.contains(" range ")
         || body.contains("\trange ")
         || body.contains("range ")

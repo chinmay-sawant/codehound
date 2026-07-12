@@ -35,12 +35,11 @@ pub(crate) fn detect_perf_101(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut
 }
 
 /// PERF-103: `client.Do`, `client.Get`, `http.Get`, or `http.Post`
-/// returns an `*http.Response` whose Body must be `Close()`d. The
-/// detector flags a call when the surrounding context does NOT
-/// contain `defer ... Body.Close()`. A precise control-flow check
-/// would be ideal; we approximate with a sibling-statement scan
-/// inside the enclosing function block.
+/// returns an `*http.Response` whose Body must be `Close()`d.
+/// Prefer same-function + `defer` detection over whole-file window scan.
 pub(crate) fn detect_perf_103(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    use crate::lang::go::detectors::perf::common::enclosing_function_body;
+
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
@@ -53,14 +52,10 @@ pub(crate) fn detect_perf_103(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
             continue;
         }
 
-        // Look for `defer ... Body.Close()` anywhere later in the
-        // function body. We use a window of the whole source rather
-        // than a precise control-flow walk to keep the detector in
-        // Category A; the trade-off is a small false-negative rate
-        // for code that uses `defer` inside a nested closure, which
-        // the higher-tier detectors will pick up.
-        let window = &source[call.start_byte.min(source.len())..];
-        if window.contains(".Body.Close()") || window.contains(".Body.Close(") {
+        // Prefer enclosing function body (same-fn + defer) over rest-of-file scan.
+        let scope = enclosing_function_body(source, call.start_byte)
+            .unwrap_or_else(|| &source[call.start_byte.min(source.len())..]);
+        if scope.contains(".Body.Close()") || scope.contains(".Body.Close(") {
             continue;
         }
 
@@ -70,23 +65,42 @@ pub(crate) fn detect_perf_103(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
             file,
             line,
             col,
-            "http response body is not deferred-closed; this leaks the connection",
+            "http response body is not closed in this function; defer resp.Body.Close() after the call",
             out,
         );
     }
 }
 
-/// PERF-118: `http.NewRequest("GET"|"HEAD"|"POST", url, nil)` should
-/// be the dedicated `http.NewRequest` for that method, or even
-/// `http.Get` / `http.Head` when the body is nil.
+/// PERF-118: prefer `http.Get` / `http.Head` only for trivial no-header calls.
+/// Do **not** flag when the same function sets headers, uses context, or a custom client.
 pub(crate) fn detect_perf_118(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    use crate::lang::go::detectors::perf::common::enclosing_function_body;
+
     let file = unit.display_path.as_str();
+    let source = unit.source.as_ref();
     for call in &facts.calls {
         if call.callee.as_ref() != "http.NewRequest" {
             continue;
         }
         let method = call.arguments.first().map(|s| s.as_ref()).unwrap_or("");
-        if !matches!(method, "\"GET\"" | "\"HEAD\"" | "\"POST\"") {
+        // Only GET/HEAD with nil body are candidates for http.Get/Head shortcuts.
+        if !matches!(method, "\"GET\"" | "\"HEAD\"") {
+            continue;
+        }
+        let body_arg = call.arguments.get(2).map(|s| s.as_ref()).unwrap_or("nil");
+        if body_arg != "nil" {
+            continue;
+        }
+        let scope = enclosing_function_body(source, call.start_byte).unwrap_or("");
+        // Headers, context, or custom transport → NewRequest is appropriate.
+        if scope.contains(".Header.")
+            || scope.contains("Header.Set")
+            || scope.contains("Header.Add")
+            || scope.contains("WithContext")
+            || scope.contains("NewRequestWithContext")
+            || scope.contains("http.Client{")
+            || scope.contains("&http.Client")
+        {
             continue;
         }
         let (line, col) = unit.line_col(call.start_byte);
@@ -95,7 +109,7 @@ pub(crate) fn detect_perf_118(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
             file,
             line,
             col,
-            "use http.Get / http.Head / http.Post for trivial methods; http.NewRequest allocates extra fields",
+            "for a simple GET/HEAD with no headers or context, http.Get/http.Head is enough; keep NewRequest when you set headers, context, or a custom client",
             out,
         );
     }

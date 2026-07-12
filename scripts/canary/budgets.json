@@ -1,0 +1,20 @@
+{
+  "clean_lib": {
+    "path": "tests/canary/clean_lib",
+    "profile": "recommended",
+    "max_findings": 0,
+    "notes": "Tiny library; expect zero recommended findings"
+  },
+  "http_service": {
+    "path": "tests/canary/http_service",
+    "profile": "recommended",
+    "max_findings": 5,
+    "notes": "Stdlib HTTP without timeouts; allow a few S-tier PERF hits"
+  },
+  "dogfood_src": {
+    "path": "src",
+    "profile": "recommended",
+    "max_findings": 50,
+    "notes": "Dogfood Rust tree with Go-focused rules — most files skipped; budget is a spike guard"
+  }
+}

@@ -1,0 +1,72 @@
+name: codehound-scan
+description: Build or download CodeHound, scan the repo, upload SARIF
+inputs:
+  profile:
+    description: Scan profile (recommended, security, perf, style, all)
+    required: false
+    default: recommended
+  paths:
+    description: Paths to scan
+    required: false
+    default: "."
+  args:
+    description: Extra codehound CLI args
+    required: false
+    default: ""
+  sarif-file:
+    description: Output SARIF path
+    required: false
+    default: codehound.sarif
+  upload-sarif:
+    description: Whether to upload SARIF to GitHub code scanning
+    required: false
+    default: "true"
+  strict:
+    description: Fail on high+ findings
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache cargo
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-codehound-action-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Build codehound
+      shell: bash
+      run: cargo build --release --bin codehound
+
+    - name: Scan
+      shell: bash
+      run: |
+        set -euo pipefail
+        STRICT_FLAG=""
+        if [ "${{ inputs.strict }}" = "true" ]; then
+          STRICT_FLAG="--strict"
+        fi
+        ./target/release/codehound \
+          --profile "${{ inputs.profile }}" \
+          --format sarif \
+          $STRICT_FLAG \
+          ${{ inputs.args }} \
+          ${{ inputs.paths }} \
+          > "${{ inputs.sarif-file }}" || status=$?
+        # codehound exits non-zero on findings under --strict; still upload SARIF
+        echo "scan_exit=${status:-0}" >> "$GITHUB_OUTPUT"
+        exit 0
+
+    - name: Upload SARIF
+      if: inputs.upload-sarif == 'true'
+      continue-on-error: true
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ inputs.sarif-file }}

@@ -85,6 +85,9 @@ fn read_registry_entries(dir_or_file: &str) -> Vec<types::RegistryDetector> {
             .unwrap_or_else(|e| panic!("parse CWE registry TOML {dir_or_file}: {e}"));
         entries = reg.detector;
     }
+    for d in &entries {
+        d.validate();
+    }
     entries
 }
 
@@ -114,6 +117,9 @@ fn read_perf_registry_entries(dir_or_file: &str) -> Vec<types::PerfRegistryDetec
         let reg: PerfRegistryFile = toml::from_str(&text)
             .unwrap_or_else(|e| panic!("parse PERF registry TOML {dir_or_file}: {e}"));
         entries = reg.detector;
+    }
+    for d in &entries {
+        d.validate();
     }
     entries
 }

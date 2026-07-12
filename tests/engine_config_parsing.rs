@@ -1,7 +1,7 @@
 use codehound::core::FailPolicy;
 use codehound::engine::{
-    CacheConfig, PathFilters, RunConfigParams, ScanContextParams, CodehoundConfig,
-    CodehoundSection, build_run_config, discover_config,
+    CacheConfig, CodehoundConfig, CodehoundSection, PathFilters, RunConfigParams,
+    ScanContextParams, build_run_config, discover_config,
 };
 use codehound::rules::Severity;
 use std::path::{Path, PathBuf};

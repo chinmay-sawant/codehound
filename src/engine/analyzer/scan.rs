@@ -2,6 +2,7 @@
 //! cascade-invalidation, pruning, and stats aggregation.
 
 use std::path::Path;
+use std::time::Instant;
 
 use crate::Error;
 use crate::engine::{
@@ -34,6 +35,7 @@ impl Analyzer {
         paths: &[impl AsRef<Path>],
         mut cache: Option<CacheSession<'_>>,
     ) -> Result<AnalysisResult, Error> {
+        let wall_start = Instant::now();
         let mut timing = timing::TimingCollector::new(self.collect_stats);
         let start = paths
             .first()
@@ -150,14 +152,25 @@ impl Analyzer {
             suppressed_count: acc.suppressed_count(),
             stats: None,
         };
-        if self.collect_stats {
-            let mut scan_stats = chunk_stats;
-            scan_stats.merge(&ScanStats::from_findings(&result.findings, 0));
-            scan_stats.findings_suppressed = result.suppressed_count;
-            scan_stats.detectors_loaded = self.registry.detector_count();
-            scan_stats.timing = Some(timing.to_summary());
-            result.stats = Some(scan_stats);
-        }
+        // Always attach basic counts + wall time so summaries can show ms and
+        // cache hit/miss. Phase/detector spans stay behind `collect_stats`.
+        let mut scan_stats = chunk_stats;
+        scan_stats.merge(&ScanStats::from_findings(&result.findings, 0));
+        scan_stats.findings_suppressed = result.suppressed_count;
+        scan_stats.detectors_loaded = self.registry.detector_count();
+        let wall = wall_start.elapsed();
+        let mut summary = if self.collect_stats {
+            timing.to_summary()
+        } else {
+            timing::TimingSummary {
+                total_wall_time: wall,
+                phases: Vec::new(),
+            }
+        };
+        // Prefer true wall clock over summed phase spans (phases may overlap).
+        summary.total_wall_time = wall;
+        scan_stats.timing = Some(summary);
+        result.stats = Some(scan_stats);
 
         if let Some(mut cache) = cache {
             if let Err(e) = cache.flush() {

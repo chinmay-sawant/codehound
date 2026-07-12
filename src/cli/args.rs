@@ -16,6 +16,10 @@ use clap::Parser;
         codehound ./cmd/foo.go               # scan a single file\n  \
         codehound --only CWE-22,CWE-89       # only the named rules\n  \
         codehound --format sarif > out.sarif # SARIF for CI\n  \
+        codehound --profile recommended .    # default high-signal CI pack\n  \
+        codehound --profile security --taint # taint CWE core (taint on with security)\n  \
+        codehound --profile all              # full catalog\n  \
+        codehound --export-context --export-chunks  # opt-in filesystem export\n  \
         codehound --taint                    # enable experimental taint tracking\n  \
         codehound --taint-show-paths         # emit taint-path evidence\n  \
         codehound --diagnostics-summary      # compact scan stats\n  \
@@ -38,6 +42,10 @@ pub struct Cli {
     /// Output format.
     #[arg(long, value_enum, default_value_t = super::enums::OutputFormat::Text)]
     pub format: super::enums::OutputFormat,
+
+    /// Product pack: recommended (default CI), perf, security, style, all.
+    #[arg(long, value_enum, default_value_t = super::enums::ProfileArg::Recommended, env = "CODEHOUND_PROFILE")]
+    pub profile: super::enums::ProfileArg,
 
     /// Path to a `codehound.toml` (overrides auto-discovery).
     #[arg(long, env = "CODEHOUND_CONFIG")]
@@ -71,6 +79,10 @@ pub struct Cli {
     #[arg(long)]
     pub taint_show_paths: bool,
 
+    /// Inter-procedural taint summary hops (1 = direct only; max 4).
+    #[arg(long, value_name = "N", default_value_t = 1)]
+    pub taint_depth: u32,
+
     /// Exit policy for findings.
     #[command(flatten)]
     pub severity: super::severity_args::SeverityArgs,
@@ -94,17 +106,29 @@ pub struct Cli {
     #[arg(long)]
     pub no_terminal: bool,
 
-    /// Do not write per-finding context files.
+    /// Write per-finding context files (default: off — opt-in only).
     #[arg(long)]
+    pub export_context: bool,
+
+    /// Write chunk files (default: off — opt-in only).
+    #[arg(long)]
+    pub export_chunks: bool,
+
+    /// Deprecated alias: context export is off by default.
+    #[arg(long, hide = true)]
     pub no_context: bool,
 
-    /// Do not write chunk files.
-    #[arg(long)]
+    /// Deprecated alias: chunk export is off by default.
+    #[arg(long, hide = true)]
     pub no_chunks: bool,
 
     /// Suppress the source snippet in text output.
     #[arg(long)]
     pub no_snippet: bool,
+
+    /// Emit compact SARIF (omit optional verbose fields). Independent of `--no-snippet`.
+    #[arg(long)]
+    pub sarif_compact: bool,
 
     /// Show canonical finding fingerprints in text output.
     #[arg(long)]
@@ -145,16 +169,20 @@ pub struct Cli {
     pub json_envelope: bool,
 
     /// Save current findings as the baseline and exit.
-    #[arg(long)]
+    #[arg(long, conflicts_with = "no_baseline")]
     pub baseline: bool,
 
     /// Ignore any existing `.codehound-baseline.json` file.
-    #[arg(long)]
+    #[arg(long, conflicts_with = "baseline")]
     pub no_baseline: bool,
 
     /// Report findings suppressed by codehound-ignore comments.
     #[arg(long)]
     pub show_ignored: bool,
+
+    /// Report findings suppressed by the baseline (mirror `--show-ignored`).
+    #[arg(long)]
+    pub show_baselined: bool,
 
     /// Path to a custom baseline file.
     #[arg(long, value_name = "PATH")]

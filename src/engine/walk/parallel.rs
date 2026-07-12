@@ -85,11 +85,13 @@ pub(crate) fn scan_entries_parallel(
         &mut cache,
         preflight.cache_hit_count,
         total,
+        ctx.retain_sources,
     );
 
     // Accumulate cross-file detector state for cache-hit files
     // so finalize() can emit the same findings regardless of cache.
-    if !preflight.cached_files.is_empty() {
+    // Only needed when taint finalize will consume project state.
+    if ctx.taint_enabled && !preflight.cached_files.is_empty() {
         accumulate_state_for_cached(registry, ctx, &preflight.cached_files);
     }
 
@@ -140,7 +142,18 @@ fn preflight_cache_hits(
         };
     };
 
-    let mut cached_files = Vec::new();
+    // Phase 1: read + hash every eligible file; collect provisional hits/misses.
+    struct Provisional {
+        index: usize,
+        source: Arc<str>,
+        rel: String,
+        hash: String,
+        hit: Option<CacheEntry>,
+        language: LanguageId,
+    }
+    let mut provisional: Vec<Provisional> = Vec::with_capacity(total);
+    let mut dirty: std::collections::HashSet<String> = std::collections::HashSet::new();
+
     for (i, entry) in entries.iter().enumerate() {
         if !cache.should_cache_path(entry.path.as_ref()) {
             to_scan.push((i, None));
@@ -153,25 +166,60 @@ fn preflight_cache_hits(
                 continue;
             }
         };
+        let rel = crate::engine::path_identity::normalize_project_path(&rel);
         let hash = content_hash(&source);
         match cache.lookup(&rel, &hash) {
             CacheLookup::Hit(cached) => {
-                cache_hit_count += 1;
-                cached_outcomes.push(process_cache_hit(ctx, cached, source.clone()));
-                cached_files.push(CachedFileInfo {
+                provisional.push(Provisional {
+                    index: i,
                     source,
-                    display_path: rel,
+                    rel,
+                    hash,
+                    hit: Some(cached),
                     language: entry.language,
                 });
             }
-            _ => to_scan.push((
-                i,
-                Some(PreloadedSource {
+            _ => {
+                dirty.insert(rel.clone());
+                provisional.push(Provisional {
+                    index: i,
                     source,
-                    content_hash: hash,
-                }),
-            )),
+                    rel,
+                    hash,
+                    hit: None,
+                    language: entry.language,
+                });
+            }
         }
+    }
+
+    // Phase 2: same-scan cascade — reverse-dep fixpoint through the manifest.
+    // If A depends on B and B is dirty, force A dirty so we re-parse A now
+    // (not only on the next scan).
+    cache.expand_dirty_fixpoint(&mut dirty);
+
+    // Phase 3: emit hits only when not dirty; otherwise force re-scan.
+    let mut cached_files = Vec::new();
+    for p in provisional {
+        if let Some(cached) = p.hit {
+            if !dirty.contains(&p.rel) {
+                cache_hit_count += 1;
+                cached_outcomes.push(process_cache_hit(ctx, cached, p.source.clone()));
+                cached_files.push(CachedFileInfo {
+                    source: p.source,
+                    display_path: p.rel,
+                    language: p.language,
+                });
+                continue;
+            }
+        }
+        to_scan.push((
+            p.index,
+            Some(PreloadedSource {
+                source: p.source,
+                content_hash: p.hash,
+            }),
+        ));
     }
 
     PreflightResult {
@@ -267,11 +315,16 @@ fn merge_parallel_results(
     cache: &mut Option<&mut CacheSession<'_>>,
     cache_hit_count: usize,
     total: usize,
+    retain_sources: bool,
 ) -> MergedScan {
     let mut merged = MergedScan {
         findings: Vec::new(),
         errors: Vec::new(),
-        source_cache: HashMap::with_capacity(total),
+        source_cache: if retain_sources {
+            HashMap::with_capacity(total)
+        } else {
+            HashMap::new()
+        },
         suppressed_count: 0,
         stats: ScanStats::default(),
         rescan_files: Vec::new(),
@@ -296,6 +349,7 @@ fn merge_parallel_results(
                     result.source,
                     &result.stats,
                     result.suppressed_count,
+                    retain_sources,
                 );
             }
             ScanOutcome::Err(e) => {
@@ -315,7 +369,15 @@ fn merge_parallel_results(
                 stats: file_stats,
                 ..
             } => {
-                append_file_contribution(&mut merged, &mut f, cache_key, source, &file_stats, 0);
+                append_file_contribution(
+                    &mut merged,
+                    &mut f,
+                    cache_key,
+                    source,
+                    &file_stats,
+                    0,
+                    retain_sources,
+                );
             }
             ScanOutcome::Err(e) => {
                 merged.errors.push(e);
@@ -337,9 +399,12 @@ fn append_file_contribution(
     source: Arc<str>,
     stats: &ScanStats,
     suppressed_count: usize,
+    retain_sources: bool,
 ) {
     merged.findings.append(findings);
-    merged.source_cache.insert(cache_key, source);
+    if retain_sources {
+        merged.source_cache.insert(cache_key, source);
+    }
     merged.suppressed_count += suppressed_count;
     merged.stats.merge(stats);
 }

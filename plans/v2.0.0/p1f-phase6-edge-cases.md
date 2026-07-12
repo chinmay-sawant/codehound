@@ -183,7 +183,7 @@ func lookup() (string, error) {
 ## Phase 6.7: Interface Dispatch ✅
 
 - [x] **ponytail:** Interface dispatch is documented as a known limitation in
-      `docs/taint.md`. Methods called on interface types are treated as opaque
+      `documents/taint.md`. Methods called on interface types are treated as opaque
       — taint flows through arguments but return values are not tracked.
 
 ---

@@ -100,7 +100,7 @@ tier and phase within each workstream.
 - [x] Wire `taint_show_paths` in JSON reporter (`evidence.taint_path`)
 - [x] Wire `taint_show_paths` in SARIF reporter (`properties` bag)
 - [x] Wire `taint_show_paths` in text reporter (print path in output)
-- [x] Create `docs/taint.md` — overview, enabling, model, limitations, output, custom sanitizers
+- [x] Create `documents/taint.md` — overview, enabling, model, limitations, output, custom sanitizers
 - [x] Update `templates/codehound.toml` with commented-out `[codehound.taint]` block
 
 ### Phase F — Inter-procedural taint tracking
@@ -128,11 +128,11 @@ tier and phase within each workstream.
 
 - [x] Investigate criterion bench regression noted in P2.4 batch 3 (see sub-plan §1.3)
 - [x] Verify cold/warm/partial/in-memory benchmarks are within 20% of saved local baseline (see sub-plan §1.1)
-- [x] Document findings in `docs/architecture-performance.md` if regression is structural (see sub-plan §1.4)
+- [x] Document findings in `documents/architecture-performance.md` if regression is structural (see sub-plan §1.4)
 
 ### Phase 2 — Diagnostic docs ✅
 
-- [x] Create `docs/perf-detector-development.md` (see sub-plan §2.1 for detailed structure)
+- [x] Create `documents/perf-detector-development.md` (see sub-plan §2.1 for detailed structure)
   - Registry TOML format, domain module layout, function-pointer dispatch
   - Fixture creation pattern, `manifest.toml` registration
   - Build.rs codegen and testing
@@ -249,16 +249,16 @@ tier and phase within each workstream.
 
 ### Phase 6 — Documentation ✅
 
-- [x] Create `docs/bad-practices.md` — one paragraph per BP rule with rationale and canonical fix
+- [x] Create `documents/bad-practices.md` — one paragraph per BP rule with rationale and canonical fix
 
 ---
 
 ## P4 — Cross-Cutting
 
 - [x] Add `--taint` / `--no-taint` / `--taint-show-paths` to CLI (Phase E prerequisite for C and P0)
-- [x] Create `docs/taint.md`
-- [x] Create `docs/bad-practices.md`
-- [x] Create `docs/perf-detector-development.md`
+- [x] Create `documents/taint.md`
+- [x] Create `documents/bad-practices.md`
+- [x] Create `documents/perf-detector-development.md`
 - [x] Add CWE-90/91 fixtures to `tests/fixtures/manifest.toml`
 - [~] Run `cargo test --all-features` after each phase (deferred → see plans/v3.0.0/)
 - [x] Run `cargo clippy --all-targets --all-features -- -D warnings` after each phase

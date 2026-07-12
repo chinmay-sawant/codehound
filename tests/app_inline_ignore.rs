@@ -75,6 +75,7 @@ fn show_ignored_reports_file_ignored_finding_as_info() {
 
     let output = Command::new(env!("CARGO_BIN_EXE_codehound"))
         .arg("--show-ignored")
+        .arg("--taint")
         .arg("--format")
         .arg("json")
         .arg("--no-context")
@@ -161,6 +162,7 @@ func TraceRoute(w http.ResponseWriter, r *http.Request) {
 
     let output = Command::new(env!("CARGO_BIN_EXE_codehound"))
         .arg("--show-ignored")
+        .arg("--taint")
         .arg("--format")
         .arg("json")
         .arg("--no-context")

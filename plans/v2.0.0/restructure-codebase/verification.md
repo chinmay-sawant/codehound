@@ -245,7 +245,7 @@ The split is structural; no algorithm is changed. Performance should be within n
 - [x] All 6 phase documents (`phase-1` … `phase-6`) have their sections marked complete
 - [x] Master verification (build + test + lint + format) is green
 - [x] Generated `OUT_DIR/*.rs` is byte-identical before/after the full set of changes
-- [x] All 6 doc-path updates in `docs/architecture-performance.md` and the 5 plan files in `plans/v0.0.1/` + `plans/p2-implementation/02-baseline-ignore.md` are applied
+- [x] All 6 doc-path updates in `documents/architecture-performance.md` and the 5 plan files in `plans/v0.0.1/` + `plans/p2-implementation/02-baseline-ignore.md` are applied
 - [x] The two `debug_*` tests in `engine_cache.rs` are deleted or `#[ignore]`'d (they reference a personal `/home/chinmay/.../gopdfsuit` path)
 - [x] `tests/go_perf_registry_generation.rs:7` uses `read_dir` instead of `read_to_string`
 - [x] `CHANGELOG.md` is updated with a v2.0.0 entry summarising the file-split refactor

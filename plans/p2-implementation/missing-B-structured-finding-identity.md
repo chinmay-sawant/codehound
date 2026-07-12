@@ -1,7 +1,7 @@
 # Missing B — Structured Finding Identity as First-Class Output
 
 > **Parent:** `plans/p2.md` — Missing Item B
-> **Status:** Phase 1, Phase 2 JSON/SARIF/export emission, Phase 3 baseline consumption, Phase 4 stability docs/tests, and Phase 5 caller audit landed. Canonical fingerprints now use `codehound:1:<rule_id>:<file>:<line>:<column>` through the shared `Fingerprint` type. Incremental/cache consumers and optional terminal display remain open.
+> **Status:** Phase 1, Phase 2 JSON/SARIF/export emission, Phase 3 baseline consumption, Phase 4 stability documents/tests, and Phase 5 caller audit landed. Canonical fingerprints now use `codehound:1:<rule_id>:<file>:<line>:<column>` through the shared `Fingerprint` type. Incremental/cache consumers and optional terminal display remain open.
 > **Estimated effort:** 3-5 days.
 
 ---
@@ -35,7 +35,7 @@ Baseline, deduplication, ignore-once, and CI diffing all need the same stable id
   - [x] File path normalization: use forward slashes on all platforms (`/` not `\`)
   - [x] File path relativity: relative to the project root (where `.codehound.toml` or `.git` lives)
   - [x] Unicode file paths: use the OS-native representation (bytes, not normalized Unicode)
-- [x] Create `docs/finding-identity.md` with the full specification
+- [x] Create `documents/finding-identity.md` with the full specification
 
 ### 1.2 Create canonical `Fingerprint` type
 
@@ -144,7 +144,7 @@ Baseline, deduplication, ignore-once, and CI diffing all need the same stable id
 
 ### 4.1 Fingerprint stability contract
 
-- [x] Document the stability guarantees in `docs/finding-identity.md`:
+- [x] Document the stability guarantees in `documents/finding-identity.md`:
   - [x] Fingerprints are stable across runs of the same tool version on the same file
   - [x] Fingerprints are NOT stable across tool versions (version is embedded)
   - [x] Fingerprints are NOT stable across file renames (file path is part of identity)
@@ -160,7 +160,7 @@ Baseline, deduplication, ignore-once, and CI diffing all need the same stable id
   - [x] Baseline/cache readers should accept known versions only
   - [x] New scans should emit the latest fingerprint version
   - [x] Unknown versions should require an explicit migration or re-baseline
-  - [x] Document this in `docs/finding-identity.md`
+  - [x] Document this in `documents/finding-identity.md`
 
 ### 4.3 Tests for fingerprint stability
 

@@ -59,7 +59,12 @@ pub struct SarifDriver<'a> {
 pub struct SarifRule<'a> {
     pub id: &'a str,
     pub name: &'a str,
+    #[serde(rename = "shortDescription")]
     pub short_description: SarifText<'a>,
+    #[serde(rename = "fullDescription", skip_serializing_if = "Option::is_none")]
+    pub full_description: Option<SarifText<'a>>,
+    #[serde(rename = "helpUri", skip_serializing_if = "Option::is_none")]
+    pub help_uri: Option<&'a str>,
 }
 
 #[derive(Serialize)]
@@ -115,12 +120,14 @@ pub struct SarifProperties {
 #[derive(Serialize)]
 #[doc(hidden)]
 pub struct SarifLocation<'a> {
+    #[serde(rename = "physicalLocation")]
     pub physical_location: SarifPhysicalLocation<'a>,
 }
 
 #[derive(Serialize)]
 #[doc(hidden)]
 pub struct SarifPhysicalLocation<'a> {
+    #[serde(rename = "artifactLocation")]
     pub artifact_location: SarifArtifactLocation<'a>,
     pub region: SarifRegion,
 }
@@ -134,7 +141,9 @@ pub struct SarifArtifactLocation<'a> {
 #[derive(Serialize)]
 #[doc(hidden)]
 pub struct SarifRegion {
+    #[serde(rename = "startLine")]
     pub start_line: usize,
+    #[serde(rename = "startColumn")]
     pub start_column: usize,
     #[serde(rename = "endLine", skip_serializing_if = "Option::is_none")]
     pub end_line: Option<usize>,

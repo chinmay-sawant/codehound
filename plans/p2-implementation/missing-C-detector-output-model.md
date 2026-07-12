@@ -253,7 +253,7 @@ The `Finding` struct currently carries only a plain-text `message` plus metadata
 - [x] Old consumers (CI scripts, dashboards) that parse JSON output:
   - [x] New fields are additive (`#[serde(skip_serializing_if)]`)
   - [x] Old consumers can ignore new fields — no breakage
-  - [x] Document new fields in `docs/output-formats.md` or similar
+  - [x] Document new fields in `documents/output-formats.md` or similar
 - [x] Test: current JSON consumers can still parse new JSON output
 
 ### 5.2 SARIF backward compatibility

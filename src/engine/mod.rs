@@ -4,12 +4,13 @@ mod analyzer;
 mod baseline;
 mod cache;
 mod config;
-mod dependencies;
+pub(crate) mod dependencies;
 mod diagnostics;
 mod ignore;
 mod io;
 mod language_filter;
 mod parse_pool;
+mod path_identity;
 mod path_walk;
 pub mod prelude;
 mod registry;
@@ -27,14 +28,15 @@ pub use cache::{
     DEFAULT_CACHE_DIR, InMemoryBackend, cache_key_for_path, content_hash,
 };
 pub use config::{
-    CacheConfig, PathFilters, RunConfig, RunConfigParams, ScanContextParams, CodehoundConfig,
-    CodehoundSection, build_run_config, build_scan_context, discover_cache_dir, discover_config,
+    CacheConfig, CodehoundConfig, CodehoundSection, PathFilters, RunConfig, RunConfigParams,
+    ScanContextParams, build_run_config, build_scan_context, discover_cache_dir, discover_config,
     path_filters_from_config,
 };
 pub use dependencies::{discover_project_root, extract_dependencies, go_module_prefix};
 pub use diagnostics::Diagnostics;
 pub use ignore::{IgnoreDirective, parse_file_ignore, parse_inline_ignores};
 pub use language_filter::{LanguageFilter, resolve_language_filter};
+pub use path_identity::{normalize_project_path, project_paths_eq};
 pub use registry::Registry;
 pub(crate) use result::PipelineAccumulator;
 pub use result::{AnalysisResult, ScanError, ScanErrorKind};

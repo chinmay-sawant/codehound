@@ -1,12 +1,43 @@
 # CodeHound — Performance Benchmarks
 
 > **Methodology:** Criterion.rs benchmarks on release profile (`opt-level=3`, `lto=thin`, `codegen-units=1`).
-> **Fixtures:** 900 Go files (~11,000 total lines, 3.6 MB) materialized from `tests/fixtures/go/{stdlib,perf,frameworks}/`.
+> **Fixtures:** materialized from `tests/fixtures/` (full tree; surface grows with catalog size).
 > **Hardware:** Linux, single-machine CI runner equivalent.
+>
+> **Honesty note (Phase 4, 2026-07):** Historical ~40–65 ms gates for
+> `scan_materialized_fixtures` do **not** match current multi-second reality on a full
+> fixture tree. Prefer `scripts/check_bench_budget.sh` ceilings (`BUDGET_MODE=smoke|budget`)
+> over the tables below for CI. Re-run Criterion and paste numbers here when refreshing.
+>
+> **Phase 4 engine changes:** `SourceIndex::has` is O(1); taint annotations/call-graph
+> are skipped when taint is off; `source_cache` only when export retains sources;
+> incremental cold benches use a **fresh cache dir per Criterion iteration**.
+
+---
+
+## How to re-bench
+
+```bash
+cargo bench --bench scan_throughput 2>&1 | tee bench_output.txt
+./scripts/check_bench_budget.sh bench_output.txt
+
+cargo bench --bench incremental_scan 2>&1 | tee incremental_bench_output.txt
+./scripts/check_incremental_bench_budget.sh incremental_bench_output.txt
+```
+
+| Metric | Meaning |
+|--------|---------|
+| `scan_materialized_fixtures` | Full default scan of materialized fixtures |
+| `collect_entries_materialized` | Walk + language filter only |
+| `scan_go_only_two_rules` | `--only CWE-22,CWE-89` structural (taint off) |
+| `source_index_has_lookup` | Microbench: ~700 `has()` probes |
+| `incremental_cold` / `incremental_warm` | Cache cold vs warm (ratio ≥ 5×) |
 
 ---
 
 ## Baseline (pre-optimization) — June 2026
+
+> Stale absolute numbers — kept for history only.
 
 | Benchmark | Time (ns) | Time (ms) | Notes |
 |-----------|----------:|----------:|-------|

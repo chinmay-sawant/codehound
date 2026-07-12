@@ -6,6 +6,9 @@ use crate::core::ParsedUnit;
 use crate::rules::Finding;
 
 /// BP-6: sync.WaitGroup.Add inside the goroutine it tracks.
+///
+/// Uses brace-depth over the `go func…{…}` literal body instead of a
+/// line-level state machine (which mis-handles nested blocks).
 pub(crate) fn detect_bp_6_waitgroup_add_inside_goroutine(
     unit: &ParsedUnit,
     index: &SourceIndex,
@@ -15,24 +18,30 @@ pub(crate) fn detect_bp_6_waitgroup_add_inside_goroutine(
     if !index.has("go func") || !index.has(".Add(") {
         return;
     }
-    let mut in_goroutine = false;
-    for (idx, line) in source.lines().enumerate() {
-        let trimmed = line.trim();
-        if trimmed.starts_with("go func") || trimmed.contains("go func(") {
-            in_goroutine = true;
-        }
-        if in_goroutine && trimmed.contains(".Add(") {
+    let mut search = 0;
+    while let Some(rel) = source[search..].find("go func") {
+        let start = search + rel;
+        // Find the opening brace of the func literal.
+        let Some(brace_rel) = source[start..].find('{') else {
+            search = start + 7;
+            continue;
+        };
+        let body_open = start + brace_rel;
+        let Some(body) = braced_block(source, body_open) else {
+            search = body_open + 1;
+            continue;
+        };
+        if let Some(add_rel) = body.find(".Add(") {
+            let byte = body_open + add_rel;
             push_at(
                 unit,
                 out,
                 &crate::lang::go::detectors::bad_practices::BP_6_META,
-                line_start_byte(source, idx) + line.find(".Add(").unwrap_or(0),
+                byte,
                 "WaitGroup.Add is inside the goroutine; call Add before launching it",
             );
         }
-        if in_goroutine && (trimmed == "}" || trimmed == "}()") {
-            in_goroutine = false;
-        }
+        search = body_open + body.len().max(1);
     }
 }
 
@@ -60,14 +69,29 @@ pub(crate) fn detect_bp_7_mutex_passed_by_value(
     }
 }
 
-/// BP-8: deferred unlock on a mutex value copy.
+/// BP-8: deferred unlock when a mutex is held **by value** (copied).
+///
+/// Does **not** flag the idiomatic `mu.Lock(); defer mu.Unlock()` on a
+/// `*sync.Mutex` or package-level mutex — only by-value parameters/copies.
 pub(crate) fn detect_bp_8_defer_unlock_on_mutex_copy(
     unit: &ParsedUnit,
     index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
     let source = unit.source.as_ref();
-    if !(index.has(" sync.Mutex") && index.has("defer ") && index.has(".Unlock()")) {
+    if !(index.has("defer ") && index.has(".Unlock()")) {
+        return;
+    }
+    // Require evidence of a by-value mutex parameter (not *sync.Mutex).
+    let has_value_mutex_param = source.lines().any(|line| {
+        let t = line.trim();
+        t.starts_with("func ")
+            && t.contains("sync.Mutex")
+            && !t.contains("*sync.Mutex")
+            && !t.contains("*sync.RWMutex")
+            && (t.contains("sync.Mutex)") || t.contains("sync.Mutex,") || t.contains("sync.Mutex "))
+    });
+    if !has_value_mutex_param {
         return;
     }
     for (idx, line) in source.lines().enumerate() {
@@ -77,42 +101,76 @@ pub(crate) fn detect_bp_8_defer_unlock_on_mutex_copy(
                 out,
                 &crate::lang::go::detectors::bad_practices::BP_8_META,
                 line_start_byte(source, idx) + line.find(".Unlock()").unwrap_or(0),
-                "defer unlock is operating on a mutex value copy",
+                "defer unlock is operating on a mutex value copy; pass *sync.Mutex",
             );
         }
     }
 }
 
 /// BP-9: select without default, timeout, or context cancellation.
+///
+/// Uses brace-depth matching for the select body (not first `}`).
 pub(crate) fn detect_bp_9_select_without_escape(
     unit: &ParsedUnit,
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
     let source = unit.source.as_ref();
-    let Some(pos) = source.find("select {") else {
-        return;
-    };
-    let block = &source[pos..source[pos..]
-        .find('}')
-        .map(|end| pos + end)
-        .unwrap_or(source.len())];
-    let has_escape = block.contains("default:")
-        || block.contains("time.After(")
-        || block.contains("time.NewTimer(")
-        || block.contains("ctx.Done()")
-        || block.contains("context.Done()")
-        || block.contains("<-stop")
-        || block.contains("<-done");
-    if !has_escape {
-        push_at(
-            unit,
-            out,
-            &crate::lang::go::detectors::bad_practices::BP_9_META,
-            pos,
-            "select can block indefinitely without default, timeout, or context cancellation",
-        );
+    let mut search = 0;
+    while let Some(rel) = source[search..].find("select") {
+        let start = search + rel;
+        // Require `select {` (allow whitespace before brace).
+        let after = source[start + "select".len()..].trim_start();
+        if !after.starts_with('{') {
+            search = start + 6;
+            continue;
+        }
+        let brace_pos =
+            start + "select".len() + (source[start + "select".len()..].len() - after.len());
+        let Some(block) = braced_block(source, brace_pos) else {
+            search = brace_pos + 1;
+            continue;
+        };
+        let has_escape = block.contains("default:")
+            || block.contains("time.After(")
+            || block.contains("time.NewTimer(")
+            || block.contains("ctx.Done()")
+            || block.contains("context.Done()")
+            || block.contains("<-stop")
+            || block.contains("<-done")
+            || block.contains("<-ctx.Done()");
+        if !has_escape {
+            push_at(
+                unit,
+                out,
+                &crate::lang::go::detectors::bad_practices::BP_9_META,
+                start,
+                "select can block indefinitely without default, timeout, or context cancellation",
+            );
+        }
+        search = brace_pos + block.len().max(1);
     }
+}
+
+/// Extract a `{ ... }` block starting at `open` (must point at `{`).
+fn braced_block(source: &str, open: usize) -> Option<&str> {
+    if source.as_bytes().get(open).is_none_or(|b| *b != b'{') {
+        return None;
+    }
+    let mut depth = 0i32;
+    for (i, ch) in source[open..].char_indices() {
+        match ch {
+            '{' => depth += 1,
+            '}' => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(&source[open..open + i + 1]);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
 }
 
 /// BP-12: unbuffered channel receives sends from multiple goroutines.

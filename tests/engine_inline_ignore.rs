@@ -75,9 +75,9 @@ mod cache_inline {
 
     #[test]
     fn inline_ignore_re_applied_on_cache_hit() {
-        use dep_helpers::*;
         use codehound::core::ScanContext;
         use codehound::engine::Analyzer;
+        use dep_helpers::*;
 
         let root = unique_temp_root("inline-ignore-cache");
         std::fs::create_dir_all(&root).unwrap();
@@ -142,9 +142,9 @@ func Run(w http.ResponseWriter, r *http.Request) {
 
     #[test]
     fn inline_ignore_applied_on_cache_hit_when_source_unchanged() {
-        use dep_helpers::*;
         use codehound::core::ScanContext;
         use codehound::engine::Analyzer;
+        use dep_helpers::*;
 
         let root = unique_temp_root("inline-cache-hit");
         std::fs::create_dir_all(&root).unwrap();
@@ -186,9 +186,9 @@ func Run(w http.ResponseWriter, r *http.Request) {
 
     #[test]
     fn skip_flag_filters_cached_findings() {
-        use dep_helpers::*;
         use codehound::core::ScanContext;
         use codehound::engine::Analyzer;
+        use dep_helpers::*;
 
         let root = unique_temp_root("skip-cache-hit");
         std::fs::create_dir_all(&root).unwrap();
@@ -269,4 +269,47 @@ func ReadFile(r *http.Request) {
 
         std::fs::remove_dir_all(root).unwrap();
     }
+}
+
+#[test]
+fn parse_eol_ignore_applies_to_same_line() {
+    let ignores = parse_inline_ignores(
+        r#"
+value := input // codehound-ignore: CWE-22
+"#,
+    );
+    assert_eq!(
+        ignores.get(&2),
+        Some(&IgnoreDirective::rules(vec!["CWE-22".to_string()]))
+    );
+}
+
+#[test]
+fn parse_block_ignore_range() {
+    let ignores = parse_inline_ignores(
+        r#"
+// codehound-ignore-start: CWE-22
+a := 1
+b := 2
+// codehound-ignore-end
+c := 3
+"#,
+    );
+    assert!(ignores.contains_key(&3));
+    assert!(ignores.contains_key(&4));
+    assert!(!ignores.contains_key(&6));
+}
+
+#[test]
+fn parse_python_hash_comment_ignore() {
+    let ignores = parse_inline_ignores(
+        r#"
+# codehound-ignore: SLOP101
+re.compile(x)
+"#,
+    );
+    assert_eq!(
+        ignores.get(&3),
+        Some(&IgnoreDirective::rules(vec!["SLOP101".to_string()]))
+    );
 }

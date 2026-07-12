@@ -125,7 +125,7 @@ Structural wins: `scan_entries_parallel` decomposed into three focused helpers (
 | Testing | 7.6 | 7.6 | 8.1 | +0.5 | 264 tests; `insta` JSON envelope snapshot; exit-code tests added |
 | Generics & Dispatch | 7.7 | 7.7 | 7.7 | 0.0 | Plugin/registry `dyn Trait` boundary unchanged (still appropriate) |
 | Documentation | 6.2 | 6.8 | 7.9 | +1.1 | `# Errors` on 7 APIs; `#[must_use]` extended; `missing_docs` still deferred |
-| **Overall** | **7.1** | **7.9** | **8.3** | **+0.4** | P2 error boundaries complete; docs/testing hygiene partial |
+| **Overall** | **7.1** | **7.9** | **8.3** | **+0.4** | P2 error boundaries complete; documents/testing hygiene partial |
 
 ## Final re-audit (post fact-index migration — 2026-06-27)
 

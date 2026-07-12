@@ -14,12 +14,13 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["go", "python", "py", "ts", "typescript"]
+            "enum": ["go", "python", "py"]
           }
         },
         "fail_on": {
-          "description": "Exit policy: 'none' / 'never' / 'high' / 'strict' / 'warnings' (default). CLI --strict / --no-fail / --warnings-as-errors always win when set.",
-          "type": "string"
+          "description": "Exit policy. Allowed: none, never, medium, warnings, high, strict. Unknown values are rejected. CLI --strict / --no-fail / --warnings-as-errors always win when set.",
+          "type": "string",
+          "enum": ["none", "never", "medium", "warnings", "high", "strict"]
         },
         "skip": {
           "description": "Skip the named rule IDs.",

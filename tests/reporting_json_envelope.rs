@@ -62,8 +62,8 @@ fn envelope_serializes_finding_fingerprint() {
     let env = Envelope::from(&r);
     let s = serde_json::to_string_pretty(&env).unwrap();
     assert!(
-        s.contains("\"fingerprint\": \"codehound:1:CWE-89:a.go:12:5\""),
-        "got: {s}"
+        s.contains("\"fingerprint\": \"codehound:2:CWE-89:a.go:"),
+        "expected v2 fingerprint prefix, got: {s}"
     );
 }
 

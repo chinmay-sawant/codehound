@@ -211,7 +211,7 @@ Detail: [06-part-f-testing-api-hygiene.md](./06-part-f-testing-api-hygiene.md)
 
 ## Phase 7 — Release polish
 
-- [ ] `docs/bad-practices.md` covers BP-66..BP-165
+- [ ] `documents/bad-practices.md` covers BP-66..BP-165
 - [ ] Root README rule count updated (65 → 165)
 - [ ] CHANGELOG draft for v3.0.0 BP section
 - [ ] `make run-bp-new` (or equivalent) works

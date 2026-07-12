@@ -17,6 +17,7 @@ pub use model::{
     AssignmentDetail, CallGraph, CallSite, EdgeKind, FunctionDecl, ProjectCallGraph, SanitizerKind,
     ScopeInfo, ScopeKind, SinkKind, SourceKind, TaintAnnotations, TaintEdge, TaintGraph, TaintNode,
     TaintSanitizerAnnotation, TaintSinkAnnotation, TaintSourceAnnotation, TaintSummary,
+    UnsupportedFlow, UnsupportedFlowKind,
 };
 
 pub use rules::{
@@ -26,5 +27,6 @@ pub use rules::{
 
 pub use graph_query::{
     TaintPath, build_taint_graph, compute_all_summaries, find_taint_paths,
-    find_taint_paths_from_nodes, forward_reaches_any, unsanitized_reaches_any,
+    find_taint_paths_from_nodes, forward_reaches_any, refine_summaries_multihop,
+    unsanitized_reaches_any,
 };

@@ -2,6 +2,7 @@
 //! `invalidate_file`, `invalidate_dependent`.
 
 use crate::Error;
+use crate::engine::path_identity::{normalize_project_path, project_paths_eq};
 use crate::rules::Finding;
 
 use super::CacheStore;
@@ -11,6 +12,9 @@ use super::types::{CACHE_VERSION, CacheEntry, FileCacheMeta};
 impl CacheStore {
     /// Insert or replace a cache entry. Updates the manifest and marks
     /// the store dirty so [`flush`](Self::flush) writes to disk.
+    ///
+    /// Manifest keys and dependency paths are stored in
+    /// [`normalize_project_path`] form.
     pub fn put(
         &mut self,
         file: &str,
@@ -19,22 +23,27 @@ impl CacheStore {
         findings: Vec<Finding>,
         cached_at: &str,
     ) -> Result<(), Error> {
-        let cache_key = cache_key_for_path(file);
+        let file = normalize_project_path(file);
+        let deps: Vec<String> = dependencies
+            .iter()
+            .map(|d| normalize_project_path(d))
+            .collect();
+        let cache_key = cache_key_for_path(&file);
         let entry = CacheEntry {
             schema_version: CACHE_VERSION,
-            file: file.to_string(),
+            file: file.clone(),
             findings,
             cached_at: cached_at.to_string(),
         };
         self.backend
             .store_entry(&cache_key, &entry)
-            .map_err(|e| Error::Walk(format!("storing cache entry {cache_key}: {e}")))?;
+            .map_err(Error::from)?;
         let meta = FileCacheMeta {
             content_hash: content_hash.to_string(),
-            dependencies: dependencies.to_vec(),
+            dependencies: deps,
             cached_at: cached_at.to_string(),
         };
-        self.manifest.files.insert(file.to_string(), meta);
+        self.manifest.files.insert(file, meta);
         self.dirty = true;
         Ok(())
     }
@@ -44,9 +53,7 @@ impl CacheStore {
     pub fn remove(&mut self, file: &str) -> Result<(), Error> {
         if self.manifest.files.remove(file).is_some() {
             let cache_key = cache_key_for_path(file);
-            self.backend
-                .delete_entry(&cache_key)
-                .map_err(|e| Error::Walk(format!("removing cache entry {cache_key}: {e}")))?;
+            self.backend.delete_entry(&cache_key).map_err(Error::from)?;
             self.dirty = true;
         }
         Ok(())
@@ -88,17 +95,18 @@ impl CacheStore {
             active_keys.iter().map(String::as_str).collect();
         self.backend
             .clean_orphans(&active_refs)
-            .map_err(|e| Error::Walk(format!("cleaning cache orphans: {e}")))
+            .map_err(Error::from)
     }
 
     /// Invalidate the entry for `file`, removing it from the manifest
     /// and deleting the on-disk entry.
     pub fn invalidate_file(&mut self, file: &str) {
-        if self.manifest.files.remove(file).is_some() {
-            let cache_key = cache_key_for_path(file);
+        let file = normalize_project_path(file);
+        if self.manifest.files.remove(&file).is_some() {
+            let cache_key = cache_key_for_path(&file);
             if let Err(e) = self.backend.delete_entry(&cache_key) {
                 tracing::warn!(
-                    file,
+                    file = %file,
                     cache_key = %cache_key,
                     error = %e,
                     "failed to delete invalidated cache entry"
@@ -111,11 +119,10 @@ impl CacheStore {
     /// Invalidate every entry whose `dependencies` list contains
     /// `changed_file`. Returns the number of entries invalidated.
     ///
-    /// Both the manifest keys and the stored dependency lists use
-    /// absolute paths (the canonical form), so matching is a
-    /// straightforward string equality check.
+    /// Matching uses [`project_paths_eq`] so `\` vs `/` and `./` do not
+    /// miss cascade edges.
     pub fn invalidate_dependent(&mut self, changed_file: &str) -> usize {
-        let changed_norm = changed_file.replace('\\', "/");
+        let changed_norm = normalize_project_path(changed_file);
         let dependents: Vec<String> = self
             .manifest
             .files
@@ -123,7 +130,7 @@ impl CacheStore {
             .filter(|(_, m)| {
                 m.dependencies
                     .iter()
-                    .any(|d| d.replace('\\', "/") == changed_norm)
+                    .any(|d| project_paths_eq(d, &changed_norm))
             })
             .map(|(k, _)| k.clone())
             .collect();
@@ -132,5 +139,54 @@ impl CacheStore {
             self.invalidate_file(&d);
         }
         count
+    }
+
+    /// Expand a dirty set through reverse dependency edges in the
+    /// manifest until fixpoint (same-scan cascade).
+    ///
+    /// If `A` depends on `B` and `B` is dirty, `A` becomes dirty so it
+    /// is re-parsed in **this** scan rather than only on the next run.
+    pub fn expand_dirty_fixpoint(&self, dirty: &mut std::collections::HashSet<String>) {
+        // Normalize inputs.
+        let mut normalized: std::collections::HashSet<String> =
+            dirty.iter().map(|p| normalize_project_path(p)).collect();
+        loop {
+            let mut added = Vec::new();
+            for (file, meta) in &self.manifest.files {
+                let file_n = normalize_project_path(file);
+                if normalized.contains(&file_n) {
+                    continue;
+                }
+                if meta
+                    .dependencies
+                    .iter()
+                    .any(|d| normalized.contains(&normalize_project_path(d)))
+                {
+                    added.push(file_n);
+                }
+            }
+            if added.is_empty() {
+                break;
+            }
+            normalized.extend(added);
+        }
+        *dirty = normalized;
+    }
+
+    /// Drop all cached entries after a tool-version mismatch (mass stale).
+    ///
+    /// Keeps the store open with an empty manifest at the current
+    /// `CARGO_PKG_VERSION`. On-disk entry files are deleted best-effort.
+    pub fn mass_stale_for_tool_version(&mut self) {
+        let keys: Vec<String> = self.manifest.files.keys().cloned().collect();
+        for file in keys {
+            self.invalidate_file(&file);
+        }
+        self.manifest.tool_version = env!("CARGO_PKG_VERSION").to_string();
+        self.dirty = true;
+        tracing::warn!(
+            version = env!("CARGO_PKG_VERSION"),
+            "cache mass-staled after tool_version mismatch; entries will rebuild this scan"
+        );
     }
 }

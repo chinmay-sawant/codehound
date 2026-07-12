@@ -24,7 +24,7 @@ Bad Practices detection is a new rule category beyond CWE (security) and PERF (p
 - **Phase 4.4 landed:** `rules/api_design.rs` and `rules/code_organization.rs` now cover all BP-26..BP-45 rules, including package-aware heuristics for BP-30, BP-31, and BP-41 plus nested-path fixture materialization for path-sensitive cases.
 - **Phase 4.5 landed:** `rules/production_hardening.rs` and `rules/dependency_hygiene.rs` now cover BP-46..BP-65, including bounded heuristics for gob registration mismatches, missing indirect annotations, and curated vulnerable-module checks.
 - **Concurrency reserve closed:** BP-12 and BP-14 now ship as bounded heuristics in `rules/sync.rs`, with the taint engine remaining an optional future precision upgrade rather than a blocker.
-- **Documentation landed:** `docs/bad-practices.md` now records rationale and canonical fixes for every shipped BP rule.
+- **Documentation landed:** `documents/bad-practices.md` now records rationale and canonical fixes for every shipped BP rule.
 
 ---
 
@@ -354,7 +354,7 @@ Bad Practices detection is a new rule category beyond CWE (security) and PERF (p
 
 ## Phase 4.6: Documentation
 
-- [x] Created `docs/bad-practices.md` — one paragraph per BP rule with rationale and canonical fix
+- [x] Created `documents/bad-practices.md` — one paragraph per BP rule with rationale and canonical fix
 
 ---
 
@@ -377,7 +377,7 @@ Bad Practices detection is a new rule category beyond CWE (security) and PERF (p
 | Phase 3 — Testing | Test anti-patterns | BP-16..BP-25 (10) | 1w | P3 | ✅ |
 | Phase 4 — API + Code Org | API design + code structure | BP-26..BP-45 (20) | 2w | P4 | ✅ |
 | Phase 5 — Prod + Dep | Production hardening + deps | BP-46..BP-65 (20) | 2w | P5 | ✅ |
-| Documentation | docs/bad-practices.md | 1 doc | 1d | P5 | ✅ |
+| Documentation | documents/bad-practices.md | 1 doc | 1d | P5 | ✅ |
 | Former Reserve | Goroutine leak heuristics | BP-12, BP-14 | -- | -- | ✅ |
 
 ---

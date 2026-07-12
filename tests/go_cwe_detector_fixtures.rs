@@ -13,11 +13,19 @@ fn go_cwe_fixtures_fire_vulnerable_and_silence_safe() {
     let cases = go_cwe_cases::discover_go_cwe_cases();
     let mut failures: Vec<String> = Vec::new();
 
+    // Product default is taint off; CWE-22/78/79/89/90/91 are taint-only, so the
+    // inventory suite enables taint explicitly (matches security-oriented scans).
+    let analyzer = Analyzer::builder()
+        .scan_context(ScanContext {
+            taint_enabled: true,
+            ..ScanContext::default()
+        })
+        .build();
+
     for cwe in &cases {
         for suite in ["frameworks", "stdlib"] {
             let vulnerable = go_cwe_cases::fixture_path(suite, cwe, true);
             let safe = go_cwe_cases::fixture_path(suite, cwe, false);
-            let analyzer = Analyzer::builder().build();
             if let Err(e) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 helpers::assert_fixture_rules(&vulnerable, &[cwe.as_str()], &analyzer);
                 helpers::assert_fixture_rules(&safe, &[], &analyzer);

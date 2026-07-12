@@ -9,7 +9,7 @@ import "sync"
 
 var pool sync.Pool
 
-func Recycle(buf []byte) {
+func releaseBuffer(buf []byte) {
 	if cap(buf) > 4096 {
 		return
 	}

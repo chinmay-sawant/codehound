@@ -1,0 +1,25 @@
+# Sample CodeHound CI recipe (high-signal recommended pack).
+# Copy into your app repo, or use the composite action from this monorepo.
+name: codehound
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: CodeHound scan (recommended + SARIF)
+        uses: ./.github/actions/codehound-scan
+        with:
+          profile: recommended
+          paths: .
+          strict: "true"
+          upload-sarif: "true"

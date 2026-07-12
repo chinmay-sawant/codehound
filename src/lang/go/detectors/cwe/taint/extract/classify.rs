@@ -11,10 +11,15 @@ pub(super) fn classify_source(func_text: &str) -> Option<SourceKind> {
         || call == "io.ReadAll(r.Body)"
         || call.contains(".PathValue")
         || call.contains(".Param")
-        // Gin/Echo framework: c.Query("name"), c.DefaultQuery("name","default")
+        // Gin/Echo: c.Query / c.DefaultQuery / c.QueryArray
         || call == "c.Query"
         || call == "c.DefaultQuery"
         || call == "c.QueryArray"
+        // Chi
+        || call.contains("chi.URLParam")
+        // Fiber params
+        || call == "c.Params"
+        || (call.ends_with(".Params") && call.starts_with("c."))
     {
         return Some(SourceKind::UserInput);
     }
@@ -45,9 +50,18 @@ pub(super) fn classify_sink(
         return Some((SinkKind::CommandExec, 0));
     }
 
+    // stdlib database/sql + common ORM/query APIs (GORM Raw/Exec, sqlx).
+    // First-arg taint is the SQL string; not full SQLi soundness.
     if call_name.ends_with(".Query")
         || call_name.ends_with(".Exec")
         || call_name.ends_with(".QueryRow")
+        || call_name.ends_with(".QueryContext")
+        || call_name.ends_with(".ExecContext")
+        || call_name.ends_with(".QueryRowContext")
+        || call_name.ends_with(".Raw") // GORM: db.Raw(userSQL)
+        || call_name == "sqlx.Get"
+        || call_name == "sqlx.Select"
+        || call_name == "sqlx.NamedExec"
     {
         return Some((SinkKind::SQLQuery, 0));
     }
@@ -67,7 +81,15 @@ pub(super) fn classify_sink(
         return Some((SinkKind::Template, 1));
     }
 
-    if call_name.ends_with(".Write") || call_name == "fmt.Fprintf" {
+    // HTTP response XSS sinks. Avoid bare `.Write` alone — that matches
+    // csv.Writer.Write([]string) and other non-HTTP writers.
+    if call_name == "fmt.Fprintf"
+        || call_name.ends_with(".WriteString")
+        || call_name.ends_with(".WriteHeader")
+    {
+        return Some((SinkKind::HTTPWrite, 0));
+    }
+    if call_name.ends_with(".Write") && http_write_looks_like_response_writer(call, src) {
         return Some((SinkKind::HTTPWrite, 0));
     }
 
@@ -111,9 +133,13 @@ pub(super) fn classify_sink(
     None
 }
 
-pub(super) fn classify_sanitizer(func_text: &str) -> Option<SanitizerKind> {
+pub(crate) fn classify_sanitizer(func_text: &str) -> Option<SanitizerKind> {
     let call = func_text;
-    if call == "filepath.Clean" || call == "path.Clean" || call == "filepath.Base" {
+    // filepath.Clean / path.Clean alone are NOT path-traversal safe — they do not
+    // confine the path under a root. Only Base (strips to final component) and
+    // confinement helpers count as Path sanitizers; confinement is also checked
+    // separately via Abs/EvalSymlinks + HasPrefix on the taint path.
+    if call == "filepath.Base" {
         return Some(SanitizerKind::Path);
     }
     if call == "html.EscapeString"
@@ -145,18 +171,17 @@ pub(super) fn classify_sanitizer(func_text: &str) -> Option<SanitizerKind> {
     if call == "xml.EscapeText" || call == "xml.Marshal" {
         return Some(SanitizerKind::XML);
     }
-    // Prepared statements are handled by the SQL sanitizer path.
-    if call.ends_with(".Prepare") {
-        return Some(SanitizerKind::SQL);
-    }
-    // ponytail: name-based heuristic catches user-defined sanitize/clean/escape/
-    // validate/purify functions. Imprecise — may match unrelated functions with
-    // these prefixes. Upgrade: use type info or call-graph to verify the function
-    // actually sanitizes user input.
+    // Do NOT treat bare `.Prepare` as a sanitizer: Prepare with a dynamic SQL
+    // string is still injectable. Safe pattern is a *literal* first arg at the
+    // Query/Exec sink (see is_parameterized_query in cwe_89). Same-variable
+    // Prepare→Stmt.Query proof is not implemented yet.
+
+    // Name-based heuristic: only well-known sanitizer prefixes. Intentionally
+    // does NOT match bare "clean" (filepath.Clean is not path-safe by itself).
+    // Imprecise — may still match unrelated functions; prefer known-safe APIs.
     if let Some(name) = call.rsplit('.').next().or(Some(call)) {
         let lower = name.to_lowercase();
         if lower.starts_with("sanitize")
-            || lower.starts_with("clean")
             || lower.starts_with("escape")
             || lower.starts_with("validate")
             || lower.starts_with("purify")
@@ -189,6 +214,29 @@ pub(super) fn is_template_html_call(call: tree_sitter::Node, src: &[u8]) -> bool
         .next()
         .and_then(|n| n.utf8_text(src).ok());
     matches!(first, Some(t) if t.starts_with("template.HTML("))
+}
+
+/// Heuristic: only treat `.Write` as an HTTP XSS sink for common
+/// `http.ResponseWriter` receivers. Avoid hmac.Write, csv.Writer, bufio, etc.
+fn http_write_looks_like_response_writer(call: tree_sitter::Node, src: &[u8]) -> bool {
+    if let Some(args) = call.child_by_field_name("arguments") {
+        let mut cursor = args.walk();
+        if let Some(first) = args.named_children(&mut cursor).next() {
+            if let Ok(text) = first.utf8_text(src) {
+                let t = text.trim();
+                // csv.Writer.Write([]string{...}) — not XSS.
+                if t.starts_with("[]string") {
+                    return false;
+                }
+            }
+        }
+    }
+    match receiver_of_method_call(call, src) {
+        Some("w") | Some("rw") | Some("resp") => true,
+        Some(recv) if recv.contains("ResponseWriter") => true,
+        // Do not treat unknown receivers (hmac, hash, csv, bufio, …) as HTTPWrite.
+        _ => false,
+    }
 }
 
 pub(super) fn is_source_or_sanitizer_call(rhs: &str) -> bool {
@@ -249,8 +297,7 @@ fn is_sink_call_by_name(func_text: &str) -> bool {
 // ponytail: static list avoids re-parsing; add new sanitizers here when
 // adding them to classify_sanitizer.
 const KNOWN_SANITIZER_CALLS: &[(&str, &str)] = &[
-    ("filepath.Clean(", "path"),
-    ("path.Clean(", "path"),
+    // filepath.Clean / path.Clean intentionally omitted — not path-safe alone.
     ("filepath.Base(", "path"),
     ("html.EscapeString(", "html"),
     ("html.UnescapeString(", "html"),

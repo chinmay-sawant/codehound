@@ -6,9 +6,9 @@ use crate::core::ParsedUnit;
 
 use super::super::{
     AssignmentDetail, ScopeId, ScopeInfo, ScopeKind, SharedText, TaintAnnotations,
-    TaintSanitizerAnnotation, TaintSinkAnnotation, TaintSourceAnnotation,
+    TaintSanitizerAnnotation, TaintSinkAnnotation, TaintSourceAnnotation, UnsupportedFlow,
 };
-use super::walker_records::{record_assignment, record_call, record_send};
+use super::walker_records::{record_assignment, record_call, record_go_stmt, record_send};
 
 /// Extract taint annotations from a parsed Go source unit.
 pub fn extract_taint_facts(unit: &ParsedUnit) -> TaintAnnotations {
@@ -27,6 +27,7 @@ pub fn extract_taint_facts(unit: &ParsedUnit) -> TaintAnnotations {
         scopes: state.scopes,
         function_params: state.function_params,
         function_ranges: state.function_ranges,
+        unsupported_flows: state.unsupported_flows,
     }
 }
 
@@ -42,6 +43,7 @@ pub(super) struct ExtractionState<'a> {
     pub(super) assignments: Vec<AssignmentDetail>,
     pub(super) function_params: HashMap<SharedText, Vec<SharedText>>,
     pub(super) function_ranges: HashMap<SharedText, Range<usize>>,
+    pub(super) unsupported_flows: Vec<UnsupportedFlow>,
 }
 
 impl<'a> ExtractionState<'a> {
@@ -58,6 +60,7 @@ impl<'a> ExtractionState<'a> {
             assignments: Vec::new(),
             function_params: HashMap::new(),
             function_ranges: HashMap::new(),
+            unsupported_flows: Vec::new(),
         }
     }
 
@@ -156,6 +159,9 @@ pub(super) fn walk_node(
         }
         "send_statement" => {
             record_send(node, state);
+        }
+        "go_statement" => {
+            record_go_stmt(node, state);
         }
         "assignment_statement" | "short_var_declaration" => {
             record_assignment(node, state);

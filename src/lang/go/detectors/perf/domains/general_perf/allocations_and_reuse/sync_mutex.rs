@@ -113,12 +113,8 @@ pub(crate) fn detect_perf_32(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
             let in_loop = nearest_loop(node, LOOP_NODE_KINDS).is_some();
             // Hot path: loop, request/handler window, or encode-style function.
             // Keep is_request_path as a whole-file fallback for classic Gin fixtures.
-            if !is_hot_path(
-                source,
-                node.start_byte(),
-                &facts.source_index,
-                in_loop,
-            ) && !is_request_path(&facts.source_index)
+            if !is_hot_path(source, node.start_byte(), &facts.source_index, in_loop)
+                && !is_request_path(&facts.source_index)
             {
                 return;
             }

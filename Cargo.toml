@@ -1,13 +1,13 @@
 [package]
 name = "codehound"
-version = "0.0.1"
+version = "0.1.0"
 edition = "2024"
 rust-version = "1.85"
 description = "A static code analyzer for detecting performance bottlenecks and security weaknesses"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/chinmay/codehound"
 readme = "README.md"
-keywords = ["static-analysis", "linter", "performance", "go", "slop"]
+keywords = ["static-analysis", "linter", "performance", "go", "security"]
 categories = ["command-line-utilities", "development-tools::static-analysis"]
 
 [lib]
@@ -20,11 +20,12 @@ path = "src/main.rs"
 required-features = ["cli"]
 
 [features]
-# Default: all shipped languages — mixed Go + Python repos work out of the box.
-default = ["go", "python", "terminal-output", "cli"]
+# Default: Go-first production pack. Python is opt-in (one experimental rule).
+# See documents/adr/0005-multi-lang-honesty.md.
+default = ["go", "terminal-output", "cli"]
 cli = ["dep:clap"]
-typescript = []
 go = ["dep:tree-sitter-go"]
+# Experimental: enables Python plugin + SLOP101 only (not a full Python SAST).
 python = ["dep:tree-sitter-python"]
 terminal-output = ["dep:colored"]
 
@@ -92,7 +93,7 @@ name = "incremental_scan"
 harness = false
 
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("go", "python", "terminal-output", "cli", "typescript"))'] }
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("go", "python", "terminal-output", "cli"))'] }
 
 [lints.clippy]
 all = { level = "deny", priority = 10 }

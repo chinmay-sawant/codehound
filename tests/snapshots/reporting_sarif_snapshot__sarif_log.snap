@@ -1,5 +1,6 @@
 ---
 source: tests/reporting_sarif_snapshot.rs
+assertion_line: 74
 expression: s
 ---
 {
@@ -10,7 +11,7 @@ expression: s
         {
           "executionSuccessful": true,
           "workingDirectory": {
-            "uri": "."
+            "uri": "<cwd>"
           }
         }
       ],
@@ -19,13 +20,13 @@ expression: s
           "level": "error",
           "locations": [
             {
-              "physical_location": {
-                "artifact_location": {
+              "physicalLocation": {
+                "artifactLocation": {
                   "uri": "a.go"
                 },
                 "region": {
-                  "start_column": 1,
-                  "start_line": 1
+                  "startColumn": 1,
+                  "startLine": 1
                 }
               }
             }
@@ -34,7 +35,7 @@ expression: s
             "text": "msg"
           },
           "partialFingerprints": {
-            "codehound/v1": "codehound:1:CWE-22:a.go:1:1"
+            "codehound/v1": "codehound:2:CWE-22:a.go:e46b320165eec91e"
           },
           "properties": {
             "category": "security",
@@ -51,13 +52,13 @@ expression: s
           "level": "error",
           "locations": [
             {
-              "physical_location": {
-                "artifact_location": {
+              "physicalLocation": {
+                "artifactLocation": {
                   "uri": "b.go"
                 },
                 "region": {
-                  "start_column": 3,
-                  "start_line": 2
+                  "startColumn": 3,
+                  "startLine": 2
                 }
               }
             }
@@ -66,7 +67,7 @@ expression: s
             "text": "msg2"
           },
           "partialFingerprints": {
-            "codehound/v1": "codehound:1:CWE-89:b.go:2:3"
+            "codehound/v1": "codehound:2:CWE-89:b.go:a78521e49048b6e0"
           },
           "properties": {
             "category": "security",
@@ -86,16 +87,22 @@ expression: s
           "name": "codehound",
           "rules": [
             {
+              "fullDescription": {
+                "text": "Path traversal"
+              },
               "id": "CWE-22",
               "name": "Path traversal",
-              "short_description": {
+              "shortDescription": {
                 "text": "Path traversal"
               }
             },
             {
+              "fullDescription": {
+                "text": "SQL injection"
+              },
               "id": "CWE-89",
               "name": "SQL injection",
-              "short_description": {
+              "shortDescription": {
                 "text": "SQL injection"
               }
             }

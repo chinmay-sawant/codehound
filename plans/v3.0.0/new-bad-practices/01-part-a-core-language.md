@@ -380,5 +380,5 @@
 
 - [ ] All 20 rules implemented or explicitly deferred with reason in CHECKLIST
 - [ ] Each implemented rule has **vulnerable + safe `.txt` snippets**
-- [ ] `docs/bad-practices.md` section updated
+- [ ] `documents/bad-practices.md` section updated
 - [ ] Integration tests green for BP-66..BP-85

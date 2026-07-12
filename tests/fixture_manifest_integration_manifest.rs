@@ -18,6 +18,11 @@ fn manifest_entries_exist_and_fire() {
     );
 
     for entry in &manifest.fixture {
+        // Python is opt-in (`--features python`); skip fire assertions when disabled.
+        #[cfg(not(feature = "python"))]
+        if entry.lang == "python" {
+            continue;
+        }
         assert!(
             entry.path.ends_with(&format!(".{FIXTURE_EXT}")),
             "manifest paths must be .txt text fixtures, not source files: {}",
@@ -30,13 +35,16 @@ fn manifest_entries_exist_and_fire() {
             entry.lang
         );
         let rules: Vec<&str> = entry.required_rules.iter().map(String::as_str).collect();
-        let ctx = if entry.taint {
-            ScanContext {
-                taint_enabled: true,
-                ..ScanContext::default()
-            }
-        } else {
-            ScanContext::default()
+        // Product default is taint off. Core injection/XSS rules are taint-only
+        // detectors; enable taint for those fixtures (and explicit `taint = true`).
+        const TAINT_CORE: &[&str] = &["CWE-22", "CWE-78", "CWE-79", "CWE-89", "CWE-90", "CWE-91"];
+        let needs_taint = entry.taint
+            || entry.path.contains("CWE-")
+            || entry.path.contains("/taint/")
+            || rules.iter().any(|r| TAINT_CORE.contains(r));
+        let ctx = ScanContext {
+            taint_enabled: needs_taint,
+            ..ScanContext::default()
         };
         let analyzer = Analyzer::builder()
             .scan_context(ctx)

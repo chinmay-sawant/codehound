@@ -1,0 +1,186 @@
+//! Scan profiles (product packs) for high-signal defaults.
+
+use std::collections::HashSet;
+
+use super::scan::FailPolicy;
+
+/// Named product pack. CLI default is [`ScanProfile::Recommended`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ScanProfile {
+    /// Curated CI pack: S-tier PERF + taint-core CWEs. BP off. Fail high.
+    #[default]
+    Recommended,
+    /// Framework + hot-path PERF (broader than recommended). BP off.
+    Perf,
+    /// Taint CWE core + high-value structural CWEs. Taint on. BP off.
+    Security,
+    /// Bad-practice / style pack only (advisory).
+    Style,
+    /// Full catalog (explicit opt-in for “everything”).
+    All,
+}
+
+impl ScanProfile {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Recommended => "recommended",
+            Self::Perf => "perf",
+            Self::Security => "security",
+            Self::Style => "style",
+            Self::All => "all",
+        }
+    }
+
+    /// Parse profile name (case-insensitive). Accepts `bp` as alias for `style`.
+    pub fn parse(s: &str) -> Option<Self> {
+        match s.trim().to_ascii_lowercase().as_str() {
+            "recommended" | "default" | "ci" => Some(Self::Recommended),
+            "perf" | "performance" => Some(Self::Perf),
+            "security" | "sec" => Some(Self::Security),
+            "style" | "bp" | "bad-practices" | "bad_practices" => Some(Self::Style),
+            "all" | "full" => Some(Self::All),
+            _ => None,
+        }
+    }
+
+    /// Default fail policy for this profile when the user did not set CLI fail flags.
+    pub fn default_fail_policy(self) -> FailPolicy {
+        match self {
+            Self::Recommended | Self::Security | Self::Perf => FailPolicy::Strict,
+            Self::Style => FailPolicy::NoFail,
+            Self::All => FailPolicy::MediumAsErrors,
+        }
+    }
+
+    /// Whether taint should be enabled for this profile (unless CLI overrides).
+    pub fn enables_taint(self) -> bool {
+        matches!(self, Self::Security)
+    }
+
+    /// Whether BP rules run for this profile (unless CLI overrides).
+    pub fn enables_bad_practices(self) -> bool {
+        matches!(self, Self::Style | Self::All)
+    }
+
+    /// Opinion / low-value BP rules skipped by default in the style pack.
+    ///
+    /// Opt back in with `--only BP-28` (and friends) under `--profile all`, or
+    /// by clearing skip via config. Recommended never enables BP at all.
+    pub fn style_default_skip(self) -> &'static [&'static str] {
+        match self {
+            Self::Style => STYLE_DEFAULT_SKIP,
+            _ => &[],
+        }
+    }
+
+    /// Rule allow-list patterns for this profile.
+    ///
+    /// `None` means no `only` filter (full catalog, still subject to skip/BP flags).
+    pub fn only_patterns(self) -> Option<&'static [&'static str]> {
+        match self {
+            Self::Recommended => Some(RECOMMENDED_RULES),
+            Self::Perf => Some(PERF_PACK_RULES),
+            Self::Security => Some(SECURITY_PACK_RULES),
+            Self::Style => Some(&["BP-*"]),
+            Self::All => None,
+        }
+    }
+
+    /// Apply profile defaults onto an existing only/skip/fail/taint/bp setup.
+    ///
+    /// CLI `--only` is merged (union) with the pack when both are present.
+    /// Explicit fail policy / taint / no-bp flags should be applied by the caller after this.
+    pub fn apply_base(self, target: ProfileApplyTarget<'_>) {
+        if let Some(patterns) = self.only_patterns() {
+            let mut pack: HashSet<String> = patterns.iter().map(|s| (*s).to_string()).collect();
+            if let Some(existing) = target.only.take() {
+                pack.extend(existing);
+            }
+            *target.only = Some(pack);
+        }
+        if !target.cli_set_fail_policy {
+            *target.fail_policy = self.default_fail_policy();
+        }
+        if !target.cli_set_taint {
+            *target.taint_enabled = self.enables_taint();
+        }
+        if !target.cli_set_bp {
+            *target.bad_practices_enabled = self.enables_bad_practices();
+        }
+    }
+}
+
+/// Mutable knobs updated when applying a [`ScanProfile`].
+pub struct ProfileApplyTarget<'a> {
+    /// Rule allow-list; pack patterns are unioned with any existing entries.
+    pub only: &'a mut Option<HashSet<String>>,
+    /// Exit policy; overwritten unless `cli_set_fail_policy` is set.
+    pub fail_policy: &'a mut FailPolicy,
+    /// When true, leave `fail_policy` unchanged (CLI already chose).
+    pub cli_set_fail_policy: bool,
+    /// Whether taint analysis runs.
+    pub taint_enabled: &'a mut bool,
+    /// Whether bad-practice rules run.
+    pub bad_practices_enabled: &'a mut bool,
+    /// When true, leave `taint_enabled` unchanged.
+    pub cli_set_taint: bool,
+    /// When true, leave `bad_practices_enabled` unchanged.
+    pub cli_set_bp: bool,
+}
+
+/// S-tier PERF + taint-core CWEs (≤ ~30 rules). Directional CI default pack.
+/// PERF membership mirrors [`crate::lang::go::detectors::perf::tiers::TIER_S`].
+const RECOMMENDED_RULES: &[&str] = &[
+    // PERF S-tier
+    "PERF-1", "PERF-7", "PERF-50", "PERF-58", "PERF-71", "PERF-101", "PERF-103", "PERF-189",
+    "PERF-190", // Taint-core CWEs
+    "CWE-22", "CWE-78", "CWE-79", "CWE-89", "CWE-90", "CWE-91",
+];
+
+/// S + A PERF tiers (see `perf::tiers`).
+const PERF_PACK_RULES: &[&str] = &[
+    // S
+    "PERF-1", "PERF-7", "PERF-50", "PERF-58", "PERF-71", "PERF-101", "PERF-103", "PERF-189",
+    "PERF-190", // A
+    "PERF-11", "PERF-12", "PERF-22", "PERF-31", "PERF-82", "PERF-85", "PERF-142", "PERF-143",
+    "PERF-164", "PERF-183", "PERF-210", "PERF-213",
+];
+
+/// Security pack: taint core + a few structural path/injection neighbors.
+/// Fixture-only CWEs are intentionally absent (see [`crate::rules::maturity`]).
+const SECURITY_PACK_RULES: &[&str] = &[
+    "CWE-22", "CWE-41", "CWE-59", "CWE-78", "CWE-79", "CWE-89", "CWE-90", "CWE-91", "CWE-93",
+];
+
+/// Default-off under `--profile style` (opt-in noise / opinion).
+/// BP-21: missing `t.Parallel` is policy, not correctness — off in recommended
+/// already; keep out of style defaults too.
+/// BP-28: single-method interface is opinionated API style.
+const STYLE_DEFAULT_SKIP: &[&str] = &["BP-21", "BP-28"];
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn recommended_is_small() {
+        assert!(RECOMMENDED_RULES.len() <= 30);
+        assert!(RECOMMENDED_RULES.contains(&"PERF-101"));
+        assert!(RECOMMENDED_RULES.contains(&"CWE-22"));
+        assert!(!RECOMMENDED_RULES.iter().any(|r| r.starts_with("BP-")));
+    }
+
+    #[test]
+    fn parse_aliases() {
+        assert_eq!(ScanProfile::parse("ci"), Some(ScanProfile::Recommended));
+        assert_eq!(ScanProfile::parse("bp"), Some(ScanProfile::Style));
+        assert_eq!(ScanProfile::parse("ALL"), Some(ScanProfile::All));
+    }
+
+    #[test]
+    fn style_skips_opinion_rules() {
+        assert!(ScanProfile::Style.style_default_skip().contains(&"BP-21"));
+        assert!(ScanProfile::Style.style_default_skip().contains(&"BP-28"));
+        assert!(ScanProfile::Recommended.style_default_skip().is_empty());
+    }
+}

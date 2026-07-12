@@ -29,12 +29,7 @@ pub(crate) fn detect_perf_27(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         if large_make && !in_loop {
             continue;
         }
-        if !is_hot_path(
-            source,
-            assignment.start_byte,
-            &facts.source_index,
-            in_loop,
-        ) {
+        if !is_hot_path(source, assignment.start_byte, &facts.source_index, in_loop) {
             continue;
         }
         let (line, col) = unit.line_col(assignment.start_byte);

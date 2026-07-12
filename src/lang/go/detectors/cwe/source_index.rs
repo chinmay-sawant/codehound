@@ -1,6 +1,12 @@
 //! Single-pass substring index for Go CWE detector hot paths.
 
 /// Frequently scanned literals across the Go CWE bundle (one `contains` per needle).
+///
+/// Hygiene notes (Phase 1):
+/// - Prefer structural facts/call classification over needles for primary detection.
+/// - Needles marked `// fixture-only:` encode corpus strings; paired detectors are
+///   quarantined from recommended/security packs via `rules::maturity`.
+/// - Production-shaped needles (APIs, stdlib) stay as cheap prefilters / negative gates.
 pub const NEEDLES: &[&str] = &[
     " <= 0",
     "!(isAdmin || ownerID == docOwner)",
@@ -21,7 +27,9 @@ pub const NEEDLES: &[&str] = &[
     "\"token\"",
     "\"true\"",
     "\"unable to load profile\"",
+    // fixture-only: deterministic PRNG formula from CWE-343 corpus
     "*3 + 1) % 97",
+    // fixture-only: deterministic PRNG formula from CWE-343 corpus
     "*5 + 3) % 101",
     "+ expr",
     ", 900,",
@@ -32,6 +40,7 @@ pub const NEEDLES: &[&str] = &[
     ".MatchString(decoded)",
     ".Param(",
     ".Query(",
+    // fixture-only: hard-coded test paths (not general production)
     "/admin/config",
     "/admin/sql",
     "/debug/pprof",
@@ -159,6 +168,7 @@ pub const NEEDLES: &[&str] = &[
     "INSERT INTO wires",
     "InsecureSkipVerify",
     "InsecureSkipVerify: true",
+    // fixture-only: magic PRNG bound from CWE-334 corpus
     "Intn(4096)",
     "Intn(900000) + 100000",
     "LIKE",
@@ -365,6 +375,7 @@ pub const NEEDLES: &[&str] = &[
     "cipher.NewGCM(",
     "cmd.Stdin = strings.NewReader(",
     "code",
+    // fixture-only: exact identifier from CWE-342 corpus
     "code := lastOTP",
     "code := lastSmsCode",
     "const billingHMACSecret = ",
@@ -501,6 +512,7 @@ pub const NEEDLES: &[&str] = &[
     "json.Unmarshal(payload, &claims)",
     "json.Unmarshal(raw, &p)",
     "jwt_sub",
+    // fixture-only: exact identifier from CWE-342 corpus
     "lastOTP++",
     "lastSmsCode++",
     "last_seen",

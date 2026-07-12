@@ -9,6 +9,7 @@ pub mod common;
 pub mod domains;
 pub mod facts;
 pub mod source_index;
+pub mod tiers;
 
 mod metadata;
 

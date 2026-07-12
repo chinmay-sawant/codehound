@@ -26,7 +26,7 @@ Bad Practices (BP) detection is a rule category beyond CWE (security) and PERF (
 - **2 rules reserved** (BP-12, BP-14) for taint-based implementation.
 - **Detector architecture** is sound (single `GoBadPracticeScan` struct, function-pointer dispatch, `SourceIndex` pre-filter).
 - **CLI integration is complete** (`--no-bp`, `--bp-only`, `[bad_practices]` config block, severity overrides in `ScanContext`).
-- **Missing**: dedicated integration test file, `BadPracticeCategory` enum, `ruleset/golang/bad-practices.json`, negative fixtures, `docs/bad-practices.md`.
+- **Missing**: dedicated integration test file, `BadPracticeCategory` enum, `ruleset/golang/bad-practices.json`, negative fixtures, `documents/bad-practices.md`.
 
 **Recommended order:** Hygiene (quick wins) → Metadata refactor (unlocks `--explain` for BP) → Phase 2 (Testing — high value, scoped to `*_test.go`) → Phase 3 (API Design + Code Org) → Phase 4 (Prod Hardening + Dep Hygiene — overlaps with PERF and taint).
 
@@ -321,7 +321,7 @@ These ship with P2.1 Phase 2 (inter-procedural taint) and are tracked in `01-tai
 
 ## Documentation
 
-- [x] Create `docs/bad-practices.md` — one paragraph per BP rule with rationale and canonical fix. Source: `plans/v2.0.0/antipattern-remediation/bad-practices-scope.md` (also tracked in `05-cross-cutting-remaining.md`)
+- [x] Create `documents/bad-practices.md` — one paragraph per BP rule with rationale and canonical fix. Source: `plans/v2.0.0/antipattern-remediation/bad-practices-scope.md` (also tracked in `05-cross-cutting-remaining.md`)
 
 ---
 
@@ -335,4 +335,4 @@ These ship with P2.1 Phase 2 (inter-procedural taint) and are tracked in `01-tai
 | Phase 3 (API + Code Org) | 20 rules | BP-26..BP-45 | 2w | ❌ |
 | Phase 4 (Prod + Dep) | 20 rules | BP-46..BP-65 | 2w | ❌ |
 | Reserved | 2 rules | BP-12, BP-14 | — | ⏳ |
-| Documentation | 1 doc | `docs/bad-practices.md` | 1d | ❌ |
+| Documentation | 1 doc | `documents/bad-practices.md` | 1d | ❌ |

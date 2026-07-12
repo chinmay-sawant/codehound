@@ -16,11 +16,13 @@ pub fn detect_cwe_78_taint(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
+    // Command injection must not treat Path sanitizers (Base/Clean) as safe.
+    // Only Validation (allowlists / parse-to-int) and similar apply here.
     let paths = find_taint_paths(
         graph,
         SourceKind::UserInput,
         SinkKind::CommandExec,
-        &[SanitizerKind::Path],
+        &[SanitizerKind::Validation, SanitizerKind::Bounded],
     );
 
     for path in paths {
@@ -50,6 +52,7 @@ pub fn detect_cwe_78_taint(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec
         }
 
         let (line, col) = unit.line_col(sink_range.start);
+        let at = out.len();
         emit::push_finding_with_evidence(
             &META_CWE_78,
             file,
@@ -68,6 +71,9 @@ pub fn detect_cwe_78_taint(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec
             },
             out,
         );
+        for f in out.iter_mut().skip(at) {
+            f.confidence = Some(0.75);
+        }
     }
 }
 

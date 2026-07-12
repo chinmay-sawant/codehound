@@ -1,11 +1,8 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   HelpCircle, BarChart3, Sparkles, GitCompare, ShieldAlert,
-  FileOutput, Coins, Blocks, Route, Monitor, Download, FolderGit2,
-  FolderOutput, Bot, ListChecks, ClipboardList, Hash, Bookmark,
-  RefreshCw, Terminal, Gauge,
+  FileOutput, Coins, Blocks, Route, Gauge, Users, Scale, Package,
 } from 'lucide-react'
-import type { FlowDiagram } from '../components/WorkflowDiagram'
 
 export type Stat = { value: string; label: string; sub?: string }
 export type Fact = { k: string; v: string }
@@ -24,12 +21,12 @@ export type Section = {
   title: string
   lead: string
   icon: LucideIcon
+  callout?: string
   body?: string[]
   stats?: Stat[]
   facts?: Fact[]
   tables?: DataTable[]
   code?: CodeBlock
-  flows?: FlowDiagram[]
 }
 
 /**
@@ -53,6 +50,8 @@ export const sections: Section[] = [
     title: 'Real results, not vibes',
     lead:
       'On gopdfsuit, fixing CodeHound findings moved throughput from ~2,000 ops/sec to ~2,700 ops/sec — about +35% on the same hardware, before later optimization phases stacked on top.',
+    callout:
+      '**Not a benchmark theater.** Same machines, same harness, same library. The lift came from deterministic PERF findings — regex hoists, fmt→strconv, defer off hot paths — not from guessing with an agent.',
     stats: [
       { value: '~2k→2.7k', label: 'ops/sec after fixes', sub: 'gopdfsuit · CodeHound pass' },
       { value: '+35%', label: 'throughput lift', sub: 'same machines · same harness' },
@@ -68,6 +67,7 @@ export const sections: Section[] = [
     body: [
       'CodeHound does not "suggest" that a loop is slow. It pins **PERF-*** rules to file, line, and snippet — the same findings you fix in a PR. On gopdfsuit that was **218** actionable performance hits, all fixed.',
       'The ~**2,000 → ~2,700 ops/sec** jump is the immediate payoff of that pass. Capacity you would have bought with more boxes or more Grok time, you get from a **$0** static scan plus targeted edits.',
+      'This is the product wedge: hot-path PERF you can measure, not a wall of unused security noise. Run it after golangci-lint. Fix what moves the needle. Baseline the rest.',
     ],
   },
   {
@@ -77,6 +77,8 @@ export const sections: Section[] = [
     title: 'Scan free. Review bounded.',
     lead:
       'Detection is $0. Review is optional and sized to exported chunks — so Grok 4.5 (and every other model) has a fixed token budget instead of re-reading the repo forever.',
+    callout:
+      '**The math is the product.** Skills re-walk the tree every pass. CodeHound writes findings once; you pay only for the models you choose to point at `scripts/chunks/`.',
     stats: [
       { value: '$0', label: 'CodeHound scan', sub: '1,042 findings · offline' },
       { value: '$3.85', label: 'Grok 4.5 batch', sub: '1.55M in · 125K out' },
@@ -153,66 +155,62 @@ export const sections: Section[] = [
     ],
   },
   {
+    id: 'audience',
+    nav: 'Who for',
+    icon: Users,
+    title: 'Who this is built for',
+    lead:
+      'Hobby and small-scale Go projects that want less slop, clearer architecture, and real bad-practice coverage — after your normal linters, not instead of them.',
+    callout:
+      '**Cloud AI is subsidized.** That will not last forever. Even while it does, unbounded agent review still burns days and dollars. CodeHound is the offline checklist you run first.',
+    facts: [
+      { k: 'Built for', v: 'Hobby projects, side services, small Go codebases under a real delivery deadline' },
+      { k: 'Run after', v: 'golangci-lint, staticcheck, govulncheck — CodeHound is a complement, never a replacement' },
+      { k: 'Language (now)', v: 'Go-first production rules; Python opt-in experimental; no TypeScript plugin' },
+      { k: 'Instead of skills', v: 'Deterministic PERF, BP, and footgun checks — same answer every run' },
+      { k: 'Not for', v: 'Full CodeQL / org-wide SRE platforms — use the tools built for that scale' },
+    ],
+    body: [
+      'We all know the current ChatGPT / cloud subscription model is heavily **subsidized**. That will not last forever — and even while it does, unbounded agent review still burns days and dollars.',
+      '**Who this is built for:** hobby projects and **small-scale** work where you do not need enterprise-grade optimization, but you still want *some* PERF discipline, cleaner architecture, and less **slop** in the tree — under a real delivery deadline. It was built for personal use under those constraints.',
+      '**When to run it:** after your existing Go CI and linters (**golangci-lint**, staticcheck, govulncheck, and whatever else you already trust). CodeHound targets hot-path PERF, framework footguns, and **bad practices** those tools often miss — it does not replace them.',
+      'Anyone who wants less agent-shaped mess, proper architecture habits, or a concrete **bad-practices** catalog can use this instead of (or before) open-ended skills: rules with IDs, files, and lines — not a vibe that drifts every pass. Optional agent triage stays bounded; the checklist does not.',
+      'If you need full CodeQL / org-wide security platform coverage, use those tools. If you want a fast, deterministic pass for a side project or small Go service — with optional cheap-model triage — this is for you.',
+    ],
+  },
+  {
     id: 'how-it-works',
     nav: 'How it works',
     icon: Route,
     title: 'How it works',
     lead:
       'One binary, two output folders, you stay in control. CodeHound finds the issues — your agent helps triage and fix them.',
-    flows: [
-      {
-        caption: 'Setup → scan → export',
-        rows: [
-          {
-            segments: [
-              { kind: 'node', step: { label: 'Your machine', hint: 'Win · Linux · macOS', icon: Monitor } },
-              {
-                kind: 'fork',
-                left: { label: 'Download binary', cmd: 'codehound .', icon: Download },
-                right: { label: 'Clone repo', cmd: 'make run', icon: FolderGit2 },
-              },
-              {
-                kind: 'node',
-                step: {
-                  label: 'Artifacts on disk',
-                  hint: 'scripts/chunks · scripts/findings',
-                  icon: FolderOutput,
-                },
-              },
-            ],
-          },
-        ],
-      },
-      {
-        caption: 'Agent review → baseline → loop',
-        rows: [
-          {
-            segments: [
-              { kind: 'node', step: { label: 'Feed to agent', hint: 'OpenCode · Claude Code · Grok', icon: Bot } },
-              { kind: 'node', step: { label: 'Triage findings', hint: 'FP · fix · defer', icon: ListChecks } },
-              { kind: 'node', step: { label: 'Guide with checklist', hint: 'you pick what ships', icon: ClipboardList } },
-            ],
-          },
-          {
-            segments: [
-              { kind: 'node', step: { label: '100 findings', hint: '60 fixed · 40 remain', icon: Hash } },
-              { kind: 'node', step: { label: 'Set baseline', cmd: 'codehound . --baseline', icon: Bookmark } },
-              { kind: 'node', step: { label: 'Re-scan', cmd: 'codehound .', icon: RefreshCw } },
-            ],
-          },
-          {
-            segments: [
-              { kind: 'node', step: { label: 'Makefile target', cmd: 'make codehound', hint: 'like any linter', icon: Terminal } },
-            ],
-          },
-        ],
-        loop: { label: 'repeat until clean or baseline is stable', target: '↩ back to scan' },
-      },
-    ],
+    callout:
+      '**You own the architecture.** Findings are automatic. What ships is your call — fix, defer, baseline, or ignore. Agents propose; you decide.',
     body: [
       'By default CodeHound writes numbered context files to **./scripts/findings/functions/** and batched review chunks to **./scripts/chunks/**. Point your agent at those paths — it can classify false positives, propose fixes, and follow a checklist you write.',
       'You keep full control: which findings are real, which are noise, which get fixed now. When **60** of **100** are resolved and **40** remain, run with **--baseline** so those **40** become accepted debt. The next scan only reports regressions and new hits.',
       'Add a **make codehound** target beside your other linters. The agent handles remediation from the exported chunks; you only step in for the review calls you actually want.',
+    ],
+  },
+  {
+    id: 'your-call',
+    nav: 'Your call',
+    icon: Scale,
+    title: 'Findings are automatic. Architecture is yours.',
+    lead:
+      'CodeHound reports what the rules match. You decide what ships — including whether a fix is safe, wrong, or a breaking change.',
+    facts: [
+      { k: 'Analysis owns', v: 'Finding the issue — rule ID, file, line, snippet' },
+      { k: 'You own', v: 'Architectural decisions: fix, defer, redesign, or ignore' },
+      { k: 'Before you apply', v: 'Read the surrounding code; do not rubber-stamp agent patches' },
+      { k: 'Safety net', v: 'Solid tests — remediations can break behavior on purpose or by accident' },
+    ],
+    body: [
+      'The analyzer does the **code findings**. The **final architectural decision** is yours alone. A PERF hit or CWE heuristic is a signal, not a mandate to merge whatever an agent proposes next.',
+      'You need to **understand the code** before changing it. Agents (and fix hints) can suggest refactors that are correct for the rule and wrong for your system — public API breaks, subtle behavior shifts, or "optimizations" that trade correctness for speed.',
+      '**Proper tests are non-negotiable.** There is a real chance remediation breaks something, or that an agent asks for a breaking change. Tests, review, and your judgment are how you catch that. CodeHound will not run your suite or sign off on design.',
+      'Use the exported reports as a checklist. Ship only what you have read, understood, and covered — not everything the scan (or the model) printed.',
     ],
   },
   {
@@ -302,6 +300,9 @@ for i := range members {
     }
 }`,
     },
+    body: [
+      'This is the shape of a CodeHound finding: **rule ID**, file, line, snippet, and a fix that is usually local. Multiply by hundreds of hot-path sites and you get the +35% throughput story — not a single heroic refactor.',
+    ],
   },
   {
     id: 'rules',
@@ -309,13 +310,20 @@ for i := range members {
     icon: ShieldAlert,
     title: 'What it flags',
     lead:
-      'Three catalogs, one AST walk. Rules are data — ship a rule, ship a finding.',
+      'Three catalogs, one AST walk. Rules are data — ship a rule, ship a finding. Go-first; production bar is 0.1.0.',
+    callout:
+      '**Complements, does not replace.** Run after golangci-lint + govulncheck for app-level PERF, framework footguns, and curated CWE heuristics.',
     facts: [
       { k: 'PERF rules', v: '224 across 60+ detectors — regex-in-loops, fmt.Sprintf on hot paths, defer in hot funcs, request-path allocation thrash' },
       { k: 'CWE heuristics', v: '175+ fixture-backed entries for file I/O, SQL injection, command injection; auto-generated from sink registry' },
       { k: 'Bad practices', v: '65 across 7 categories: errors, concurrency, testing, API design, prod hardening' },
+      { k: 'Framework footguns', v: 'Gin / Echo / GORM / sqlx aware — unclosed bodies, unbounded rows, missing timeouts, context leaks' },
       { k: 'Taint (experimental)', v: 'intra-procedural, name-string sinks; CWE-22/78/79/89 — use for triage, not hard gates' },
-      { k: 'Languages', v: 'Go (production), Python (stub), TypeScript (stub)' },
+      { k: 'Languages', v: 'Go (production); Python opt-in (1 experimental rule, SLOP101)' },
+    ],
+    body: [
+      'Default profile is the **recommended pack**: S-tier PERF + taint-core CWEs, BP off, fail on high. Switch packs with `--profile security` or `--profile all`. List everything with `codehound --list-rules`; deep-dive one rule with `codehound --explain PERF-101`.',
+      'Non-goals, stated plainly: not a golangci-lint / staticcheck / govulncheck / CodeQL replacement; not a CVE scanner; not default-on full BP in CI.',
     ],
   },
   {
@@ -327,9 +335,60 @@ for i := range members {
       'Text for the terminal, NDJSON for jq, SARIF 2.1.0 for GitHub Code Scanning. One binary, no service.',
     facts: [
       { k: 'Text', v: 'color-coded severity, per-finding snippet, fix hint, summary footer' },
-      { k: 'JSON', v: 'NDJSON stream, stable fingerprint (codehound:1:rule:file:line:col), jq-able' },
+      { k: 'JSON', v: 'NDJSON stream, stable fingerprint (codehound:2:rule:file:msghash), jq-able' },
       { k: 'SARIF', v: '2.1.0, security-severity mapped, partialFingerprints, runs in GitHub Code Scanning' },
       { k: 'Cache', v: 'per-file content-hash, ~27× speedup on repeat scans, enabled by default' },
+      { k: 'Agent export', v: 'scripts/findings/functions + scripts/chunks — fixed context for batch triage' },
+    ],
+    body: [
+      'Wire it into CI the same way you wire any linter: `codehound --format sarif ./... > out.sarif`, or keep text for humans and JSON for scripts. Incremental cache is on by default; force rebuild with `--rebuild-cache` when you need a cold pass.',
+    ],
+  },
+  {
+    id: 'install',
+    nav: 'Install',
+    icon: Package,
+    title: 'Install & common commands',
+    lead:
+      'Single static binary. No toolchain required at scan time. Go-first default build; Python is an optional Cargo feature.',
+    code: {
+      label: 'quick start',
+      lang: 'sh',
+      body: `# install
+cargo install --path .
+
+# optional experimental Python (SLOP101 only)
+cargo install --path . --features python
+
+# default = recommended pack (S-tier PERF + taint-core CWEs)
+codehound .
+
+# product wedge — request-path / timeouts
+codehound --profile recommended --only PERF-101 .
+
+# security pack or full catalog
+codehound --profile security .
+codehound --profile all .
+
+# machine-readable
+codehound --format json ./...
+codehound --format sarif ./... > out.sarif
+
+# test files excluded by default
+codehound --include-tests .
+
+# rule browser
+codehound --list-rules
+codehound --explain PERF-101
+
+# starter config
+codehound init`,
+    },
+    facts: [
+      { k: 'Profiles', v: 'recommended · security · all — see documents/go-recommended-pack.md' },
+      { k: 'Cache', v: '--rebuild-cache · --prune-cache · --no-cache' },
+      { k: 'Baseline', v: 'accept known debt; next scan only reports new / regressed findings' },
+      { k: 'CI sample', v: '.github/workflows/codehound.yml in the repo' },
     ],
   },
   {
@@ -341,8 +400,8 @@ for i := range members {
       'The catalog is data. The CWE list is auto-generated from a sink registry. This website is the same idea — the nav is data, the page is a renderer.',
     body: [
       'New analyzer? Add one entry to the sink registry. The CWE catalog (175+) regenerates.',
-      'New language? Ship a plugin — Python is already live behind a feature flag, TypeScript is gated.',
-      'New section on this page? Add one entry to src/data/sections.ts. The sidebar, the scroll target, the layout all follow — no special cases.',
+      'New language? Ship a real plugin — Go is production; Python is opt-in (one rule); no TypeScript stub.',
+      'New section on this page? Add one entry to src/data/sections.ts. The nav, the scroll target, the layout all follow — no special cases.',
     ],
   },
 ]

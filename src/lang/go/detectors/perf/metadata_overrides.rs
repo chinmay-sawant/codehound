@@ -1,10 +1,10 @@
-/// Default severity for Go performance rules.
+/// Severity for Go PERF rules by product tier (see [`super::tiers`]).
 ///
-/// PERF rules are medium severity by default: they do not block compilation or
-/// deployment, they signal a likely hot-path improvement. Individual rule ids
-/// can override this in [`fix_for`] / [`severity_for`] pairs.
-pub const fn severity_for(_id: u32) -> crate::rules::Severity {
-    crate::rules::Severity::Medium
+/// - **S/A** → Medium (actionable hot-path / framework)
+/// - **B/C** → Info (micro-opts / staticcheck overlap)
+/// - unlisted → Low
+pub const fn severity_for(id: u32) -> crate::rules::Severity {
+    super::tiers::severity_for_tier(id)
 }
 
 pub const fn fix_for(id: u32) -> Option<&'static str> {
@@ -23,6 +23,8 @@ pub const fn fix_for(id: u32) -> Option<&'static str> {
         6 => Some("Use a bytes.Buffer, strings.Builder, or pool of buffers to avoid repeated fmt allocations."),
         // PERF-7: Defer in loop
         7 => Some("Replace the defer with explicit close calls inside the loop or move the work into a helper function."),
+        // PERF-118: NewRequest vs Get — only when truly trivial (headers/context need NewRequest)
+        118 => Some("Use http.Get/http.Head only for simple no-header GET/HEAD; keep NewRequest when setting headers, context, or a custom client."),
         // PERF-8: time.Parse in loop
         8 => Some("Hoist time.Parse out of the loop or cache parsed time values keyed by layout."),
         // PERF-9: url.Parse in loop
@@ -302,7 +304,7 @@ pub const fn fix_for(id: u32) -> Option<&'static str> {
         // PERF-220: Double-scan merge
         220 => Some("Merge the consecutive loops over the same data into a single pass that does all required work, eliminating the redundant iteration overhead."),
         // PERF-221: map[int] → []T
-        221 => Some("Replace map[int]T with []T when the integer keys are dense and sequential (e.g., ObjectIDs, page numbers). Use make([]T, maxKey+1) and direct index access."),
+        221 => Some("Replace map[int]T with []T when the integer keys are dense and sequential (e.g. indices, counters). Use make([]T, maxKey+1) and direct index access."),
         // PERF-222: Generics in hot path
         222 => Some("Replace the generic function on the measured hot path with a concrete type or use code generation. Shape-based dispatch prevents inlining and adds call overhead."),
         // PERF-223: Pool backing array retention
@@ -323,8 +325,28 @@ pub const fn fix_for(id: u32) -> Option<&'static str> {
         230 => Some("Hoist the pure call before the loop or cache its result when arguments do not change across iterations."),
         // PERF-231: PEM/key parse on hot path
         231 => Some("Parse PEM/keys once at process start (package var or sync.Once) and reuse *rsa.PrivateKey / certificates on the hot path."),
+        // PERF-232: Unbounded parallel fan-out
+        232 => Some("Cap fan-out with errgroup.SetLimit or a semaphore before spawning per-item work."),
         // PERF-233: Slow compress level on hot path
-        233 => Some("Use flate/zlib BestSpeed (or level 1) for hot page/stream compression when size budgets allow; keep /FlateDecode. Reserve Default/BestCompression for cold paths."),
+        233 => Some("Use flate/zlib BestSpeed (or level 1) for hot stream compression when size budgets allow. Reserve Default/BestCompression for cold or archival paths."),
+        // PERF-234: Bulk buffer without workload sizing
+        234 => Some("Grow bulk buffers from a workload estimate (payload length, item count), not a large fixed default or bare pool Reset."),
+        // PERF-235: Intermediate strings.Builder bridge
+        235 => Some("Write into the destination *bytes.Buffer or []byte directly instead of building a temporary strings.Builder and flushing with .String()."),
+        // PERF-236: Full buffer clone on signing path
+        236 => Some("Keep an owned writable buffer with reserved holes, or mutate in place, instead of bytes.Clone of the entire document on the signing path."),
+        // PERF-237: Always-parallel without tiny-N serial path
+        237 => Some("Before errgroup fan-out, handle len(items) <= 2 on a serial path; spawn only when concurrency pays off."),
+        // PERF-238: map[rune]bool membership in loop
+        238 => Some("Replace map[rune]bool membership on hot paths with a bitset or denser set when the code-point domain is bounded."),
+        // PERF-239: Dense integer map write churn
+        239 => Some("Prefer a slice (or append-only {id,offset} records + one index pass) instead of many map[int] writes for dense keys."),
+        // PERF-240: Unpooled len-sized scratch
+        240 => Some("Pool a []byte scratch (sync.Pool + Reset/[:0]) instead of make([]byte, len(src)) on every hot call."),
+        // PERF-241: ASN.1 re-marshal with time.Now on sign path
+        241 => Some("Pre-marshal immutable ASN.1/CMS components; only re-marshal time-varying authenticated attributes each sign."),
+        // PERF-242: Per-iteration encode scratch
+        242 => Some("Hoist make([]byte, len(x)*N) out of the loop and reuse one buffer with append/[:0]."),
         _ => None,
     }
 }

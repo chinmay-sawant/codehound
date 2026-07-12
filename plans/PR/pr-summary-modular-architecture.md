@@ -81,7 +81,7 @@ Mixed repos work with `codehound .` and `--lang auto` (extension-based plugin se
 | **Registry.by_language** | Only run detectors for each file’s language |
 | **parse_with** | Hot path avoids `Parser::new` per file |
 
-Docs: `docs/architecture-performance.md`.
+Docs: `documents/architecture-performance.md`.
 
 ---
 

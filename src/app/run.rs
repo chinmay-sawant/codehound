@@ -2,17 +2,18 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use anyhow::{Context, Result};
-use codehound::cli::{Cli, Command, OutputFormat};
+use codehound::cli::{CacheAction, Cli, Command, OutputFormat};
 use codehound::engine::{
-    AnalysisResult, Analyzer, BASELINE_FILE_NAME, Baseline, CacheSession, CacheStore, Diagnostics,
-    FilesystemWalker, LanguageFilter, PathFilters, Registry, RunConfigParams, ScanContextParams,
-    CodehoundConfig, TimingCollector, build_run_config, collect_entries_with,
-    resolve_language_filter,
+    AnalysisResult, Analyzer, BASELINE_FILE_NAME, Baseline, CacheSession, CacheStore,
+    CodehoundConfig, DEFAULT_CACHE_DIR, Diagnostics, FilesystemWalker, LanguageFilter, PathFilters,
+    Registry, RunConfigParams, ScanContextParams, TimingCollector, build_run_config,
+    collect_entries_with, resolve_language_filter,
 };
 use codehound::export::{ExportOptions, ExportSummary, export_findings};
 use codehound::fixture::{FIXTURE_EXTENSION, materialize_fixture, parse_fixture};
 use codehound::reporting;
 
+use super::baseline_cmd::run_baseline_command;
 use super::cache::{cache_directory, open_cache_store};
 use super::config::{baseline_load_path, baseline_loading_enabled, load_config};
 use super::exit_codes::{EXIT_CLEAN, EXIT_FAILING, EXIT_INTERNAL};
@@ -22,8 +23,35 @@ use super::rule_info::{print_rule_explanation, print_rules};
 pub fn run(cli: Cli) -> Result<ExitCode> {
     configure_terminal_color(&cli);
 
-    if let Some(Command::Init) = &cli.command {
-        return Ok(init_subcommand());
+    // Take subcommand ownership first so we can move `cli` into handlers.
+    let command = cli.command.clone();
+    match command {
+        Some(Command::Init) => return Ok(init_subcommand()),
+        Some(Command::Rules { category, explain }) => {
+            if let Some(rule_id) = explain {
+                return run_explain(&rule_id);
+            }
+            print_rules(category);
+            return Ok(ExitCode::from(EXIT_CLEAN));
+        }
+        Some(Command::Cache {
+            action: CacheAction::Prune,
+        }) => {
+            let mut cli = cli;
+            cli.prune_cache = true;
+            return run_scan(cli);
+        }
+        Some(Command::Baseline { action }) => {
+            return run_baseline_command(&cli, &action);
+        }
+        Some(Command::Scan { paths }) => {
+            let mut cli = cli;
+            if !paths.is_empty() {
+                cli.paths = paths;
+            }
+            return run_scan(cli);
+        }
+        None => {}
     }
 
     if cli.list_rules {
@@ -38,9 +66,11 @@ pub fn run(cli: Cli) -> Result<ExitCode> {
 }
 
 fn export_options_for_run(cli: &Cli) -> ExportOptions {
+    // Export is off by default; require explicit --export-context / --export-chunks.
+    // --no-context / --no-chunks remain accepted as no-ops for older scripts.
     ExportOptions {
-        export_context: !cli.no_context,
-        export_chunks: !cli.no_chunks,
+        export_context: cli.export_context,
+        export_chunks: cli.export_chunks,
         chunk_size: cli.chunk_size,
         context_output_dir: cli.context_output_dir.clone(),
         chunks_output_dir: cli.chunks_output_dir.clone(),
@@ -97,6 +127,9 @@ impl ScanRun {
             .build();
 
         let mut cache_store = open_cache_store(&cli, config.as_ref());
+        if let Some(store) = cache_store.as_mut() {
+            store.ensure_rule_config_hash(&run_config.scan_context.rule_config_fingerprint());
+        }
         rebuild_cache_if_requested(&cli, config.as_ref(), &mut cache_store);
 
         if cli.prune_cache {
@@ -153,7 +186,10 @@ fn run_scan(cli: Cli) -> Result<ExitCode> {
     ScanRun::new(cli).execute()
 }
 
-fn scan_context_params_for_run(cli: &Cli, config: Option<CodehoundConfig>) -> ScanContextParams {
+pub(crate) fn scan_context_params_for_run(
+    cli: &Cli,
+    config: Option<CodehoundConfig>,
+) -> ScanContextParams {
     ScanContextParams {
         only: cli.only.clone(),
         skip: cli.skip.clone(),
@@ -169,7 +205,11 @@ fn scan_context_params_for_run(cli: &Cli, config: Option<CodehoundConfig>) -> Sc
         taint: cli.taint,
         no_taint: cli.no_taint,
         taint_show_paths: cli.taint_show_paths,
+        taint_depth: cli.taint_depth,
         show_ignored: cli.show_ignored,
+        profile: cli.profile.to_profile(),
+        // Only pay the monorepo source_cache cost when export needs it.
+        retain_sources: cli.export_context || cli.export_chunks,
     }
 }
 
@@ -185,6 +225,15 @@ fn rebuild_cache_if_requested(
     if !dir.is_dir() {
         return;
     }
+    if let Err(reason) = validate_cache_purge_path(&dir) {
+        if !cli.quiet {
+            eprintln!(
+                "warning: refusing to purge cache at {}: {reason}",
+                dir.display()
+            );
+        }
+        return;
+    }
     if let Err(e) = std::fs::remove_dir_all(&dir) {
         if !cli.quiet {
             eprintln!("warning: could not purge cache at {}: {e}", dir.display());
@@ -195,7 +244,38 @@ fn rebuild_cache_if_requested(
     *cache_store = open_cache_store(cli, config);
 }
 
-fn resolve_scan_paths(paths: &[String]) -> Result<Vec<PathBuf>> {
+/// Refuse to `remove_dir_all` paths that look like project roots or the FS root.
+fn validate_cache_purge_path(dir: &Path) -> Result<(), String> {
+    let name = dir.file_name().and_then(|s| s.to_str()).unwrap_or("");
+    // Prefer directories that look like a cache (default name or explicit cache_dir).
+    let looks_like_cache = name == DEFAULT_CACHE_DIR.trim_start_matches("./")
+        || name == ".codehound-cache"
+        || name.contains("codehound-cache")
+        || name.contains("cache");
+    if !looks_like_cache {
+        return Err(
+            "path does not look like a codehound cache directory (name must contain 'cache')"
+                .into(),
+        );
+    }
+    let canon = dir
+        .canonicalize()
+        .map_err(|e| format!("could not resolve path: {e}"))?;
+    if canon.parent().is_none() {
+        return Err("refusing to delete filesystem root".into());
+    }
+    // Refuse common sensitive roots if someone pointed --cache-dir at them.
+    let forbidden = ["/etc", "/usr", "/bin", "/home", "/root", "/var", "/tmp"];
+    let canon_str = canon.to_string_lossy();
+    for f in forbidden {
+        if canon_str == f {
+            return Err(format!("refusing to delete system path {f}"));
+        }
+    }
+    Ok(())
+}
+
+pub(crate) fn resolve_scan_paths(paths: &[String]) -> Result<Vec<PathBuf>> {
     paths.iter().map(|path| resolve_scan_path(path)).collect()
 }
 
@@ -314,10 +394,25 @@ fn apply_baseline_filter(cli: &Cli, config: Option<&CodehoundConfig>, result: &m
                 );
             }
             let before = result.findings.len();
-            result
-                .findings
-                .retain(|finding| !baseline.contains_finding(finding));
-            result.suppressed_count += before.saturating_sub(result.findings.len());
+            if cli.show_baselined {
+                // Mirror --show-ignored: keep baselined findings, mark as suppressed.
+                for finding in &mut result.findings {
+                    if baseline.contains_finding(finding) {
+                        finding.severity = codehound::rules::Severity::Info;
+                        finding.suppressed = true;
+                        if !finding.message.ends_with(" (baselined)") {
+                            finding.message.push_str(" (baselined)");
+                        }
+                    }
+                }
+                let baselined = result.findings.iter().filter(|f| f.suppressed).count();
+                result.suppressed_count += baselined;
+            } else {
+                result
+                    .findings
+                    .retain(|finding| !baseline.contains_finding(finding));
+                result.suppressed_count += before.saturating_sub(result.findings.len());
+            }
             if !cli.quiet {
                 eprintln!(
                     "Using baseline with {} entr{} from {} (suppressed {})",
@@ -376,7 +471,7 @@ fn emit_output(
                 envelope: cli.json_envelope,
             }),
             OutputFormat::Sarif => Box::new(reporting::SarifReporter {
-                compact: cli.no_snippet,
+                compact: cli.sarif_compact,
             }),
         }
     };

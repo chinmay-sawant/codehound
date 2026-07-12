@@ -68,7 +68,7 @@ Deferred pending work items from the v2.0.0 audit across taint tracking, cache/i
 
 ### 2.3 Test-Suite Gaps
 
-- [ ] Update `docs/incremental-cache.md` limitations section to mention concurrent cache test exists
+- [ ] Update `documents/incremental-cache.md` limitations section to mention concurrent cache test exists
 
 ---
 

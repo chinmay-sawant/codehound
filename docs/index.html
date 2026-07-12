@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('codehound-theme') || localStorage.getItem('slopguard-theme')
+          if (t === 'light') document.documentElement.classList.remove('dark')
+          else document.documentElement.classList.add('dark')
+        } catch (e) {
+          document.documentElement.classList.add('dark')
+        }
+      })()
+    </script>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/codehound/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <title>CodeHound — Go PERF scanner + framework footgun detector</title>
+    <meta
+      name="description"
+      content="CodeHound: offline Go static analysis for performance hot-path regressions, framework footguns (Gin/Echo/GORM), bad practices, and curated CWE heuristics. Complements golangci-lint. Scan free; triage with Grok 4.5 for $3.85 or DeepSeek for $0.25."
+    />
+    <meta name="color-scheme" content="dark light" />
+    <!-- GitHub Pages project site; section deep links use #hash (e.g. #audience). -->
+    <link rel="canonical" href="https://chinmay-sawant.github.io/codehound/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="CodeHound" />
+    <meta property="og:title" content="CodeHound — Go PERF scanner + framework footgun detector" />
+    <meta
+      property="og:description"
+      content="Offline Go static analysis for PERF hot paths, framework footguns, bad practices, and curated CWE heuristics. Complements golangci-lint."
+    />
+    <meta property="og:url" content="https://chinmay-sawant.github.io/codehound/" />
+    <meta property="og:image" content="https://chinmay-sawant.github.io/codehound/og.svg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="CodeHound — Go PERF scanner + framework footgun detector" />
+    <meta
+      name="twitter:description"
+      content="Offline Go static analysis for PERF hot paths, framework footguns, bad practices, and curated CWE heuristics."
+    />
+    <meta name="twitter:image" content="https://chinmay-sawant.github.io/codehound/og.svg" />
+    <script type="module" crossorigin src="/codehound/assets/index-ZLMxBcZ0.js"></script>
+    <link rel="stylesheet" crossorigin href="/codehound/assets/index-6-ZkElD3.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

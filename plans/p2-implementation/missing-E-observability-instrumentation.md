@@ -195,7 +195,7 @@ Once incremental analysis or larger monorepo workflows are added, performance de
   - [x] Plot findings-over-time charts
   - [x] Alert on scan time regressions
   - [~] Track cache hit rate degradation (deferred to P2.3) (deferred → see plans/v3.0.0/)
-- [~] Document the diagnostics schema in `docs/diagnostics.md` — not created (deferred → see plans/v3.0.0/)
+- [~] Document the diagnostics schema in `documents/diagnostics.md` — not created (deferred → see plans/v3.0.0/)
 
 ---
 

@@ -60,12 +60,38 @@ fn write_fixture(fixture: &TextFixture) -> Result<PathBuf> {
     write_fixture_at(materialized_root(), fixture)
 }
 
+/// Reject fixture filenames that escape the materialize root (`..` or absolute).
+fn sanitize_fixture_filename(filename: &str) -> Result<&Path> {
+    let path = Path::new(filename);
+    if path.is_absolute() {
+        anyhow::bail!("fixture filename must be relative, got absolute path {filename:?}");
+    }
+    for component in path.components() {
+        if matches!(component, std::path::Component::ParentDir) {
+            anyhow::bail!("fixture filename must not contain '..': {filename:?}");
+        }
+    }
+    Ok(path)
+}
+
 fn write_fixture_at(root: &Path, fixture: &TextFixture) -> Result<PathBuf> {
+    let filename = sanitize_fixture_filename(&fixture.filename)?;
     let out_dir = root.join(fixture.language.as_str());
     fs::create_dir_all(&out_dir)?;
-    let out_path = out_dir.join(&fixture.filename);
+    let out_path = out_dir.join(filename);
+    // Ensure the resolved path still lives under out_dir (defense in depth).
+    let out_canon_parent = out_dir.canonicalize().unwrap_or_else(|_| out_dir.clone());
     if let Some(parent) = out_path.parent() {
         fs::create_dir_all(parent)?;
+        let parent_check = parent
+            .canonicalize()
+            .unwrap_or_else(|_| parent.to_path_buf());
+        if !parent_check.starts_with(&out_canon_parent) {
+            anyhow::bail!(
+                "fixture path escapes materialize root: {}",
+                out_path.display()
+            );
+        }
     }
     fs::write(&out_path, &fixture.source)
         .with_context(|| format!("writing materialized {}", out_path.display()))?;

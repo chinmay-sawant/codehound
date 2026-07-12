@@ -120,8 +120,8 @@ Deferred items from p2-implementation plan files that were not yet implemented a
 
 ### 4.1 Remaining Hygiene Work
 
-- [x] Benchmark regression investigation — documented in `docs/architecture-performance.md`
-- [x] Diagnostic documentation — `docs/perf-detector-development.md` created
+- [x] Benchmark regression investigation — documented in `documents/architecture-performance.md`
+- [x] Diagnostic documentation — `documents/perf-detector-development.md` created
 - [x] Test fixture audit — all 442 PERF fixture pairs audited
 - [x] Edge-case hardening (PERF-172, PERF-150, PERF-139) — verified via existing safe fixtures
 
@@ -243,7 +243,7 @@ Deferred items from p2-implementation plan files that were not yet implemented a
 
 ### 10.2 Documentation
 
-- [ ] Document diagnostics schema in `docs/diagnostics.md` — not created
+- [ ] Document diagnostics schema in `documents/diagnostics.md` — not created
 
 ### 10.3 Integration with other P2 features
 

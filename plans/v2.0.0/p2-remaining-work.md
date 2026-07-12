@@ -28,7 +28,7 @@
   - 📋 Detailed plan: `plans/v2.0.0/pending-work/01-taint-tracking-remaining.md` Phase C
 - [x] **Phase D — Extended sanitizer coverage** — `strconv.Atoi`, `html.EscapeString`, and name-based heuristic sanitizers added; `utf8.ValidString`/`net/url.IsAbs`/`strings.HasPrefix` skipped (return bools)
   - 📋 Detailed plan: `plans/v2.0.0/pending-work/01-taint-tracking-remaining.md` Phase D
-- [x] **Phase E — CLI `--show-taint` / `--taint` / `--no-taint` + documentation** — flags added, `docs/taint.md` created, taint enabled by default
+- [x] **Phase E — CLI `--show-taint` / `--taint` / `--no-taint` + documentation** — flags added, `documents/taint.md` created, taint enabled by default
   - 📋 Detailed plan: `plans/v2.0.0/pending-work/01-taint-tracking-remaining.md` Phase E + `plans/v2.0.0/pending-work/05-cross-cutting-remaining.md` Phase 2.1
 - [x] **Phase F — Inter-procedural taint** (completed — call graph, function summaries, cross-function propagation, evidence, fixtures all shipped in 6 phases)
   - 📋 Detailed plan: `plans/v2.0.0/pending-work/01-taint-tracking-remaining.md` Phase F
@@ -58,7 +58,7 @@
 - [x] **`CacheStore::evict_to_size` should log a `tracing::info!` summary** — implemented at `store_flush.rs:80` with `entries_evicted`, `bytes_freed`, `current_size_mb`, `target_size_mb`.
 - [x] **Add `--prune-cache` CLI flag** to force a cache cleanup without scanning.
 - [x] **Add `cache.max_size_mb` config field** to `[codehound.cache]` in `codehound.toml` and the schema.
-- [x] **Update `docs/architecture-performance.md`** to reflect the P2.3 phases that shipped (cache, dependency extraction, transitive invalidation, LRU eviction).
+- [x] **Update `documents/architecture-performance.md`** to reflect the P2.3 phases that shipped (cache, dependency extraction, transitive invalidation, LRU eviction).
 
 ### A.3 Known test-suite flake
 
@@ -129,7 +129,7 @@
 - [x] **Update `plans/p2.md` P2.4 section** — the "rating without these features" table now reflects PERF-103..127 shipped; remaining deferred.
 - [x] **Update `plans/p2-implementation/README.md`** — status table updated for P2.4/P2.5.
 - [x] **Update `ruleset/golang/golang.json`** — detection_notes for PERF-103..127 updated to describe the substring heuristics actually used.
-- [x] **Add a `docs/perf-rules.md`** — a per-rule index for the shipped detectors, with the fix suggestion and an example.
+- [x] **Add a `documents/perf-rules.md`** — a per-rule index for the shipped detectors, with the fix suggestion and an example.
 
 ---
 
@@ -220,12 +220,12 @@ See **§ P2.1** above for detailed status: Phase A (Foundation) and Phase B (Int
 ### E.2 Documentation
 
 - [x] **Update `README.md`** — describes the incremental cache, PERF catalog, and cache CLI flags.
-- [x] **Update `docs/architecture-performance.md`** — covers the P2.3 cache, dependency extraction, transitive invalidation, and LRU eviction.
-- [x] **Update `docs/finding-identity.md`** — the inline-ignore section now mentions the "re-applied on cache hits" behavior. Added "Suppression and the incremental cache" section.
-- [x] **Add a `docs/incremental-cache.md`** — explains the `.codehound-cache/` directory, the hash-vs-mtime strategy, and how to use `--rebuild-cache` / `--no-cache` / `--cache-dir`.
+- [x] **Update `documents/architecture-performance.md`** — covers the P2.3 cache, dependency extraction, transitive invalidation, and LRU eviction.
+- [x] **Update `documents/finding-identity.md`** — the inline-ignore section now mentions the "re-applied on cache hits" behavior. Added "Suppression and the incremental cache" section.
+- [x] **Add a `documents/incremental-cache.md`** — explains the `.codehound-cache/` directory, the hash-vs-mtime strategy, and how to use `--rebuild-cache` / `--no-cache` / `--cache-dir`.
 - [x] **Add `CHANGELOG.md`** — first cut created; covers the v0.0.1 release and the P2.x Unreleased section (cache, taint, BP, PERF batch 1+2+3). Needs to be updated with each subsequent batch.
-- [x] **Add a `docs/taint.md`** — describes the taint-tracking model, the `[codehound.taint]` config block, and how to read the `taint_paths` field in JSON output.
-- [x] **Add a `docs/bad-practices.md`** — one paragraph per BP rule with the rationale and the canonical fix.
+- [x] **Add a `documents/taint.md`** — describes the taint-tracking model, the `[codehound.taint]` config block, and how to read the `taint_paths` field in JSON output.
+- [x] **Add a `documents/bad-practices.md`** — one paragraph per BP rule with the rationale and the canonical fix.
 
 ### E.3 Plan / tracking updates
 
@@ -270,7 +270,7 @@ See **§ P2.1** above for detailed status: Phase A (Foundation) and Phase B (Int
 | P2.5 (C) | ~10 items (metadata refactor + per-rule severity + 3 follow-up phases) | 6 weeks |
 | Cross-cutting (E) | ~9 items (docs + bench + real-project fixture) | 2-3 days |
 
-**Total remaining effort:** ~10-14 weeks. P2.5 and P2.1 are the high-leverage next steps. P2.4 PERF detectors are nearly complete (93% shipped). The cross-cutting items are cheap (1-2 PRs of small docs/bench/real-fixture work) and worth landing before the next big batch.
+**Total remaining effort:** ~10-14 weeks. P2.5 and P2.1 are the high-leverage next steps. P2.4 PERF detectors are nearly complete (93% shipped). The cross-cutting items are cheap (1-2 PRs of small documents/bench/real-fixture work) and worth landing before the next big batch.
 
 **P2.4 sub-progress:**
 - Shipped: **104 / 112** detectors (93%).

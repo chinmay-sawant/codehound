@@ -56,6 +56,7 @@ pub fn detect_cwe_22_taint(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec
             continue;
         };
         let (line, col) = unit.line_col(sink_range.start);
+        let at = out.len();
         emit::push_finding_with_evidence(
             &META_CWE_22,
             file,
@@ -70,6 +71,10 @@ pub fn detect_cwe_22_taint(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec
             },
             out,
         );
+        // Taint-core confidence higher than needle heuristics.
+        for f in out.iter_mut().skip(at) {
+            f.confidence = Some(0.75);
+        }
     }
 }
 
@@ -88,10 +93,12 @@ fn is_first_arg_tainted(graph: &TaintGraph, path: &TaintPath) -> bool {
     false
 }
 
-/// Check if any variable in the taint path is protected by a
-/// `strings.HasPrefix` confinement guard (with `filepath.Abs` upfront).
+/// Confinement: `strings.HasPrefix` on a variable that appears on the taint
+/// path (same binding). Does **not** treat `filepath.Clean` alone as safe.
+/// Abs/EvalSymlinks are optional stronger evidence but Join+root+HasPrefix
+/// is the common production pattern (and matches our safe fixtures).
 fn is_path_confined(source: &str, path: &TaintPath, graph: &TaintGraph) -> bool {
-    if !source.contains("filepath.Abs(") || !source.contains("strings.HasPrefix(") {
+    if !source.contains("strings.HasPrefix(") {
         return false;
     }
     for node_id in &path.node_ids {

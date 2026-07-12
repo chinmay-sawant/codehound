@@ -19,13 +19,7 @@ pub fn write_with_options(
     options: TextOptions,
 ) -> Result<(), Error> {
     if result.findings.is_empty() {
-        writeln!(
-            out,
-            "{}",
-            with_color(options.color, "no slop detected", || {
-                style::green_bold("no slop detected").to_string()
-            })
-        )?;
+        // Summary prints the clean "no slop detected" line (and scan stats).
         write_summary(out, result, options)?;
         return Ok(());
     }
