@@ -20,7 +20,7 @@ export function TopNav({ active, onNavigate }: TopNavProps) {
           href="#top"
           onClick={(e) => {
             e.preventDefault()
-            window.scrollTo({ top: 0, behavior: 'smooth' })
+            onNavigate('top')
           }}
         >
           <span className="brand-prompt" aria-hidden="true">

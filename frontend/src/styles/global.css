@@ -607,6 +607,11 @@
   width: 100%;
 }
 
+html {
+  /* Native / hash navigation clears the fixed top nav. */
+  scroll-padding-top: calc(var(--nav-h) + 12px);
+}
+
 .section {
   width: 100%;
   display: grid;
@@ -616,6 +621,10 @@
   border-bottom: 1px solid var(--border);
   scroll-margin-top: calc(var(--nav-h) + 12px);
   box-sizing: border-box;
+}
+
+#top {
+  scroll-margin-top: 0;
 }
 
 .section-rail {

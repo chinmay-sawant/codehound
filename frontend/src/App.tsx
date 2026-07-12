@@ -1,7 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { sections } from './data/sections'
 import { TopNav } from './components/TopNav'
 import { SectionView } from './components/Section'
+import {
+  currentHashId,
+  scrollToSection,
+  sectionIdFromHash,
+  setSectionHash,
+} from './lib/section-nav'
 import './styles/global.css'
 
 const HERO_STATS = [
@@ -12,27 +18,58 @@ const HERO_STATS = [
 ] as const
 
 export default function App() {
-  const [active, setActive] = useState(sections[0].id)
+  const [active, setActive] = useState(
+    () => currentHashId() ?? sections[0].id,
+  )
 
+  // Deep link on first paint + browser back/forward / external hash changes.
+  useEffect(() => {
+    const applyHash = (behavior: ScrollBehavior) => {
+      const id = currentHashId()
+      if (id) {
+        setActive(id)
+        // Wait a frame so layout (fonts, sticky nav) is ready.
+        requestAnimationFrame(() => scrollToSection(id, behavior))
+      } else {
+        setActive(sections[0].id)
+      }
+    }
+
+    applyHash('auto')
+
+    const onHashChange = () => applyHash('smooth')
+    const onPopState = () => applyHash('smooth')
+    window.addEventListener('hashchange', onHashChange)
+    window.addEventListener('popstate', onPopState)
+    return () => {
+      window.removeEventListener('hashchange', onHashChange)
+      window.removeEventListener('popstate', onPopState)
+    }
+  }, [])
+
+  // Scroll-spy: highlight nav + keep URL hash in sync for copy/share.
   useEffect(() => {
     let ticking = false
     const updateActive = () => {
       const lastId = sections[sections.length - 1].id
       const doc = document.documentElement
-      const atBottom = doc.scrollHeight - window.scrollY - window.innerHeight < 48
+      const atBottom =
+        doc.scrollHeight - window.scrollY - window.innerHeight < 48
 
-      if (atBottom) {
-        setActive(lastId)
-        return
-      }
-
-      const marker = window.innerHeight * 0.28
       let current = sections[0].id
-      for (const s of sections) {
-        const el = document.getElementById(s.id)
-        if (el && el.getBoundingClientRect().top <= marker) current = s.id
+      if (atBottom) {
+        current = lastId
+      } else {
+        const marker = window.innerHeight * 0.28
+        for (const s of sections) {
+          const el = document.getElementById(s.id)
+          if (el && el.getBoundingClientRect().top <= marker) current = s.id
+        }
       }
-      setActive(current)
+
+      setActive((prev) => (prev === current ? prev : current))
+      // replaceState so shared URLs match the visible section without history spam.
+      setSectionHash(current, 'replace')
     }
 
     const onScroll = () => {
@@ -53,10 +90,14 @@ export default function App() {
     }
   }, [])
 
-  const handleNavigate = (id: string) => {
-    const el = document.getElementById(id)
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
+  const handleNavigate = useCallback((id: string) => {
+    // Brand link uses `top`; everything else is a section id from data/sections.
+    const target = id === 'top' ? null : sectionIdFromHash(`#${id}`)
+    if (id !== 'top' && !target) return
+    setSectionHash(target, 'push')
+    setActive(target ?? sections[0].id)
+    scrollToSection(target, 'smooth')
+  }, [])
 
   return (
     <div className="layout" id="top">

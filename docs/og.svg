@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" fill="none">
+  <rect width="1200" height="630" fill="#F7F6F3"/>
+  <rect x="1" y="1" width="1198" height="628" stroke="#EAEAEA" stroke-width="2"/>
+  <rect x="72" y="72" width="6" height="40" fill="#346538"/>
+  <text x="92" y="100" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="22" fill="#346538" letter-spacing="3">$ CODEHOUND</text>
+  <text x="72" y="220" font-family="Georgia, 'Times New Roman', serif" font-size="64" font-weight="500" fill="#111111">Find the bugs.</text>
+  <text x="72" y="300" font-family="Georgia, 'Times New Roman', serif" font-size="64" font-style="italic" fill="#787774">Skip the token bill.</text>
+  <text x="72" y="370" font-family="ui-sans-serif, system-ui, sans-serif" font-size="24" fill="#5C5B57">Offline Go PERF scanner · framework footguns · CWE heuristics</text>
+  <rect x="72" y="420" width="1056" height="1" fill="#EAEAEA"/>
+  <text x="72" y="490" font-family="Georgia, 'Times New Roman', serif" font-size="44" fill="#111111">+35%</text>
+  <text x="72" y="530" font-family="ui-sans-serif, system-ui, sans-serif" font-size="16" fill="#787774">ops/sec on gopdfsuit</text>
+  <text x="360" y="490" font-family="Georgia, 'Times New Roman', serif" font-size="44" fill="#111111">$0</text>
+  <text x="360" y="530" font-family="ui-sans-serif, system-ui, sans-serif" font-size="16" fill="#787774">to scan · offline</text>
+  <text x="580" y="490" font-family="Georgia, 'Times New Roman', serif" font-size="44" fill="#111111">$0.25</text>
+  <text x="580" y="530" font-family="ui-sans-serif, system-ui, sans-serif" font-size="16" fill="#787774">DeepSeek triage</text>
+  <text x="860" y="490" font-family="Georgia, 'Times New Roman', serif" font-size="44" fill="#111111">224</text>
+  <text x="860" y="530" font-family="ui-sans-serif, system-ui, sans-serif" font-size="16" fill="#787774">PERF rules</text>
+</svg>

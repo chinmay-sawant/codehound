@@ -34,8 +34,20 @@ npm run lint   # oxlint
   **empties it first** (`emptyOutDir: true`), then writes only the latest build.
 - Result: `docs/` always reflects the most recent production build — no stale
   hashed assets left behind.
+- Production `base` is `/codehound/` so assets resolve on GitHub Pages project
+  site: `https://chinmay-sawant.github.io/codehound/`.
+- Section deep links use hash URLs (works on Pages without SPA rewrites), e.g.
+  `…/codehound/#audience` → “Who this is built for”.
 
-Configured in `vite.config.ts` (`build.outDir` → `../docs`).
+Configured in `vite.config.ts` (`base` + `build.outDir` → `../docs`).
+
+### GitHub Pages
+
+1. Repo **Settings → Pages → Build and deployment**
+2. Source: **Deploy from a branch**
+3. Branch: your default branch, folder **`/docs`**
+4. After deploy, open `https://chinmay-sawant.github.io/codehound/#audience`
+   (or any section id from `src/data/sections.ts`).
 
 ## Structure
 
