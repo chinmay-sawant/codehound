@@ -191,7 +191,11 @@ fn legacy_json_consumers_ignore_structured_fields() {
     assert_eq!(legacy.file, "cmd.go");
     assert_eq!(legacy.line, 10);
     assert_eq!(legacy.column, 3);
-    assert_eq!(legacy.fingerprint, "codehound:1:CWE-78:cmd.go:10:3");
+    assert!(
+        legacy.fingerprint.starts_with("codehound:2:CWE-78:cmd.go:"),
+        "got: {}",
+        legacy.fingerprint
+    );
     assert_eq!(legacy.message, "command uses user input");
     assert_eq!(legacy.severity, "high");
     assert!(legacy.cwe.is_empty());
@@ -248,7 +252,7 @@ fn ndjson_emits_one_finding_per_line() {
         lines[0]
     );
     assert!(
-        lines[0].contains("\"fingerprint\":\"codehound:1:CWE-1:a.go:1:1\""),
+        lines[0].contains("\"fingerprint\":\"codehound:2:CWE-1:a.go:"),
         "got: {}",
         lines[0]
     );

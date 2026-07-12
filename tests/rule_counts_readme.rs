@@ -25,9 +25,13 @@ fn readme_rule_counts_match_registry() {
     }
 
     // README claims (see README.md feature bullets). Update both together.
+    // Default features are Go-only (ADR 0005); Python SLOP101 is opt-in via
+    // `--features python` and is not counted here.
     assert_eq!(cwe, 175, "CWE count drifted; update README.md");
     assert_eq!(perf, 239, "PERF count drifted; update README.md");
     assert_eq!(bp, 65, "BP count drifted; update README.md");
-    // Python SLOP101 (and any other stubs) live in `other`.
-    assert!(other >= 1, "expected at least SLOP101 in other rules");
+    assert_eq!(
+        other, 0,
+        "unexpected non-Go rules in default registry; update README.md / features"
+    );
 }

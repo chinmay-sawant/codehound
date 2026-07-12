@@ -71,11 +71,11 @@ fn exports_context_and_chunk_files() {
     let context = std::fs::read_to_string(root.join("findings/functions/1.txt")).unwrap();
     let chunk = std::fs::read_to_string(root.join("chunks/Chunk_1_1.txt")).unwrap();
     assert!(
-        context.contains("Fingerprint: codehound:1:CWE-89:"),
+        context.contains("Fingerprint: codehound:2:CWE-89:"),
         "got: {context}"
     );
     assert!(
-        chunk.contains("Fingerprint: codehound:1:CWE-89:"),
+        chunk.contains("Fingerprint: codehound:2:CWE-89:"),
         "got: {chunk}"
     );
     for output in [&context, &chunk] {

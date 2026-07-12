@@ -180,10 +180,17 @@ fn analyzer_collects_stats_when_enabled() {
 }
 
 #[test]
-fn analyzer_omits_stats_when_disabled() {
+fn analyzer_omits_phase_spans_when_stats_disabled() {
+    // Basic counts + wall time are always attached for summaries; phase/detector
+    // spans stay behind `collect_stats`.
     let analyzer = Analyzer::builder().collect_stats(false).build();
     let result = analyzer.analyze_paths(&["src"], None).unwrap();
-    assert!(result.stats.is_none());
+    let stats = result.stats.expect("basic stats always attached");
+    let timing = stats.timing.expect("wall time always attached");
+    assert!(
+        timing.phases.is_empty(),
+        "phase spans should be empty when collect_stats is false"
+    );
 }
 
 #[test]

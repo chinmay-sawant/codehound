@@ -5112,6 +5112,18 @@ taint = true
 
 [[fixture]]
 lang = "go"
+path = "tests/fixtures/go/taint/CWE-89-renamed-vulnerable.txt"
+required_rules = ["CWE-89"]
+taint = true
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/taint/CWE-89-renamed-safe.txt"
+required_rules = []
+taint = true
+
+[[fixture]]
+lang = "go"
 path = "tests/fixtures/go/taint/CWE-22-vulnerable.txt"
 required_rules = ["CWE-22"]
 taint = true

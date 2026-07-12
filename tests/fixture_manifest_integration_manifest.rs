@@ -18,6 +18,11 @@ fn manifest_entries_exist_and_fire() {
     );
 
     for entry in &manifest.fixture {
+        // Python is opt-in (`--features python`); skip fire assertions when disabled.
+        #[cfg(not(feature = "python"))]
+        if entry.lang == "python" {
+            continue;
+        }
         assert!(
             entry.path.ends_with(&format!(".{FIXTURE_EXT}")),
             "manifest paths must be .txt text fixtures, not source files: {}",
