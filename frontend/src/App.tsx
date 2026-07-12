@@ -191,7 +191,7 @@ export default function App() {
               </div>
 
               <p className="hero-line">
-                <span>224 PERF · 175+ CWE · 65 BP</span>
+                <span>239 PERF · 175 CWE · 65 BP</span>
                 <span aria-hidden="true">·</span>
                 <span>single binary</span>
                 <span aria-hidden="true">·</span>

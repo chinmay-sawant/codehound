@@ -85,13 +85,6 @@ export const sections: Section[] = [
       { value: '$0.25', label: 'DeepSeek triage', sub: 'same 42 chunks' },
       { value: '~$19', label: 'skills ×5 on Grok', sub: 'unbounded re-reads' },
     ],
-    facts: [
-      { k: 'Grok 4.5 price', v: '$2.00 / 1M input · $0.50 cached · $6.00 / 1M output (xAI API)' },
-      { k: 'Batch math', v: '1.55M×$2 + 0.125M×$6 = $3.10 + $0.75 = $3.85 for full triage' },
-      { k: 'vs skills alone', v: '4–5 agent passes re-read the tree; ~5× batch ≈ $19+ on Grok 4.5 with no fixed checklist' },
-      { k: 'vs DeepSeek', v: 'Same chunk layout for $0.25 — ~15× cheaper bulk triage; reserve Grok for hard CWE' },
-      { k: 'Per-finding Grok', v: '2.33M in + 125K out ≈ $5.41 — still far below open-ended multi-day agent loops' },
-    ],
     tables: [
       {
         caption: 'LLM review cost for 1,042 findings (42 chunk batch)',
@@ -163,13 +156,6 @@ export const sections: Section[] = [
       'Hobby and small-scale Go projects that want less slop, clearer architecture, and real bad-practice coverage — after your normal linters, not instead of them.',
     callout:
       '**Cloud AI is subsidized.** That will not last forever. Even while it does, unbounded agent review still burns days and dollars. CodeHound is the offline checklist you run first.',
-    facts: [
-      { k: 'Built for', v: 'Hobby projects, side services, small Go codebases under a real delivery deadline' },
-      { k: 'Run after', v: 'golangci-lint, staticcheck, govulncheck — CodeHound is a complement, never a replacement' },
-      { k: 'Language (now)', v: 'Go-first production rules; Python opt-in experimental; no TypeScript plugin' },
-      { k: 'Instead of skills', v: 'Deterministic PERF, BP, and footgun checks — same answer every run' },
-      { k: 'Not for', v: 'Full CodeQL / org-wide SRE platforms — use the tools built for that scale' },
-    ],
     body: [
       'We all know the current ChatGPT / cloud subscription model is heavily **subsidized**. That will not last forever — and even while it does, unbounded agent review still burns days and dollars.',
       '**Who this is built for:** hobby projects and **small-scale** work where you do not need enterprise-grade optimization, but you still want *some* PERF discipline, cleaner architecture, and less **slop** in the tree — under a real delivery deadline. It was built for personal use under those constraints.',
@@ -200,12 +186,6 @@ export const sections: Section[] = [
     title: 'Findings are automatic. Architecture is yours.',
     lead:
       'CodeHound reports what the rules match. You decide what ships — including whether a fix is safe, wrong, or a breaking change.',
-    facts: [
-      { k: 'Analysis owns', v: 'Finding the issue — rule ID, file, line, snippet' },
-      { k: 'You own', v: 'Architectural decisions: fix, defer, redesign, or ignore' },
-      { k: 'Before you apply', v: 'Read the surrounding code; do not rubber-stamp agent patches' },
-      { k: 'Safety net', v: 'Solid tests — remediations can break behavior on purpose or by accident' },
-    ],
     body: [
       'The analyzer does the **code findings**. The **final architectural decision** is yours alone. A PERF hit or CWE heuristic is a signal, not a mandate to merge whatever an agent proposes next.',
       'You need to **understand the code** before changing it. Agents (and fix hints) can suggest refactors that are correct for the rule and wrong for your system — public API breaks, subtle behavior shifts, or "optimizations" that trade correctness for speed.',
@@ -314,9 +294,9 @@ for i := range members {
     callout:
       '**Complements, does not replace.** Run after golangci-lint + govulncheck for app-level PERF, framework footguns, and curated CWE heuristics.',
     facts: [
-      { k: 'PERF rules', v: '224 across 60+ detectors — regex-in-loops, fmt.Sprintf on hot paths, defer in hot funcs, request-path allocation thrash' },
-      { k: 'CWE heuristics', v: '175+ fixture-backed entries for file I/O, SQL injection, command injection; auto-generated from sink registry' },
-      { k: 'Bad practices', v: '65 across 7 categories: errors, concurrency, testing, API design, prod hardening' },
+      { k: 'PERF rules', v: '239 registered — regex-in-loops, fmt.Sprintf on hot paths, defer in hot funcs, request-path allocation thrash' },
+      { k: 'CWE heuristics', v: '175 fixture-backed entries for file I/O, SQL injection, command injection; auto-generated from sink registry' },
+      { k: 'Bad practices', v: '65 across 8 categories: errors, panics, concurrency, testing, API design, code org, prod hardening, dependency hygiene' },
       { k: 'Framework footguns', v: 'Gin / Echo / GORM / sqlx aware — unclosed bodies, unbounded rows, missing timeouts, context leaks' },
       { k: 'Taint (experimental)', v: 'intra-procedural, name-string sinks; CWE-22/78/79/89 — use for triage, not hard gates' },
       { k: 'Languages', v: 'Go (production); Python opt-in (1 experimental rule, SLOP101)' },
@@ -400,19 +380,11 @@ codehound init`,
       'Rules are not a closed box. Add a heuristic for Go, Python, or another language the architecture supports — metadata, tests, detection logic — then open a PR to ship it officially, or keep custom patterns on your fork.',
     callout:
       '**Official path = PR. Local path = your tree.** Same shape either way: describe the pattern, prove it with fixtures, implement the detector, register it.',
-    facts: [
-      { k: '1 · Metadata', v: 'Heuristic entry for the language — e.g. ruleset/golang/chunks for PERF, sink registry for CWE' },
-      { k: '2 · Tests', v: 'Vulnerable + safe fixtures; exclusive-fire / line oracles where the rule is gate-grade' },
-      { k: '3 · Detector', v: 'Detection logic in the language plugin (domains, facts, registry) per project architecture' },
-      { k: '4 · Ship', v: 'Open a PR to land it upstream — or maintain the same layout on a private fork' },
-      { k: 'Guide', v: 'documents/perf-detector-development.md · documents/rule-rfc-template.md · documents/adding-a-language.md' },
-      { k: 'Languages', v: 'Go production; Python opt-in (experimental); new languages need a real plugin, not a stub' },
-    ],
     body: [
       '**Add the heuristic text/metadata** for the target language (Go chunk JSON, CWE sink entry, BP rule table — whatever that catalog uses). That gives the rule an ID, name, severity, and description the reporters already understand.',
       '**Add tests next** — fixture sources that must fire and must stay silent. Without fixtures, the rule does not ship.',
       '**Implement detection** in the right place under the language plugin (e.g. Go PERF domains + registry TOML). Follow the existing architecture; do not invent a parallel path.',
-      '**Contribute or keep local:** open a PR to get the rule into the official catalog, or keep custom patterns on your own branch/fork and build the binary yourself. Upstream prefers quality over volume — see the rule RFC template.',
+      '**Contribute or keep local:** open a PR to get the rule into the official catalog, or keep custom patterns on your own branch/fork and build the binary yourself. Upstream prefers quality over volume — see `documents/rule-rfc-template.md`, `documents/perf-detector-development.md`, and `documents/adding-a-language.md`. Go is production; Python is opt-in experimental; a new language needs a real plugin, not a stub.',
     ],
   },
 ]
