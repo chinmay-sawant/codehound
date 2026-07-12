@@ -27,6 +27,7 @@ pub use cache::{
     CacheBackend, CacheEntry, CacheError, CacheLookup, CacheManifest, CacheSession, CacheStore,
     DEFAULT_CACHE_DIR, InMemoryBackend, cache_key_for_path, content_hash,
 };
+pub(crate) use cache::hex_lower;
 pub use config::{
     CacheConfig, CodehoundConfig, CodehoundSection, PathFilters, RunConfig, RunConfigParams,
     ScanContextParams, build_run_config, build_scan_context, discover_cache_dir, discover_config,

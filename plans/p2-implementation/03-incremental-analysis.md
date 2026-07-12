@@ -3,7 +3,7 @@
 > **Parent:** `plans/p2.md` — P2.3
 > **Status:** Phases 1–7 **COMPLETED**. Phase 4.2 deferred (intentionally). Phase 6.2 (LRU eviction) **IMPLEMENTED** (contrary to earlier plan status; `evict_to_size()` is wired in `store_flush.rs`). Phase 8.4 deferred (non-portable concurrent-process test). Minor polish items remain.
 > **Estimated effort:** 1-2 days for remaining polish items.
-> **Pending work breakdown:** `plans/v2.0.0/pending-work/04-cache-incremental-remaining.md`
+> **Pending work breakdown:** `plans/v0.0.2/pending-work/04-cache-incremental-remaining.md`
 
 ---
 
@@ -444,7 +444,7 @@ Cache parsed ASTs and extracted facts to disk. On re-run, only parse files whose
 - [x] Add benchmark: `benches/incremental_scan.rs` (created; specific 10× assertion left to final benchmarking pass)
   - [x] First-run scan (no cache) → measure baseline time (`bench_cold` in `benches/incremental_scan.rs`)
   - [x] Second-run scan (all cache hits) → measure cached time (`bench_warm` in `benches/incremental_scan.rs`)
-  - [~] Assert cached time is at least 10× faster than baseline — left to final benchmarking pass (deferred → see plans/v3.0.0/)
+  - [~] Assert cached time is at least 10× faster than baseline — left to final benchmarking pass (deferred → see plans/v0.0.3/)
 - [x] Add benchmark: mixed run (50% changed files) → measure partial invalidation perf (`benches/incremental_partial_scan.rs`)
 
 ### 8.4 Robustness tests

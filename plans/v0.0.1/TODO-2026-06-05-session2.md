@@ -32,12 +32,12 @@
 - [x] Fix: `Cargo.toml` cannot have `optional = true` in `[dev-dependencies]` (no `optional` in `[dev-dependencies]`)
 
 ## Deferred Architecture Items
-- [~] A2: Split `GoCweScan` into per-rule detectors (macro-based) (still a single `GoCweScan` struct, not macro-split) (deferred → see plans/v3.0.0/)
+- [~] A2: Split `GoCweScan` into per-rule detectors (macro-based) (still a single `GoCweScan` struct, not macro-split) (deferred → see plans/v0.0.3/)
 - [x] A6: `build.rs` codegen for JSON rule catalogue (`build.rs` with `gen_catalogue`, `gen_cwe`, `gen_perf`)
 - [x] Perf CI: add regression gate (`tests/perf_regression.rs`)
 
 ## Finalization
-- [~] `cargo test --all` passes (needs review) (deferred → see plans/v3.0.0/)
-- [~] `cargo clippy --all-targets --all-features -- -D warnings` clean (needs review) (deferred → see plans/v3.0.0/)
+- [~] `cargo test --all` passes (needs review) (deferred → see plans/v0.0.3/)
+- [~] `cargo clippy --all-targets --all-features -- -D warnings` clean (needs review) (deferred → see plans/v0.0.3/)
 - [x] Update `CHANGELOG.md` (`CHANGELOG.md` exists and has entries)
-- [~] Save PR summary to `plans/v0.0.1/PR/` (directory not found) (deferred → see plans/v3.0.0/)
+- [~] Save PR summary to `plans/v0.0.1/PR/` (directory not found) (deferred → see plans/v0.0.3/)

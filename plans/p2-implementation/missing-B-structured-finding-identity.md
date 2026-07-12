@@ -89,7 +89,7 @@ Baseline, deduplication, ignore-once, and CI diffing all need the same stable id
   - [x] Update `partialFingerprints` to use the canonical format
   - [x] Current format: `<version>:<rule_id>:<file>:<line>:<column>`
   - [x] New format: `codehound:1:<rule_id>:<file>:<line>:<column>` (add tool name prefix)
-  - [~] Add `primary` or `fullyQualifiedLogicalName` if SARIF spec supports it — not implemented (deferred → see plans/v3.0.0/)
+  - [~] Add `primary` or `fullyQualifiedLogicalName` if SARIF spec supports it — not implemented (deferred → see plans/v0.0.3/)
   - [x] Document the fingerprint key: `codehound/v1`
   - [x] Add unit test: SARIF output contains `partialFingerprints.codehound/v1` with correct value
 
@@ -121,8 +121,8 @@ Baseline, deduplication, ignore-once, and CI diffing all need the same stable id
 
 ### 3.2 Incremental analysis (P2.3)
 
-- [~] In cache entries, store fingerprints alongside findings — not implemented (deferred → see plans/v3.0.0/)
-- [~] Use fingerprints for cache deduplication/verification — not implemented (deferred → see plans/v3.0.0/)
+- [~] In cache entries, store fingerprints alongside findings — not implemented (deferred → see plans/v0.0.3/)
+- [~] Use fingerprints for cache deduplication/verification — not implemented (deferred → see plans/v0.0.3/)
 
 ### 3.3 Inline ignore (P2.2)
 
@@ -133,9 +133,9 @@ Baseline, deduplication, ignore-once, and CI diffing all need the same stable id
 
 ### 3.4 CI diffing (future)
 
-- [~] Future CI integration can diff two runs by comparing `Fingerprint` sets — not implemented (deferred → see plans/v3.0.0/)
-- [~] New findings = fingerprints in run2 but not in run1 (deferred → see plans/v3.0.0/)
-- [~] Fixed findings = fingerprints in run1 but not in run2 (deferred → see plans/v3.0.0/)
+- [~] Future CI integration can diff two runs by comparing `Fingerprint` sets — not implemented (deferred → see plans/v0.0.3/)
+- [~] New findings = fingerprints in run2 but not in run1 (deferred → see plans/v0.0.3/)
+- [~] Fixed findings = fingerprints in run1 but not in run2 (deferred → see plans/v0.0.3/)
 - [x] This is a natural consequence of having fingerprints in JSON output
 
 ---
@@ -187,7 +187,7 @@ Baseline, deduplication, ignore-once, and CI diffing all need the same stable id
 - [x] If existing fingerprint format changes, document backward-compat need:
   - [x] Old format: `CWE-22:file.go:42:5` (no tool prefix, no version)
   - [x] New format: `codehound:1:CWE-22:file.go:42:5`
-  - [~] Old baseline/cache files with old format → warn and treat as v0 (compatibility mode; deferred until migration support is implemented) (deferred → see plans/v3.0.0/)
+  - [~] Old baseline/cache files with old format → warn and treat as v0 (compatibility mode; deferred until migration support is implemented) (deferred → see plans/v0.0.3/)
 
 ---
 

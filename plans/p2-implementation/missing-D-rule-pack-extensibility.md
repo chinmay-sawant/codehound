@@ -98,40 +98,40 @@ CodeHound has a strong plugin-like internal structure (detectors implement a tra
   paths = ["./my-rules", "/usr/local/share/codehound/rules/my-pack"]
   enabled = true
   ```
-- [~] Add fields to `CodehoundConfig` struct — not implemented (deferred → see plans/v3.0.0/)
-- [~] Update `codehound.schema.json` — not implemented (deferred → see plans/v3.0.0/)
+- [~] Add fields to `CodehoundConfig` struct — not implemented (deferred → see plans/v0.0.3/)
+- [~] Update `codehound.schema.json` — not implemented (deferred → see plans/v0.0.3/)
 
 ### 2.3 Implement pack discovery and loading
 
-- [~] Create `src/engine/pack.rs` — not implemented (deferred → see plans/v3.0.0/)
-- [~] `PackLoader` struct — not implemented (deferred → see plans/v3.0.0/)
-- [~] `pack_paths`, `loaded_packs` (deferred → see plans/v3.0.0/)
-- [~] `RulePack` struct (deferred → see plans/v3.0.0/)
-- [~] `ExternalRule` struct (deferred → see plans/v3.0.0/)
-- [~] `ExternalRegistryEntry` struct (deferred → see plans/v3.0.0/)
-- [~] `DetectionPattern` struct (deferred → see plans/v3.0.0/)
-- [~] `ArgConstraint` enum (deferred → see plans/v3.0.0/)
-- [~] `PackLoader::load_all()` (deferred → see plans/v3.0.0/)
-- [~] Validate version compatibility (deferred → see plans/v3.0.0/)
-- [~] Parse/validate `rules.json` (deferred → see plans/v3.0.0/)
-- [~] Parse/validate `registry.toml` (deferred → see plans/v3.0.0/)
-- [~] Register `pack.rs` in `src/engine/mod.rs` (deferred → see plans/v3.0.0/)
+- [~] Create `src/engine/pack.rs` — not implemented (deferred → see plans/v0.0.3/)
+- [~] `PackLoader` struct — not implemented (deferred → see plans/v0.0.3/)
+- [~] `pack_paths`, `loaded_packs` (deferred → see plans/v0.0.3/)
+- [~] `RulePack` struct (deferred → see plans/v0.0.3/)
+- [~] `ExternalRule` struct (deferred → see plans/v0.0.3/)
+- [~] `ExternalRegistryEntry` struct (deferred → see plans/v0.0.3/)
+- [~] `DetectionPattern` struct (deferred → see plans/v0.0.3/)
+- [~] `ArgConstraint` enum (deferred → see plans/v0.0.3/)
+- [~] `PackLoader::load_all()` (deferred → see plans/v0.0.3/)
+- [~] Validate version compatibility (deferred → see plans/v0.0.3/)
+- [~] Parse/validate `rules.json` (deferred → see plans/v0.0.3/)
+- [~] Parse/validate `registry.toml` (deferred → see plans/v0.0.3/)
+- [~] Register `pack.rs` in `src/engine/mod.rs` (deferred → see plans/v0.0.3/)
 
 ### 2.4 Integrate into scan pipeline
 
-- [~] In `app.rs::run()`: load external packs — not implemented (deferred → see plans/v3.0.0/)
-- [~] Merge external rules into rule catalogue at runtime (deferred → see plans/v3.0.0/)
-- [~] Register external detector entries (deferred → see plans/v3.0.0/)
-- [~] Create `GenericPatternDetector` — not implemented (deferred → see plans/v3.0.0/)
-- [~] Implements `Detector` trait (deferred → see plans/v3.0.0/)
-- [~] `rule_ids()` returns dynamically registered IDs (deferred → see plans/v3.0.0/)
-- [~] `run()` iterates patterns (deferred → see plans/v3.0.0/)
-- [~] Generic pattern check logic (deferred → see plans/v3.0.0/)
-1. [~] Check import exists — not implemented (deferred → see plans/v3.0.0/)
-2. [~] Find call expressions matching `function_selector` (deferred → see plans/v3.0.0/)
-3. [~] For each argument with constraints, validate constraints (deferred → see plans/v3.0.0/)
-4. [~] If all match, emit finding (deferred → see plans/v3.0.0/)
-- [~] Wire into Go plugin (deferred → see plans/v3.0.0/)
+- [~] In `app.rs::run()`: load external packs — not implemented (deferred → see plans/v0.0.3/)
+- [~] Merge external rules into rule catalogue at runtime (deferred → see plans/v0.0.3/)
+- [~] Register external detector entries (deferred → see plans/v0.0.3/)
+- [~] Create `GenericPatternDetector` — not implemented (deferred → see plans/v0.0.3/)
+- [~] Implements `Detector` trait (deferred → see plans/v0.0.3/)
+- [~] `rule_ids()` returns dynamically registered IDs (deferred → see plans/v0.0.3/)
+- [~] `run()` iterates patterns (deferred → see plans/v0.0.3/)
+- [~] Generic pattern check logic (deferred → see plans/v0.0.3/)
+1. [~] Check import exists — not implemented (deferred → see plans/v0.0.3/)
+2. [~] Find call expressions matching `function_selector` (deferred → see plans/v0.0.3/)
+3. [~] For each argument with constraints, validate constraints (deferred → see plans/v0.0.3/)
+4. [~] If all match, emit finding (deferred → see plans/v0.0.3/)
+- [~] Wire into Go plugin (deferred → see plans/v0.0.3/)
 
 ### 2.5 Limitations (MVP -- document clearly)
 
@@ -148,21 +148,21 @@ CodeHound has a strong plugin-like internal structure (detectors implement a tra
 
 ### 3.1 Pattern DSL (Type 2)
 
-- [~] Design a declarative YAML/TOML DSL for detection rules — future extensibility (deferred → see plans/v3.0.0/)
-- [~] Support: import checks, call pattern matching, regex on source, AST node matching (deferred → see plans/v3.0.0/)
-- [~] Compile DSL to internal pattern matcher at load time (deferred → see plans/v3.0.0/)
+- [~] Design a declarative YAML/TOML DSL for detection rules — future extensibility (deferred → see plans/v0.0.3/)
+- [~] Support: import checks, call pattern matching, regex on source, AST node matching (deferred → see plans/v0.0.3/)
+- [~] Compile DSL to internal pattern matcher at load time (deferred → see plans/v0.0.3/)
 
 ### 3.2 WASM detector packs (Type 3)
 
-- [~] Embed a WASM runtime (`wasmtime` or `wasmer`) — future extensibility (deferred → see plans/v3.0.0/)
-- [~] Define a stable WASM interface that mirrors the Detector trait (deferred → see plans/v3.0.0/)
-- [~] Sandbox execution: no filesystem, no network, time budget per invocation (deferred → see plans/v3.0.0/)
+- [~] Embed a WASM runtime (`wasmtime` or `wasmer`) — future extensibility (deferred → see plans/v0.0.3/)
+- [~] Define a stable WASM interface that mirrors the Detector trait (deferred → see plans/v0.0.3/)
+- [~] Sandbox execution: no filesystem, no network, time budget per invocation (deferred → see plans/v0.0.3/)
 
 ### 3.3 Script-based packs (Type 4)
 
-- [~] Embed Rhai or Starlark runtime — future extensibility (deferred → see plans/v3.0.0/)
-- [~] Expose safe API: `query_ast()`, `search_source(pattern)`, `emit_finding()` (deferred → see plans/v3.0.0/)
-- [~] Sandbox: pure functions only, no I/O (deferred → see plans/v3.0.0/)
+- [~] Embed Rhai or Starlark runtime — future extensibility (deferred → see plans/v0.0.3/)
+- [~] Expose safe API: `query_ast()`, `search_source(pattern)`, `emit_finding()` (deferred → see plans/v0.0.3/)
+- [~] Sandbox: pure functions only, no I/O (deferred → see plans/v0.0.3/)
 
 ---
 
@@ -195,26 +195,26 @@ CodeHound has a strong plugin-like internal structure (detectors implement a tra
 
 ### 5.1 Unit tests
 
-- [~] Test `PackLoader::load_all()` with a valid pack directory — not implemented (deferred → see plans/v3.0.0/)
-- [~] Test pack with invalid `pack.toml` (deferred → see plans/v3.0.0/)
-- [~] Test pack with missing `rules.json` (deferred → see plans/v3.0.0/)
-- [~] Test pack with malformed patterns (deferred → see plans/v3.0.0/)
-- [~] Test pack with rule ID collision (deferred → see plans/v3.0.0/)
-- [~] Test pack with version mismatch (deferred → see plans/v3.0.0/)
+- [~] Test `PackLoader::load_all()` with a valid pack directory — not implemented (deferred → see plans/v0.0.3/)
+- [~] Test pack with invalid `pack.toml` (deferred → see plans/v0.0.3/)
+- [~] Test pack with missing `rules.json` (deferred → see plans/v0.0.3/)
+- [~] Test pack with malformed patterns (deferred → see plans/v0.0.3/)
+- [~] Test pack with rule ID collision (deferred → see plans/v0.0.3/)
+- [~] Test pack with version mismatch (deferred → see plans/v0.0.3/)
 
 ### 5.2 Integration tests
 
-- [~] Create a test rule pack in `tests/fixtures/packs/valid-pack/` — not implemented (deferred → see plans/v3.0.0/)
-- [~] Scan a project with the external pack loaded (deferred → see plans/v3.0.0/)
-- [~] Assert external rule findings appear (deferred → see plans/v3.0.0/)
-- [~] Test `--only` and `--skip` with external rule IDs (deferred → see plans/v3.0.0/)
-- [~] Test `--explain <external-rule-id>` (deferred → see plans/v3.0.0/)
+- [~] Create a test rule pack in `tests/fixtures/packs/valid-pack/` — not implemented (deferred → see plans/v0.0.3/)
+- [~] Scan a project with the external pack loaded (deferred → see plans/v0.0.3/)
+- [~] Assert external rule findings appear (deferred → see plans/v0.0.3/)
+- [~] Test `--only` and `--skip` with external rule IDs (deferred → see plans/v0.0.3/)
+- [~] Test `--explain <external-rule-id>` (deferred → see plans/v0.0.3/)
 
 ### 5.3 Configuration tests
 
-- [~] Test config `rule_packs.paths` with multiple packs — not implemented (deferred → see plans/v3.0.0/)
-- [~] Test config `rule_packs.enabled = false` (deferred → see plans/v3.0.0/)
-- [~] Test CLI `--rule-pack-path` overrides config paths (deferred → see plans/v3.0.0/)
+- [~] Test config `rule_packs.paths` with multiple packs — not implemented (deferred → see plans/v0.0.3/)
+- [~] Test config `rule_packs.enabled = false` (deferred → see plans/v0.0.3/)
+- [~] Test CLI `--rule-pack-path` overrides config paths (deferred → see plans/v0.0.3/)
 
 ---
 
@@ -233,14 +233,14 @@ CodeHound has a strong plugin-like internal structure (detectors implement a tra
   pub no_rule_packs: bool,
   ```
 - [x] Config precedence: CLI paths add to config paths (union), `--no-rule-packs` disables all
-- [~] Implement `--rule-pack-path` flag — not implemented (deferred → see plans/v3.0.0/)
-- [~] Implement `--no-rule-packs` flag — not implemented (deferred → see plans/v3.0.0/)
+- [~] Implement `--rule-pack-path` flag — not implemented (deferred → see plans/v0.0.3/)
+- [~] Implement `--no-rule-packs` flag — not implemented (deferred → see plans/v0.0.3/)
 
 ### 6.2 Configuration schema (design complete, implementation pending)
 
 - [x] Design `codehound.schema.json` updates with `rule_packs` properties
 - [x] Design `templates/codehound.toml` commented-out example
-- [~] Apply schema and template updates — not implemented (deferred → see plans/v3.0.0/)
+- [~] Apply schema and template updates — not implemented (deferred → see plans/v0.0.3/)
 
 ---
 

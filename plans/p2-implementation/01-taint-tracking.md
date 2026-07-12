@@ -3,7 +3,7 @@
 > **Parent:** `plans/p2.md` — P2.1
 > **Status:** Phases A (Foundation) + B (Intra-procedural graph + CWE rewrites) **COMPLETED**. Phases C–F **not started**.
 > **Estimated effort:** 4-6 weeks for remaining phases (C–F).
-> **Pending work breakdown:** `plans/v2.0.0/pending-work/01-taint-tracking-remaining.md`
+> **Pending work breakdown:** `plans/v0.0.2/pending-work/01-taint-tracking-remaining.md`
 
 ---
 
@@ -116,9 +116,9 @@ Track how user-controlled data flows through assignments, function calls, and re
 - [x] Pointer/reference aliasing: `a := &b; *a = tainted` — implemented via `output_pointer_params` in summary.rs, IP-011 fixture (commit f390c5a)
 - [x] Struct field assignments: `obj.Field = tainted; sink(obj.Field)` — tracked through variable nodes
 - [x] Map/slice mutations: `m[key] = tainted; sink(m[key])` — implemented via map/slice write bridge in build.rs (commit cd34160)
-- [~] Defer statements: tainted data in defer closure — not implemented (deferred → see plans/v3.0.0/)
+- [~] Defer statements: tainted data in defer closure — not implemented (deferred → see plans/v0.0.3/)
 - [x] Goroutine closures: tainted data captured by closure — implemented via channel send/receive taint tracking (commit cd34160)
-- [~] Type assertions and conversions: `x := v.(string)` — not implemented (deferred → see plans/v3.0.0/)
+- [~] Type assertions and conversions: `x := v.(string)` — not implemented (deferred → see plans/v0.0.3/)
 
 ---
 
@@ -128,12 +128,12 @@ Track how user-controlled data flows through assignments, function calls, and re
 
 - [x] Implement `extract_call_graph(unit: &ParsedUnit) -> CallGraph` (in `extract/call_graph.rs:8`; different signature from plan but functional)
 - [x] `CallGraph`: struct with `sites: Vec<CallSite>`, `declarations: HashMap<SharedText, FunctionDecl>` (in `model.rs:268`)
-- [~] `CallGraphNode` as specified (with `is_exported`, `taint_summary`, `callees`, `callers`) — not implemented as a single struct; separate `FunctionDecl` and `TaintSummary` exist (deferred → see plans/v3.0.0/)
+- [~] `CallGraphNode` as specified (with `is_exported`, `taint_summary`, `callees`, `callers`) — not implemented as a single struct; separate `FunctionDecl` and `TaintSummary` exist (deferred → see plans/v0.0.3/)
 - [x] `TaintSummary { taints_params: Vec<usize>, returns_taint: bool, sanitizes: bool }` — exists in `model.rs:292`
 - [x] For each function declaration, extract its name and parameter list — in `extract/call_graph.rs:25-42`
 - [x] For each call expression within a function, record the edge: `caller → callee` — in `extract/call_graph.rs:55-100`
 - [x] Handle method calls: `receiver.Method(args)` — `extract/call_graph.rs:44` handles `method_declaration`
-- [~] Handle selectors: `pkg.Func(args)` — external functions not resolved with summaries (deferred → see plans/v3.0.0/)
+- [~] Handle selectors: `pkg.Func(args)` — external functions not resolved with summaries (deferred → see plans/v0.0.3/)
 
 ### 3.2 Compute taint summaries per function
 
@@ -141,7 +141,7 @@ Track how user-controlled data flows through assignments, function calls, and re
 - [x] `taints_params`: which parameter indices pass through to sinks without sanitization
 - [x] `returns_taint`: whether the return value can be tainted
 - [x] `sanitizes`: whether the function applies a sanitizer to its parameters before use
-- [~] Store summary on each `CallGraphNode` — summaries stored in HashMap, not on a CallGraphNode struct (deferred → see plans/v3.0.0/)
+- [~] Store summary on each `CallGraphNode` — summaries stored in HashMap, not on a CallGraphNode struct (deferred → see plans/v0.0.3/)
 
 ### 3.3 Propagate taint across call edges
 
@@ -151,19 +151,19 @@ Track how user-controlled data flows through assignments, function calls, and re
 - [x] If `A` passes tainted data as argument `i` to `B`: — checks `callee_summary.param_sources` against caller arguments
 - [x] And `B`'s summary shows `param_i` reaches a sink: — wired via `find_callee_summary()` → `param_sources` lookup
 - [x] Then emit an inter-procedural taint path — `emit_inter_procedural_finding()` at `mod.rs:490`
-- [~] Handle recursive functions: limit depth — not implemented (deferred → see plans/v3.0.0/)
-- [~] Handle mutual recursion: use visited set — not implemented (deferred → see plans/v3.0.0/)
+- [~] Handle recursive functions: limit depth — not implemented (deferred → see plans/v0.0.3/)
+- [~] Handle mutual recursion: use visited set — not implemented (deferred → see plans/v0.0.3/)
 
 ### 3.4 Handle external functions
 
-- [~] Build a static "builtin summary" table for common stdlib functions — not implemented (deferred → see plans/v3.0.0/)
-- [~] `filepath.Clean` → sanitizes first argument, returns clean — sink/source classification exists in `extract/classify.rs` but no summary table per se (deferred → see plans/v3.0.0/)
-- [~] `html.EscapeString` → sanitizes first argument, returns clean (deferred → see plans/v3.0.0/)
-- [~] `sql.Open` → returns a DB handle (deferred → see plans/v3.0.0/)
-- [~] `url.Parse` → returns parsed URL (deferred → see plans/v3.0.0/)
-- [~] `json.Unmarshal` → deserializes into target (deferred → see plans/v3.0.0/)
-- [~] `template.Must` → wraps template (deferred → see plans/v3.0.0/)
-- [~] When resolving a call to an external function, use the builtin summary (deferred → see plans/v3.0.0/)
+- [~] Build a static "builtin summary" table for common stdlib functions — not implemented (deferred → see plans/v0.0.3/)
+- [~] `filepath.Clean` → sanitizes first argument, returns clean — sink/source classification exists in `extract/classify.rs` but no summary table per se (deferred → see plans/v0.0.3/)
+- [~] `html.EscapeString` → sanitizes first argument, returns clean (deferred → see plans/v0.0.3/)
+- [~] `sql.Open` → returns a DB handle (deferred → see plans/v0.0.3/)
+- [~] `url.Parse` → returns parsed URL (deferred → see plans/v0.0.3/)
+- [~] `json.Unmarshal` → deserializes into target (deferred → see plans/v0.0.3/)
+- [~] `template.Must` → wraps template (deferred → see plans/v0.0.3/)
+- [~] When resolving a call to an external function, use the builtin summary (deferred → see plans/v0.0.3/)
 
 ---
 
@@ -207,10 +207,10 @@ Track how user-controlled data flows through assignments, function calls, and re
 
 ### 4.6 Constraint: Two-hop limit (Phase 1-2 scope)
 
-- [~] Track taint through at most 2 assignment hops — no hop-limit logic in codebase (deferred → see plans/v3.0.0/)
-- [~] Three or more hops → fall back to pattern match (deferred → see plans/v3.0.0/)
-- [~] Cross-function hops count toward the limit (deferred → see plans/v3.0.0/)
-- [~] Log a debug-level message when taint propagation is truncated (deferred → see plans/v3.0.0/)
+- [~] Track taint through at most 2 assignment hops — no hop-limit logic in codebase (deferred → see plans/v0.0.3/)
+- [~] Three or more hops → fall back to pattern match (deferred → see plans/v0.0.3/)
+- [~] Cross-function hops count toward the limit (deferred → see plans/v0.0.3/)
+- [~] Log a debug-level message when taint propagation is truncated (deferred → see plans/v0.0.3/)
 
 ---
 
@@ -220,19 +220,19 @@ Track how user-controlled data flows through assignments, function calls, and re
 
 - [x] Detect custom sanitizer functions by name heuristics — ponytail comment at `classify.rs:152`, name-based heuristic catches user-defined sanitize/clean/escape
 - [x] Function names containing `sanitize`, `clean`, `escape`, `validate`, `safe`, `check`
-- [~] Function names matching `isValid*`, `check*`, `verify*` — not explicitly checked (deferred → see plans/v3.0.0/)
+- [~] Function names matching `isValid*`, `check*`, `verify*` — not explicitly checked (deferred → see plans/v0.0.3/)
 - [x] Detect validation patterns: `regexp.MustCompile(...)` — implemented in `classify.rs:129-130` via `regexp.*.MatchString` → `SanitizerKind::Validation`
 - [x] `strconv.Atoi(input)` with error check before use — implemented in `classify.rs:132-138` (strconv.Atoi/ParseInt/ParseFloat/ParseUint → Validation)
-- [~] `if input == expected` before use (deferred → see plans/v3.0.0/)
-- [~] `switch input { case "a", "b": ... }` before use (deferred → see plans/v3.0.0/)
-- [~] Detect type assertion as sanitization (deferred → see plans/v3.0.0/)
+- [~] `if input == expected` before use (deferred → see plans/v0.0.3/)
+- [~] `switch input { case "a", "b": ... }` before use (deferred → see plans/v0.0.3/)
+- [~] Detect type assertion as sanitization (deferred → see plans/v0.0.3/)
 
 ### 5.2 Implement confidence scoring
 
 - [x] `confidence: Option<f32>` field exists on `Finding` struct (`finding.rs:133`) and `FindingWire` — but per-taint-path scoring not implemented
-- [~] Base confidence = 1.0 with hop-based multipliers — scoring formula not applied (deferred → see plans/v3.0.0/)
-- [~] Multiply by 0.9/0.8/0.7/0.5 — not implemented (deferred → see plans/v3.0.0/)
-- [~] Findings with confidence < 0.5 downgraded to Info — not implemented (deferred → see plans/v3.0.0/)
+- [~] Base confidence = 1.0 with hop-based multipliers — scoring formula not applied (deferred → see plans/v0.0.3/)
+- [~] Multiply by 0.9/0.8/0.7/0.5 — not implemented (deferred → see plans/v0.0.3/)
+- [~] Findings with confidence < 0.5 downgraded to Info — not implemented (deferred → see plans/v0.0.3/)
 
 ---
 
@@ -251,12 +251,12 @@ Track how user-controlled data flows through assignments, function calls, and re
 ### 6.2 Performance considerations
 
 - [x] Make taint fact extraction lazy: only extract if taint enabled (`ctx.taint_enabled` guard)
-- [~] Limit taint extraction to files that contain at least one source AND one sink (quick pre-scan) — not implemented (deferred → see plans/v3.0.0/)
+- [~] Limit taint extraction to files that contain at least one source AND one sink (quick pre-scan) — not implemented (deferred → see plans/v0.0.3/)
 - [x] Avoid duplicating tree-sitter queries: reuse existing `walk_calls_and_assignments` shared path
-- [~] Benchmark: taint analysis overhead on full codehound self-scan — not benchmarked (deferred → see plans/v3.0.0/)
-- [~] Target: <2× slowdown for files with taint sources (deferred → see plans/v3.0.0/)
-- [~] Target: negligible overhead for files without sources/sinks (<5%) (deferred → see plans/v3.0.0/)
-- [~] Add a `--max-taint-depth` CLI flag — not implemented (deferred → see plans/v3.0.0/)
+- [~] Benchmark: taint analysis overhead on full codehound self-scan — not benchmarked (deferred → see plans/v0.0.3/)
+- [~] Target: <2× slowdown for files with taint sources (deferred → see plans/v0.0.3/)
+- [~] Target: negligible overhead for files without sources/sinks (<5%) (deferred → see plans/v0.0.3/)
+- [~] Add a `--max-taint-depth` CLI flag — not implemented (deferred → see plans/v0.0.3/)
 
 ### 6.3 Test fixtures
 
@@ -269,27 +269,27 @@ Track how user-controlled data flows through assignments, function calls, and re
 - [x] Create `CWE-78-safe.txt` (shell quoting sanitizer)
 - [x] Create `CWE-79-vulnerable.txt` (XSS taint)
 - [x] Create `CWE-79-safe.txt` (HTML escaping sanitizer)
-- [~] Create `cross_function_taint.txt` — not created (deferred → see plans/v3.0.0/)
-- [~] Create `two_hop_taint.txt` — not created (deferred → see plans/v3.0.0/)
-- [~] Create `three_hop_taint.txt` — not created (deferred → see plans/v3.0.0/)
-- [~] Create `goroutine_taint.txt` — not created (deferred → see plans/v3.0.0/)
-- [~] Create `sanitized_via_validation.txt` — not created (deferred → see plans/v3.0.0/)
+- [~] Create `cross_function_taint.txt` — not created (deferred → see plans/v0.0.3/)
+- [~] Create `two_hop_taint.txt` — not created (deferred → see plans/v0.0.3/)
+- [~] Create `three_hop_taint.txt` — not created (deferred → see plans/v0.0.3/)
+- [~] Create `goroutine_taint.txt` — not created (deferred → see plans/v0.0.3/)
+- [~] Create `sanitized_via_validation.txt` — not created (deferred → see plans/v0.0.3/)
 
 ### 6.4 Integration tests
 
 - [x] Create `tests/go_taint_integration.rs` — exists (inter-procedural fixtures, tests `#[ignore]`'d)
 - [x] Parameterized test for each fixture — written in `go_taint_integration.rs`
 - [x] Use `assert_fixture_rules()` helper — exists in `tests/helpers/mod.rs:49`
-- [~] Test `--no-taint` flag — CLI flag `--no-taint` exists (`args.rs:68`) but no dedicated integration test (deferred → see plans/v3.0.0/)
-- [~] Test confidence scoring — not implemented (deferred → see plans/v3.0.0/)
+- [~] Test `--no-taint` flag — CLI flag `--no-taint` exists (`args.rs:68`) but no dedicated integration test (deferred → see plans/v0.0.3/)
+- [~] Test confidence scoring — not implemented (deferred → see plans/v0.0.3/)
 
 ### 6.5 Regression tests
 
-- [~] Ensure existing CWE detectors still fire when taint is enabled — not regression-tested (deferred → see plans/v3.0.0/)
-- [~] Ensure existing safe fixtures still don't fire — not regression-tested (deferred → see plans/v3.0.0/)
+- [~] Ensure existing CWE detectors still fire when taint is enabled — not regression-tested (deferred → see plans/v0.0.3/)
+- [~] Ensure existing safe fixtures still don't fire — not regression-tested (deferred → see plans/v0.0.3/)
 - [x] Run full test suite: `cargo test` — passes
 - [x] Run benchmarks: `cargo bench` — runs
-- [~] Ensure no performance regression on scans with `--no-taint` — not benchmarked (deferred → see plans/v3.0.0/)
+- [~] Ensure no performance regression on scans with `--no-taint` — not benchmarked (deferred → see plans/v0.0.3/)
 
 ---
 
@@ -297,26 +297,26 @@ Track how user-controlled data flows through assignments, function calls, and re
 
 ### 7.1 Inter-file taint tracking
 
-- [~] Build a project-wide call graph across multiple files — out of initial scope (deferred → see plans/v3.0.0/)
-- [~] Resolve imports to local packages — out of initial scope (deferred → see plans/v3.0.0/)
-- [~] Track taint across package boundaries — out of initial scope (deferred → see plans/v3.0.0/)
+- [~] Build a project-wide call graph across multiple files — out of initial scope (deferred → see plans/v0.0.3/)
+- [~] Resolve imports to local packages — out of initial scope (deferred → see plans/v0.0.3/)
+- [~] Track taint across package boundaries — out of initial scope (deferred → see plans/v0.0.3/)
 
 ### 7.2 Field-sensitive analysis
 
-- [~] Track taint through individual struct fields — out of initial scope (deferred → see plans/v3.0.0/)
-- [~] `obj.Inner.Field = source; sink(obj.Other)` → no finding (deferred → see plans/v3.0.0/)
-- [~] `obj.Inner.Field = source; sink(obj.Inner.Field)` → finding (deferred → see plans/v3.0.0/)
+- [~] Track taint through individual struct fields — out of initial scope (deferred → see plans/v0.0.3/)
+- [~] `obj.Inner.Field = source; sink(obj.Other)` → no finding (deferred → see plans/v0.0.3/)
+- [~] `obj.Inner.Field = source; sink(obj.Inner.Field)` → finding (deferred → see plans/v0.0.3/)
 
 ### 7.3 Context-sensitive analysis
 
-- [~] Clone taint summaries per call site — out of initial scope (deferred → see plans/v3.0.0/)
-- [~] Improves precision at cost of performance (deferred → see plans/v3.0.0/)
+- [~] Clone taint summaries per call site — out of initial scope (deferred → see plans/v0.0.3/)
+- [~] Improves precision at cost of performance (deferred → see plans/v0.0.3/)
 
 ### 7.4 Taint tracking for other languages (Python)
 
-- [~] Extend `PythonUnitFacts` with taint annotations — out of initial scope (deferred → see plans/v3.0.0/)
-- [~] Implement Python taint extraction using tree-sitter-python (deferred → see plans/v3.0.0/)
-- [~] Track Flask/Django request data → sink patterns (deferred → see plans/v3.0.0/)
+- [~] Extend `PythonUnitFacts` with taint annotations — out of initial scope (deferred → see plans/v0.0.3/)
+- [~] Implement Python taint extraction using tree-sitter-python (deferred → see plans/v0.0.3/)
+- [~] Track Flask/Django request data → sink patterns (deferred → see plans/v0.0.3/)
 
 ---
 

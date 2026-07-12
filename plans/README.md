@@ -8,7 +8,7 @@ These directories capture design sessions and phased feedback work. They are
 | Path | Notes |
 |------|-------|
 | `feedback/10072026/` | Feedback review phases 0–7 (implementation checklist) |
-| `v0.0.1/`, `v2.0.0/`, `v3.0.0/` | Older product/plan drafts |
+| `v0.0.1/`, `v0.0.2/`, `v0.0.3/` | Older product/plan drafts |
 | `p2-implementation/` | Historical p2 task breakdown |
 
 When work is complete, mark checklist items in the relevant plan and update
