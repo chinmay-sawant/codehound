@@ -41,9 +41,9 @@ export function SectionView({
 
       <div className="section-main">
         {/*
-          When facts exist, put head + body in the left column so the right
-          facts card aligns with the title (not dropped under the lead).
-          section-primary always applies shared vertical rhythm.
+          Body stays in the primary column so it sits directly under the lead
+          (and any media), aligned with the facts card — not pushed below a
+          tall facts sidebar.
         */}
         <div className={hasFacts ? 'section-split' : undefined}>
           <div className="section-primary">
@@ -125,7 +125,9 @@ export function SectionView({
                             <tr
                               key={i}
                               className={
-                                table.highlightRow === i ? 'is-highlight' : undefined
+                                table.highlightRow === i
+                                  ? 'is-highlight'
+                                  : undefined
                               }
                             >
                               {row.map((cell, j) => (

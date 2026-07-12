@@ -53,7 +53,6 @@
   --section-pad-y-end: clamp(52px, 7vw, 88px);
   --stack-gap: clamp(18px, 2.2vw, 26px);
   --block-pad: clamp(14px, 1.6vw, 18px);
-  --lead-max: 62ch;
   --ease-out: 150ms ease;
 }
 
@@ -777,16 +776,22 @@
   color: var(--muted);
   font-size: clamp(13.5px, 1.1vw, 15px);
   line-height: 1.75;
-  max-width: var(--lead-max);
+  max-width: none;
+  width: 100%;
   text-wrap: pretty;
 }
 
-/* split: primary (head + content) + facts aligned to title */
+/*
+  Primary column (head → media → body) + sticky facts.
+  Body lives in the primary column so it sits under the lead, not under a
+  tall facts card.
+*/
 .section-split {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+  grid-template-columns: minmax(0, 1.45fr) minmax(220px, 0.55fr);
   gap: clamp(24px, 3.5vw, 48px);
   align-items: start;
+  width: 100%;
 }
 
 /* Shared content stack — same rhythm as hero-copy */
@@ -795,6 +800,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--stack-gap);
+  width: 100%;
 }
 
 /* stats strip */
@@ -970,20 +976,31 @@
 .code-before::before { content: "− before"; color: var(--bad); }
 .code-after::before  { content: "+ after"; color: var(--good); }
 
-/* body copy */
+/*
+  Body paragraphs sit in .section-primary under the lead / media so they
+  align with the title column (e.g. Outputs CI blurb under the lead line).
+*/
 .section-body {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  max-width: var(--lead-max);
+  gap: 16px;
   width: 100%;
+  max-width: none;
+  min-width: 0;
+  box-sizing: border-box;
 }
 .section-para {
   margin: 0;
+  width: 100%;
+  max-width: none;
   color: var(--muted);
-  font-size: clamp(13.5px, 1.05vw, 14.5px);
+  font-size: clamp(14px, 1.1vw, 15.5px);
   line-height: 1.8;
   text-wrap: pretty;
+}
+/* Tighter pairing when body follows the head with no media in between */
+.section-head + .section-body {
+  margin-top: calc(var(--stack-gap) * -0.25);
 }
 .section-para strong {
   color: var(--foreground);
@@ -1631,12 +1648,6 @@
 
   .section-main {
     padding: 36px var(--page-pad) 44px;
-  }
-  .section-body {
-    max-width: none;
-  }
-  .section-lead {
-    max-width: none;
   }
   .hero {
     padding: 32px var(--page-pad) 40px;
