@@ -3,7 +3,10 @@ import { sections } from './data/sections'
 import { TopNav } from './components/TopNav'
 import { SectionView } from './components/Section'
 import {
+  beginProgrammaticNav,
   currentHashId,
+  isNavLocked,
+  releaseNavLockIfSettled,
   scrollToSection,
   sectionIdFromHash,
   setSectionHash,
@@ -22,10 +25,13 @@ export default function App() {
     const applyHash = (behavior: ScrollBehavior) => {
       const id = currentHashId()
       if (id) {
+        // Lock before any scroll so spy cannot overwrite mid-animation.
+        if (behavior === 'smooth') beginProgrammaticNav(id)
         setActive(id)
         // Wait a frame so layout (fonts, sticky nav) is ready.
         requestAnimationFrame(() => scrollToSection(id, behavior))
       } else {
+        if (behavior === 'smooth') beginProgrammaticNav(null)
         setActive('')
         // Only jump to top when hash was explicitly cleared (e.g. brand link),
         // not on first paint with an empty URL.
@@ -52,6 +58,13 @@ export default function App() {
   useEffect(() => {
     let ticking = false
     const updateActive = () => {
+      // While a click/hash nav is scrolling, never rewrite the hash. Only unlock
+      // once the target is actually in place (not on a premature scrollend).
+      if (isNavLocked()) {
+        releaseNavLockIfSettled()
+        if (isNavLocked()) return
+      }
+
       const first = document.getElementById(sections[0].id)
       const markerY = window.innerHeight * SPY_MARKER
 
@@ -104,6 +117,8 @@ export default function App() {
     // Brand link uses `top`; everything else is a section id from data/sections.
     const target = id === 'top' ? null : sectionIdFromHash(`#${id}`)
     if (id !== 'top' && !target) return
+    // Lock *before* the hash write so a pending spy frame cannot flip it back.
+    beginProgrammaticNav(target)
     setSectionHash(target, 'push')
     setActive(target ?? '')
     scrollToSection(target, 'smooth')

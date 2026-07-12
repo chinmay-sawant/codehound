@@ -573,11 +573,11 @@
   width: 100%;
 }
 
-html {
-  /* Native / hash navigation clears the fixed top nav. */
-  scroll-padding-top: calc(var(--nav-h) + 12px);
-}
-
+/*
+  Scroll offset for section jumps is applied once in scrollToSection()
+  (nav height + gap). Do not also set scroll-padding here — stacking it with
+  scroll-margin made ~20% of the previous section stay visible after nav clicks.
+*/
 .section {
   width: 100%;
   display: grid;
@@ -585,6 +585,7 @@ html {
   gap: 0;
   padding: 0;
   border-bottom: 1px solid var(--border);
+  /* Fallback for any native hash jump that bypasses our handler. */
   scroll-margin-top: calc(var(--nav-h) + 12px);
   box-sizing: border-box;
 }
