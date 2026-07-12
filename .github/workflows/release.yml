@@ -82,7 +82,7 @@ jobs:
           echo "ARTIFACT=dist/$ARTIFACT" >> "$GITHUB_ENV"
           echo "SUM=dist/${ARTIFACT}.sha256" >> "$GITHUB_ENV"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: codehound-${{ matrix.target }}
           path: |
@@ -99,7 +99,7 @@ jobs:
         run: cargo install cargo-cyclonedx --locked
       - name: Generate SBOM
         run: cargo cyclonedx -f json --all --output-cdx codehound.cdx.json || cargo cyclonedx --format json > codehound.cdx.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: sbom
           path: codehound.cdx.json
