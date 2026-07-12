@@ -17,8 +17,8 @@ pub(crate) const FINGERPRINT_VERSION: u32 = 2;
 
 fn format_fingerprint(rule_id: &str, file: &str, message: &str) -> String {
     use sha2::{Digest, Sha256};
-    let digest = Sha256::digest(message.as_bytes());
-    let msg_hash = format!("{digest:x}");
+    // sha2 0.11 digest arrays no longer implement LowerHex; hex via shared helper.
+    let msg_hash = crate::engine::hex_lower(Sha256::digest(message.as_bytes()));
     format!(
         "{}:{}:{}:{}:{}",
         FINGERPRINT_TOOL,
