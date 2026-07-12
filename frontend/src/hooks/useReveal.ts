@@ -20,7 +20,8 @@ export function useReveal<T extends HTMLElement>(threshold = 0.1) {
           obs.disconnect()
         }
       },
-      { threshold, rootMargin: '0px 0px -8% 0px' },
+      /* Trigger a bit earlier so content is already settling as it enters view. */
+      { threshold, rootMargin: '0px 0px -4% 0px' },
     )
     obs.observe(el)
     return () => obs.disconnect()

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+  <!-- OpenCode square mark (monochrome; fill via CSS currentColor) -->
+  <path
+    fill="currentColor"
+    fill-rule="evenodd"
+    clip-rule="evenodd"
+    d="M20 21H4V3h16v18ZM16 7H8v12h8V7Z"
+  />
+</svg>

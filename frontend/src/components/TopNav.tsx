@@ -18,6 +18,7 @@ export function TopNav({ active, onNavigate }: TopNavProps) {
         <a
           className="brand"
           href="#top"
+          title="Back to top"
           onClick={(e) => {
             e.preventDefault()
             onNavigate('top')
@@ -36,6 +37,7 @@ export function TopNav({ active, onNavigate }: TopNavProps) {
               key={s.id}
               href={`#${s.id}`}
               className={active === s.id ? 'topnav-link active' : 'topnav-link'}
+              title={s.title}
               onClick={(e) => {
                 e.preventDefault()
                 onNavigate(s.id)
@@ -54,6 +56,7 @@ export function TopNav({ active, onNavigate }: TopNavProps) {
             href="https://github.com/chinmay-sawant/codehound"
             target="_blank"
             rel="noreferrer"
+            title="View on GitHub"
           >
             <span>github</span>
             {stars !== null && (
