@@ -199,9 +199,9 @@ Enable adoption on legacy codebases: first-run baseline captures all current fin
 - [x] Parse `// codehound-ignore-file` at the top of a file (within first N lines, e.g., 20)
 - [x] Parse `// codehound-ignore-file: CWE-22, CWE-78` for file-level rule-specific suppression
 - [x] Parse `// codehound-ignore-file: all` for all-rule file suppression
-- [~] In `scan_entry()`, skip analysis for suppressed rules entirely (performance win) — only `all` fast-path implemented (deferred → see plans/v3.0.0/)
+- [~] In `scan_entry()`, skip analysis for suppressed rules entirely (performance win) — only `all` fast-path implemented (deferred → see plans/v0.0.3/)
   - [x] Fast-path `// codehound-ignore-file` / `// codehound-ignore-file: all` when `--show-ignored` is off, returning before detector execution
-  - [~] Rule-specific detector masking while preserving suppressed-count and `--show-ignored` semantics (deferred → see plans/v3.0.0/)
+  - [~] Rule-specific detector masking while preserving suppressed-count and `--show-ignored` semantics (deferred → see plans/v0.0.3/)
 - [x] Store `file_ignores` in `ScanContext` or a per-run map — not needed; file-level directives are parsed per source file in `scan_entry()` and applied immediately.
 
 ### 4.5 Reporting suppressed-by-comment findings

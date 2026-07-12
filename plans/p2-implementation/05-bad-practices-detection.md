@@ -3,14 +3,14 @@
 > **Parent:** `plans/p2.md` — P2.5
 > **Status:** ✅ **All planned BP phases implemented.** BP-1..BP-65 now have shipped detector coverage, fixture coverage, and documentation, including bounded heuristic implementations for the formerly reserved BP-12 and BP-14 rules.
 > **Estimated effort:** MVP was ~1 week. Follow-on phases are now complete.
-> **See also:** `plans/v2.0.0/antipattern-remediation/bad-practices-scope.md` (original scoping doc), `plans/v2.0.0/rust-remediation-phase-3.md` (remediation tracking)
-> **Pending work breakdown:** `plans/v2.0.0/pending-work/03-bad-practices-remaining.md`
+> **See also:** `plans/v0.0.2/antipattern-remediation/bad-practices-scope.md` (original scoping doc), `plans/v0.0.2/rust-remediation-phase-3.md` (remediation tracking)
+> **Pending work breakdown:** `plans/v0.0.2/pending-work/03-bad-practices-remaining.md`
 
 ---
 
 ## Overview
 
-Bad Practices detection is a new rule category beyond CWE (security) and PERF (performance), covering general Go software engineering anti-patterns. The MVP (BP-1..BP-15) was implemented as part of the v2.0.0 remediation. This plan tracks what's built and what remains.
+Bad Practices detection is a new rule category beyond CWE (security) and PERF (performance), covering general Go software engineering anti-patterns. The MVP (BP-1..BP-15) was implemented as part of the v0.0.2 remediation. This plan tracks what's built and what remains.
 
 ---
 
@@ -41,7 +41,7 @@ Bad Practices detection is a new rule category beyond CWE (security) and PERF (p
 - [x] Dave Cheney's blog posts
 - [x] staticcheck / go-critic / revive rule lists
 - [x] gosec non-security checks
-- [x] Catalog documented in `plans/v2.0.0/antipattern-remediation/bad-practices-scope.md`
+- [x] Catalog documented in `plans/v0.0.2/antipattern-remediation/bad-practices-scope.md`
 
 ### 1.2 Sub-categories defined
 

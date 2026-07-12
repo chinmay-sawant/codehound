@@ -3,7 +3,7 @@
 > **Parent:** `plans/p2.md` — P2.4
 > **Status:** ✅ **109 of 112 rules shipped** (97% complete). 3 intentionally dropped (PERF-104, 136, 208). Category A ✅, Category B ✅, Category C ✅. Domain modules all created. All 209 fixture pairs exist. **Only hygiene items remain** — benchmark regression investigation, fixture audit, edge-case hardening, and diagnostic docs.
 > **Estimated effort:** ~1 week for remaining hygiene work.
-> **Pending work breakdown:** `plans/v2.0.0/pending-work/02-perf-detectors-remaining.md`
+> **Pending work breakdown:** `plans/v0.0.2/pending-work/02-perf-detectors-remaining.md`
 > **Consolidated view:** `plans/consolidated_pendingtask_02072026.md`
 
 ---

@@ -45,4 +45,4 @@ capability.
 Archive-style notes (do not treat as backlog):
 
 - `plans/feedback/10072026/` — feedback implementation phases 0–7
-- `plans/v0.0.1/`, `plans/v2.0.0/`, `plans/v3.0.0/`, `plans/p2-implementation/`
+- `plans/v0.0.1/`, `plans/v0.0.2/`, `plans/v0.0.3/`, `plans/p2-implementation/`

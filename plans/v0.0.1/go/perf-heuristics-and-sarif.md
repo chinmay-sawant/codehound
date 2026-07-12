@@ -17,8 +17,8 @@ Add a future Go-only performance ruleset that is separate from the existing `CWE
 - [x] `PERF-*` fixture set exists for `tests/fixtures/go/perf/` (442 files, covers PERF-001..PERF-224)
 - [x] Repository-level `PERF-*` integration tests exist under `tests/` (`tests/go_perf_detector_integration.rs`, `tests/go_perf_ruleset_audit.rs`, `tests/go_perf_registry_generation.rs`)
 - [x] SARIF includes richer metadata for `PERF-*` results (`src/reporting/sarif/log.rs` uses `performance` category)
-- [~] `make fmt` (needs review) (deferred → see plans/v3.0.0/)
-- [~] `make lint` (needs review) (deferred → see plans/v3.0.0/)
+- [~] `make fmt` (needs review) (deferred → see plans/v0.0.3/)
+- [~] `make lint` (needs review) (deferred → see plans/v0.0.3/)
 
 ---
 
@@ -214,8 +214,8 @@ There is already a minimal SARIF reporter in `src/reporting/sarif.rs`. The futur
 
 ### Phase 2: richer rule metadata
 
-- [~] Add rule metadata beyond `id`, `name`, and `shortDescription`. (needs review) (deferred → see plans/v3.0.0/)
-- [~] Include `helpUri` or `properties` when the rule registry has enough information to support it. (needs review) (deferred → see plans/v3.0.0/)
+- [~] Add rule metadata beyond `id`, `name`, and `shortDescription`. (needs review) (deferred → see plans/v0.0.3/)
+- [~] Include `helpUri` or `properties` when the rule registry has enough information to support it. (needs review) (deferred → see plans/v0.0.3/)
 - [x] Attach category metadata so downstream consumers can distinguish `Performance` from `Security` (`src/reporting/sarif/log.rs` checks `PERF-` prefix, uses `performance` category)
 
 ### Phase 3: result shaping
@@ -227,7 +227,7 @@ There is already a minimal SARIF reporter in `src/reporting/sarif.rs`. The futur
 
 ### Phase 4: verification
 
-- [~] Add a focused SARIF regression test that emits mixed `CWE-*` and `PERF-*` findings and verifies both rule tables and result records. (not found) (deferred → see plans/v3.0.0/)
+- [~] Add a focused SARIF regression test that emits mixed `CWE-*` and `PERF-*` findings and verifies both rule tables and result records. (not found) (deferred → see plans/v0.0.3/)
 
 ---
 
