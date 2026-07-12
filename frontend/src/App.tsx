@@ -3,35 +3,41 @@ import { sections } from './data/sections'
 import { TopNav } from './components/TopNav'
 import { SectionView } from './components/Section'
 import {
+  beginProgrammaticNav,
   currentHashId,
+  isNavLocked,
+  releaseNavLockIfSettled,
   scrollToSection,
   sectionIdFromHash,
   setSectionHash,
 } from './lib/section-nav'
 import './styles/global.css'
 
-const HERO_STATS = [
-  { value: '~2.7k', label: 'ops/sec', sub: 'after CodeHound fixes' },
-  { value: '+35%', label: 'throughput', sub: 'from ~2,000 ops/sec' },
-  { value: '$0', label: 'to scan', sub: 'offline · deterministic' },
-  { value: '$3.85', label: 'Grok 4.5 batch', sub: 'vs ~$19 skills ×5' },
-] as const
+/** Viewport fraction where a section becomes "active" for scroll-spy. */
+const SPY_MARKER = 0.28
 
 export default function App() {
-  const [active, setActive] = useState(
-    () => currentHashId() ?? sections[0].id,
-  )
+  // Empty active = hero / top of page (no section hash).
+  const [active, setActive] = useState(() => currentHashId() ?? '')
 
   // Deep link on first paint + browser back/forward / external hash changes.
   useEffect(() => {
     const applyHash = (behavior: ScrollBehavior) => {
       const id = currentHashId()
       if (id) {
+        // Lock before any scroll so spy cannot overwrite mid-animation.
+        if (behavior === 'smooth') beginProgrammaticNav(id)
         setActive(id)
         // Wait a frame so layout (fonts, sticky nav) is ready.
         requestAnimationFrame(() => scrollToSection(id, behavior))
       } else {
-        setActive(sections[0].id)
+        if (behavior === 'smooth') beginProgrammaticNav(null)
+        setActive('')
+        // Only jump to top when hash was explicitly cleared (e.g. brand link),
+        // not on first paint with an empty URL.
+        if (behavior === 'smooth') {
+          requestAnimationFrame(() => scrollToSection(null, behavior))
+        }
       }
     }
 
@@ -48,9 +54,27 @@ export default function App() {
   }, [])
 
   // Scroll-spy: highlight nav + keep URL hash in sync for copy/share.
+  // While the hero is still primary, keep hash empty (`/` or `/codehound/`).
   useEffect(() => {
     let ticking = false
     const updateActive = () => {
+      // While a click/hash nav is scrolling, never rewrite the hash. Only unlock
+      // once the target is actually in place (not on a premature scrollend).
+      if (isNavLocked()) {
+        releaseNavLockIfSettled()
+        if (isNavLocked()) return
+      }
+
+      const first = document.getElementById(sections[0].id)
+      const markerY = window.innerHeight * SPY_MARKER
+
+      // Hero zone: first section has not reached the spy marker yet.
+      if (first && first.getBoundingClientRect().top > markerY) {
+        setActive((prev) => (prev === '' ? prev : ''))
+        setSectionHash(null, 'replace')
+        return
+      }
+
       const lastId = sections[sections.length - 1].id
       const doc = document.documentElement
       const atBottom =
@@ -60,10 +84,9 @@ export default function App() {
       if (atBottom) {
         current = lastId
       } else {
-        const marker = window.innerHeight * 0.28
         for (const s of sections) {
           const el = document.getElementById(s.id)
-          if (el && el.getBoundingClientRect().top <= marker) current = s.id
+          if (el && el.getBoundingClientRect().top <= markerY) current = s.id
         }
       }
 
@@ -94,8 +117,10 @@ export default function App() {
     // Brand link uses `top`; everything else is a section id from data/sections.
     const target = id === 'top' ? null : sectionIdFromHash(`#${id}`)
     if (id !== 'top' && !target) return
+    // Lock *before* the hash write so a pending spy frame cannot flip it back.
+    beginProgrammaticNav(target)
     setSectionHash(target, 'push')
-    setActive(target ?? sections[0].id)
+    setActive(target ?? '')
     scrollToSection(target, 'smooth')
   }, [])
 
@@ -118,25 +143,33 @@ export default function App() {
                 <span className="hero-title-accent">Skip the token bill.</span>
               </h1>
               <p className="hero-sub">
-                CodeHound is a Rust-built static analyzer for Go. It finds
-                performance hot-path regressions, framework footguns
-                (Gin / Echo / GORM / sqlx), bad practices, and curated CWE
-                heuristics — the stuff golangci-lint and staticcheck often miss.
-                On gopdfsuit, fixing its findings lifted throughput from ~2,000
-                to ~2,700 ops/sec. Scan free. Triage with Grok 4.5 for $3.85, or
-                DeepSeek for $0.25.
+                Rust-built static analyzer for Go. Catches PERF hot-path
+                regressions, framework footguns (Gin / Echo / GORM / sqlx),
+                bad practices, and curated CWE heuristics — the gaps
+                golangci-lint and staticcheck often leave. Offline, free to
+                scan, same answer every run.
               </p>
 
               <div className="hero-cta-row">
                 <a
                   className="hero-cta hero-cta-primary"
+                  href="#install"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    handleNavigate('install')
+                  }}
+                >
+                  install
+                </a>
+                <a
+                  className="hero-cta hero-cta-ghost"
                   href="#impact"
                   onClick={(e) => {
                     e.preventDefault()
                     handleNavigate('impact')
                   }}
                 >
-                  see the impact
+                  impact
                 </a>
                 <a
                   className="hero-cta hero-cta-ghost"
@@ -146,34 +179,14 @@ export default function App() {
                     handleNavigate('cost')
                   }}
                 >
-                  cost math
-                </a>
-                <a
-                  className="hero-cta hero-cta-ghost"
-                  href="#how-it-works"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    handleNavigate('how-it-works')
-                  }}
-                >
-                  how it works
-                </a>
-                <a
-                  className="hero-cta hero-cta-ghost"
-                  href="#install"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    handleNavigate('install')
-                  }}
-                >
-                  install
+                  cost
                 </a>
               </div>
 
               <div className="hero-line">
                 <span>224 PERF · 175+ CWE · 65 BP</span>
                 <span aria-hidden="true">·</span>
-                <span>single binary · no service</span>
+                <span>single binary</span>
                 <span aria-hidden="true">·</span>
                 <span>complements golangci-lint</span>
               </div>
@@ -206,35 +219,25 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="hero-meta-grid" aria-hidden="true">
+              <div className="hero-meta-grid" aria-label="Key numbers">
                 <div className="hero-meta-cell">
-                  <span className="hero-meta-k">lang</span>
-                  <span className="hero-meta-v">go-first</span>
+                  <span className="hero-meta-k">gopdfsuit</span>
+                  <span className="hero-meta-v">~2k → 2.7k ops/sec</span>
                 </div>
                 <div className="hero-meta-cell">
-                  <span className="hero-meta-k">mode</span>
-                  <span className="hero-meta-v">offline</span>
+                  <span className="hero-meta-k">lift</span>
+                  <span className="hero-meta-v">+35% throughput</span>
                 </div>
                 <div className="hero-meta-cell">
-                  <span className="hero-meta-k">output</span>
-                  <span className="hero-meta-v">text · json · sarif</span>
+                  <span className="hero-meta-k">scan</span>
+                  <span className="hero-meta-v">$0 · offline</span>
                 </div>
                 <div className="hero-meta-cell">
-                  <span className="hero-meta-k">agent</span>
-                  <span className="hero-meta-v">bounded triage</span>
+                  <span className="hero-meta-k">triage</span>
+                  <span className="hero-meta-v">from $0.25</span>
                 </div>
               </div>
             </div>
-          </div>
-
-          <div className="hero-stats" role="list">
-            {HERO_STATS.map((s) => (
-              <div className="hero-stat" key={s.label} role="listitem">
-                <div className="hero-stat-value">{s.value}</div>
-                <div className="hero-stat-label">{s.label}</div>
-                <div className="hero-stat-sub">{s.sub}</div>
-              </div>
-            ))}
           </div>
         </header>
 
