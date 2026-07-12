@@ -59,7 +59,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 jiff = "0.2"
 
 # Perfect hashing for sink/source registries
-phf = { version = "0.11", features = ["macros"] }
+phf = { version = "0.14", features = ["macros"] }
 
 # Path / file walking
 walkdir = "2.5"
