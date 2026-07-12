@@ -366,9 +366,15 @@
 }
 
 /* ── hero ────────────────────────────────────────────────────────────────── */
+/* Fill the first viewport so the next section ("Real results…") doesn't peek. */
 .hero {
   width: 100%;
-  padding: clamp(32px, 5vw, 64px) var(--page-pad) 0;
+  min-height: calc(100vh - var(--nav-h));
+  min-height: calc(100dvh - var(--nav-h));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(32px, 5vw, 64px) var(--page-pad);
   box-sizing: border-box;
   border-bottom: 1px solid var(--border);
 }
@@ -379,9 +385,6 @@
   grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
   gap: clamp(28px, 4vw, 64px);
   align-items: start;
-  /* Stats live in hero-side meta grid now — give the column room to breathe. */
-  margin-bottom: clamp(36px, 5vw, 56px);
-  padding-bottom: clamp(8px, 1.5vw, 16px);
 }
 
 .hero-copy {
@@ -1534,7 +1537,7 @@ html {
     padding: 28px var(--page-pad) 36px;
   }
   .hero {
-    padding-top: 28px;
+    padding: 28px var(--page-pad) 36px;
   }
   .hero-title { font-size: 28px; }
   .fact {
