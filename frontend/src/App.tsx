@@ -132,7 +132,7 @@ export default function App() {
         <header className="hero">
           <div className="hero-grid">
             <div className="hero-copy">
-              <div className="hero-eyebrow">
+              <div className="hero-eyebrow" aria-label="Product tags">
                 <span className="hero-tag">static analyzer</span>
                 <span className="hero-dot" aria-hidden="true" />
                 <span className="hero-tag-muted">go · offline · deterministic</span>
@@ -150,20 +150,25 @@ export default function App() {
                 scan, same answer every run.
               </p>
 
-              <div className="hero-cta-row">
+              <div className="hero-cta-row" role="group" aria-label="Get started">
                 <a
                   className="hero-cta hero-cta-primary"
                   href="#install"
+                  title="Install CodeHound"
                   onClick={(e) => {
                     e.preventDefault()
                     handleNavigate('install')
                   }}
                 >
                   install
+                  <span className="hero-cta-arrow" aria-hidden="true">
+                    →
+                  </span>
                 </a>
                 <a
                   className="hero-cta hero-cta-ghost"
                   href="#impact"
+                  title="See real results"
                   onClick={(e) => {
                     e.preventDefault()
                     handleNavigate('impact')
@@ -174,6 +179,7 @@ export default function App() {
                 <a
                   className="hero-cta hero-cta-ghost"
                   href="#cost"
+                  title="Scan free, review bounded"
                   onClick={(e) => {
                     e.preventDefault()
                     handleNavigate('cost')
@@ -183,13 +189,13 @@ export default function App() {
                 </a>
               </div>
 
-              <div className="hero-line">
+              <p className="hero-line">
                 <span>224 PERF · 175+ CWE · 65 BP</span>
                 <span aria-hidden="true">·</span>
                 <span>single binary</span>
                 <span aria-hidden="true">·</span>
                 <span>complements golangci-lint</span>
-              </div>
+              </p>
             </div>
 
             <div className="hero-side">
@@ -254,6 +260,7 @@ export default function App() {
               href="https://github.com/chinmay-sawant/codehound"
               target="_blank"
               rel="noreferrer"
+              title="Open the CodeHound repository"
             >
               github.com/chinmay-sawant/codehound
             </a>

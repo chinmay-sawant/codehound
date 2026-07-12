@@ -43,29 +43,29 @@ export function SectionView({
         {/*
           When facts exist, put head + body in the left column so the right
           facts card aligns with the title (not dropped under the lead).
+          section-primary always applies shared vertical rhythm.
         */}
         <div className={hasFacts ? 'section-split' : undefined}>
-          <div className={hasFacts ? 'section-primary' : undefined}>
+          <div className="section-primary">
             <header className="section-head">
               <div className="section-meta">
                 <span className="section-icon" aria-hidden="true">
-                  <Icon size={12} strokeWidth={1.75} />
+                  <Icon size={13} strokeWidth={1.75} />
                 </span>
-                <span className="section-prompt">
-                  <span className="prompt-sym">$</span>
-                  {s.id}
-                </span>
+                <span className="section-prompt">{s.id}</span>
               </div>
               <h2 className="section-title">{s.title}</h2>
               <p className="section-lead">{s.lead}</p>
             </header>
 
             {s.callout && (
-              <div className="callout">{renderInlineMarkup(s.callout)}</div>
+              <aside className="callout" aria-label="Key point">
+                {renderInlineMarkup(s.callout)}
+              </aside>
             )}
 
             {s.stats && (
-              <div className="stats">
+              <div className="stats" role="group" aria-label="Key metrics">
                 {s.stats.map((st) => (
                   <div className="stat" key={st.label}>
                     <div className="stat-value">{st.value}</div>
@@ -114,7 +114,9 @@ export function SectionView({
                         <thead>
                           <tr>
                             {table.headers.map((h) => (
-                              <th key={h}>{h}</th>
+                              <th key={h} scope="col">
+                                {h}
+                              </th>
                             ))}
                           </tr>
                         </thead>
@@ -151,7 +153,7 @@ export function SectionView({
           </div>
 
           {s.facts && (
-            <dl className="facts">
+            <dl className="facts" aria-label="Details">
               {s.facts.map((f) => (
                 <div className="fact" key={f.k}>
                   <dt className="fact-k">{f.k}</dt>
