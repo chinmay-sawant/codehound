@@ -34,7 +34,7 @@ jobs:
             target: x86_64-pc-windows-msvc
             archive: zip
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -82,7 +82,7 @@ jobs:
           echo "ARTIFACT=dist/$ARTIFACT" >> "$GITHUB_ENV"
           echo "SUM=dist/${ARTIFACT}.sha256" >> "$GITHUB_ENV"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: codehound-${{ matrix.target }}
           path: |
@@ -93,13 +93,13 @@ jobs:
     name: sbom
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - name: Install cargo-cyclonedx
         run: cargo install cargo-cyclonedx --locked
       - name: Generate SBOM
         run: cargo cyclonedx -f json --all --output-cdx codehound.cdx.json || cargo cyclonedx --format json > codehound.cdx.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: sbom
           path: codehound.cdx.json
@@ -109,7 +109,7 @@ jobs:
     needs: [build, sbom]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
@@ -119,7 +119,7 @@ jobs:
           find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' -o -name '*.sha256' -o -name '*.cdx.json' \) -exec cp {} release/ \;
           ls -la release
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: release/*
           generate_release_notes: true
