@@ -25,6 +25,13 @@ Godoc-style rules never fail CI under `style` (no-fail + info severity).
 
 `BP-63` is **reserved**: a curated module-advisory *snapshot* (`ruleset/golang/go_module_advisories.csv`), **not** a live [govulncheck](https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck) feed. It is quarantined from recommended/security packs. Prefer govulncheck in CI for real CVE coverage until a feed is wired.
 
+## Curated tiering policy
+
+- **Trusted correctness:** BP-6, BP-7, BP-8, BP-9, and BP-15; useful concurrency/runtime footguns, but still reviewed as heuristics.
+- **Review-required:** most error, lifecycle, testing, and dependency rules; keep them advisory and do not fail ordinary CI by default.
+- **Style/opinion:** BP-2, BP-3, BP-21, BP-28–31, BP-39–42, BP-45, and BP-62; report as `info` or keep disabled unless a team explicitly wants the policy.
+- **Reserved:** BP-63 remains quarantined until CodeHound has a live advisory feed.
+
 ## Overlap matrix vs golangci ecosystem
 
 Classify each rule before treating CodeHound BP as a substitute for `go vet` / staticcheck / errcheck / revive.  
@@ -63,6 +70,34 @@ Classify each rule before treating CodeHound BP as a substitute for `go vet` / s
 | BP-64–65 | unique-ish | — | local `replace`, missing `go.sum` |
 
 If you already run `golangci-lint` with errcheck + staticcheck + revive, prefer `--profile recommended` (PERF + optional taint) and treat `style` as an optional policy pack—not a replacement gate.
+
+## Curated Core Language Rules
+
+- `BP-67` flags `errors.As` targets passed without an address; pass an addressable target to avoid the stdlib runtime panic.
+- `BP-72` flags a directly returned typed nil pointer behind an `error` or anonymous interface result; return a bare `nil` interface instead.
+- `BP-73` flags a function-local zero-value map that is indexed before `make` initializes it; initialize the map before the first write. The detector intentionally ignores map parameters and cases where initialization is visible earlier in the same function.
+- `BP-75` flags a statically zero-length local slice used as the destination of `copy` with a non-empty literal source; allocate the destination to the required length.
+- `BP-80` flags exact `context.TODO()` calls outside tests; replace them with an explicit caller-owned or lifecycle-owned context. This remains a low-severity advisory policy signal.
+- `BP-79` flags a locally bound context cancellation function with no visible local call or defer. It is review-only because ownership may be transferred to a helper.
+- `BP-84` flags the narrow `a / b * 100` percentage shape when the destination or function name indicates a percentage; convert before dividing to avoid integer truncation.
+
+## Curated HTTP Rules
+
+- `BP-101` flags a `net/http` handler that writes a response body before `WriteHeader`; set the intended status before the first body write.
+- `BP-109` flags a Gin error JSON response that is not followed by `Abort` or `return`; terminate the handler after writing the error.
+- `BP-116` flags an Echo error JSON response followed by a raw error return; choose one response-handling path.
+
+## Curated Concurrency and Resource Rules
+
+- `BP-88` flags direct send/receive operations on a local zero-value channel outside an intentional `select`; initialize the channel or keep the nil-channel select explicit.
+- `BP-98` flags local `os.Open`/`os.OpenFile` results with no same-function close or ownership transfer; close or return the file. This is review-only because the heuristic cannot prove interprocedural ownership.
+- `BP-99` flags a locally created `sync.Cond` whose `Wait` has no visible `Lock`/`RLock` on its associated locker; acquire the locker before waiting.
+
+## Curated Data and Configuration Rules
+
+- `BP-131` flags literal DML sent through `database/sql` `Query`/`QueryContext` without `RETURNING`; use `Exec`/`ExecContext`. This is an import- and type-gated advisory heuristic.
+- `BP-145` flags a typed `pgxpool.Acquire` result with no visible `Release`/`Close`; release the connection on every path. This remains review-only for same-function ownership limits.
+- `BP-159` flags flag-pointer dereferences before `flag.Parse`; parse command-line arguments before reading values.
 
 ## Error Handling
 

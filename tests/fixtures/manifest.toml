@@ -6629,3 +6629,313 @@ required_rules = ["PERF-242"]
 lang = "go"
 path = "tests/fixtures/go/perf/PERF-242-safe.txt"
 required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-73-vulnerable.txt"
+required_rules = ["BP-73"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-73-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-73-variant-vulnerable.txt"
+required_rules = ["BP-73"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-73-variant-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-72-vulnerable.txt"
+required_rules = ["BP-72"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-72-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-79-vulnerable.txt"
+required_rules = ["BP-79"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-79-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-79-variant-vulnerable.txt"
+required_rules = ["BP-79"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-79-variant-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-84-vulnerable.txt"
+required_rules = ["BP-84"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-84-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-84-variant-vulnerable.txt"
+required_rules = ["BP-84"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-84-variant-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-101-vulnerable.txt"
+required_rules = ["BP-101"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-101-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-101-variant-vulnerable.txt"
+required_rules = ["BP-101"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-101-variant-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-67-vulnerable.txt"
+required_rules = ["BP-67"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-67-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-67-variant-vulnerable.txt"
+required_rules = ["BP-67"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-67-variant-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-75-vulnerable.txt"
+required_rules = ["BP-75"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-75-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-75-variant-vulnerable.txt"
+required_rules = ["BP-75"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-75-variant-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-80-vulnerable.txt"
+required_rules = ["BP-80"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-80-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-80-variant-vulnerable.txt"
+required_rules = ["BP-80"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-80-variant-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-88-vulnerable.txt"
+required_rules = ["BP-88"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-88-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-88-variant-vulnerable.txt"
+required_rules = ["BP-88"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-88-variant-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-98-vulnerable.txt"
+required_rules = ["BP-98"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-98-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-98-variant-vulnerable.txt"
+required_rules = ["BP-98"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-98-variant-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-99-vulnerable.txt"
+required_rules = ["BP-99"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-99-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-99-variant-vulnerable.txt"
+required_rules = ["BP-99"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-99-variant-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-109-vulnerable.txt"
+required_rules = ["BP-109"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-109-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-109-variant-vulnerable.txt"
+required_rules = ["BP-109"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-109-variant-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-116-vulnerable.txt"
+required_rules = ["BP-116"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-116-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-116-variant-vulnerable.txt"
+required_rules = ["BP-116"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-116-variant-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-131-vulnerable.txt"
+required_rules = ["BP-131"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-131-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-131-variant-vulnerable.txt"
+required_rules = ["BP-131"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-131-variant-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-145-vulnerable.txt"
+required_rules = ["BP-145"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-145-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-145-variant-vulnerable.txt"
+required_rules = ["BP-145"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-145-variant-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-159-vulnerable.txt"
+required_rules = ["BP-159"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-159-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-159-variant-vulnerable.txt"
+required_rules = ["BP-159"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-159-variant-safe.txt"
+required_rules = []

@@ -1,19 +1,19 @@
-# v0.0.3 — New Go Bad Practices (BP-66..BP-165)
+# v0.0.3 — Curated New Go Bad Practices
 
 > **Parent:** `plans/v0.0.3/README.md`
-> **Status:** Plan only — **not started**
+> **Status:** Curated execution plan — four domain batches integrated; 16 admitted candidates shipped, remaining proposals pending
 > **Date:** 2026-07-10
 > **Target release:** v0.0.3
-> **Scope:** **100 new** Go bad-practice rules (`BP-66` … `BP-165`) that fill gaps **not** covered by existing CodeHound BP/CWE/PERF rules **and** not usefully covered by stock `go vet` / `staticcheck` / `golangci-lint` defaults
-> **Estimated effort:** ~8–12 weeks across 6 parts (can parallelize after scaffolding)
+> **Scope:** A reviewed subset of BP-66..BP-165 that fills gaps **not** covered by existing CodeHound BP/CWE/PERF rules **and** not usefully covered by stock `go vet` / `staticcheck` / `golangci-lint` defaults
+> **Estimated effort:** ~4–6 weeks for the curated first tranche; the remaining candidates are deferred until evidence justifies them
 
 ---
 
 ## Purpose
 
-CodeHound already ships **BP-1..BP-65** across seven domains (error handling, concurrency, testing, API design, code organization, production hardening, dependency hygiene). Those rules target high-signal application-level smells.
+CodeHound's baseline shipped **BP-1..BP-65** across seven domains (error handling, concurrency, testing, API design, code organization, production hardening, dependency hygiene). The current catalog contains 81 rules after the first curated v0.0.3 tranche; those additions target high-signal application-level smells.
 
-This plan adds **100 more** common Golang bad practices that:
+The part files retain **100 candidate** Go bad practices that may fill gaps:
 
 1. Show up repeatedly in real codebases and “100 Go Mistakes” / style-guide catalogs.
 2. Are **not** already detected by BP-1..65, CWE, or PERF catalogs.
@@ -29,7 +29,7 @@ This plan adds **100 more** common Golang bad practices that:
 
 | Bucket | IDs / notes |
 |--------|-------------|
-| BP shipped | BP-1..BP-65 (`ruleset/golang/bad-practices.json`, `documents/bad-practices.md`) |
+| BP shipped | Baseline BP-1..BP-65 plus 16 curated v0.0.3 additions (81 catalog entries) |
 | CWE | Security / CWE catalog (path traversal, SQLi, XSS, weak crypto, …) |
 | PERF | Perf / hot-path catalog (incl. many **Gin / Echo / GORM / sqlx** *performance* rules) |
 | Stock linters | `go vet`, `staticcheck` (SA/S/ST/QF), `errcheck`, `ineffassign`, `govet`, bodyclose, noctx, sqlclosecheck, etc. via golangci-lint |
@@ -72,13 +72,13 @@ Framework-tagged rules fire only when the import path is present (same pattern a
 | [06-part-f-testing-api-hygiene.md](./06-part-f-testing-api-hygiene.md) | BP-161..BP-165 — testing + API/org hygiene tail (**5**) + stretch backlog |
 | [07-implementation-order.md](./07-implementation-order.md) | Scaffold → batch order, PR titles, risk notes |
 
-**Track completion in [CHECKLIST.md](./CHECKLIST.md).** Rule-level detection sketches live in the part files.
+**Track completion in [CHECKLIST.md](./CHECKLIST.md).** Rule-level detection sketches live in the part files; candidates are not commitments until they pass the curated admission gate.
 
 ---
 
 ## Shipping shape (every rule — non-negotiable)
 
-Mirror existing BP work. For **each** of BP-66..BP-165:
+Mirror existing BP work. For **each admitted** rule, regardless of which worker batch prepared it:
 
 1. **Ruleset JSON** entry in `ruleset/golang/bad-practices.json` (or a future chunk split if the file grows too large).
 2. **Build codegen** — `build/gen_bp.rs` / `build.rs` picks up new IDs (existing pipeline).
@@ -124,7 +124,7 @@ See `tests/fixtures/README.md`. Materialization writes to `target/codehound-fixt
 
 ---
 
-## Domain map (100 rules)
+## Candidate domain map (100 candidates)
 
 | Part | Domain | IDs | Count |
 |------|--------|-----|------:|
@@ -153,12 +153,12 @@ Extensions of existing BP domains:
 
 ## Definition of done (folder-level)
 
-- [ ] All 100 rules specified in part files with detect/suppress/fixture sketches
+- [x] Candidate rules specified in part files with detect/suppress/fixture sketches
 - [ ] Gap review: no pure `gofmt` / default `staticcheck` duplicates without CodeHound-unique value
 - [ ] No PERF-only rehashes (framework *correctness* only)
 - [ ] No CWE rehashes (use CWE catalog for true vulns)
 - [ ] Scaffold: category enum + dispatch + SourceIndex needles ready for new domains
-- [ ] BP-66..BP-165 in `bad-practices.json` + detectors + **txt fixtures** + manifest + docs
+- [ ] Every admitted rule in `bad-practices.json` + detector + **txt fixtures** + manifest + docs
 - [ ] `cargo test --test go_bad_practice_integration` green
 - [ ] `documents/bad-practices.md` updated for all new rules
 - [ ] Optional: `make run-bp-new` (`--only BP-66,…` or range helper) so findings are not buried by CWE/PERF
