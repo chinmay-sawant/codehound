@@ -1,7 +1,7 @@
 # v0.0.3 — Curated Go Bad-Practice Implementation Checklist
 
 > **Parent:** [`plans/v0.0.3/`](../README.md)
-> **Status:** Phase 5 batch integrated and validated; 126 BP rules are implemented/registered, while 39 proposed BP-66..BP-165 candidates remain unimplemented or explicitly deferred
+> **Status:** Deferred implementation batches integrated and validated; 136 BP rules are implemented/registered, while 29 proposed BP-66..BP-165 candidates remain explicitly deferred
 > **Decision:** Do not ship BP-66..BP-165 as 100 equal-status rules. Admit only high-signal, project-agnostic rules that survive the overlap and fixture gates below.
 > **Estimated effort:** 4–6 weeks for the curated first release; the remaining proposals stay deferred until evidence justifies them.
 
@@ -41,9 +41,9 @@ The source sketches in `01-part-a-core-language.md` through `06-part-f-testing-a
 
 - [ ] Complete the existing-pack trust cleanup in Phase 1, or explicitly record why each audit item remains deferred.
 - [ ] Reconcile the stale v0.0.2 pending-work documentation with the current BP-1..BP-65 implementation.
-- [x] Decide whether to admit BP-102, BP-111, BP-119, BP-136, and BP-142 after fresh overlap and fixture review; BP-102, BP-136, and BP-142 shipped, while BP-111/BP-119 remain deferred due PERF overlap.
+- [x] Decide whether to admit BP-102, BP-111, BP-119, BP-136, and BP-142 after fresh overlap and fixture review; all five shipped with bounded framework/handler gates and documented PERF overlap boundaries.
 - [ ] Revisit deferred-gate candidates BP-108 and BP-165 only when stronger static proof is available.
-- [ ] Resolve the 39 proposed BP-66..BP-165 candidates that are not present in the live ruleset/dispatch, either by implementing them through the admission gate or explicitly retiring them.
+- [ ] Resolve the remaining 29 proposed BP-66..BP-165 candidates that are not present in the live ruleset/dispatch, either by implementing them through the admission gate or explicitly retiring them.
 - [x] Rename the Phase 4 implementation modules to domain-specific filenames without `batch_phase4` naming.
 - [x] Integrate the next accepted pending candidates from the five parallel domain batches.
 - [x] Complete the remaining Phase 4 candidate reviews and record dropped/replacement candidates.
@@ -70,44 +70,44 @@ The source sketches in `01-part-a-core-language.md` through `06-part-f-testing-a
 - [x] Current count after the first tranche: 81 rules and 81 dispatch entries.
 - [x] Current count after the previous batch: 89 rules and 89 dispatch entries.
 - [x] Current count after Phase 4 promotion: 100 rules and 100 dispatch entries.
-- [x] Current count after Phase 5 promotion: 126 rules and 126 dispatch entries.
-- [x] Current fixture inventory includes 348 BP fixture files; project-level rules remain covered by their existing project fixtures.
+- [x] Current count after the deferred-candidate promotion: 136 rules and 136 dispatch entries.
+- [x] Current fixture inventory includes 368 BP fixture files; project-level rules remain covered by their existing project fixtures.
 - [x] Run `cargo test --test go_bad_practice_integration`: 12 passed, 0 failed.
 - [x] Confirm BP-63 remains reserved for the curated advisory snapshot and is not treated as live vulnerability intelligence.
 
 ### 0.1.1 Ruleset-to-plan implementation audit
 
-- [x] Confirm the live `ruleset/golang/bad-practices.json` contains 126 rules.
-- [x] Confirm all 126 live rules have matching detector dispatch entries.
+- [x] Confirm the live `ruleset/golang/bad-practices.json` contains 136 rules.
+- [x] Confirm all 136 live rules have matching detector dispatch entries.
 - [x] Confirm the live BP catalog is numerically ordered by rule ID.
-- [x] Classify all 39 proposed rules that are absent from the live ruleset and dispatch as explicitly deferred, with evidence-based reasons recorded below.
+- [x] Classify all 29 remaining proposed rules that are absent from the live ruleset and dispatch as explicitly deferred, with evidence-based reasons recorded below.
 
-#### Core language/context — 8 deferred
+#### Core language/context — 5 deferred
 
 - [~] BP-69 — Returning Data With Non-Nil Error (Unclear Contract) — deferred: return-value intent is contract-dependent and not statically provable.
-- [~] BP-70 — Logging Error Then Continuing Without Return — deferred: control-flow intent is not reliably provable with current syntax-only facts.
+- [x] BP-70 — Logging Error Then Continuing Without Return — shipped; bounded `err != nil` plus standard-log and explicit-exit analysis.
 - [~] BP-71 — Ignoring Non-Error Multi-Return Values That Affect Correctness — deferred: correctness impact requires type/call-site semantics unavailable to the detector.
 - [~] BP-74 — Slice Append Alias Unexpected Share — deferred: aliasing and ownership require stronger data-flow/type evidence.
 - [x] BP-76 — Range Over Map With Deterministic-Order Assumption — shipped
 - [~] BP-77 — Context Value Used For Optional Parameters (Stringly Keys) — deferred: API intent and legitimate context-key usage are not statically distinguishable.
 - [~] BP-78 — Context Not Propagated To Child Call — deferred: propagation requires interprocedural call and ownership evidence.
 - [x] BP-81 — Repeated `time.Now` Comparisons Nested In Expressions — shipped
-- [~] BP-82 — Parsing Time Without Location (Ambiguous Local) — deferred: intended location is configuration- and call-site-dependent.
-- [~] BP-83 — Sleeping For Synchronization Outside Tests — deferred: synchronization intent cannot be established from syntax alone.
+- [x] BP-82 — Parsing Time Without Location (Ambiguous Local) — shipped; literal layouts without zone directives only.
+- [x] BP-83 — Sleeping For Synchronization Outside Tests — shipped; synchronization-shaped functions without visible coordination only.
 
-#### Concurrency/resources — 1 deferred
+#### Concurrency/resources — 0 deferred
 
 - [x] BP-90 — Range Over Channel Without Exit Condition In Non-Range Form — shipped
 - [x] BP-91 — Notification Channel Carrying Data Unnecessarily — shipped
 - [x] BP-92 — `errgroup.Group` Without Context (`WithContext`) — shipped
 - [x] BP-93 — `errgroup.Go` Closure Ignoring Returned Error Path — shipped
 - [x] BP-94 — Fire-And-Forget Goroutine Writing To Shared Map Without Sync — shipped
-- [~] BP-95 — `http.Response.Body` Not Closed (Client) — deferred: overlaps existing body-close/tooling coverage.
+- [x] BP-95 — `http.Response.Body` Not Closed (Client) — shipped as zero-dependency same-function coverage; bodyclose/sqlclosecheck overlap documented.
 - [x] BP-96 — `sql.Rows` / `sql.Row` Resource Not Closed — shipped
 - [x] BP-97 — Flushable Writer Never Flushed Before Read Side — shipped
 - [x] BP-100 — Goroutine Per Request Without Bound (Unbounded Fan-Out) — shipped
 
-#### HTTP/frameworks — 14 deferred
+#### HTTP/frameworks — 12 deferred
 
 - [~] BP-103 — Redirect Using Unvalidated External URL — deferred: validation and trust-boundary intent require data-flow evidence beyond the current detector seam.
 - [x] BP-104 — `ServeHTTP` Mux Registered With Method-Insensitive Overlap Ambiguity — shipped
@@ -115,22 +115,22 @@ The source sketches in `01-part-a-core-language.md` through `06-part-f-testing-a
 - [~] BP-106 — CORS Allow-Origin Reflects Request Origin Unconditionally — deferred: framework/configuration context and security overlap require broader evidence.
 - [x] BP-107 — Middleware Not Calling `next` / `Handler.ServeHTTP` — shipped
 - [~] BP-108 — Request Context Ignored After Server Shutdown Pattern — deferred: overlaps BP-13 and needs lifecycle/control-flow evidence.
-- [~] BP-111 — Gin Goroutine Using `*gin.Context` Without `c.Copy()` — deferred: framework lifetime and goroutine capture evidence is insufficient; also overlaps PERF.
+- [x] BP-111 — Gin Goroutine Using `*gin.Context` Without `c.Copy()` — shipped with exact Gin import/type and function-local goroutine gates; PERF overlap documented.
 - [~] BP-112 — Gin Route Group Missing Auth Middleware On Sensitive Prefix — deferred: authentication intent requires whole-package route and middleware analysis.
 - [~] BP-113 — Gin Default Mode Not Set To Release In `main` — deferred: deployment configuration is not statically inferable.
 - [~] BP-114 — Gin Trusting `ClientIP` Without Trusted Proxies Config — deferred: trusted-proxy configuration requires runtime/environment evidence.
 - [~] BP-115 — Gin Binding Struct Missing `binding:"required"` On Critical Fields — deferred: field criticality and validation intent are not statically provable.
 - [~] BP-118 — Echo Path Param Used In File Path Without Clean — deferred: security/data-flow proof overlaps CWE and is unavailable at the current seam.
-- [~] BP-119 — Fiber Context Lifetime Misuse Across Goroutine — deferred: framework lifetime and goroutine capture evidence is insufficient; also overlaps PERF.
+- [x] BP-119 — Fiber Context Lifetime Misuse Across Goroutine — shipped with exact Fiber import/type and function-local goroutine gates; PERF overlap documented.
 - [~] BP-121 — Fiber Prefork Enabled Without Caution In 12-factor Deploy — deferred: deployment intent and operational constraints are not source-proven.
 - [x] BP-122 — Chi Middleware Chain Missing `next.ServeHTTP` — shipped
 - [~] BP-123 — Chi URLParam Used Without Presence Check Before Authz — deferred: authentication intent and presence requirements require whole-handler evidence.
 - [~] BP-124 — Panic Recovery Middleware Disabled/Missing On Public Server — deferred: server exposure and middleware completeness require whole-package evidence.
 - [~] BP-125 — Mixing Framework Context With stdlib `http.ResponseWriter` Incorrectly — deferred: correctness depends on framework control flow not proven by current syntax facts.
 
-#### Data persistence — 7 deferred
+#### Data persistence — 6 deferred
 
-- [~] BP-126 — Transaction Without Commit/Rollback Handling — deferred: transaction ownership and all exit paths require interprocedural/control-flow evidence.
+- [x] BP-126 — Transaction Without Commit/Rollback Handling — shipped with local commit/rollback and ownership-transfer boundaries.
 - [~] BP-127 — Nested Transactions Assumed Supported — deferred: driver/runtime semantics are not statically available.
 - [x] BP-128 — `QueryRow` Scan Error Not Distinguished From `ErrNoRows` — shipped
 - [~] BP-129 — SQL String Built With `fmt.Sprintf` (Correctness/Injection Hygiene) — deferred: overlaps CWE/SQL tooling and needs query/data-flow proof.
@@ -145,7 +145,7 @@ The source sketches in `01-part-a-core-language.md` through `06-part-f-testing-a
 - [x] BP-143 — Redis Command Error Ignored — shipped
 - [~] BP-144 — Redis Key Without Namespace Prefix In Shared Instance — deferred: shared-instance and namespace intent require deployment/configuration evidence.
 
-#### Observability/config/JSON/gRPC/CLI — 9 deferred
+#### Observability/config/JSON/gRPC/CLI — 5 deferred
 
 - [x] BP-146 — Logging Sensitive Fields (Password/Token) At Info — shipped
 - [x] BP-147 — `log.Printf` Without Structured Logger In Service Code — shipped
@@ -154,12 +154,12 @@ The source sketches in `01-part-a-core-language.md` through `06-part-f-testing-a
 - [~] BP-150 — `os.Getenv` Without Default Or Empty Check For Required Config — deferred: requiredness and acceptable defaults are application-specific.
 - [~] BP-152 — Hardcoded Localhost Credentials In Non-Test Code — deferred: security relevance and credential intent require context beyond local syntax.
 - [~] BP-153 — Config Parsed With `json.Unmarshal` Ignoring Critical Unknown Fields — deferred: critical fields and compatibility policy are application-specific.
-- [~] BP-154 — `json.Unmarshal` Error Ignored — deferred: overlaps generic error-handling/security tooling without a narrow BP-specific boundary.
+- [x] BP-154 — `json.Unmarshal` Error Ignored — shipped for direct expression statements; blank assignments remain covered by BP-1.
 - [x] BP-155 — JSON Decoder Used On Unbounded Request Body Without Limit — shipped
 - [x] BP-156 — Relying On `omitempty` For Security-Sensitive Zero Values — shipped
 - [~] BP-157 — gRPC Server Without Unary Interceptor For Logging/Auth — deferred: runtime middleware/auth policy is not statically provable.
-- [~] BP-158 — gRPC Ignoring `status.FromError` / Returning Naked `err` — deferred: framework-specific error semantics require type/context evidence.
-- [~] BP-160 — Cobra `Run` Instead Of `RunE` Swallowing Errors — deferred: CLI error policy and command lifecycle intent require broader context.
+- [x] BP-158 — gRPC Ignoring `status.FromError` / Returning Naked `err` — shipped for gRPC-shaped methods with status/import gates.
+- [x] BP-160 — Cobra `Run` Instead Of `RunE` Swallowing Errors — shipped as an advisory Cobra command-literal check.
 
 #### Testing/API lifecycle — 1 deferred
 
@@ -265,9 +265,9 @@ Target: the first 16-rule tranche is shipped. The next rows remain pending or de
 | Order | Rule | Decision | Status |
 |------:|------|----------|--------|
 | 13 | BP-109 — Gin error response without abort/return | Admit as a Gin-specific control-flow rule. | **Shipped** |
-| 14 | BP-111 — Gin context used in goroutine without `Copy` | Admit only with import gate and resolve PERF overlap first. | **Deferred** — no implementation or fixture; framework lifetime evidence remains insufficient. |
+| 14 | BP-111 — Gin context used in goroutine without `Copy` | Admit only with import gate and resolve PERF overlap first. | **Shipped** — import/type/function-local gate; PERF overlap documented. |
 | 15 | BP-116 — Echo response/error double handling | Admit only when the same handler visibly writes and returns a second response path. | **Shipped** |
-| 16 | BP-119 — Fiber context captured across goroutine | Admit only with import gate and captured-context evidence. | **Deferred** — no implementation or fixture; framework lifetime evidence remains insufficient. |
+| 16 | BP-119 — Fiber context captured across goroutine | Admit only with import gate and captured-context evidence. | **Shipped** — import/type/function-local gate; PERF overlap documented. |
 
 ### 3.4 Data and API lifecycle
 
@@ -323,7 +323,7 @@ Target: the first 16-rule tranche is shipped. The next rows remain pending or de
 #### Next-batch promotion evidence: BP-68, BP-85, BP-102, BP-136, BP-142, BP-151, BP-162, and BP-164
 
 - [x] Five workers reviewed disjoint core, HTTP, data, observability, and testing/API batches without touching shared catalog files.
-- [x] Accepted candidates were personally audited; BP-111, BP-119, BP-146, BP-147, BP-148, BP-149, BP-150, BP-152..BP-160 (except BP-151), BP-161, BP-163, and BP-165 were deferred for overlap, intent, or insufficient local proof.
+- [x] Historical overlap review deferred BP-111, BP-119, BP-146, BP-147, BP-148, BP-149, BP-150, BP-152..BP-160 (except BP-151), BP-161, BP-163, and BP-165; the later deferred-candidate batch promoted BP-111, BP-119, BP-154, BP-158, and BP-160 after bounded detector and fixture review.
 - [x] BP-68, BP-85, BP-102, BP-136, BP-142, BP-151, BP-162, and BP-164 have detector modules, generated metadata, fix text, dispatch entries, documentation, manifest entries, and vulnerable/safe/variant fixture coverage.
 - [x] Personally tightened BP-85 handler gating, BP-151 zap-call matching, BP-162 package-global extraction, and BP-102 AST/source fallback behavior during integration.
 - [x] Focused BP and fixture-manifest integration passed: 12 BP tests and 3 manifest tests; all 200 BP fixture files exercised.
@@ -357,7 +357,7 @@ Target: the first 16-rule tranche is shipped. The next rows remain pending or de
 | Observability/testing | BP-161 — production DSN literal in test code | **Shipped — review-only** |
 | Observability/testing | BP-163 — golden-file update writes without short-test guard | **Shipped — review-only** |
 
-#### Phase 5 promotion evidence: 26 accepted rules from five parallel domain batches
+#### Phase 5 promotion evidence: prior accepted rules from five parallel domain batches
 
 - [x] Five workers reviewed disjoint core, concurrency, HTTP, data, and observability batches without touching shared catalog files; the old `batch_phase4_*` modules were renamed to domain-specific filenames before integration.
 - [x] Accepted core rules: BP-76 and BP-81.
@@ -366,18 +366,28 @@ Target: the first 16-rule tranche is shipped. The next rows remain pending or de
 - [x] Accepted data-persistence rules: BP-128, BP-132, BP-133, BP-134, BP-135, BP-140, and BP-143.
 - [x] Accepted observability/config/JSON rules: BP-146, BP-147, BP-149, BP-155, and BP-156.
 - [x] Each admitted rule has detector code, generated metadata/fix text, dispatch registration, documentation, manifest ownership, and vulnerable/safe/variant fixture coverage.
-- [x] The live catalog is 126 rules with 126 dispatch entries; the catalog remains numerically ordered and the README count matches the registry.
-- [x] Focused fixture inventory, manifest, BP integration, and README-count tests passed; 348 BP fixture files are present on disk.
+- [x] The live catalog is 136 rules with 136 dispatch entries; the catalog remains numerically ordered and the README count matches the registry.
+- [x] Focused fixture inventory, manifest, BP integration, and README-count tests passed; 368 BP fixture files are present on disk.
 - [x] Detector fixes made during validation: Tree-sitter assignment ancestors are resolved through expression lists, duplicate ServeMux registrations are recognized, and safe fixtures remain isolated from existing BP/PERF rules.
 - [x] No codebase-memory MCP was used; the completed batch was personally reviewed without review subagents.
 
 #### Phase 5 deferred candidates
 
-- [~] Core/context: BP-69, BP-70, BP-71, BP-74, BP-77, BP-78, BP-82, and BP-83 remain deferred for unclear intent, aliasing, or insufficient local/static proof.
-- [~] Concurrency/resources: BP-95 remains deferred because it overlaps existing body-close/tooling coverage.
-- [~] HTTP/frameworks: BP-103, BP-106, BP-108, BP-111, BP-112, BP-113, BP-114, BP-115, BP-118, BP-119, BP-121, BP-123, BP-124, and BP-125 remain deferred for security/tooling overlap, deployment/auth intent, whole-package evidence, or unprovable framework semantics.
-- [~] Data persistence: BP-126, BP-127, BP-129, BP-130, BP-137, BP-139, and BP-144 remain deferred for transaction ownership, CWE overlap, package-wide configuration, intent, or namespace semantics.
-- [~] Observability/config/testing: BP-148, BP-150, BP-152, BP-153, BP-154, BP-157, BP-158, BP-160, and BP-165 remain deferred for deployment/configuration intent, security overlap, or insufficient lifecycle/type evidence.
+- [~] Core/context: BP-69, BP-71, BP-74, BP-77, and BP-78 remain deferred for unclear intent, aliasing, or insufficient local/static proof.
+- [~] HTTP/frameworks: BP-103, BP-106, BP-108, BP-112, BP-113, BP-114, BP-115, BP-118, BP-121, BP-123, BP-124, and BP-125 remain deferred for security/tooling overlap, deployment/auth intent, whole-package evidence, or unprovable framework semantics.
+- [~] Data persistence: BP-127, BP-129, BP-130, BP-137, BP-139, and BP-144 remain deferred for transaction ownership, CWE overlap, package-wide configuration, intent, or namespace semantics.
+- [~] Observability/config/testing: BP-148, BP-150, BP-152, BP-153, BP-157, and BP-165 remain deferred for deployment/configuration intent, security overlap, or insufficient lifecycle/type evidence.
+
+#### Deferred-candidate implementation batch evidence
+
+- [x] Four disjoint batches were implemented with coordinator-owned shared integration: core, HTTP/framework, data persistence, and overlap/CLI.
+- [x] Promoted BP-70, BP-82, BP-83, BP-95, BP-111, BP-119, BP-126, BP-154, BP-158, and BP-160.
+- [x] Each promoted rule has detector code, generated metadata/fix text, dispatch registration, documentation, manifest ownership, and vulnerable/safe `.txt` fixtures.
+- [x] `cargo test --test fixture_manifest_integration_manifest` passed with the full manifest.
+- [x] `cargo test --test go_bad_practice_integration` passed: 12 tests, 0 failures.
+- [x] `cargo test --test go_bad_practice_project_integration` passed.
+- [x] `cargo clippy --all-targets --all-features -- -D warnings` and `cargo fmt --check` passed.
+- [x] The live catalog now contains 136 rules and 368 BP fixture files.
 
 ### 3.5 Parallel batch ownership
 
@@ -385,11 +395,11 @@ Workers may prepare independent domain batches in parallel. They must not edit s
 
 | Batch | Scope | Worker ownership | Current status |
 |------|-------|------------------|----------------|
-| A | Core language/context: BP-66, BP-69..BP-83 pending candidates | Core-language detector module(s) and their `.txt` fixtures | BP-66, BP-76, BP-81 shipped; BP-69, BP-70, BP-71, BP-74, BP-77, BP-78, BP-82, BP-83 deferred |
-| B | Concurrency and resources: BP-86..BP-100 | Concurrency/resource detector module(s) and their `.txt` fixtures | BP-86, BP-87, BP-89, BP-90, BP-91, BP-92, BP-93, BP-94, BP-96, BP-97, BP-100 shipped; BP-95 deferred |
-| C | HTTP and frameworks: BP-103..BP-125 pending candidates | HTTP/framework detector module(s) and their `.txt` fixtures | BP-104, BP-105, BP-107, BP-110, BP-117, BP-120, BP-122 shipped; BP-103, BP-106, BP-108, BP-111, BP-112, BP-113, BP-114, BP-115, BP-118, BP-119, BP-121, BP-123, BP-124, BP-125 deferred |
-| D | Data persistence: BP-126..BP-145 pending candidates | Data detector module(s) and their `.txt` fixtures | BP-128, BP-132, BP-133, BP-134, BP-135, BP-138, BP-140, BP-141, BP-143 shipped; BP-126, BP-127, BP-129, BP-130, BP-137, BP-139, BP-144 deferred |
-| E | Observability/config and remaining lifecycle tail: BP-146..BP-165 pending candidates | Observability/API/testing detector module(s) and their `.txt` fixtures | BP-146, BP-147, BP-149, BP-151, BP-155, BP-156, BP-161, BP-163 shipped; BP-148, BP-150, BP-152, BP-153, BP-154, BP-157, BP-158, BP-160, BP-165 deferred |
+| A | Core language/context: BP-66, BP-69..BP-83 pending candidates | Core-language detector module(s) and their `.txt` fixtures | BP-66, BP-76, BP-81 shipped; BP-70, BP-82, BP-83 promoted in the deferred batch; BP-69, BP-71, BP-74, BP-77, BP-78 deferred |
+| B | Concurrency and resources: BP-86..BP-100 | Concurrency/resource detector module(s) and their `.txt` fixtures | BP-86, BP-87, BP-89, BP-90, BP-91, BP-92, BP-93, BP-94, BP-96, BP-97, BP-100 shipped; BP-95 promoted in the deferred batch |
+| C | HTTP and frameworks: BP-103..BP-125 pending candidates | HTTP/framework detector module(s) and their `.txt` fixtures | BP-104, BP-105, BP-107, BP-110, BP-117, BP-120, BP-122 shipped; BP-111 and BP-119 promoted in the deferred batch; BP-103, BP-106, BP-108, BP-112, BP-113, BP-114, BP-115, BP-118, BP-121, BP-123, BP-124, BP-125 deferred |
+| D | Data persistence: BP-126..BP-145 pending candidates | Data detector module(s) and their `.txt` fixtures | BP-128, BP-132, BP-133, BP-134, BP-135, BP-138, BP-140, BP-141, BP-143 shipped; BP-126 promoted in the deferred batch; BP-127, BP-129, BP-130, BP-137, BP-139, BP-144 deferred |
+| E | Observability/config and remaining lifecycle tail: BP-146..BP-165 pending candidates | Observability/API/testing detector module(s) and their `.txt` fixtures | BP-146, BP-147, BP-149, BP-151, BP-155, BP-156, BP-161, BP-163 shipped; BP-154, BP-158, and BP-160 promoted in the deferred batch; BP-148, BP-150, BP-152, BP-153, BP-157, BP-165 deferred |
 
 - [x] Define disjoint worker ownership for detector modules and fixture files.
 - [x] Keep shared integration centralized: JSON, dispatch, manifest, docs, checklist, and release-gate commands.
@@ -418,11 +428,11 @@ For each future admitted rule, complete these in order before moving to the next
 
 ## Phase 4: Deferred candidate review
 
-- [x] Review BP-66 against existing error tooling; it is now shipped as a wrapped-sentinel comparison rule with a conservative error-name gate. Phase 5 also shipped BP-76 and BP-81; BP-69, BP-70, BP-71, BP-74, BP-77, BP-78, BP-82, and BP-83 remain deferred.
-- [x] Review BP-86, BP-87, and BP-89 for control-flow feasibility; they are shipped as review-only heuristics. Phase 5 also shipped BP-90, BP-91, BP-92, BP-93, BP-94, BP-96, BP-97, and BP-100; BP-95 remains deferred.
-- [x] Review BP-110, BP-117, and BP-120 as framework-specific error-discard variants; they add explicit Gin, Echo, and Fiber import/context gates and are shipped. Phase 5 also shipped BP-104, BP-105, BP-107, and BP-122; BP-103, BP-106, BP-108, BP-111, BP-112, BP-113, BP-114, BP-115, BP-118, BP-119, BP-121, BP-123, BP-124, and BP-125 remain deferred.
-- [x] Review BP-138 and BP-141 for data-layer specificity; both are shipped as review-only rules. Phase 5 also shipped BP-128, BP-132, BP-133, BP-134, BP-135, BP-140, and BP-143; BP-126, BP-127, BP-129, BP-130, BP-137, BP-139, and BP-144 remain deferred.
-- [x] Review BP-161 and BP-163 as test/lifecycle hygiene rules; both are shipped as review-only rules. Phase 5 also shipped BP-146, BP-147, BP-149, BP-155, and BP-156; BP-148, BP-150, BP-152, BP-153, BP-154, BP-157, BP-158, BP-160, and BP-165 remain deferred.
+- [x] Review BP-66 against existing error tooling; it is now shipped as a wrapped-sentinel comparison rule with a conservative error-name gate. Phase 5 also shipped BP-76 and BP-81; the deferred batch promoted BP-70, BP-82, and BP-83, leaving BP-69, BP-71, BP-74, BP-77, and BP-78 deferred.
+- [x] Review BP-86, BP-87, and BP-89 for control-flow feasibility; they are shipped as review-only heuristics. Phase 5 also shipped BP-90, BP-91, BP-92, BP-93, BP-94, BP-96, BP-97, and BP-100; the deferred batch promoted BP-95.
+- [x] Review BP-110, BP-117, and BP-120 as framework-specific error-discard variants; they add explicit Gin, Echo, and Fiber import/context gates and are shipped. Phase 5 also shipped BP-104, BP-105, BP-107, and BP-122; the deferred batch promoted BP-111 and BP-119, leaving BP-103, BP-106, BP-108, BP-112, BP-113, BP-114, BP-115, BP-118, BP-121, BP-123, BP-124, and BP-125 deferred.
+- [x] Review BP-138 and BP-141 for data-layer specificity; both are shipped as review-only rules. Phase 5 also shipped BP-128, BP-132, BP-133, BP-134, BP-135, BP-140, and BP-143; the deferred batch promoted BP-126, leaving BP-127, BP-129, BP-130, BP-137, BP-139, and BP-144 deferred.
+- [x] Review BP-161 and BP-163 as test/lifecycle hygiene rules; both are shipped as review-only rules. Phase 5 also shipped BP-146, BP-147, BP-149, BP-155, and BP-156; the deferred batch promoted BP-154, BP-158, and BP-160, leaving BP-148, BP-150, BP-152, BP-153, BP-157, and BP-165 deferred.
 - [x] Record dropped or deferred candidates with the worker evidence rather than leaving unexplained holes; revisit them only after real-module canaries or stronger static proof.
 
 ---

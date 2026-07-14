@@ -72,6 +72,10 @@ fn detect_framework_context_across_goroutine(
     );
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "framework walk carries rule-specific gates"
+)]
 fn walk_functions(
     node: Node,
     source: &[u8],
@@ -111,6 +115,10 @@ fn walk_functions(
     }
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "framework inspection carries rule-specific gates"
+)]
 fn inspect_function(
     function: Node,
     source: &[u8],
@@ -132,19 +140,14 @@ fn inspect_function(
         return;
     };
 
-    collect_goroutines(body, source, &context_names, &mut |goroutine| {
+    collect_goroutines(body, &mut |goroutine| {
         if goroutine_uses_context(goroutine, source, &context_names) {
             push_at(unit, out, metadata, goroutine.start_byte(), message);
         }
     });
 }
 
-fn collect_goroutines(
-    node: Node,
-    source: &[u8],
-    context_names: &[String],
-    inspect: &mut dyn FnMut(Node),
-) {
+fn collect_goroutines(node: Node, inspect: &mut dyn FnMut(Node)) {
     if node.kind() == "go_statement" {
         inspect(node);
         return;
@@ -157,7 +160,7 @@ fn collect_goroutines(
         if is_function_like(child.kind()) {
             continue;
         }
-        collect_goroutines(child, source, context_names, inspect);
+        collect_goroutines(child, inspect);
     }
 }
 

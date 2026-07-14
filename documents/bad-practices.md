@@ -85,6 +85,8 @@ If you already run `golangci-lint` with errcheck + staticcheck + revive, prefer 
 - `BP-66` flags direct comparisons of wrapped sentinel errors; use `errors.Is`.
 - `BP-76` flags map-derived values passed to `strings.Join` without sorting; sort the values before treating them as ordered output.
 - `BP-81` flags multiple `time.Now()` reads in one condition; capture the current time once before comparing deadlines.
+- `BP-70` flags a local `err != nil` branch that logs with the standard logger and falls through; return or otherwise handle the error.
+- `BP-82` flags literal `time.Parse` layouts without timezone data; use `ParseInLocation` or an explicitly zoned layout when location matters.
 
 ## Curated HTTP Rules
 
@@ -98,6 +100,8 @@ If you already run `golangci-lint` with errcheck + staticcheck + revive, prefer 
 - `BP-107` flags typed net/http middleware that neither delegates nor writes a terminal response.
 - `BP-122` applies the same missing-next check to imported Chi middleware.
 - `BP-155` flags JSON decoders reading request bodies without a visible size limit.
+- `BP-111` flags direct Gin context use inside a goroutine without `c.Copy()`; copy request-scoped state before launching background work.
+- `BP-119` flags direct Fiber context use inside a goroutine; copy request data before launching background work.
 
 ## Curated Concurrency and Resource Rules
 
@@ -115,6 +119,8 @@ If you already run `golangci-lint` with errcheck + staticcheck + revive, prefer 
 - `BP-96` flags database rows values without a visible close.
 - `BP-97` flags buffered/compressed writers read before flush.
 - `BP-100` flags unbounded goroutine fan-out from range loops.
+- `BP-83` flags synchronization-shaped `time.Sleep` calls without a visible coordination primitive; use channels, locks, or another explicit boundary.
+- `BP-95` flags locally acquired HTTP responses without a visible body close or ownership transfer; close `resp.Body` after a successful request. This is an advisory zero-dependency overlap with bodyclose/sqlclosecheck.
 
 ## Curated Data and Configuration Rules
 
@@ -133,6 +139,7 @@ If you already run `golangci-lint` with errcheck + staticcheck + revive, prefer 
 - `BP-135` flags direct use of a package-level GORM handle in request paths without a session boundary.
 - `BP-140` flags bare sqlx retrieval calls whose errors are discarded.
 - `BP-143` flags bare go-redis command calls whose result errors are discarded.
+- `BP-126` flags locally acquired `database/sql` transactions without a visible commit, rollback, or ownership transfer; complete or explicitly transfer the transaction.
 
 ## Error Handling
 
@@ -177,6 +184,12 @@ If you already run `golangci-lint` with errcheck + staticcheck + revive, prefer 
 - `BP-147` flags standard logger calls mixed into structured-logging service packages.
 - `BP-149` flags error-level logger calls in error branches that omit the error attribute.
 - `BP-156` flags security-sensitive JSON fields relying on `omitempty`.
+- `BP-154` flags direct `json.Unmarshal` expression statements that discard the returned error; check and handle it.
+- `BP-158` flags gRPC-shaped methods that discard `status.FromError` or return a raw error; translate errors to an appropriate status.
+
+## Curated CLI Rules
+
+- `BP-160` flags Cobra command literals that provide `Run` but not `RunE`; return command errors through `RunE` when the command can fail.
 
 ## API Design
 

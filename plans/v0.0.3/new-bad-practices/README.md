@@ -1,7 +1,7 @@
 # v0.0.3 — Curated New Go Bad Practices
 
 > **Parent:** `plans/v0.0.3/README.md`
-> **Status:** Curated execution plan — four domain batches integrated; 16 admitted candidates shipped, remaining proposals pending
+> **Status:** Curated execution plan — 26 admitted candidates shipped; 29 deferred candidates remain
 > **Date:** 2026-07-10
 > **Target release:** v0.0.3
 > **Scope:** A reviewed subset of BP-66..BP-165 that fills gaps **not** covered by existing CodeHound BP/CWE/PERF rules **and** not usefully covered by stock `go vet` / `staticcheck` / `golangci-lint` defaults
@@ -11,7 +11,7 @@
 
 ## Purpose
 
-CodeHound's baseline shipped **BP-1..BP-65** across seven domains (error handling, concurrency, testing, API design, code organization, production hardening, dependency hygiene). The current catalog contains 81 rules after the first curated v0.0.3 tranche; those additions target high-signal application-level smells.
+CodeHound's baseline shipped **BP-1..BP-65** across seven domains (error handling, concurrency, testing, API design, code organization, production hardening, dependency hygiene). The live catalog now contains **136 BP rules**, including the original curated tranche and the ten deferred candidates promoted by [IMPLEMENTABLE-DEFERRED-BP-PLAN.md](./IMPLEMENTABLE-DEFERRED-BP-PLAN.md).
 
 The part files retain **100 candidate** Go bad practices that may fill gaps:
 
@@ -29,7 +29,7 @@ The part files retain **100 candidate** Go bad practices that may fill gaps:
 
 | Bucket | IDs / notes |
 |--------|-------------|
-| BP shipped | Baseline BP-1..BP-65 plus 16 curated v0.0.3 additions (81 catalog entries) |
+| BP shipped | 136 live catalog entries; 29 reviewed candidates remain deferred |
 | CWE | Security / CWE catalog (path traversal, SQLi, XSS, weak crypto, …) |
 | PERF | Perf / hot-path catalog (incl. many **Gin / Echo / GORM / sqlx** *performance* rules) |
 | Stock linters | `go vet`, `staticcheck` (SA/S/ST/QF), `errcheck`, `ineffassign`, `govet`, bodyclose, noctx, sqlclosecheck, etc. via golangci-lint |
@@ -157,10 +157,10 @@ Extensions of existing BP domains:
 - [ ] Gap review: no pure `gofmt` / default `staticcheck` duplicates without CodeHound-unique value
 - [ ] No PERF-only rehashes (framework *correctness* only)
 - [ ] No CWE rehashes (use CWE catalog for true vulns)
-- [ ] Scaffold: category enum + dispatch + SourceIndex needles ready for new domains
-- [ ] Every admitted rule in `bad-practices.json` + detector + **txt fixtures** + manifest + docs
-- [ ] `cargo test --test go_bad_practice_integration` green
-- [ ] `documents/bad-practices.md` updated for all new rules
+- [x] Scaffold: category enum + dispatch + SourceIndex needles ready for new domains
+- [x] Every admitted rule in `bad-practices.json` + detector + **txt fixtures** + manifest + docs
+- [x] `cargo test --test go_bad_practice_integration` green
+- [x] `documents/bad-practices.md` updated for all new rules
 - [ ] Optional: `make run-bp-new` (`--only BP-66,…` or range helper) so findings are not buried by CWE/PERF
 - [ ] PR(s) merged *(human step)*
 
