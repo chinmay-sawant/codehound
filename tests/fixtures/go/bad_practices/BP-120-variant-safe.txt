@@ -1,0 +1,20 @@
+# BP-120 negative variant: a non-Fiber context with BodyParser is ignored.
+lang: go
+file: BP-120-variant-safe.go
+variant: non-fiber
+---
+package sample
+
+type Context struct{}
+
+func (Context) BodyParser(any) error { return nil }
+
+func update(ctx Context) error {
+	var request struct {
+		Enabled bool
+	}
+	if err := ctx.BodyParser(&request); err != nil {
+		return err
+	}
+	return nil
+}

@@ -1,0 +1,19 @@
+# BP-110 negative variant: a non-Gin context with a matching method name is ignored.
+lang: go
+file: BP-110-variant-safe.go
+variant: non-gin
+---
+package sample
+
+type Context struct{}
+
+func (Context) ShouldBindJSON(any) error { return nil }
+
+func update(ctx Context) {
+	var payload struct {
+		Name string
+	}
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		return
+	}
+}
