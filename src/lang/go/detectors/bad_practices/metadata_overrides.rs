@@ -51,6 +51,21 @@ pub const fn fix_for(id: u32) -> Option<&'static str> {
         164 => {
             Some("apply the functional option to the supplied instance instead of global defaults")
         }
+        66 => Some("use errors.Is instead of comparing a wrapped sentinel with == or !="),
+        86 => Some(
+            "unlock the same mutex on every path, preferably with defer immediately after Lock",
+        ),
+        87 => Some("copy the protected state and release the read lock before blocking"),
+        89 => Some("ensure one owner closes the channel at most once"),
+        110 => Some("check the Gin bind error before using the request"),
+        117 => Some("check or return the Echo bind error before continuing"),
+        120 => Some("check or return the Fiber BodyParser error before continuing"),
+        138 => Some("move external I/O out of the GORM hook and run it after commit"),
+        141 => Some("add matching db tags or configure the sqlx mapper explicitly"),
+        161 => {
+            Some("use a local or container database target in tests instead of a production DSN")
+        }
+        163 => Some("skip golden-file update writes in short tests with testing.Short"),
         _ => None,
     }
 }

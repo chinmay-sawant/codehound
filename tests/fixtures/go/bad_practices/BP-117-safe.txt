@@ -5,7 +5,12 @@ variant: echo
 ---
 package sample
 
-import "github.com/labstack/echo/v4"
+import (
+	"fmt"
+	"github.com/labstack/echo/v4"
+)
+
+// echo.Binder is configured by the application for this path.
 
 type Request struct {
 	Name string `json:"name"`
@@ -14,7 +19,7 @@ type Request struct {
 func create(c echo.Context) error {
 	var request Request
 	if err := c.Bind(&request); err != nil {
-		return err
+		return fmt.Errorf("bind request: %w", err)
 	}
 	return nil
 }

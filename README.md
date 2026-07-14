@@ -10,7 +10,7 @@ staticcheck, and govulncheck — it targets what they don't see:
 - **PERF** — 239 rules: regex-in-loops, `fmt.Sprintf` on hot paths, defer in tight loops, `http.ServeFile` body leaks, request-path allocation thrash. See [`documents/perf-rules.md`](./documents/perf-rules.md). Counts come from the live registry (`codehound --list-rules`).
 - **Framework footguns** — Gin/Echo/GORM/sqlx aware: unclosed response bodies, unbounded query rows, missing timeouts, context leaks.
 - **CWE heuristics** — 175 fixture-backed entries for file I/O, SQL injection, command injection, link resolution, and config sinks.
-- **Bad practices** — 89 rules across error handling, concurrency, testing, API design, and prod hardening.
+- **Bad practices** — 100 rules across error handling, concurrency, testing, API design, and prod hardening.
 - **Taint tracking (experimental)** — intra-procedural for CWE-22/78/79/89. Name-string based; not security-grade — use for triage, not hard gating.
 
 ## Goals
@@ -170,7 +170,7 @@ codehound --profile security --format sarif . > codehound.sarif
 
 ### Bad Practices
 
-89 Go bad-practice rules (`BP-*`) covering error handling,
+100 Go bad-practice rules (`BP-*`) covering error handling,
 concurrency, testing, API design, code organization, production hardening, and
 dependency hygiene. Note: partial overlap with staticcheck/errcheck — CodeHound is best used as a complement, not a replacement. See [`documents/bad-practices.md`](./documents/bad-practices.md).
 

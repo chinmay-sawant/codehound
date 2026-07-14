@@ -82,6 +82,7 @@ If you already run `golangci-lint` with errcheck + staticcheck + revive, prefer 
 - `BP-84` flags the narrow `a / b * 100` percentage shape when the destination or function name indicates a percentage; convert before dividing to avoid integer truncation.
 - `BP-68` flags discarded `errors.Join` results; return or assign the combined error.
 - `BP-85` flags unchecked `Context.Value` assertions in typed net/http handlers; check the `ok` result.
+- `BP-66` flags direct comparisons of wrapped sentinel errors; use `errors.Is`.
 
 ## Curated HTTP Rules
 
@@ -89,12 +90,16 @@ If you already run `golangci-lint` with errcheck + staticcheck + revive, prefer 
 - `BP-109` flags a Gin error JSON response that is not followed by `Abort` or `return`; terminate the handler after writing the error.
 - `BP-116` flags an Echo error JSON response followed by a raw error return; choose one response-handling path.
 - `BP-102` flags net/http error paths that return without writing an error response or status.
+- `BP-110`, `BP-117`, and `BP-120` flag discarded Gin, Echo, and Fiber binding errors.
 
 ## Curated Concurrency and Resource Rules
 
 - `BP-88` flags direct send/receive operations on a local zero-value channel outside an intentional `select`; initialize the channel or keep the nil-channel select explicit.
 - `BP-98` flags local `os.Open`/`os.OpenFile` results with no same-function close or ownership transfer; close or return the file. This is review-only because the heuristic cannot prove interprocedural ownership.
 - `BP-99` flags a locally created `sync.Cond` whose `Wait` has no visible `Lock`/`RLock` on its associated locker; acquire the locker before waiting.
+- `BP-86` flags locally declared mutexes locked without a visible matching unlock.
+- `BP-87` flags a declared read lock held across an obvious blocking call or channel receive.
+- `BP-89` flags repeated unconditional closes of the same channel in one function.
 
 ## Curated Data and Configuration Rules
 
@@ -103,6 +108,8 @@ If you already run `golangci-lint` with errcheck + staticcheck + revive, prefer 
 - `BP-159` flags flag-pointer dereferences before `flag.Parse`; parse command-line arguments before reading values.
 - `BP-136` flags GORM `AutoMigrate` in request handlers; run migrations during startup or separately.
 - `BP-142` flags `sqlx.In` output executed without `Rebind`; rebind for the target driver first.
+- `BP-138` flags direct HTTP or SMTP I/O inside GORM lifecycle hooks; move it after commit.
+- `BP-141` flags snake_case sqlx named placeholders without matching `db` tags.
 - `BP-151` flags sensitive `os.Getenv` values passed directly to loggers; redact or log presence only.
 
 ## Error Handling
@@ -139,6 +146,8 @@ If you already run `golangci-lint` with errcheck + staticcheck + revive, prefer 
 - `BP-24` flags `_test.go` files with no `Test*` functions because the file is dead test surface; add real test entry points or delete the file.
 - `BP-25` flags helpers that return `error` only to be converted into `t.Fatal` by callers because the helper can own the failure path; accept `*testing.T` and fail directly.
 - `BP-162` flags parallel tests that mutate package-level state; isolate the test state.
+- `BP-161` flags literal production database targets in tests; use local or container targets.
+- `BP-163` flags golden update writes without a `testing.Short` guard.
 
 ## API Design
 

@@ -18,15 +18,14 @@ pub(crate) fn detect_bp_110_gin_bind_error_ignored(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
-    detect_ignored_framework_call(
-        unit,
-        out,
-        "github.com/gin-gonic/gin",
-        "*gin.Context",
-        &["ShouldBindJSON", "ShouldBind"],
-        &crate::lang::go::detectors::bad_practices::BP_110_META,
-        "Gin binding error is discarded; check the bind result before using the request",
-    );
+    let rule = FrameworkRule {
+        import_path: "github.com/gin-gonic/gin",
+        context_type: "*gin.Context",
+        methods: &["ShouldBindJSON", "ShouldBind"],
+        metadata: &crate::lang::go::detectors::bad_practices::BP_110_META,
+        message: "Gin binding error is discarded; check the bind result before using the request",
+    };
+    detect_ignored_framework_call(unit, out, &rule);
 }
 
 /// BP-117: an Echo bind error is discarded as a bare expression statement.
@@ -35,15 +34,14 @@ pub(crate) fn detect_bp_117_echo_bind_error_ignored(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
-    detect_ignored_framework_call(
-        unit,
-        out,
-        "github.com/labstack/echo",
-        "echo.Context",
-        &["Bind"],
-        &crate::lang::go::detectors::bad_practices::BP_117_META,
-        "Echo bind error is discarded; check the bind result before using the request",
-    );
+    let rule = FrameworkRule {
+        import_path: "github.com/labstack/echo",
+        context_type: "echo.Context",
+        methods: &["Bind"],
+        metadata: &crate::lang::go::detectors::bad_practices::BP_117_META,
+        message: "Echo bind error is discarded; check the bind result before using the request",
+    };
+    detect_ignored_framework_call(unit, out, &rule);
 }
 
 /// BP-120: a Fiber body-parser error is discarded as a bare expression
@@ -53,41 +51,31 @@ pub(crate) fn detect_bp_120_fiber_body_parser_error_ignored(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
-    detect_ignored_framework_call(
-        unit,
-        out,
-        "github.com/gofiber/fiber",
-        "*fiber.Ctx",
-        &["BodyParser"],
-        &crate::lang::go::detectors::bad_practices::BP_120_META,
-        "Fiber body-parser error is discarded; check the parser result before using the request",
-    );
+    let rule = FrameworkRule {
+        import_path: "github.com/gofiber/fiber",
+        context_type: "*fiber.Ctx",
+        methods: &["BodyParser"],
+        metadata: &crate::lang::go::detectors::bad_practices::BP_120_META,
+        message: "Fiber body-parser error is discarded; check the parser result before using the request",
+    };
+    detect_ignored_framework_call(unit, out, &rule);
 }
 
-fn detect_ignored_framework_call(
-    unit: &ParsedUnit,
-    out: &mut Vec<Finding>,
-    import_path: &str,
-    context_type: &str,
-    methods: &[&str],
-    metadata: &crate::rules::RuleMetadata,
-    message: &str,
-) {
+struct FrameworkRule<'a> {
+    import_path: &'a str,
+    context_type: &'a str,
+    methods: &'a [&'a str],
+    metadata: &'a crate::rules::RuleMetadata,
+    message: &'a str,
+}
+
+fn detect_ignored_framework_call(unit: &ParsedUnit, out: &mut Vec<Finding>, rule: &FrameworkRule) {
     let source = unit.source.as_bytes();
     let root = unit.tree.root_node();
-    if !has_import(root, source, import_path) {
+    if !has_import(root, source, rule.import_path) {
         return;
     }
-    walk_functions(
-        root,
-        source,
-        unit,
-        out,
-        context_type,
-        methods,
-        metadata,
-        message,
-    );
+    walk_functions(root, source, unit, out, rule);
 }
 
 fn walk_functions(
@@ -95,37 +83,16 @@ fn walk_functions(
     source: &[u8],
     unit: &ParsedUnit,
     out: &mut Vec<Finding>,
-    context_type: &str,
-    methods: &[&str],
-    metadata: &crate::rules::RuleMetadata,
-    message: &str,
+    rule: &FrameworkRule,
 ) {
     if is_function_like(node.kind()) {
-        inspect_function(
-            node,
-            source,
-            unit,
-            out,
-            context_type,
-            methods,
-            metadata,
-            message,
-        );
+        inspect_function(node, source, unit, out, rule);
         return;
     }
 
     let mut cursor = node.walk();
     for child in node.named_children(&mut cursor) {
-        walk_functions(
-            child,
-            source,
-            unit,
-            out,
-            context_type,
-            methods,
-            metadata,
-            message,
-        );
+        walk_functions(child, source, unit, out, rule);
     }
 }
 
@@ -134,12 +101,9 @@ fn inspect_function(
     source: &[u8],
     unit: &ParsedUnit,
     out: &mut Vec<Finding>,
-    context_type: &str,
-    methods: &[&str],
-    metadata: &crate::rules::RuleMetadata,
-    message: &str,
+    rule: &FrameworkRule,
 ) {
-    let Some(contexts) = parameter_names(function, source, context_type) else {
+    let Some(contexts) = parameter_names(function, source, rule.context_type) else {
         return;
     };
     if contexts.is_empty() {
@@ -150,9 +114,9 @@ fn inspect_function(
     };
 
     let mut emit = |call: Node| {
-        push_at(unit, out, metadata, call.start_byte(), message);
+        push_at(unit, out, rule.metadata, call.start_byte(), rule.message);
     };
-    collect_ignored_calls(body, source, &contexts, methods, &mut emit);
+    collect_ignored_calls(body, source, &contexts, rule.methods, &mut emit);
 }
 
 fn collect_ignored_calls(
@@ -160,7 +124,7 @@ fn collect_ignored_calls(
     source: &[u8],
     contexts: &[&str],
     methods: &[&str],
-    emit: &mut dyn FnMut(Node),
+    mut emit: &mut dyn FnMut(Node),
 ) {
     if node.kind() == "call_expression"
         && node

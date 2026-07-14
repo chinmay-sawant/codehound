@@ -5,8 +5,11 @@ variant: non-fiber
 ---
 package sample
 
+import "fmt"
+
 type Context struct{}
 
+// BodyParser is a test-only method with a framework-like name.
 func (Context) BodyParser(any) error { return nil }
 
 func update(ctx Context) error {
@@ -14,7 +17,7 @@ func update(ctx Context) error {
 		Enabled bool
 	}
 	if err := ctx.BodyParser(&request); err != nil {
-		return err
+		return fmt.Errorf("parse request: %w", err)
 	}
 	return nil
 }

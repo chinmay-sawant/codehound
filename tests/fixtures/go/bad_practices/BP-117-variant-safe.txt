@@ -5,8 +5,11 @@ variant: non-echo
 ---
 package sample
 
+import "fmt"
+
 type Context struct{}
 
+// Bind is a test-only method with a framework-like name.
 func (Context) Bind(any) error { return nil }
 
 func remove(ctx Context) error {
@@ -14,7 +17,7 @@ func remove(ctx Context) error {
 		ID string
 	}
 	if err := ctx.Bind(&request); err != nil {
-		return err
+		return fmt.Errorf("bind request: %w", err)
 	}
 	return nil
 }
