@@ -83,6 +83,8 @@ If you already run `golangci-lint` with errcheck + staticcheck + revive, prefer 
 - `BP-68` flags discarded `errors.Join` results; return or assign the combined error.
 - `BP-85` flags unchecked `Context.Value` assertions in typed net/http handlers; check the `ok` result.
 - `BP-66` flags direct comparisons of wrapped sentinel errors; use `errors.Is`.
+- `BP-76` flags map-derived values passed to `strings.Join` without sorting; sort the values before treating them as ordered output.
+- `BP-81` flags multiple `time.Now()` reads in one condition; capture the current time once before comparing deadlines.
 
 ## Curated HTTP Rules
 
@@ -91,6 +93,11 @@ If you already run `golangci-lint` with errcheck + staticcheck + revive, prefer 
 - `BP-116` flags an Echo error JSON response followed by a raw error return; choose one response-handling path.
 - `BP-102` flags net/http error paths that return without writing an error response or status.
 - `BP-110`, `BP-117`, and `BP-120` flag discarded Gin, Echo, and Fiber binding errors.
+- `BP-104` flags duplicate literal registrations on a local `http.ServeMux`.
+- `BP-105` flags sensitive cookies missing `Secure` or `HttpOnly`.
+- `BP-107` flags typed net/http middleware that neither delegates nor writes a terminal response.
+- `BP-122` applies the same missing-next check to imported Chi middleware.
+- `BP-155` flags JSON decoders reading request bodies without a visible size limit.
 
 ## Curated Concurrency and Resource Rules
 
@@ -100,6 +107,14 @@ If you already run `golangci-lint` with errcheck + staticcheck + revive, prefer 
 - `BP-86` flags locally declared mutexes locked without a visible matching unlock.
 - `BP-87` flags a declared read lock held across an obvious blocking call or channel receive.
 - `BP-89` flags repeated unconditional closes of the same channel in one function.
+- `BP-90` flags infinite channel-receive loops without a visible exit path.
+- `BP-91` flags data-bearing boolean/integer notification channels whose received value is discarded.
+- `BP-92` flags errgroups that do not use the cancellation-aware `WithContext` form.
+- `BP-93` flags discarded errors inside errgroup closures.
+- `BP-94` flags goroutine map writes without a visible synchronization boundary.
+- `BP-96` flags database rows values without a visible close.
+- `BP-97` flags buffered/compressed writers read before flush.
+- `BP-100` flags unbounded goroutine fan-out from range loops.
 
 ## Curated Data and Configuration Rules
 
@@ -111,6 +126,13 @@ If you already run `golangci-lint` with errcheck + staticcheck + revive, prefer 
 - `BP-138` flags direct HTTP or SMTP I/O inside GORM lifecycle hooks; move it after commit.
 - `BP-141` flags snake_case sqlx named placeholders without matching `db` tags.
 - `BP-151` flags sensitive `os.Getenv` values passed directly to loggers; redact or log presence only.
+- `BP-128` flags QueryRow.Scan paths that do not distinguish `sql.ErrNoRows`.
+- `BP-132` flags optimistic-lock-shaped updates that ignore `RowsAffected`.
+- `BP-133` flags GORM chain results whose `Error` field is not checked.
+- `BP-134` flags GORM First/Take paths that do not distinguish `gorm.ErrRecordNotFound`.
+- `BP-135` flags direct use of a package-level GORM handle in request paths without a session boundary.
+- `BP-140` flags bare sqlx retrieval calls whose errors are discarded.
+- `BP-143` flags bare go-redis command calls whose result errors are discarded.
 
 ## Error Handling
 
@@ -148,6 +170,13 @@ If you already run `golangci-lint` with errcheck + staticcheck + revive, prefer 
 - `BP-162` flags parallel tests that mutate package-level state; isolate the test state.
 - `BP-161` flags literal production database targets in tests; use local or container targets.
 - `BP-163` flags golden update writes without a `testing.Short` guard.
+
+## Curated Observability Rules
+
+- `BP-146` flags sensitive fields or values passed to loggers without an obvious redaction step.
+- `BP-147` flags standard logger calls mixed into structured-logging service packages.
+- `BP-149` flags error-level logger calls in error branches that omit the error attribute.
+- `BP-156` flags security-sensitive JSON fields relying on `omitempty`.
 
 ## API Design
 
