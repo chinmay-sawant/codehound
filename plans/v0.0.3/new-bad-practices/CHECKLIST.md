@@ -80,90 +80,90 @@ The source sketches in `01-part-a-core-language.md` through `06-part-f-testing-a
 - [x] Confirm the live `ruleset/golang/bad-practices.json` contains 126 rules.
 - [x] Confirm all 126 live rules have matching detector dispatch entries.
 - [x] Confirm the live BP catalog is numerically ordered by rule ID.
-- [ ] Implement or explicitly retire the following 39 proposed rules; these IDs are present in the v0.0.3 planning material but are not present in the live ruleset or dispatch.
+- [x] Classify all 39 proposed rules that are absent from the live ruleset and dispatch as explicitly deferred, with evidence-based reasons recorded below.
 
-#### Core language/context — 8 pending
+#### Core language/context — 8 deferred
 
-- [ ] BP-69 — Returning Data With Non-Nil Error (Unclear Contract)
-- [ ] BP-70 — Logging Error Then Continuing Without Return
-- [ ] BP-71 — Ignoring Non-Error Multi-Return Values That Affect Correctness
-- [ ] BP-74 — Slice Append Alias Unexpected Share
+- [~] BP-69 — Returning Data With Non-Nil Error (Unclear Contract) — deferred: return-value intent is contract-dependent and not statically provable.
+- [~] BP-70 — Logging Error Then Continuing Without Return — deferred: control-flow intent is not reliably provable with current syntax-only facts.
+- [~] BP-71 — Ignoring Non-Error Multi-Return Values That Affect Correctness — deferred: correctness impact requires type/call-site semantics unavailable to the detector.
+- [~] BP-74 — Slice Append Alias Unexpected Share — deferred: aliasing and ownership require stronger data-flow/type evidence.
 - [x] BP-76 — Range Over Map With Deterministic-Order Assumption — shipped
-- [ ] BP-77 — Context Value Used For Optional Parameters (Stringly Keys)
-- [ ] BP-78 — Context Not Propagated To Child Call
+- [~] BP-77 — Context Value Used For Optional Parameters (Stringly Keys) — deferred: API intent and legitimate context-key usage are not statically distinguishable.
+- [~] BP-78 — Context Not Propagated To Child Call — deferred: propagation requires interprocedural call and ownership evidence.
 - [x] BP-81 — Repeated `time.Now` Comparisons Nested In Expressions — shipped
-- [ ] BP-82 — Parsing Time Without Location (Ambiguous Local)
-- [ ] BP-83 — Sleeping For Synchronization Outside Tests
+- [~] BP-82 — Parsing Time Without Location (Ambiguous Local) — deferred: intended location is configuration- and call-site-dependent.
+- [~] BP-83 — Sleeping For Synchronization Outside Tests — deferred: synchronization intent cannot be established from syntax alone.
 
-#### Concurrency/resources — 1 pending
+#### Concurrency/resources — 1 deferred
 
 - [x] BP-90 — Range Over Channel Without Exit Condition In Non-Range Form — shipped
 - [x] BP-91 — Notification Channel Carrying Data Unnecessarily — shipped
 - [x] BP-92 — `errgroup.Group` Without Context (`WithContext`) — shipped
 - [x] BP-93 — `errgroup.Go` Closure Ignoring Returned Error Path — shipped
 - [x] BP-94 — Fire-And-Forget Goroutine Writing To Shared Map Without Sync — shipped
-- [ ] BP-95 — `http.Response.Body` Not Closed (Client)
+- [~] BP-95 — `http.Response.Body` Not Closed (Client) — deferred: overlaps existing body-close/tooling coverage.
 - [x] BP-96 — `sql.Rows` / `sql.Row` Resource Not Closed — shipped
 - [x] BP-97 — Flushable Writer Never Flushed Before Read Side — shipped
 - [x] BP-100 — Goroutine Per Request Without Bound (Unbounded Fan-Out) — shipped
 
-#### HTTP/frameworks — 14 pending
+#### HTTP/frameworks — 14 deferred
 
-- [ ] BP-103 — Redirect Using Unvalidated External URL
+- [~] BP-103 — Redirect Using Unvalidated External URL — deferred: validation and trust-boundary intent require data-flow evidence beyond the current detector seam.
 - [x] BP-104 — `ServeHTTP` Mux Registered With Method-Insensitive Overlap Ambiguity — shipped
 - [x] BP-105 — Cookie Set Without `Secure`/`HttpOnly` In Non-Dev — shipped
-- [ ] BP-106 — CORS Allow-Origin Reflects Request Origin Unconditionally
+- [~] BP-106 — CORS Allow-Origin Reflects Request Origin Unconditionally — deferred: framework/configuration context and security overlap require broader evidence.
 - [x] BP-107 — Middleware Not Calling `next` / `Handler.ServeHTTP` — shipped
-- [ ] BP-108 — Request Context Ignored After Server Shutdown Pattern
-- [ ] BP-111 — Gin Goroutine Using `*gin.Context` Without `c.Copy()`
-- [ ] BP-112 — Gin Route Group Missing Auth Middleware On Sensitive Prefix
-- [ ] BP-113 — Gin Default Mode Not Set To Release In `main`
-- [ ] BP-114 — Gin Trusting `ClientIP` Without Trusted Proxies Config
-- [ ] BP-115 — Gin Binding Struct Missing `binding:"required"` On Critical Fields
-- [ ] BP-118 — Echo Path Param Used In File Path Without Clean
-- [ ] BP-119 — Fiber Context Lifetime Misuse Across Goroutine
-- [ ] BP-121 — Fiber Prefork Enabled Without Caution In 12-factor Deploy
+- [~] BP-108 — Request Context Ignored After Server Shutdown Pattern — deferred: overlaps BP-13 and needs lifecycle/control-flow evidence.
+- [~] BP-111 — Gin Goroutine Using `*gin.Context` Without `c.Copy()` — deferred: framework lifetime and goroutine capture evidence is insufficient; also overlaps PERF.
+- [~] BP-112 — Gin Route Group Missing Auth Middleware On Sensitive Prefix — deferred: authentication intent requires whole-package route and middleware analysis.
+- [~] BP-113 — Gin Default Mode Not Set To Release In `main` — deferred: deployment configuration is not statically inferable.
+- [~] BP-114 — Gin Trusting `ClientIP` Without Trusted Proxies Config — deferred: trusted-proxy configuration requires runtime/environment evidence.
+- [~] BP-115 — Gin Binding Struct Missing `binding:"required"` On Critical Fields — deferred: field criticality and validation intent are not statically provable.
+- [~] BP-118 — Echo Path Param Used In File Path Without Clean — deferred: security/data-flow proof overlaps CWE and is unavailable at the current seam.
+- [~] BP-119 — Fiber Context Lifetime Misuse Across Goroutine — deferred: framework lifetime and goroutine capture evidence is insufficient; also overlaps PERF.
+- [~] BP-121 — Fiber Prefork Enabled Without Caution In 12-factor Deploy — deferred: deployment intent and operational constraints are not source-proven.
 - [x] BP-122 — Chi Middleware Chain Missing `next.ServeHTTP` — shipped
-- [ ] BP-123 — Chi URLParam Used Without Presence Check Before Authz
-- [ ] BP-124 — Panic Recovery Middleware Disabled/Missing On Public Server
-- [ ] BP-125 — Mixing Framework Context With stdlib `http.ResponseWriter` Incorrectly
+- [~] BP-123 — Chi URLParam Used Without Presence Check Before Authz — deferred: authentication intent and presence requirements require whole-handler evidence.
+- [~] BP-124 — Panic Recovery Middleware Disabled/Missing On Public Server — deferred: server exposure and middleware completeness require whole-package evidence.
+- [~] BP-125 — Mixing Framework Context With stdlib `http.ResponseWriter` Incorrectly — deferred: correctness depends on framework control flow not proven by current syntax facts.
 
-#### Data persistence — 7 pending
+#### Data persistence — 7 deferred
 
-- [ ] BP-126 — Transaction Without Commit/Rollback Handling
-- [ ] BP-127 — Nested Transactions Assumed Supported
+- [~] BP-126 — Transaction Without Commit/Rollback Handling — deferred: transaction ownership and all exit paths require interprocedural/control-flow evidence.
+- [~] BP-127 — Nested Transactions Assumed Supported — deferred: driver/runtime semantics are not statically available.
 - [x] BP-128 — `QueryRow` Scan Error Not Distinguished From `ErrNoRows` — shipped
-- [ ] BP-129 — SQL String Built With `fmt.Sprintf` (Correctness/Injection Hygiene)
-- [ ] BP-130 — `db.SetMaxOpenConns` Never Configured For Service Binary
+- [~] BP-129 — SQL String Built With `fmt.Sprintf` (Correctness/Injection Hygiene) — deferred: overlaps CWE/SQL tooling and needs query/data-flow proof.
+- [~] BP-130 — `db.SetMaxOpenConns` Never Configured For Service Binary — deferred: package-wide configuration absence and deployment intent are not locally provable.
 - [x] BP-132 — Ignoring `RowsAffected` When Required For Correctness — shipped
 - [x] BP-133 — GORM Error Not Checked After Chain — shipped
 - [x] BP-134 — GORM `First` Without `ErrRecordNotFound` Handling — shipped
 - [x] BP-135 — GORM Global `DB` Mutable Without Session — shipped
-- [ ] BP-137 — GORM Soft-Delete Confusion (`Unscoped` Missing On Hard Delete Intent)
-- [ ] BP-139 — GORM Raw SQL With String Concatenation
+- [~] BP-137 — GORM Soft-Delete Confusion (`Unscoped` Missing On Hard Delete Intent) — deferred: hard-delete intent is application-specific.
+- [~] BP-139 — GORM Raw SQL With String Concatenation — deferred: overlaps CWE/SQL injection analysis and needs query/data-flow proof.
 - [x] BP-140 — sqlx `StructScan` / `Get` Error Ignored — shipped
 - [x] BP-143 — Redis Command Error Ignored — shipped
-- [ ] BP-144 — Redis Key Without Namespace Prefix In Shared Instance
+- [~] BP-144 — Redis Key Without Namespace Prefix In Shared Instance — deferred: shared-instance and namespace intent require deployment/configuration evidence.
 
-#### Observability/config/JSON/gRPC/CLI — 9 pending
+#### Observability/config/JSON/gRPC/CLI — 9 deferred
 
 - [x] BP-146 — Logging Sensitive Fields (Password/Token) At Info — shipped
 - [x] BP-147 — `log.Printf` Without Structured Logger In Service Code — shipped
-- [ ] BP-148 — slog Handler Misconfigured With Debug Level In Production
+- [~] BP-148 — slog Handler Misconfigured With Debug Level In Production — deferred: production configuration intent requires runtime/environment evidence.
 - [x] BP-149 — Error Logged Without `err` Attribute — shipped
-- [ ] BP-150 — `os.Getenv` Without Default Or Empty Check For Required Config
-- [ ] BP-152 — Hardcoded Localhost Credentials In Non-Test Code
-- [ ] BP-153 — Config Parsed With `json.Unmarshal` Ignoring Critical Unknown Fields
-- [ ] BP-154 — `json.Unmarshal` Error Ignored
+- [~] BP-150 — `os.Getenv` Without Default Or Empty Check For Required Config — deferred: requiredness and acceptable defaults are application-specific.
+- [~] BP-152 — Hardcoded Localhost Credentials In Non-Test Code — deferred: security relevance and credential intent require context beyond local syntax.
+- [~] BP-153 — Config Parsed With `json.Unmarshal` Ignoring Critical Unknown Fields — deferred: critical fields and compatibility policy are application-specific.
+- [~] BP-154 — `json.Unmarshal` Error Ignored — deferred: overlaps generic error-handling/security tooling without a narrow BP-specific boundary.
 - [x] BP-155 — JSON Decoder Used On Unbounded Request Body Without Limit — shipped
 - [x] BP-156 — Relying On `omitempty` For Security-Sensitive Zero Values — shipped
-- [ ] BP-157 — gRPC Server Without Unary Interceptor For Logging/Auth
-- [ ] BP-158 — gRPC Ignoring `status.FromError` / Returning Naked `err`
-- [ ] BP-160 — Cobra `Run` Instead Of `RunE` Swallowing Errors
+- [~] BP-157 — gRPC Server Without Unary Interceptor For Logging/Auth — deferred: runtime middleware/auth policy is not statically provable.
+- [~] BP-158 — gRPC Ignoring `status.FromError` / Returning Naked `err` — deferred: framework-specific error semantics require type/context evidence.
+- [~] BP-160 — Cobra `Run` Instead Of `RunE` Swallowing Errors — deferred: CLI error policy and command lifecycle intent require broader context.
 
-#### Testing/API lifecycle — 1 pending
+#### Testing/API lifecycle — 1 deferred
 
-- [ ] BP-165 — Exported Constructor Missing Context Or Closer Cleanup Contract
+- [~] BP-165 — Exported Constructor Missing Context Or Closer Cleanup Contract — deferred: reliable multi-file type, lifecycle, and ownership evidence is unavailable.
 
 ### 0.2 Existing-pack tiering
 
@@ -258,16 +258,16 @@ Target: the first 16-rule tranche is shipped. The next rows remain pending or de
 | 9 | BP-101 — response header written after body | Admit with `http.ResponseWriter`-shaped handler evidence. | **Shipped** |
 | 10 | BP-102 — error path without HTTP status | Admit only when handler/error-path evidence is explicit. | **Shipped — handler-gated** |
 | 11 | BP-108 — handler uses `context.Background` | Fold into existing BP-13 unless the handler-specific evidence is materially better. | Deferred gate |
-| 12 | BP-155 — unbounded JSON request body | Admit only for HTTP decode paths with no size limit; review CWE overlap. | Pending |
+| 12 | BP-155 — unbounded JSON request body | Admit only for HTTP decode paths with no size limit; review CWE overlap. | **Shipped** |
 
 ### 3.3 Framework correctness
 
 | Order | Rule | Decision | Status |
 |------:|------|----------|--------|
 | 13 | BP-109 — Gin error response without abort/return | Admit as a Gin-specific control-flow rule. | **Shipped** |
-| 14 | BP-111 — Gin context used in goroutine without `Copy` | Admit only with import gate and resolve PERF overlap first. | Pending |
+| 14 | BP-111 — Gin context used in goroutine without `Copy` | Admit only with import gate and resolve PERF overlap first. | **Deferred** — no implementation or fixture; framework lifetime evidence remains insufficient. |
 | 15 | BP-116 — Echo response/error double handling | Admit only when the same handler visibly writes and returns a second response path. | **Shipped** |
-| 16 | BP-119 — Fiber context captured across goroutine | Admit only with import gate and captured-context evidence. | Pending |
+| 16 | BP-119 — Fiber context captured across goroutine | Admit only with import gate and captured-context evidence. | **Deferred** — no implementation or fixture; framework lifetime evidence remains insufficient. |
 
 ### 3.4 Data and API lifecycle
 
@@ -373,11 +373,11 @@ Target: the first 16-rule tranche is shipped. The next rows remain pending or de
 
 #### Phase 5 deferred candidates
 
-- [ ] Core/context: BP-69, BP-70, BP-71, BP-74, BP-77, BP-78, BP-82, and BP-83 remain deferred for unclear intent or insufficient local proof.
-- [ ] Concurrency/resources: BP-95 remains deferred because it overlaps the existing body-close/tooling coverage.
-- [ ] HTTP/frameworks: BP-103, BP-106, BP-108, BP-111, BP-112, BP-113, BP-114, BP-115, BP-118, BP-119, BP-121, BP-123, BP-124, and BP-125 remain deferred for security/tooling overlap, deployment or auth intent, whole-package evidence, or unprovable mixing semantics.
-- [ ] Data persistence: BP-126, BP-127, BP-129, BP-130, BP-137, BP-139, and BP-144 remain deferred for transaction ownership, CWE overlap, package-wide configuration, intent, or namespace semantics.
-- [ ] Observability/config/testing: BP-148, BP-150, BP-152, BP-153, BP-154, BP-157, BP-158, BP-160, and BP-165 remain deferred for deployment/configuration intent, security overlap, or insufficient lifecycle/type evidence.
+- [~] Core/context: BP-69, BP-70, BP-71, BP-74, BP-77, BP-78, BP-82, and BP-83 remain deferred for unclear intent, aliasing, or insufficient local/static proof.
+- [~] Concurrency/resources: BP-95 remains deferred because it overlaps existing body-close/tooling coverage.
+- [~] HTTP/frameworks: BP-103, BP-106, BP-108, BP-111, BP-112, BP-113, BP-114, BP-115, BP-118, BP-119, BP-121, BP-123, BP-124, and BP-125 remain deferred for security/tooling overlap, deployment/auth intent, whole-package evidence, or unprovable framework semantics.
+- [~] Data persistence: BP-126, BP-127, BP-129, BP-130, BP-137, BP-139, and BP-144 remain deferred for transaction ownership, CWE overlap, package-wide configuration, intent, or namespace semantics.
+- [~] Observability/config/testing: BP-148, BP-150, BP-152, BP-153, BP-154, BP-157, BP-158, BP-160, and BP-165 remain deferred for deployment/configuration intent, security overlap, or insufficient lifecycle/type evidence.
 
 ### 3.5 Parallel batch ownership
 
