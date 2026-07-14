@@ -1,7 +1,7 @@
 # v0.0.3 — Curated Go Bad-Practice Implementation Checklist
 
 > **Parent:** [`plans/v0.0.3/`](../README.md)
-> **Status:** Phase 3 next candidate batch integrated and validated; eight additional rules shipped; deferred candidates remain pending
+> **Status:** Phase 3 batch and repository hygiene gates complete; next Phase 4 candidate batches being selected
 > **Decision:** Do not ship BP-66..BP-165 as 100 equal-status rules. Admit only high-signal, project-agnostic rules that survive the overlap and fixture gates below.
 > **Estimated effort:** 4–6 weeks for the curated first release; the remaining proposals stay deferred until evidence justifies them.
 
@@ -51,6 +51,8 @@ The source sketches in `01-part-a-core-language.md` through `06-part-f-testing-a
 - [x] Review the five worker reports and personally audit each accepted detector.
 - [x] Centrally integrate only admitted candidates into ruleset metadata, dispatch, manifest, docs, and this checklist.
 - [x] Run focused BP fixtures, full Rust tests, and update this checklist with the batch result.
+- [x] Run `make lint` and `make fmt`; clippy, rustfmt, and the benchmark lint gate are now green.
+- [ ] Select and launch the next disjoint Phase 4 candidate batches.
 
 ---
 
@@ -283,8 +285,8 @@ For each future admitted rule, complete these in order before moving to the next
 
 - [x] `cargo test --test go_bad_practice_integration` green.
 - [x] Full `cargo test` green.
-- [ ] `cargo fmt --check` green; existing unrelated import-order blockers remain in `src/engine/cache/mod.rs` and `src/engine/mod.rs`.
-- [ ] `cargo clippy --all-targets --all-features -- -D warnings` green; existing `criterion::black_box` deprecation blockers remain in `benches/scan_throughput.rs`.
+- [x] `cargo fmt --check` green after the cleanup commit.
+- [x] `cargo clippy --all-targets --all-features -- -D warnings` green after switching the benchmark to `std::hint::black_box`.
 - [ ] Scan a clean small Go library: no unexpected recommended findings.
 - [ ] Scan a representative HTTP service for framework-gated behavior.
 - [ ] Compare changed findings with staticcheck/go vet output and document overlap.
