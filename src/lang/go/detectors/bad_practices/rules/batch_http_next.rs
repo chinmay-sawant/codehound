@@ -209,9 +209,7 @@ fn is_response_call(node: Node, source: &[u8], writers: &[&str]) -> bool {
 }
 
 fn handler_parameters<'a>(node: Node<'a>, source: &'a [u8]) -> Option<(Vec<&'a str>, bool)> {
-    let Some(parameters) = node.child_by_field_name("parameters") else {
-        return None;
-    };
+    let parameters = node.child_by_field_name("parameters")?;
     let mut writers = Vec::new();
     let mut has_request = false;
     let mut cursor = parameters.walk();

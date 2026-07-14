@@ -21,8 +21,8 @@ use std::path::PathBuf;
 
 pub use backend::CacheBackend;
 pub(crate) use disk::DiskBackend;
-pub use hash::{cache_key_for_path, content_hash};
 pub(crate) use hash::hex_lower;
+pub use hash::{cache_key_for_path, content_hash};
 pub use memory::InMemoryBackend;
 pub use session::CacheSession;
 pub use types::{CacheEntry, CacheError, CacheLookup, CacheManifest, DEFAULT_CACHE_DIR};

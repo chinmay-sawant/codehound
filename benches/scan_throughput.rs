@@ -1,5 +1,6 @@
 //! Parse + scan throughput on materialized fixtures (local regression signal).
 
+use std::hint::black_box;
 use std::path::Path;
 use std::time::Duration;
 
@@ -7,7 +8,7 @@ use codehound::core::ScanContext;
 use codehound::engine::{Analyzer, LanguageFilter, Registry, collect_entries};
 use codehound::fixture::{materialize_tree, materialized_root};
 use codehound::lang::source_index::SourceIndex;
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
 
 fn bench_scan_materialized_fixtures(c: &mut Criterion) {
     materialize_tree(Path::new("tests/fixtures")).expect("materialize integration fixtures");
