@@ -1,7 +1,7 @@
 # v0.0.3 — Curated Go Bad-Practice Implementation Checklist
 
 > **Parent:** [`plans/v0.0.3/`](../README.md)
-> **Status:** Phase 4 batch integrated and validated; 11 rules shipped, remaining candidates deferred for stronger evidence
+> **Status:** Phase 4 batch integrated and validated; 100 BP rules are implemented/registered, while 65 proposed BP-66..BP-165 candidates remain unimplemented or explicitly deferred
 > **Decision:** Do not ship BP-66..BP-165 as 100 equal-status rules. Admit only high-signal, project-agnostic rules that survive the overlap and fixture gates below.
 > **Estimated effort:** 4–6 weeks for the curated first release; the remaining proposals stay deferred until evidence justifies them.
 
@@ -43,6 +43,7 @@ The source sketches in `01-part-a-core-language.md` through `06-part-f-testing-a
 - [ ] Reconcile the stale v0.0.2 pending-work documentation with the current BP-1..BP-65 implementation.
 - [x] Decide whether to admit BP-102, BP-111, BP-119, BP-136, and BP-142 after fresh overlap and fixture review; BP-102, BP-136, and BP-142 shipped, while BP-111/BP-119 remain deferred due PERF overlap.
 - [ ] Revisit deferred-gate candidates BP-108, BP-155, and BP-165 only when stronger static proof is available.
+- [ ] Resolve the 65 proposed BP-66..BP-165 candidates that are not present in the live ruleset/dispatch, either by implementing them through the admission gate or explicitly retiring them.
 - [x] Complete the remaining Phase 4 candidate reviews and record dropped/replacement candidates.
 - [x] Resolve the repository-wide `cargo fmt --check` blockers in `src/engine/cache/mod.rs` and `src/engine/mod.rs`.
 - [x] Resolve the repository-wide Clippy blocker from deprecated `criterion::black_box` in `benches/scan_throughput.rs`.
@@ -70,6 +71,96 @@ The source sketches in `01-part-a-core-language.md` through `06-part-f-testing-a
 - [x] Current fixture inventory includes 256 BP fixture files; project-level rules remain covered by their existing project fixtures.
 - [x] Run `cargo test --test go_bad_practice_integration`: 12 passed, 0 failed.
 - [x] Confirm BP-63 remains reserved for the curated advisory snapshot and is not treated as live vulnerability intelligence.
+
+### 0.1.1 Ruleset-to-plan implementation audit
+
+- [x] Confirm the live `ruleset/golang/bad-practices.json` contains 100 rules.
+- [x] Confirm all 100 live rules have matching detector dispatch entries.
+- [x] Confirm the live BP catalog is numerically ordered by rule ID.
+- [ ] Implement or explicitly retire the following 65 proposed rules; these IDs are present in the v0.0.3 planning material but are not present in the live ruleset or dispatch.
+
+#### Core language/context — 10 unimplemented
+
+- [ ] BP-69 — Returning Data With Non-Nil Error (Unclear Contract)
+- [ ] BP-70 — Logging Error Then Continuing Without Return
+- [ ] BP-71 — Ignoring Non-Error Multi-Return Values That Affect Correctness
+- [ ] BP-74 — Slice Append Alias Unexpected Share
+- [ ] BP-76 — Range Over Map With Deterministic-Order Assumption
+- [ ] BP-77 — Context Value Used For Optional Parameters (Stringly Keys)
+- [ ] BP-78 — Context Not Propagated To Child Call
+- [ ] BP-81 — Repeated `time.Now` Comparisons Nested In Expressions
+- [ ] BP-82 — Parsing Time Without Location (Ambiguous Local)
+- [ ] BP-83 — Sleeping For Synchronization Outside Tests
+
+#### Concurrency/resources — 9 unimplemented
+
+- [ ] BP-90 — Range Over Channel Without Exit Condition In Non-Range Form
+- [ ] BP-91 — Notification Channel Carrying Data Unnecessarily
+- [ ] BP-92 — `errgroup.Group` Without Context (`WithContext`)
+- [ ] BP-93 — `errgroup.Go` Closure Ignoring Returned Error Path
+- [ ] BP-94 — Fire-And-Forget Goroutine Writing To Shared Map Without Sync
+- [ ] BP-95 — `http.Response.Body` Not Closed (Client)
+- [ ] BP-96 — `sql.Rows` / `sql.Row` Resource Not Closed
+- [ ] BP-97 — Flushable Writer Never Flushed Before Read Side
+- [ ] BP-100 — Goroutine Per Request Without Bound (Unbounded Fan-Out)
+
+#### HTTP/frameworks — 18 unimplemented
+
+- [ ] BP-103 — Redirect Using Unvalidated External URL
+- [ ] BP-104 — `ServeHTTP` Mux Registered With Method-Insensitive Overlap Ambiguity
+- [ ] BP-105 — Cookie Set Without `Secure`/`HttpOnly` In Non-Dev
+- [ ] BP-106 — CORS Allow-Origin Reflects Request Origin Unconditionally
+- [ ] BP-107 — Middleware Not Calling `next` / `Handler.ServeHTTP`
+- [ ] BP-108 — Request Context Ignored After Server Shutdown Pattern
+- [ ] BP-111 — Gin Goroutine Using `*gin.Context` Without `c.Copy()`
+- [ ] BP-112 — Gin Route Group Missing Auth Middleware On Sensitive Prefix
+- [ ] BP-113 — Gin Default Mode Not Set To Release In `main`
+- [ ] BP-114 — Gin Trusting `ClientIP` Without Trusted Proxies Config
+- [ ] BP-115 — Gin Binding Struct Missing `binding:"required"` On Critical Fields
+- [ ] BP-118 — Echo Path Param Used In File Path Without Clean
+- [ ] BP-119 — Fiber Context Lifetime Misuse Across Goroutine
+- [ ] BP-121 — Fiber Prefork Enabled Without Caution In 12-factor Deploy
+- [ ] BP-122 — Chi Middleware Chain Missing `next.ServeHTTP`
+- [ ] BP-123 — Chi URLParam Used Without Presence Check Before Authz
+- [ ] BP-124 — Panic Recovery Middleware Disabled/Missing On Public Server
+- [ ] BP-125 — Mixing Framework Context With stdlib `http.ResponseWriter` Incorrectly
+
+#### Data persistence — 14 unimplemented
+
+- [ ] BP-126 — Transaction Without Commit/Rollback Handling
+- [ ] BP-127 — Nested Transactions Assumed Supported
+- [ ] BP-128 — `QueryRow` Scan Error Not Distinguished From `ErrNoRows`
+- [ ] BP-129 — SQL String Built With `fmt.Sprintf` (Correctness/Injection Hygiene)
+- [ ] BP-130 — `db.SetMaxOpenConns` Never Configured For Service Binary
+- [ ] BP-132 — Ignoring `RowsAffected` When Required For Correctness
+- [ ] BP-133 — GORM Error Not Checked After Chain
+- [ ] BP-134 — GORM `First` Without `ErrRecordNotFound` Handling
+- [ ] BP-135 — GORM Global `DB` Mutable Without Session
+- [ ] BP-137 — GORM Soft-Delete Confusion (`Unscoped` Missing On Hard Delete Intent)
+- [ ] BP-139 — GORM Raw SQL With String Concatenation
+- [ ] BP-140 — sqlx `StructScan` / `Get` Error Ignored
+- [ ] BP-143 — Redis Command Error Ignored
+- [ ] BP-144 — Redis Key Without Namespace Prefix In Shared Instance
+
+#### Observability/config/JSON/gRPC/CLI — 13 unimplemented
+
+- [ ] BP-146 — Logging Sensitive Fields (Password/Token) At Info
+- [ ] BP-147 — `log.Printf` Without Structured Logger In Service Code
+- [ ] BP-148 — slog Handler Misconfigured With Debug Level In Production
+- [ ] BP-149 — Error Logged Without `err` Attribute
+- [ ] BP-150 — `os.Getenv` Without Default Or Empty Check For Required Config
+- [ ] BP-152 — Hardcoded Localhost Credentials In Non-Test Code
+- [ ] BP-153 — Config Parsed With `json.Unmarshal` Ignoring Critical Unknown Fields
+- [ ] BP-154 — `json.Unmarshal` Error Ignored
+- [ ] BP-155 — JSON Decoder Used On Unbounded Request Body Without Limit
+- [ ] BP-156 — Relying On `omitempty` For Security-Sensitive Zero Values
+- [ ] BP-157 — gRPC Server Without Unary Interceptor For Logging/Auth
+- [ ] BP-158 — gRPC Ignoring `status.FromError` / Returning Naked `err`
+- [ ] BP-160 — Cobra `Run` Instead Of `RunE` Swallowing Errors
+
+#### Testing/API lifecycle — 1 unimplemented
+
+- [ ] BP-165 — Exported Constructor Missing Context Or Closer Cleanup Contract
 
 ### 0.2 Existing-pack tiering
 
