@@ -1,7 +1,7 @@
 # v0.0.3 — Curated Go Bad-Practice Implementation Checklist
 
 > **Parent:** [`plans/v0.0.3/`](../README.md)
-> **Status:** Phase 0 complete; first curated tranche and four domain batches integrated; next candidates pending
+> **Status:** Phase 3 next candidate batch integrated and validated; eight additional rules shipped; deferred candidates remain pending
 > **Decision:** Do not ship BP-66..BP-165 as 100 equal-status rules. Admit only high-signal, project-agnostic rules that survive the overlap and fixture gates below.
 > **Estimated effort:** 4–6 weeks for the curated first release; the remaining proposals stay deferred until evidence justifies them.
 
@@ -31,11 +31,26 @@ The source sketches in `01-part-a-core-language.md` through `06-part-f-testing-a
 
 ### Success criteria
 
-- No new rule is enabled by default in the recommended profile.
-- Every shipped rule has a precise canonical fix and a safe near-miss fixture.
-- Rules duplicated by `go vet`, staticcheck, errcheck, bodyclose, sqlclosecheck, or CWE are dropped, narrowed, or explicitly documented as framework-specific additions.
-- `cargo test --test go_bad_practice_integration` stays green after every slice.
-- No rule is promoted based only on one synthetic fixture.
+- [x] No new rule is enabled by default in the recommended profile.
+- [x] Every shipped rule has a precise canonical fix and a safe near-miss fixture.
+- [x] Rules duplicated by `go vet`, staticcheck, errcheck, bodyclose, sqlclosecheck, or CWE were dropped, narrowed, or explicitly documented as framework-specific additions.
+- [x] `cargo test --test go_bad_practice_integration` stays green after every shipped slice.
+- [x] No rule was promoted based only on one synthetic fixture; each shipped rule has variant coverage.
+
+## Pending work now
+
+- [ ] Complete the existing-pack trust cleanup in Phase 1, or explicitly record why each audit item remains deferred.
+- [ ] Reconcile the stale v0.0.2 pending-work documentation with the current BP-1..BP-65 implementation.
+- [x] Decide whether to admit BP-102, BP-111, BP-119, BP-136, and BP-142 after fresh overlap and fixture review; BP-102, BP-136, and BP-142 shipped, while BP-111/BP-119 remain deferred due PERF overlap.
+- [ ] Revisit deferred-gate candidates BP-108, BP-155, and BP-165 only when stronger static proof is available.
+- [ ] Complete the remaining Phase 4 candidate reviews and record dropped/replacement candidates.
+- [ ] Resolve the repository-wide `cargo fmt --check` blockers in `src/engine/cache/mod.rs` and `src/engine/mod.rs`, if they are in scope.
+- [ ] Resolve the repository-wide Clippy blocker from deprecated `criterion::black_box` in `benches/scan_throughput.rs`, if it is in scope.
+- [ ] Run clean-library and representative-HTTP canary scans, then compare new findings with `go vet`/staticcheck output.
+- [x] Select and launch five disjoint next-domain batches after the next candidate set was approved.
+- [x] Review the five worker reports and personally audit each accepted detector.
+- [x] Centrally integrate only admitted candidates into ruleset metadata, dispatch, manifest, docs, and this checklist.
+- [x] Run focused BP fixtures, full Rust tests, and update this checklist with the batch result.
 
 ---
 
@@ -44,8 +59,9 @@ The source sketches in `01-part-a-core-language.md` through `06-part-f-testing-a
 ### 0.1 Current-state audit
 
 - [x] Baseline count before this tranche: 65 rules and 65 dispatch entries.
-- [x] Current count after this tranche: 81 rules and 81 dispatch entries.
-- [x] Current fixture inventory includes 168 BP fixture files; project-level rules remain covered by their existing project fixtures.
+- [x] Current count after the first tranche: 81 rules and 81 dispatch entries.
+- [x] Current count after the next batch: 89 rules and 89 dispatch entries.
+- [x] Current fixture inventory includes 200 BP fixture files; project-level rules remain covered by their existing project fixtures.
 - [x] Run `cargo test --test go_bad_practice_integration`: 12 passed, 0 failed.
 - [x] Confirm BP-63 remains reserved for the curated advisory snapshot and is not treated as live vulnerability intelligence.
 
@@ -120,7 +136,7 @@ Every proposed BP-66+ rule must pass all gates before implementation.
 
 ## Phase 3: Curated first tranche — prepare by batch, promote by rule
 
-Target: approximately 15 rules. The order is intentional: high-impact correctness first, then framework/data lifecycle rules with clear import gates.
+Target: the first 16-rule tranche is shipped. The next rows remain pending or deferred until they pass the same admission gate.
 
 ### 3.1 Core language and context
 
@@ -133,14 +149,14 @@ Target: approximately 15 rules. The order is intentional: high-impact correctnes
 | 5 | BP-67 — `errors.As` target not passed by address | Admit only for the exact stdlib call shape with a visibly non-address target. | **Shipped** |
 | 6 | BP-75 — copy into zero-length slice | Admit only for a local statically zero-length destination and non-empty literal source. | **Shipped — low advisory** |
 | 7 | BP-80 — `context.TODO` in production | Admit only for exact calls outside test files; keep low advisory severity. | **Shipped — low advisory** |
-| 8 | BP-85 — unchecked type assertion | Defer until an untrusted-boundary heuristic is defined; do not flag all assertions. | Deferred gate |
+| 8 | BP-85 — unchecked type assertion | Admit only for typed net/http handlers reading request context values; do not flag all assertions. | **Shipped — boundary-gated** |
 
 ### 3.2 Standard-library HTTP and lifecycle
 
 | Order | Rule | Decision | Status |
 |------:|------|----------|--------|
 | 9 | BP-101 — response header written after body | Admit with `http.ResponseWriter`-shaped handler evidence. | **Shipped** |
-| 10 | BP-102 — error path without HTTP status | Admit only when handler/error-path evidence is explicit. | Pending |
+| 10 | BP-102 — error path without HTTP status | Admit only when handler/error-path evidence is explicit. | **Shipped — handler-gated** |
 | 11 | BP-108 — handler uses `context.Background` | Fold into existing BP-13 unless the handler-specific evidence is materially better. | Deferred gate |
 | 12 | BP-155 — unbounded JSON request body | Admit only for HTTP decode paths with no size limit; review CWE overlap. | Pending |
 
@@ -149,18 +165,18 @@ Target: approximately 15 rules. The order is intentional: high-impact correctnes
 | Order | Rule | Decision | Status |
 |------:|------|----------|--------|
 | 13 | BP-109 — Gin error response without abort/return | Admit as a Gin-specific control-flow rule. | **Shipped** |
-| 11 | BP-111 — Gin context used in goroutine without `Copy` | Admit only with import gate and resolve PERF overlap first. | Pending |
+| 14 | BP-111 — Gin context used in goroutine without `Copy` | Admit only with import gate and resolve PERF overlap first. | Pending |
 | 15 | BP-116 — Echo response/error double handling | Admit only when the same handler visibly writes and returns a second response path. | **Shipped** |
-| 13 | BP-119 — Fiber context captured across goroutine | Admit only with import gate and captured-context evidence. | Pending |
+| 16 | BP-119 — Fiber context captured across goroutine | Admit only with import gate and captured-context evidence. | Pending |
 
 ### 3.4 Data and API lifecycle
 
 | Order | Rule | Decision | Status |
 |------:|------|----------|--------|
-| 14 | BP-136 — GORM `AutoMigrate` in request path | Admit only in handler-shaped functions and with GORM import evidence. | Pending |
-| 15 | BP-142 — sqlx `In` without `Rebind` | Admit only when the expanded query reaches a sqlx execution call in the same function. | Pending |
+| 17 | BP-136 — GORM `AutoMigrate` in request path | Admit only in handler-shaped functions and with GORM import evidence. | **Shipped — import/type-gated** |
+| 18 | BP-142 — sqlx `In` without `Rebind` | Admit only when the expanded query reaches a sqlx execution call in the same function. | **Shipped — same-function review-only** |
 | 19 | BP-145 — pgx pool connection not released | Admit only for a locally acquired connection with no release/close path. | **Shipped — review-only** |
-| 17 | BP-165 — constructor starts lifecycle without close contract | Defer until multi-file type/method evidence is reliable; likely review-only. | Deferred gate |
+| 20 | BP-165 — constructor starts lifecycle without close contract | Defer until multi-file type/method evidence is reliable; likely review-only. | Deferred gate |
 
 #### BP-73 completed evidence
 
@@ -204,24 +220,36 @@ Target: approximately 15 rules. The order is intentional: high-impact correctnes
 | Data/configuration | BP-131 — Query for literal DML without rows | **Shipped — review-only** |
 | Data/configuration | BP-159 — flag value read before parse | **Shipped** |
 
-### 3.6 Parallel batch ownership
+#### Next-batch promotion evidence: BP-68, BP-85, BP-102, BP-136, BP-142, BP-151, BP-162, and BP-164
+
+- [x] Five workers reviewed disjoint core, HTTP, data, observability, and testing/API batches without touching shared catalog files.
+- [x] Accepted candidates were personally audited; BP-111, BP-119, BP-146, BP-147, BP-148, BP-149, BP-150, BP-152..BP-160 (except BP-151), BP-161, BP-163, and BP-165 were deferred for overlap, intent, or insufficient local proof.
+- [x] BP-68, BP-85, BP-102, BP-136, BP-142, BP-151, BP-162, and BP-164 have detector modules, generated metadata, fix text, dispatch entries, documentation, manifest entries, and vulnerable/safe/variant fixture coverage.
+- [x] Personally tightened BP-85 handler gating, BP-151 zap-call matching, BP-162 package-global extraction, and BP-102 AST/source fallback behavior during integration.
+- [x] Focused BP and fixture-manifest integration passed: 12 BP tests and 3 manifest tests; all 200 BP fixture files exercised.
+- [x] Full `cargo test` passed after updating the README BP count from 65 to the measured 89 registered rules.
+- [x] No codebase-memory MCP was used for this batch.
+
+### 3.5 Parallel batch ownership
 
 Workers may prepare independent domain batches in parallel. They must not edit shared dispatch, ruleset metadata, fixture manifest, documentation, or this checklist. The coordinator owns integration, promotion, and final validation.
 
 | Batch | Scope | Worker ownership | Current status |
 |------|-------|------------------|----------------|
-| A | Core language and context: BP-72, BP-73, BP-79, BP-84, BP-85 and nearby candidates | Core-language detector modules and their `.txt` fixtures | First batch integrated; next candidate triage pending |
-| B | Concurrency and resources: BP-86..BP-100 | Concurrency/resource detector module(s) and their `.txt` fixtures | Batch integrated; next candidate triage pending |
-| C | HTTP and frameworks: BP-101..BP-125 | HTTP/framework detector module(s) and their `.txt` fixtures | Batch integrated; next candidate triage pending |
-| D | Data, observability, and API lifecycle: BP-126..BP-165 | Data/API detector module(s) and their `.txt` fixtures | Batch integrated; next candidate triage pending |
+| A | Core language and context: BP-72, BP-73, BP-79, BP-84, BP-85 and nearby candidates | Core-language detector modules and their `.txt` fixtures | Batch integrated: BP-68 and BP-85 shipped; nearby candidates deferred |
+| B | Concurrency and resources: BP-86..BP-100 | Concurrency/resource detector module(s) and their `.txt` fixtures | Existing batch integrated; no new worker in this phase |
+| C | HTTP and frameworks: BP-101..BP-125 | HTTP/framework detector module(s) and their `.txt` fixtures | Batch integrated: BP-102 shipped; BP-111/BP-119 deferred |
+| D | Data, observability, and API lifecycle: BP-126..BP-165 | Data/API detector module(s) and their `.txt` fixtures | Batch integrated: BP-136, BP-142, and BP-151 shipped |
+| E | Testing and API lifecycle tail: BP-161..BP-165 | API/testing detector module(s) and their `.txt` fixtures | Batch integrated: BP-162 and BP-164 shipped; BP-161/BP-163/BP-165 deferred |
 
 - [x] Define disjoint worker ownership for detector modules and fixture files.
 - [x] Keep shared integration centralized: JSON, dispatch, manifest, docs, checklist, and release-gate commands.
 - [x] Launch the four workers against batches A–D rather than isolated single-rule tasks.
+- [x] Launch five workers for the next core, HTTP, data, observability, and API/testing batches.
 - [x] Review each worker's accepted/deferred candidate list and integrate only rules that pass the admission gate.
 - [x] Promote admitted candidates individually after their own vulnerable, safe, variant, and focused CLI checks pass.
 
-### 3.5 Per-rule vertical slice
+### 3.6 Per-rule vertical slice
 
 For each future admitted rule, complete these in order before moving to the next row:
 
@@ -241,9 +269,9 @@ For each future admitted rule, complete these in order before moving to the next
 
 ## Phase 4: Deferred candidate review
 
-- [ ] Review BP-66, BP-68, BP-69, BP-70, BP-71 against existing error tooling before any implementation.
+- [x] Review BP-68 against existing error tooling; it is a distinct expression-statement `errors.Join` discard and is now shipped. Keep BP-66, BP-69, BP-70, and BP-71 deferred pending further overlap review.
 - [ ] Review BP-77, BP-78, BP-81, BP-82, BP-83 against staticcheck/contextcheck and PERF overlap.
-- [ ] Review BP-86..BP-100 for control-flow feasibility; reject rules that need race detection or whole-program ownership.
+- [ ] Review remaining concurrency/resource candidates BP-86, BP-87, BP-89..BP-97, and BP-100 for control-flow feasibility; reject rules that need race detection or whole-program ownership.
 - [ ] Review BP-103, BP-106, BP-118, BP-129, BP-139, BP-146, and BP-152 for CWE ownership.
 - [ ] Review BP-110, BP-117, BP-120, BP-140, and BP-143 as framework-specific error-discard variants; keep only if they add context beyond BP-1/errcheck.
 - [ ] Review BP-112, BP-113, BP-114, BP-121, BP-124, BP-125, BP-130, BP-144, BP-147, BP-148, BP-153, BP-157, and BP-160 as policy/intent rules; do not promote without real-user evidence.
