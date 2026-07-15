@@ -5,9 +5,13 @@
 //! `domains/`. CWE references for severity/fix overrides live in
 //! The generated metadata uses the `metadata_overrides` module.
 
+#[doc(hidden)]
 pub mod common;
+#[doc(hidden)]
 pub mod domains;
+#[doc(hidden)]
 pub mod facts;
+#[doc(hidden)]
 pub mod source_index;
 pub mod tiers;
 

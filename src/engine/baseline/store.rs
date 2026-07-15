@@ -18,9 +18,13 @@ pub const BASELINE_VERSION: &str = "1";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BaselineEntry {
+    /// Finding file path.
     pub file: String,
+    /// One-indexed finding line.
     pub line: usize,
+    /// One-indexed finding column.
     pub column: usize,
+    /// Content-stable finding fingerprint.
     pub fingerprint: String,
     /// Optional free-text reason (brownfield adoption notes).
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -44,13 +48,18 @@ pub fn discover_baseline(cwd: &Path) -> Option<PathBuf> {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Baseline {
+    /// Baseline wire-format version.
     pub version: String,
+    /// UTC timestamp at which the baseline was generated.
     pub generated_at: String,
+    /// CodeHound version that generated the baseline.
     pub tool_version: String,
+    /// Findings grouped by rule identifier.
     pub entries: HashMap<String, Vec<BaselineEntry>>,
 }
 
 impl Baseline {
+    /// Build a baseline from findings without optional entry metadata.
     pub fn from_findings(findings: &[Finding]) -> Self {
         Self::from_findings_with_meta(findings, None, None)
     }
@@ -85,12 +94,21 @@ impl Baseline {
     }
 
     #[must_use = "baseline load failures must be handled"]
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when the file cannot be read or decoded.
     pub fn from_file(path: &Path) -> Result<Self, Error> {
         let bytes = fs::read(path)?;
         let baseline: Self = serde_json::from_slice(&bytes)?;
         Ok(baseline)
     }
 
+    /// Persist this baseline using an atomic file replacement.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when serialization or the atomic write fails.
     pub fn to_file(&self, path: &Path) -> Result<(), Error> {
         write_atomic(path, self)
     }

@@ -8,7 +8,7 @@ mod extract;
 mod graph_query;
 mod kinds;
 mod model;
-pub mod rules;
+pub(crate) mod rules;
 
 pub(crate) use extract::result_variable_at_return_index;
 pub use extract::{build_import_map, extract_call_graph, extract_taint_facts, merge_call_graphs};

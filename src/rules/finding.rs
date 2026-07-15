@@ -356,6 +356,10 @@ impl Finding {
     }
 
     /// Set confidence after checking that it is finite and within `0..=1`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when `confidence` is non-finite or outside `0..=1`.
     pub fn with_confidence_checked(self, confidence: f32) -> Result<Self, &'static str> {
         if !confidence.is_finite() || !(0.0..=1.0).contains(&confidence) {
             return Err("confidence must be finite and within 0..=1");
@@ -392,6 +396,10 @@ impl Finding {
     }
 
     /// Set a byte range after checking that its end does not overflow.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when `byte_offset + byte_length` overflows.
     pub fn with_byte_range_checked(
         self,
         byte_offset: usize,
@@ -413,6 +421,10 @@ impl Finding {
     }
 
     /// Set an end location after enforcing the 1-indexed invariant.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the end location is zero or precedes the start.
     pub fn with_end_checked(
         self,
         end_line: usize,
@@ -448,6 +460,10 @@ impl Finding {
     }
 
     /// Set an enclosing function range after validating ordering and lines.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when byte or line bounds are inverted or zero-based.
     pub fn with_function_range_checked(
         self,
         start_byte: usize,

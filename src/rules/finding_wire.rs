@@ -198,6 +198,11 @@ impl FindingWire {
     ///
     /// Returns an error when a corrupted or adversarial cache entry exceeds
     /// the process string-interning cap.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`FindingWireError`] when locations, ranges, confidence, or
+    /// bounded string interning data are malformed.
     pub fn into_finding(self) -> Result<Finding, FindingWireError> {
         let FindingWire {
             rule_id,

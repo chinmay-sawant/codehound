@@ -15,12 +15,22 @@ use super::{CacheStore, DiskBackend, InMemoryBackend};
 impl CacheStore {
     /// Open the cache with a maximum on-disk size in MiB. `0` disables
     /// the size limit.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CacheError`] when the cache directory cannot be created or
+    /// its manifest cannot be read.
     #[must_use = "callers must handle cache open failures"]
     pub fn open_with_capacity(cache_dir: PathBuf, max_size_mb: u64) -> Result<Self, CacheError> {
         Self::open_with_limits(cache_dir, max_size_mb, 0.9, 4)
     }
 
     /// Open the cache with explicit eviction and per-file size settings.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CacheError`] when the cache directory cannot be created or
+    /// a manifest has an incompatible schema.
     #[must_use = "callers must handle cache open failures"]
     pub fn open_with_limits(
         cache_dir: PathBuf,
@@ -109,11 +119,8 @@ impl CacheStore {
         })
     }
 
-    /// Create a purely in-memory cache store. All entries live in a
-    /// `HashMap`; no filesystem operations are performed. Useful for
-    /// tests and ephemeral use.
-    #[must_use = "in-memory cache is useless if discarded"]
     /// Wrap a custom [`CacheBackend`] for embedder / test use.
+    #[must_use = "in-memory cache is useless if discarded"]
     pub fn with_backend(backend: Box<dyn CacheBackend>) -> Self {
         Self {
             cache_dir: PathBuf::new(),
@@ -128,6 +135,8 @@ impl CacheStore {
         }
     }
 
+    /// Create a purely in-memory cache store with default limits.
+    #[must_use = "in-memory cache is useless if discarded"]
     pub fn in_memory() -> Self {
         Self::in_memory_with_limits(0, 0.9, 0)
     }
@@ -162,6 +171,7 @@ impl CacheStore {
         self.max_file_size_bytes == 0 || size_bytes <= self.max_file_size_bytes
     }
 
+    /// Return whether a file path is within the configured cache size limit.
     pub fn should_cache_path(&self, path: &Path) -> bool {
         if self.max_file_size_bytes == 0 {
             return true;
@@ -181,6 +191,7 @@ impl CacheStore {
         false
     }
 
+    /// Return whether a byte length is within the configured cache size limit.
     pub fn should_cache_bytes(&self, size_bytes: u64) -> bool {
         self.within_max_file_size(size_bytes)
     }

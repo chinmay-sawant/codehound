@@ -9,7 +9,9 @@ use crate::core::{Detector, ParsedUnit};
 use super::id::LanguageId;
 
 pub trait LanguagePlugin: Send + Sync {
+    /// Return the language implemented by this plugin.
     fn id(&self) -> LanguageId;
+    /// Return source-file extensions accepted by this plugin.
     fn extensions(&self) -> &'static [&'static str];
     /// Configure a reused tree-sitter parser (called once per language per scan).
     ///
@@ -43,6 +45,10 @@ pub trait LanguagePlugin: Send + Sync {
     }
 
     /// One-shot parse (tests only); production uses [`Self::parse_with`] + pool.
+    ///
+    /// # Errors
+    ///
+    /// Returns the grammar or parse error reported by the plugin.
     fn parse(&self, path: &Path, source: Arc<str>) -> Result<ParsedUnit, Error> {
         let mut parser = tree_sitter::Parser::new();
         self.configure_parser(&mut parser)?;

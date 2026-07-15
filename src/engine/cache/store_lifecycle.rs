@@ -15,6 +15,10 @@ impl CacheStore {
     ///
     /// Manifest keys and dependency paths are stored in
     /// [`normalize_project_path`] form.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when the backend cannot serialize or store findings.
     pub fn put(
         &mut self,
         file: &str,
@@ -27,6 +31,10 @@ impl CacheStore {
     }
 
     /// Insert or replace a cache entry with source-ignore accounting.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when the backend cannot serialize or store findings.
     pub fn put_with_suppressed_count(
         &mut self,
         file: &str,
@@ -48,6 +56,10 @@ impl CacheStore {
 
     /// Insert or replace a cache entry while borrowing findings from the
     /// current scan result.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when the backend cannot serialize or store findings.
     pub fn put_with_suppressed_count_borrowed(
         &mut self,
         file: &str,
@@ -85,6 +97,10 @@ impl CacheStore {
 
     /// Remove a single entry from the manifest and from disk. No-op
     /// when `file` is not tracked.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when deleting the backend entry fails.
     pub fn remove(&mut self, file: &str) -> Result<(), Error> {
         if self.manifest.files.remove(file).is_some() {
             let cache_key = cache_key_for_path(file);
@@ -97,6 +113,10 @@ impl CacheStore {
     /// Drop every entry not present in `scanned_files` from the
     /// manifest and from disk. Use after a scan completes to remove
     /// entries for files that no longer exist.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when deleting an entry fails.
     pub fn prune(
         &mut self,
         scanned_files: &std::collections::HashSet<String>,
@@ -119,6 +139,11 @@ impl CacheStore {
     /// present in the manifest. These orphans appear when the
     /// manifest is torn (e.g. concurrent writes). Returns the number
     /// of files removed.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when the backend cannot enumerate or remove orphan
+    /// entries.
     pub fn clean_orphans(&self) -> Result<usize, Error> {
         let active_keys: std::collections::HashSet<String> = self
             .manifest

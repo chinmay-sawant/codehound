@@ -58,6 +58,10 @@ impl<'a> CacheSession<'a> {
     }
 
     /// Insert or replace a cache entry.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when serializing or persisting the entry fails.
     pub fn put(
         &mut self,
         file: &str,
@@ -77,6 +81,10 @@ impl<'a> CacheSession<'a> {
     }
 
     /// Insert a cache entry while preserving source-ignore accounting.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when serializing or persisting the entry fails.
     pub fn put_with_suppressed_count(
         &mut self,
         file: &str,
@@ -97,6 +105,10 @@ impl<'a> CacheSession<'a> {
     }
 
     /// Insert a cache entry without cloning findings owned by the scan result.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when serializing or persisting the entry fails.
     pub fn put_with_suppressed_count_borrowed(
         &mut self,
         file: &str,
@@ -127,11 +139,20 @@ impl<'a> CacheSession<'a> {
     }
 
     /// Remove entries for files not seen in this scan.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when an entry cannot be removed from the backend.
     pub fn prune(&mut self, scanned_files: &HashSet<String>) -> Result<usize, Error> {
         self.store.prune(scanned_files)
     }
 
     /// Persist dirty manifest and entries.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when eviction, serialization, or atomic manifest
+    /// persistence fails.
     pub fn flush(&mut self) -> Result<(), Error> {
         self.store.flush()
     }

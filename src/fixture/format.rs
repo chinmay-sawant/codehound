@@ -44,6 +44,10 @@ pub enum FixtureLanguage {
 impl FromStr for FixtureLanguage {
     type Err = FixtureError;
 
+    /// # Errors
+    ///
+    /// Returns [`FixtureError::UnknownLanguage`] when the value is not a
+    /// supported fixture language.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.trim().to_lowercase().as_str() {
             "go" => Ok(Self::Go),
@@ -54,6 +58,7 @@ impl FromStr for FixtureLanguage {
 }
 
 impl FixtureLanguage {
+    /// Return the source-file extension for this language.
     pub fn extension(self) -> &'static str {
         match self {
             Self::Go => "go",
@@ -61,6 +66,7 @@ impl FixtureLanguage {
         }
     }
 
+    /// Return the canonical header spelling for this language.
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Go => "go",
@@ -89,6 +95,11 @@ impl TextFixture {
 }
 
 /// Parse raw `.txt` fixture file contents.
+///
+/// # Errors
+///
+/// Returns [`FixtureError`] when the separator, language header, or fixture
+/// metadata is malformed.
 pub fn parse_fixture(text: &str, txt_path: &Path) -> Result<TextFixture, FixtureError> {
     let (header, body) = split_header_body(text)?;
     let mut language = None;

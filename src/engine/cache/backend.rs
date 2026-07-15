@@ -17,11 +17,19 @@ pub trait CacheBackend: Send + Sync + std::fmt::Debug {
     fn load_entry(&self, cache_key: &str) -> Option<CacheEntry>;
 
     /// Persist an entry. Replaces any existing entry with the same key.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CacheError`] when the backend cannot persist the entry.
     fn store_entry(&mut self, cache_key: &str, entry: &CacheEntry) -> Result<(), CacheError>;
 
     /// Persist a borrowed finding slice without forcing every backend to own
     /// a second copy. Backends that store owned values use the compatibility
     /// default; streaming backends can override this method.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CacheError`] when the backend cannot persist the entry.
     fn store_entry_borrowed(
         &mut self,
         cache_key: &str,
@@ -44,6 +52,10 @@ pub trait CacheBackend: Send + Sync + std::fmt::Debug {
     }
 
     /// Remove a single entry. No-op when the key does not exist.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CacheError`] when the backend cannot remove the entry.
     fn delete_entry(&mut self, cache_key: &str) -> Result<(), CacheError>;
 
     /// Approximate total size of all stored entries in bytes.
@@ -51,5 +63,10 @@ pub trait CacheBackend: Send + Sync + std::fmt::Debug {
 
     /// Remove on-disk (or in-memory) entries whose keys are not in
     /// `active_keys`. Returns the number of entries removed.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CacheError`] when the backend cannot enumerate or remove
+    /// orphan entries.
     fn clean_orphans(&self, active_keys: &HashSet<&str>) -> Result<usize, CacheError>;
 }

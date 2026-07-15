@@ -29,6 +29,11 @@ pub fn materialized_root() -> &'static Path {
 }
 
 /// Read one `.txt` fixture and write `<lang>/<filename>` under the materialized root.
+///
+/// # Errors
+///
+/// Returns [`FixtureError`] when the fixture cannot be read, parsed, or safely
+/// materialized.
 pub fn materialize_fixture(txt_path: &Path) -> Result<PathBuf, FixtureError> {
     let text = fs::read_to_string(txt_path).map_err(|source| FixtureError::Io {
         operation: "reading fixture",
@@ -40,6 +45,10 @@ pub fn materialize_fixture(txt_path: &Path) -> Result<PathBuf, FixtureError> {
 }
 
 /// Materialize every `*.txt` fixture under `fixtures_root`.
+///
+/// # Errors
+///
+/// Returns [`FixtureError`] when traversal, reading, parsing, or writing fails.
 pub fn materialize_tree(fixtures_root: &Path) -> Result<PathBuf, FixtureError> {
     let root = materialized_root().to_path_buf();
     for entry in WalkDir::new(fixtures_root) {

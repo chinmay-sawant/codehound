@@ -61,7 +61,7 @@ These are the remaining improvements identified by the fresh five-agent review. 
 - [x] Route `FindingWire::into_finding` through checked location, range, confidence, and function-range constructors; return a typed `FindingWireError` for malformed data and distinguish interning-cap exhaustion.
 - [x] Add malformed-wire tests for zero locations, inverted ranges, invalid confidence, partial function ranges, and overflowing byte ranges.
 - [~] Add read-only accessors and internal mutation methods for `Finding`, `AnalysisResult`, `ParsedUnit`, `TaintGraph`, and `CallGraph`. Additive accessors and crate-private mutation seams are implemented; public fields remain for compatibility until a breaking API release.
-- [ ] Narrow implementation modules (`lang::go::detectors`, taint facts/graphs, and remaining reporting internals) in the planned breaking API release while preserving stable root re-exports.
+- [~] Narrow implementation modules (`lang::go::detectors`, taint facts/graphs, and remaining reporting internals) in the planned breaking API release while preserving stable root re-exports. The taint rule module is now private behind its existing `taint` re-exports; performance implementation modules are retained for compatibility but hidden from generated docs. Full detector-path removal remains a breaking-release task.
 
 **Expected effect:** Rust Best Practices **8.6 → 9.2+**; Rust Development Patterns **9.0 → 9.4+**.
 
@@ -77,7 +77,7 @@ These are the remaining improvements identified by the fresh five-agent review. 
 ### Priority 4 — Close the documentation and proof gates
 
 - [~] Replace remaining `missing_docs` suppressions with public API documentation and enable a staged crate-wide documentation ratchet. The rules module has no remaining suppression and passes its warning ratchet; crate-wide strict documentation remains pending.
-- [ ] Add `# Errors`, `# Panics`, and `# Safety` sections wherever public APIs can fail, panic, or rely on safety invariants.
+- [~] Add `# Errors`, `# Panics`, and `# Safety` sections wherever public APIs can fail, panic, or rely on safety invariants. Applicable cache, fixture, parser, baseline, finding-wire, SARIF, backend, and scan APIs now document error contracts; no public unsafe API or unsafe block was found, so no `# Safety` section is applicable. A crate-wide prose audit remains.
 - [x] Execute example `main` functions in a lightweight smoke test; both examples now execute under `cargo test --locked --examples`.
 - [x] Re-run the bounded locked validation matrix after each priority slice and reserve the full serial all-feature run for a disk-budgeted validation pass. The current slice used locked, single-threaded focused tests plus strict Clippy and all-target checks.
 
@@ -179,11 +179,11 @@ The memory-saving design is intentional: default CI/JSON/SARIF runs use `retain_
 
 ## Phase 5 — API, Type, and Documentation Maturity
 
-- [~] Narrow public modules, re-exports, and mutable fields where invariants matter; `Analyzer.ctx` and internal rules modules are narrowed, additive read-only accessors and crate-private mutation seams now cover the main data types, while full field privacy and deeper module narrowing remain deferred to a planned breaking API release.
+- [~] Narrow public modules, re-exports, and mutable fields where invariants matter; `Analyzer.ctx` and internal rules modules are narrowed, additive read-only accessors and crate-private mutation seams now cover the main data types, and the taint rule/performance implementation modules are narrowed or doc-hidden, while full detector-path privacy remains deferred to a planned breaking API release.
 - [x] Add validated constructors/checked builders for `LineCol`, confidence, byte ranges, and function/end ranges.
 - [~] Replace missing-documentation suppressions with incremental public API docs; the rules module ratchet is clean and result/core/accessor docs were added, but the crate-wide ratchet remains open.
 - [x] Fix broken intra-doc links; strict rustdoc link validation passes.
-- [~] Add a documentation ratchet (`warn` first, then `deny`) with `# Errors`, `# Panics`, and `# Safety` sections where applicable; the rules module is at `warn`, while crate-wide warning coverage and error-contract sections remain incremental.
+- [~] Add a documentation ratchet (`warn` first, then `deny`) with `# Errors`, `# Panics`, and `# Safety` sections where applicable; the rules module is at `warn`, applicable error contracts were expanded, rustdoc link validation passes, and crate-wide warning/prose coverage remains incremental.
 - [x] Add runnable public API examples and targeted doc tests.
 
 ## Validation Matrix
@@ -289,3 +289,10 @@ The goal is not to make every Rust line maximally abstract. The goal is to close
 - [~] Added focused span-sweep and inter-procedural taint benchmark targets plus bounded CI wiring; local release measurement was stopped during the build before producing a timing baseline.
 - [x] Added runtime execution tests for both examples and closed the staged `rules` missing-docs ratchet; crate-wide docs and full field privacy remain open.
 - [~] Remaining before the 9.5+ gate: hosted benchmark baseline, allocation-sensitive evidence, crate-wide documentation/error sections, and breaking-release field/module privacy.
+
+### Documentation and module-boundary follow-up — 2026-07-16
+
+- [~] Narrowed `cwe::taint::rules` to an implementation module while preserving the public `taint::detect_*` re-exports; performance implementation modules are retained for compatibility and marked `doc(hidden)`.
+- [x] Added applicable `# Errors` contracts for cache open/session/lifecycle/flush/backend APIs, fixture parsing/materialization, parser setup, baseline I/O, finding-wire conversion, SARIF rendering, and checked finding builders.
+- [x] Added public-field documentation for scan statistics, timing summaries, export options, CWE references, and baseline records; `cargo doc` with broken-link denial passes.
+- [~] No public unsafe API or unsafe block was found, so `# Safety` sections are not applicable; full crate-wide error/panic prose remains an incremental documentation task.

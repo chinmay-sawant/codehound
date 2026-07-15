@@ -13,6 +13,11 @@ impl CacheStore {
     /// Write the manifest to disk. No-op when no mutations have happened
     /// since the last flush. Should be called once per scan run, after
     /// all `put`/`remove` calls.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when eviction, serialization, or atomic persistence
+    /// fails.
     pub fn flush(&mut self) -> Result<(), Error> {
         if !self.dirty {
             return Ok(());

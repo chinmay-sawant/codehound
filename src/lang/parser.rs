@@ -20,6 +20,10 @@ pub trait TreeSitterLang {
 
 /// Generic [`configure`] replacement. Callers invoke
 /// `parser::configure::<GoLang>(&mut parser)`.
+///
+/// # Errors
+///
+/// Returns [`Error::Grammar`] when tree-sitter rejects the language grammar.
 pub fn configure<L: TreeSitterLang>(parser: &mut Parser) -> Result<(), Error> {
     let lang = L::language();
     parser
@@ -30,6 +34,10 @@ pub fn configure<L: TreeSitterLang>(parser: &mut Parser) -> Result<(), Error> {
 
 /// Generic [`parse_with`] replacement. Callers invoke
 /// `parser::parse_with::<GoLang>(&mut parser, path, source)`.
+///
+/// # Errors
+///
+/// Returns [`Error::Parse`] when tree-sitter does not produce a syntax tree.
 pub fn parse_with<L: TreeSitterLang>(
     parser: &mut Parser,
     path: &Path,
