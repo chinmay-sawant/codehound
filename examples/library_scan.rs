@@ -11,3 +11,11 @@ fn main() -> Result<(), codehound::Error> {
     assert!(result.findings.is_empty());
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn example_runs() {
+        super::main().expect("library scan example");
+    }
+}

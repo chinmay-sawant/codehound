@@ -166,10 +166,37 @@ pub struct AnalysisResult {
 }
 
 impl AnalysisResult {
+    /// Return findings emitted by the scan after policy filtering.
+    pub fn findings(&self) -> &[Finding] {
+        &self.findings
+    }
+
+    /// Return non-fatal per-file errors collected during the scan.
+    pub fn errors(&self) -> &[ScanError] {
+        &self.errors
+    }
+
+    /// Return retained source text keyed by the normalized file path.
+    pub fn source_cache(&self) -> &HashMap<String, Arc<str>> {
+        &self.source_cache
+    }
+
+    /// Return the number of findings suppressed by baseline filtering.
+    pub fn suppressed_count(&self) -> usize {
+        self.suppressed_count
+    }
+
+    /// Return operational scan statistics when collection was enabled.
+    pub fn stats(&self) -> Option<&ScanStats> {
+        self.stats.as_ref()
+    }
+
+    /// Return whether any finding matches the configured failure policy.
     pub fn should_fail(&self, policy: crate::core::FailPolicy) -> bool {
         self.findings.iter().any(|f| policy.should_fail(f.severity))
     }
 
+    /// Return the total number of bytes retained in the source cache.
     pub fn source_cache_bytes(&self) -> usize {
         self.source_cache.values().map(|source| source.len()).sum()
     }

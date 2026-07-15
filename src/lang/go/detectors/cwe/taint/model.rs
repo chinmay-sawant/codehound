@@ -142,6 +142,31 @@ pub struct TaintGraph {
 }
 
 impl TaintGraph {
+    /// Return all graph nodes in insertion order.
+    pub fn nodes(&self) -> &[TaintNode] {
+        &self.nodes
+    }
+
+    /// Return all graph edges in insertion order.
+    pub fn edges(&self) -> &[TaintEdge] {
+        &self.edges
+    }
+
+    /// Return variable-to-node adjacency indexes.
+    pub fn variables(&self) -> &HashMap<(ScopeId, SharedText), Vec<TaintNodeId>> {
+        &self.by_variable
+    }
+
+    /// Return sink-kind-to-node adjacency indexes.
+    pub fn sinks(&self) -> &HashMap<SinkKind, Vec<TaintNodeId>> {
+        &self.by_sink
+    }
+
+    /// Return source-kind-to-node adjacency indexes.
+    pub fn sources(&self) -> &HashMap<SourceKind, Vec<TaintNodeId>> {
+        &self.by_source
+    }
+
     pub fn add_node(&mut self, node: TaintNode) -> TaintNodeId {
         let id = self.nodes.len();
         if let TaintNode::Variable { scope, name, .. } = &node {
@@ -297,6 +322,30 @@ pub struct CallGraph {
 }
 
 impl CallGraph {
+    /// Return call sites in source traversal order.
+    pub fn sites(&self) -> &[CallSite] {
+        &self.sites
+    }
+
+    /// Return indexes of sites grouped by caller.
+    pub fn by_caller(&self) -> &HashMap<SharedText, Vec<usize>> {
+        &self.by_caller
+    }
+
+    /// Return indexes of sites grouped by callee.
+    pub fn by_callee(&self) -> &HashMap<SharedText, Vec<usize>> {
+        &self.by_callee
+    }
+
+    /// Return discovered function declarations.
+    pub fn declarations(&self) -> &HashMap<SharedText, FunctionDecl> {
+        &self.declarations
+    }
+
+    pub(crate) fn add_declaration(&mut self, name: SharedText, declaration: FunctionDecl) {
+        self.declarations.insert(name, declaration);
+    }
+
     pub fn add_site(&mut self, site: CallSite) {
         let idx = self.sites.len();
         self.by_caller

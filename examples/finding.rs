@@ -19,3 +19,11 @@ fn main() {
     assert_eq!(finding.line, 3);
     assert_eq!(finding.severity, Severity::High);
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn example_runs() {
+        super::main();
+    }
+}

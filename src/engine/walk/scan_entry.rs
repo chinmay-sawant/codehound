@@ -173,7 +173,7 @@ fn analyze_parsed_entry(
 ) -> (Vec<Finding>, usize) {
     let fn_kinds = plugin.function_node_kinds();
     if !fn_kinds.is_empty() {
-        unit.function_spans = ast::collect_function_spans(unit.tree.root_node(), fn_kinds);
+        unit.set_function_spans(ast::collect_function_spans(unit.tree.root_node(), fn_kinds));
     }
 
     let det_idx = options.timing.start("detector_execution");
@@ -300,7 +300,10 @@ pub(super) fn attach_function_context(findings: &mut [Finding], unit: &ParsedUni
     attach_function_context_to_spans(findings, &unit.function_spans);
 }
 
-fn attach_function_context_to_spans(findings: &mut [Finding], spans: &[ast::FunctionSpan]) {
+pub(crate) fn attach_function_context_to_spans(
+    findings: &mut [Finding],
+    spans: &[ast::FunctionSpan],
+) {
     let mut span_order: Vec<usize> = (0..spans.len()).collect();
     span_order.sort_by_key(|&index| spans[index].start_line);
     let mut finding_order: Vec<usize> = (0..findings.len()).collect();
@@ -322,10 +325,12 @@ fn attach_function_context_to_spans(findings: &mut [Finding], spans: &[ast::Func
         {
             let span = spans[span_index];
             let finding = &mut findings[finding_index];
-            finding.function_start_byte = Some(span.start_byte);
-            finding.function_end_byte = Some(span.end_byte);
-            finding.function_start_line = Some(span.start_line);
-            finding.function_end_line = Some(span.end_line);
+            finding.set_function_context(
+                span.start_byte,
+                span.end_byte,
+                span.start_line,
+                span.end_line,
+            );
         }
     }
 }

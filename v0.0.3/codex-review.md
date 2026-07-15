@@ -1,7 +1,7 @@
 # v0.0.3 — Rust Quality Remediation Checklist
 
 > **Parent:** `v0.0.3/codex-review.md` — consolidated Rust review and implementation ledger
-> **Status:** Current scores recorded; 10/10 improvement roadmap is now tracked below
+> **Status:** Checkpoint commit recorded; pending review items are being closed phasewise below
 > **Date:** 2026-07-16
 > **Goal:** Rust Best Practices **9.5+/10** and Rust Development Patterns **9.5+/10**
 
@@ -41,7 +41,7 @@ No MCP tools, graph tools, web access, or source-code edits were used during the
 - [x] Rust Best Practices scores were 8.0–8.4; median **8.2/10**.
 - [x] Rust Development Patterns scores were 7.0–8.0; median **8.0/10**.
 - [x] Reviewers confirmed the current evidence: strict Clippy/fmt, 78 locked library tests, focused taint/cache/API tests, typed errors, bounded interning, checked constructors, cache/index improvements, examples, and release benchmark history.
-- [~] The 9.5+/10 target is not reached. Consensus deductions are process-global timing, detector state that is not explicitly scan-scoped/reset-safe, mutable `Finding`/`AnalysisResult`/`ScanContext`/`TaintGraph` invariants, incomplete cache-wire validation, missing-doc suppressions, broad language-internal modules, and incomplete isolated span/taint benchmark coverage.
+- [~] The 9.5+/10 target is not reached. The review deductions around process-global timing, detector reset safety, and cache-wire validation are now closed; remaining deductions are mutable public data invariants, broad language-internal modules, crate-wide documentation/error-contract coverage, and incomplete isolated benchmark evidence.
 
 ## Roadmap to 10/10
 
@@ -51,7 +51,7 @@ These are the remaining improvements identified by the fresh five-agent review. 
 
 - [x] Replace the process-global timing collector with per-file collectors passed through the analyzer boundary and merged at chunk boundaries; keep the global helpers test-only.
 - [x] Remove timing interference between concurrent timed scans and between timed and non-timed scans; regression coverage now runs two timed analyzers plus one untimed analyzer concurrently.
-- [~] Add an explicit detector session lifecycle (`begin_scan`/`end_scan` or equivalent) and guarantee state reset after finalize errors, panics, taint-disabled scans, and concurrent analyzer runs. The analyzer scan gate, reset hook, RAII cleanup guard, and `std::mem::take` finalization boundary are implemented; a custom panicking-detector fixture remains.
+- [x] Add an explicit detector session lifecycle (`begin_scan`/`end_scan` or equivalent) and guarantee state reset after finalize errors, panics, taint-disabled scans, and concurrent analyzer runs. The analyzer scan gate, reset hook, RAII cleanup guard, `std::mem::take` finalization boundary, and custom panicking-detector fixture are implemented.
 - [x] Make `AnalyzerBuilder::collect_stats` the effective worker timing gate while retaining `ScanContext::collect_stats` as the configuration helper; context-only and builder-only behavior is tested.
 
 **Expected effect:** Rust Development Patterns **8.0 → 9.0+**; Rust Best Practices **8.2 → 8.6+**.
@@ -60,7 +60,7 @@ These are the remaining improvements identified by the fresh five-agent review. 
 
 - [x] Route `FindingWire::into_finding` through checked location, range, confidence, and function-range constructors; return a typed `FindingWireError` for malformed data and distinguish interning-cap exhaustion.
 - [x] Add malformed-wire tests for zero locations, inverted ranges, invalid confidence, partial function ranges, and overflowing byte ranges.
-- [ ] Add read-only accessors and internal mutation methods for `Finding`, `AnalysisResult`, `ParsedUnit`, `TaintGraph`, and `CallGraph`.
+- [~] Add read-only accessors and internal mutation methods for `Finding`, `AnalysisResult`, `ParsedUnit`, `TaintGraph`, and `CallGraph`. Additive accessors and crate-private mutation seams are implemented; public fields remain for compatibility until a breaking API release.
 - [ ] Narrow implementation modules (`lang::go::detectors`, taint facts/graphs, and remaining reporting internals) in the planned breaking API release while preserving stable root re-exports.
 
 **Expected effect:** Rust Best Practices **8.6 → 9.2+**; Rust Development Patterns **9.0 → 9.4+**.
@@ -69,23 +69,23 @@ These are the remaining improvements identified by the fresh five-agent review. 
 
 - [x] Remove the remaining production `result.findings.clone()` before cache persistence; the scan miss path now calls the borrowed session/backend seam.
 - [~] Reuse one internal taint adjacency/index object across each summary and inter-procedural query set; standalone public query wrappers remain self-contained and build their own index.
-- [ ] Add isolated release benchmarks for the span sweep and taint inter-procedural workloads, including allocation-sensitive before/after measurements.
-- [ ] Add the taint benchmark to CI and record a stable baseline without requiring repeated heavyweight target rebuilds.
+- [~] Add isolated release benchmarks for the span sweep and taint inter-procedural workloads, including allocation-sensitive before/after measurements. Both focused targets now compile; the low-sample release run was stopped during an unexpectedly long build before measurements, so no timing baseline is claimed.
+- [~] Add the taint benchmark to CI and record a stable baseline without requiring repeated heavyweight target rebuilds. CI wiring is present with bounded sample/time settings; a hosted baseline remains pending.
 
 **Expected effect:** Rust Best Practices **9.2 → 9.6+**.
 
 ### Priority 4 — Close the documentation and proof gates
 
-- [ ] Replace remaining `missing_docs` suppressions with public API documentation and enable a staged crate-wide documentation ratchet.
+- [~] Replace remaining `missing_docs` suppressions with public API documentation and enable a staged crate-wide documentation ratchet. The rules module has no remaining suppression and passes its warning ratchet; crate-wide strict documentation remains pending.
 - [ ] Add `# Errors`, `# Panics`, and `# Safety` sections wherever public APIs can fail, panic, or rely on safety invariants.
-- [ ] Execute example `main` functions in a lightweight smoke test; compilation alone is not runtime proof.
-- [ ] Re-run the bounded locked validation matrix after each priority slice and reserve the full serial all-feature run for a disk-budgeted validation pass.
+- [x] Execute example `main` functions in a lightweight smoke test; both examples now execute under `cargo test --locked --examples`.
+- [x] Re-run the bounded locked validation matrix after each priority slice and reserve the full serial all-feature run for a disk-budgeted validation pass. The current slice used locked, single-threaded focused tests plus strict Clippy and all-target checks.
 
 **Expected effect:** Both reviews reach the **9.5–10.0/10** range once Priority 1–4 evidence is green.
 
 ### Score gate policy
 
-- [ ] Do not raise either score to 9.5+ until Priority 1 lifecycle tests and Priority 2 malformed-boundary tests pass.
+- [x] Do not raise either score to 9.5+ until Priority 1 lifecycle tests and Priority 2 malformed-boundary tests pass; both gates now pass, but later benchmark/documentation gates remain.
 - [ ] Do not claim 10/10 until the remaining allocation benchmarks, CI benchmark coverage, documentation ratchet, and runtime examples are green.
 
 ## Phase 1 — Gate Recovery and Contract Alignment
@@ -132,10 +132,10 @@ The memory-saving design is intentional: default CI/JSON/SARIF runs use `retain_
 
 ### 2.2 Detector lifecycle and policy
 
-- [~] Define an explicit per-scan detector lifecycle/reset boundary for cross-file state; analyzer-level serialization, detector reset hooks, RAII cleanup, and pre-finalize state extraction are implemented, while a custom panic-detector regression fixture remains.
+- [x] Define an explicit per-scan detector lifecycle/reset boundary for cross-file state; analyzer-level serialization, detector reset hooks, RAII cleanup, pre-finalize state extraction, and custom panic-detector regression coverage are implemented.
 - [x] Apply `only`, `skip`, severity overrides, and related policy to finalized findings.
 - [x] Isolate `finalize` and cached-state `accumulate_state` panics consistently with per-file execution.
-- [~] Add tests for a panicking custom detector hook and finalized finding filtering; the production boundaries are covered, while a custom panic fixture remains open.
+- [x] Add tests for a panicking custom detector hook and finalized finding filtering; both run-time and finalize-time panic paths pass.
 
 ### 2.3 Cache fingerprint correctness
 
@@ -157,7 +157,7 @@ The memory-saving design is intentional: default CI/JSON/SARIF runs use `retain_
 - [x] Pass the existing `Registry` into dependency extraction instead of rebuilding enabled plugins per file.
 - [x] Avoid cloning every `Finding` solely for disk-cache serialization with a borrowed backend seam; owned/custom backends retain a compatibility fallback.
 - [x] Allocate scanned-path tracking only when a cache session requires pruning.
-- [~] Replace repeated enclosing-function span scans with a sorted sweep lookup; the hot path is implemented and tested, while an isolated benchmark is still outstanding.
+- [~] Replace repeated enclosing-function span scans with a sorted sweep lookup; the hot path is implemented and tested, and a focused isolated benchmark target is added, but release timing evidence is pending.
 
 ### 3.3 Taint graph work
 
@@ -179,11 +179,11 @@ The memory-saving design is intentional: default CI/JSON/SARIF runs use `retain_
 
 ## Phase 5 — API, Type, and Documentation Maturity
 
-- [~] Narrow public modules, re-exports, and mutable fields where invariants matter; `Analyzer.ctx` and internal rules modules are narrowed, while `Finding`, `AnalysisResult`, and Go-taint storage remain deferred to a planned breaking API release.
+- [~] Narrow public modules, re-exports, and mutable fields where invariants matter; `Analyzer.ctx` and internal rules modules are narrowed, additive read-only accessors and crate-private mutation seams now cover the main data types, while full field privacy and deeper module narrowing remain deferred to a planned breaking API release.
 - [x] Add validated constructors/checked builders for `LineCol`, confidence, byte ranges, and function/end ranges.
-- [~] Replace missing-documentation suppressions with incremental public API docs; primary builder/result/context docs were improved and examples are now present, but the crate-wide ratchet remains open.
+- [~] Replace missing-documentation suppressions with incremental public API docs; the rules module ratchet is clean and result/core/accessor docs were added, but the crate-wide ratchet remains open.
 - [x] Fix broken intra-doc links; strict rustdoc link validation passes.
-- [~] Add a documentation ratchet (`warn` first, then `deny`) with `# Errors`, `# Panics`, and `# Safety` sections where applicable; warning-level coverage remains incremental.
+- [~] Add a documentation ratchet (`warn` first, then `deny`) with `# Errors`, `# Panics`, and `# Safety` sections where applicable; the rules module is at `warn`, while crate-wide warning coverage and error-contract sections remain incremental.
 - [x] Add runnable public API examples and targeted doc tests.
 
 ## Validation Matrix
@@ -195,7 +195,7 @@ The memory-saving design is intentional: default CI/JSON/SARIF runs use `retain_
 | Focused source-cache tests | 3 fail | [x] | Pass |
 | Full serial all-feature tests | Not green | [x] | Pass |
 | Parallel timing isolation | Flaky | [x] | Pass |
-| Release-mode performance benchmark | Not yet re-run | [x] | Parser and taint benchmarks measured; isolated span baseline remains |
+| Release-mode performance benchmark | Not yet re-run | [~] | Focused span and inter-procedural taint targets compile; isolated release timing was stopped before measurement to protect disk/time |
 | Rust Best Practices score | 8.2/10 | [~] | 9.5+/10 |
 | Rust Development Patterns score | 8.0/10 | [~] | 9.5+/10 |
 
@@ -273,7 +273,7 @@ The goal is not to make every Rust line maximally abstract. The goal is to close
 - [x] Made `Analyzer` expose an immutable `scan_context()` accessor instead of a public mutable context field.
 - [x] Narrowed `rules::emit` and `rules::maturity` to crate-private modules while preserving their documented root-level re-exports.
 - [x] Focused API, taint, reporting, and embedder tests pass with `--all-features --locked`; strict Clippy passes.
-- [~] Full `Finding`/`AnalysisResult` field privacy and deep language-internal module narrowing remain a planned breaking API release item.
+- [~] Full `Finding`/`AnalysisResult` field privacy and deep language-internal module narrowing remain a planned breaking API release item; additive accessors and internal mutation seams are now present.
 
 ### Pending-item implementation slice — 2026-07-16
 
@@ -284,4 +284,8 @@ The goal is not to make every Rust line maximally abstract. The goal is to close
 - [x] Added a borrowed cache-session/store write path and removed the production findings clone from cache persistence.
 - [x] Reused one taint adjacency index through each summary and inter-procedural query set while preserving standalone query APIs.
 - [x] Focused locked validation passed: timing unit tests (11), multi-chunk timing integration, FindingWire tests, taint graph-query tests (11), Go taint integration, cache-session tests, and strict Clippy.
-- [~] Remaining before the 9.5+ gate: custom detector panic fixture, span/taint isolated release benchmarks, CI taint benchmark step, public invariant accessors/privacy, and documentation ratchet.
+- [x] Added custom detector panic fixtures covering run and finalize recovery, with finalized-finding policy filtering; focused embedder tests pass.
+- [x] Added additive read-only accessors for findings/results/parser/taint/call-graph data and crate-private mutation seams for suppression and function-context enrichment.
+- [~] Added focused span-sweep and inter-procedural taint benchmark targets plus bounded CI wiring; local release measurement was stopped during the build before producing a timing baseline.
+- [x] Added runtime execution tests for both examples and closed the staged `rules` missing-docs ratchet; crate-wide docs and full field privacy remain open.
+- [~] Remaining before the 9.5+ gate: hosted benchmark baseline, allocation-sensitive evidence, crate-wide documentation/error sections, and breaking-release field/module privacy.

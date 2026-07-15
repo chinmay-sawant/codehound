@@ -50,3 +50,13 @@ pub use walk::{
 
 /// Process large entry lists in bounded chunks to cap parallel work memory.
 pub const SCAN_CHUNK_SIZE: usize = 1024;
+
+/// Benchmark-only access to the production function-context sweep.
+#[doc(hidden)]
+#[cfg(feature = "bench")]
+pub fn bench_attach_function_context(
+    findings: &mut [crate::rules::Finding],
+    spans: &[crate::ast::FunctionSpan],
+) {
+    walk::attach_function_context_to_spans(findings, spans);
+}

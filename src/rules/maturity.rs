@@ -2,7 +2,6 @@
 
 /// How trustworthy / general a rule is for production CI packs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[allow(missing_docs)]
 pub enum RuleMaturity {
     /// Graph-based injection/XSS family (taint).
     TaintCore,

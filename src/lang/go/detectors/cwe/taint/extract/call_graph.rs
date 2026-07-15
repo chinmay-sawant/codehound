@@ -33,7 +33,7 @@ fn walk_call_graph(
             let params = node.child_by_field_name("parameters");
             let param_count = params.map_or(0, |p| p.named_child_count());
 
-            cg.declarations.insert(
+            cg.add_declaration(
                 Arc::from(name),
                 FunctionDecl {
                     param_count,
@@ -59,7 +59,7 @@ fn walk_call_graph(
                 })
                 .map(Arc::from);
 
-            cg.declarations.insert(
+            cg.add_declaration(
                 Arc::from(name),
                 FunctionDecl {
                     param_count,

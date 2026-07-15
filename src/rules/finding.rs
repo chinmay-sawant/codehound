@@ -1,6 +1,4 @@
 //! A single finding emitted by a detector.
-#![allow(missing_docs)] // ratchet: document in a follow-up pass
-
 use std::borrow::Cow;
 
 use serde::de::Deserializer;
@@ -32,7 +30,9 @@ fn format_fingerprint(rule_id: &str, file: &str, message: &str) -> String {
 /// 1-indexed line and column in a source file.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, serde::Deserialize)]
 pub struct LineCol {
+    /// One-indexed source line.
     pub line: usize,
+    /// One-indexed source column.
     pub column: usize,
 }
 
@@ -119,14 +119,16 @@ pub struct Finding {
     pub line: usize,
     /// 1-indexed column.
     pub column: usize,
-    // ponytail: end_line/end_column/byte_offset/byte_length are always None in
-    // new findings but kept for the JSON/SARIF/finding_wire API shape.
+    /// One-indexed end line when a range is attached.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub end_line: Option<usize>,
+    /// One-indexed end column when a range is attached.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub end_column: Option<usize>,
+    /// Zero-indexed byte offset when a range is attached.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub byte_offset: Option<usize>,
+    /// Byte length when a range is attached.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub byte_length: Option<usize>,
     /// 0-indexed byte offset of the start of the enclosing function, when
@@ -173,6 +175,126 @@ pub struct Finding {
 }
 
 impl Finding {
+    /// Return the stable rule identifier.
+    pub fn rule_id(&self) -> &'static str {
+        self.rule_id
+    }
+
+    /// Return the human-readable rule title.
+    pub fn rule_title(&self) -> &'static str {
+        self.rule_title
+    }
+
+    /// Return the finding file path.
+    pub fn file(&self) -> &str {
+        &self.file
+    }
+
+    /// Return the one-indexed start location.
+    pub fn location(&self) -> LineCol {
+        LineCol {
+            line: self.line,
+            column: self.column,
+        }
+    }
+
+    /// Return the optional one-indexed end location.
+    pub fn end_location(&self) -> Option<LineCol> {
+        Some(LineCol {
+            line: self.end_line?,
+            column: self.end_column?,
+        })
+    }
+
+    /// Return the finding message.
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    /// Return the finding severity.
+    pub fn severity(&self) -> Severity {
+        self.severity
+    }
+
+    /// Return linked CWEs when present.
+    pub fn cwe(&self) -> Option<&[CweRef]> {
+        self.cwe.as_deref()
+    }
+
+    /// Return the optional source snippet.
+    pub fn snippet(&self) -> Option<&str> {
+        self.snippet.as_deref()
+    }
+
+    /// Return the optional short fix.
+    pub fn fix(&self) -> Option<&str> {
+        self.fix.as_deref()
+    }
+
+    /// Return structured detector evidence when present.
+    pub fn evidence(&self) -> Option<&DetectorEvidence> {
+        self.evidence.as_ref()
+    }
+
+    /// Return the optional confidence score.
+    pub fn confidence(&self) -> Option<f32> {
+        self.confidence
+    }
+
+    /// Return explicit tags when present.
+    pub fn tags(&self) -> Option<&[String]> {
+        self.tags.as_deref()
+    }
+
+    /// Return whether this finding is suppressed.
+    pub fn suppressed(&self) -> bool {
+        self.suppressed
+    }
+
+    /// Return longer remediation guidance when present.
+    pub fn remediation(&self) -> Option<&str> {
+        self.remediation.as_deref()
+    }
+
+    /// Return the optional source byte range.
+    pub fn byte_range(&self) -> Option<(usize, usize)> {
+        Some((self.byte_offset?, self.byte_length?))
+    }
+
+    /// Return the optional enclosing-function byte range.
+    pub fn function_byte_range(&self) -> Option<(usize, usize)> {
+        Some((self.function_start_byte?, self.function_end_byte?))
+    }
+
+    /// Return the optional enclosing-function line range.
+    pub fn function_line_range(&self) -> Option<(usize, usize)> {
+        Some((self.function_start_line?, self.function_end_line?))
+    }
+
+    /// Set severity through an internal mutation seam.
+    pub(crate) fn set_severity(&mut self, severity: Severity) {
+        self.severity = severity;
+    }
+
+    /// Mark this finding as suppressed through an internal mutation seam.
+    pub(crate) fn set_suppressed(&mut self, suppressed: bool) {
+        self.suppressed = suppressed;
+    }
+
+    /// Attach enclosing-function context through an internal mutation seam.
+    pub(crate) fn set_function_context(
+        &mut self,
+        start_byte: usize,
+        end_byte: usize,
+        start_line: usize,
+        end_line: usize,
+    ) {
+        self.function_start_byte = Some(start_byte);
+        self.function_end_byte = Some(end_byte);
+        self.function_start_line = Some(start_line);
+        self.function_end_line = Some(end_line);
+    }
+
     /// Construct a finding from [`FindingInputs`]; chain `with_*` methods for optional fields.
     pub fn new(inputs: FindingInputs) -> Self {
         let cwe = if inputs.cwe.is_empty() {
@@ -207,27 +329,33 @@ impl Finding {
         }
     }
 
+    /// Attach a source snippet to the finding.
     pub fn with_snippet(mut self, snippet: impl Into<String>) -> Self {
         self.snippet = Some(snippet.into());
         self
     }
 
+    /// Attach a short suggested fix.
     pub fn with_fix(mut self, fix: impl Into<String>) -> Self {
         self.fix = Some(fix.into());
         self
     }
 
+    /// Attach structured detector evidence.
     pub fn with_evidence(mut self, evidence: DetectorEvidence) -> Self {
         self.evidence = Some(evidence);
         self
     }
 
+    /// Set confidence without validating the value.
+    ///
+    /// Prefer [`Self::with_confidence_checked`] for untrusted input.
     pub fn with_confidence(mut self, confidence: f32) -> Self {
         self.confidence = Some(confidence);
         self
     }
 
-    /// Set confidence after validating that it is finite and within `0..=1`.
+    /// Set confidence after checking that it is finite and within `0..=1`.
     pub fn with_confidence_checked(self, confidence: f32) -> Result<Self, &'static str> {
         if !confidence.is_finite() || !(0.0..=1.0).contains(&confidence) {
             return Err("confidence must be finite and within 0..=1");
@@ -235,22 +363,28 @@ impl Finding {
         Ok(self.with_confidence(confidence))
     }
 
+    /// Attach machine-readable tags.
     pub fn with_tags(mut self, tags: Vec<String>) -> Self {
         self.tags = Some(tags);
         self
     }
 
+    /// Attach longer remediation guidance.
     pub fn with_remediation(mut self, remediation: impl Into<String>) -> Self {
         self.remediation = Some(remediation.into());
         self
     }
 
+    /// Mark the finding as suppressed while retaining it in output.
     pub fn mark_suppressed(mut self) -> Self {
         self.suppressed = true;
         self
     }
 
     // ponytail: with_byte_range/with_end kept for API shape (reporting reads the fields).
+    /// Attach a byte range without validating its bounds.
+    ///
+    /// Prefer [`Self::with_byte_range_checked`] for untrusted input.
     pub fn with_byte_range(mut self, byte_offset: usize, byte_length: usize) -> Self {
         self.byte_offset = Some(byte_offset);
         self.byte_length = Some(byte_length);
@@ -269,6 +403,9 @@ impl Finding {
         Ok(self.with_byte_range(byte_offset, byte_length))
     }
 
+    /// Attach an end location without validating ordering.
+    ///
+    /// Prefer [`Self::with_end_checked`] for untrusted input.
     pub fn with_end(mut self, end_line: usize, end_column: usize) -> Self {
         self.end_line = Some(end_line);
         self.end_column = Some(end_column);
@@ -293,7 +430,9 @@ impl Finding {
 
     /// Attach the enclosing function's byte/line range. The exporter uses
     /// the byte range to render the whole function body for this finding
-    /// instead of the default "few lines before/after" window.
+    /// instead of the default "few lines before/after" window. This method
+    /// does not validate ordering; prefer [`Self::with_function_range_checked`]
+    /// for untrusted input.
     pub fn with_function_range(
         mut self,
         start_byte: usize,
@@ -322,13 +461,13 @@ impl Finding {
         Ok(self.with_function_range(start_byte, end_byte, start_line, end_line))
     }
 
-    /// Content-stable fingerprint (rule + file + message digest).
-    /// Prefer this over line/column for baseline identity.
+    /// Return the content-stable finding fingerprint (rule + file + message
+    /// digest). Prefer this over line/column for baseline identity.
     pub fn fingerprint_string(&self) -> String {
         format_fingerprint(self.rule_id, &self.file, &self.message)
     }
 
-    /// Rule category derived from the rule id prefix.
+    /// Return the rule category derived from its identifier.
     pub fn category(&self) -> &'static str {
         super::category_for_rule_id(self.rule_id)
     }

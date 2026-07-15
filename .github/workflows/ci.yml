@@ -122,3 +122,13 @@ jobs:
         run: cargo bench --bench incremental_scan -- --output-format bencher 2>&1 | tee bench_incremental_output.txt
       - name: Check incremental bench budget
         run: bash scripts/check_incremental_bench_budget.sh
+      - name: Run taint and span benchmarks
+        run: |
+          CARGO_INCREMENTAL=0 cargo bench --locked --no-default-features --features go,bench \
+            --bench taint_graph --bench span_sweep -- \
+            --sample-size 10 --measurement-time 2 --warm-up-time 1 \
+            --output-format bencher 2>&1 | tee bench_taint_span_output.txt
+          grep -q "taint_interprocedural_summary_ip006" bench_taint_span_output.txt
+          grep -q "span_sweep_100" bench_taint_span_output.txt
+      - name: Runtime example smoke
+        run: cargo test --locked --examples -- --test-threads=1

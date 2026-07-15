@@ -1,10 +1,16 @@
 //! Release-mode taint graph query signal for adjacency and path reconstruction.
 
 use std::hint::black_box;
+use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::Duration;
 
+use codehound::ast::compute_line_starts;
+use codehound::core::{LanguageId, ParsedUnit};
+use codehound::lang::go::detectors::cwe::facts::{FactBuildOpts, build_go_unit_facts_with};
 use codehound::lang::go::detectors::cwe::taint::{
-    EdgeKind, SinkKind, SourceKind, TaintGraph, TaintNode,
+    EdgeKind, SinkKind, SourceKind, TaintGraph, TaintNode, compute_all_summaries,
+    refine_summaries_multihop,
 };
 use criterion::{Criterion, criterion_group, criterion_main};
 
@@ -54,9 +60,60 @@ fn bench_linear_queries(c: &mut Criterion) {
     }
 }
 
+fn interprocedural_unit() -> ParsedUnit {
+    let source: Arc<str> = Arc::from(
+        r#"package sample
+
+import "os"
+
+func caller() {
+	value := layer0()
+	os.Open(value)
+}
+
+func layer0() string { return layer1() }
+func layer1() string { return layer2() }
+func layer2() string { return layer3() }
+func layer3() string { return layer4() }
+func layer4() string { return layer5() }
+func layer5() string { return os.Getenv("INPUT") }
+"#,
+    );
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_go::LANGUAGE.into())
+        .expect("load Go grammar");
+    let tree = parser
+        .parse(source.as_ref(), None)
+        .expect("parse benchmark source");
+    ParsedUnit {
+        language: LanguageId::Go,
+        path: PathBuf::from("IP-006-vulnerable.go"),
+        display_path: String::from("IP-006-vulnerable.go"),
+        line_starts: compute_line_starts(source.as_ref()),
+        function_spans: Vec::new(),
+        source,
+        tree,
+    }
+}
+
+fn bench_interprocedural_summaries(c: &mut Criterion) {
+    let unit = interprocedural_unit();
+    let facts = build_go_unit_facts_with(&unit, FactBuildOpts::TAINT);
+    let call_graph = facts.call_graph.as_ref().expect("call graph extracted");
+
+    c.bench_function("taint_interprocedural_summary_ip006", |b| {
+        b.iter(|| {
+            let mut summaries = compute_all_summaries(&facts.taint, unit.source.as_ref());
+            refine_summaries_multihop(call_graph, &mut summaries, 4);
+            black_box(summaries);
+        });
+    });
+}
+
 criterion_group! {
     name = benches;
     config = Criterion::default().measurement_time(Duration::from_secs(5));
-    targets = bench_linear_queries,
+    targets = bench_linear_queries, bench_interprocedural_summaries,
 }
 criterion_main!(benches);

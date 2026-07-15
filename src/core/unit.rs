@@ -28,6 +28,47 @@ pub struct ParsedUnit {
 }
 
 impl ParsedUnit {
+    /// Return the language selected for this source unit.
+    pub fn language(&self) -> LanguageId {
+        self.language
+    }
+
+    /// Return the source path.
+    pub fn path(&self) -> &std::path::Path {
+        &self.path
+    }
+
+    /// Return the cached display path used by findings and cache keys.
+    pub fn display_path(&self) -> &str {
+        &self.display_path
+    }
+
+    /// Return the shared source text.
+    pub fn source(&self) -> &Arc<str> {
+        &self.source
+    }
+
+    /// Return the parsed syntax tree.
+    pub fn tree(&self) -> &Tree {
+        &self.tree
+    }
+
+    /// Return precomputed line-start byte offsets.
+    pub fn line_starts(&self) -> &[usize] {
+        &self.line_starts
+    }
+
+    /// Return precomputed function spans.
+    pub fn function_spans(&self) -> &[FunctionSpan] {
+        &self.function_spans
+    }
+
+    /// Replace function spans during the parser/enrichment phase.
+    pub(crate) fn set_function_spans(&mut self, spans: Vec<FunctionSpan>) {
+        self.function_spans = spans;
+    }
+
+    /// Convert a byte offset into a one-indexed line and column.
     pub fn line_col(&self, byte_offset: usize) -> (usize, usize) {
         ast::line_col_with_starts(&self.line_starts, byte_offset)
     }

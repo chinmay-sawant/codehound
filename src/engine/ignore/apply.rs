@@ -36,8 +36,8 @@ pub(crate) fn apply_inline_ignores(
 
         suppressed += 1;
         if show_ignored {
-            finding.severity = Severity::Info;
-            finding.suppressed = true;
+            finding.set_severity(Severity::Info);
+            finding.set_suppressed(true);
             tag_suppressed(finding);
             true
         } else {
@@ -79,8 +79,8 @@ fn apply_directive(
 
         suppressed += 1;
         if show_ignored {
-            finding.severity = Severity::Info;
-            finding.suppressed = true;
+            finding.set_severity(Severity::Info);
+            finding.set_suppressed(true);
             tag_suppressed(finding);
             true
         } else {

@@ -12,4 +12,6 @@ pub use entry::{
     collect_entries_with,
 };
 pub(crate) use parallel::{MergedScan, scan_entries_parallel};
+#[cfg(feature = "bench")]
+pub(crate) use scan_entry::attach_function_context_to_spans;
 pub use scratch::scratch_contains;
