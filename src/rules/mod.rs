@@ -2,12 +2,12 @@
 
 //! Rule metadata and the `Finding` value type.
 
-pub mod emit;
+pub(crate) mod emit;
 mod evidence;
 mod finding;
 pub(crate) mod finding_view;
 pub(crate) mod finding_wire;
-pub mod maturity;
+pub(crate) mod maturity;
 mod severity;
 
 pub use emit::{push_finding, push_finding_with_evidence, push_finding_with_snippet, rule_meta};

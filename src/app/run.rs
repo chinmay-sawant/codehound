@@ -170,7 +170,7 @@ impl ScanRun {
         write_diagnostics(&cli, &result)?;
         write_diagnostics_summary(&cli, &result);
 
-        Ok(scan_exit_code(&result, analyzer.ctx.fail_policy))
+        Ok(scan_exit_code(&result, analyzer.scan_context().fail_policy))
     }
 }
 

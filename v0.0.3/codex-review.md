@@ -1,7 +1,7 @@
 # v0.0.3 — Rust Quality Remediation Checklist
 
 > **Parent:** `v0.0.3/codex-review.md` — consolidated Rust review and implementation ledger
-> **Status:** Phases 1–5 high-confidence fixes implemented; scan-global lifecycle and API/documentation ratchets remain
+> **Status:** Literal unchecked rows addressed; scan-global lifecycle and breaking API/documentation ratchets remain
 > **Date:** 2026-07-15
 > **Goal:** Rust Best Practices **9.5+/10** and Rust Development Patterns **9.5+/10**
 
@@ -110,7 +110,7 @@ The memory-saving design is intentional: default CI/JSON/SARIF runs use `retain_
 
 - [~] Build adjacency indexes once per graph query set and reuse them across sink queries; a persistent project-owned index remains open.
 - [x] Replace BFS full-path cloning with predecessor/path reconstruction while preserving sanitizer state in the search key.
-- [ ] Pre-index summaries, imports, variable nodes, and sink nodes before repeated call-site queries.
+- [x] Pre-index summaries, imported prefixes, variable nodes, and sink nodes before repeated call-site queries; first-file-wins resolution is preserved.
 - [x] Add release-mode taint query benchmarks; the dedicated Criterion target measured approximately 141 µs for 1K and 1.55 ms for 10K linear graphs locally.
 - [x] Preserve unsanitized taint paths through sanitized merge nodes with a two-state traversal regression test.
 
@@ -126,7 +126,7 @@ The memory-saving design is intentional: default CI/JSON/SARIF runs use `retain_
 
 ## Phase 5 — API, Type, and Documentation Maturity
 
-- [ ] Narrow public modules, re-exports, and mutable fields where invariants matter; defer breaking visibility changes to a planned API release.
+- [~] Narrow public modules, re-exports, and mutable fields where invariants matter; `Analyzer.ctx` and internal rules modules are narrowed, while `Finding`, `AnalysisResult`, and Go-taint storage remain deferred to a planned breaking API release.
 - [x] Add validated constructors/checked builders for `LineCol`, confidence, byte ranges, and function/end ranges.
 - [~] Replace missing-documentation suppressions with incremental public API docs; primary builder/result/context docs were improved and examples are now present, but the crate-wide ratchet remains open.
 - [x] Fix broken intra-doc links; strict rustdoc link validation passes.
@@ -211,3 +211,13 @@ The goal is not to make every Rust line maximally abstract. The goal is to close
 - [x] `git diff --check` passes.
 - [x] Confirmed no Cargo/test process remains active after interruption.
 - [~] Build artifacts currently occupy approximately 37 GB under `target/`; cleanup is intentionally deferred pending explicit approval because they are generated files outside the review deliverable.
+
+### Literal-checkbox follow-up — 2026-07-15
+
+- [x] Built one project summary index and one imported-prefix set before inter-procedural call-site traversal.
+- [x] Built one variable-name index per taint graph and reused it for argument, return, and output-pointer checks.
+- [x] Added a scoped-variable index regression test and preserved the existing taint fixture coverage.
+- [x] Made `Analyzer` expose an immutable `scan_context()` accessor instead of a public mutable context field.
+- [x] Narrowed `rules::emit` and `rules::maturity` to crate-private modules while preserving their documented root-level re-exports.
+- [x] Focused API, taint, reporting, and embedder tests pass with `--all-features --locked`; strict Clippy passes.
+- [~] Full `Finding`/`AnalysisResult` field privacy and deep language-internal module narrowing remain a planned breaking API release item.

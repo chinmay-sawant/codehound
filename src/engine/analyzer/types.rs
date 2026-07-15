@@ -10,10 +10,18 @@ use crate::engine::walk::EntrySource;
 pub struct Analyzer {
     pub(super) registry: Registry,
     /// Scan policy used by this analyzer.
-    pub ctx: ScanContext,
+    pub(crate) ctx: ScanContext,
     pub(super) lang_filter: LanguageFilter,
     pub(super) path_filters: PathFilters,
     pub(super) collect_stats: bool,
     /// Pluggable entry source; defaults to [`FilesystemWalker`](crate::engine::walk::FilesystemWalker).
     pub(super) entry_source: Box<dyn EntrySource>,
+}
+
+impl Analyzer {
+    /// Return the immutable scan policy used by this analyzer.
+    #[must_use]
+    pub fn scan_context(&self) -> &ScanContext {
+        &self.ctx
+    }
 }

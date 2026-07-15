@@ -70,6 +70,25 @@ impl Default for ScanContext {
 }
 
 impl ScanContext {
+    /// Return the bounded inter-procedural taint summary depth.
+    #[must_use]
+    pub const fn taint_max_depth(&self) -> u32 {
+        self.taint_max_depth
+    }
+
+    /// Set the inter-procedural taint summary depth, bounded to the supported range.
+    #[must_use]
+    pub const fn with_taint_max_depth(mut self, depth: u32) -> Self {
+        self.taint_max_depth = if depth < 1 {
+            1
+        } else if depth > 4 {
+            4
+        } else {
+            depth
+        };
+        self
+    }
+
     pub fn allows(&self, rule_id: &str) -> bool {
         if rule_id.starts_with("BP-") && !self.bad_practices_enabled {
             return false;

@@ -8,7 +8,7 @@ pub mod taint;
 
 mod metadata;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -19,9 +19,9 @@ use crate::rules::{
 use domains::*;
 use facts::{FactBuildOpts, GoUnitFacts, build_go_unit_facts_with, build_taint_graph_for_facts};
 use taint::{
-    CallGraph, SinkKind, TaintAnnotations, TaintGraph, TaintNode, TaintNodeId, build_import_map,
-    detect_cwe_22_taint, detect_cwe_78_taint, detect_cwe_79_taint, detect_cwe_89_taint,
-    detect_cwe_90_taint, detect_cwe_91_taint,
+    CallGraph, SharedText, SinkKind, TaintAnnotations, TaintGraph, TaintNode, TaintNodeId,
+    build_import_map, detect_cwe_22_taint, detect_cwe_78_taint, detect_cwe_79_taint,
+    detect_cwe_89_taint, detect_cwe_90_taint, detect_cwe_91_taint,
 };
 use taint::{forward_reaches_any, unsanitized_reaches_any};
 
@@ -173,6 +173,25 @@ impl Detector for GoCweScan {
             }
         }
 
+        // Index project-wide lookups once before walking call sites. These
+        // maps preserve the existing first-file-wins resolution semantics
+        // without repeatedly scanning every file or graph.
+        let variable_indexes: Vec<VariableIndex> = per_file
+            .iter()
+            .map(|(_, graph, _)| build_variable_index(graph))
+            .collect();
+        let mut summary_index: HashMap<String, usize> = HashMap::new();
+        for (file_idx, (_, _, summaries)) in per_file.iter().enumerate() {
+            for name in summaries.keys() {
+                summary_index.entry(name.clone()).or_insert(file_idx);
+            }
+        }
+        let imported_prefixes: HashSet<String> = state
+            .units
+            .iter()
+            .flat_map(|unit| unit.import_map.keys().cloned())
+            .collect();
+
         // Phase 2 + 3: Walk each file's call sites in place. Using the merged
         // project graph + func_to_file lookup was nondeterministic when the
         // same function name appears in multiple files (parallel scan order
@@ -180,6 +199,7 @@ impl Detector for GoCweScan {
         for (caller_idx, unit) in state.units.iter().enumerate() {
             let caller_path = unit.path.as_str();
             let caller_graph = &per_file[caller_idx].1;
+            let caller_variables = &variable_indexes[caller_idx];
             let caller_line_starts = &unit.line_starts;
 
             for site in &unit.call_graph.sites {
@@ -190,10 +210,7 @@ impl Detector for GoCweScan {
                 if site.is_method_call {
                     if let Some(dot) = raw_callee.rfind('.') {
                         let prefix = &raw_callee[..dot];
-                        let is_imported = state
-                            .units
-                            .iter()
-                            .any(|u| u.import_map.contains_key(prefix));
+                        let is_imported = imported_prefixes.contains(prefix);
                         let is_internal = func_to_file.contains_key(&raw_callee[dot + 1..]);
                         if is_imported && !is_internal {
                             continue;
@@ -201,8 +218,8 @@ impl Detector for GoCweScan {
                     }
                 }
                 let callee_name = resolve_callee_name(raw_callee, site.is_method_call);
-                let callee_summary = find_callee_summary(&per_file, raw_callee)
-                    .or_else(|| find_callee_summary(&per_file, &callee_name));
+                let callee_summary = find_callee_summary(&per_file, &summary_index, raw_callee)
+                    .or_else(|| find_callee_summary(&per_file, &summary_index, &callee_name));
                 let Some(callee_summary) = callee_summary else {
                     continue;
                 };
@@ -213,7 +230,7 @@ impl Detector for GoCweScan {
                     let Some(arg_text) = site.arguments.get(i) else {
                         continue;
                     };
-                    if !is_identifier_tainted(caller_graph, arg_text) {
+                    if !is_identifier_tainted(caller_graph, caller_variables, arg_text) {
                         continue;
                     }
                     emit_inter_procedural_finding(
@@ -242,7 +259,8 @@ impl Detector for GoCweScan {
                     let Some(result_var) = result_var else {
                         continue;
                     };
-                    let reached_sinks = sink_kinds_reached_by_var(caller_graph, &result_var);
+                    let reached_sinks =
+                        sink_kinds_reached_by_var(caller_graph, caller_variables, &result_var);
                     if reached_sinks.is_empty() {
                         continue;
                     }
@@ -267,7 +285,8 @@ impl Detector for GoCweScan {
                         continue;
                     };
                     let var_name = arg_text.strip_prefix('&').unwrap_or(arg_text).trim();
-                    let reached_sinks = sink_kinds_reached_by_var(caller_graph, var_name);
+                    let reached_sinks =
+                        sink_kinds_reached_by_var(caller_graph, caller_variables, var_name);
                     if reached_sinks.is_empty() {
                         continue;
                     }
@@ -292,6 +311,21 @@ impl Detector for GoCweScan {
 
 // --- Inter-procedural analysis helpers ---
 
+type VariableIndex = HashMap<SharedText, Vec<TaintNodeId>>;
+
+fn build_variable_index(graph: &TaintGraph) -> VariableIndex {
+    let mut index = HashMap::new();
+    for (id, node) in graph.nodes.iter().enumerate() {
+        if let TaintNode::Variable { name, .. } = node {
+            index
+                .entry(Arc::clone(name))
+                .or_insert_with(Vec::new)
+                .push(id);
+        }
+    }
+    index
+}
+
 fn make_project_unit(unit: &ParsedUnit, facts: &GoUnitFacts) -> ProjectUnit {
     ProjectUnit {
         path: unit.display_path.clone(),
@@ -306,31 +340,24 @@ fn make_project_unit(unit: &ParsedUnit, facts: &GoUnitFacts) -> ProjectUnit {
 /// Find a callee's TaintSummary across all files.
 fn find_callee_summary<'a>(
     per_file: &'a [(&str, TaintGraph, HashMap<String, taint::TaintSummary>)],
+    summary_index: &HashMap<String, usize>,
     callee_name: &str,
 ) -> Option<&'a taint::TaintSummary> {
-    for (_, _, summaries) in per_file {
-        if let Some(s) = summaries.get(callee_name) {
-            return Some(s);
-        }
-    }
-    None
+    summary_index
+        .get(callee_name)
+        .and_then(|file_idx| per_file.get(*file_idx))
+        .and_then(|(_, _, summaries)| summaries.get(callee_name))
 }
 
 /// Check if any identifier text in a TaintGraph has an **unsanitized** taint
 /// path from any source.
-fn is_identifier_tainted(graph: &TaintGraph, name: &str) -> bool {
+fn is_identifier_tainted(graph: &TaintGraph, variable_index: &VariableIndex, name: &str) -> bool {
     // Check 1: Variable nodes with this name have taint paths.
-    let var_ids: Vec<TaintNodeId> = graph
-        .nodes
-        .iter()
-        .enumerate()
-        .filter(|(_, n)| matches!(n, TaintNode::Variable { name: n2, .. } if n2.as_ref() == name))
-        .map(|(id, _)| id)
-        .collect();
+    let var_ids = variable_index.get(name).map(Vec::as_slice).unwrap_or(&[]);
     if !var_ids.is_empty() {
         for source_ids in graph.by_source.values() {
             for source_id in source_ids {
-                if unsanitized_reaches_any(graph, *source_id, &var_ids) {
+                if unsanitized_reaches_any(graph, *source_id, var_ids) {
                     return true;
                 }
             }
@@ -380,14 +407,15 @@ fn resolve_callee_name(callee: &str, is_method_call: bool) -> String {
 }
 
 /// Which sink kinds does a variable reach in the TaintGraph (forward BFS)?
-fn sink_kinds_reached_by_var(graph: &TaintGraph, var_name: &str) -> Vec<SinkKind> {
-    let var_ids: Vec<TaintNodeId> = graph
-        .nodes
-        .iter()
-        .enumerate()
-        .filter(|(_, n)| matches!(n, TaintNode::Variable { name, .. } if name.as_ref() == var_name))
-        .map(|(id, _)| id)
-        .collect();
+fn sink_kinds_reached_by_var(
+    graph: &TaintGraph,
+    variable_index: &VariableIndex,
+    var_name: &str,
+) -> Vec<SinkKind> {
+    let var_ids = variable_index
+        .get(var_name)
+        .map(Vec::as_slice)
+        .unwrap_or(&[]);
     if var_ids.is_empty() {
         return Vec::new();
     }
@@ -405,7 +433,7 @@ fn sink_kinds_reached_by_var(graph: &TaintGraph, var_name: &str) -> Vec<SinkKind
     .iter()
     {
         if let Some(sink_ids) = graph.by_sink.get(&sk) {
-            if forward_reaches_any(graph, &var_ids, sink_ids) {
+            if forward_reaches_any(graph, var_ids, sink_ids) {
                 reached.push(sk);
             }
         }
@@ -473,5 +501,31 @@ fn emit_inter_procedural_finding(
             },
             out,
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn variable_index_groups_scoped_nodes_by_name() {
+        let mut graph = TaintGraph::default();
+        graph.add_node(TaintNode::Variable {
+            name: Arc::from("value"),
+            type_hint: None,
+            scope: 1,
+            decl_byte: 10,
+        });
+        graph.add_node(TaintNode::Variable {
+            name: Arc::from("value"),
+            type_hint: None,
+            scope: 2,
+            decl_byte: 20,
+        });
+
+        let index = build_variable_index(&graph);
+
+        assert_eq!(index.get("value").map(Vec::len), Some(2));
     }
 }

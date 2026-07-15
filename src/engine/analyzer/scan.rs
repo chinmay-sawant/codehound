@@ -71,14 +71,14 @@ impl Analyzer {
         }
 
         if let Some(cache) = cache.as_mut() {
-            cache.ensure_rule_config_hash(&self.ctx.rule_config_fingerprint());
+            cache.ensure_rule_config_hash(&self.scan_context().rule_config_fingerprint());
         }
 
         let _timing_session = timing::begin_global(self.collect_stats);
         for chunk in entries.chunks(SCAN_CHUNK_SIZE) {
             let chunk = match scan_entries_parallel(
                 &self.registry,
-                &self.ctx,
+                self.scan_context(),
                 chunk,
                 cache.as_mut(),
                 &dependency_root,
@@ -133,7 +133,7 @@ impl Analyzer {
         for &idx in self.registry.detector_indices_for_project() {
             if let Some(detector) = self.registry.detector(idx) {
                 let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                    detector.finalize(&self.ctx, acc.findings_mut());
+                    detector.finalize(self.scan_context(), acc.findings_mut());
                 }));
                 if let Err(payload) = result {
                     acc.record_error(crate::engine::ScanError {
@@ -147,7 +147,7 @@ impl Analyzer {
                 }
             }
         }
-        crate::engine::walk::filter_findings(&self.ctx, acc.findings_mut());
+        crate::engine::walk::filter_findings(self.scan_context(), acc.findings_mut());
         timing.stop(det_idx);
 
         timing.measure("sort_results", || {
