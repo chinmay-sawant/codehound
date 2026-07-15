@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use crate::ast;
 use crate::core::{LanguagePlugin, ParsedUnit, ScanContext};
-use crate::engine::dependencies::extract_dependencies;
+use crate::engine::dependencies::extract_dependencies_with_registry;
 use crate::engine::ignore::{IgnoreDirective, apply_ignores, parse_file_ignore};
 use crate::engine::parse_pool::ParsePool;
 use crate::engine::registry::Registry;
@@ -218,7 +218,8 @@ pub(crate) fn scan_entry(
     let content_hash = preloaded.as_ref().map(|p| p.content_hash.clone());
     let ReadOutcome { source, bytes } = read_entry_source(entry, &mut stats, preloaded.as_ref())?;
     let mut unit = parse_entry_unit(entry, plugin, pool, Arc::clone(&source), &mut stats)?;
-    let dependencies = extract_dependencies(&unit, project_root, module_prefix);
+    let dependencies =
+        extract_dependencies_with_registry(registry, &unit, project_root, module_prefix);
 
     let file_ignore = parse_file_ignore(unit.source.as_ref());
     if !ctx.show_ignored && file_ignore.as_ref().is_some_and(IgnoreDirective::is_all) {

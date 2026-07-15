@@ -9,6 +9,7 @@ use crate::engine::walk::EntrySource;
 /// Language-agnostic static analyzer.
 pub struct Analyzer {
     pub(super) registry: Registry,
+    /// Scan policy used by this analyzer.
     pub ctx: ScanContext,
     pub(super) lang_filter: LanguageFilter,
     pub(super) path_filters: PathFilters,

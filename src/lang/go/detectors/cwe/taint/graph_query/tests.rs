@@ -191,4 +191,46 @@ func f(r *http.Request) {
             "expected no live taint after overwrite, got {paths:?}"
         );
     }
+
+    #[test]
+    fn unsanitized_branch_is_not_hidden_by_sanitized_merge() {
+        use std::ops::Range;
+        use std::sync::Arc;
+
+        use crate::lang::go::detectors::cwe::taint::{EdgeKind, TaintGraph, TaintNode};
+
+        let mut graph = TaintGraph::default();
+        let source = graph.add_node(TaintNode::Source {
+            function: Arc::from("source"),
+            kind: SourceKind::UserInput,
+            byte_range: Range { start: 0, end: 1 },
+        });
+        let sanitizer = graph.add_node(TaintNode::Sanitizer {
+            function: Arc::from("sanitize"),
+            kind: SanitizerKind::Validation,
+            byte_range: 1..2,
+        });
+        let merge = graph.add_node(TaintNode::Variable {
+            name: Arc::from("merged"),
+            type_hint: None,
+            scope: 0,
+            decl_byte: 2,
+        });
+        let sink = graph.add_node(TaintNode::Sink {
+            function: Arc::from("sink"),
+            kind: SinkKind::CommandExec,
+            argument_index: 0,
+            byte_range: 3..4,
+        });
+        graph.add_edge(source, sanitizer, EdgeKind::PassThrough);
+        graph.add_edge(sanitizer, merge, EdgeKind::PassThrough);
+        graph.add_edge(source, merge, EdgeKind::PassThrough);
+        graph.add_edge(merge, sink, EdgeKind::Argument(0));
+
+        assert!(super::super::unsanitized_reaches_any(
+            &graph,
+            source,
+            &[sink]
+        ));
+    }
 }

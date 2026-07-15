@@ -32,6 +32,7 @@ pub(crate) enum ScanOutcome {
         cache_key: String,
         source: Arc<str>,
         stats: ScanStats,
+        suppressed_count: usize,
     },
     Err(ScanError),
 }
@@ -79,7 +80,7 @@ pub(crate) fn scan_entries_parallel(
         project_root,
         module_prefix,
     );
-    let merged = merge_parallel_results(
+    let mut merged = merge_parallel_results(
         scan_outcomes,
         preflight.cached_outcomes,
         &mut cache,
@@ -92,7 +93,11 @@ pub(crate) fn scan_entries_parallel(
     // so finalize() can emit the same findings regardless of cache.
     // Only needed when taint finalize will consume project state.
     if ctx.taint_enabled && !preflight.cached_files.is_empty() {
-        accumulate_state_for_cached(registry, ctx, &preflight.cached_files);
+        merged.errors.extend(accumulate_state_for_cached(
+            registry,
+            ctx,
+            &preflight.cached_files,
+        ));
     }
 
     tracing::debug!(
@@ -107,6 +112,7 @@ pub(crate) fn scan_entries_parallel(
 
 fn process_cache_hit(ctx: &ScanContext, cached: CacheEntry, source: Arc<str>) -> ScanOutcome {
     let cache_key = cached.file;
+    let suppressed_count = cached.suppressed_count;
     let mut findings = cached.findings;
     filter_findings(ctx, &mut findings);
     let file_ignore = parse_file_ignore(source.as_ref());
@@ -119,6 +125,7 @@ fn process_cache_hit(ctx: &ScanContext, cached: CacheEntry, source: Arc<str>) ->
         cache_key,
         source,
         stats: file_scan_stats,
+        suppressed_count,
     }
 }
 
@@ -234,7 +241,12 @@ fn preflight_cache_hits(
 /// detector state (e.g. call graphs for taint analysis) that `finalize()`
 /// needs. The generated per-file findings are discarded — cached findings
 /// are used instead.
-fn accumulate_state_for_cached(registry: &Registry, ctx: &ScanContext, files: &[CachedFileInfo]) {
+fn accumulate_state_for_cached(
+    registry: &Registry,
+    ctx: &ScanContext,
+    files: &[CachedFileInfo],
+) -> Vec<ScanError> {
+    let mut errors = Vec::new();
     let mut pool = ParsePool::new();
     for info in files {
         let Some(plugin) = registry.plugin_for_id(info.language) else {
@@ -261,9 +273,24 @@ fn accumulate_state_for_cached(registry: &Registry, ctx: &ScanContext, files: &[
         // cross-file analysis in `finalize()` has the same state regardless
         // of cache status.
         for &idx in registry.detector_indices(info.language) {
-            registry.detector(idx).accumulate_state(ctx, &unit);
+            if let Some(detector) = registry.detector(idx) {
+                let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    detector.accumulate_state(ctx, &unit);
+                }));
+                if let Err(payload) = result {
+                    errors.push(ScanError {
+                        path: unit.path.clone(),
+                        kind: ScanErrorKind::Engine,
+                        message: format!(
+                            "cached detector state accumulation panicked: {}",
+                            panic_message(&payload)
+                        ),
+                    });
+                }
+            }
         }
     }
+    errors
 }
 
 fn dispatch_parallel_scan(
@@ -333,15 +360,7 @@ fn merge_parallel_results(
     for outcome in scan_outcomes {
         match outcome {
             ScanOutcome::Fresh(mut result) => {
-                write_cache_on_miss(
-                    cache,
-                    &result.cache_key,
-                    &result.source,
-                    result.content_hash.as_deref(),
-                    &result.findings,
-                    &result.dependencies,
-                    &mut merged.rescan_files,
-                );
+                write_cache_on_miss(cache, &result, &mut merged.rescan_files);
                 append_file_contribution(
                     &mut merged,
                     &mut result.findings,
@@ -367,7 +386,7 @@ fn merge_parallel_results(
                 cache_key,
                 source,
                 stats: file_stats,
-                ..
+                suppressed_count,
             } => {
                 append_file_contribution(
                     &mut merged,
@@ -375,7 +394,7 @@ fn merge_parallel_results(
                     cache_key,
                     source,
                     &file_stats,
-                    0,
+                    suppressed_count,
                     retain_sources,
                 );
             }
@@ -411,41 +430,40 @@ fn append_file_contribution(
 
 fn write_cache_on_miss(
     cache: &mut Option<&mut CacheSession<'_>>,
-    cache_key: &str,
-    source: &Arc<str>,
-    precomputed_hash: Option<&str>,
-    findings: &[Finding],
-    dependencies: &[String],
+    result: &ScanEntryResult,
     rescan_files: &mut Vec<(String, bool)>,
 ) {
     let Some(session) = cache.as_deref_mut() else {
         return;
     };
-    if !session.should_cache_bytes(source.len() as u64) {
-        session.invalidate_file(cache_key);
+    if !session.should_cache_bytes(result.source.len() as u64) {
+        session.invalidate_file(&result.cache_key);
         return;
     }
-    let hash = precomputed_hash
+    let hash = result
+        .content_hash
+        .as_deref()
         .map(str::to_string)
-        .unwrap_or_else(|| content_hash(source.as_ref()));
+        .unwrap_or_else(|| content_hash(result.source.as_ref()));
     let prior_hash = session
         .manifest()
         .files
-        .get(cache_key)
+        .get(&result.cache_key)
         .map(|m| m.content_hash.as_str());
     let hash_changed = prior_hash.map(|old| old != hash.as_str()).unwrap_or(false);
     let cached_at = iso8601_utc_now();
-    if let Err(e) = session.put(
-        cache_key,
+    if let Err(e) = session.put_with_suppressed_count(
+        &result.cache_key,
         &hash,
-        dependencies,
-        findings.to_vec(),
+        &result.dependencies,
+        result.findings.clone(),
+        result.suppressed_count,
         &cached_at,
     ) {
-        tracing::warn!(file = %cache_key, error = %e, "failed to write cache entry");
+        tracing::warn!(file = %result.cache_key, error = %e, "failed to write cache entry");
     }
     if hash_changed {
-        rescan_files.push((cache_key.to_string(), true));
+        rescan_files.push((result.cache_key.clone(), true));
     }
 }
 

@@ -3,7 +3,8 @@
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
+use codehound::Error as CodehoundError;
 use codehound::cli::{BaselineAction, Cli};
 use codehound::engine::{
     AnalysisResult, Analyzer, BASELINE_FILE_NAME, Baseline, CacheSession, RunConfigParams,
@@ -63,7 +64,14 @@ pub(crate) fn run_baseline_command(cli: &Cli, action: &BaselineAction) -> Result
             let p = resolve_baseline_path(cli, path.as_deref())?;
             let mut baseline = match Baseline::from_file(&p) {
                 Ok(b) => b,
-                Err(_) => Baseline::from_findings(&[]),
+                Err(CodehoundError::Io(error)) if error.kind() == std::io::ErrorKind::NotFound => {
+                    Baseline::from_findings(&[])
+                }
+                Err(error) => {
+                    return Err(anyhow!(error)).with_context(|| {
+                        format!("refusing to replace invalid baseline {}", p.display())
+                    });
+                }
             };
             let live = scan_live(cli, paths)?;
             let (added, updated) = baseline.update_from_findings(&live.findings);

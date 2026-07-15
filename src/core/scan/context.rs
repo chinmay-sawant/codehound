@@ -8,9 +8,13 @@ use super::policy::FailPolicy;
 
 #[derive(Debug, Clone)]
 pub struct ScanContext {
+    /// Optional allow-list of rule IDs or prefix patterns.
     pub only: Option<HashSet<String>>,
+    /// Rule IDs or prefix patterns excluded from the scan.
     pub skip: HashSet<String>,
+    /// Severity threshold used by [`crate::engine::AnalysisResult::should_fail`].
     pub fail_policy: FailPolicy,
+    /// Keep findings suppressed by inline/file ignores in the result.
     pub show_ignored: bool,
     /// When true, detectors collect per-rule timing. Also implies stats collection.
     pub debug_timing: bool,
@@ -113,17 +117,27 @@ impl ScanContext {
     /// or filter set changes (e.g. recommended → all).
     pub fn rule_config_fingerprint(&self) -> String {
         use sha2::{Digest, Sha256};
-        use std::collections::BTreeSet;
+        use std::collections::{BTreeMap, BTreeSet};
 
         let mut only: BTreeSet<&str> = BTreeSet::new();
         if let Some(set) = &self.only {
             only.extend(set.iter().map(String::as_str));
         }
         let skip: BTreeSet<&str> = self.skip.iter().map(String::as_str).collect();
+        let severity_overrides: BTreeMap<&str, Severity> = self
+            .severity_overrides
+            .iter()
+            .map(|(rule, severity)| (rule.as_str(), *severity))
+            .collect();
         // Hash via a portable string so disk caches are stable across processes.
         let payload = format!(
-            "only={only:?}|skip={skip:?}|taint={}|bp={}|depth={}",
-            self.taint_enabled, self.bad_practices_enabled, self.taint_max_depth
+            "only={only:?}|skip={skip:?}|taint={}|taint_paths={}|bp={}|bp_severity={:?}|depth={}|show_ignored={}|severity_overrides={severity_overrides:?}",
+            self.taint_enabled,
+            self.taint_show_paths,
+            self.bad_practices_enabled,
+            self.bad_practice_severity,
+            self.taint_max_depth,
+            self.show_ignored,
         );
         let digest = Sha256::digest(payload.as_bytes());
         let hash_str = crate::engine::hex_lower(digest);

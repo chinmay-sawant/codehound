@@ -51,6 +51,49 @@ mod t {
         );
     }
 
+    #[test]
+    fn concurrent_timing_sessions_are_isolated() {
+        let handles: Vec<_> = (0..2)
+            .map(|_| {
+                std::thread::spawn(|| {
+                    let (_, summary) = super::super::collector::with_timing(|| {
+                        let span = super::super::global_start("file_read");
+                        super::super::global_stop(span);
+                    });
+                    summary.expect("timing summary")
+                })
+            })
+            .collect();
+
+        for handle in handles {
+            let summary = handle.join().expect("timing worker");
+            assert_eq!(summary.phases[0].name, "file_read");
+            assert_eq!(summary.phases[0].count, 1);
+        }
+    }
+
+    #[test]
+    fn global_collector_survives_multiple_chunk_drains() {
+        use super::super::collector::{
+            begin_global, drain_global, global_start, global_stop, reset_global,
+        };
+
+        let mut target = TimingCollector::new(true);
+        let _guard = begin_global(true);
+        let first = global_start("file_read");
+        global_stop(first);
+        drain_global(&mut target);
+
+        let second = global_start("file_read");
+        global_stop(second);
+        drain_global(&mut target);
+
+        let summary = target.to_summary();
+        assert_eq!(summary.phases[0].name, "file_read");
+        assert_eq!(summary.phases[0].count, 2);
+        reset_global();
+    }
+
     #[cfg(feature = "go")]
     #[test]
     fn with_timing_captures_phases_during_analyze_paths() {
@@ -59,8 +102,6 @@ mod t {
         use crate::core::ScanContext;
         use crate::engine::Analyzer;
         use crate::fixture::materialize_fixture;
-
-        use super::super::collector::with_timing;
 
         let fixture = Path::new("tests/fixtures/go/baseline/suppressed_inline.txt");
         let source_path = materialize_fixture(fixture).expect("materialize fixture");
@@ -74,15 +115,9 @@ mod t {
             .collect_stats(true)
             .build();
 
-        let (result, global_summary) = with_timing(|| {
-            analyzer
-                .analyze_paths(&[scan_root], None)
-                .expect("analyze_paths")
-        });
-
-        // `analyze_paths` drains the global collector into its local
-        // `TimingCollector`, so `with_timing` sees an empty global here.
-        assert!(global_summary.is_none());
+        let result = analyzer
+            .analyze_paths(&[scan_root], None)
+            .expect("analyze_paths");
 
         let stats = result.stats.expect("stats");
         let timing = stats.timing.expect("timing");

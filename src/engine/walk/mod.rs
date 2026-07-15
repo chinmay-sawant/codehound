@@ -6,6 +6,7 @@ mod parallel;
 mod scan_entry;
 mod scratch;
 
+pub(crate) use analyze::filter_findings;
 pub use entry::{
     EntrySource, FilesystemWalker, ListEntrySource, ScanEntry, collect_entries,
     collect_entries_with,

@@ -42,7 +42,7 @@ pub trait LanguagePlugin: Send + Sync {
         &[]
     }
 
-    /// One-shot parse (tests only); production uses [`parse_with`] + pool.
+    /// One-shot parse (tests only); production uses [`Self::parse_with`] + pool.
     fn parse(&self, path: &Path, source: Arc<str>) -> Result<ParsedUnit, Error> {
         let mut parser = tree_sitter::Parser::new();
         self.configure_parser(&mut parser)?;

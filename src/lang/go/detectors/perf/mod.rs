@@ -3,7 +3,7 @@
 //! Mirrors the CWE bundle layout: one [`Detector`] implementation per language,
 //! one typed `registry.toml` driving `build.rs`, and one module per domain under
 //! `domains/`. CWE references for severity/fix overrides live in
-//! [`metadata_overrides`].
+//! The generated metadata uses the `metadata_overrides` module.
 
 pub mod common;
 pub mod domains;

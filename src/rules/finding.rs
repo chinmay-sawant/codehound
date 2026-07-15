@@ -36,6 +36,17 @@ pub struct LineCol {
     pub column: usize,
 }
 
+impl LineCol {
+    /// Construct a location while enforcing the public 1-indexed invariant.
+    pub const fn try_new(line: usize, column: usize) -> Option<Self> {
+        if line == 0 || column == 0 {
+            None
+        } else {
+            Some(Self { line, column })
+        }
+    }
+}
+
 /// Serialize `Option<Box<[T]>>` so that `None` and `Some(&[])` both emit as
 /// `[]` (preserves the historical wire shape for JSON consumers).
 // ponytail: serde lacks native "None → []" serialization. Custom fn is the shortest path.
@@ -216,6 +227,14 @@ impl Finding {
         self
     }
 
+    /// Set confidence after validating that it is finite and within `0..=1`.
+    pub fn with_confidence_checked(self, confidence: f32) -> Result<Self, &'static str> {
+        if !confidence.is_finite() || !(0.0..=1.0).contains(&confidence) {
+            return Err("confidence must be finite and within 0..=1");
+        }
+        Ok(self.with_confidence(confidence))
+    }
+
     pub fn with_tags(mut self, tags: Vec<String>) -> Self {
         self.tags = Some(tags);
         self
@@ -238,10 +257,38 @@ impl Finding {
         self
     }
 
+    /// Set a byte range after checking that its end does not overflow.
+    pub fn with_byte_range_checked(
+        self,
+        byte_offset: usize,
+        byte_length: usize,
+    ) -> Result<Self, &'static str> {
+        byte_offset
+            .checked_add(byte_length)
+            .ok_or("byte range exceeds usize")?;
+        Ok(self.with_byte_range(byte_offset, byte_length))
+    }
+
     pub fn with_end(mut self, end_line: usize, end_column: usize) -> Self {
         self.end_line = Some(end_line);
         self.end_column = Some(end_column);
         self
+    }
+
+    /// Set an end location after enforcing the 1-indexed invariant.
+    pub fn with_end_checked(
+        self,
+        end_line: usize,
+        end_column: usize,
+    ) -> Result<Self, &'static str> {
+        if end_line == 0
+            || end_column == 0
+            || end_line < self.line
+            || (end_line == self.line && end_column < self.column)
+        {
+            return Err("finding end location must be 1-indexed");
+        }
+        Ok(self.with_end(end_line, end_column))
     }
 
     /// Attach the enclosing function's byte/line range. The exporter uses
@@ -261,6 +308,20 @@ impl Finding {
         self
     }
 
+    /// Set an enclosing function range after validating ordering and lines.
+    pub fn with_function_range_checked(
+        self,
+        start_byte: usize,
+        end_byte: usize,
+        start_line: usize,
+        end_line: usize,
+    ) -> Result<Self, &'static str> {
+        if start_byte > end_byte || start_line == 0 || end_line < start_line {
+            return Err("function range is invalid");
+        }
+        Ok(self.with_function_range(start_byte, end_byte, start_line, end_line))
+    }
+
     /// Content-stable fingerprint (rule + file + message digest).
     /// Prefer this over line/column for baseline identity.
     pub fn fingerprint_string(&self) -> String {
@@ -275,7 +336,9 @@ impl Finding {
 
 impl<'de> Deserialize<'de> for Finding {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        Ok(FindingWire::deserialize(deserializer)?.into_finding())
+        FindingWire::deserialize(deserializer)?
+            .into_finding()
+            .map_err(serde::de::Error::custom)
     }
 }
 
@@ -296,6 +359,6 @@ mod tests {
         ));
         let wire = FindingWire::from(f.clone());
         assert_eq!(wire.rule_id, "CWE-1");
-        assert_eq!(wire.into_finding().rule_id, f.rule_id);
+        assert_eq!(wire.into_finding().unwrap().rule_id, f.rule_id);
     }
 }

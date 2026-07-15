@@ -31,27 +31,31 @@ impl AnalyzerBuilder {
         self
     }
 
+    /// Set the rule filters, error policy, and output-related scan options.
     pub fn scan_context(mut self, ctx: ScanContext) -> Self {
         self.ctx = ctx;
         self
     }
 
+    /// Set include/exclude path filters for filesystem discovery.
     pub fn path_filters(mut self, filters: PathFilters) -> Self {
         self.path_filters = filters;
         self
     }
 
+    /// Enable or disable operational scan statistics collection.
     pub fn collect_stats(mut self, collect: bool) -> Self {
         self.collect_stats = collect;
         self
     }
 
+    /// Restrict discovery to the configured language set.
     pub fn language_filter(mut self, filter: LanguageFilter) -> Self {
         self.lang_filter = filter;
         self
     }
 
-    /// Inject a custom entry source (e.g. [`ListEntrySource`] for tests).
+    /// Inject a custom entry source (e.g. [`crate::engine::ListEntrySource`] for tests).
     /// When not set, the default [`FilesystemWalker`] is used.
     pub fn entry_source(mut self, source: Box<dyn EntrySource>) -> Self {
         self.entry_source = Some(source);

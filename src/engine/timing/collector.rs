@@ -13,6 +13,7 @@ use std::time::{Duration, Instant};
 use super::summary::TimingSummary;
 
 static GLOBAL: Mutex<Option<TimingCollector>> = Mutex::new(None);
+static TIMING_SESSION: Mutex<()> = Mutex::new(());
 static TIMING_ENABLED: AtomicBool = AtomicBool::new(false);
 
 fn global_lock() -> std::sync::MutexGuard<'static, Option<TimingCollector>> {
@@ -21,10 +22,32 @@ fn global_lock() -> std::sync::MutexGuard<'static, Option<TimingCollector>> {
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
-/// Initialise the global collector for the scope of a scan chunk.
+/// Initialise the global collector for a scan session.
 pub(crate) fn init_global(enabled: bool) {
     TIMING_ENABLED.store(enabled, Ordering::Relaxed);
     *global_lock() = Some(TimingCollector::new(enabled));
+}
+
+/// Begin a timed scan session. Timed scans are serialized because the
+/// per-file instrumentation still crosses Rayon worker threads through the
+/// compatibility collector; normal scans do not acquire this lock.
+pub(crate) fn begin_global(enabled: bool) -> Option<std::sync::MutexGuard<'static, ()>> {
+    if !enabled {
+        TIMING_ENABLED.store(false, Ordering::Relaxed);
+        *global_lock() = None;
+        return None;
+    }
+    let guard = TIMING_SESSION
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    init_global(true);
+    Some(guard)
+}
+
+#[cfg(test)]
+pub(crate) fn reset_global() {
+    TIMING_ENABLED.store(false, Ordering::Relaxed);
+    *global_lock() = None;
 }
 
 /// Start a span on the global collector. Returns the span index (0 when
@@ -46,11 +69,14 @@ pub(crate) fn global_stop(idx: usize) {
     }
 }
 
-/// Drain the global collector into `target`. Resets the global to `None`.
+/// Drain the current chunk into `target` and start a fresh collector for the
+/// next chunk in the same scan session.
 pub(crate) fn drain_global(target: &mut TimingCollector) {
-    TIMING_ENABLED.store(false, Ordering::Relaxed);
-    if let Some(c) = global_lock().take() {
+    let current = { global_lock().take() };
+    if let Some(c) = current {
+        let enabled = c.enabled;
         target.merge(&c);
+        *global_lock() = Some(TimingCollector::new(enabled));
     }
 }
 
@@ -62,6 +88,9 @@ pub(crate) fn drain_global(target: &mut TimingCollector) {
 /// per-file / per-detector timing path.
 #[cfg(test)]
 pub fn with_timing<R>(f: impl FnOnce() -> R) -> (R, Option<TimingSummary>) {
+    let _guard = TIMING_SESSION
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     init_global(true);
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f));
     TIMING_ENABLED.store(false, Ordering::Relaxed);
@@ -69,6 +98,7 @@ pub fn with_timing<R>(f: impl FnOnce() -> R) -> (R, Option<TimingSummary>) {
     // Reset even if the closure panicked so the global is clean for the
     // next test.
     *global_lock() = None;
+    drop(_guard);
     match result {
         Ok(val) => (val, summary),
         Err(e) => std::panic::resume_unwind(e),

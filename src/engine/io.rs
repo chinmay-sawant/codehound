@@ -19,7 +19,8 @@ pub(crate) fn write_atomic<T: Serialize>(path: &Path, value: &T) -> Result<(), E
             .map_err(|e| Error::path_io(tmp.display().to_string(), IoOp::CreateFile, e))?;
         serde_json::to_writer_pretty(&mut f, value).map_err(Error::from)?;
         f.write_all(b"\n")?;
-        f.sync_all().ok();
+        f.sync_all()
+            .map_err(|e| Error::path_io(tmp.display().to_string(), IoOp::Write, e))?;
     }
     fs::rename(&tmp, path)
         .map_err(|e| Error::path_io(path.display().to_string(), IoOp::Rename, e))?;

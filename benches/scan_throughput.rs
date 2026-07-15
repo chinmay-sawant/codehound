@@ -5,7 +5,9 @@ use std::path::Path;
 use std::time::Duration;
 
 use codehound::core::ScanContext;
-use codehound::engine::{Analyzer, LanguageFilter, Registry, collect_entries};
+use codehound::engine::{
+    Analyzer, LanguageFilter, Registry, collect_entries, parse_inline_ignores,
+};
 use codehound::fixture::{materialize_tree, materialized_root};
 use codehound::lang::source_index::SourceIndex;
 use criterion::{Criterion, criterion_group, criterion_main};
@@ -113,6 +115,15 @@ fn bench_source_index_has_lookup(c: &mut Criterion) {
     });
 }
 
+fn bench_inline_ignore_parser(c: &mut Criterion) {
+    let source: String = (0..4_096)
+        .map(|line| format!("value_{line} := {line} // ordinary comment\n"))
+        .collect();
+    c.bench_function("parse_inline_ignores_long_file", |b| {
+        b.iter(|| black_box(parse_inline_ignores(black_box(&source))));
+    });
+}
+
 criterion_group! {
     name = benches;
     config = Criterion::default().measurement_time(Duration::from_secs(5));
@@ -121,5 +132,6 @@ criterion_group! {
         bench_collect_entries_only,
         bench_scan_go_only_subset,
         bench_source_index_has_lookup,
+        bench_inline_ignore_parser,
 }
 criterion_main!(benches);

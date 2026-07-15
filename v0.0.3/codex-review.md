@@ -1,7 +1,7 @@
 # v0.0.3 — Rust Quality Remediation Checklist
 
 > **Parent:** `v0.0.3/codex-review.md` — consolidated Rust review and implementation ledger
-> **Status:** Phase 1 gate-recovery slice complete; suppression-contract decision and Phase 2 remain
+> **Status:** Phases 1–5 high-confidence fixes implemented; deep taint/indexing and API ratchet work remain
 > **Date:** 2026-07-15
 > **Goal:** Rust Best Practices **9.5+/10** and Rust Development Patterns **9.5+/10**
 
@@ -55,9 +55,9 @@ The memory-saving design is intentional: default CI/JSON/SARIF runs use `retain_
 
 ### 1.3 Cached result accounting
 
-- [~] Investigate suppression count preservation. Cache entries are written after inline-ignore filtering, so a cache hit cannot reconstruct the original count without a cache-schema change; no misleading partial fix was retained.
-- [ ] Decide whether to persist suppression metadata or define cached suppression statistics as post-cache filtering only.
-- [ ] Add a regression test after that contract decision.
+- [x] Persist per-file suppression metadata in cache entries with a serde-default migration path for older entries.
+- [x] Preserve suppressed counts on cache hits so diagnostics do not change between cold and warm scans.
+- [x] Cover the cache-entry metadata shape and warm-cache accounting path with regression tests.
 
 ### Phase 1 acceptance
 
@@ -71,24 +71,24 @@ The memory-saving design is intentional: default CI/JSON/SARIF runs use `retain_
 
 ### 2.1 Scan-scoped timing
 
-- [ ] Replace process-global timing state with scan-owned or worker-local collectors merged at the analyzer boundary.
-- [ ] Ensure timing survives every scan chunk and is not disabled after the first drain.
-- [ ] Add a multi-chunk timing regression test.
-- [ ] Add a concurrent-analyzer timing isolation test.
-- [ ] Ensure timing instrumentation does not serialize the normal non-timing path.
+- [~] Replace process-global timing state with scan-owned or worker-local collectors merged at the analyzer boundary. The compatibility collector now has a scan-session guard; full signature-level removal remains deferred.
+- [x] Ensure timing survives every scan chunk and is not disabled after the first drain.
+- [x] Add a multi-chunk timing regression test (`tests/engine_timing_chunks.rs`).
+- [x] Add a concurrent timing-session isolation test.
+- [x] Ensure timing instrumentation does not serialize the normal non-timing path; only timed sessions acquire the guard.
 
 ### 2.2 Detector lifecycle and policy
 
-- [ ] Define an explicit per-scan detector lifecycle/reset boundary for cross-file state.
-- [ ] Apply `only`, `skip`, severity overrides, and related policy to finalized findings.
-- [ ] Isolate `finalize` and cached-state `accumulate_state` panics consistently with per-file execution.
-- [ ] Add tests for a panicking custom detector hook and finalized finding filtering.
+- [~] Define an explicit per-scan detector lifecycle/reset boundary for cross-file state; current detector state remains convention-based, but cache accumulation and finalization now have error boundaries.
+- [x] Apply `only`, `skip`, severity overrides, and related policy to finalized findings.
+- [x] Isolate `finalize` and cached-state `accumulate_state` panics consistently with per-file execution.
+- [~] Add tests for a panicking custom detector hook and finalized finding filtering; the production boundaries are covered, while a custom panic fixture remains open.
 
 ### 2.3 Cache fingerprint correctness
 
-- [ ] Move rule-config fingerprint enforcement into the analyzer/cache-session contract instead of relying on the CLI.
-- [ ] Include every finding-affecting setting, including taint evidence visibility and severity overrides.
-- [ ] Add a library-level stale-cache invalidation test with changed `ScanContext`.
+- [x] Move rule-config fingerprint enforcement into the analyzer/cache-session contract instead of relying on the CLI.
+- [x] Include every finding-affecting setting, including taint evidence visibility and severity overrides.
+- [x] Add a library-level stale-cache invalidation test with changed `ScanContext`.
 
 ## Phase 3 — Ownership and Allocation Efficiency
 
@@ -97,13 +97,13 @@ The memory-saving design is intentional: default CI/JSON/SARIF runs use `retain_
 - [x] Rewrite `src/engine/ignore/parse.rs` to scan `char_indices` once per line without allocating `Vec<char>`.
 - [x] Carry byte offsets directly; remove repeated `char_indices().nth(...)` scans.
 - [x] Preserve quoted-string, shebang, EOL, block, and Python-comment behavior with focused tests.
-- [ ] Add an allocation/performance benchmark for long files with no ignore directives.
+- [x] Add and run a release-mode allocation/performance benchmark for long files with no ignore directives.
 
 ### 3.2 Cache and dependency hot paths
 
-- [ ] Pass the existing `Registry` into dependency extraction instead of rebuilding enabled plugins per file.
+- [x] Pass the existing `Registry` into dependency extraction instead of rebuilding enabled plugins per file.
 - [ ] Avoid cloning every `Finding` solely for cache serialization; use a borrowed serialization seam or deliberate ownership transfer.
-- [ ] Allocate scanned-path tracking only when a cache session requires pruning.
+- [x] Allocate scanned-path tracking only when a cache session requires pruning.
 - [ ] Replace repeated enclosing-function span scans with an indexed/sweep lookup after benchmarking.
 
 ### 3.3 Taint graph work
@@ -112,24 +112,25 @@ The memory-saving design is intentional: default CI/JSON/SARIF runs use `retain_
 - [ ] Replace BFS full-path cloning with predecessor/path reconstruction where semantics permit.
 - [ ] Pre-index summaries, imports, variable nodes, and sink nodes before repeated call-site queries.
 - [ ] Add release-mode allocation/time benchmarks before and after each change.
+- [x] Preserve unsanitized taint paths through sanitized merge nodes with a two-state traversal regression test.
 
 ## Phase 4 — Error Boundaries and Memory Safety
 
-- [ ] Remove or bound `Box::leak`-based interning in `src/rules/finding_wire.rs`.
-- [ ] Decide and document best-effort versus fail-fast semantics for cache writes, flushes, and atomic durability.
-- [ ] Stop silently discarding filesystem traversal and fixture materialization errors.
-- [ ] Replace public fixture `anyhow::Error` results with typed `thiserror` errors where callers need classification.
-- [ ] Make registry detector indexes non-panicking or opaque.
-- [ ] Prevent corrupted baseline update from silently overwriting existing state.
-- [ ] Add tests for unique-string churn, traversal errors, cache flush errors, and corrupt baseline updates.
+- [x] Remove or bound `Box::leak`-based interning in `src/rules/finding_wire.rs` with a cache-string cap and miss-on-overflow behavior.
+- [x] Decide and document best-effort cache write/prune/flush semantics; atomic durability errors now propagate from `sync_all`.
+- [x] Stop silently discarding filesystem traversal and fixture materialization errors.
+- [x] Replace public fixture `anyhow::Error` results with typed `FixtureError` results.
+- [x] Make registry detector indexes non-panicking for public lookup.
+- [x] Prevent corrupted baseline update from silently overwriting existing state.
+- [~] Add tests for unique-string churn, traversal errors, cache flush errors, and corrupt baseline updates; focused behavior is covered, but dedicated fault-injection tests remain open.
 
 ## Phase 5 — API, Type, and Documentation Maturity
 
-- [ ] Narrow public modules, re-exports, and mutable fields where invariants matter.
-- [ ] Add validated constructors/newtypes for `LineCol`, confidence, byte/line ranges, and other externally meaningful values.
-- [ ] Replace missing-documentation suppressions with incremental public API docs.
-- [ ] Fix broken intra-doc links.
-- [ ] Add a documentation ratchet (`warn` first, then `deny`) with `# Errors`, `# Panics`, and `# Safety` sections where applicable.
+- [ ] Narrow public modules, re-exports, and mutable fields where invariants matter; defer breaking visibility changes to a planned API release.
+- [x] Add validated constructors/checked builders for `LineCol`, confidence, byte ranges, and function/end ranges.
+- [~] Replace missing-documentation suppressions with incremental public API docs; primary builder/result/context docs were improved, but the crate-wide ratchet remains open.
+- [x] Fix broken intra-doc links; strict rustdoc link validation passes.
+- [~] Add a documentation ratchet (`warn` first, then `deny`) with `# Errors`, `# Panics`, and `# Safety` sections where applicable; warning-level coverage remains incremental.
 - [ ] Add runnable public API examples and targeted doc tests.
 
 ## Validation Matrix
@@ -140,8 +141,8 @@ The memory-saving design is intentional: default CI/JSON/SARIF runs use `retain_
 | `cargo clippy --all-targets --all-features --locked -- -D warnings` | Fail | [x] | Pass |
 | Focused source-cache tests | 3 fail | [x] | Pass |
 | Full serial all-feature tests | Not green | [x] | Pass |
-| Parallel timing isolation | Flaky | [ ] | Pass |
-| Release-mode performance benchmark | Not yet re-run | [ ] | No regression; improvements measured |
+| Parallel timing isolation | Flaky | [x] | Pass |
+| Release-mode performance benchmark | Not yet re-run | [x] | Parser benchmark measured; broader perf baselines remain |
 | Rust Best Practices score | 6.8/10 | [ ] | 9.5+/10 |
 | Rust Development Patterns score | 7.5/10 | [ ] | 9.5+/10 |
 
@@ -162,4 +163,22 @@ The goal is not to make every Rust line maximally abstract. The goal is to close
 - [x] Strict Clippy passed.
 - [x] Full serial all-feature test suite passed with `--test-threads=1`; timing parallelism remains a Phase 2 concern.
 - [x] Added a Unicode-before-comment regression test for the parser's byte-offset path.
-- [~] Cached suppression accounting remains intentionally open until its cache-schema/contract semantics are decided.
+- [x] Cached suppression accounting is persisted and verified across cold and warm scans.
+
+### Phases 2–5 high-confidence slice — 2026-07-15
+
+- [x] Kept timed scans isolated and preserved timing across all scan chunks; added chunk and concurrent-session tests.
+- [x] Enforced cache context fingerprints in the library analyzer path and covered policy changes.
+- [x] Reused the analyzer registry for dependency extraction and made scanned-file tracking cache-conditional.
+- [x] Fixed sanitizer-state loss at taint graph merge nodes.
+- [x] Added a release-mode inline-ignore benchmark: `parse_inline_ignores_long_file` measured approximately 520 µs per iteration on the local workspace.
+- [x] Added panic boundaries around cached detector-state accumulation and project finalization, then reapplied finding policy after finalization.
+- [x] Propagated fixture/traversal errors, protected corrupt baseline updates, propagated atomic `sync_all` failures, bounded cache string interning, and made public detector lookup return `Option`.
+- [x] Added checked finding constructors/builders and fixed broken intra-doc links; `cargo doc` with `-D rustdoc::broken_intra_doc_links` passes.
+- [x] Full serial all-feature tests, strict Clippy, rustfmt, and focused phase tests pass.
+
+### Phase 1.3 follow-up — 2026-07-15
+
+- [x] Added backward-compatible `suppressed_count` metadata to cache entries.
+- [x] Passed per-file suppression accounting through cache writes and warm-cache merges.
+- [x] Added a cold-vs-warm inline-ignore regression test.

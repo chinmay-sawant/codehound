@@ -71,8 +71,10 @@ impl Registry {
         &self.all_indices
     }
 
-    pub fn detector(&self, index: usize) -> &dyn Detector {
-        self.detectors[index].as_ref()
+    /// Return a detector for an index from [`Self::detector_indices`].
+    /// Invalid external indices are reported as `None` instead of panicking.
+    pub fn detector(&self, index: usize) -> Option<&dyn Detector> {
+        self.detectors.get(index).map(|detector| detector.as_ref())
     }
 
     pub fn plugin_for_path(&self, path: &Path) -> Option<&dyn LanguagePlugin> {

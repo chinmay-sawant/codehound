@@ -6,7 +6,7 @@ use crate::engine::timing;
 use crate::rules::Finding;
 
 /// Retain findings allowed by the scan context and apply per-rule overrides.
-pub(super) fn filter_findings(ctx: &ScanContext, findings: &mut Vec<Finding>) {
+pub(crate) fn filter_findings(ctx: &ScanContext, findings: &mut Vec<Finding>) {
     findings.retain(|f| ctx.allows(f.rule_id));
     for f in findings.iter_mut() {
         ctx.apply_finding_overrides(f);
@@ -27,7 +27,9 @@ pub(crate) fn analyze_parsed_unit(
     let mut rules_executed = 0;
     let collect_detector_timing = ctx.collect_stats();
     for &idx in registry.detector_indices(unit.language) {
-        let det = registry.detector(idx);
+        let Some(det) = registry.detector(idx) else {
+            continue;
+        };
         if !det.rule_ids().iter().any(|id| ctx.allows(id)) {
             continue;
         }

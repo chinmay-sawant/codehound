@@ -85,9 +85,12 @@ pub fn unsanitized_reaches_any(
     let adj = build_adj(graph);
 
     let mut queue: VecDeque<(TaintNodeId, bool)> = VecDeque::new();
-    let mut visited = vec![false; graph.nodes.len()];
+    // Sanitizer state is part of the search state. Reaching a merge node via
+    // a sanitized branch must not prevent a later unsanitized branch from
+    // reaching the same node.
+    let mut visited = HashSet::new();
     queue.push_back((start, false));
-    visited[start] = true;
+    visited.insert((start, false));
 
     while let Some((current, was_sanitized)) = queue.pop_front() {
         let sanitized =
@@ -98,8 +101,8 @@ pub fn unsanitized_reaches_any(
         }
 
         for &next in adj.get(&current).into_iter().flatten() {
-            if !visited[next] {
-                visited[next] = true;
+            let state = (next, sanitized);
+            if next < graph.nodes.len() && visited.insert(state) {
                 queue.push_back((next, sanitized));
             }
         }

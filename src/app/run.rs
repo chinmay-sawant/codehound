@@ -274,14 +274,10 @@ fn resolve_scan_path(path: &str) -> Result<PathBuf> {
         return Ok(path);
     }
 
-    let Ok(text) = std::fs::read_to_string(&path) else {
-        return Ok(path);
-    };
-    if parse_fixture(&text, &path).is_err() {
-        return Ok(path);
-    }
-
-    materialize_fixture(&path)
+    let text = std::fs::read_to_string(&path)
+        .with_context(|| format!("reading fixture {}", path.display()))?;
+    parse_fixture(&text, &path).with_context(|| format!("parsing fixture {}", path.display()))?;
+    materialize_fixture(&path).with_context(|| format!("materializing fixture {}", path.display()))
 }
 
 fn run_prune_cache(
@@ -562,15 +558,16 @@ mod tests {
     }
 
     #[test]
-    fn resolve_scan_path_leaves_plain_text_files_unchanged() {
+    fn resolve_scan_path_rejects_invalid_text_fixtures() {
         let temp_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("target")
             .join("resolve-scan-path-plain.txt");
         fs::write(&temp_path, "plain text, not a fixture").expect("write temp text file");
 
-        let resolved = resolve_scan_path(temp_path.to_str().expect("utf8 temp path"))
-            .expect("resolve plain text path");
-        assert_eq!(resolved, temp_path);
+        let error = resolve_scan_path(temp_path.to_str().expect("utf8 temp path"))
+            .expect_err("invalid text fixture must fail loudly");
+        assert!(error.to_string().contains("parsing fixture"));
+        let _ = fs::remove_file(temp_path);
     }
 
     #[test]

@@ -118,6 +118,11 @@ impl PipelineAccumulator {
         &self.errors
     }
 
+    pub fn record_error(&mut self, error: ScanError) {
+        self.errors.push(error);
+        self.stats.record_errored();
+    }
+
     pub fn take_findings(&mut self) -> Vec<Finding> {
         std::mem::take(&mut self.findings)
     }
@@ -143,6 +148,7 @@ impl PipelineAccumulator {
 #[must_use]
 #[derive(Debug, Default, Clone)]
 pub struct AnalysisResult {
+    /// Findings emitted by enabled detectors after scan policy is applied.
     pub findings: Vec<Finding>,
     /// Non-fatal per-file errors collected during the scan. The scan does
     /// NOT abort on the first error; instead, the caller decides whether

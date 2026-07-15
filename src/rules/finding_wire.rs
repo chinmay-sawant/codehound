@@ -3,8 +3,9 @@
 //! `String`s. The cache writes this struct and converts back to
 //! [`Finding`] on read.
 //!
-//! Strings are interned (one leak per unique value) so cache churn does
-//! not grow RSS unbounded.
+//! Strings are interned for the small, stable rule metadata vocabulary. A
+//! hard cap turns pathological cache input into a cache miss instead of an
+//! unbounded process-lifetime allocation.
 
 use std::sync::{Mutex, OnceLock};
 
@@ -15,9 +16,11 @@ use crate::cwe::CweRef;
 use super::finding::Finding;
 use super::finding_view::FindingView;
 
+const MAX_INTERNED_STRINGS: usize = 4096;
+
 /// Intern a string into process-lifetime storage, reusing prior entries.
-/// Bounds leak growth to unique strings (rule IDs, titles, CWE names/URLs).
-fn intern_str(s: String) -> &'static str {
+/// Returns `None` when untrusted cache data exceeds the process cap.
+fn intern_str(s: String) -> Option<&'static str> {
     use std::collections::HashSet;
     static TABLE: OnceLock<Mutex<HashSet<&'static str>>> = OnceLock::new();
     let table = TABLE.get_or_init(|| Mutex::new(HashSet::new()));
@@ -26,11 +29,14 @@ fn intern_str(s: String) -> &'static str {
         Err(poisoned) => poisoned.into_inner(),
     };
     if let Some(&existing) = guard.get(s.as_str()) {
-        return existing;
+        return Some(existing);
+    }
+    if guard.len() >= MAX_INTERNED_STRINGS {
+        return None;
     }
     let leaked: &'static str = Box::leak(s.into_boxed_str());
     guard.insert(leaked);
-    leaked
+    Some(leaked)
 }
 
 /// Owned CWE reference used during deserialization. [`CweRef`] holds
@@ -45,12 +51,12 @@ pub(crate) struct OwnedCweRef {
 }
 
 impl OwnedCweRef {
-    fn into_static(self) -> CweRef {
-        CweRef {
+    fn into_static(self) -> Option<CweRef> {
+        Some(CweRef {
             id: self.id,
-            name: intern_str(self.name),
-            url: intern_str(self.url),
-        }
+            name: intern_str(self.name)?,
+            url: intern_str(self.url)?,
+        })
     }
 }
 
@@ -157,7 +163,10 @@ impl FindingWire {
 
 impl FindingWire {
     /// Convert back to [`Finding`], interning rule id/title and CWE strings.
-    pub fn into_finding(self) -> Finding {
+    ///
+    /// Returns an error when a corrupted or adversarial cache entry exceeds
+    /// the process string-interning cap.
+    pub fn into_finding(self) -> Result<Finding, &'static str> {
         let FindingWire {
             rule_id,
             rule_title,
@@ -183,15 +192,20 @@ impl FindingWire {
             suppressed,
             remediation,
         } = self;
-        let rule_id_static = intern_str(rule_id);
-        let rule_title_static = intern_str(rule_title);
+        let rule_id_static = intern_str(rule_id).ok_or("cache string interning limit reached")?;
+        let rule_title_static =
+            intern_str(rule_title).ok_or("cache string interning limit reached")?;
         let cwe = if cwe.is_empty() {
             None
         } else {
-            let owned: Vec<CweRef> = cwe.into_iter().map(OwnedCweRef::into_static).collect();
+            let owned: Vec<CweRef> = cwe
+                .into_iter()
+                .map(OwnedCweRef::into_static)
+                .collect::<Option<_>>()
+                .ok_or("cache string interning limit reached")?;
             Some(owned.into_boxed_slice())
         };
-        Finding {
+        Ok(Finding {
             rule_id: rule_id_static,
             rule_title: rule_title_static,
             file,
@@ -215,6 +229,6 @@ impl FindingWire {
             tags,
             suppressed,
             remediation,
-        }
+        })
     }
 }

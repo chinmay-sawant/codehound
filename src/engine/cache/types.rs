@@ -50,6 +50,10 @@ pub struct CacheEntry {
     pub schema_version: u32,
     pub file: String,
     pub findings: Vec<Finding>,
+    /// Number of findings removed or marked suppressed by source ignores.
+    /// Defaults to zero for entries written before this field existed.
+    #[serde(default)]
+    pub suppressed_count: usize,
     pub cached_at: String,
 }
 
@@ -65,7 +69,8 @@ pub enum CacheLookup {
 }
 
 /// Errors specific to the cache layer. `CacheStore` never panics on a
-/// corrupted entry — it returns `None` from [`CacheBackend::load_entry`]
+/// corrupted entry — it returns `None` from
+/// [`CacheBackend::load_entry`](crate::engine::CacheBackend::load_entry)
 /// and logs the error.
 #[derive(Debug, thiserror::Error)]
 pub enum CacheError {
