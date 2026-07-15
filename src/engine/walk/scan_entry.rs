@@ -11,7 +11,6 @@ use crate::engine::parse_pool::ParsePool;
 use crate::engine::registry::Registry;
 use crate::engine::result::{ScanError, ScanErrorKind};
 use crate::engine::stats::ScanStats;
-use crate::engine::timing;
 use crate::rules::Finding;
 
 use super::analyze::{analyze_parsed_unit, filter_findings};
@@ -22,6 +21,13 @@ use super::entry::ScanEntry;
 pub(crate) struct PreloadedSource {
     pub source: Arc<str>,
     pub content_hash: String,
+}
+
+pub(crate) struct ScanRequest<'a> {
+    pub project_root: &'a Path,
+    pub module_prefix: Option<&'a str>,
+    pub preloaded: Option<PreloadedSource>,
+    pub collect_stats: bool,
 }
 
 pub(super) fn scan_err(
@@ -92,6 +98,7 @@ pub(crate) struct ScanEntryResult {
     pub suppressed_count: usize,
     pub stats: ScanStats,
     pub dependencies: Vec<String>,
+    pub timing: crate::engine::timing::TimingCollector,
 }
 
 struct ReadOutcome {
@@ -99,10 +106,16 @@ struct ReadOutcome {
     bytes: u64,
 }
 
+struct AnalysisOptions<'a> {
+    file_ignore: Option<IgnoreDirective>,
+    timing: &'a mut crate::engine::timing::TimingCollector,
+}
+
 fn read_entry_source(
     entry: &ScanEntry,
     stats: &mut ScanStats,
     preloaded: Option<&PreloadedSource>,
+    timing: &mut crate::engine::timing::TimingCollector,
 ) -> Result<ReadOutcome, ScanError> {
     if let Some(preloaded) = preloaded {
         return Ok(ReadOutcome {
@@ -111,11 +124,10 @@ fn read_entry_source(
         });
     }
 
-    let idx = timing::global_start("file_read");
-    let (source, _) = read_entry_utf8(entry).inspect_err(|_| {
+    let read = timing.measure("file_read", || read_entry_utf8(entry));
+    let (source, _) = read.inspect_err(|_| {
         stats.record_errored();
     })?;
-    timing::global_stop(idx);
     let bytes = source.len() as u64;
     Ok(ReadOutcome { source, bytes })
 }
@@ -126,6 +138,7 @@ fn parse_entry_unit(
     pool: &mut ParsePool,
     source: Arc<str>,
     stats: &mut ScanStats,
+    timing: &mut crate::engine::timing::TimingCollector,
 ) -> Result<ParsedUnit, ScanError> {
     let parser = pool.parser_for(plugin).map_err(|e| {
         stats.record_errored();
@@ -135,18 +148,17 @@ fn parse_entry_unit(
             format!("configuring parser for {}: {e}", entry.path.display()),
         )
     })?;
-    let idx = timing::global_start("tree_sitter_parse");
-    let unit = plugin
-        .parse_with(parser, &entry.path, Arc::clone(&source))
-        .map_err(|e| {
-            stats.record_errored();
-            scan_err(
-                entry,
-                ScanErrorKind::Parse,
-                format!("parsing {}: {e:#}", entry.path.display()),
-            )
-        })?;
-    timing::global_stop(idx);
+    let parsed = timing.measure("tree_sitter_parse", || {
+        plugin.parse_with(parser, &entry.path, Arc::clone(&source))
+    });
+    let unit = parsed.map_err(|e| {
+        stats.record_errored();
+        scan_err(
+            entry,
+            ScanErrorKind::Parse,
+            format!("parsing {}: {e:#}", entry.path.display()),
+        )
+    })?;
     Ok(unit)
 }
 
@@ -157,23 +169,23 @@ fn analyze_parsed_entry(
     unit: &mut ParsedUnit,
     stats: &mut ScanStats,
     bytes: u64,
-    file_ignore: Option<IgnoreDirective>,
+    options: AnalysisOptions<'_>,
 ) -> (Vec<Finding>, usize) {
     let fn_kinds = plugin.function_node_kinds();
     if !fn_kinds.is_empty() {
         unit.function_spans = ast::collect_function_spans(unit.tree.root_node(), fn_kinds);
     }
 
-    let det_idx = timing::global_start("detector_execution");
-    let (mut findings, rules_executed) = analyze_parsed_unit(registry, ctx, unit);
-    timing::global_stop(det_idx);
+    let det_idx = options.timing.start("detector_execution");
+    let (mut findings, rules_executed) = analyze_parsed_unit(registry, ctx, unit, options.timing);
+    options.timing.stop(det_idx);
     filter_findings(ctx, &mut findings);
     attach_function_context(&mut findings, unit);
     let suppressed_count = apply_ignores(
         ctx,
         unit.source.as_ref(),
         &mut findings,
-        file_ignore.as_ref(),
+        options.file_ignore.as_ref(),
     );
 
     stats.record_file(bytes, unit.line_starts.len() as u64);
@@ -197,11 +209,10 @@ pub(crate) fn scan_entry(
     ctx: &ScanContext,
     entry: &ScanEntry,
     pool: &mut ParsePool,
-    project_root: &Path,
-    module_prefix: Option<&str>,
-    preloaded: Option<PreloadedSource>,
+    request: ScanRequest<'_>,
 ) -> std::result::Result<ScanEntryResult, ScanError> {
     let mut stats = ScanStats::default();
+    let mut timing = crate::engine::timing::TimingCollector::new(request.collect_stats);
 
     let plugin = match registry.plugin_for_id(entry.language) {
         Some(p) => p,
@@ -215,11 +226,23 @@ pub(crate) fn scan_entry(
         }
     };
 
-    let content_hash = preloaded.as_ref().map(|p| p.content_hash.clone());
-    let ReadOutcome { source, bytes } = read_entry_source(entry, &mut stats, preloaded.as_ref())?;
-    let mut unit = parse_entry_unit(entry, plugin, pool, Arc::clone(&source), &mut stats)?;
-    let dependencies =
-        extract_dependencies_with_registry(registry, &unit, project_root, module_prefix);
+    let content_hash = request.preloaded.as_ref().map(|p| p.content_hash.clone());
+    let ReadOutcome { source, bytes } =
+        read_entry_source(entry, &mut stats, request.preloaded.as_ref(), &mut timing)?;
+    let mut unit = parse_entry_unit(
+        entry,
+        plugin,
+        pool,
+        Arc::clone(&source),
+        &mut stats,
+        &mut timing,
+    )?;
+    let dependencies = extract_dependencies_with_registry(
+        registry,
+        &unit,
+        request.project_root,
+        request.module_prefix,
+    );
 
     let file_ignore = parse_file_ignore(unit.source.as_ref());
     if !ctx.show_ignored && file_ignore.as_ref().is_some_and(IgnoreDirective::is_all) {
@@ -232,6 +255,7 @@ pub(crate) fn scan_entry(
             suppressed_count: 0,
             stats,
             dependencies,
+            timing,
         });
     }
 
@@ -242,7 +266,10 @@ pub(crate) fn scan_entry(
         &mut unit,
         &mut stats,
         bytes,
-        file_ignore,
+        AnalysisOptions {
+            file_ignore,
+            timing: &mut timing,
+        },
     );
 
     Ok(ScanEntryResult {
@@ -253,6 +280,7 @@ pub(crate) fn scan_entry(
         suppressed_count,
         stats,
         dependencies,
+        timing,
     })
 }
 

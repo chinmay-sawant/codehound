@@ -25,6 +25,10 @@ pub use rules::{
     detect_cwe_90_taint, detect_cwe_91_taint,
 };
 
+pub(crate) use graph_query::{
+    TaintGraphIndex, build_index, forward_reaches_any_with_index,
+    unsanitized_reaches_any_with_index,
+};
 pub use graph_query::{
     TaintPath, build_taint_graph, compute_all_summaries, find_taint_paths,
     find_taint_paths_from_nodes, forward_reaches_any, refine_summaries_multihop,

@@ -37,6 +37,12 @@ pub trait Detector: Send + Sync {
     /// Default implementation does nothing.
     fn accumulate_state(&self, _ctx: &ScanContext, _unit: &ParsedUnit) {}
 
+    /// Clear state retained for a project-level analysis.
+    ///
+    /// The scan engine calls this at both boundaries so a detector cannot
+    /// carry project data across an early return or a panic.
+    fn reset_state(&self) {}
+
     /// Optional: called once after all units have been analyzed.
     /// Detectors can use this to emit cross-file findings.
     /// Default implementation does nothing.

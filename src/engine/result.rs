@@ -90,7 +90,7 @@ impl PipelineAccumulator {
     }
 
     /// Merge a single chunk's [`MergedScan`] into this accumulator.
-    /// Drains the global timing collector into `timing` automatically.
+    /// Merges per-file timing collected by the chunk into `timing`.
     /// Returns the chunk's `rescan_files` for cascade invalidation.
     pub fn merge_chunk(
         &mut self,
@@ -102,7 +102,7 @@ impl PipelineAccumulator {
         self.source_cache.extend(chunk.source_cache);
         self.suppressed_count += chunk.suppressed_count;
         self.stats.merge(&chunk.stats);
-        crate::engine::timing::drain_global(timing);
+        timing.merge(&chunk.timing);
         chunk.rescan_files
     }
 
@@ -217,6 +217,7 @@ mod tests {
             suppressed_count: 0,
             stats: ScanStats::default(),
             rescan_files: vec![("f0.go".into(), true)],
+            timing: crate::engine::timing::TimingCollector::new(false),
         }
     }
 

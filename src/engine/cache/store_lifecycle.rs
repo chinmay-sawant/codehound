@@ -36,6 +36,27 @@ impl CacheStore {
         suppressed_count: usize,
         cached_at: &str,
     ) -> Result<(), Error> {
+        self.put_with_suppressed_count_borrowed(
+            file,
+            content_hash,
+            dependencies,
+            &findings,
+            suppressed_count,
+            cached_at,
+        )
+    }
+
+    /// Insert or replace a cache entry while borrowing findings from the
+    /// current scan result.
+    pub fn put_with_suppressed_count_borrowed(
+        &mut self,
+        file: &str,
+        content_hash: &str,
+        dependencies: &[String],
+        findings: &[Finding],
+        suppressed_count: usize,
+        cached_at: &str,
+    ) -> Result<(), Error> {
         let file = normalize_project_path(file);
         let deps: Vec<String> = dependencies
             .iter()
@@ -47,7 +68,7 @@ impl CacheStore {
                 &cache_key,
                 CACHE_VERSION,
                 &file,
-                &findings,
+                findings,
                 suppressed_count,
                 cached_at,
             )

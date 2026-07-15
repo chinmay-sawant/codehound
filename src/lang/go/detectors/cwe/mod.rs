@@ -19,11 +19,11 @@ use crate::rules::{
 use domains::*;
 use facts::{FactBuildOpts, GoUnitFacts, build_go_unit_facts_with, build_taint_graph_for_facts};
 use taint::{
-    CallGraph, SharedText, SinkKind, TaintAnnotations, TaintGraph, TaintNode, TaintNodeId,
-    build_import_map, detect_cwe_22_taint, detect_cwe_78_taint, detect_cwe_79_taint,
-    detect_cwe_89_taint, detect_cwe_90_taint, detect_cwe_91_taint,
+    CallGraph, SharedText, SinkKind, TaintAnnotations, TaintGraph, TaintGraphIndex, TaintNode,
+    TaintNodeId, build_import_map, build_index, detect_cwe_22_taint, detect_cwe_78_taint,
+    detect_cwe_79_taint, detect_cwe_89_taint, detect_cwe_90_taint, detect_cwe_91_taint,
+    forward_reaches_any_with_index, unsanitized_reaches_any_with_index,
 };
-use taint::{forward_reaches_any, unsanitized_reaches_any};
 
 use crate::rules::emit;
 
@@ -113,6 +113,14 @@ impl Detector for GoCweScan {
         state.units.push(project_unit);
     }
 
+    fn reset_state(&self) {
+        let mut state = self
+            .state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        state.units.clear();
+    }
+
     fn run(&self, ctx: &ScanContext, unit: &ParsedUnit, out: &mut Vec<Finding>) {
         if !self.rule_ids().iter().any(|id| ctx.allows(id)) {
             return;
@@ -141,24 +149,27 @@ impl Detector for GoCweScan {
             return;
         }
 
-        let mut state = self
-            .state
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        if state.units.is_empty() {
+        let mut units = {
+            let mut state = self
+                .state
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            std::mem::take(&mut state.units)
+        };
+        if units.is_empty() {
             return;
         }
 
         // Stable order so duplicate function names resolve the same way
         // regardless of parallel scan vs cache-hit accumulation order.
-        state.units.sort_by(|a, b| a.path.cmp(&b.path));
+        units.sort_by(|a, b| a.path.cmp(&b.path));
 
         // Pre-build per-file taint graphs and summaries.
         let mut per_file: Vec<(&str, TaintGraph, HashMap<String, taint::TaintSummary>)> =
-            Vec::with_capacity(state.units.len());
+            Vec::with_capacity(units.len());
         let mut func_to_file: HashMap<String, usize> = HashMap::new();
         let max_depth = ctx.taint_max_depth.clamp(1, 4);
-        for (idx, unit) in state.units.iter().enumerate() {
+        for (idx, unit) in units.iter().enumerate() {
             let graph = taint::build_taint_graph(&unit.annotations);
             let mut summaries = taint::compute_all_summaries(&unit.annotations, &unit.source);
             // Bounded multi-hop: refine return_sources through same-file call graph.
@@ -180,14 +191,17 @@ impl Detector for GoCweScan {
             .iter()
             .map(|(_, graph, _)| build_variable_index(graph))
             .collect();
+        let graph_indexes: Vec<TaintGraphIndex> = per_file
+            .iter()
+            .map(|(_, graph, _)| build_index(graph))
+            .collect();
         let mut summary_index: HashMap<String, usize> = HashMap::new();
         for (file_idx, (_, _, summaries)) in per_file.iter().enumerate() {
             for name in summaries.keys() {
                 summary_index.entry(name.clone()).or_insert(file_idx);
             }
         }
-        let imported_prefixes: HashSet<String> = state
-            .units
+        let imported_prefixes: HashSet<String> = units
             .iter()
             .flat_map(|unit| unit.import_map.keys().cloned())
             .collect();
@@ -196,9 +210,10 @@ impl Detector for GoCweScan {
         // project graph + func_to_file lookup was nondeterministic when the
         // same function name appears in multiple files (parallel scan order
         // decided which file "won").
-        for (caller_idx, unit) in state.units.iter().enumerate() {
+        for (caller_idx, unit) in units.iter().enumerate() {
             let caller_path = unit.path.as_str();
             let caller_graph = &per_file[caller_idx].1;
+            let caller_index = &graph_indexes[caller_idx];
             let caller_variables = &variable_indexes[caller_idx];
             let caller_line_starts = &unit.line_starts;
 
@@ -230,7 +245,12 @@ impl Detector for GoCweScan {
                     let Some(arg_text) = site.arguments.get(i) else {
                         continue;
                     };
-                    if !is_identifier_tainted(caller_graph, caller_variables, arg_text) {
+                    if !is_identifier_tainted(
+                        caller_graph,
+                        caller_index,
+                        caller_variables,
+                        arg_text,
+                    ) {
                         continue;
                     }
                     emit_inter_procedural_finding(
@@ -259,8 +279,12 @@ impl Detector for GoCweScan {
                     let Some(result_var) = result_var else {
                         continue;
                     };
-                    let reached_sinks =
-                        sink_kinds_reached_by_var(caller_graph, caller_variables, &result_var);
+                    let reached_sinks = sink_kinds_reached_by_var(
+                        caller_graph,
+                        caller_index,
+                        caller_variables,
+                        &result_var,
+                    );
                     if reached_sinks.is_empty() {
                         continue;
                     }
@@ -285,8 +309,12 @@ impl Detector for GoCweScan {
                         continue;
                     };
                     let var_name = arg_text.strip_prefix('&').unwrap_or(arg_text).trim();
-                    let reached_sinks =
-                        sink_kinds_reached_by_var(caller_graph, caller_variables, var_name);
+                    let reached_sinks = sink_kinds_reached_by_var(
+                        caller_graph,
+                        caller_index,
+                        caller_variables,
+                        var_name,
+                    );
                     if reached_sinks.is_empty() {
                         continue;
                     }
@@ -304,8 +332,6 @@ impl Detector for GoCweScan {
                 }
             }
         }
-
-        state.units.clear();
     }
 }
 
@@ -351,13 +377,23 @@ fn find_callee_summary<'a>(
 
 /// Check if any identifier text in a TaintGraph has an **unsanitized** taint
 /// path from any source.
-fn is_identifier_tainted(graph: &TaintGraph, variable_index: &VariableIndex, name: &str) -> bool {
+fn is_identifier_tainted(
+    graph: &TaintGraph,
+    graph_index: &TaintGraphIndex,
+    variable_index: &VariableIndex,
+    name: &str,
+) -> bool {
     // Check 1: Variable nodes with this name have taint paths.
     let var_ids = variable_index.get(name).map(Vec::as_slice).unwrap_or(&[]);
     if !var_ids.is_empty() {
         for source_ids in graph.by_source.values() {
             for source_id in source_ids {
-                if unsanitized_reaches_any(graph, *source_id, var_ids) {
+                if unsanitized_reaches_any_with_index(
+                    graph,
+                    graph_index.adjacency(),
+                    *source_id,
+                    var_ids,
+                ) {
                     return true;
                 }
             }
@@ -409,6 +445,7 @@ fn resolve_callee_name(callee: &str, is_method_call: bool) -> String {
 /// Which sink kinds does a variable reach in the TaintGraph (forward BFS)?
 fn sink_kinds_reached_by_var(
     graph: &TaintGraph,
+    graph_index: &TaintGraphIndex,
     variable_index: &VariableIndex,
     var_name: &str,
 ) -> Vec<SinkKind> {
@@ -433,7 +470,7 @@ fn sink_kinds_reached_by_var(
     .iter()
     {
         if let Some(sink_ids) = graph.by_sink.get(&sk) {
-            if forward_reaches_any(graph, var_ids, sink_ids) {
+            if forward_reaches_any_with_index(graph, graph_index.adjacency(), var_ids, sink_ids) {
                 reached.push(sk);
             }
         }

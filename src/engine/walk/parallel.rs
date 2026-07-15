@@ -17,11 +17,14 @@ use crate::engine::result::{ScanError, ScanErrorKind};
 use crate::engine::stats::FileStats;
 use crate::engine::stats::ScanStats;
 use crate::engine::time::iso8601_utc_now;
+use crate::engine::timing::TimingCollector;
 use crate::rules::Finding;
 
 use super::analyze::filter_findings;
 use super::entry::ScanEntry;
-use super::scan_entry::{PreloadedSource, ScanEntryResult, read_entry_utf8, scan_entry, scan_err};
+use super::scan_entry::{
+    PreloadedSource, ScanEntryResult, ScanRequest, read_entry_utf8, scan_entry, scan_err,
+};
 
 /// Per-file outcome from a parallel scan: either findings or a structured error.
 #[derive(Debug)]
@@ -57,6 +60,7 @@ pub(crate) struct MergedScan {
     pub suppressed_count: usize,
     pub stats: ScanStats,
     pub rescan_files: Vec<(String, bool)>,
+    pub timing: TimingCollector,
 }
 
 /// Parallel scan orchestrator: cache preflight → Rayon dispatch → merge.
@@ -67,6 +71,7 @@ pub(crate) fn scan_entries_parallel(
     mut cache: Option<&mut CacheSession<'_>>,
     project_root: &Path,
     module_prefix: Option<&str>,
+    collect_stats: bool,
 ) -> Result<MergedScan, Error> {
     let total = entries.len();
 
@@ -79,6 +84,7 @@ pub(crate) fn scan_entries_parallel(
         &preflight.to_scan,
         project_root,
         module_prefix,
+        collect_stats,
     );
     let mut merged = merge_parallel_results(
         scan_outcomes,
@@ -87,6 +93,7 @@ pub(crate) fn scan_entries_parallel(
         preflight.cache_hit_count,
         total,
         ctx.retain_sources,
+        collect_stats,
     );
 
     // Accumulate cross-file detector state for cache-hit files
@@ -300,6 +307,7 @@ fn dispatch_parallel_scan(
     to_scan: &[(usize, Option<PreloadedSource>)],
     project_root: &Path,
     module_prefix: Option<&str>,
+    collect_stats: bool,
 ) -> Vec<ScanOutcome> {
     to_scan
         .par_iter()
@@ -312,9 +320,12 @@ fn dispatch_parallel_scan(
                     ctx,
                     entry,
                     pool,
-                    project_root,
-                    module_prefix,
-                    preloaded,
+                    ScanRequest {
+                        project_root,
+                        module_prefix,
+                        preloaded,
+                        collect_stats,
+                    },
                 )
             }));
             match unwind {
@@ -343,6 +354,7 @@ fn merge_parallel_results(
     cache_hit_count: usize,
     total: usize,
     retain_sources: bool,
+    collect_stats: bool,
 ) -> MergedScan {
     let mut merged = MergedScan {
         findings: Vec::new(),
@@ -355,12 +367,14 @@ fn merge_parallel_results(
         suppressed_count: 0,
         stats: ScanStats::default(),
         rescan_files: Vec::new(),
+        timing: TimingCollector::new(collect_stats),
     };
 
     for outcome in scan_outcomes {
         match outcome {
             ScanOutcome::Fresh(mut result) => {
                 write_cache_on_miss(cache, &result, &mut merged.rescan_files);
+                merged.timing.merge(&result.timing);
                 append_file_contribution(
                     &mut merged,
                     &mut result.findings,
@@ -452,11 +466,11 @@ fn write_cache_on_miss(
         .map(|m| m.content_hash.as_str());
     let hash_changed = prior_hash.map(|old| old != hash.as_str()).unwrap_or(false);
     let cached_at = iso8601_utc_now();
-    if let Err(e) = session.put_with_suppressed_count(
+    if let Err(e) = session.put_with_suppressed_count_borrowed(
         &result.cache_key,
         &hash,
         &result.dependencies,
-        result.findings.clone(),
+        &result.findings,
         result.suppressed_count,
         &cached_at,
     ) {

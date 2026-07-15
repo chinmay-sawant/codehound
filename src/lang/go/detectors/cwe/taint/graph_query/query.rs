@@ -12,12 +12,22 @@ use super::TaintPath;
 
 type Adjacency = HashMap<TaintNodeId, Vec<(TaintNodeId, EdgeKind)>>;
 
-pub(super) fn build_adj(graph: &TaintGraph) -> Adjacency {
+pub(crate) struct TaintGraphIndex {
+    adjacency: Adjacency,
+}
+
+impl TaintGraphIndex {
+    pub(crate) fn adjacency(&self) -> &Adjacency {
+        &self.adjacency
+    }
+}
+
+pub(crate) fn build_index(graph: &TaintGraph) -> TaintGraphIndex {
     let mut adj: Adjacency = HashMap::new();
     for edge in &graph.edges {
         adj.entry(edge.from).or_default().push((edge.to, edge.kind));
     }
-    adj
+    TaintGraphIndex { adjacency: adj }
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -61,11 +71,17 @@ pub fn find_taint_paths(
         .get(&sink_kind)
         .map(Vec::as_slice)
         .unwrap_or(&[]);
-    let adj = build_adj(graph);
+    let index = build_index(graph);
 
     let mut paths = Vec::new();
     for sink_id in sink_ids {
-        if let Some(path) = bfs_path(graph, &adj, source_ids, *sink_id, allowed_sanitizers) {
+        if let Some(path) = bfs_path(
+            graph,
+            index.adjacency(),
+            source_ids,
+            *sink_id,
+            allowed_sanitizers,
+        ) {
             paths.push(path);
         }
     }
@@ -82,7 +98,19 @@ pub fn forward_reaches_any(
     if starts.is_empty() || targets.is_empty() {
         return false;
     }
-    let adj = build_adj(graph);
+    let index = build_index(graph);
+    forward_reaches_any_with_index(graph, index.adjacency(), starts, targets)
+}
+
+pub(crate) fn forward_reaches_any_with_index(
+    graph: &TaintGraph,
+    adj: &Adjacency,
+    starts: &[TaintNodeId],
+    targets: &[TaintNodeId],
+) -> bool {
+    if starts.is_empty() || targets.is_empty() {
+        return false;
+    }
     let mut visited = vec![false; graph.nodes.len()];
     let mut queue: VecDeque<TaintNodeId> = VecDeque::new();
     for &start in starts {
@@ -112,8 +140,16 @@ pub fn unsanitized_reaches_any(
     start: TaintNodeId,
     targets: &[TaintNodeId],
 ) -> bool {
-    let adj = build_adj(graph);
+    let index = build_index(graph);
+    unsanitized_reaches_any_with_index(graph, index.adjacency(), start, targets)
+}
 
+pub(crate) fn unsanitized_reaches_any_with_index(
+    graph: &TaintGraph,
+    adj: &Adjacency,
+    start: TaintNodeId,
+    targets: &[TaintNodeId],
+) -> bool {
     let mut queue: VecDeque<(TaintNodeId, bool)> = VecDeque::new();
     // Sanitizer state is part of the search state. Reaching a merge node via
     // a sanitized branch must not prevent a later unsanitized branch from
@@ -146,8 +182,14 @@ pub fn find_taint_paths_from_nodes(
     sink_kind: SinkKind,
     allowed_sanitizers: &[SanitizerKind],
 ) -> Vec<TaintPath> {
-    let adj = build_adj(graph);
-    find_taint_paths_from_nodes_with_adj(graph, &adj, start_ids, sink_kind, allowed_sanitizers)
+    let index = build_index(graph);
+    find_taint_paths_from_nodes_with_adj(
+        graph,
+        index.adjacency(),
+        start_ids,
+        sink_kind,
+        allowed_sanitizers,
+    )
 }
 
 pub(super) fn find_taint_paths_from_nodes_with_adj(

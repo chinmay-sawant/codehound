@@ -16,7 +16,7 @@ use super::super::{
 };
 use super::build_taint_graph;
 use super::query::{
-    build_adj, find_taint_paths_from_nodes_to_sink_argument_with_adj,
+    build_index, find_taint_paths_from_nodes_to_sink_argument_with_adj,
     find_taint_paths_from_nodes_with_adj,
 };
 
@@ -27,10 +27,11 @@ pub fn compute_all_summaries(
     source: &str,
 ) -> HashMap<String, TaintSummary> {
     let graph = build_taint_graph(annotations);
+    let index = build_index(&graph);
     let mut summaries: HashMap<String, TaintSummary> = HashMap::new();
 
     for (func_name, params) in &annotations.function_params {
-        let summary = compute_summary_for(&graph, annotations, source, func_name, params);
+        let summary = compute_summary_for(&graph, &index, annotations, source, func_name, params);
         summaries.insert(func_name.to_string(), summary);
     }
 
@@ -93,12 +94,13 @@ pub fn refine_summaries_multihop(
 /// Compute a `TaintSummary` for one function.
 fn compute_summary_for(
     graph: &TaintGraph,
+    index: &super::query::TaintGraphIndex,
     annotations: &TaintAnnotations,
     source: &str,
     func_name: &str,
     params: &[Arc<str>],
 ) -> TaintSummary {
-    let adj = build_adj(graph);
+    let adj = index.adjacency();
 
     // Find all variable nodes in the graph that match each parameter name.
     let mut param_node_ids: Vec<Vec<TaintNodeId>> = Vec::new();
@@ -142,20 +144,14 @@ fn compute_summary_for(
             let paths = if sink_kind == SinkKind::SQLQuery {
                 find_taint_paths_from_nodes_to_sink_argument_with_adj(
                     graph,
-                    &adj,
+                    adj,
                     ids,
                     sink_kind,
                     0,
                     allowed_sanitizers,
                 )
             } else {
-                find_taint_paths_from_nodes_with_adj(
-                    graph,
-                    &adj,
-                    ids,
-                    sink_kind,
-                    allowed_sanitizers,
-                )
+                find_taint_paths_from_nodes_with_adj(graph, adj, ids, sink_kind, allowed_sanitizers)
             };
             if !paths.is_empty() {
                 reaches_sink = true;
@@ -192,7 +188,7 @@ fn compute_summary_for(
                 if let Some(source_ids) = graph.by_source.get(&SourceKind::UserInput) {
                     let paths = find_taint_paths_from_nodes_with_adj(
                         graph,
-                        &adj,
+                        adj,
                         source_ids,
                         sink_kind,
                         allowed_sanitizers,

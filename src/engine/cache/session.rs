@@ -96,6 +96,26 @@ impl<'a> CacheSession<'a> {
         )
     }
 
+    /// Insert a cache entry without cloning findings owned by the scan result.
+    pub fn put_with_suppressed_count_borrowed(
+        &mut self,
+        file: &str,
+        content_hash: &str,
+        dependencies: &[String],
+        findings: &[Finding],
+        suppressed_count: usize,
+        cached_at: &str,
+    ) -> Result<(), Error> {
+        self.store.put_with_suppressed_count_borrowed(
+            file,
+            content_hash,
+            dependencies,
+            findings,
+            suppressed_count,
+            cached_at,
+        )
+    }
+
     /// Drop a single tracked entry.
     pub fn invalidate_file(&mut self, file: &str) {
         self.store.invalidate_file(file);

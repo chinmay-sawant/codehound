@@ -17,6 +17,18 @@ use crate::engine::{
 
 use super::types::Analyzer;
 
+struct DetectorStateGuard<'a> {
+    registry: &'a crate::engine::registry::Registry,
+}
+
+impl Drop for DetectorStateGuard<'_> {
+    fn drop(&mut self) {
+        for detector in self.registry.detectors() {
+            detector.reset_state();
+        }
+    }
+}
+
 impl Analyzer {
     /// Run the scan. When `cache` is `Some`, the scan consults the
     /// cache for files whose content hash has not changed, and writes
@@ -34,6 +46,16 @@ impl Analyzer {
         paths: &[impl AsRef<Path>],
         mut cache: Option<CacheSession<'_>>,
     ) -> Result<AnalysisResult, Error> {
+        let _scan_gate = self
+            .scan_gate
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        for detector in self.registry.detectors() {
+            detector.reset_state();
+        }
+        let _detector_state = DetectorStateGuard {
+            registry: &self.registry,
+        };
         let wall_start = Instant::now();
         let mut timing = timing::TimingCollector::new(self.collect_stats);
         let start = paths
@@ -74,7 +96,6 @@ impl Analyzer {
             cache.ensure_rule_config_hash(&self.scan_context().rule_config_fingerprint());
         }
 
-        let _timing_session = timing::begin_global(self.collect_stats);
         for chunk in entries.chunks(SCAN_CHUNK_SIZE) {
             let chunk = match scan_entries_parallel(
                 &self.registry,
@@ -83,6 +104,7 @@ impl Analyzer {
                 cache.as_mut(),
                 &dependency_root,
                 module_prefix.as_deref(),
+                self.collect_stats,
             ) {
                 Ok(chunk) => chunk,
                 Err(e) => return Err(Error::Walk(e.to_string())),

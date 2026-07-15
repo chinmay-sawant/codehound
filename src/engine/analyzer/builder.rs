@@ -69,6 +69,7 @@ impl AnalyzerBuilder {
             lang_filter: self.lang_filter,
             path_filters: self.path_filters,
             collect_stats: self.collect_stats,
+            scan_gate: std::sync::Mutex::new(()),
             entry_source: self
                 .entry_source
                 .unwrap_or_else(|| Box::new(FilesystemWalker)),

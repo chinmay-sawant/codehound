@@ -18,6 +18,10 @@ pub struct TaintPath {
 }
 
 pub use build::build_taint_graph;
+pub(crate) use query::{
+    TaintGraphIndex, build_index, forward_reaches_any_with_index,
+    unsanitized_reaches_any_with_index,
+};
 pub use query::{
     find_taint_paths, find_taint_paths_from_nodes, forward_reaches_any, unsanitized_reaches_any,
 };

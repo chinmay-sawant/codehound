@@ -1,21 +1,27 @@
 //! Lightweight collector for named timing spans. Cloneable so per-worker
-//! collectors can be merged back into a global collector after a parallel scan.
+//! collectors can be merged back into the scan-owned collector after a
+//! parallel scan.
 //!
-//! Per-file and per-detector timing uses a global [`Mutex`]-protected collector
-//! so that the `TimingCollector` does not need to be threaded through every
-//! function signature and stored in every pipeline struct. App-level and
-//! analyzer-level timing still uses locally-owned [`TimingCollector`] instances.
+//! Production scans use one collector per file and merge those collectors at
+//! chunk boundaries. The legacy global helpers below are test-only coverage
+//! for the old compatibility behavior.
 
+#[cfg(test)]
 use std::sync::Mutex;
+#[cfg(test)]
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 use super::summary::TimingSummary;
 
+#[cfg(test)]
 static GLOBAL: Mutex<Option<TimingCollector>> = Mutex::new(None);
+#[cfg(test)]
 static TIMING_SESSION: Mutex<()> = Mutex::new(());
+#[cfg(test)]
 static TIMING_ENABLED: AtomicBool = AtomicBool::new(false);
 
+#[cfg(test)]
 fn global_lock() -> std::sync::MutexGuard<'static, Option<TimingCollector>> {
     GLOBAL
         .lock()
@@ -23,25 +29,42 @@ fn global_lock() -> std::sync::MutexGuard<'static, Option<TimingCollector>> {
 }
 
 /// Initialise the global collector for a scan session.
+#[cfg(test)]
 pub(crate) fn init_global(enabled: bool) {
     TIMING_ENABLED.store(enabled, Ordering::Relaxed);
     *global_lock() = Some(TimingCollector::new(enabled));
 }
 
-/// Begin a timed scan session. Timed scans are serialized because the
-/// per-file instrumentation still crosses Rayon worker threads through the
-/// compatibility collector; normal scans do not acquire this lock.
-pub(crate) fn begin_global(enabled: bool) -> Option<std::sync::MutexGuard<'static, ()>> {
-    if !enabled {
+/// Guard for a timed compatibility session.
+///
+/// Dropping the guard disables and clears the global collector, including when
+/// scan execution returns early or unwinds through a panic boundary.
+#[cfg(test)]
+pub(crate) struct TimingSession {
+    _guard: std::sync::MutexGuard<'static, ()>,
+}
+
+#[cfg(test)]
+impl Drop for TimingSession {
+    fn drop(&mut self) {
         TIMING_ENABLED.store(false, Ordering::Relaxed);
         *global_lock() = None;
+    }
+}
+
+/// Begin a timed scan session. Timed scans are serialized because the
+/// per-file instrumentation still crosses Rayon worker threads through the
+/// compatibility collector; normal scans do not touch or clear global timing.
+#[cfg(test)]
+pub(crate) fn begin_global(enabled: bool) -> Option<TimingSession> {
+    if !enabled {
         return None;
     }
     let guard = TIMING_SESSION
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     init_global(true);
-    Some(guard)
+    Some(TimingSession { _guard: guard })
 }
 
 #[cfg(test)]
@@ -52,6 +75,7 @@ pub(crate) fn reset_global() {
 
 /// Start a span on the global collector. Returns the span index (0 when
 /// disabled / uninitialised).
+#[cfg(test)]
 pub(crate) fn global_start(name: &'static str) -> usize {
     if !TIMING_ENABLED.load(Ordering::Relaxed) {
         return 0;
@@ -60,6 +84,7 @@ pub(crate) fn global_start(name: &'static str) -> usize {
 }
 
 /// Stop a span started with [`global_start`].
+#[cfg(test)]
 pub(crate) fn global_stop(idx: usize) {
     if !TIMING_ENABLED.load(Ordering::Relaxed) {
         return;
@@ -71,6 +96,7 @@ pub(crate) fn global_stop(idx: usize) {
 
 /// Drain the current chunk into `target` and start a fresh collector for the
 /// next chunk in the same scan session.
+#[cfg(test)]
 pub(crate) fn drain_global(target: &mut TimingCollector) {
     let current = { global_lock().take() };
     if let Some(c) = current {
@@ -124,6 +150,10 @@ impl TimingCollector {
             spans: Vec::new(),
             enabled,
         }
+    }
+
+    pub(crate) const fn is_enabled(&self) -> bool {
+        self.enabled
     }
 
     /// Start a span and return its index. If disabled, returns 0 and does nothing.
