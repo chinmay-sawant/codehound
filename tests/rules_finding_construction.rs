@@ -35,6 +35,35 @@ fn new_builds_finding_with_no_snippet_or_fix() {
 }
 
 #[test]
+fn checked_location_and_optional_ranges_reject_invalid_values() {
+    assert!(LineCol::try_new(0, 1).is_none());
+    assert!(LineCol::try_new(1, 0).is_none());
+    assert!(LineCol::try_new(1, 1).is_some());
+
+    let finding = Finding::new(FindingInputs::new(
+        "X",
+        "t",
+        "f",
+        LineCol { line: 2, column: 3 },
+        "m",
+        Severity::Info,
+        Cow::Borrowed(&[]),
+    ));
+    assert!(finding.clone().with_confidence_checked(f32::NAN).is_err());
+    assert!(finding.clone().with_confidence_checked(1.1).is_err());
+    assert!(finding.clone().with_confidence_checked(1.0).is_ok());
+    assert!(finding.clone().with_end_checked(1, 4).is_err());
+    assert!(finding.clone().with_end_checked(2, 3).is_ok());
+    assert!(
+        finding
+            .clone()
+            .with_function_range_checked(20, 10, 1, 2)
+            .is_err()
+    );
+    assert!(finding.with_function_range_checked(10, 20, 2, 3).is_ok());
+}
+
+#[test]
 fn empty_cwe_slice_compiles_to_none() {
     let f = Finding::new(FindingInputs::new(
         "X",

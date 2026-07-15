@@ -43,6 +43,7 @@ fn put_then_get_round_trips_findings() {
     assert_eq!(read.findings[0].file, "pkg/a.go");
     assert_eq!(read.findings[0].line, 10);
     assert_eq!(read.findings[0].column, 5);
+    assert_eq!(read.suppressed_count, 0);
     assert_eq!(
         store.manifest().files["pkg/a.go"].content_hash,
         content_hash("hello")

@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use codehound::fixture::{FixtureLanguage, parse_fixture};
+use codehound::fixture::{FixtureError, FixtureLanguage, parse_fixture};
 
 #[test]
 fn parses_minimal_header() {
@@ -16,8 +16,5 @@ fn rejects_unsupported_fixture_language_rust() {
     // FixtureLanguage only knows go/python — no silent "lang: rust" partial support.
     let text = "lang: rust\n---\nfn main() {}\n";
     let err = parse_fixture(text, Path::new("x.txt")).unwrap_err();
-    assert!(
-        err.to_string().contains("unknown fixture language"),
-        "unexpected: {err}"
-    );
+    assert!(matches!(err, FixtureError::UnknownLanguage(language) if language == "rust"));
 }

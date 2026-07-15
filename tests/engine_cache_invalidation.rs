@@ -277,3 +277,40 @@ fn transitive_invalidation_works_without_go_mod_using_cwd_fallback_paths() {
         "db.go should be re-tracked after re-scan"
     );
 }
+
+#[test]
+fn library_scan_context_change_invalidates_cached_findings() {
+    use dep_helpers::*;
+
+    let root = unique_temp_root("library-context-cache");
+    std::fs::create_dir_all(&root).unwrap();
+    write_file(
+        &root.join("main.go"),
+        "package main\n\nimport (\n\t\"net/http\"\n\t\"os/exec\"\n)\n\nfunc run(r *http.Request) {\n\tcmd := r.URL.Query().Get(\"cmd\")\n\texec.Command(\"sh\", \"-c\", cmd)\n}\n",
+    );
+
+    let cache_dir = root.join(DEFAULT_CACHE_DIR);
+    let mut first_cache = CacheStore::open_with_capacity(cache_dir.clone(), 500).unwrap();
+    let first = Analyzer::builder()
+        .scan_context(ScanContext::default())
+        .build()
+        .analyze_paths(&[&root], Some(CacheSession::open(&mut first_cache)))
+        .unwrap();
+    assert!(
+        first.stats.expect("scan stats").files_scanned > 0,
+        "expected the library scan to populate a cacheable file"
+    );
+    first_cache.flush().unwrap();
+
+    let mut second_cache = CacheStore::open_with_capacity(cache_dir, 500).unwrap();
+    let changed_context = ScanContext {
+        show_ignored: true,
+        ..ScanContext::default()
+    };
+    let second = Analyzer::builder()
+        .scan_context(changed_context)
+        .build()
+        .analyze_paths(&[&root], Some(CacheSession::open(&mut second_cache)))
+        .unwrap();
+    assert_eq!(second.stats.expect("scan stats").cache_hits, 0);
+}
