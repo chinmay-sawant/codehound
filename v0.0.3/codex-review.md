@@ -1,7 +1,7 @@
 # v0.0.3 — Rust Quality Remediation Checklist
 
 > **Parent:** `v0.0.3/codex-review.md` — consolidated Rust review and implementation ledger
-> **Status:** Phase 1 complete; Phase 2 remains
+> **Status:** Phase 1 gate-recovery slice complete; suppression-contract decision and Phase 2 remain
 > **Date:** 2026-07-15
 > **Goal:** Rust Best Practices **9.5+/10** and Rust Development Patterns **9.5+/10**
 
@@ -42,7 +42,7 @@ No MCP tools, graph tools, web access, or source-code edits were used during the
 - [x] Run `cargo fmt --all` and verify `cargo fmt --all -- --check`.
 - [x] Remove the two production `unwrap()` calls without weakening `#![deny(clippy::unwrap_used)]`.
 - [x] Verify `cargo clippy --all-targets --all-features --locked -- -D warnings`.
-- [ ] Confirm no new `#[allow]` suppressions are introduced; use `#[expect]` only with a reason when unavoidable.
+- [x] Confirm no new `#[allow]` suppressions are introduced; use `#[expect]` only with a reason when unavoidable.
 
 ### 1.2 Source-cache contract
 
@@ -161,4 +161,5 @@ The goal is not to make every Rust line maximally abstract. The goal is to close
 - [x] Focused validation passed: inline-ignore, source-cache edge, source-cache population, and source-cache export tests.
 - [x] Strict Clippy passed.
 - [x] Full serial all-feature test suite passed with `--test-threads=1`; timing parallelism remains a Phase 2 concern.
+- [x] Added a Unicode-before-comment regression test for the parser's byte-offset path.
 - [~] Cached suppression accounting remains intentionally open until its cache-schema/contract semantics are decided.

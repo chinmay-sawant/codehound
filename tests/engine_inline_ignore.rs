@@ -285,6 +285,16 @@ value := input // codehound-ignore: CWE-22
 }
 
 #[test]
+fn parse_eol_ignore_handles_unicode_before_comment() {
+    let ignores = parse_inline_ignores("let π = 1; // codehound-ignore: CWE-22\n");
+
+    assert_eq!(
+        ignores.get(&1),
+        Some(&IgnoreDirective::rules(vec!["CWE-22".to_string()]))
+    );
+}
+
+#[test]
 fn parse_block_ignore_range() {
     let ignores = parse_inline_ignores(
         r#"
