@@ -20,7 +20,8 @@ fn taint_analyzer() -> &'static Analyzer {
         let ctx = ScanContext {
             taint_enabled: true,
             ..ScanContext::default()
-        };
+        }
+        .with_taint_max_depth(4);
         Analyzer::builder().scan_context(ctx).build()
     })
 }

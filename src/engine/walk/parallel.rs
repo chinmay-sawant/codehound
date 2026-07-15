@@ -96,10 +96,15 @@ pub(crate) fn scan_entries_parallel(
         collect_stats,
     );
 
-    // Accumulate cross-file detector state for cache-hit files
-    // so finalize() can emit the same findings regardless of cache.
-    // Only needed when taint finalize will consume project state.
-    if ctx.taint_enabled && !preflight.cached_files.is_empty() {
+    // Accumulate cross-file detector state for cache-hit files when a
+    // detector explicitly opts into the capability, so finalize() can emit
+    // the same findings regardless of cache without reparsing for stateless
+    // detectors.
+    let needs_cache_state = registry
+        .detectors()
+        .iter()
+        .any(|detector| detector.requires_cache_state(ctx));
+    if needs_cache_state && !preflight.cached_files.is_empty() {
         merged.errors.extend(accumulate_state_for_cached(
             registry,
             ctx,
@@ -281,10 +286,14 @@ fn accumulate_state_for_cached(
         // of cache status.
         for &idx in registry.detector_indices(info.language) {
             if let Some(detector) = registry.detector(idx) {
+                if !detector.requires_cache_state(ctx) {
+                    continue;
+                }
                 let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                     detector.accumulate_state(ctx, &unit);
                 }));
                 if let Err(payload) = result {
+                    reset_detector_after_panic(detector);
                     errors.push(ScanError {
                         path: unit.path.clone(),
                         kind: ScanErrorKind::Engine,
@@ -298,6 +307,12 @@ fn accumulate_state_for_cached(
         }
     }
     errors
+}
+
+fn reset_detector_after_panic(detector: &dyn crate::core::Detector) {
+    if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| detector.reset_state())).is_err() {
+        tracing::error!("detector reset_state panicked while recovering from a detector panic");
+    }
 }
 
 fn dispatch_parallel_scan(
@@ -374,7 +389,7 @@ fn merge_parallel_results(
         match outcome {
             ScanOutcome::Fresh(mut result) => {
                 write_cache_on_miss(cache, &result, &mut merged.rescan_files);
-                merged.timing.merge(&result.timing);
+                merged.timing.merge_owned(result.timing);
                 append_file_contribution(
                     &mut merged,
                     &mut result.findings,

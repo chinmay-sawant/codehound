@@ -50,6 +50,17 @@ func f() {
     }
 
     #[test]
+    fn package_scope_handles_top_level_declarations() {
+        let source = r#"package main
+
+var packageInput = os.Getenv("CONFIG")
+"#;
+        let facts = extract_taint_facts(&parse(source));
+        assert!(facts.scopes.iter().any(|s| s.kind == ScopeKind::Package));
+        assert_eq!(facts.sources.len(), 1);
+    }
+
+    #[test]
     fn taint_extraction_overhead_is_small() {
         use std::time::Instant;
 

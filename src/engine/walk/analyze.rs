@@ -37,11 +37,29 @@ pub(crate) fn analyze_parsed_unit(
         if timing.is_enabled() {
             let name = det.rule_ids().first().copied().unwrap_or("detector");
             let span = timing.start(name);
-            det.run(ctx, unit, &mut findings);
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                det.run(ctx, unit, &mut findings);
+            }));
             timing.stop(span);
+            if let Err(payload) = result {
+                reset_detector_after_panic(det);
+                std::panic::resume_unwind(payload);
+            }
         } else {
-            det.run(ctx, unit, &mut findings);
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                det.run(ctx, unit, &mut findings);
+            }));
+            if let Err(payload) = result {
+                reset_detector_after_panic(det);
+                std::panic::resume_unwind(payload);
+            }
         }
     }
     (findings, rules_executed)
+}
+
+fn reset_detector_after_panic(detector: &dyn crate::core::Detector) {
+    if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| detector.reset_state())).is_err() {
+        tracing::error!("detector reset_state panicked while recovering from a detector panic");
+    }
 }

@@ -30,16 +30,16 @@ jobs:
       - name: Build
         run: |
           if [ "${{ matrix.features }}" = "default" ]; then
-            cargo build --all-targets
+            cargo build --all-targets --locked
           else
-            cargo build --all-targets --no-default-features --features ${{ matrix.features }}
+            cargo build --all-targets --locked --no-default-features --features ${{ matrix.features }}
           fi
       - name: Test
         run: |
           if [ "${{ matrix.features }}" = "default" ]; then
-            cargo test --all-targets
+            cargo test --all-targets --locked
           else
-            cargo test --all-targets --no-default-features --features ${{ matrix.features }}
+            cargo test --all-targets --locked --no-default-features --features ${{ matrix.features }}
           fi
 
   lint:
@@ -62,7 +62,7 @@ jobs:
       - name: Module size policy (src ≤ 400 lines)
         run: bash scripts/check_module_size.sh
       - name: clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo clippy --all-targets --all-features --locked -- -D warnings
 
   msrv:
     name: MSRV (1.85)
@@ -72,9 +72,9 @@ jobs:
       RUSTFLAGS: -D warnings
     steps:
       - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@1.100
+      - uses: dtolnay/rust-toolchain@1.85
       - name: Test on MSRV
-        run: cargo test --all-targets
+        run: cargo test --all-targets --locked
 
   audit:
     name: cargo audit
@@ -115,20 +115,24 @@ jobs:
         with:
           features: bench
       - name: Run criterion bench
-        run: cargo bench --bench scan_throughput -- --output-format bencher 2>&1 | tee bench_output.txt
+        run: set -o pipefail; cargo bench --locked --bench scan_throughput -- --output-format bencher 2>&1 | tee bench_output.txt
       - name: Check perf budget
         run: bash scripts/check_bench_budget.sh
       - name: Run incremental bench
-        run: cargo bench --bench incremental_scan -- --output-format bencher 2>&1 | tee bench_incremental_output.txt
+        run: set -o pipefail; cargo bench --locked --bench incremental_scan -- --output-format bencher 2>&1 | tee bench_incremental_output.txt
       - name: Check incremental bench budget
         run: bash scripts/check_incremental_bench_budget.sh
       - name: Run taint and span benchmarks
         run: |
+          set -o pipefail
           CARGO_INCREMENTAL=0 cargo bench --locked --no-default-features --features go,bench \
             --bench taint_graph --bench span_sweep -- \
             --sample-size 10 --measurement-time 2 --warm-up-time 1 \
             --output-format bencher 2>&1 | tee bench_taint_span_output.txt
           grep -q "taint_interprocedural_summary_ip006" bench_taint_span_output.txt
           grep -q "span_sweep_100" bench_taint_span_output.txt
+          grep -q "span_sweep_nested_100" bench_taint_span_output.txt
+      - name: Run partial incremental bench
+        run: set -o pipefail; cargo bench --locked --no-default-features --features go --bench incremental_partial_scan -- --output-format bencher 2>&1 | tee bench_incremental_partial_output.txt
       - name: Runtime example smoke
         run: cargo test --locked --examples -- --test-threads=1

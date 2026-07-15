@@ -204,6 +204,8 @@ pub struct ScopeInfo {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ScopeKind {
+    /// File/package-level scope used for declarations outside functions.
+    Package,
     Function,
     Block,
     If,
@@ -308,6 +310,8 @@ pub struct CallSite {
     pub arguments: Box<[SharedText]>,
     /// LHS of the assignment enclosing this call, when present.
     pub assignment_lhs: Option<SharedText>,
+    /// Whether the call's result is returned by the enclosing function.
+    pub returns_result: bool,
     pub is_method_call: bool,
     pub is_closure: bool,
 }

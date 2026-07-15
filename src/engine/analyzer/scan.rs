@@ -24,8 +24,14 @@ struct DetectorStateGuard<'a> {
 impl Drop for DetectorStateGuard<'_> {
     fn drop(&mut self) {
         for detector in self.registry.detectors() {
-            detector.reset_state();
+            reset_detector_state(detector.as_ref());
         }
+    }
+}
+
+fn reset_detector_state(detector: &dyn crate::core::Detector) {
+    if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| detector.reset_state())).is_err() {
+        tracing::error!("detector reset_state panicked during scan cleanup");
     }
 }
 
@@ -51,7 +57,7 @@ impl Analyzer {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         for detector in self.registry.detectors() {
-            detector.reset_state();
+            reset_detector_state(detector.as_ref());
         }
         let _detector_state = DetectorStateGuard {
             registry: &self.registry,

@@ -101,7 +101,7 @@ pub(crate) fn drain_global(target: &mut TimingCollector) {
     let current = { global_lock().take() };
     if let Some(c) = current {
         let enabled = c.enabled;
-        target.merge(&c);
+        target.merge_owned(c);
         *global_lock() = Some(TimingCollector::new(enabled));
     }
 }
@@ -198,6 +198,14 @@ impl TimingCollector {
             return;
         }
         self.spans.extend(other.spans.iter().cloned());
+    }
+
+    /// Merge an owned collector without cloning its recorded spans.
+    pub fn merge_owned(&mut self, mut other: Self) {
+        if !self.enabled || !other.enabled {
+            return;
+        }
+        self.spans.append(&mut other.spans);
     }
 
     /// Aggregate spans by name and compute total wall time.

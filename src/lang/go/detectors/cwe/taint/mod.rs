@@ -26,11 +26,11 @@ pub use rules::{
 };
 
 pub(crate) use graph_query::{
-    TaintGraphIndex, build_index, forward_reaches_any_with_index,
-    unsanitized_reaches_any_with_index,
+    TaintGraphIndex, build_index, compute_all_summaries_with_graph_and_index,
+    forward_reaches_any_with_index, unsanitized_reaches_any_with_index,
 };
 pub use graph_query::{
-    TaintPath, build_taint_graph, compute_all_summaries, find_taint_paths,
-    find_taint_paths_from_nodes, forward_reaches_any, refine_summaries_multihop,
-    unsanitized_reaches_any,
+    TaintPath, build_taint_graph, compute_all_summaries, compute_all_summaries_with_graph,
+    find_taint_paths, find_taint_paths_from_nodes, forward_reaches_any, refine_summaries_multihop,
+    refine_summaries_multihop_with_context, unsanitized_reaches_any,
 };

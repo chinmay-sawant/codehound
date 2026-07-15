@@ -3,7 +3,10 @@ mod t {
     use crate::core::ParsedUnit;
     use crate::lang::go::detectors::cwe::taint::extract::extract_taint_facts;
 
-    use super::super::super::{build_taint_graph, find_taint_paths};
+    use super::super::super::{
+        build_taint_graph, compute_all_summaries, extract_call_graph, find_taint_paths,
+        refine_summaries_multihop, refine_summaries_multihop_with_context,
+    };
     use crate::lang::go::detectors::cwe::taint::{SanitizerKind, SinkKind, SourceKind};
 
     fn parse(source: &str) -> ParsedUnit {
@@ -232,5 +235,81 @@ func f(r *http.Request) {
             source,
             &[sink]
         ));
+    }
+
+    #[test]
+    fn direct_sink_summary_is_function_local() {
+        let source = r#"package main
+func source_only(r *http.Request) {
+    _ = r.URL.Query().Get("q")
+}
+func sink_only() {
+    _ = os.Open("/safe")
+}
+"#;
+        let unit = parse(source);
+        let facts = extract_taint_facts(&unit);
+        let summaries = compute_all_summaries(&facts, source);
+
+        assert!(!summaries["source_only"].has_direct_sink);
+        assert!(!summaries["sink_only"].has_direct_sink);
+    }
+
+    #[test]
+    fn return_refinement_requires_returning_the_callee_result() {
+        let source = r#"package main
+func source() string {
+    return r.URL.Query().Get("q")
+}
+func unused() string {
+    x := source()
+    _ = x
+    return "/safe"
+}
+func used() string {
+    x := source()
+    return x
+}
+"#;
+        let unit = parse(source);
+        let facts = extract_taint_facts(&unit);
+        let mut summaries = compute_all_summaries(&facts, source);
+        refine_summaries_multihop(&extract_call_graph(&unit), &mut summaries, 4);
+
+        assert!(
+            !summaries["unused"]
+                .return_sources
+                .iter()
+                .any(|tainted| *tainted)
+        );
+        assert!(
+            summaries["used"]
+                .return_sources
+                .iter()
+                .any(|tainted| *tainted)
+        );
+    }
+
+    #[test]
+    fn parameter_refinement_follows_direct_argument_bindings() {
+        let source = r#"package main
+func middle(s string) {
+    leaf(s)
+}
+func leaf(s string) {
+    os.Open(s)
+}
+"#;
+        let unit = parse(source);
+        let facts = extract_taint_facts(&unit);
+        let mut summaries = compute_all_summaries(&facts, source);
+        refine_summaries_multihop_with_context(
+            &extract_call_graph(&unit),
+            &facts,
+            &mut summaries,
+            4,
+        );
+
+        assert_eq!(summaries["middle"].param_sources, vec![Some(true)]);
     }
 }

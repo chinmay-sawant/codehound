@@ -102,7 +102,7 @@ impl PipelineAccumulator {
         self.source_cache.extend(chunk.source_cache);
         self.suppressed_count += chunk.suppressed_count;
         self.stats.merge(&chunk.stats);
-        timing.merge(&chunk.timing);
+        timing.merge_owned(chunk.timing);
         chunk.rescan_files
     }
 

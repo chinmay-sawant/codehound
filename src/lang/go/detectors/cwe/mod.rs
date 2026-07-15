@@ -46,6 +46,7 @@ struct ProjectUnit {
     line_starts: Arc<[usize]>,
     call_graph: CallGraph,
     annotations: TaintAnnotations,
+    taint_graph: TaintGraph,
     import_map: HashMap<String, String>,
 }
 
@@ -105,12 +106,16 @@ impl Detector for GoCweScan {
         }
         let mut facts = build_go_unit_facts_with(unit, FactBuildOpts::TAINT);
         build_taint_graph_for_facts(&mut facts);
-        let project_unit = make_project_unit(unit, &facts);
+        let project_unit = make_project_unit(unit, &mut facts);
         let mut state = self
             .state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         state.units.push(project_unit);
+    }
+
+    fn requires_cache_state(&self, ctx: &ScanContext) -> bool {
+        ctx.taint_enabled && self.rule_ids().iter().any(|id| ctx.allows(id))
     }
 
     fn reset_state(&self) {
@@ -129,18 +134,24 @@ impl Detector for GoCweScan {
         let mut facts = build_go_unit_facts_with(unit, opts);
         if ctx.taint_enabled {
             build_taint_graph_for_facts(&mut facts);
-            let project_unit = make_project_unit(unit, &facts);
-            let mut state = self
-                .state
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-            state.units.push(project_unit);
         }
 
         for (rule_id, detector, _) in GO_RULES {
             if ctx.allows(rule_id) {
                 detector(unit, &facts, out);
             }
+        }
+
+        // Publish project state only after every per-file rule succeeds. If a
+        // rule panics, the worker result is discarded and this file cannot
+        // leak a partially analyzed unit into project finalization.
+        if ctx.taint_enabled {
+            let project_unit = make_project_unit(unit, &mut facts);
+            let mut state = self
+                .state
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            state.units.push(project_unit);
         }
     }
 
@@ -165,18 +176,39 @@ impl Detector for GoCweScan {
         units.sort_by(|a, b| a.path.cmp(&b.path));
 
         // Pre-build per-file taint graphs and summaries.
-        let mut per_file: Vec<(&str, TaintGraph, HashMap<String, taint::TaintSummary>)> =
-            Vec::with_capacity(units.len());
+        let mut per_file: Vec<(
+            &str,
+            TaintGraph,
+            TaintGraphIndex,
+            HashMap<String, taint::TaintSummary>,
+        )> = Vec::with_capacity(units.len());
         let mut func_to_file: HashMap<String, usize> = HashMap::new();
         let max_depth = ctx.taint_max_depth.clamp(1, 4);
-        for (idx, unit) in units.iter().enumerate() {
-            let graph = taint::build_taint_graph(&unit.annotations);
-            let mut summaries = taint::compute_all_summaries(&unit.annotations, &unit.source);
+        let graphs: Vec<TaintGraph> = units
+            .iter_mut()
+            .map(|unit| std::mem::take(&mut unit.taint_graph))
+            .collect();
+        for (idx, (unit, graph)) in units.iter().zip(graphs).enumerate() {
+            // The graph was built once alongside the per-file facts and is
+            // moved here for project-level queries. Rebuilding it would repeat
+            // the same annotation walk before every summary/finalization pass.
+            let graph_index = build_index(&graph);
+            let mut summaries = taint::compute_all_summaries_with_graph_and_index(
+                &graph,
+                &graph_index,
+                &unit.annotations,
+                &unit.source,
+            );
             // Bounded multi-hop: refine return_sources through same-file call graph.
             if max_depth > 1 {
-                taint::refine_summaries_multihop(&unit.call_graph, &mut summaries, max_depth);
+                taint::refine_summaries_multihop_with_context(
+                    &unit.call_graph,
+                    &unit.annotations,
+                    &mut summaries,
+                    max_depth,
+                );
             }
-            per_file.push((unit.path.as_str(), graph, summaries));
+            per_file.push((unit.path.as_str(), graph, graph_index, summaries));
             for func_name in unit.call_graph.declarations.keys() {
                 // Prefer same-package path + name; avoid cross-file name collisions
                 // by keying with file index when inserting first-wins.
@@ -189,14 +221,10 @@ impl Detector for GoCweScan {
         // without repeatedly scanning every file or graph.
         let variable_indexes: Vec<VariableIndex> = per_file
             .iter()
-            .map(|(_, graph, _)| build_variable_index(graph))
-            .collect();
-        let graph_indexes: Vec<TaintGraphIndex> = per_file
-            .iter()
-            .map(|(_, graph, _)| build_index(graph))
+            .map(|(_, graph, _, _)| build_variable_index(graph))
             .collect();
         let mut summary_index: HashMap<String, usize> = HashMap::new();
-        for (file_idx, (_, _, summaries)) in per_file.iter().enumerate() {
+        for (file_idx, (_, _, _, summaries)) in per_file.iter().enumerate() {
             for name in summaries.keys() {
                 summary_index.entry(name.clone()).or_insert(file_idx);
             }
@@ -213,7 +241,7 @@ impl Detector for GoCweScan {
         for (caller_idx, unit) in units.iter().enumerate() {
             let caller_path = unit.path.as_str();
             let caller_graph = &per_file[caller_idx].1;
-            let caller_index = &graph_indexes[caller_idx];
+            let caller_index = &per_file[caller_idx].2;
             let caller_variables = &variable_indexes[caller_idx];
             let caller_line_starts = &unit.line_starts;
 
@@ -352,27 +380,33 @@ fn build_variable_index(graph: &TaintGraph) -> VariableIndex {
     index
 }
 
-fn make_project_unit(unit: &ParsedUnit, facts: &GoUnitFacts) -> ProjectUnit {
+fn make_project_unit(unit: &ParsedUnit, facts: &mut GoUnitFacts) -> ProjectUnit {
     ProjectUnit {
         path: unit.display_path.clone(),
         source: Arc::clone(&unit.source),
         line_starts: Arc::from(unit.line_starts.as_slice()),
         call_graph: facts.call_graph.clone().unwrap_or_default(),
         annotations: facts.taint.clone(),
+        taint_graph: facts.taint_graph.take().unwrap_or_default(),
         import_map: build_import_map(unit),
     }
 }
 
 /// Find a callee's TaintSummary across all files.
 fn find_callee_summary<'a>(
-    per_file: &'a [(&str, TaintGraph, HashMap<String, taint::TaintSummary>)],
+    per_file: &'a [(
+        &str,
+        TaintGraph,
+        TaintGraphIndex,
+        HashMap<String, taint::TaintSummary>,
+    )],
     summary_index: &HashMap<String, usize>,
     callee_name: &str,
 ) -> Option<&'a taint::TaintSummary> {
     summary_index
         .get(callee_name)
         .and_then(|file_idx| per_file.get(*file_idx))
-        .and_then(|(_, _, summaries)| summaries.get(callee_name))
+        .and_then(|(_, _, _, summaries)| summaries.get(callee_name))
 }
 
 /// Check if any identifier text in a TaintGraph has an **unsanitized** taint

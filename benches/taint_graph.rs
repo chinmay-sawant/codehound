@@ -9,8 +9,8 @@ use codehound::ast::compute_line_starts;
 use codehound::core::{LanguageId, ParsedUnit};
 use codehound::lang::go::detectors::cwe::facts::{FactBuildOpts, build_go_unit_facts_with};
 use codehound::lang::go::detectors::cwe::taint::{
-    EdgeKind, SinkKind, SourceKind, TaintGraph, TaintNode, compute_all_summaries,
-    refine_summaries_multihop,
+    EdgeKind, SinkKind, SourceKind, TaintGraph, TaintNode, build_taint_graph,
+    compute_all_summaries_with_graph, refine_summaries_multihop,
 };
 use criterion::{Criterion, criterion_group, criterion_main};
 
@@ -101,10 +101,12 @@ fn bench_interprocedural_summaries(c: &mut Criterion) {
     let unit = interprocedural_unit();
     let facts = build_go_unit_facts_with(&unit, FactBuildOpts::TAINT);
     let call_graph = facts.call_graph.as_ref().expect("call graph extracted");
+    let graph = build_taint_graph(&facts.taint);
 
     c.bench_function("taint_interprocedural_summary_ip006", |b| {
         b.iter(|| {
-            let mut summaries = compute_all_summaries(&facts.taint, unit.source.as_ref());
+            let mut summaries =
+                compute_all_summaries_with_graph(&graph, &facts.taint, unit.source.as_ref());
             refine_summaries_multihop(call_graph, &mut summaries, 4);
             black_box(summaries);
         });

@@ -34,6 +34,16 @@ mod t {
     }
 
     #[test]
+    fn owned_merge_combines_spans_without_borrowing_source() {
+        let mut target = TimingCollector::new(true);
+        let mut source = TimingCollector::new(true);
+        target.measure("phase", || ());
+        source.measure("phase", || ());
+        target.merge_owned(source);
+        assert_eq!(target.to_summary().phases[0].count, 2);
+    }
+
+    #[test]
     fn with_timing_drains_global_collector() {
         use super::super::collector::with_timing;
 

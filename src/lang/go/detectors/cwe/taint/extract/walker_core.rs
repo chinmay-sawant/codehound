@@ -15,9 +15,11 @@ pub fn extract_taint_facts(unit: &ParsedUnit) -> TaintAnnotations {
     let src = unit.source.as_bytes();
     let root = unit.tree.root_node();
     let mut state = ExtractionState::new(unit.source.as_ref());
+    state.push_scope(ScopeKind::Package, 0..unit.source.len());
 
     let mut cursor = root.walk();
     walk_node(root, &mut cursor, src, &mut state);
+    state.pop_scope();
 
     TaintAnnotations {
         sources: state.sources,

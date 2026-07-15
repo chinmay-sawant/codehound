@@ -37,6 +37,17 @@ pub trait Detector: Send + Sync {
     /// Default implementation does nothing.
     fn accumulate_state(&self, _ctx: &ScanContext, _unit: &ParsedUnit) {}
 
+    /// Whether cached files must be reparsed and passed to
+    /// [`Self::accumulate_state`]. Detectors with cross-file state should
+    /// override this together with [`Self::accumulate_state`].
+    ///
+    /// The default is `false` so stateless detectors do not pay the cache-hit
+    /// reparse cost. This is a capability declaration, not a taint-specific
+    /// contract.
+    fn requires_cache_state(&self, _ctx: &ScanContext) -> bool {
+        false
+    }
+
     /// Clear state retained for a project-level analysis.
     ///
     /// The scan engine calls this at both boundaries so a detector cannot

@@ -8,18 +8,30 @@ use super::super::{
     TaintNodeId,
 };
 
+type DeclNodes = HashMap<ScopeId, HashMap<SharedText, Vec<(usize, TaintNodeId)>>>;
+
 /// Build a `TaintGraph` from raw annotations.
 pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
     let mut graph = TaintGraph::default();
 
     // Versioned last-write: each assignment gets its own node; resolve picks
     // the latest decl with `decl_byte <= use_byte` (not pure overwrite).
-    // Key is (scope, name) including field-qualified names (`user.Path`).
-    let mut decl_nodes: HashMap<(ScopeId, SharedText), Vec<(usize, TaintNodeId)>> = HashMap::new();
+    // Nested by scope so name lookup can borrow the query string instead of
+    // allocating a fresh `Arc<str>` for every identifier resolution.
+    let mut decl_nodes: DeclNodes = HashMap::new();
 
     // Index scopes by id for parent lookups.
     let scope_by_id: HashMap<ScopeId, &ScopeInfo> =
         annotations.scopes.iter().map(|s| (s.id, s)).collect();
+    let mut scope_order: Vec<ScopeId> = annotations.scopes.iter().map(|scope| scope.id).collect();
+    scope_order.sort_by_key(|id| {
+        let scope = scope_by_id[id];
+        (
+            scope.byte_range.end - scope.byte_range.start,
+            scope.byte_range.start,
+            scope.id,
+        )
+    });
 
     // Create variable nodes for function parameters.
     for (_func_name, params) in &annotations.function_params {
@@ -41,7 +53,9 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
             };
             let id = graph.add_node(node);
             decl_nodes
-                .entry((func_scope.id, Arc::clone(param)))
+                .entry(func_scope.id)
+                .or_default()
+                .entry(Arc::clone(param))
                 .or_default()
                 .push((func_scope.byte_range.start, id));
         }
@@ -60,14 +74,18 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
         };
         let id = graph.add_node(node);
         decl_nodes
-            .entry((assignment.scope, Arc::clone(&assignment.lhs)))
+            .entry(assignment.scope)
+            .or_default()
+            .entry(Arc::clone(&assignment.lhs))
             .or_default()
             .push((assignment.byte_range.start, id));
     }
 
     // Keep versions sorted by decl_byte for binary search / last-write.
-    for versions in decl_nodes.values_mut() {
-        versions.sort_by_key(|(byte, _)| *byte);
+    for names in decl_nodes.values_mut() {
+        for versions in names.values_mut() {
+            versions.sort_by_key(|(byte, _)| *byte);
+        }
     }
 
     // Add source / sink / sanitizer nodes and wire them to result variables
@@ -79,9 +97,13 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
             byte_range: source.byte_range.clone(),
         });
         if let Some(var) = &source.result_variable {
-            if let Some(target) =
-                resolve_variable(&decl_nodes, &scope_by_id, source.byte_range.start, var)
-            {
+            if let Some(target) = resolve_variable(
+                &decl_nodes,
+                &scope_by_id,
+                &scope_order,
+                source.byte_range.start,
+                var,
+            ) {
                 graph.add_edge(id, target, EdgeKind::Assignment);
             }
         }
@@ -89,6 +111,7 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
             &mut graph,
             &decl_nodes,
             &scope_by_id,
+            &scope_order,
             id,
             source.byte_range.start,
             &source.arguments,
@@ -102,9 +125,13 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
             byte_range: sanitizer.byte_range.clone(),
         });
         if let Some(var) = &sanitizer.result_variable {
-            if let Some(target) =
-                resolve_variable(&decl_nodes, &scope_by_id, sanitizer.byte_range.start, var)
-            {
+            if let Some(target) = resolve_variable(
+                &decl_nodes,
+                &scope_by_id,
+                &scope_order,
+                sanitizer.byte_range.start,
+                var,
+            ) {
                 graph.add_edge(id, target, EdgeKind::Assignment);
             }
         }
@@ -112,6 +139,7 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
             &mut graph,
             &decl_nodes,
             &scope_by_id,
+            &scope_order,
             id,
             sanitizer.byte_range.start,
             &sanitizer.arguments,
@@ -129,9 +157,13 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
         // expressions like `"prefix" + tainted`) to its declaring variable.
         for (idx, arg) in sink.all_arguments.iter().enumerate() {
             for name in referenced_names(arg) {
-                if let Some(source_id) =
-                    resolve_variable(&decl_nodes, &scope_by_id, sink.byte_range.start, name)
-                {
+                if let Some(source_id) = resolve_variable(
+                    &decl_nodes,
+                    &scope_by_id,
+                    &scope_order,
+                    sink.byte_range.start,
+                    name,
+                ) {
                     graph.add_edge(source_id, id, EdgeKind::Argument(idx));
                 }
             }
@@ -159,12 +191,14 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
                                 resolve_variable(
                                     &decl_nodes,
                                     &scope_by_id,
+                                    &scope_order,
                                     sink.byte_range.start,
                                     in_name,
                                 ),
                                 resolve_variable(
                                     &decl_nodes,
                                     &scope_by_id,
+                                    &scope_order,
                                     sink.byte_range.start,
                                     out_name,
                                 ),
@@ -215,9 +249,13 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
         }
 
         for name in referenced_names(&assignment.rhs_text) {
-            if let Some(source_id) =
-                resolve_variable(&decl_nodes, &scope_by_id, assignment.byte_range.start, name)
-            {
+            if let Some(source_id) = resolve_variable(
+                &decl_nodes,
+                &scope_by_id,
+                &scope_order,
+                assignment.byte_range.start,
+                name,
+            ) {
                 graph.add_edge(source_id, target, EdgeKind::Assignment);
             }
         }
@@ -242,6 +280,7 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
                         if let Some(source_id) = resolve_variable(
                             &decl_nodes,
                             &scope_by_id,
+                            &scope_order,
                             assignment.byte_range.start,
                             name,
                         ) {
@@ -260,15 +299,18 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
 /// climbing the scope tree as needed.
 fn wire_arguments(
     graph: &mut TaintGraph,
-    decl_nodes: &HashMap<(ScopeId, SharedText), Vec<(usize, TaintNodeId)>>,
+    decl_nodes: &DeclNodes,
     scope_by_id: &HashMap<ScopeId, &ScopeInfo>,
+    scope_order: &[ScopeId],
     node_id: TaintNodeId,
     byte_offset: usize,
     arguments: &[SharedText],
 ) {
     for (idx, arg) in arguments.iter().enumerate() {
         for name in referenced_names(arg) {
-            if let Some(source_id) = resolve_variable(decl_nodes, scope_by_id, byte_offset, name) {
+            if let Some(source_id) =
+                resolve_variable(decl_nodes, scope_by_id, scope_order, byte_offset, name)
+            {
                 graph.add_edge(source_id, node_id, EdgeKind::Argument(idx));
             }
         }
@@ -277,12 +319,12 @@ fn wire_arguments(
 
 /// Latest version of `name` in `scope` with `decl_byte <= use_byte`.
 fn resolve_decl_at(
-    decl_nodes: &HashMap<(ScopeId, SharedText), Vec<(usize, TaintNodeId)>>,
+    decl_nodes: &DeclNodes,
     scope: ScopeId,
     name: &str,
     use_byte: usize,
 ) -> Option<TaintNodeId> {
-    let versions = decl_nodes.get(&(scope, Arc::from(name)))?;
+    let versions = decl_nodes.get(&scope)?.get(name)?;
     versions
         .iter()
         .rev()
@@ -291,16 +333,19 @@ fn resolve_decl_at(
 }
 
 fn resolve_variable(
-    decl_nodes: &HashMap<(ScopeId, SharedText), Vec<(usize, TaintNodeId)>>,
+    decl_nodes: &DeclNodes,
     scope_by_id: &HashMap<ScopeId, &ScopeInfo>,
+    scope_order: &[ScopeId],
     byte_offset: usize,
     name: &str,
 ) -> Option<TaintNodeId> {
     // Find the innermost scope containing the byte offset.
-    let mut current = scope_by_id
-        .values()
-        .filter(|s| s.byte_range.start <= byte_offset && byte_offset < s.byte_range.end)
-        .min_by_key(|s| s.byte_range.end - s.byte_range.start)?;
+    let mut current = scope_order
+        .iter()
+        .filter_map(|id| scope_by_id.get(id).copied())
+        .find(|scope| {
+            scope.byte_range.start <= byte_offset && byte_offset < scope.byte_range.end
+        })?;
 
     loop {
         // Prefer field-qualified key, then climb scopes for last-write version.

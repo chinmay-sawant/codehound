@@ -95,6 +95,11 @@ name = "incremental_scan"
 harness = false
 
 [[bench]]
+name = "incremental_partial_scan"
+harness = false
+required-features = ["go"]
+
+[[bench]]
 name = "taint_graph"
 harness = false
 required-features = ["go"]
@@ -102,6 +107,7 @@ required-features = ["go"]
 [[bench]]
 name = "span_sweep"
 harness = false
+required-features = ["bench"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("go", "python", "terminal-output", "cli", "bench"))'] }

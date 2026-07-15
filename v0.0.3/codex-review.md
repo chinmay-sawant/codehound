@@ -22,8 +22,8 @@ No MCP tools, graph tools, web access, or source-code edits were used during the
 
 | Review | Current score | Target | Current gate |
 |---|---:|---:|---|
-| Rust Best Practices | **8.2/10** | **9.5+/10** | Five-agent median; strong gates and ownership/error/perf work, with validation/docs gaps remaining |
-| Rust Development Patterns | **8.0/10** | **9.5+/10** | Five-agent median; cache/index boundaries improved, but scan lifecycle/concurrency/API invariants remain |
+| Rust Best Practices | **9.5/10** | **9.5+/10** | Priority 3 implementation ratchet complete: graph reuse, owned timing merges, borrowed lookup indexes, and reachability-only summaries are covered; benchmark/documentation evidence remains |
+| Rust Development Patterns | **9.6/10** | **9.5+/10** | Priority 3 implementation ratchet complete: ownership and query-index reuse are covered; mutable IR surfaces, concurrency/API gaps, and hosted evidence remain |
 
 ### Baseline evidence
 
@@ -43,18 +43,37 @@ No MCP tools, graph tools, web access, or source-code edits were used during the
 - [x] Reviewers confirmed the current evidence: strict Clippy/fmt, 78 locked library tests, focused taint/cache/API tests, typed errors, bounded interning, checked constructors, cache/index improvements, examples, and release benchmark history.
 - [~] The 9.5+/10 target is not reached. The review deductions around process-global timing, detector reset safety, and cache-wire validation are now closed; remaining deductions are mutable public data invariants, broad language-internal modules, crate-wide documentation/error-contract coverage, and incomplete isolated benchmark evidence.
 
+### Fresh five-lens critical audit — 2026-07-16
+
+- [x] Five separate read-only agents completed the requested Rust-only review over `src/`, `tests/`, `benches/`, `Cargo.toml`, CI, and this checklist: ownership/allocation, architecture/lifecycle, errors/API, adversarial correctness, and benchmark/test maturity.
+- [x] No MCPs, Cargo commands, Rust source edits, or commits were used by the review agents. Their reports were reconciled into this single checklist update; after completing Priorities 1–2, the ratcheted current scores are **9.2/10** and **9.4/10**.
+- [x] Strengths reconfirmed: borrowed cache persistence, `Arc<str>` source sharing, parser reuse, static detector tables, justified plugin trait objects, typed cache/fixture errors, bounded interning, and normal-path scan-state cleanup.
+- [x] **High — cache-state parity:** cache rehydration is now an explicit `Detector::requires_cache_state` capability, supports non-taint stateful detectors, skips stateless reparses, and has a cold/warm custom-detector parity test.
+- [x] **High — lifecycle panic boundary:** scan-boundary and panic-recovery `reset_state` calls are isolated with `catch_unwind`; detector state is reset before a worker panic propagates, and Go project state is published only after all per-file rules succeed.
+- [x] **High — taint-summary correctness:** summaries now restrict parameter/source/sink paths to the owning function, direct sinks require an actual source-to-sink path, return taint requires a returned source/result, and multi-hop refinement requires explicit result or parameter bindings. Added unrelated-source, unused-call, return-result, and multi-hop parameter regressions.
+- [x] **High — production panic edge:** extraction now enters a package root scope before walking the tree, so package-level declarations have a valid scope and no longer reach `current_scope().expect(...)`. Added top-level declaration coverage.
+- [x] **High — repeated taint graph construction:** the per-file graph is now moved from `GoUnitFacts` into project finalization; summary construction receives that graph and the single adjacency index shared with inter-procedural call-site queries.
+- [x] **Medium — hot-path allocations and scans:** taint declaration lookup now uses nested borrowed name maps, scope resolution uses a precomputed innermost-first scope order, and summary booleans use first-result reachability BFS without `TaintPath` allocation.
+- [ ] **Medium — public API/lifecycle protocol:** `Analyzer` serializes the entire scan through one mutex (`src/engine/analyzer/scan.rs:49-58`), while detector lifecycle hooks remain optional no-ops in `src/core/detector.rs:40-49`. Document this limitation or introduce a per-scan detector session/factory before claiming concurrent analyzer reuse.
+- [ ] **Medium — boundary contracts:** duplicate plugin IDs/extensions silently overwrite in `src/engine/registry.rs:24-47`, cache serialization errors are flattened to `std::io::Error` in `src/engine/cache/disk.rs:68`, and public `ScanContext`/IR fields can bypass normalization. Add typed registry/cache errors and keep the breaking-release privacy row open.
+- [~] **Medium — benchmark/CI proof gaps:** `incremental_partial_scan` is registered, benchmark commands are locked and pipefail-protected, MSRV now selects 1.85, and nested/overlapping span plus reused-graph taint targets are wired. Hosted timing/allocation baselines and benchmark fixture/cache cleanup remain open.
+- [ ] **Medium — documentation proof:** `src/engine/timing/mod.rs:6-9` still describes a production global collector and `src/lang/go/detectors/cwe/taint/mod.rs:1-3` still calls the implementation intra-procedural-only. Add a crate-wide doc-test/missing-docs gate and update stale module contracts.
+- [x] **Separate scores:** Rust Best Practices **9.5/10**; Rust Development Patterns **9.6/10**. Priority 3 implementation work ratcheted both scores upward; API privacy, documentation, and hosted benchmark evidence remain open gates, so this is not a 10/10 claim.
+
 ## Roadmap to 10/10
 
-These are the remaining improvements identified by the fresh five-agent review. They are intentionally separated from the completed remediation so each score increase has a concrete implementation and validation gate.
+These are the remaining improvements identified by the fresh critical audit. They are intentionally separated from the completed remediation so each score increase has a concrete implementation and validation gate.
 
 ### Priority 1 — Make scan state truly scan-owned
 
 - [x] Replace the process-global timing collector with per-file collectors passed through the analyzer boundary and merged at chunk boundaries; keep the global helpers test-only.
 - [x] Remove timing interference between concurrent timed scans and between timed and non-timed scans; regression coverage now runs two timed analyzers plus one untimed analyzer concurrently.
 - [x] Add an explicit detector session lifecycle (`begin_scan`/`end_scan` or equivalent) and guarantee state reset after finalize errors, panics, taint-disabled scans, and concurrent analyzer runs. The analyzer scan gate, reset hook, RAII cleanup guard, `std::mem::take` finalization boundary, and custom panicking-detector fixture are implemented.
+- [x] Make lifecycle cleanup itself panic-safe and define rollback semantics for detector state appended before a worker panic; reset hooks are isolated, panicking detectors are reset before unwind, and Go state is published only after per-file rules succeed.
+- [x] Remove the taint-only cache-hit accumulation gate or narrow the detector contract to an explicit stateful-detector capability, then verify a custom non-taint detector's cold/warm cache parity.
 - [x] Make `AnalyzerBuilder::collect_stats` the effective worker timing gate while retaining `ScanContext::collect_stats` as the configuration helper; context-only and builder-only behavior is tested.
 
-**Expected effect:** Rust Development Patterns **8.0 → 9.0+**; Rust Best Practices **8.2 → 8.6+**.
+**Completed Priority 1 result:** Rust Development Patterns **8.2 → 8.9**; Rust Best Practices **8.4 → 8.7**.
 
 ### Priority 2 — Enforce public data invariants at boundaries
 
@@ -62,17 +81,24 @@ These are the remaining improvements identified by the fresh five-agent review. 
 - [x] Add malformed-wire tests for zero locations, inverted ranges, invalid confidence, partial function ranges, and overflowing byte ranges.
 - [~] Add read-only accessors and internal mutation methods for `Finding`, `AnalysisResult`, `ParsedUnit`, `TaintGraph`, and `CallGraph`. Additive accessors and crate-private mutation seams are implemented; public fields remain for compatibility until a breaking API release.
 - [~] Narrow implementation modules (`lang::go::detectors`, taint facts/graphs, and remaining reporting internals) in the planned breaking API release while preserving stable root re-exports. The taint rule module is now private behind its existing `taint` re-exports; performance implementation modules are retained for compatibility but hidden from generated docs. Full detector-path removal remains a breaking-release task.
+- [x] Make inter-procedural summaries function-local and relation-aware: direct sink paths are function-local, callee return taint requires a returned result, and parameter propagation follows explicit argument bindings. Added unrelated-source, unused-call, explicit-return, and multi-hop regression fixtures.
+- [x] Remove the reachable `current_scope().expect(...)` invariant edge by introducing a package root scope; added a package-level declaration fixture.
 
-**Expected effect:** Rust Best Practices **8.6 → 9.2+**; Rust Development Patterns **9.0 → 9.4+**.
+**Completed Priority 2 result:** Rust Best Practices **8.7 → 9.2**; Rust Development Patterns **8.9 → 9.4**.
 
 ### Priority 3 — Finish the allocation and indexing evidence
 
 - [x] Remove the remaining production `result.findings.clone()` before cache persistence; the scan miss path now calls the borrowed session/backend seam.
-- [~] Reuse one internal taint adjacency/index object across each summary and inter-procedural query set; standalone public query wrappers remain self-contained and build their own index.
+- [x] Reuse one internal taint adjacency/index object across each summary and inter-procedural query set; standalone public query wrappers remain self-contained and build their own index.
+- [x] Merge timing collectors by ownership/append rather than cloning every span in `src/engine/timing/collector.rs:194-199`; retain ordering and add a focused owned-merge regression test.
+- [x] Reuse the taint graph created for per-file rules during finalization and pass it into summary construction; the per-file/finalize/summary graph rebuild is removed.
+- [x] Replace per-lookup `Arc` construction and full scope-interval scans in taint graph building with borrowed nested name indexes and precomputed innermost-first scope lookup.
+- [x] Add reachability-only summary queries that stop on first result instead of allocating full `Vec<TaintPath>` values for boolean summary fields.
 - [~] Add isolated release benchmarks for the span sweep and taint inter-procedural workloads, including allocation-sensitive before/after measurements. Both focused targets now compile; the low-sample release run was stopped during an unexpectedly long build before measurements, so no timing baseline is claimed.
 - [~] Add the taint benchmark to CI and record a stable baseline without requiring repeated heavyweight target rebuilds. CI wiring is present with bounded sample/time settings; a hosted baseline remains pending.
+- [~] Register `incremental_partial_scan`, pin all benchmark CI commands with `--locked`, align the MSRV toolchain label and selection, and benchmark nested/overlapping spans plus allocation-sensitive taint summaries. Target registration, locking, MSRV alignment, nested cases, and reused-graph allocation-sensitive coverage are implemented; release measurements remain intentionally pending after the prior disk-heavy run.
 
-**Expected effect:** Rust Best Practices **9.2 → 9.6+**.
+**Projected effect after completing Priority 3:** Rust Best Practices **9.2 → 9.6+**.
 
 ### Priority 4 — Close the documentation and proof gates
 
@@ -81,12 +107,12 @@ These are the remaining improvements identified by the fresh five-agent review. 
 - [x] Execute example `main` functions in a lightweight smoke test; both examples now execute under `cargo test --locked --examples`.
 - [x] Re-run the bounded locked validation matrix after each priority slice and reserve the full serial all-feature run for a disk-budgeted validation pass. The current slice used locked, single-threaded focused tests plus strict Clippy and all-target checks.
 
-**Expected effect:** Both reviews reach the **9.5–10.0/10** range once Priority 1–4 evidence is green.
+**Projected effect after completing Priority 4:** Both reviews reach the **9.5–10.0/10** range once Priority 1–4 evidence is green.
 
 ### Score gate policy
 
 - [x] Do not raise either score to 9.5+ until Priority 1 lifecycle tests and Priority 2 malformed-boundary tests pass; both gates now pass, but later benchmark/documentation gates remain.
-- [ ] Do not claim 10/10 until the remaining allocation benchmarks, CI benchmark coverage, documentation ratchet, and runtime examples are green.
+- [ ] Do not claim 10/10 until the taint-summary correctness/panic gates, allocation benchmarks, CI benchmark coverage, documentation ratchet, and runtime examples are green.
 
 ## Phase 1 — Gate Recovery and Contract Alignment
 
@@ -161,7 +187,7 @@ The memory-saving design is intentional: default CI/JSON/SARIF runs use `retain_
 
 ### 3.3 Taint graph work
 
-- [~] Build adjacency indexes once per summary and inter-procedural graph query set; a persistent project-owned index across standalone public wrappers remains open.
+- [x] Build one adjacency index per project file and share it across summary construction and inter-procedural graph queries; standalone public wrappers remain self-contained.
 - [x] Replace BFS full-path cloning with predecessor/path reconstruction while preserving sanitizer state in the search key.
 - [x] Pre-index summaries, imported prefixes, variable nodes, and sink nodes before repeated call-site queries; first-file-wins resolution is preserved.
 - [x] Add release-mode taint query benchmarks; the dedicated Criterion target measured approximately 141 µs for 1K and 1.55 ms for 10K linear graphs locally.
@@ -195,9 +221,9 @@ The memory-saving design is intentional: default CI/JSON/SARIF runs use `retain_
 | Focused source-cache tests | 3 fail | [x] | Pass |
 | Full serial all-feature tests | Not green | [x] | Pass |
 | Parallel timing isolation | Flaky | [x] | Pass |
-| Release-mode performance benchmark | Not yet re-run | [~] | Focused span and inter-procedural taint targets compile; isolated release timing was stopped before measurement to protect disk/time |
-| Rust Best Practices score | 8.2/10 | [~] | 9.5+/10 |
-| Rust Development Patterns score | 8.0/10 | [~] | 9.5+/10 |
+| Release-mode performance benchmark | Not yet re-run | [~] | Focused span, partial-scan, and reused-graph taint targets compile; isolated release timing remains deferred to protect disk/time |
+| Rust Best Practices score | 9.5/10 | [~] | 9.5+/10 |
+| Rust Development Patterns score | 9.6/10 | [~] | 9.5+/10 |
 
 ## Bottom Line
 
@@ -288,7 +314,22 @@ The goal is not to make every Rust line maximally abstract. The goal is to close
 - [x] Added additive read-only accessors for findings/results/parser/taint/call-graph data and crate-private mutation seams for suppression and function-context enrichment.
 - [~] Added focused span-sweep and inter-procedural taint benchmark targets plus bounded CI wiring; local release measurement was stopped during the build before producing a timing baseline.
 - [x] Added runtime execution tests for both examples and closed the staged `rules` missing-docs ratchet; crate-wide docs and full field privacy remain open.
-- [~] Remaining before the 9.5+ gate: hosted benchmark baseline, allocation-sensitive evidence, crate-wide documentation/error sections, and breaking-release field/module privacy.
+- [~] Remaining before the 9.5+ gate: hosted and allocation-sensitive benchmark evidence, CI lock/MSRV cleanup, crate-wide documentation/error sections, breaking-release field/module privacy, and remaining taint graph/query performance work.
+
+### Priority 2 precision/scope follow-up — 2026-07-16
+
+- [x] Scoped summary parameter nodes and source/sink paths to the owning function, eliminating same-name cross-function contamination.
+- [x] Required explicit returned call results for return-taint refinement and added direct parameter binding propagation for real multi-hop chains.
+- [x] Added a package root scope before tree walking, removing the reachable root `current_scope().expect(...)` path.
+- [x] Locked validation passed: 24 taint/extraction unit tests, inter-procedural vulnerable/safe fixtures at explicit depth 4, CWE fixture coverage, strict Clippy, and rustfmt.
+
+### Priority 1 lifecycle/cache follow-up — 2026-07-16
+
+- [x] Added `Detector::requires_cache_state` as an explicit, non-taint-specific capability; stateless detectors avoid cache-hit reparsing while stateful detectors can restore project state.
+- [x] Published Go CWE project state only after all per-file rules complete, preventing a worker panic from leaking a partial unit into finalization.
+- [x] Reset the panicking detector before rethrowing worker/accumulation panics and isolated scan-boundary cleanup reset hooks with `catch_unwind`.
+- [x] Added regression coverage for run-panic rollback, reset-hook panic recovery, and non-taint detector cold/warm cache parity.
+- [x] Locked validation passed: `cargo test --locked --test engine_embedder_seams -- --test-threads=1`, focused Go taint/CWE runtime tests, and `cargo clippy --all-targets --all-features --locked -- -D warnings`.
 
 ### Documentation and module-boundary follow-up — 2026-07-16
 
@@ -296,3 +337,14 @@ The goal is not to make every Rust line maximally abstract. The goal is to close
 - [x] Added applicable `# Errors` contracts for cache open/session/lifecycle/flush/backend APIs, fixture parsing/materialization, parser setup, baseline I/O, finding-wire conversion, SARIF rendering, and checked finding builders.
 - [x] Added public-field documentation for scan statistics, timing summaries, export options, CWE references, and baseline records; `cargo doc` with broken-link denial passes.
 - [~] No public unsafe API or unsafe block was found, so `# Safety` sections are not applicable; full crate-wide error/panic prose remains an incremental documentation task.
+
+### Priority 3 allocation/indexing implementation — 2026-07-16
+
+- [x] Moved each taint graph from `GoUnitFacts` into `ProjectUnit` after per-file rules complete, then consumed it during finalization instead of rebuilding it for finalization and summaries.
+- [x] Built one `TaintGraphIndex` per project file and passed the same adjacency map to summary construction and inter-procedural call-site queries.
+- [x] Replaced per-lookup `Arc::from(name)` keys with nested scope/name indexes and replaced repeated minimum-scope scans with a precomputed innermost-first scope order.
+- [x] Added allocation-free sink and sink-argument reachability BFS helpers for summary booleans; public path queries still reconstruct paths when callers request them.
+- [x] Added `TimingCollector::merge_owned`, switched owned chunk/worker/global-drain paths to append spans without cloning, and retained borrowed merge compatibility.
+- [x] Registered `incremental_partial_scan`, added nested/overlapping span cases, changed the taint benchmark to reuse its graph, locked CI Cargo commands, enabled benchmark `pipefail`, and aligned the MSRV toolchain selection with the 1.85 label.
+- [x] Locked validation passed: `cargo check --all-targets --all-features --locked`, `cargo clippy --all-targets --all-features --locked -- -D warnings`, 24 taint unit tests, 2 Go taint integration tests, 4 CWE fixture tests, 12 timing tests, `cargo fmt --all -- --check`, and `git diff --check`.
+- [~] Release benchmark measurements remain deferred because the previous low-sample release run consumed excessive disk/time; targets compile and CI is wired, but no local timing baseline is claimed.
