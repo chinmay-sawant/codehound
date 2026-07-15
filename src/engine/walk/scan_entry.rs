@@ -216,8 +216,7 @@ pub(crate) fn scan_entry(
     };
 
     let content_hash = preloaded.as_ref().map(|p| p.content_hash.clone());
-    let ReadOutcome { source, bytes } =
-        read_entry_source(entry, &mut stats, preloaded.as_ref())?;
+    let ReadOutcome { source, bytes } = read_entry_source(entry, &mut stats, preloaded.as_ref())?;
     let mut unit = parse_entry_unit(entry, plugin, pool, Arc::clone(&source), &mut stats)?;
     let dependencies = extract_dependencies(&unit, project_root, module_prefix);
 

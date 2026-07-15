@@ -88,18 +88,14 @@ fn find_comment_start(line: &str) -> Option<(usize, char)> {
     let mut in_double_quote = false;
     let mut in_single_quote = false;
     let mut escaped = false;
-    let chars: Vec<char> = line.chars().collect();
-    let mut idx = 0;
-    while idx < chars.len() {
-        let c = chars[idx];
+    let mut chars = line.char_indices().peekable();
+    while let Some((byte_idx, c)) = chars.next() {
         if escaped {
             escaped = false;
-            idx += 1;
             continue;
         }
         if c == '\\' {
             escaped = true;
-            idx += 1;
             continue;
         }
         if c == '"' && !in_single_quote {
@@ -107,16 +103,13 @@ fn find_comment_start(line: &str) -> Option<(usize, char)> {
         } else if c == '\'' && !in_double_quote {
             in_single_quote = !in_single_quote;
         } else if !in_double_quote && !in_single_quote {
-            if c == '/' && idx + 1 < chars.len() && chars[idx + 1] == '/' {
-                let byte_idx = line.char_indices().nth(idx).unwrap().0;
+            if c == '/' && chars.peek().is_some_and(|(_, next)| *next == '/') {
                 return Some((byte_idx, '/'));
             }
             if c == '#' {
-                let byte_idx = line.char_indices().nth(idx).unwrap().0;
                 return Some((byte_idx, '#'));
             }
         }
-        idx += 1;
     }
     None
 }

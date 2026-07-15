@@ -9,15 +9,13 @@ pub(crate) fn load_config(explicit: Option<&Path>) -> Result<Option<CodehoundCon
         if !path.is_file() {
             anyhow::bail!("config file not found: {}", path.display());
         }
-        Ok(Some(
-            CodehoundConfig::load(path)
-                .with_context(|| format!("loading config {}", path.display()))?,
-        ))
+        Ok(Some(CodehoundConfig::load(path).with_context(|| {
+            format!("loading config {}", path.display())
+        })?))
     } else if let Some(found) = discover_config(Path::new(".")) {
-        Ok(Some(
-            CodehoundConfig::load(&found)
-                .with_context(|| format!("loading config {}", found.display()))?,
-        ))
+        Ok(Some(CodehoundConfig::load(&found).with_context(|| {
+            format!("loading config {}", found.display())
+        })?))
     } else {
         Ok(None)
     }

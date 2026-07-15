@@ -30,7 +30,6 @@ pub struct BaselineEntry {
     pub expires: Option<String>,
 }
 
-
 pub fn discover_baseline(cwd: &Path) -> Option<PathBuf> {
     walk_up_dirs(cwd, |current| {
         if current.join(BASELINE_FILE_NAME).is_file() {

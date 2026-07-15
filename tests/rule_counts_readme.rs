@@ -30,8 +30,9 @@ fn readme_rule_counts_match_registry() {
     assert_eq!(cwe, 175, "CWE count drifted; update README.md");
     assert_eq!(perf, 239, "PERF count drifted; update README.md");
     assert_eq!(bp, 136, "BP count drifted; update README.md");
+    let expected_other = usize::from(cfg!(feature = "python"));
     assert_eq!(
-        other, 0,
-        "unexpected non-Go rules in default registry; update README.md / features"
+        other, expected_other,
+        "unexpected non-Go rules for enabled features; update README.md / features"
     );
 }

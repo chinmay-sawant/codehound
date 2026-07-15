@@ -219,10 +219,7 @@ fn rebuild_cache_if_requested(
     }
     if let Err(reason) = validate_cache_purge_path(&dir) {
         if !cli.quiet {
-            tracing::warn!(
-                "refusing to purge cache at {}: {reason}",
-                dir.display()
-            );
+            tracing::warn!("refusing to purge cache at {}: {reason}", dir.display());
         }
         return;
     }

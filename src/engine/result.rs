@@ -148,9 +148,9 @@ pub struct AnalysisResult {
     /// NOT abort on the first error; instead, the caller decides whether
     /// `errors` should fail the run.
     pub errors: Vec<ScanError>,
-    /// File path → source text cache populated during the parse step.
-    /// Export (and future passes) can read from this instead of hitting
-    /// disk again.
+    /// File path → source text cache populated during the parse step when
+    /// [`ScanContext::retain_sources`](crate::core::ScanContext::retain_sources)
+    /// is enabled. Export can read from this instead of hitting disk again.
     pub source_cache: HashMap<String, Arc<str>>,
     /// Findings suppressed by baseline filtering.
     pub suppressed_count: usize,

@@ -112,8 +112,8 @@ impl ScanContext {
     /// are stored. Used to invalidate the incremental cache when the pack
     /// or filter set changes (e.g. recommended → all).
     pub fn rule_config_fingerprint(&self) -> String {
-        use std::collections::BTreeSet;
         use sha2::{Digest, Sha256};
+        use std::collections::BTreeSet;
 
         let mut only: BTreeSet<&str> = BTreeSet::new();
         if let Some(set) = &self.only {

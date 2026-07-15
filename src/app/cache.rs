@@ -48,4 +48,3 @@ pub(crate) fn cache_directory(cli: &Cli, config: Option<&CodehoundConfig>) -> Pa
     }
     Path::new(DEFAULT_CACHE_DIR).to_path_buf()
 }
-

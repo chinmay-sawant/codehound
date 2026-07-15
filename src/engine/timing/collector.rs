@@ -6,8 +6,8 @@
 //! function signature and stored in every pipeline struct. App-level and
 //! analyzer-level timing still uses locally-owned [`TimingCollector`] instances.
 
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 use super::summary::TimingSummary;

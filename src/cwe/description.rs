@@ -64,7 +64,8 @@ pub fn load_rule_descriptions(path: &Path) -> Result<HashMap<String, RuleDescrip
 
         for p in paths {
             let text = std::fs::read_to_string(&p).map_err(Error::from)?;
-            let chunk: HashMap<String, RuleDescription> = serde_json::from_str(&text).map_err(Error::from)?;
+            let chunk: HashMap<String, RuleDescription> =
+                serde_json::from_str(&text).map_err(Error::from)?;
             for (rule_id, rule) in chunk {
                 if merged.insert(rule_id.clone(), rule).is_some() {
                     return Err(Error::Config(format!(
