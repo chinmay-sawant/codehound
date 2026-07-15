@@ -7,7 +7,7 @@ use crate::rules::Finding;
 
 use super::CacheStore;
 use super::hash::cache_key_for_path;
-use super::types::{CACHE_VERSION, CacheEntry, FileCacheMeta};
+use super::types::{CACHE_VERSION, FileCacheMeta};
 
 impl CacheStore {
     /// Insert or replace a cache entry. Updates the manifest and marks
@@ -42,15 +42,15 @@ impl CacheStore {
             .map(|d| normalize_project_path(d))
             .collect();
         let cache_key = cache_key_for_path(&file);
-        let entry = CacheEntry {
-            schema_version: CACHE_VERSION,
-            file: file.clone(),
-            findings,
-            suppressed_count,
-            cached_at: cached_at.to_string(),
-        };
         self.backend
-            .store_entry(&cache_key, &entry)
+            .store_entry_borrowed(
+                &cache_key,
+                CACHE_VERSION,
+                &file,
+                &findings,
+                suppressed_count,
+                cached_at,
+            )
             .map_err(Error::from)?;
         let meta = FileCacheMeta {
             content_hash: content_hash.to_string(),

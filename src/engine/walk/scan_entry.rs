@@ -269,13 +269,111 @@ pub(super) fn attach_function_context(findings: &mut [Finding], unit: &ParsedUni
     if unit.function_spans.is_empty() {
         return;
     }
-    let spans = &unit.function_spans;
-    for finding in findings.iter_mut() {
-        if let Some(span) = ast::enclosing_function(spans, finding.line) {
+    attach_function_context_to_spans(findings, &unit.function_spans);
+}
+
+fn attach_function_context_to_spans(findings: &mut [Finding], spans: &[ast::FunctionSpan]) {
+    let mut span_order: Vec<usize> = (0..spans.len()).collect();
+    span_order.sort_by_key(|&index| spans[index].start_line);
+    let mut finding_order: Vec<usize> = (0..findings.len()).collect();
+    finding_order.sort_by_key(|&index| findings[index].line);
+
+    let mut active = Vec::new();
+    let mut next_span = 0;
+    for finding_index in finding_order {
+        let line = findings[finding_index].line;
+        while next_span < span_order.len() && spans[span_order[next_span]].start_line <= line {
+            active.push(span_order[next_span]);
+            next_span += 1;
+        }
+        active.retain(|&index| spans[index].end_line >= line);
+
+        if let Some(&span_index) = active
+            .iter()
+            .max_by_key(|&&index| (spans[index].depth, index))
+        {
+            let span = spans[span_index];
+            let finding = &mut findings[finding_index];
             finding.function_start_byte = Some(span.start_byte);
             finding.function_end_byte = Some(span.end_byte);
             finding.function_start_line = Some(span.start_line);
             finding.function_end_line = Some(span.end_line);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::borrow::Cow;
+
+    use super::attach_function_context_to_spans;
+    use crate::ast::FunctionSpan;
+    use crate::rules::{Finding, FindingInputs, LineCol, Severity};
+
+    fn finding(line: usize) -> Finding {
+        Finding::new(FindingInputs::new(
+            "TEST-1",
+            "test",
+            "file.go",
+            LineCol::try_new(line, 1).expect("valid location"),
+            "message",
+            Severity::Info,
+            Cow::Owned(Vec::new()),
+        ))
+    }
+
+    #[test]
+    fn function_context_sweep_selects_deepest_nested_span() {
+        let spans = [
+            FunctionSpan {
+                start_byte: 0,
+                end_byte: 100,
+                start_line: 1,
+                end_line: 20,
+                depth: 0,
+            },
+            FunctionSpan {
+                start_byte: 20,
+                end_byte: 60,
+                start_line: 5,
+                end_line: 10,
+                depth: 1,
+            },
+        ];
+        let mut findings = vec![finding(7), finding(15), finding(30)];
+
+        attach_function_context_to_spans(&mut findings, &spans);
+
+        assert_eq!(findings[0].function_start_line, Some(5));
+        assert_eq!(findings[1].function_start_line, Some(1));
+        assert_eq!(findings[2].function_start_line, None);
+    }
+
+    #[test]
+    fn function_context_sweep_preserves_finding_order() {
+        let spans = [
+            FunctionSpan {
+                start_byte: 0,
+                end_byte: 10,
+                start_line: 1,
+                end_line: 3,
+                depth: 0,
+            },
+            FunctionSpan {
+                start_byte: 20,
+                end_byte: 30,
+                start_line: 5,
+                end_line: 7,
+                depth: 0,
+            },
+        ];
+        let mut findings = vec![finding(6), finding(2)];
+
+        attach_function_context_to_spans(&mut findings, &spans);
+
+        assert_eq!(findings[0].line, 6);
+        assert_eq!(findings[0].function_start_line, Some(5));
+        assert_eq!(findings[1].line, 2);
+        assert_eq!(findings[1].function_start_line, Some(1));
     }
 }

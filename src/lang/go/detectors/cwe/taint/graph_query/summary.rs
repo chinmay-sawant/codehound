@@ -14,8 +14,11 @@ use super::super::{
     SanitizerKind, SinkKind, SourceKind, TaintAnnotations, TaintGraph, TaintNode, TaintNodeId,
     TaintSummary,
 };
-use super::query::find_taint_paths_from_nodes_to_sink_argument;
-use super::{build_taint_graph, find_taint_paths_from_nodes};
+use super::build_taint_graph;
+use super::query::{
+    build_adj, find_taint_paths_from_nodes_to_sink_argument_with_adj,
+    find_taint_paths_from_nodes_with_adj,
+};
 
 /// Build per-function taint summaries for all functions annotated in the
 /// project call graph. Returns (function_name → TaintSummary).
@@ -95,6 +98,8 @@ fn compute_summary_for(
     func_name: &str,
     params: &[Arc<str>],
 ) -> TaintSummary {
+    let adj = build_adj(graph);
+
     // Find all variable nodes in the graph that match each parameter name.
     let mut param_node_ids: Vec<Vec<TaintNodeId>> = Vec::new();
     for param in params {
@@ -135,15 +140,22 @@ fn compute_summary_for(
                 continue;
             }
             let paths = if sink_kind == SinkKind::SQLQuery {
-                find_taint_paths_from_nodes_to_sink_argument(
+                find_taint_paths_from_nodes_to_sink_argument_with_adj(
                     graph,
+                    &adj,
                     ids,
                     sink_kind,
                     0,
                     allowed_sanitizers,
                 )
             } else {
-                find_taint_paths_from_nodes(graph, ids, sink_kind, allowed_sanitizers)
+                find_taint_paths_from_nodes_with_adj(
+                    graph,
+                    &adj,
+                    ids,
+                    sink_kind,
+                    allowed_sanitizers,
+                )
             };
             if !paths.is_empty() {
                 reaches_sink = true;
@@ -178,8 +190,9 @@ fn compute_summary_for(
             if !sink_kinds.contains(&sink_kind) {
                 // Check if source nodes reach any sink directly.
                 if let Some(source_ids) = graph.by_source.get(&SourceKind::UserInput) {
-                    let paths = find_taint_paths_from_nodes(
+                    let paths = find_taint_paths_from_nodes_with_adj(
                         graph,
+                        &adj,
                         source_ids,
                         sink_kind,
                         allowed_sanitizers,

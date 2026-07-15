@@ -232,3 +232,37 @@ impl FindingWire {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::borrow::Cow;
+
+    use super::*;
+    use crate::rules::{FindingInputs, LineCol, Severity};
+
+    #[test]
+    fn cache_string_interning_has_a_hard_limit() {
+        let base = Finding::new(FindingInputs::new(
+            "CACHE-BASE",
+            "cache base",
+            "file.go",
+            LineCol::try_new(1, 1).expect("valid location"),
+            "message",
+            Severity::Info,
+            Cow::Owned(Vec::new()),
+        ));
+
+        let mut rejected = false;
+        for index in 0..=MAX_INTERNED_STRINGS {
+            let mut wire = FindingWire::from(base.clone());
+            wire.rule_id = format!("CACHE-UNIQUE-ID-{index}");
+            wire.rule_title = format!("cache unique title {index}");
+            if wire.into_finding().is_err() {
+                rejected = true;
+                break;
+            }
+        }
+
+        assert!(rejected, "unique cache strings must eventually be rejected");
+    }
+}

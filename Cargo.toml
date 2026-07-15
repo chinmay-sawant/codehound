@@ -92,6 +92,11 @@ harness = false
 name = "incremental_scan"
 harness = false
 
+[[bench]]
+name = "taint_graph"
+harness = false
+required-features = ["go"]
+
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("go", "python", "terminal-output", "cli"))'] }
 

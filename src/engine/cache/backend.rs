@@ -3,6 +3,8 @@
 
 use std::collections::HashSet;
 
+use crate::rules::Finding;
+
 use super::types::{CacheEntry, CacheError};
 
 /// Storage backend for cache entries. [`CacheStore`](super::CacheStore)
@@ -16,6 +18,30 @@ pub trait CacheBackend: Send + Sync + std::fmt::Debug {
 
     /// Persist an entry. Replaces any existing entry with the same key.
     fn store_entry(&mut self, cache_key: &str, entry: &CacheEntry) -> Result<(), CacheError>;
+
+    /// Persist a borrowed finding slice without forcing every backend to own
+    /// a second copy. Backends that store owned values use the compatibility
+    /// default; streaming backends can override this method.
+    fn store_entry_borrowed(
+        &mut self,
+        cache_key: &str,
+        schema_version: u32,
+        file: &str,
+        findings: &[Finding],
+        suppressed_count: usize,
+        cached_at: &str,
+    ) -> Result<(), CacheError> {
+        self.store_entry(
+            cache_key,
+            &CacheEntry {
+                schema_version,
+                file: file.to_string(),
+                findings: findings.to_vec(),
+                suppressed_count,
+                cached_at: cached_at.to_string(),
+            },
+        )
+    }
 
     /// Remove a single entry. No-op when the key does not exist.
     fn delete_entry(&mut self, cache_key: &str) -> Result<(), CacheError>;

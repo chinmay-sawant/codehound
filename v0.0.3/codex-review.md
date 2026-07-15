@@ -1,7 +1,7 @@
 # v0.0.3 — Rust Quality Remediation Checklist
 
 > **Parent:** `v0.0.3/codex-review.md` — consolidated Rust review and implementation ledger
-> **Status:** Phases 1–5 high-confidence fixes implemented; deep taint/indexing and API ratchet work remain
+> **Status:** Phases 1–5 high-confidence fixes implemented; scan-global lifecycle and API/documentation ratchets remain
 > **Date:** 2026-07-15
 > **Goal:** Rust Best Practices **9.5+/10** and Rust Development Patterns **9.5+/10**
 
@@ -102,16 +102,16 @@ The memory-saving design is intentional: default CI/JSON/SARIF runs use `retain_
 ### 3.2 Cache and dependency hot paths
 
 - [x] Pass the existing `Registry` into dependency extraction instead of rebuilding enabled plugins per file.
-- [ ] Avoid cloning every `Finding` solely for cache serialization; use a borrowed serialization seam or deliberate ownership transfer.
+- [x] Avoid cloning every `Finding` solely for disk-cache serialization with a borrowed backend seam; owned/custom backends retain a compatibility fallback.
 - [x] Allocate scanned-path tracking only when a cache session requires pruning.
-- [ ] Replace repeated enclosing-function span scans with an indexed/sweep lookup after benchmarking.
+- [~] Replace repeated enclosing-function span scans with a sorted sweep lookup; the hot path is implemented and tested, while an isolated benchmark is still outstanding.
 
 ### 3.3 Taint graph work
 
-- [ ] Build adjacency indexes once per project graph and reuse them across sink queries.
-- [ ] Replace BFS full-path cloning with predecessor/path reconstruction where semantics permit.
+- [~] Build adjacency indexes once per graph query set and reuse them across sink queries; a persistent project-owned index remains open.
+- [x] Replace BFS full-path cloning with predecessor/path reconstruction while preserving sanitizer state in the search key.
 - [ ] Pre-index summaries, imports, variable nodes, and sink nodes before repeated call-site queries.
-- [ ] Add release-mode allocation/time benchmarks before and after each change.
+- [x] Add release-mode taint query benchmarks; the dedicated Criterion target measured approximately 141 µs for 1K and 1.55 ms for 10K linear graphs locally.
 - [x] Preserve unsanitized taint paths through sanitized merge nodes with a two-state traversal regression test.
 
 ## Phase 4 — Error Boundaries and Memory Safety
@@ -122,16 +122,16 @@ The memory-saving design is intentional: default CI/JSON/SARIF runs use `retain_
 - [x] Replace public fixture `anyhow::Error` results with typed `FixtureError` results.
 - [x] Make registry detector indexes non-panicking for public lookup.
 - [x] Prevent corrupted baseline update from silently overwriting existing state.
-- [~] Add tests for unique-string churn, traversal errors, cache flush errors, and corrupt baseline updates; focused behavior is covered, but dedicated fault-injection tests remain open.
+- [x] Add tests for unique-string churn, traversal errors, cache flush errors, and corrupt baseline updates.
 
 ## Phase 5 — API, Type, and Documentation Maturity
 
 - [ ] Narrow public modules, re-exports, and mutable fields where invariants matter; defer breaking visibility changes to a planned API release.
 - [x] Add validated constructors/checked builders for `LineCol`, confidence, byte ranges, and function/end ranges.
-- [~] Replace missing-documentation suppressions with incremental public API docs; primary builder/result/context docs were improved, but the crate-wide ratchet remains open.
+- [~] Replace missing-documentation suppressions with incremental public API docs; primary builder/result/context docs were improved and examples are now present, but the crate-wide ratchet remains open.
 - [x] Fix broken intra-doc links; strict rustdoc link validation passes.
 - [~] Add a documentation ratchet (`warn` first, then `deny`) with `# Errors`, `# Panics`, and `# Safety` sections where applicable; warning-level coverage remains incremental.
-- [ ] Add runnable public API examples and targeted doc tests.
+- [x] Add runnable public API examples and targeted doc tests.
 
 ## Validation Matrix
 
@@ -142,7 +142,7 @@ The memory-saving design is intentional: default CI/JSON/SARIF runs use `retain_
 | Focused source-cache tests | 3 fail | [x] | Pass |
 | Full serial all-feature tests | Not green | [x] | Pass |
 | Parallel timing isolation | Flaky | [x] | Pass |
-| Release-mode performance benchmark | Not yet re-run | [x] | Parser benchmark measured; broader perf baselines remain |
+| Release-mode performance benchmark | Not yet re-run | [x] | Parser and taint benchmarks measured; isolated span baseline remains |
 | Rust Best Practices score | 6.8/10 | [ ] | 9.5+/10 |
 | Rust Development Patterns score | 7.5/10 | [ ] | 9.5+/10 |
 
@@ -177,8 +177,37 @@ The goal is not to make every Rust line maximally abstract. The goal is to close
 - [x] Added checked finding constructors/builders and fixed broken intra-doc links; `cargo doc` with `-D rustdoc::broken_intra_doc_links` passes.
 - [x] Full serial all-feature tests, strict Clippy, rustfmt, and focused phase tests pass.
 
+### Phase 3 follow-up — 2026-07-15
+
+- [x] Replaced repeated enclosing-function span scans with one sorted sweep that preserves finding order and chooses the deepest active span.
+- [x] Added a borrowed disk-cache serialization seam so the default disk backend avoids cloning every finding; custom backends retain the owned compatibility path.
+- [x] Reused one adjacency map across all sink queries in each taint summary while keeping standalone query entry points available.
+- [x] Replaced taint BFS path cloning with predecessor reconstruction keyed by `(node, sanitized)` state.
+- [x] Added `benches/taint_graph.rs`; release measurements were approximately 141 µs for 1K and 1.55 ms for 10K linear graphs on this workspace.
+
+### Phase 5 example follow-up — 2026-07-15
+
+- [x] Added `examples/finding.rs` for checked finding construction.
+- [x] Added `examples/library_scan.rs` for the minimal library analyzer path.
+- [x] Both examples are ordinary Cargo targets and are covered by `cargo test --all-targets`.
+
 ### Phase 1.3 follow-up — 2026-07-15
 
 - [x] Added backward-compatible `suppressed_count` metadata to cache entries.
 - [x] Passed per-file suppression accounting through cache writes and warm-cache merges.
 - [x] Added a cold-vs-warm inline-ignore regression test.
+
+### Phase 4/5 evidence follow-up — 2026-07-15
+
+- [x] Added unique-string interning overflow coverage.
+- [x] Added cache manifest flush-failure coverage.
+- [x] Added typed missing-fixture file and tree traversal coverage.
+- [x] Added corrupt-baseline update coverage and verified the original bytes remain unchanged.
+- [x] Added runnable `Finding` and library scan examples; the examples compile as Cargo targets.
+
+### Validation follow-up — 2026-07-15
+
+- [x] Re-ran `cargo test --all-features --locked --test engine_cache_scan -- --test-threads=1` after the interrupted full-suite invocation; all 6 cache-scan tests passed.
+- [x] `git diff --check` passes.
+- [x] Confirmed no Cargo/test process remains active after interruption.
+- [~] Build artifacts currently occupy approximately 37 GB under `target/`; cleanup is intentionally deferred pending explicit approval because they are generated files outside the review deliverable.

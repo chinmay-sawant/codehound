@@ -4,9 +4,21 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::PathBuf;
 
+use serde::Serialize;
+
 use super::backend::CacheBackend;
 use super::types::{CACHE_VERSION, CacheEntry, CacheError};
 use crate::engine::io::write_atomic;
+use crate::rules::Finding;
+
+#[derive(Serialize)]
+struct BorrowedCacheEntry<'a> {
+    schema_version: u32,
+    file: &'a str,
+    findings: &'a [Finding],
+    suppressed_count: usize,
+    cached_at: &'a str,
+}
 
 /// Backend that stores each entry as a separate JSON file under
 /// `files_dir/<cache_key>.json`.
@@ -56,6 +68,27 @@ impl CacheBackend for DiskBackend {
     fn store_entry(&mut self, cache_key: &str, entry: &CacheEntry) -> Result<(), CacheError> {
         let path = self.files_dir.join(format!("{cache_key}.json"));
         write_atomic(&path, entry).map_err(|e| CacheError::Io(std::io::Error::other(e.to_string())))
+    }
+
+    fn store_entry_borrowed(
+        &mut self,
+        cache_key: &str,
+        schema_version: u32,
+        file: &str,
+        findings: &[Finding],
+        suppressed_count: usize,
+        cached_at: &str,
+    ) -> Result<(), CacheError> {
+        let path = self.files_dir.join(format!("{cache_key}.json"));
+        let entry = BorrowedCacheEntry {
+            schema_version,
+            file,
+            findings,
+            suppressed_count,
+            cached_at,
+        };
+        write_atomic(&path, &entry)
+            .map_err(|e| CacheError::Io(std::io::Error::other(e.to_string())))
     }
 
     fn delete_entry(&mut self, cache_key: &str) -> Result<(), CacheError> {

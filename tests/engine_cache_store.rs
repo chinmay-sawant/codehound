@@ -260,6 +260,31 @@ fn corrupt_entry_file_is_treated_as_cache_miss() {
 }
 
 #[test]
+fn flush_reports_manifest_write_failure() {
+    let root = unique_temp_root("flush-failure");
+    let mut store = CacheStore::open_with_capacity(root.clone(), 500).expect("open");
+    store
+        .put(
+            "x.go",
+            &content_hash("body"),
+            &[],
+            vec![],
+            "2026-06-10T00:00:00Z",
+        )
+        .expect("put");
+
+    let manifest = root.join("manifest.json");
+    std::fs::create_dir(&manifest).expect("replace manifest with directory");
+    assert!(
+        store.flush().is_err(),
+        "manifest write failure must propagate"
+    );
+
+    drop(store);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn clean_orphans_removes_untracked_entry_files() {
     let root = unique_temp_root("clean-orphans");
     let mut store = CacheStore::open_with_capacity(root.clone(), 500).unwrap();

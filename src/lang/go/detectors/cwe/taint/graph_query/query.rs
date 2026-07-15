@@ -4,16 +4,41 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use super::super::{SanitizerKind, SinkKind, SourceKind, TaintGraph, TaintNode, TaintNodeId};
+use super::super::{
+    EdgeKind, SanitizerKind, SinkKind, SourceKind, TaintGraph, TaintNode, TaintNodeId,
+};
 
 use super::TaintPath;
 
-fn build_adj(graph: &TaintGraph) -> HashMap<TaintNodeId, Vec<TaintNodeId>> {
-    let mut adj: HashMap<TaintNodeId, Vec<TaintNodeId>> = HashMap::new();
+type Adjacency = HashMap<TaintNodeId, Vec<(TaintNodeId, EdgeKind)>>;
+
+pub(super) fn build_adj(graph: &TaintGraph) -> Adjacency {
+    let mut adj: Adjacency = HashMap::new();
     for edge in &graph.edges {
-        adj.entry(edge.from).or_default().push(edge.to);
+        adj.entry(edge.from).or_default().push((edge.to, edge.kind));
     }
     adj
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+struct SearchState {
+    node: TaintNodeId,
+    sanitized: bool,
+}
+
+fn reconstruct_path(
+    predecessors: &HashMap<SearchState, Option<SearchState>>,
+    terminal: SearchState,
+) -> Vec<TaintNodeId> {
+    let mut path = Vec::new();
+    let mut current = terminal;
+    path.push(current.node);
+    while let Some(Some(parent)) = predecessors.get(&current) {
+        current = *parent;
+        path.push(current.node);
+    }
+    path.reverse();
+    path
 }
 
 /// Find taint paths from any source of `source_kind` to any sink of `sink_kind`
@@ -26,16 +51,21 @@ pub fn find_taint_paths(
     sink_kind: SinkKind,
     allowed_sanitizers: &[SanitizerKind],
 ) -> Vec<TaintPath> {
-    let source_ids: Vec<TaintNodeId> = graph
+    let source_ids = graph
         .by_source
         .get(&source_kind)
-        .cloned()
-        .unwrap_or_default();
-    let sink_ids: Vec<TaintNodeId> = graph.by_sink.get(&sink_kind).cloned().unwrap_or_default();
+        .map(Vec::as_slice)
+        .unwrap_or(&[]);
+    let sink_ids = graph
+        .by_sink
+        .get(&sink_kind)
+        .map(Vec::as_slice)
+        .unwrap_or(&[]);
+    let adj = build_adj(graph);
 
     let mut paths = Vec::new();
     for sink_id in sink_ids {
-        if let Some(path) = bfs_path(graph, &source_ids, sink_id, allowed_sanitizers) {
+        if let Some(path) = bfs_path(graph, &adj, source_ids, *sink_id, allowed_sanitizers) {
             paths.push(path);
         }
     }
@@ -65,7 +95,7 @@ pub fn forward_reaches_any(
         if targets.contains(&current) {
             return true;
         }
-        for &next in adj.get(&current).into_iter().flatten() {
+        for &(next, _) in adj.get(&current).into_iter().flatten() {
             if next < visited.len() && !visited[next] {
                 visited[next] = true;
                 queue.push_back(next);
@@ -100,7 +130,7 @@ pub fn unsanitized_reaches_any(
             return true;
         }
 
-        for &next in adj.get(&current).into_iter().flatten() {
+        for &(next, _) in adj.get(&current).into_iter().flatten() {
             let state = (next, sanitized);
             if next < graph.nodes.len() && visited.insert(state) {
                 queue.push_back((next, sanitized));
@@ -116,30 +146,51 @@ pub fn find_taint_paths_from_nodes(
     sink_kind: SinkKind,
     allowed_sanitizers: &[SanitizerKind],
 ) -> Vec<TaintPath> {
-    let sink_ids: Vec<TaintNodeId> = graph.by_sink.get(&sink_kind).cloned().unwrap_or_default();
+    let adj = build_adj(graph);
+    find_taint_paths_from_nodes_with_adj(graph, &adj, start_ids, sink_kind, allowed_sanitizers)
+}
+
+pub(super) fn find_taint_paths_from_nodes_with_adj(
+    graph: &TaintGraph,
+    adj: &Adjacency,
+    start_ids: &[TaintNodeId],
+    sink_kind: SinkKind,
+    allowed_sanitizers: &[SanitizerKind],
+) -> Vec<TaintPath> {
+    let sink_ids = graph
+        .by_sink
+        .get(&sink_kind)
+        .map(Vec::as_slice)
+        .unwrap_or(&[]);
     let mut paths = Vec::new();
     for sink_id in sink_ids {
-        if let Some(path) = bfs_path(graph, start_ids, sink_id, allowed_sanitizers) {
+        if let Some(path) = bfs_path(graph, adj, start_ids, *sink_id, allowed_sanitizers) {
             paths.push(path);
         }
     }
     paths
 }
 
-pub(super) fn find_taint_paths_from_nodes_to_sink_argument(
+pub(super) fn find_taint_paths_from_nodes_to_sink_argument_with_adj(
     graph: &TaintGraph,
+    adj: &Adjacency,
     start_ids: &[TaintNodeId],
     sink_kind: SinkKind,
     sink_argument_index: usize,
     allowed_sanitizers: &[SanitizerKind],
 ) -> Vec<TaintPath> {
-    let sink_ids: Vec<TaintNodeId> = graph.by_sink.get(&sink_kind).cloned().unwrap_or_default();
+    let sink_ids = graph
+        .by_sink
+        .get(&sink_kind)
+        .map(Vec::as_slice)
+        .unwrap_or(&[]);
     let mut paths = Vec::new();
     for sink_id in sink_ids {
         if let Some(path) = bfs_path_to_sink_argument(
             graph,
+            adj,
             start_ids,
-            sink_id,
+            *sink_id,
             sink_argument_index,
             allowed_sanitizers,
         ) {
@@ -151,28 +202,32 @@ pub(super) fn find_taint_paths_from_nodes_to_sink_argument(
 
 fn bfs_path(
     graph: &TaintGraph,
+    adj: &Adjacency,
     source_ids: &[TaintNodeId],
     sink_id: TaintNodeId,
     allowed_sanitizers: &[SanitizerKind],
 ) -> Option<TaintPath> {
-    let adj = build_adj(graph);
-
-    // State: (node, sanitized) -> visited. We want to find an unsanitized path
-    // first; if none exists, accept a sanitized path.
-    let mut queue: VecDeque<(TaintNodeId, bool, Vec<TaintNodeId>)> = VecDeque::new();
-    let mut visited: HashSet<(TaintNodeId, bool)> = HashSet::new();
+    // State: (node, sanitized) -> predecessor. Keeping sanitizer state in the
+    // key preserves unsanitized branches while avoiding path cloning per edge.
+    let mut queue: VecDeque<SearchState> = VecDeque::new();
+    let mut predecessors: HashMap<SearchState, Option<SearchState>> = HashMap::new();
 
     for &source_id in source_ids {
         let sanitized = is_sanitizer(graph, source_id, allowed_sanitizers);
-        queue.push_back((source_id, sanitized, vec![source_id]));
-        visited.insert((source_id, sanitized));
+        let state = SearchState {
+            node: source_id,
+            sanitized,
+        };
+        queue.push_back(state);
+        predecessors.insert(state, None);
     }
 
-    let mut best_sanitized_path: Option<Vec<TaintNodeId>> = None;
+    let mut best_sanitized: Option<SearchState> = None;
 
-    while let Some((current, sanitized, path)) = queue.pop_front() {
-        if current == sink_id {
-            if !sanitized {
+    while let Some(current) = queue.pop_front() {
+        if current.node == sink_id {
+            if !current.sanitized {
+                let path = reconstruct_path(&predecessors, current);
                 return Some(TaintPath {
                     source_id: path[0],
                     sink_id,
@@ -180,90 +235,99 @@ fn bfs_path(
                     sanitized: false,
                 });
             }
-            if best_sanitized_path.is_none() {
-                best_sanitized_path = Some(path.clone());
+            if best_sanitized.is_none() {
+                best_sanitized = Some(current);
             }
             continue;
         }
 
-        for &next in adj.get(&current).unwrap_or(&Vec::new()) {
-            let next_sanitized = sanitized || is_sanitizer(graph, next, allowed_sanitizers);
-            if visited.insert((next, next_sanitized)) {
-                let mut next_path = path.clone();
-                next_path.push(next);
-                queue.push_back((next, next_sanitized, next_path));
+        for &(next, _) in adj.get(&current.node).into_iter().flatten() {
+            let next_state = SearchState {
+                node: next,
+                sanitized: current.sanitized || is_sanitizer(graph, next, allowed_sanitizers),
+            };
+            if next < graph.nodes.len() && !predecessors.contains_key(&next_state) {
+                predecessors.insert(next_state, Some(current));
+                queue.push_back(next_state);
             }
         }
     }
 
-    best_sanitized_path.map(|path| TaintPath {
-        source_id: path[0],
-        sink_id,
-        node_ids: path,
-        sanitized: true,
+    best_sanitized.map(|terminal| {
+        let path = reconstruct_path(&predecessors, terminal);
+        TaintPath {
+            source_id: path[0],
+            sink_id,
+            node_ids: path,
+            sanitized: true,
+        }
     })
 }
 
 fn bfs_path_to_sink_argument(
     graph: &TaintGraph,
+    adj: &Adjacency,
     source_ids: &[TaintNodeId],
     sink_id: TaintNodeId,
     sink_argument_index: usize,
     allowed_sanitizers: &[SanitizerKind],
 ) -> Option<TaintPath> {
-    let mut adj: HashMap<TaintNodeId, Vec<(TaintNodeId, super::super::EdgeKind)>> = HashMap::new();
-    for edge in &graph.edges {
-        adj.entry(edge.from).or_default().push((edge.to, edge.kind));
-    }
-
-    let mut queue: VecDeque<(TaintNodeId, bool, Vec<TaintNodeId>)> = VecDeque::new();
-    let mut visited: HashSet<(TaintNodeId, bool)> = HashSet::new();
+    let mut queue: VecDeque<SearchState> = VecDeque::new();
+    let mut predecessors: HashMap<SearchState, Option<SearchState>> = HashMap::new();
 
     for &source_id in source_ids {
         let sanitized = is_sanitizer(graph, source_id, allowed_sanitizers);
-        queue.push_back((source_id, sanitized, vec![source_id]));
-        visited.insert((source_id, sanitized));
+        let state = SearchState {
+            node: source_id,
+            sanitized,
+        };
+        queue.push_back(state);
+        predecessors.insert(state, None);
     }
 
-    let mut best_sanitized_path: Option<Vec<TaintNodeId>> = None;
+    let mut best_sanitized: Option<SearchState> = None;
 
-    while let Some((current, sanitized, path)) = queue.pop_front() {
-        for &(next, edge_kind) in adj.get(&current).unwrap_or(&Vec::new()) {
-            let next_sanitized = sanitized || is_sanitizer(graph, next, allowed_sanitizers);
+    while let Some(current) = queue.pop_front() {
+        for &(next, edge_kind) in adj.get(&current.node).into_iter().flatten() {
+            let next_state = SearchState {
+                node: next,
+                sanitized: current.sanitized || is_sanitizer(graph, next, allowed_sanitizers),
+            };
             if next == sink_id {
-                if !matches!(edge_kind, super::super::EdgeKind::Argument(idx) if idx == sink_argument_index)
-                {
+                if !matches!(edge_kind, EdgeKind::Argument(idx) if idx == sink_argument_index) {
                     continue;
                 }
-                let mut next_path = path.clone();
-                next_path.push(next);
-                if !next_sanitized {
+                predecessors.insert(next_state, Some(current));
+                if !next_state.sanitized {
+                    let path = reconstruct_path(&predecessors, next_state);
                     return Some(TaintPath {
-                        source_id: next_path[0],
+                        source_id: path[0],
                         sink_id,
-                        node_ids: next_path,
+                        node_ids: path,
                         sanitized: false,
                     });
                 }
-                if best_sanitized_path.is_none() {
-                    best_sanitized_path = Some(next_path);
+                if best_sanitized.is_none() {
+                    best_sanitized = Some(next_state);
                 }
                 continue;
             }
 
-            if visited.insert((next, next_sanitized)) {
-                let mut next_path = path.clone();
-                next_path.push(next);
-                queue.push_back((next, next_sanitized, next_path));
+            if next < graph.nodes.len() && !predecessors.contains_key(&next_state) {
+                predecessors.insert(next_state, Some(current));
+                queue.push_back(next_state);
             }
         }
     }
 
-    best_sanitized_path.map(|path| TaintPath {
-        source_id: path[0],
-        sink_id,
-        node_ids: path,
-        sanitized: true,
+    best_sanitized.map(|terminal| {
+        let path = reconstruct_path(&predecessors, terminal);
+        TaintPath {
+            source_id: path[0],
+            sink_id,
+            node_ids: path,
+            sanitized: true,
+        }
     })
 }
 

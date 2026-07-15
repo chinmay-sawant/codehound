@@ -109,3 +109,37 @@ fn older_tool_version_warns_but_still_filters() {
         String::from_utf8_lossy(&output.stderr)
     );
 }
+
+#[test]
+fn baseline_update_refuses_to_overwrite_corrupt_file() {
+    let project = setup_temp_project(&["sample.py"]);
+    project.write_file(BASELINE_FILE, "{not-json");
+    let before = std::fs::read_to_string(project.join(BASELINE_FILE)).unwrap();
+
+    let output = run_codehound(
+        &[
+            "--profile",
+            "all",
+            "--lang",
+            "python",
+            "baseline",
+            "update",
+            "--path",
+            BASELINE_FILE,
+            "sample.py",
+        ],
+        project.path(),
+    );
+
+    assert!(!output.status.success());
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("refusing to replace invalid baseline"),
+        "stderr:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        std::fs::read_to_string(project.join(BASELINE_FILE)).unwrap(),
+        before,
+        "corrupt baseline must remain unchanged"
+    );
+}
