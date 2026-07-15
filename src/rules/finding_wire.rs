@@ -6,7 +6,6 @@
 //! Strings are interned (one leak per unique value) so cache churn does
 //! not grow RSS unbounded.
 
-use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 
 use serde::{Deserialize, Serialize};
@@ -19,17 +18,18 @@ use super::finding_view::FindingView;
 /// Intern a string into process-lifetime storage, reusing prior entries.
 /// Bounds leak growth to unique strings (rule IDs, titles, CWE names/URLs).
 fn intern_str(s: String) -> &'static str {
-    static TABLE: OnceLock<Mutex<HashMap<String, &'static str>>> = OnceLock::new();
-    let table = TABLE.get_or_init(|| Mutex::new(HashMap::new()));
+    use std::collections::HashSet;
+    static TABLE: OnceLock<Mutex<HashSet<&'static str>>> = OnceLock::new();
+    let table = TABLE.get_or_init(|| Mutex::new(HashSet::new()));
     let mut guard = match table.lock() {
         Ok(g) => g,
         Err(poisoned) => poisoned.into_inner(),
     };
-    if let Some(&existing) = guard.get(&s) {
+    if let Some(&existing) = guard.get(s.as_str()) {
         return existing;
     }
-    let leaked: &'static str = Box::leak(s.clone().into_boxed_str());
-    guard.insert(s, leaked);
+    let leaked: &'static str = Box::leak(s.into_boxed_str());
+    guard.insert(leaked);
     leaked
 }
 

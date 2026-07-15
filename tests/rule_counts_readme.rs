@@ -29,7 +29,7 @@ fn readme_rule_counts_match_registry() {
     // `--features python` and is not counted here.
     assert_eq!(cwe, 175, "CWE count drifted; update README.md");
     assert_eq!(perf, 239, "PERF count drifted; update README.md");
-    assert_eq!(bp, 126, "BP count drifted; update README.md");
+    assert_eq!(bp, 136, "BP count drifted; update README.md");
     assert_eq!(
         other, 0,
         "unexpected non-Go rules in default registry; update README.md / features"

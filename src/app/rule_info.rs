@@ -111,8 +111,8 @@ fn load_descriptions() -> &'static HashMap<String, RuleDescription> {
         match load_rule_descriptions(&path) {
             Ok(map) => map,
             Err(e) => {
-                eprintln!(
-                    "warning: could not load rule descriptions from {}: {e}",
+                tracing::warn!(
+                    "could not load rule descriptions from {}: {e}",
                     path.display()
                 );
                 HashMap::new()

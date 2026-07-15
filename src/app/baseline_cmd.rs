@@ -1,6 +1,6 @@
 //! `codehound baseline list|prune|update|diff|save` subcommands.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use anyhow::{Context, Result};
@@ -12,13 +12,13 @@ use codehound::engine::{
 
 use super::cache::open_cache_store;
 use super::config::{baseline_load_path, load_config};
-use super::exit_codes::{EXIT_CLEAN, EXIT_INTERNAL};
+use super::exit_codes::EXIT_CLEAN;
 use super::run::{resolve_scan_paths, scan_context_params_for_run};
 
 pub(crate) fn run_baseline_command(cli: &Cli, action: &BaselineAction) -> Result<ExitCode> {
     match action {
         BaselineAction::List { path } => {
-            let p = resolve_baseline_path(cli, path.as_ref())?;
+            let p = resolve_baseline_path(cli, path.as_deref())?;
             let baseline = Baseline::from_file(&p)
                 .with_context(|| format!("load baseline {}", p.display()))?;
             println!(
@@ -44,7 +44,7 @@ pub(crate) fn run_baseline_command(cli: &Cli, action: &BaselineAction) -> Result
             Ok(ExitCode::from(EXIT_CLEAN))
         }
         BaselineAction::Prune { paths, path } => {
-            let p = resolve_baseline_path(cli, path.as_ref())?;
+            let p = resolve_baseline_path(cli, path.as_deref())?;
             let mut baseline = Baseline::from_file(&p)
                 .with_context(|| format!("load baseline {}", p.display()))?;
             let live = scan_live(cli, paths)?;
@@ -60,7 +60,7 @@ pub(crate) fn run_baseline_command(cli: &Cli, action: &BaselineAction) -> Result
             Ok(ExitCode::from(EXIT_CLEAN))
         }
         BaselineAction::Update { paths, path } => {
-            let p = resolve_baseline_path(cli, path.as_ref())?;
+            let p = resolve_baseline_path(cli, path.as_deref())?;
             let mut baseline = match Baseline::from_file(&p) {
                 Ok(b) => b,
                 Err(_) => Baseline::from_findings(&[]),
@@ -78,7 +78,7 @@ pub(crate) fn run_baseline_command(cli: &Cli, action: &BaselineAction) -> Result
             Ok(ExitCode::from(EXIT_CLEAN))
         }
         BaselineAction::Diff { paths, path } => {
-            let p = resolve_baseline_path(cli, path.as_ref())?;
+            let p = resolve_baseline_path(cli, path.as_deref())?;
             let baseline = Baseline::from_file(&p)
                 .with_context(|| format!("load baseline {}", p.display()))?;
             let live = scan_live(cli, paths)?;
@@ -112,9 +112,9 @@ pub(crate) fn run_baseline_command(cli: &Cli, action: &BaselineAction) -> Result
     }
 }
 
-fn resolve_baseline_path(cli: &Cli, override_path: Option<&PathBuf>) -> Result<PathBuf> {
+fn resolve_baseline_path(cli: &Cli, override_path: Option<&Path>) -> Result<PathBuf> {
     if let Some(p) = override_path {
-        return Ok(p.clone());
+        return Ok(p.to_path_buf());
     }
     if let Some(p) = &cli.baseline_file {
         return Ok(p.clone());
@@ -137,14 +137,9 @@ fn scan_live(cli: &Cli, paths: &[String]) -> Result<AnalysisResult> {
         .build();
     let mut cache_store = open_cache_store(cli, config.as_ref());
     let scan_paths = resolve_scan_paths(paths)?;
-    match analyzer.analyze_paths(
+    let res = analyzer.analyze_paths(
         &scan_paths,
         CacheSession::from_optional(cache_store.as_mut()),
-    ) {
-        Ok(r) => Ok(r),
-        Err(e) => {
-            eprintln!("internal error during scan: {e:#}");
-            anyhow::bail!("scan failed (internal {EXIT_INTERNAL})")
-        }
-    }
+    )?;
+    Ok(res)
 }

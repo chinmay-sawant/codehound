@@ -113,7 +113,7 @@ impl ScanContext {
     /// or filter set changes (e.g. recommended → all).
     pub fn rule_config_fingerprint(&self) -> String {
         use std::collections::BTreeSet;
-        use std::hash::{Hash, Hasher};
+        use sha2::{Digest, Sha256};
 
         let mut only: BTreeSet<&str> = BTreeSet::new();
         if let Some(set) = &self.only {
@@ -125,8 +125,8 @@ impl ScanContext {
             "only={only:?}|skip={skip:?}|taint={}|bp={}|depth={}",
             self.taint_enabled, self.bad_practices_enabled, self.taint_max_depth
         );
-        let mut hasher = std::collections::hash_map::DefaultHasher::new();
-        payload.hash(&mut hasher);
-        format!("{:016x}", hasher.finish())
+        let digest = Sha256::digest(payload.as_bytes());
+        let hash_str = crate::engine::hex_lower(digest);
+        hash_str[..16].to_string()
     }
 }

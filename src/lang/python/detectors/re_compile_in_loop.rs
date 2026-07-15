@@ -7,8 +7,11 @@ use crate::lang::python::LOOP_NODE_KINDS;
 use crate::rules::{Finding, RuleMetadata, Severity, emit};
 
 fn is_re_compile_call(node: tree_sitter::Node, src: &[u8]) -> bool {
-    let text = node.utf8_text(src).unwrap_or("");
-    text.contains("compile(") && (text.contains("re.compile") || text.ends_with(".compile("))
+    let Some(func) = node.child_by_field_name("function") else {
+        return false;
+    };
+    let text = func.utf8_text(src).unwrap_or("");
+    text == "re.compile" || text == "compile" || text.ends_with(".compile")
 }
 
 const SLOP101_META: RuleMetadata = RuleMetadata {

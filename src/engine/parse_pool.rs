@@ -8,15 +8,14 @@ use tree_sitter::Parser;
 use crate::Error;
 use crate::core::{LanguageId, LanguagePlugin};
 
+#[derive(Default)]
 pub struct ParsePool {
     parsers: HashMap<LanguageId, Parser>,
 }
 
 impl ParsePool {
     pub fn new() -> Self {
-        Self {
-            parsers: HashMap::new(),
-        }
+        Self::default()
     }
 
     pub fn parser_for(&mut self, plugin: &dyn LanguagePlugin) -> Result<&mut Parser, Error> {

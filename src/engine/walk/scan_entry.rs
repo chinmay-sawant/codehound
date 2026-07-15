@@ -10,7 +10,7 @@ use crate::engine::ignore::{IgnoreDirective, apply_ignores, parse_file_ignore};
 use crate::engine::parse_pool::ParsePool;
 use crate::engine::registry::Registry;
 use crate::engine::result::{ScanError, ScanErrorKind};
-use crate::engine::stats::{FileStats, ScanStats};
+use crate::engine::stats::ScanStats;
 use crate::engine::timing;
 use crate::rules::Finding;
 
@@ -96,7 +96,7 @@ pub(crate) struct ScanEntryResult {
 
 struct ReadOutcome {
     source: Arc<str>,
-    file_stats: FileStats,
+    bytes: u64,
 }
 
 fn read_entry_source(
@@ -105,10 +105,9 @@ fn read_entry_source(
     preloaded: Option<&PreloadedSource>,
 ) -> Result<ReadOutcome, ScanError> {
     if let Some(preloaded) = preloaded {
-        let file_stats = FileStats::from_source(&preloaded.source);
         return Ok(ReadOutcome {
             source: Arc::clone(&preloaded.source),
-            file_stats,
+            bytes: preloaded.source.len() as u64,
         });
     }
 
@@ -117,8 +116,8 @@ fn read_entry_source(
         stats.record_errored();
     })?;
     timing::global_stop(idx);
-    let file_stats = FileStats::from_source(&source);
-    Ok(ReadOutcome { source, file_stats })
+    let bytes = source.len() as u64;
+    Ok(ReadOutcome { source, bytes })
 }
 
 fn parse_entry_unit(
@@ -157,7 +156,7 @@ fn analyze_parsed_entry(
     plugin: &dyn LanguagePlugin,
     unit: &mut ParsedUnit,
     stats: &mut ScanStats,
-    file_stats: FileStats,
+    bytes: u64,
     file_ignore: Option<IgnoreDirective>,
 ) -> (Vec<Finding>, usize) {
     let fn_kinds = plugin.function_node_kinds();
@@ -177,7 +176,7 @@ fn analyze_parsed_entry(
         file_ignore.as_ref(),
     );
 
-    stats.record_file(file_stats.bytes, file_stats.lines);
+    stats.record_file(bytes, unit.line_starts.len() as u64);
     stats.findings_suppressed = suppressed_count;
     stats.rules_executed = rules_executed;
     stats.detectors_loaded = registry.detector_count();
@@ -217,14 +216,14 @@ pub(crate) fn scan_entry(
     };
 
     let content_hash = preloaded.as_ref().map(|p| p.content_hash.clone());
-    let ReadOutcome { source, file_stats } =
+    let ReadOutcome { source, bytes } =
         read_entry_source(entry, &mut stats, preloaded.as_ref())?;
     let mut unit = parse_entry_unit(entry, plugin, pool, Arc::clone(&source), &mut stats)?;
     let dependencies = extract_dependencies(&unit, project_root, module_prefix);
 
     let file_ignore = parse_file_ignore(unit.source.as_ref());
     if !ctx.show_ignored && file_ignore.as_ref().is_some_and(IgnoreDirective::is_all) {
-        stats.record_file(file_stats.bytes, file_stats.lines);
+        stats.record_file(bytes, unit.line_starts.len() as u64);
         return Ok(ScanEntryResult {
             findings: Vec::new(),
             cache_key: unit.display_path,
@@ -242,7 +241,7 @@ pub(crate) fn scan_entry(
         plugin,
         &mut unit,
         &mut stats,
-        file_stats,
+        bytes,
         file_ignore,
     );
 

@@ -3,7 +3,6 @@
 //! `META_CWE_*` metadata.
 
 use std::collections::HashMap;
-use std::fs;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Deserializer, Serialize};
@@ -50,18 +49,22 @@ pub struct RuleDescription {
 pub fn load_rule_descriptions(path: &Path) -> Result<HashMap<String, RuleDescription>, Error> {
     if path.is_dir() {
         let mut merged = HashMap::new();
-        let mut entries: Vec<_> = fs::read_dir(path)
-            .map_err(Error::from)?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(Error::from)?;
-        entries.sort_by_key(|entry| entry.path());
-
-        for entry in entries {
-            let entry_path = entry.path();
-            if entry_path.extension().is_none_or(|ext| ext != "json") {
-                continue;
+        let mut paths = Vec::new();
+        for entry in walkdir::WalkDir::new(path)
+            .min_depth(1)
+            .into_iter()
+            .filter_map(|e| e.ok())
+        {
+            let p = entry.path();
+            if p.is_file() && p.extension().is_some_and(|ext| ext == "json") {
+                paths.push(p.to_path_buf());
             }
-            let chunk = load_rule_descriptions(&entry_path)?;
+        }
+        paths.sort();
+
+        for p in paths {
+            let text = std::fs::read_to_string(&p).map_err(Error::from)?;
+            let chunk: HashMap<String, RuleDescription> = serde_json::from_str(&text).map_err(Error::from)?;
             for (rule_id, rule) in chunk {
                 if merged.insert(rule_id.clone(), rule).is_some() {
                     return Err(Error::Config(format!(

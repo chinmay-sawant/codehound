@@ -25,8 +25,7 @@ pub trait Detector: Send + Sync {
 
     /// Rule metadata for a specific rule id when a detector implements many
     /// rules behind one execution unit.
-    fn metadata_for(&self, rule_id: &str) -> Option<&'static crate::rules::RuleMetadata> {
-        let _ = rule_id;
+    fn metadata_for(&self, _rule_id: &str) -> Option<&'static crate::rules::RuleMetadata> {
         None
     }
 

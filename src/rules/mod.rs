@@ -51,7 +51,7 @@ pub fn sarif_tags_for_finding(finding: &Finding) -> Vec<String> {
 }
 
 /// Description of a detector / rule.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct RuleMetadata {
     /// Stable identifier, e.g. `CWE-89`.
     pub id: &'static str,

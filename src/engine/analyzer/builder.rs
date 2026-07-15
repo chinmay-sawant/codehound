@@ -9,6 +9,7 @@ use crate::engine::walk::{EntrySource, FilesystemWalker};
 use super::types::Analyzer;
 
 /// Configures an [`Analyzer`].
+#[derive(Default)]
 pub struct AnalyzerBuilder {
     registry: Option<Registry>,
     ctx: ScanContext,
@@ -21,14 +22,7 @@ pub struct AnalyzerBuilder {
 impl AnalyzerBuilder {
     #[must_use = "configure the analyzer before calling build()"]
     pub(crate) fn new() -> Self {
-        Self {
-            registry: None,
-            ctx: ScanContext::default(),
-            lang_filter: LanguageFilter::default(),
-            path_filters: PathFilters::default(),
-            collect_stats: false,
-            entry_source: None,
-        }
+        Self::default()
     }
 
     /// Use a custom detector/language registry instead of [`Registry::default`].

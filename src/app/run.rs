@@ -20,11 +20,11 @@ use super::exit_codes::{EXIT_CLEAN, EXIT_FAILING, EXIT_INTERNAL};
 use super::init_cmd::init_subcommand;
 use super::rule_info::{print_rule_explanation, print_rules};
 
-pub fn run(cli: Cli) -> Result<ExitCode> {
+pub fn run(mut cli: Cli) -> Result<ExitCode> {
     configure_terminal_color(&cli);
 
     // Take subcommand ownership first so we can move `cli` into handlers.
-    let command = cli.command.clone();
+    let command = cli.command.take();
     match command {
         Some(Command::Init) => return Ok(init_subcommand()),
         Some(Command::Rules { category, explain }) => {
@@ -37,7 +37,6 @@ pub fn run(cli: Cli) -> Result<ExitCode> {
         Some(Command::Cache {
             action: CacheAction::Prune,
         }) => {
-            let mut cli = cli;
             cli.prune_cache = true;
             return run_scan(cli);
         }
@@ -45,7 +44,6 @@ pub fn run(cli: Cli) -> Result<ExitCode> {
             return run_baseline_command(&cli, &action);
         }
         Some(Command::Scan { paths }) => {
-            let mut cli = cli;
             if !paths.is_empty() {
                 cli.paths = paths;
             }
@@ -143,16 +141,10 @@ impl ScanRun {
         }
 
         let scan_paths = resolve_scan_paths(&cli.paths)?;
-        let mut result = match analyzer.analyze_paths(
+        let mut result = analyzer.analyze_paths(
             &scan_paths,
             CacheSession::from_optional(cache_store.as_mut()),
-        ) {
-            Ok(r) => r,
-            Err(e) => {
-                eprintln!("internal error during scan: {e:#}");
-                return Ok(ExitCode::from(EXIT_INTERNAL));
-            }
-        };
+        )?;
 
         report_scan_errors(&result);
 
@@ -227,8 +219,8 @@ fn rebuild_cache_if_requested(
     }
     if let Err(reason) = validate_cache_purge_path(&dir) {
         if !cli.quiet {
-            eprintln!(
-                "warning: refusing to purge cache at {}: {reason}",
+            tracing::warn!(
+                "refusing to purge cache at {}: {reason}",
                 dir.display()
             );
         }
@@ -236,7 +228,7 @@ fn rebuild_cache_if_requested(
     }
     if let Err(e) = std::fs::remove_dir_all(&dir) {
         if !cli.quiet {
-            eprintln!("warning: could not purge cache at {}: {e}", dir.display());
+            tracing::warn!("could not purge cache at {}: {e}", dir.display());
         }
     } else if !cli.quiet {
         eprintln!("Purged cache at {}", dir.display());

@@ -6,12 +6,14 @@
 //! function signature and stored in every pipeline struct. App-level and
 //! analyzer-level timing still uses locally-owned [`TimingCollector`] instances.
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use super::summary::TimingSummary;
 
 static GLOBAL: Mutex<Option<TimingCollector>> = Mutex::new(None);
+static TIMING_ENABLED: AtomicBool = AtomicBool::new(false);
 
 fn global_lock() -> std::sync::MutexGuard<'static, Option<TimingCollector>> {
     GLOBAL
@@ -21,17 +23,24 @@ fn global_lock() -> std::sync::MutexGuard<'static, Option<TimingCollector>> {
 
 /// Initialise the global collector for the scope of a scan chunk.
 pub(crate) fn init_global(enabled: bool) {
+    TIMING_ENABLED.store(enabled, Ordering::Relaxed);
     *global_lock() = Some(TimingCollector::new(enabled));
 }
 
 /// Start a span on the global collector. Returns the span index (0 when
 /// disabled / uninitialised).
 pub(crate) fn global_start(name: &'static str) -> usize {
+    if !TIMING_ENABLED.load(Ordering::Relaxed) {
+        return 0;
+    }
     global_lock().as_mut().map(|c| c.start(name)).unwrap_or(0)
 }
 
 /// Stop a span started with [`global_start`].
 pub(crate) fn global_stop(idx: usize) {
+    if !TIMING_ENABLED.load(Ordering::Relaxed) {
+        return;
+    }
     if let Some(ref mut c) = *global_lock() {
         c.stop(idx);
     }
@@ -39,6 +48,7 @@ pub(crate) fn global_stop(idx: usize) {
 
 /// Drain the global collector into `target`. Resets the global to `None`.
 pub(crate) fn drain_global(target: &mut TimingCollector) {
+    TIMING_ENABLED.store(false, Ordering::Relaxed);
     if let Some(c) = global_lock().take() {
         target.merge(&c);
     }
@@ -54,6 +64,7 @@ pub(crate) fn drain_global(target: &mut TimingCollector) {
 pub fn with_timing<R>(f: impl FnOnce() -> R) -> (R, Option<TimingSummary>) {
     init_global(true);
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f));
+    TIMING_ENABLED.store(false, Ordering::Relaxed);
     let summary = global_lock().take().map(|c| c.to_summary());
     // Reset even if the closure panicked so the global is clean for the
     // next test.

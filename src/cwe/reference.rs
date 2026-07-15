@@ -2,7 +2,7 @@
 
 use serde::Serialize;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct CweRef {
     pub id: u32,
     pub name: &'static str,

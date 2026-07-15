@@ -25,7 +25,7 @@ pub(crate) fn open_cache_store(cli: &Cli, config: Option<&CodehoundConfig>) -> O
         Ok(s) => Some(s),
         Err(e) => {
             if !cli.quiet {
-                eprintln!("warning: could not open incremental cache: {e:#}");
+                tracing::warn!("could not open incremental cache: {e:#}");
             }
             None
         }
@@ -35,12 +35,12 @@ pub(crate) fn open_cache_store(cli: &Cli, config: Option<&CodehoundConfig>) -> O
 /// Resolve the cache directory following CLI > config > auto-discovery
 /// precedence, falling back to [`DEFAULT_CACHE_DIR`].
 pub(crate) fn cache_directory(cli: &Cli, config: Option<&CodehoundConfig>) -> PathBuf {
-    if let Some(dir) = cli.cache_dir.clone() {
-        return dir;
+    if let Some(dir) = &cli.cache_dir {
+        return dir.clone();
     }
     if let Some(cfg) = config {
-        if let Some(p) = cfg.codehound.cache.path.clone() {
-            return p;
+        if let Some(p) = &cfg.codehound.cache.path {
+            return p.clone();
         }
     }
     if let Some(found) = discover_cache_dir(Path::new(".")) {
@@ -48,3 +48,4 @@ pub(crate) fn cache_directory(cli: &Cli, config: Option<&CodehoundConfig>) -> Pa
     }
     Path::new(DEFAULT_CACHE_DIR).to_path_buf()
 }
+
