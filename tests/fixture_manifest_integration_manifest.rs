@@ -42,8 +42,11 @@ fn manifest_entries_exist_and_fire() {
             || entry.path.contains("CWE-")
             || entry.path.contains("/taint/")
             || rules.iter().any(|r| TAINT_CORE.contains(r));
+        // Multi-hop IP fixtures (depth 3+) need summary refinement; product
+        // CLI default remains 1 (direct caller→callee). Match go_taint_integration.
         let ctx = ScanContext {
             taint_enabled: needs_taint,
+            taint_max_depth: if needs_taint { 4 } else { 1 },
             ..ScanContext::default()
         };
         let analyzer = Analyzer::builder()
