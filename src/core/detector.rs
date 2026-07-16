@@ -34,7 +34,13 @@ pub trait Detector: Send + Sync {
     /// Accumulate cross-file analysis state from a parsed unit without
     /// emitting per-file findings. Called for cache-hit files so that
     /// [`finalize`](Self::finalize) has the same state regardless of cache.
-    /// Default implementation does nothing.
+    ///
+    /// Detector state is scoped to one top-level analyzer scan. The engine
+    /// calls [`Self::reset_state`] before and after the scan, and calls
+    /// [`Self::finalize`] after per-file work has completed. Implementations
+    /// retaining cross-file state must implement the cache-state capability,
+    /// accumulation, and reset hooks as one lifecycle protocol. The default
+    /// implementation does nothing.
     fn accumulate_state(&self, _ctx: &ScanContext, _unit: &ParsedUnit) {}
 
     /// Whether cached files must be reparsed and passed to

@@ -46,6 +46,10 @@ impl Analyzer {
     /// Returns an error when file discovery fails (invalid paths, I/O while
     /// walking the tree), or when a configured language plugin fails to parse
     /// a file in a way that aborts the scan (per [`crate::core::FailPolicy`]).
+    ///
+    /// A single [`Analyzer`] serializes top-level scans because detector
+    /// instances may retain project state. Run independent scans concurrently
+    /// with separate analyzers when parallel analyzer ownership is required.
     #[must_use = "scan errors and findings are returned in AnalysisResult"]
     pub fn analyze_paths(
         &self,

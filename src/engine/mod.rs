@@ -38,7 +38,7 @@ pub use diagnostics::Diagnostics;
 pub use ignore::{IgnoreDirective, parse_file_ignore, parse_inline_ignores};
 pub use language_filter::{LanguageFilter, resolve_language_filter};
 pub use path_identity::{normalize_project_path, project_paths_eq};
-pub use registry::Registry;
+pub use registry::{Registry, RegistryError};
 pub(crate) use result::PipelineAccumulator;
 pub use result::{AnalysisResult, ScanError, ScanErrorKind};
 pub use stats::ScanStats;

@@ -1,8 +1,7 @@
 //! Taint-analysis data model and fact extraction for Go CWE detectors.
 //!
-//! This module is intentionally scoped to the intra-procedural MVP described
-//! in `plans/taint-tracking-architecture.md`. Cross-function tracking is
-//! reserved for a later phase.
+//! Graphs are built per source unit, then bounded same-package
+//! inter-procedural summaries are refined during project finalization.
 
 mod extract;
 mod graph_query;

@@ -198,6 +198,36 @@ impl Finding {
         }
     }
 
+    /// Return the one-indexed start line.
+    pub fn line(&self) -> usize {
+        self.line
+    }
+
+    /// Return the one-indexed start column.
+    pub fn column(&self) -> usize {
+        self.column
+    }
+
+    /// Return the optional one-indexed end line.
+    pub fn end_line(&self) -> Option<usize> {
+        self.end_line
+    }
+
+    /// Return the optional one-indexed end column.
+    pub fn end_column(&self) -> Option<usize> {
+        self.end_column
+    }
+
+    /// Return the optional byte offset of the finding.
+    pub fn byte_offset(&self) -> Option<usize> {
+        self.byte_offset
+    }
+
+    /// Return the optional byte length of the finding.
+    pub fn byte_length(&self) -> Option<usize> {
+        self.byte_length
+    }
+
     /// Return the optional one-indexed end location.
     pub fn end_location(&self) -> Option<LineCol> {
         Some(LineCol {

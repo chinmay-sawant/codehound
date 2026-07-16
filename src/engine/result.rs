@@ -171,6 +171,11 @@ impl AnalysisResult {
         &self.findings
     }
 
+    /// Return mutable findings for embedders that apply a post-scan policy.
+    pub fn findings_mut(&mut self) -> &mut [Finding] {
+        &mut self.findings
+    }
+
     /// Return non-fatal per-file errors collected during the scan.
     pub fn errors(&self) -> &[ScanError] {
         &self.errors

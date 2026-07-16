@@ -67,7 +67,7 @@ impl CacheBackend for DiskBackend {
 
     fn store_entry(&mut self, cache_key: &str, entry: &CacheEntry) -> Result<(), CacheError> {
         let path = self.files_dir.join(format!("{cache_key}.json"));
-        write_atomic(&path, entry).map_err(|e| CacheError::Io(std::io::Error::other(e.to_string())))
+        write_atomic(&path, entry).map_err(cache_error)
     }
 
     fn store_entry_borrowed(
@@ -87,8 +87,7 @@ impl CacheBackend for DiskBackend {
             suppressed_count,
             cached_at,
         };
-        write_atomic(&path, &entry)
-            .map_err(|e| CacheError::Io(std::io::Error::other(e.to_string())))
+        write_atomic(&path, &entry).map_err(cache_error)
     }
 
     fn delete_entry(&mut self, cache_key: &str) -> Result<(), CacheError> {
@@ -137,5 +136,46 @@ impl CacheBackend for DiskBackend {
             }
         }
         Ok(removed)
+    }
+}
+
+fn cache_error(error: crate::Error) -> CacheError {
+    match error {
+        crate::Error::Io(source) => CacheError::Io(source),
+        crate::Error::PathIo { path, op, source } => CacheError::PathIo { path, op, source },
+        crate::Error::Json(source) => CacheError::Serialization(source),
+        other => CacheError::Io(std::io::Error::other(other.to_string())),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::cache_error;
+    use crate::engine::CacheError;
+    use crate::error::IoOp;
+
+    #[test]
+    fn cache_error_preserves_path_and_operation() {
+        let error = cache_error(crate::Error::path_io(
+            "cache/files/entry.json",
+            IoOp::Write,
+            std::io::Error::other("read-only filesystem"),
+        ));
+
+        assert!(matches!(
+            error,
+            CacheError::PathIo {
+                path,
+                op: IoOp::Write,
+                ..
+            } if path == "cache/files/entry.json"
+        ));
+    }
+
+    #[test]
+    fn cache_error_preserves_serialization_failures() {
+        let source = serde_json::from_str::<String>("not-json").expect_err("invalid JSON");
+        let error = cache_error(crate::Error::Json(source));
+        assert!(matches!(error, CacheError::Serialization(_)));
     }
 }

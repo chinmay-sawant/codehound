@@ -28,6 +28,28 @@ pub struct ParsedUnit {
 }
 
 impl ParsedUnit {
+    /// Construct a parsed source unit from parser output.
+    #[must_use]
+    pub fn new(
+        language: LanguageId,
+        path: PathBuf,
+        source: Arc<str>,
+        tree: Tree,
+        line_starts: Vec<usize>,
+        function_spans: Vec<FunctionSpan>,
+    ) -> Self {
+        let display_path = path.display().to_string();
+        Self {
+            language,
+            path,
+            display_path,
+            source,
+            tree,
+            line_starts,
+            function_spans,
+        }
+    }
+
     /// Return the language selected for this source unit.
     pub fn language(&self) -> LanguageId {
         self.language

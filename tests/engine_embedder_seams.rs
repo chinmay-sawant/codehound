@@ -197,9 +197,10 @@ fn panic_fixture_path(label: &str) -> PathBuf {
 
 fn analyzer_with_panic_point(panic_point: PanicPoint, ctx: ScanContext) -> Analyzer {
     Analyzer::builder()
-        .registry(Registry::with_plugins(vec![Box::new(PanickingPlugin {
-            panic_point,
-        })]))
+        .registry(
+            Registry::with_plugins(vec![Box::new(PanickingPlugin { panic_point })])
+                .expect("valid test registry"),
+        )
         .scan_context(ctx)
         .build()
 }
@@ -351,7 +352,9 @@ impl CacheStateDetector {
 fn non_taint_detector_state_is_rebuilt_on_cache_hit() {
     let path = panic_fixture_path("cache-state");
     let analyzer = Analyzer::builder()
-        .registry(Registry::with_plugins(vec![Box::new(CacheStatePlugin)]))
+        .registry(
+            Registry::with_plugins(vec![Box::new(CacheStatePlugin)]).expect("valid test registry"),
+        )
         .build();
     let mut cache = CacheStore::in_memory();
 
