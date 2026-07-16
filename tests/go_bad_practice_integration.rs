@@ -76,12 +76,14 @@ fn bp_analyzer() -> Analyzer {
 fn go_bad_practice_fixtures_fire_vulnerable_and_silence_safe() {
     let cases = go_bp_cases::discover_go_bp_cases();
     let mut failures: Vec<String> = Vec::new();
+    // One analyzer for the whole matrix — construction is cheap but not free,
+    // and each case only needs a fresh scan, not a fresh plugin registry.
+    let analyzer = bp_analyzer();
 
     for case in &cases {
         let vulnerable = go_bp_cases::fixture_path(case, true);
         let safe = go_bp_cases::fixture_path(case, false);
         let rule = go_bp_cases::expected_rule_id(case);
-        let analyzer = bp_analyzer();
         if let Err(e) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             helpers::assert_fixture_rules(&vulnerable, &[rule.as_str()], &analyzer);
             helpers::assert_fixture_rules(&safe, &[], &analyzer);
@@ -100,67 +102,61 @@ fn go_bad_practice_fixtures_fire_vulnerable_and_silence_safe() {
 
 #[test]
 fn go_bad_practice_text_fixtures_also_work_via_cli_scan_path() {
+    // Full detector coverage lives in
+    // `go_bad_practice_fixtures_fire_vulnerable_and_silence_safe` (in-process).
+    // Spawning a CLI process per fixture (hundreds of cases) dominated `make test`
+    // wall time; one vulnerable + one safe smoke check locks the .txt path.
     let cases = go_bp_cases::discover_go_bp_cases();
-    let mut failures: Vec<String> = Vec::new();
+    let case = cases.first().expect("expected at least one Go BP fixture");
+    let vulnerable = go_bp_cases::fixture_path(case, true);
+    let safe = go_bp_cases::fixture_path(case, false);
+    let expected_rule = go_bp_cases::expected_rule_id(case);
     let exe = env!("CARGO_BIN_EXE_codehound");
 
-    for case in &cases {
-        let vulnerable = go_bp_cases::fixture_path(case, true);
-        let safe = go_bp_cases::fixture_path(case, false);
-        let expected_rule = go_bp_cases::expected_rule_id(case);
-
-        // Pin the rule with --only so style's default-off opinion rules
-        // (BP-21 / BP-28) still get fixture coverage when explicitly requested.
-        let vulnerable_run = Command::new(exe)
-            .args([
-                "--profile",
-                "style",
-                "--only",
-                expected_rule.as_str(),
-                "--include-tests",
-                vulnerable.as_str(),
-            ])
-            .output()
-            .unwrap_or_else(|e| panic!("run {vulnerable}: {e}"));
-        let vulnerable_stdout = String::from_utf8_lossy(&vulnerable_run.stdout);
-        let vulnerable_ids = reported_rule_ids(&vulnerable_stdout);
-        if !vulnerable_ids.contains(&expected_rule.as_str()) {
-            failures.push(format!(
-                "{vulnerable}: expected {expected_rule}, got status {:?}, ids {:?}, stdout:\n{}",
-                vulnerable_run.status.code(),
-                vulnerable_ids,
-                vulnerable_stdout
-            ));
-        }
-
-        let safe_run = Command::new(exe)
-            .args([
-                "--profile",
-                "style",
-                "--only",
-                expected_rule.as_str(),
-                "--include-tests",
-                safe.as_str(),
-            ])
-            .output()
-            .unwrap_or_else(|e| panic!("run {safe}: {e}"));
-        let safe_stdout = String::from_utf8_lossy(&safe_run.stdout);
-        let safe_ids = reported_rule_ids(&safe_stdout);
-        if safe_ids.iter().any(|rule_id| rule_id.starts_with("BP-")) {
-            failures.push(format!(
-                "{safe}: expected no BP findings, got status {:?}, ids {:?}, stdout:\n{}",
-                safe_run.status.code(),
-                safe_ids,
-                safe_stdout
-            ));
-        }
-    }
-
+    // Pin the rule with --only so style's default-off opinion rules
+    // (BP-21 / BP-28) still get fixture coverage when explicitly requested.
+    let vulnerable_run = Command::new(exe)
+        .args([
+            "--profile",
+            "style",
+            "--only",
+            expected_rule.as_str(),
+            "--include-tests",
+            "--no-cache",
+            vulnerable.as_str(),
+        ])
+        .output()
+        .unwrap_or_else(|e| panic!("run {vulnerable}: {e}"));
+    let vulnerable_stdout = String::from_utf8_lossy(&vulnerable_run.stdout);
+    let vulnerable_ids = reported_rule_ids(&vulnerable_stdout);
     assert!(
-        failures.is_empty(),
-        "{} of {} CLI BP fixture scans failed: {failures:#?}",
-        failures.len(),
-        cases.len() * 2,
+        vulnerable_ids.contains(&expected_rule.as_str()),
+        "{vulnerable}: expected {expected_rule}, got status {:?}, ids {:?}, stdout:\n{}",
+        vulnerable_run.status.code(),
+        vulnerable_ids,
+        vulnerable_stdout
+    );
+
+    let safe_run = Command::new(exe)
+        .args([
+            "--profile",
+            "style",
+            "--only",
+            expected_rule.as_str(),
+            "--include-tests",
+            "--no-cache",
+            safe.as_str(),
+        ])
+        .output()
+        .unwrap_or_else(|e| panic!("run {safe}: {e}"));
+    let safe_stdout = String::from_utf8_lossy(&safe_run.stdout);
+    let safe_ids = reported_rule_ids(&safe_stdout);
+    assert!(
+        !safe_ids.iter().any(|rule_id| rule_id.starts_with("BP-")),
+        "{safe}: expected no BP findings, got status {:?}, ids {:?}, stdout:\n{}",
+        safe_run.status.code(),
+        safe_ids,
+        safe_stdout
     );
 }
 

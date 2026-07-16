@@ -88,6 +88,35 @@ fn project_snapshot_for_root(root: &Path) -> ProjectSnapshot {
     built
 }
 
+/// Directory basenames skipped when building project-level BP facts.
+///
+/// Without this, a single BP scan of a monorepo (or of a `.txt` fixture
+/// materialized under `target/codehound-fixtures/`) walks the entire tree —
+/// including Rust `target/`, `node_modules/`, and accumulated fixture dumps —
+/// and can spend seconds reading irrelevant `.go` files on every CLI process.
+const SKIP_PROJECT_WALK_DIRS: &[&str] = &[
+    "target",
+    "node_modules",
+    ".git",
+    "vendor",
+    ".codehound-cache",
+    "codehound-fixtures",
+    "__pycache__",
+    ".idea",
+    ".vscode",
+];
+
+fn should_enter_project_dir(entry: &walkdir::DirEntry) -> bool {
+    if !entry.file_type().is_dir() {
+        return true;
+    }
+    let name = entry.file_name();
+    let Some(name) = name.to_str() else {
+        return true;
+    };
+    !SKIP_PROJECT_WALK_DIRS.contains(&name)
+}
+
 fn build_project_snapshot(root: &Path) -> ProjectSnapshot {
     let mut go_files: Vec<PathBuf> = Vec::new();
     let mut has_server_start = false;
@@ -98,7 +127,10 @@ fn build_project_snapshot(root: &Path) -> ProjectSnapshot {
     let mut has_request_id = false;
     let mut has_logging = false;
 
-    for entry in WalkDir::new(root).into_iter().filter_map(Result::ok) {
+    let walker = WalkDir::new(root)
+        .into_iter()
+        .filter_entry(should_enter_project_dir);
+    for entry in walker.filter_map(Result::ok) {
         let path = entry.path();
         if !entry.file_type().is_file() {
             continue;

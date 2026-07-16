@@ -9,14 +9,55 @@ use walkdir::WalkDir;
 
 use super::format::{FIXTURE_EXTENSION, FixtureError, TextFixture, parse_fixture};
 
+fn fixtures_base() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/codehound-fixtures")
+}
+
 fn unique_root() -> PathBuf {
-    let base = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/codehound-fixtures");
+    let base = fixtures_base();
+    // Best-effort: drop roots left by dead processes so CLI fixture tests and
+    // local `make test` runs do not accumulate tens of thousands of dirs.
+    prune_stale_materialize_roots(&base);
     let pid = std::process::id();
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_nanos())
         .unwrap_or(0);
     base.join(format!("{pid}-{nanos}"))
+}
+
+/// Remove materialize roots whose owning PID is no longer alive.
+///
+/// Roots are named `{pid}-{nanos}`. On Linux we check `/proc/<pid>`; elsewhere
+/// this is a no-op (age-based cleanup would race with parallel test binaries).
+fn prune_stale_materialize_roots(base: &Path) {
+    if !cfg!(target_os = "linux") {
+        return;
+    }
+    let Ok(entries) = fs::read_dir(base) else {
+        return;
+    };
+    let my_pid = std::process::id();
+    for entry in entries.flatten() {
+        let name = entry.file_name();
+        let Some(name) = name.to_str() else {
+            continue;
+        };
+        let Some((pid_str, _)) = name.split_once('-') else {
+            continue;
+        };
+        let Ok(pid) = pid_str.parse::<u32>() else {
+            continue;
+        };
+        if pid == my_pid {
+            continue;
+        }
+        // Still-running process (parallel cargo test binary, etc.).
+        if Path::new("/proc").join(pid_str).exists() {
+            continue;
+        }
+        let _ = fs::remove_dir_all(entry.path());
+    }
 }
 
 /// Root directory for generated sources (gitignored).

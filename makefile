@@ -15,6 +15,11 @@ build:
 test:
 	$(CARGO) test
 
+# Drop accumulated materialize roots from prior test/CLI runs.
+# Safe while tests are not running; each run also prunes dead-PID roots.
+clean-fixtures:
+	rm -rf target/codehound-fixtures
+
 # Check code for linting issues using clippy
 lint:
 	$(CARGO) clippy --all-targets --all-features -- -D warnings
