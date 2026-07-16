@@ -151,34 +151,51 @@ func Run(w http.ResponseWriter, r *http.Request) {
         std::fs::write(root.join("go.mod"), "module example.com/proj\n\ngo 1.22\n").unwrap();
         write_file(
             &root.join("cmd.go"),
-            "// codehound-ignore-file: CWE-78\npackage cmd\n\nimport (\n\t\"net/http\"\n\t\"os/exec\"\n)\n\nfunc Run(w http.ResponseWriter, r *http.Request) {\n\thost := r.URL.Query().Get(\"host\")\n\tcmd := exec.Command(\"sh\", \"-c\", \"ping -c 1 \"+host)\n\t_, _ = cmd.CombinedOutput()\n}\n",
+            "// codehound-ignore-file: BP-41\npackage main\n\nimport (\n\t\"net/http\"\n\t\"os/exec\"\n)\n\nfunc handler(w http.ResponseWriter, r *http.Request) {\n\tcmd := r.URL.Query().Get(\"cmd\")\n\texec.Command(\"sh\", \"-c\", cmd).Run()\n}\n",
         );
 
         let cache_dir = root.join(DEFAULT_CACHE_DIR);
         let mut cache = CacheStore::open_with_capacity(cache_dir.clone(), 500).unwrap();
-        {
+        let first = {
             let analyzer = Analyzer::builder()
                 .scan_context(ScanContext::default())
                 .build();
-            let _ = analyzer
+            analyzer
                 .analyze_paths(&[&root], Some(CacheSession::open(&mut cache)))
-                .unwrap();
-        }
+                .unwrap()
+        };
         cache.flush().unwrap();
+        let first_suppressed = first.suppressed_count;
+        assert!(
+            first_suppressed > 0,
+            "cold scan should record suppression: findings={:?}",
+            first
+                .findings
+                .iter()
+                .map(|finding| (finding.rule_id, finding.line))
+                .collect::<Vec<_>>()
+        );
 
         let mut cache2 = CacheStore::open_with_capacity(cache_dir, 500).unwrap();
-        let cwe78 = {
+        let (bp41, second_suppressed) = {
             let analyzer = Analyzer::builder()
                 .scan_context(ScanContext::default())
                 .build();
             let r = analyzer
                 .analyze_paths(&[&root], Some(CacheSession::open(&mut cache2)))
                 .unwrap();
-            r.findings.iter().filter(|f| f.rule_id == "CWE-78").count()
+            (
+                r.findings.iter().filter(|f| f.rule_id == "BP-41").count(),
+                r.suppressed_count,
+            )
         };
         assert_eq!(
-            cwe78, 0,
-            "CWE-78 must be filtered by codehound-ignore-file on cache hit"
+            bp41, 0,
+            "BP-41 must be filtered by codehound-ignore-file on cache hit"
+        );
+        assert_eq!(
+            second_suppressed, first_suppressed,
+            "warm cache must preserve suppression accounting"
         );
 
         std::fs::remove_dir_all(root).unwrap();
@@ -280,6 +297,16 @@ value := input // codehound-ignore: CWE-22
     );
     assert_eq!(
         ignores.get(&2),
+        Some(&IgnoreDirective::rules(vec!["CWE-22".to_string()]))
+    );
+}
+
+#[test]
+fn parse_eol_ignore_handles_unicode_before_comment() {
+    let ignores = parse_inline_ignores("let π = 1; // codehound-ignore: CWE-22\n");
+
+    assert_eq!(
+        ignores.get(&1),
         Some(&IgnoreDirective::rules(vec!["CWE-22".to_string()]))
     );
 }

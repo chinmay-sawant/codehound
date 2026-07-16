@@ -9,17 +9,13 @@ pub(crate) fn load_config(explicit: Option<&Path>) -> Result<Option<CodehoundCon
         if !path.is_file() {
             anyhow::bail!("config file not found: {}", path.display());
         }
-        Ok(Some(
-            CodehoundConfig::load(path)
-                .map_err(anyhow::Error::from)
-                .with_context(|| format!("loading config {}", path.display()))?,
-        ))
+        Ok(Some(CodehoundConfig::load(path).with_context(|| {
+            format!("loading config {}", path.display())
+        })?))
     } else if let Some(found) = discover_config(Path::new(".")) {
-        Ok(Some(
-            CodehoundConfig::load(&found)
-                .map_err(anyhow::Error::from)
-                .with_context(|| format!("loading config {}", found.display()))?,
-        ))
+        Ok(Some(CodehoundConfig::load(&found).with_context(|| {
+            format!("loading config {}", found.display())
+        })?))
     } else {
         Ok(None)
     }
@@ -34,7 +30,8 @@ pub(crate) fn baseline_loading_enabled(cli: &Cli, config: Option<&CodehoundConfi
 
 pub(crate) fn baseline_load_path(cli: &Cli, config: Option<&CodehoundConfig>) -> Option<PathBuf> {
     cli.baseline_file
-        .clone()
-        .or_else(|| config.and_then(|cfg| cfg.codehound.baseline.path.clone()))
+        .as_ref()
+        .or_else(|| config.and_then(|cfg| cfg.codehound.baseline.path.as_ref()))
+        .cloned()
         .or_else(|| discover_baseline(Path::new(".")))
 }

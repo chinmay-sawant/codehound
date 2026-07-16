@@ -3,7 +3,10 @@ mod t {
     use crate::core::ParsedUnit;
     use crate::lang::go::detectors::cwe::taint::extract::extract_taint_facts;
 
-    use super::super::super::{build_taint_graph, find_taint_paths};
+    use super::super::super::{
+        build_taint_graph, compute_all_summaries, extract_call_graph, find_taint_paths,
+        refine_summaries_multihop, refine_summaries_multihop_with_context,
+    };
     use crate::lang::go::detectors::cwe::taint::{SanitizerKind, SinkKind, SourceKind};
 
     fn parse(source: &str) -> ParsedUnit {
@@ -190,5 +193,123 @@ func f(r *http.Request) {
             paths.is_empty() || paths.iter().all(|p| p.sanitized),
             "expected no live taint after overwrite, got {paths:?}"
         );
+    }
+
+    #[test]
+    fn unsanitized_branch_is_not_hidden_by_sanitized_merge() {
+        use std::ops::Range;
+        use std::sync::Arc;
+
+        use crate::lang::go::detectors::cwe::taint::{EdgeKind, TaintGraph, TaintNode};
+
+        let mut graph = TaintGraph::default();
+        let source = graph.add_node(TaintNode::Source {
+            function: Arc::from("source"),
+            kind: SourceKind::UserInput,
+            byte_range: Range { start: 0, end: 1 },
+        });
+        let sanitizer = graph.add_node(TaintNode::Sanitizer {
+            function: Arc::from("sanitize"),
+            kind: SanitizerKind::Validation,
+            byte_range: 1..2,
+        });
+        let merge = graph.add_node(TaintNode::Variable {
+            name: Arc::from("merged"),
+            type_hint: None,
+            scope: 0,
+            decl_byte: 2,
+        });
+        let sink = graph.add_node(TaintNode::Sink {
+            function: Arc::from("sink"),
+            kind: SinkKind::CommandExec,
+            argument_index: 0,
+            byte_range: 3..4,
+        });
+        graph.add_edge(source, sanitizer, EdgeKind::PassThrough);
+        graph.add_edge(sanitizer, merge, EdgeKind::PassThrough);
+        graph.add_edge(source, merge, EdgeKind::PassThrough);
+        graph.add_edge(merge, sink, EdgeKind::Argument(0));
+
+        assert!(super::super::unsanitized_reaches_any(
+            &graph,
+            source,
+            &[sink]
+        ));
+    }
+
+    #[test]
+    fn direct_sink_summary_is_function_local() {
+        let source = r#"package main
+func source_only(r *http.Request) {
+    _ = r.URL.Query().Get("q")
+}
+func sink_only() {
+    _ = os.Open("/safe")
+}
+"#;
+        let unit = parse(source);
+        let facts = extract_taint_facts(&unit);
+        let summaries = compute_all_summaries(&facts, source);
+
+        assert!(!summaries["source_only"].has_direct_sink);
+        assert!(!summaries["sink_only"].has_direct_sink);
+    }
+
+    #[test]
+    fn return_refinement_requires_returning_the_callee_result() {
+        let source = r#"package main
+func source() string {
+    return r.URL.Query().Get("q")
+}
+func unused() string {
+    x := source()
+    _ = x
+    return "/safe"
+}
+func used() string {
+    x := source()
+    return x
+}
+"#;
+        let unit = parse(source);
+        let facts = extract_taint_facts(&unit);
+        let mut summaries = compute_all_summaries(&facts, source);
+        refine_summaries_multihop(&extract_call_graph(&unit), &mut summaries, 4);
+
+        assert!(
+            !summaries["unused"]
+                .return_sources
+                .iter()
+                .any(|tainted| *tainted)
+        );
+        assert!(
+            summaries["used"]
+                .return_sources
+                .iter()
+                .any(|tainted| *tainted)
+        );
+    }
+
+    #[test]
+    fn parameter_refinement_follows_direct_argument_bindings() {
+        let source = r#"package main
+func middle(s string) {
+    leaf(s)
+}
+func leaf(s string) {
+    os.Open(s)
+}
+"#;
+        let unit = parse(source);
+        let facts = extract_taint_facts(&unit);
+        let mut summaries = compute_all_summaries(&facts, source);
+        refine_summaries_multihop_with_context(
+            &extract_call_graph(&unit),
+            &facts,
+            &mut summaries,
+            4,
+        );
+
+        assert_eq!(summaries["middle"].param_sources, vec![Some(true)]);
     }
 }

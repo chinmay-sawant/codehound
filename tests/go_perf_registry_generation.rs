@@ -29,7 +29,8 @@ fn generated_go_perf_dispatch_matches_registry_toml() {
     let actual: BTreeSet<String> = registry
         .detector_indices(LanguageId::Go)
         .iter()
-        .flat_map(|idx| registry.detector(*idx).rule_ids().iter().copied())
+        .filter_map(|idx| registry.detector(*idx))
+        .flat_map(|detector| detector.rule_ids().iter().copied())
         .filter(|id| id.starts_with("PERF-"))
         .map(str::to_string)
         .collect();
@@ -38,4 +39,9 @@ fn generated_go_perf_dispatch_matches_registry_toml() {
         actual, expected,
         "generated Go PERF dispatch should match registry.toml"
     );
+}
+
+#[test]
+fn invalid_detector_index_returns_none() {
+    assert!(Registry::default().detector(usize::MAX).is_none());
 }

@@ -1,5 +1,6 @@
 //! Go language plugin.
 
+#[doc(hidden)]
 pub mod detectors;
 mod register;
 pub mod sinks;

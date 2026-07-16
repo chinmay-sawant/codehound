@@ -9,7 +9,7 @@ use helpers::{assert_fixture_materializes, unique_temp_root};
 
 use std::sync::Arc;
 
-use codehound::core::LanguageId;
+use codehound::core::{LanguageId, ScanContext};
 use codehound::engine::{
     Analyzer, CacheSession, CacheStore, ListEntrySource, ScanEntry, content_hash,
 };
@@ -84,6 +84,7 @@ fn cache_hit_reuses_stored_findings() {
     ));
 
     let mut cache = CacheStore::in_memory();
+    cache.ensure_rule_config_hash(&ScanContext::default().rule_config_fingerprint());
     cache
         .put(&rel, &hash, &[], vec![finding], "2020-01-01T00:00:00Z")
         .expect("seed cache");

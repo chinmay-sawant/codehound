@@ -48,3 +48,16 @@ fn line_col_for_offset_past_end_returns_last_line() {
     let (line, _) = unit.line_col(offset);
     assert!(line >= 1, "got {line}");
 }
+
+#[test]
+fn parsed_unit_read_only_accessors_expose_parser_data() {
+    let unit = parsed("package main\nfunc main() {}\n");
+
+    assert_eq!(unit.language(), LanguageId::Go);
+    assert_eq!(unit.path().to_str(), Some("test.go"));
+    assert_eq!(unit.display_path(), "test.go");
+    assert_eq!(unit.source().as_ref(), "package main\nfunc main() {}\n");
+    assert_eq!(unit.tree().root_node().kind(), "source_file");
+    assert_eq!(unit.line_starts(), &[0, 13, 28]);
+    assert!(unit.function_spans().is_empty());
+}

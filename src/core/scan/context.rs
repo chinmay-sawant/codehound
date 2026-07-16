@@ -8,9 +8,13 @@ use super::policy::FailPolicy;
 
 #[derive(Debug, Clone)]
 pub struct ScanContext {
+    /// Optional allow-list of rule IDs or prefix patterns.
     pub only: Option<HashSet<String>>,
+    /// Rule IDs or prefix patterns excluded from the scan.
     pub skip: HashSet<String>,
+    /// Severity threshold used by [`crate::engine::AnalysisResult::should_fail`].
     pub fail_policy: FailPolicy,
+    /// Keep findings suppressed by inline/file ignores in the result.
     pub show_ignored: bool,
     /// When true, detectors collect per-rule timing. Also implies stats collection.
     pub debug_timing: bool,
@@ -66,6 +70,25 @@ impl Default for ScanContext {
 }
 
 impl ScanContext {
+    /// Return the bounded inter-procedural taint summary depth.
+    #[must_use]
+    pub const fn taint_max_depth(&self) -> u32 {
+        self.taint_max_depth
+    }
+
+    /// Set the inter-procedural taint summary depth, bounded to the supported range.
+    #[must_use]
+    pub const fn with_taint_max_depth(mut self, depth: u32) -> Self {
+        self.taint_max_depth = if depth < 1 {
+            1
+        } else if depth > 4 {
+            4
+        } else {
+            depth
+        };
+        self
+    }
+
     pub fn allows(&self, rule_id: &str) -> bool {
         if rule_id.starts_with("BP-") && !self.bad_practices_enabled {
             return false;
@@ -112,21 +135,31 @@ impl ScanContext {
     /// are stored. Used to invalidate the incremental cache when the pack
     /// or filter set changes (e.g. recommended → all).
     pub fn rule_config_fingerprint(&self) -> String {
-        use std::collections::BTreeSet;
-        use std::hash::{Hash, Hasher};
+        use sha2::{Digest, Sha256};
+        use std::collections::{BTreeMap, BTreeSet};
 
         let mut only: BTreeSet<&str> = BTreeSet::new();
         if let Some(set) = &self.only {
             only.extend(set.iter().map(String::as_str));
         }
         let skip: BTreeSet<&str> = self.skip.iter().map(String::as_str).collect();
+        let severity_overrides: BTreeMap<&str, Severity> = self
+            .severity_overrides
+            .iter()
+            .map(|(rule, severity)| (rule.as_str(), *severity))
+            .collect();
         // Hash via a portable string so disk caches are stable across processes.
         let payload = format!(
-            "only={only:?}|skip={skip:?}|taint={}|bp={}|depth={}",
-            self.taint_enabled, self.bad_practices_enabled, self.taint_max_depth
+            "only={only:?}|skip={skip:?}|taint={}|taint_paths={}|bp={}|bp_severity={:?}|depth={}|show_ignored={}|severity_overrides={severity_overrides:?}",
+            self.taint_enabled,
+            self.taint_show_paths,
+            self.bad_practices_enabled,
+            self.bad_practice_severity,
+            self.taint_max_depth,
+            self.show_ignored,
         );
-        let mut hasher = std::collections::hash_map::DefaultHasher::new();
-        payload.hash(&mut hasher);
-        format!("{:016x}", hasher.finish())
+        let digest = Sha256::digest(payload.as_bytes());
+        let hash_str = crate::engine::hex_lower(digest);
+        hash_str[..16].to_string()
     }
 }

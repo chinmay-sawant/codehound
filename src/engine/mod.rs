@@ -23,11 +23,11 @@ mod walk;
 
 pub use analyzer::{Analyzer, AnalyzerBuilder};
 pub use baseline::{BASELINE_FILE_NAME, BASELINE_VERSION, Baseline, discover_baseline};
+pub(crate) use cache::hex_lower;
 pub use cache::{
     CacheBackend, CacheEntry, CacheError, CacheLookup, CacheManifest, CacheSession, CacheStore,
     DEFAULT_CACHE_DIR, InMemoryBackend, cache_key_for_path, content_hash,
 };
-pub(crate) use cache::hex_lower;
 pub use config::{
     CacheConfig, CodehoundConfig, CodehoundSection, PathFilters, RunConfig, RunConfigParams,
     ScanContextParams, build_run_config, build_scan_context, discover_cache_dir, discover_config,
@@ -38,7 +38,7 @@ pub use diagnostics::Diagnostics;
 pub use ignore::{IgnoreDirective, parse_file_ignore, parse_inline_ignores};
 pub use language_filter::{LanguageFilter, resolve_language_filter};
 pub use path_identity::{normalize_project_path, project_paths_eq};
-pub use registry::Registry;
+pub use registry::{Registry, RegistryError};
 pub(crate) use result::PipelineAccumulator;
 pub use result::{AnalysisResult, ScanError, ScanErrorKind};
 pub use stats::ScanStats;
@@ -50,3 +50,13 @@ pub use walk::{
 
 /// Process large entry lists in bounded chunks to cap parallel work memory.
 pub const SCAN_CHUNK_SIZE: usize = 1024;
+
+/// Benchmark-only access to the production function-context sweep.
+#[doc(hidden)]
+#[cfg(feature = "bench")]
+pub fn bench_attach_function_context(
+    findings: &mut [crate::rules::Finding],
+    spans: &[crate::ast::FunctionSpan],
+) {
+    walk::attach_function_context_to_spans(findings, spans);
+}

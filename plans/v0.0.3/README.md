@@ -34,11 +34,11 @@ All deferred files have been converted to standardized phase-wise checklist form
 
 | Plan | Focus |
 |------|--------|
-| **[new-bad-practices/](./new-bad-practices/)** | **100 new Go BP rules (BP-66..BP-165)** — checklist plan split by domain; frameworks Gin/Echo/Fiber/Chi/GORM/sqlx; **requires `.txt` snippet fixtures** |
+| **[new-bad-practices/](./new-bad-practices/)** | **Curated Go BP expansion from BP-66..BP-165** — domain batches, one-rule promotion gates, framework correctness, and **required `.txt` snippet fixtures** |
 
 ### New bad practices (quick links)
 
-- Master checklist: [`new-bad-practices/CHECKLIST.md`](./new-bad-practices/CHECKLIST.md)
+- Master checklist and execution source of truth: [`new-bad-practices/CHECKLIST.md`](./new-bad-practices/CHECKLIST.md)
 - Scope / linter gaps: [`new-bad-practices/00-gap-and-scope.md`](./new-bad-practices/00-gap-and-scope.md)
 - Parts A–F: core → concurrency → HTTP frameworks → data → observability → testing tail
 - Implementation order: [`new-bad-practices/07-implementation-order.md`](./new-bad-practices/07-implementation-order.md)

@@ -5,9 +5,12 @@ use std::time::Duration;
 use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize)]
+/// Aggregated wall-clock timing for scan phases.
 pub struct TimingSummary {
+    /// Total elapsed wall-clock time represented by this summary.
     #[serde(with = "super::millis::duration_millis")]
     pub total_wall_time: Duration,
+    /// Per-phase timing records.
     pub phases: Vec<PhaseTiming>,
 }
 
@@ -33,10 +36,15 @@ impl TimingSummary {
 }
 
 #[derive(Debug, Clone, Serialize)]
+/// Timing and invocation count for one named scan phase.
 pub struct PhaseTiming {
+    /// Stable phase name.
     pub name: &'static str,
+    /// Total elapsed duration for the phase.
     #[serde(with = "super::millis::duration_millis")]
     pub duration: Duration,
+    /// Phase duration as a percentage of the total.
     pub percentage: f64,
+    /// Number of observations merged into this phase.
     pub count: usize,
 }

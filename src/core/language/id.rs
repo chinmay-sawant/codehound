@@ -3,7 +3,7 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LanguageId {
     Go,
-    /// Available when the `python` Cargo feature is enabled (experimental).
+    /// Python support variant (experimental).
     Python,
 }
 

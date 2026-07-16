@@ -35,6 +35,77 @@ fn new_builds_finding_with_no_snippet_or_fix() {
 }
 
 #[test]
+fn finding_read_only_accessors_expose_invariant_fields() {
+    let f = Finding::new(FindingInputs::new(
+        "CWE-89",
+        "title",
+        "a.go",
+        LineCol { line: 2, column: 3 },
+        "msg",
+        Severity::High,
+        Cow::Borrowed(&[]),
+    ))
+    .with_end_checked(4, 5)
+    .expect("valid end")
+    .with_byte_range_checked(10, 20)
+    .expect("valid byte range")
+    .with_function_range_checked(0, 30, 1, 5)
+    .expect("valid function range")
+    .with_confidence_checked(0.75)
+    .expect("valid confidence")
+    .with_snippet("source")
+    .with_fix("fix")
+    .with_remediation("remediate");
+
+    assert_eq!(f.rule_id(), "CWE-89");
+    assert_eq!(f.rule_title(), "title");
+    assert_eq!(f.file(), "a.go");
+    assert_eq!(f.location(), LineCol { line: 2, column: 3 });
+    assert_eq!(f.end_location(), Some(LineCol { line: 4, column: 5 }));
+    assert_eq!(f.message(), "msg");
+    assert_eq!(f.severity(), Severity::High);
+    assert_eq!(f.byte_range(), Some((10, 20)));
+    assert_eq!(f.function_byte_range(), Some((0, 30)));
+    assert_eq!(f.function_line_range(), Some((1, 5)));
+    assert_eq!(f.snippet(), Some("source"));
+    assert_eq!(f.fix(), Some("fix"));
+    assert!(f.cwe().is_none());
+    assert_eq!(f.confidence(), Some(0.75));
+    assert!(f.tags().is_none());
+    assert!(!f.suppressed());
+    assert_eq!(f.remediation(), Some("remediate"));
+}
+
+#[test]
+fn checked_location_and_optional_ranges_reject_invalid_values() {
+    assert!(LineCol::try_new(0, 1).is_none());
+    assert!(LineCol::try_new(1, 0).is_none());
+    assert!(LineCol::try_new(1, 1).is_some());
+
+    let finding = Finding::new(FindingInputs::new(
+        "X",
+        "t",
+        "f",
+        LineCol { line: 2, column: 3 },
+        "m",
+        Severity::Info,
+        Cow::Borrowed(&[]),
+    ));
+    assert!(finding.clone().with_confidence_checked(f32::NAN).is_err());
+    assert!(finding.clone().with_confidence_checked(1.1).is_err());
+    assert!(finding.clone().with_confidence_checked(1.0).is_ok());
+    assert!(finding.clone().with_end_checked(1, 4).is_err());
+    assert!(finding.clone().with_end_checked(2, 3).is_ok());
+    assert!(
+        finding
+            .clone()
+            .with_function_range_checked(20, 10, 1, 2)
+            .is_err()
+    );
+    assert!(finding.with_function_range_checked(10, 20, 2, 3).is_ok());
+}
+
+#[test]
 fn empty_cwe_slice_compiles_to_none() {
     let f = Finding::new(FindingInputs::new(
         "X",

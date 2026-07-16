@@ -4,7 +4,7 @@ use std::path::Path;
 
 use crate::core::ParsedUnit;
 use crate::engine::path_identity::normalize_project_path;
-use crate::lang::enabled_plugins;
+use crate::engine::registry::Registry;
 
 /// Extract project-local dependency paths for cache cascade.
 ///
@@ -15,12 +15,21 @@ pub fn extract_dependencies(
     project_root: &Path,
     module_prefix: Option<&str>,
 ) -> Vec<String> {
+    let registry = Registry::default();
+    extract_dependencies_with_registry(&registry, unit, project_root, module_prefix)
+}
+
+/// Extract dependencies using the analyzer's already-built registry.
+/// Avoids rebuilding every enabled language plugin for each scanned file.
+pub(crate) fn extract_dependencies_with_registry(
+    registry: &Registry,
+    unit: &ParsedUnit,
+    project_root: &Path,
+    module_prefix: Option<&str>,
+) -> Vec<String> {
     let mut out = Vec::new();
-    for plugin in enabled_plugins() {
-        if plugin.id() == unit.language {
-            out = plugin.extract_deps(unit, project_root, module_prefix);
-            break;
-        }
+    if let Some(plugin) = registry.plugin_for_id(unit.language) {
+        out = plugin.extract_deps(unit, project_root, module_prefix);
     }
     for path in &mut out {
         let as_path = Path::new(path.as_str());

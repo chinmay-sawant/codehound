@@ -33,7 +33,7 @@ fn walk_call_graph(
             let params = node.child_by_field_name("parameters");
             let param_count = params.map_or(0, |p| p.named_child_count());
 
-            cg.declarations.insert(
+            cg.add_declaration(
                 Arc::from(name),
                 FunctionDecl {
                     param_count,
@@ -59,7 +59,7 @@ fn walk_call_graph(
                 })
                 .map(Arc::from);
 
-            cg.declarations.insert(
+            cg.add_declaration(
                 Arc::from(name),
                 FunctionDecl {
                     param_count,
@@ -101,6 +101,7 @@ fn record_call_site(node: tree_sitter::Node, src: &[u8], cg: &mut CallGraph) {
     let byte_range = node.start_byte()..node.end_byte();
 
     let assignment_lhs = result_variable_of_call(node, src).map(Arc::from);
+    let returns_result = call_result_is_returned(node, src, assignment_lhs.as_deref());
 
     cg.add_site(CallSite {
         caller: caller_name,
@@ -108,9 +109,51 @@ fn record_call_site(node: tree_sitter::Node, src: &[u8], cg: &mut CallGraph) {
         byte_range,
         arguments: args,
         assignment_lhs,
+        returns_result,
         is_method_call,
         is_closure: callee.starts_with("func(") || callee.starts_with("func "),
     });
+}
+
+fn call_result_is_returned(
+    node: tree_sitter::Node,
+    src: &[u8],
+    assignment_lhs: Option<&str>,
+) -> bool {
+    let mut parent = node.parent();
+    while let Some(current) = parent {
+        match current.kind() {
+            "return_statement" => return true,
+            "function_declaration" | "method_declaration" | "func_literal" => {
+                let Some(lhs) = assignment_lhs else {
+                    return false;
+                };
+                let Some(body) =
+                    std::str::from_utf8(&src[current.start_byte()..current.end_byte()]).ok()
+                else {
+                    return false;
+                };
+                return lhs.split(',').any(|name| {
+                    let name = name.trim();
+                    body.lines().any(|line| {
+                        let Some(rest) = line.trim_start().strip_prefix("return") else {
+                            return false;
+                        };
+                        let Some(first) = rest
+                            .trim_start()
+                            .split(|ch: char| !ch.is_ascii_alphanumeric() && ch != '_')
+                            .next()
+                        else {
+                            return false;
+                        };
+                        first == name
+                    })
+                });
+            }
+            _ => parent = current.parent(),
+        }
+    }
+    false
 }
 
 fn enclosing_function(node: tree_sitter::Node, src: &[u8]) -> SharedText {

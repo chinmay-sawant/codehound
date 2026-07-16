@@ -2,19 +2,15 @@
 
 /// Split `lhs := rhs`, `lhs = rhs`, or compound assignment (`+=`, `<<=`, …).
 pub fn split_assignment(text: &str) -> Option<(&str, &str)> {
-    if let Some((lhs, rhs)) = text.split_once(":=") {
-        return Some((lhs.trim(), rhs.trim()));
-    }
-    const COMPOUND: &[&str] = &[
-        "<<=", ">>=", "&^=", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=",
-    ];
-    for op in COMPOUND {
-        if let Some(idx) = text.find(op) {
-            let (lhs, rhs) = text.split_at(idx);
-            return Some((lhs.trim(), rhs[op.len()..].trim()));
+    let (mut lhs, rhs) = text.split_once('=')?;
+    for prefix in &[
+        "<<", ">>", "&^", "+", "-", "*", "/", "%", "&", "|", "^", ":",
+    ] {
+        if lhs.ends_with(prefix) {
+            lhs = &lhs[..lhs.len() - prefix.len()];
+            break;
         }
     }
-    let (lhs, rhs) = text.split_once('=')?;
     Some((lhs.trim(), rhs.trim()))
 }
 

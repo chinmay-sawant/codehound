@@ -20,7 +20,10 @@ fn analyze_paths_handles_unicode_and_omits_non_utf8_source_cache_entries() {
     std::fs::write(&invalid_path, [0xff, 0xfe]).unwrap();
 
     let analyzer = Analyzer::builder()
-        .scan_context(ScanContext::default())
+        .scan_context(ScanContext {
+            retain_sources: true,
+            ..ScanContext::default()
+        })
         .build();
     let result = analyzer.analyze_paths(&[&root], None).unwrap();
 
@@ -56,7 +59,10 @@ fn analyze_paths_caches_large_utf8_sources() {
     std::fs::write(&source_path, &source).unwrap();
 
     let analyzer = Analyzer::builder()
-        .scan_context(ScanContext::default())
+        .scan_context(ScanContext {
+            retain_sources: true,
+            ..ScanContext::default()
+        })
         .build();
     let result = analyzer.analyze_paths(&[&root], None).unwrap();
     let key = source_path.display().to_string();
@@ -85,7 +91,10 @@ fn source_cache_arc_clone_shares_source_allocation() {
     std::fs::write(&source_path, source).unwrap();
 
     let analyzer = Analyzer::builder()
-        .scan_context(ScanContext::default())
+        .scan_context(ScanContext {
+            retain_sources: true,
+            ..ScanContext::default()
+        })
         .build();
     let result = analyzer.analyze_paths(&[&root], None).unwrap();
     let key = source_path.display().to_string();

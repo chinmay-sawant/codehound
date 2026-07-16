@@ -22,7 +22,7 @@ pub struct ScanEntry {
     pub language: LanguageId,
 }
 
-/// Pluggable source of [`ScanEntry`] items. Used by [`Analyzer`] to
+/// Pluggable source of [`ScanEntry`] items. Used by [`crate::engine::Analyzer`] to
 /// decouple file discovery from analysis.
 ///
 /// # Seam
@@ -64,7 +64,8 @@ impl EntrySource for FilesystemWalker {
             builder
                 .standard_filters(true)
                 .add_custom_ignore_filename(".codehoundignore");
-            for entry in builder.build().filter_map(Result::ok) {
+            for entry in builder.build() {
+                let entry = entry.map_err(|error| Error::Walk(error.to_string()))?;
                 if !entry.file_type().is_some_and(|t| t.is_file()) {
                     continue;
                 }

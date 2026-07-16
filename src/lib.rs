@@ -1,5 +1,8 @@
 #![deny(clippy::unwrap_used)]
 #![cfg_attr(test, allow(clippy::unwrap_used))]
+// Keep documentation debt visible in normal builds without turning the
+// existing strict Clippy gate into a documentation migration all at once.
+#![cfg_attr(not(clippy), warn(missing_docs))]
 
 //! # CodeHound
 //!

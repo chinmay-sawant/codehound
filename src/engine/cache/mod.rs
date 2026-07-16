@@ -3,7 +3,7 @@
 //! Storage is delegated to a [`CacheBackend`] adapter so that the
 //! lifecycle logic (manifest, invalidation, eviction) is independent
 //! of the persistence strategy. Two built-in backends:
-//! [`DiskBackend`] (default, filesystem) and [`InMemoryBackend`]
+//! the private disk backend (default, filesystem) and [`InMemoryBackend`]
 //! (tests, ephemeral).
 
 mod backend;
@@ -21,15 +21,15 @@ use std::path::PathBuf;
 
 pub use backend::CacheBackend;
 pub(crate) use disk::DiskBackend;
-pub use hash::{cache_key_for_path, content_hash};
 pub(crate) use hash::hex_lower;
+pub use hash::{cache_key_for_path, content_hash};
 pub use memory::InMemoryBackend;
 pub use session::CacheSession;
 pub use types::{CacheEntry, CacheError, CacheLookup, CacheManifest, DEFAULT_CACHE_DIR};
 
 /// Cache: entry storage, manifest, invalidation, eviction.
 ///
-/// Default constructors use a [`DiskBackend`]. [`CacheStore::in_memory`]
+/// Default constructors use the private disk backend. [`CacheStore::in_memory`]
 /// creates a purely in-memory instance suitable for tests.
 pub struct CacheStore {
     pub(super) cache_dir: PathBuf,

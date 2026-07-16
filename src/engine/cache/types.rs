@@ -4,6 +4,8 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::error::IoOp;
+
 use crate::rules::Finding;
 
 /// Cache file format version. Bump on any breaking change to the JSON
@@ -50,6 +52,10 @@ pub struct CacheEntry {
     pub schema_version: u32,
     pub file: String,
     pub findings: Vec<Finding>,
+    /// Number of findings removed or marked suppressed by source ignores.
+    /// Defaults to zero for entries written before this field existed.
+    #[serde(default)]
+    pub suppressed_count: usize,
     pub cached_at: String,
 }
 
@@ -65,13 +71,37 @@ pub enum CacheLookup {
 }
 
 /// Errors specific to the cache layer. `CacheStore` never panics on a
-/// corrupted entry — it returns `None` from [`CacheBackend::load_entry`]
+/// corrupted entry — it returns `None` from
+/// [`CacheBackend::load_entry`](crate::engine::CacheBackend::load_entry)
 /// and logs the error.
 #[derive(Debug, thiserror::Error)]
 pub enum CacheError {
+    /// A filesystem operation failed without additional path context.
     #[error(transparent)]
     Io(#[from] std::io::Error),
 
+    /// A filesystem operation failed while writing a specific cache path.
+    #[error("{op} {path}: {source}")]
+    PathIo {
+        /// Cache path involved in the operation.
+        path: String,
+        /// Filesystem operation that failed.
+        op: IoOp,
+        #[source]
+        /// Underlying operating-system error.
+        source: std::io::Error,
+    },
+
+    /// Cache JSON could not be serialized.
+    #[error("serializing cache data: {0}")]
+    Serialization(#[from] serde_json::Error),
+
+    /// The cache entry was written by an incompatible schema version.
     #[error("unsupported cache schema version: {found}, expected {expected}")]
-    SchemaMismatch { found: u32, expected: u32 },
+    SchemaMismatch {
+        /// Version found in the cache.
+        found: u32,
+        /// Version understood by this binary.
+        expected: u32,
+    },
 }

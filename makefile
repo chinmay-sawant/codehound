@@ -21,6 +21,7 @@ fmt:
 
 # Local full-catalog scan (summary only). CLI default pack is `recommended`;
 # use RUN_ARGS='--profile recommended' for the CI pack. Override SCAN_PATH as needed.
+#  make run RUN_ARGS="--export-context --export-chunks"
 run:
 	@$(CARGO) run --quiet -- $(SCAN_PATH) --no-fail --no-terminal --profile all $(RUN_ARGS)
 

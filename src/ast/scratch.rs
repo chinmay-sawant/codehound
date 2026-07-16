@@ -4,7 +4,6 @@
 /// per-binding `String` allocations. Each Rayon worker has its own buffer.
 pub fn scratch_contains(source: &str, prefix: &str, dynamic: &str, suffix: &str) -> bool {
     use std::cell::RefCell;
-    use std::fmt::Write;
 
     thread_local! {
         static BUF: RefCell<String> = RefCell::new(String::with_capacity(128));
@@ -12,9 +11,9 @@ pub fn scratch_contains(source: &str, prefix: &str, dynamic: &str, suffix: &str)
 
     BUF.with_borrow_mut(|s| {
         s.clear();
-        if write!(s, "{prefix}{dynamic}{suffix}").is_err() {
-            return false;
-        }
+        s.push_str(prefix);
+        s.push_str(dynamic);
+        s.push_str(suffix);
         source.contains(s.as_str())
     })
 }

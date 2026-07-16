@@ -43,6 +43,7 @@ fn put_then_get_round_trips_findings() {
     assert_eq!(read.findings[0].file, "pkg/a.go");
     assert_eq!(read.findings[0].line, 10);
     assert_eq!(read.findings[0].column, 5);
+    assert_eq!(read.suppressed_count, 0);
     assert_eq!(
         store.manifest().files["pkg/a.go"].content_hash,
         content_hash("hello")
@@ -255,6 +256,31 @@ fn corrupt_entry_file_is_treated_as_cache_miss() {
     ));
     assert!(cache_get(&store, "x.go").is_none());
 
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn flush_reports_manifest_write_failure() {
+    let root = unique_temp_root("flush-failure");
+    let mut store = CacheStore::open_with_capacity(root.clone(), 500).expect("open");
+    store
+        .put(
+            "x.go",
+            &content_hash("body"),
+            &[],
+            vec![],
+            "2026-06-10T00:00:00Z",
+        )
+        .expect("put");
+
+    let manifest = root.join("manifest.json");
+    std::fs::create_dir(&manifest).expect("replace manifest with directory");
+    assert!(
+        store.flush().is_err(),
+        "manifest write failure must propagate"
+    );
+
+    drop(store);
     std::fs::remove_dir_all(root).unwrap();
 }
 

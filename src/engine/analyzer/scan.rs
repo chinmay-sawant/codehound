@@ -17,24 +17,55 @@ use crate::engine::{
 
 use super::types::Analyzer;
 
+struct DetectorStateGuard<'a> {
+    registry: &'a crate::engine::registry::Registry,
+}
+
+impl Drop for DetectorStateGuard<'_> {
+    fn drop(&mut self) {
+        for detector in self.registry.detectors() {
+            reset_detector_state(detector.as_ref());
+        }
+    }
+}
+
+fn reset_detector_state(detector: &dyn crate::core::Detector) {
+    if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| detector.reset_state())).is_err() {
+        tracing::error!("detector reset_state panicked during scan cleanup");
+    }
+}
+
 impl Analyzer {
     /// Run the scan. When `cache` is `Some`, the scan consults the
     /// cache for files whose content hash has not changed, and writes
-    /// back new entries for files it scans. The cache is flushed
-    /// before this method returns.
+    /// back new entries for files it scans. Cache failures are best-effort:
+    /// they are logged and the scan result remains available.
     ///
     /// # Errors
     ///
     /// Returns an error when file discovery fails (invalid paths, I/O while
-    /// walking the tree), when the incremental cache cannot be read or
-    /// written, or when a configured language plugin fails to parse a file
-    /// in a way that aborts the scan (per [`crate::core::FailPolicy`]).
+    /// walking the tree), or when a configured language plugin fails to parse
+    /// a file in a way that aborts the scan (per [`crate::core::FailPolicy`]).
+    ///
+    /// A single [`Analyzer`] serializes top-level scans because detector
+    /// instances may retain project state. Run independent scans concurrently
+    /// with separate analyzers when parallel analyzer ownership is required.
     #[must_use = "scan errors and findings are returned in AnalysisResult"]
     pub fn analyze_paths(
         &self,
         paths: &[impl AsRef<Path>],
         mut cache: Option<CacheSession<'_>>,
     ) -> Result<AnalysisResult, Error> {
+        let _scan_gate = self
+            .scan_gate
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        for detector in self.registry.detectors() {
+            reset_detector_state(detector.as_ref());
+        }
+        let _detector_state = DetectorStateGuard {
+            registry: &self.registry,
+        };
         let wall_start = Instant::now();
         let mut timing = timing::TimingCollector::new(self.collect_stats);
         let start = paths
@@ -65,19 +96,25 @@ impl Analyzer {
         })?;
 
         let mut acc = crate::engine::PipelineAccumulator::new(files_skipped);
-        for entry in &entries {
-            acc.record_scanned(entry.path.display().to_string());
+        if cache.is_some() {
+            for entry in &entries {
+                acc.record_scanned(entry.path.display().to_string());
+            }
         }
 
-        timing::init_global(self.collect_stats);
+        if let Some(cache) = cache.as_mut() {
+            cache.ensure_rule_config_hash(&self.scan_context().rule_config_fingerprint());
+        }
+
         for chunk in entries.chunks(SCAN_CHUNK_SIZE) {
             let chunk = match scan_entries_parallel(
                 &self.registry,
-                &self.ctx,
+                self.scan_context(),
                 chunk,
                 cache.as_mut(),
                 &dependency_root,
                 module_prefix.as_deref(),
+                self.collect_stats,
             ) {
                 Ok(chunk) => chunk,
                 Err(e) => return Err(Error::Walk(e.to_string())),
@@ -112,9 +149,13 @@ impl Analyzer {
         // the last scan). Done at the analyzer level so it still runs
         // when `entries` is empty.
         if let Some(cache) = cache.as_mut() {
-            if let Ok(removed) = cache.prune(acc.scanned_files()) {
-                if removed > 0 {
+            match cache.prune(acc.scanned_files()) {
+                Ok(removed) if removed > 0 => {
                     tracing::debug!(removed, "pruned stale cache entries");
+                }
+                Ok(_) => {}
+                Err(error) => {
+                    tracing::warn!(error = %error, "failed to prune stale cache entries");
                 }
             }
         }
@@ -122,10 +163,23 @@ impl Analyzer {
         // Project-level analysis: let detectors emit cross-file findings.
         let det_idx = timing.start("detector_finalize");
         for &idx in self.registry.detector_indices_for_project() {
-            self.registry
-                .detector(idx)
-                .finalize(&self.ctx, acc.findings_mut());
+            if let Some(detector) = self.registry.detector(idx) {
+                let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    detector.finalize(self.scan_context(), acc.findings_mut());
+                }));
+                if let Err(payload) = result {
+                    acc.record_error(crate::engine::ScanError {
+                        path: std::path::PathBuf::from("<detector-finalize>"),
+                        kind: crate::engine::ScanErrorKind::Engine,
+                        message: format!(
+                            "detector finalization panicked: {}",
+                            panic_message(&payload)
+                        ),
+                    });
+                }
+            }
         }
+        crate::engine::walk::filter_findings(self.scan_context(), acc.findings_mut());
         timing.stop(det_idx);
 
         timing.measure("sort_results", || {
@@ -179,5 +233,15 @@ impl Analyzer {
         }
 
         Ok(result)
+    }
+}
+
+fn panic_message(payload: &Box<dyn std::any::Any + Send>) -> String {
+    if let Some(s) = payload.downcast_ref::<&'static str>() {
+        (*s).to_string()
+    } else if let Some(s) = payload.downcast_ref::<String>() {
+        s.clone()
+    } else {
+        "<non-string panic payload>".to_string()
     }
 }

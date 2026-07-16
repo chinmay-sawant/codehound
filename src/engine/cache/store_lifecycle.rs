@@ -7,7 +7,7 @@ use crate::rules::Finding;
 
 use super::CacheStore;
 use super::hash::cache_key_for_path;
-use super::types::{CACHE_VERSION, CacheEntry, FileCacheMeta};
+use super::types::{CACHE_VERSION, FileCacheMeta};
 
 impl CacheStore {
     /// Insert or replace a cache entry. Updates the manifest and marks
@@ -15,6 +15,10 @@ impl CacheStore {
     ///
     /// Manifest keys and dependency paths are stored in
     /// [`normalize_project_path`] form.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when the backend cannot serialize or store findings.
     pub fn put(
         &mut self,
         file: &str,
@@ -23,20 +27,63 @@ impl CacheStore {
         findings: Vec<Finding>,
         cached_at: &str,
     ) -> Result<(), Error> {
+        self.put_with_suppressed_count(file, content_hash, dependencies, findings, 0, cached_at)
+    }
+
+    /// Insert or replace a cache entry with source-ignore accounting.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when the backend cannot serialize or store findings.
+    pub fn put_with_suppressed_count(
+        &mut self,
+        file: &str,
+        content_hash: &str,
+        dependencies: &[String],
+        findings: Vec<Finding>,
+        suppressed_count: usize,
+        cached_at: &str,
+    ) -> Result<(), Error> {
+        self.put_with_suppressed_count_borrowed(
+            file,
+            content_hash,
+            dependencies,
+            &findings,
+            suppressed_count,
+            cached_at,
+        )
+    }
+
+    /// Insert or replace a cache entry while borrowing findings from the
+    /// current scan result.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when the backend cannot serialize or store findings.
+    pub fn put_with_suppressed_count_borrowed(
+        &mut self,
+        file: &str,
+        content_hash: &str,
+        dependencies: &[String],
+        findings: &[Finding],
+        suppressed_count: usize,
+        cached_at: &str,
+    ) -> Result<(), Error> {
         let file = normalize_project_path(file);
         let deps: Vec<String> = dependencies
             .iter()
             .map(|d| normalize_project_path(d))
             .collect();
         let cache_key = cache_key_for_path(&file);
-        let entry = CacheEntry {
-            schema_version: CACHE_VERSION,
-            file: file.clone(),
-            findings,
-            cached_at: cached_at.to_string(),
-        };
         self.backend
-            .store_entry(&cache_key, &entry)
+            .store_entry_borrowed(
+                &cache_key,
+                CACHE_VERSION,
+                &file,
+                findings,
+                suppressed_count,
+                cached_at,
+            )
             .map_err(Error::from)?;
         let meta = FileCacheMeta {
             content_hash: content_hash.to_string(),
@@ -50,6 +97,10 @@ impl CacheStore {
 
     /// Remove a single entry from the manifest and from disk. No-op
     /// when `file` is not tracked.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when deleting the backend entry fails.
     pub fn remove(&mut self, file: &str) -> Result<(), Error> {
         if self.manifest.files.remove(file).is_some() {
             let cache_key = cache_key_for_path(file);
@@ -62,6 +113,10 @@ impl CacheStore {
     /// Drop every entry not present in `scanned_files` from the
     /// manifest and from disk. Use after a scan completes to remove
     /// entries for files that no longer exist.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when deleting an entry fails.
     pub fn prune(
         &mut self,
         scanned_files: &std::collections::HashSet<String>,
@@ -84,6 +139,11 @@ impl CacheStore {
     /// present in the manifest. These orphans appear when the
     /// manifest is torn (e.g. concurrent writes). Returns the number
     /// of files removed.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when the backend cannot enumerate or remove orphan
+    /// entries.
     pub fn clean_orphans(&self) -> Result<usize, Error> {
         let active_keys: std::collections::HashSet<String> = self
             .manifest

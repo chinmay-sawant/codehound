@@ -37,6 +37,11 @@ impl<'a> CacheSession<'a> {
         self.store.manifest()
     }
 
+    /// Ensure this scan's finding-affecting context matches the cache.
+    pub fn ensure_rule_config_hash(&mut self, hash: &str) {
+        self.store.ensure_rule_config_hash(hash);
+    }
+
     /// Manifest lookup for a file hash.
     pub fn lookup(&self, file: &str, content_hash: &str) -> CacheLookup {
         self.store.lookup(file, content_hash)
@@ -53,6 +58,10 @@ impl<'a> CacheSession<'a> {
     }
 
     /// Insert or replace a cache entry.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when serializing or persisting the entry fails.
     pub fn put(
         &mut self,
         file: &str,
@@ -61,8 +70,62 @@ impl<'a> CacheSession<'a> {
         findings: Vec<Finding>,
         cached_at: &str,
     ) -> Result<(), Error> {
-        self.store
-            .put(file, content_hash, dependencies, findings, cached_at)
+        self.store.put_with_suppressed_count(
+            file,
+            content_hash,
+            dependencies,
+            findings,
+            0,
+            cached_at,
+        )
+    }
+
+    /// Insert a cache entry while preserving source-ignore accounting.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when serializing or persisting the entry fails.
+    pub fn put_with_suppressed_count(
+        &mut self,
+        file: &str,
+        content_hash: &str,
+        dependencies: &[String],
+        findings: Vec<Finding>,
+        suppressed_count: usize,
+        cached_at: &str,
+    ) -> Result<(), Error> {
+        self.store.put_with_suppressed_count(
+            file,
+            content_hash,
+            dependencies,
+            findings,
+            suppressed_count,
+            cached_at,
+        )
+    }
+
+    /// Insert a cache entry without cloning findings owned by the scan result.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when serializing or persisting the entry fails.
+    pub fn put_with_suppressed_count_borrowed(
+        &mut self,
+        file: &str,
+        content_hash: &str,
+        dependencies: &[String],
+        findings: &[Finding],
+        suppressed_count: usize,
+        cached_at: &str,
+    ) -> Result<(), Error> {
+        self.store.put_with_suppressed_count_borrowed(
+            file,
+            content_hash,
+            dependencies,
+            findings,
+            suppressed_count,
+            cached_at,
+        )
     }
 
     /// Drop a single tracked entry.
@@ -76,11 +139,20 @@ impl<'a> CacheSession<'a> {
     }
 
     /// Remove entries for files not seen in this scan.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when an entry cannot be removed from the backend.
     pub fn prune(&mut self, scanned_files: &HashSet<String>) -> Result<usize, Error> {
         self.store.prune(scanned_files)
     }
 
     /// Persist dirty manifest and entries.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when eviction, serialization, or atomic manifest
+    /// persistence fails.
     pub fn flush(&mut self) -> Result<(), Error> {
         self.store.flush()
     }

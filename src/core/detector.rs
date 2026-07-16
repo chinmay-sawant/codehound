@@ -25,8 +25,7 @@ pub trait Detector: Send + Sync {
 
     /// Rule metadata for a specific rule id when a detector implements many
     /// rules behind one execution unit.
-    fn metadata_for(&self, rule_id: &str) -> Option<&'static crate::rules::RuleMetadata> {
-        let _ = rule_id;
+    fn metadata_for(&self, _rule_id: &str) -> Option<&'static crate::rules::RuleMetadata> {
         None
     }
 
@@ -35,8 +34,31 @@ pub trait Detector: Send + Sync {
     /// Accumulate cross-file analysis state from a parsed unit without
     /// emitting per-file findings. Called for cache-hit files so that
     /// [`finalize`](Self::finalize) has the same state regardless of cache.
-    /// Default implementation does nothing.
+    ///
+    /// Detector state is scoped to one top-level analyzer scan. The engine
+    /// calls [`Self::reset_state`] before and after the scan, and calls
+    /// [`Self::finalize`] after per-file work has completed. Implementations
+    /// retaining cross-file state must implement the cache-state capability,
+    /// accumulation, and reset hooks as one lifecycle protocol. The default
+    /// implementation does nothing.
     fn accumulate_state(&self, _ctx: &ScanContext, _unit: &ParsedUnit) {}
+
+    /// Whether cached files must be reparsed and passed to
+    /// [`Self::accumulate_state`]. Detectors with cross-file state should
+    /// override this together with [`Self::accumulate_state`].
+    ///
+    /// The default is `false` so stateless detectors do not pay the cache-hit
+    /// reparse cost. This is a capability declaration, not a taint-specific
+    /// contract.
+    fn requires_cache_state(&self, _ctx: &ScanContext) -> bool {
+        false
+    }
+
+    /// Clear state retained for a project-level analysis.
+    ///
+    /// The scan engine calls this at both boundaries so a detector cannot
+    /// carry project data across an early return or a panic.
+    fn reset_state(&self) {}
 
     /// Optional: called once after all units have been analyzed.
     /// Detectors can use this to emit cross-file findings.

@@ -1,46 +1,108 @@
 //! Lightweight collector for named timing spans. Cloneable so per-worker
-//! collectors can be merged back into a global collector after a parallel scan.
+//! collectors can be merged back into the scan-owned collector after a
+//! parallel scan.
 //!
-//! Per-file and per-detector timing uses a global [`Mutex`]-protected collector
-//! so that the `TimingCollector` does not need to be threaded through every
-//! function signature and stored in every pipeline struct. App-level and
-//! analyzer-level timing still uses locally-owned [`TimingCollector`] instances.
+//! Production scans use one collector per file and merge those collectors at
+//! chunk boundaries. The legacy global helpers below are test-only coverage
+//! for the old compatibility behavior.
 
+#[cfg(test)]
 use std::sync::Mutex;
+#[cfg(test)]
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 use super::summary::TimingSummary;
 
+#[cfg(test)]
 static GLOBAL: Mutex<Option<TimingCollector>> = Mutex::new(None);
+#[cfg(test)]
+static TIMING_SESSION: Mutex<()> = Mutex::new(());
+#[cfg(test)]
+static TIMING_ENABLED: AtomicBool = AtomicBool::new(false);
 
+#[cfg(test)]
 fn global_lock() -> std::sync::MutexGuard<'static, Option<TimingCollector>> {
     GLOBAL
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
-/// Initialise the global collector for the scope of a scan chunk.
+/// Initialise the global collector for a scan session.
+#[cfg(test)]
 pub(crate) fn init_global(enabled: bool) {
+    TIMING_ENABLED.store(enabled, Ordering::Relaxed);
     *global_lock() = Some(TimingCollector::new(enabled));
+}
+
+/// Guard for a timed compatibility session.
+///
+/// Dropping the guard disables and clears the global collector, including when
+/// scan execution returns early or unwinds through a panic boundary.
+#[cfg(test)]
+pub(crate) struct TimingSession {
+    _guard: std::sync::MutexGuard<'static, ()>,
+}
+
+#[cfg(test)]
+impl Drop for TimingSession {
+    fn drop(&mut self) {
+        TIMING_ENABLED.store(false, Ordering::Relaxed);
+        *global_lock() = None;
+    }
+}
+
+/// Begin a timed scan session. Timed scans are serialized because the
+/// per-file instrumentation still crosses Rayon worker threads through the
+/// compatibility collector; normal scans do not touch or clear global timing.
+#[cfg(test)]
+pub(crate) fn begin_global(enabled: bool) -> Option<TimingSession> {
+    if !enabled {
+        return None;
+    }
+    let guard = TIMING_SESSION
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    init_global(true);
+    Some(TimingSession { _guard: guard })
+}
+
+#[cfg(test)]
+pub(crate) fn reset_global() {
+    TIMING_ENABLED.store(false, Ordering::Relaxed);
+    *global_lock() = None;
 }
 
 /// Start a span on the global collector. Returns the span index (0 when
 /// disabled / uninitialised).
+#[cfg(test)]
 pub(crate) fn global_start(name: &'static str) -> usize {
+    if !TIMING_ENABLED.load(Ordering::Relaxed) {
+        return 0;
+    }
     global_lock().as_mut().map(|c| c.start(name)).unwrap_or(0)
 }
 
 /// Stop a span started with [`global_start`].
+#[cfg(test)]
 pub(crate) fn global_stop(idx: usize) {
+    if !TIMING_ENABLED.load(Ordering::Relaxed) {
+        return;
+    }
     if let Some(ref mut c) = *global_lock() {
         c.stop(idx);
     }
 }
 
-/// Drain the global collector into `target`. Resets the global to `None`.
+/// Drain the current chunk into `target` and start a fresh collector for the
+/// next chunk in the same scan session.
+#[cfg(test)]
 pub(crate) fn drain_global(target: &mut TimingCollector) {
-    if let Some(c) = global_lock().take() {
-        target.merge(&c);
+    let current = { global_lock().take() };
+    if let Some(c) = current {
+        let enabled = c.enabled;
+        target.merge_owned(c);
+        *global_lock() = Some(TimingCollector::new(enabled));
     }
 }
 
@@ -52,12 +114,17 @@ pub(crate) fn drain_global(target: &mut TimingCollector) {
 /// per-file / per-detector timing path.
 #[cfg(test)]
 pub fn with_timing<R>(f: impl FnOnce() -> R) -> (R, Option<TimingSummary>) {
+    let _guard = TIMING_SESSION
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     init_global(true);
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f));
+    TIMING_ENABLED.store(false, Ordering::Relaxed);
     let summary = global_lock().take().map(|c| c.to_summary());
     // Reset even if the closure panicked so the global is clean for the
     // next test.
     *global_lock() = None;
+    drop(_guard);
     match result {
         Ok(val) => (val, summary),
         Err(e) => std::panic::resume_unwind(e),
@@ -83,6 +150,10 @@ impl TimingCollector {
             spans: Vec::new(),
             enabled,
         }
+    }
+
+    pub(crate) const fn is_enabled(&self) -> bool {
+        self.enabled
     }
 
     /// Start a span and return its index. If disabled, returns 0 and does nothing.
@@ -127,6 +198,14 @@ impl TimingCollector {
             return;
         }
         self.spans.extend(other.spans.iter().cloned());
+    }
+
+    /// Merge an owned collector without cloning its recorded spans.
+    pub fn merge_owned(&mut self, mut other: Self) {
+        if !self.enabled || !other.enabled {
+            return;
+        }
+        self.spans.append(&mut other.spans);
     }
 
     /// Aggregate spans by name and compute total wall time.

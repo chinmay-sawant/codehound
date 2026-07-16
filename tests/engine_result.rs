@@ -87,3 +87,18 @@ fn source_cache_bytes_tracks_cached_source_memory() {
 
     assert_eq!(result.source_cache_bytes(), "abc".len() + "नमस्ते".len());
 }
+
+#[test]
+fn analysis_result_read_only_accessors_expose_scan_data() {
+    let mut result = AnalysisResult::default();
+    result.source_cache.insert("a.go".into(), Arc::from("abc"));
+
+    assert!(result.findings().is_empty());
+    assert!(result.errors().is_empty());
+    assert_eq!(
+        result.source_cache().get("a.go").map(Arc::as_ref),
+        Some("abc")
+    );
+    assert_eq!(result.suppressed_count(), 0);
+    assert!(result.stats().is_none());
+}

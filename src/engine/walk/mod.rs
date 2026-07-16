@@ -6,9 +6,12 @@ mod parallel;
 mod scan_entry;
 mod scratch;
 
+pub(crate) use analyze::filter_findings;
 pub use entry::{
     EntrySource, FilesystemWalker, ListEntrySource, ScanEntry, collect_entries,
     collect_entries_with,
 };
 pub(crate) use parallel::{MergedScan, scan_entries_parallel};
+#[cfg(feature = "bench")]
+pub(crate) use scan_entry::attach_function_context_to_spans;
 pub use scratch::scratch_contains;

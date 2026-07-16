@@ -10,12 +10,11 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use super::super::{
-    SanitizerKind, SinkKind, SourceKind, TaintAnnotations, TaintGraph, TaintNode, TaintNodeId,
-    TaintSummary,
+use super::super::{SinkKind, TaintAnnotations, TaintGraph, TaintNode, TaintNodeId, TaintSummary};
+use super::query::{
+    TaintGraphIndex, build_index, reaches_sink_argument_from_nodes_with_adj,
+    reaches_sink_from_nodes_with_adj,
 };
-use super::query::find_taint_paths_from_nodes_to_sink_argument;
-use super::{build_taint_graph, find_taint_paths_from_nodes};
 
 /// Build per-function taint summaries for all functions annotated in the
 /// project call graph. Returns (function_name → TaintSummary).
@@ -23,11 +22,34 @@ pub fn compute_all_summaries(
     annotations: &TaintAnnotations,
     source: &str,
 ) -> HashMap<String, TaintSummary> {
-    let graph = build_taint_graph(annotations);
+    let graph = super::build_taint_graph(annotations);
+    compute_all_summaries_with_graph(&graph, annotations, source)
+}
+
+/// Build summaries from a graph that was already constructed for the same
+/// annotations. Production finalization uses this to avoid rebuilding the
+/// per-file graph after per-file rules have already queried it.
+pub fn compute_all_summaries_with_graph(
+    graph: &TaintGraph,
+    annotations: &TaintAnnotations,
+    source: &str,
+) -> HashMap<String, TaintSummary> {
+    let index = build_index(graph);
+    compute_all_summaries_with_graph_and_index(graph, &index, annotations, source)
+}
+
+/// Build summaries with a caller-owned graph index so summary construction and
+/// the following inter-procedural query phase share the same adjacency map.
+pub(crate) fn compute_all_summaries_with_graph_and_index(
+    graph: &TaintGraph,
+    index: &TaintGraphIndex,
+    annotations: &TaintAnnotations,
+    source: &str,
+) -> HashMap<String, TaintSummary> {
     let mut summaries: HashMap<String, TaintSummary> = HashMap::new();
 
     for (func_name, params) in &annotations.function_params {
-        let summary = compute_summary_for(&graph, annotations, source, func_name, params);
+        let summary = compute_summary_for(graph, index, annotations, source, func_name, params);
         summaries.insert(func_name.to_string(), summary);
     }
 
@@ -44,6 +66,27 @@ pub fn refine_summaries_multihop(
     summaries: &mut HashMap<String, TaintSummary>,
     max_depth: u32,
 ) {
+    refine_summaries_inner(call_graph, None, summaries, max_depth);
+}
+
+/// Refine summaries with the caller's parameter names so taint can cross a
+/// direct parameter-to-parameter call without treating same-named variables
+/// in unrelated functions as one graph node.
+pub fn refine_summaries_multihop_with_context(
+    call_graph: &super::super::CallGraph,
+    annotations: &TaintAnnotations,
+    summaries: &mut HashMap<String, TaintSummary>,
+    max_depth: u32,
+) {
+    refine_summaries_inner(call_graph, Some(annotations), summaries, max_depth);
+}
+
+fn refine_summaries_inner(
+    call_graph: &super::super::CallGraph,
+    annotations: Option<&TaintAnnotations>,
+    summaries: &mut HashMap<String, TaintSummary>,
+    max_depth: u32,
+) {
     let depth = max_depth.clamp(1, 4);
     for _ in 1..depth {
         let mut changed = false;
@@ -55,14 +98,54 @@ pub fn refine_summaries_multihop(
             let Some(callee_sum) = summaries.get(callee_key).cloned() else {
                 continue;
             };
-            let returns_taint =
-                callee_sum.return_sources.iter().any(|b| *b) || callee_sum.has_direct_sink;
-            if !returns_taint {
-                continue;
-            }
             let Some(caller_sum) = summaries.get_mut(caller) else {
                 continue;
             };
+
+            if let Some(annotations) = annotations {
+                let Some(caller_params) = annotations.function_params.get(caller) else {
+                    continue;
+                };
+                for (callee_idx, is_source) in callee_sum.param_sources.iter().enumerate() {
+                    if !matches!(is_source, Some(true)) {
+                        continue;
+                    }
+                    let Some(argument) = site.arguments.get(callee_idx) else {
+                        continue;
+                    };
+                    let argument = argument.as_ref();
+                    let argument = argument
+                        .strip_prefix('&')
+                        .map(str::trim)
+                        .unwrap_or(argument);
+                    let Some(caller_idx) = caller_params
+                        .iter()
+                        .position(|param| param.as_ref() == argument)
+                    else {
+                        continue;
+                    };
+                    if caller_sum.param_sources.len() <= caller_idx {
+                        caller_sum.param_sources.resize(caller_idx + 1, Some(false));
+                    }
+                    if caller_sum.param_sources[caller_idx] != Some(true) {
+                        caller_sum.param_sources[caller_idx] = Some(true);
+                        changed = true;
+                    }
+                    for sink_kind in &callee_sum.sink_kinds {
+                        if !caller_sum.sink_kinds.contains(sink_kind) {
+                            caller_sum.sink_kinds.push(*sink_kind);
+                        }
+                    }
+                }
+            }
+
+            if !site.returns_result {
+                continue;
+            }
+            let returns_taint = callee_sum.return_sources.iter().any(|b| *b);
+            if !returns_taint {
+                continue;
+            }
             // Expand caller's return_sources if still false.
             if caller_sum.return_sources.iter().all(|b| !*b) {
                 if caller_sum.return_sources.is_empty() {
@@ -90,11 +173,14 @@ pub fn refine_summaries_multihop(
 /// Compute a `TaintSummary` for one function.
 fn compute_summary_for(
     graph: &TaintGraph,
+    index: &super::query::TaintGraphIndex,
     annotations: &TaintAnnotations,
     source: &str,
     func_name: &str,
     params: &[Arc<str>],
 ) -> TaintSummary {
+    let adj = index.adjacency();
+
     // Find all variable nodes in the graph that match each parameter name.
     let mut param_node_ids: Vec<Vec<TaintNodeId>> = Vec::new();
     for param in params {
@@ -102,7 +188,10 @@ fn compute_summary_for(
             .nodes
             .iter()
             .enumerate()
-            .filter(|(_, n)| matches!(n, TaintNode::Variable { name, .. } if name.as_ref() == param.as_ref()))
+            .filter(|(id, n)| {
+                matches!(n, TaintNode::Variable { name, .. } if name.as_ref() == param.as_ref())
+                    && node_in_function(graph, *id, annotations, func_name)
+            })
             .map(|(id, _)| id)
             .collect();
         param_node_ids.push(ids);
@@ -120,42 +209,26 @@ fn compute_summary_for(
         SinkKind::XMLQuery,
     ];
 
-    let allowed_sanitizers: &[SanitizerKind] = &[];
-
     let mut param_sources: Vec<Option<bool>> = Vec::new();
-    let mut param_sanitizers: Vec<(usize, SanitizerKind)> = Vec::new();
     let mut sink_kinds: Vec<SinkKind> = Vec::new();
     let mut has_direct_sink = false;
 
-    for (i, ids) in param_node_ids.iter().enumerate() {
+    for ids in &param_node_ids {
         let mut reaches_sink = false;
 
         for &sink_kind in &all_sink_kinds {
             if ids.is_empty() {
                 continue;
             }
-            let paths = if sink_kind == SinkKind::SQLQuery {
-                find_taint_paths_from_nodes_to_sink_argument(
-                    graph,
-                    ids,
-                    sink_kind,
-                    0,
-                    allowed_sanitizers,
-                )
+            let reaches = if sink_kind == SinkKind::SQLQuery {
+                reaches_sink_argument_from_nodes_with_adj(graph, adj, ids, sink_kind, 0)
             } else {
-                find_taint_paths_from_nodes(graph, ids, sink_kind, allowed_sanitizers)
+                reaches_sink_from_nodes_with_adj(graph, adj, ids, sink_kind)
             };
-            if !paths.is_empty() {
+            if reaches {
                 reaches_sink = true;
                 if !sink_kinds.contains(&sink_kind) {
                     sink_kinds.push(sink_kind);
-                }
-                // Check if any path is sanitized.
-                for path in &paths {
-                    if path.sanitized {
-                        // ponytail: exact sanitizer kind detection deferred.
-                        param_sanitizers.push((i, SanitizerKind::Validation));
-                    }
                 }
             }
         }
@@ -169,24 +242,22 @@ fn compute_summary_for(
 
     // Check for direct sinks (sinks reachable without any parameter).
     // A direct sink is one where the path starts at a source node (not a param).
-    if has_any_source(graph) {
-        has_direct_sink = true;
+    let source_ids: Vec<TaintNodeId> = graph
+        .by_source
+        .values()
+        .flatten()
+        .copied()
+        .filter(|id| node_in_function(graph, *id, annotations, func_name))
+        .collect();
+    if !source_ids.is_empty() {
         for &sink_kind in &all_sink_kinds {
             if !graph.by_sink.contains_key(&sink_kind) {
                 continue;
             }
-            if !sink_kinds.contains(&sink_kind) {
-                // Check if source nodes reach any sink directly.
-                if let Some(source_ids) = graph.by_source.get(&SourceKind::UserInput) {
-                    let paths = find_taint_paths_from_nodes(
-                        graph,
-                        source_ids,
-                        sink_kind,
-                        allowed_sanitizers,
-                    );
-                    if !paths.is_empty() && !sink_kinds.contains(&sink_kind) {
-                        sink_kinds.push(sink_kind);
-                    }
+            if reaches_sink_from_nodes_with_adj(graph, adj, &source_ids, sink_kind) {
+                has_direct_sink = true;
+                if !sink_kinds.contains(&sink_kind) {
+                    sink_kinds.push(sink_kind);
                 }
             }
         }
@@ -203,16 +274,39 @@ fn compute_summary_for(
     TaintSummary {
         param_sources,
         return_sources,
-        param_sanitizers,
+        param_sanitizers: Vec::new(),
         has_direct_sink,
         sink_kinds,
         output_pointer_params,
     }
 }
 
-/// Check if the graph has any source nodes.
-fn has_any_source(graph: &TaintGraph) -> bool {
-    !graph.by_source.is_empty()
+fn node_in_function(
+    graph: &TaintGraph,
+    node_id: TaintNodeId,
+    annotations: &TaintAnnotations,
+    func_name: &str,
+) -> bool {
+    let Some(range) = annotations.function_ranges.get(func_name) else {
+        return false;
+    };
+    let Some(node) = graph.nodes.get(node_id) else {
+        return false;
+    };
+    match node {
+        TaintNode::Variable { scope, .. } => annotations
+            .scopes
+            .iter()
+            .find(|info| info.id == *scope)
+            .and_then(|info| info.function.as_deref())
+            .is_some_and(|function| function == func_name),
+        TaintNode::Source { byte_range, .. }
+        | TaintNode::Sink { byte_range, .. }
+        | TaintNode::Sanitizer { byte_range, .. } => {
+            byte_range.start >= range.start && byte_range.end <= range.end
+        }
+        TaintNode::Return { function, .. } => function.as_ref() == func_name,
+    }
 }
 
 /// Determine whether this function returns tainted data.
@@ -231,12 +325,13 @@ fn compute_return_sources(
         return vec![false];
     };
 
-    // Check 1: Does the function have a source within its body?
-    let has_source_in_func = annotations
+    // Check 1: Does the function return a source produced in its body?
+    let has_returned_source = annotations
         .sources
         .iter()
-        .any(|src| src.byte_range.start >= range.start && src.byte_range.end <= range.end);
-    if has_source_in_func {
+        .filter(|src| src.byte_range.start >= range.start && src.byte_range.end <= range.end)
+        .any(|src| source_is_returned(src, source, range));
+    if has_returned_source {
         return vec![true];
     }
 
@@ -248,15 +343,57 @@ fn compute_return_sources(
         let start = range.start.min(end);
         let body = &source[start..end];
         for param in params {
-            // Scan for `return param_name` in the function body.
-            let pattern = format!("return {}", param);
-            if body.contains(&pattern) {
+            if body.lines().any(|line| {
+                let Some(rest) = line.trim_start().strip_prefix("return") else {
+                    return false;
+                };
+                rest.trim_start()
+                    .split(|ch: char| !ch.is_ascii_alphanumeric() && ch != '_')
+                    .next()
+                    == Some(param.as_ref())
+            }) {
                 return vec![true];
             }
         }
     }
 
     vec![false]
+}
+
+fn source_is_returned(
+    source_annotation: &super::super::TaintSourceAnnotation,
+    source: &str,
+    function_range: &std::ops::Range<usize>,
+) -> bool {
+    let start = function_range.start.min(source.len());
+    let end = function_range.end.min(source.len());
+    let body = &source[start..end];
+    let source_start = source_annotation.byte_range.start.saturating_sub(start);
+    let source_end = source_annotation.byte_range.end.saturating_sub(start);
+    let source_end = source_end.min(body.len());
+    let source_start = source_start.min(source_end);
+
+    let line_start = body[..source_start].rfind('\n').map_or(0, |idx| idx + 1);
+    let line_end = body[source_end..]
+        .find('\n')
+        .map_or(body.len(), |idx| source_end + idx);
+    if body[line_start..line_end].contains("return") {
+        return true;
+    }
+
+    let Some(result_variable) = source_annotation.result_variable.as_deref() else {
+        return false;
+    };
+    body.lines().any(|line| {
+        let Some(rest) = line.trim_start().strip_prefix("return") else {
+            return false;
+        };
+        let returned_name = rest
+            .trim_start()
+            .split(|ch: char| !ch.is_ascii_alphanumeric() && ch != '_')
+            .next();
+        returned_name == Some(result_variable)
+    })
 }
 
 /// Detect `*T` parameters that are written to via `*p = source_call()` in the

@@ -5,6 +5,27 @@ use std::path::Path;
 
 use crate::core::{Detector, LanguageId, LanguagePlugin};
 
+/// Invalid plugin composition supplied to [`Registry::with_plugins`].
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum RegistryError {
+    /// Two plugins claimed the same language identifier.
+    #[error("duplicate language plugin: {language:?}")]
+    DuplicateLanguage { language: LanguageId },
+    /// Two plugins claimed the same file extension.
+    #[error("extension {extension:?} is registered by more than one plugin")]
+    DuplicateExtension { extension: &'static str },
+    /// A plugin returned a detector for a different language.
+    #[error(
+        "detector language {detector_language:?} does not match plugin language {plugin_language:?}"
+    )]
+    DetectorLanguageMismatch {
+        /// Language declared by the containing plugin.
+        plugin_language: LanguageId,
+        /// Language declared by the detector.
+        detector_language: LanguageId,
+    },
+}
+
 /// Holds enabled language plugins and detectors indexed by language.
 #[must_use = "build a Registry before scanning"]
 pub struct Registry {
@@ -22,8 +43,14 @@ pub struct Registry {
 
 impl Registry {
     /// Build a registry from an explicit plugin list (embedder / test seam).
-    pub fn with_plugins(plugins: Vec<Box<dyn LanguagePlugin>>) -> Self {
-        Self::from_plugins(plugins)
+    ///
+    /// # Errors
+    ///
+    /// Returns a typed error when language ids or extensions collide, or when
+    /// a detector is registered under a different language than its plugin.
+    pub fn with_plugins(plugins: Vec<Box<dyn LanguagePlugin>>) -> Result<Self, RegistryError> {
+        validate_plugins(&plugins)?;
+        Ok(Self::from_plugins(plugins))
     }
 
     pub(crate) fn from_plugins(plugins: Vec<Box<dyn LanguagePlugin>>) -> Self {
@@ -71,8 +98,10 @@ impl Registry {
         &self.all_indices
     }
 
-    pub fn detector(&self, index: usize) -> &dyn Detector {
-        self.detectors[index].as_ref()
+    /// Return a detector for an index from [`Self::detector_indices`].
+    /// Invalid external indices are reported as `None` instead of panicking.
+    pub fn detector(&self, index: usize) -> Option<&dyn Detector> {
+        self.detectors.get(index).map(|detector| detector.as_ref())
     }
 
     pub fn plugin_for_path(&self, path: &Path) -> Option<&dyn LanguagePlugin> {
@@ -102,8 +131,52 @@ impl Registry {
     }
 }
 
+fn validate_plugins(plugins: &[Box<dyn LanguagePlugin>]) -> Result<(), RegistryError> {
+    let mut by_id = HashMap::new();
+    let mut by_extension = HashMap::new();
+    for plugin in plugins {
+        if by_id.insert(plugin.id(), ()).is_some() {
+            return Err(RegistryError::DuplicateLanguage {
+                language: plugin.id(),
+            });
+        }
+        for &extension in plugin.extensions() {
+            if by_extension.insert(extension, ()).is_some() {
+                return Err(RegistryError::DuplicateExtension { extension });
+            }
+        }
+        for detector in plugin.detectors() {
+            if detector.language() != plugin.id() {
+                return Err(RegistryError::DetectorLanguageMismatch {
+                    plugin_language: plugin.id(),
+                    detector_language: detector.language(),
+                });
+            }
+        }
+    }
+    Ok(())
+}
+
 impl Default for Registry {
     fn default() -> Self {
         Self::from_plugins(crate::lang::enabled_plugins())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Registry, RegistryError};
+
+    #[test]
+    fn explicit_registry_rejects_duplicate_language_plugins() {
+        let result = Registry::with_plugins(vec![
+            Box::new(crate::lang::go::GoPlugin),
+            Box::new(crate::lang::go::GoPlugin),
+        ]);
+
+        assert!(matches!(
+            result,
+            Err(RegistryError::DuplicateLanguage { .. })
+        ));
     }
 }

@@ -38,6 +38,10 @@ pub(crate) fn print_compact(result: &AnalysisResult) -> Result<(), Error> {
 
 #[doc(hidden)]
 #[must_use = "SARIF serialization failures must be handled"]
+///
+/// # Errors
+///
+/// Returns [`Error`] when the analysis result cannot be serialized as SARIF.
 pub fn render_to_string(result: &AnalysisResult) -> Result<String, Error> {
     let log = build_log(result);
     serde_json::to_string_pretty(&log).map_err(Error::from)

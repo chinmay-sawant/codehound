@@ -90,7 +90,7 @@ impl PipelineAccumulator {
     }
 
     /// Merge a single chunk's [`MergedScan`] into this accumulator.
-    /// Drains the global timing collector into `timing` automatically.
+    /// Merges per-file timing collected by the chunk into `timing`.
     /// Returns the chunk's `rescan_files` for cascade invalidation.
     pub fn merge_chunk(
         &mut self,
@@ -102,7 +102,7 @@ impl PipelineAccumulator {
         self.source_cache.extend(chunk.source_cache);
         self.suppressed_count += chunk.suppressed_count;
         self.stats.merge(&chunk.stats);
-        crate::engine::timing::drain_global(timing);
+        timing.merge_owned(chunk.timing);
         chunk.rescan_files
     }
 
@@ -116,6 +116,11 @@ impl PipelineAccumulator {
 
     pub fn errors(&self) -> &[ScanError] {
         &self.errors
+    }
+
+    pub fn record_error(&mut self, error: ScanError) {
+        self.errors.push(error);
+        self.stats.record_errored();
     }
 
     pub fn take_findings(&mut self) -> Vec<Finding> {
@@ -143,14 +148,15 @@ impl PipelineAccumulator {
 #[must_use]
 #[derive(Debug, Default, Clone)]
 pub struct AnalysisResult {
+    /// Findings emitted by enabled detectors after scan policy is applied.
     pub findings: Vec<Finding>,
     /// Non-fatal per-file errors collected during the scan. The scan does
     /// NOT abort on the first error; instead, the caller decides whether
     /// `errors` should fail the run.
     pub errors: Vec<ScanError>,
-    /// File path → source text cache populated during the parse step.
-    /// Export (and future passes) can read from this instead of hitting
-    /// disk again.
+    /// File path → source text cache populated during the parse step when
+    /// [`ScanContext::retain_sources`](crate::core::ScanContext::retain_sources)
+    /// is enabled. Export can read from this instead of hitting disk again.
     pub source_cache: HashMap<String, Arc<str>>,
     /// Findings suppressed by baseline filtering.
     pub suppressed_count: usize,
@@ -160,10 +166,42 @@ pub struct AnalysisResult {
 }
 
 impl AnalysisResult {
+    /// Return findings emitted by the scan after policy filtering.
+    pub fn findings(&self) -> &[Finding] {
+        &self.findings
+    }
+
+    /// Return mutable findings for embedders that apply a post-scan policy.
+    pub fn findings_mut(&mut self) -> &mut [Finding] {
+        &mut self.findings
+    }
+
+    /// Return non-fatal per-file errors collected during the scan.
+    pub fn errors(&self) -> &[ScanError] {
+        &self.errors
+    }
+
+    /// Return retained source text keyed by the normalized file path.
+    pub fn source_cache(&self) -> &HashMap<String, Arc<str>> {
+        &self.source_cache
+    }
+
+    /// Return the number of findings suppressed by baseline filtering.
+    pub fn suppressed_count(&self) -> usize {
+        self.suppressed_count
+    }
+
+    /// Return operational scan statistics when collection was enabled.
+    pub fn stats(&self) -> Option<&ScanStats> {
+        self.stats.as_ref()
+    }
+
+    /// Return whether any finding matches the configured failure policy.
     pub fn should_fail(&self, policy: crate::core::FailPolicy) -> bool {
         self.findings.iter().any(|f| policy.should_fail(f.severity))
     }
 
+    /// Return the total number of bytes retained in the source cache.
     pub fn source_cache_bytes(&self) -> usize {
         self.source_cache.values().map(|source| source.len()).sum()
     }
@@ -211,6 +249,7 @@ mod tests {
             suppressed_count: 0,
             stats: ScanStats::default(),
             rescan_files: vec![("f0.go".into(), true)],
+            timing: crate::engine::timing::TimingCollector::new(false),
         }
     }
 

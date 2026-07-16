@@ -17,11 +17,14 @@ use crate::engine::result::{ScanError, ScanErrorKind};
 use crate::engine::stats::FileStats;
 use crate::engine::stats::ScanStats;
 use crate::engine::time::iso8601_utc_now;
+use crate::engine::timing::TimingCollector;
 use crate::rules::Finding;
 
 use super::analyze::filter_findings;
 use super::entry::ScanEntry;
-use super::scan_entry::{PreloadedSource, ScanEntryResult, read_entry_utf8, scan_entry, scan_err};
+use super::scan_entry::{
+    PreloadedSource, ScanEntryResult, ScanRequest, read_entry_utf8, scan_entry, scan_err,
+};
 
 /// Per-file outcome from a parallel scan: either findings or a structured error.
 #[derive(Debug)]
@@ -32,6 +35,7 @@ pub(crate) enum ScanOutcome {
         cache_key: String,
         source: Arc<str>,
         stats: ScanStats,
+        suppressed_count: usize,
     },
     Err(ScanError),
 }
@@ -56,6 +60,7 @@ pub(crate) struct MergedScan {
     pub suppressed_count: usize,
     pub stats: ScanStats,
     pub rescan_files: Vec<(String, bool)>,
+    pub timing: TimingCollector,
 }
 
 /// Parallel scan orchestrator: cache preflight → Rayon dispatch → merge.
@@ -66,6 +71,7 @@ pub(crate) fn scan_entries_parallel(
     mut cache: Option<&mut CacheSession<'_>>,
     project_root: &Path,
     module_prefix: Option<&str>,
+    collect_stats: bool,
 ) -> Result<MergedScan, Error> {
     let total = entries.len();
 
@@ -78,21 +84,32 @@ pub(crate) fn scan_entries_parallel(
         &preflight.to_scan,
         project_root,
         module_prefix,
+        collect_stats,
     );
-    let merged = merge_parallel_results(
+    let mut merged = merge_parallel_results(
         scan_outcomes,
         preflight.cached_outcomes,
         &mut cache,
         preflight.cache_hit_count,
         total,
         ctx.retain_sources,
+        collect_stats,
     );
 
-    // Accumulate cross-file detector state for cache-hit files
-    // so finalize() can emit the same findings regardless of cache.
-    // Only needed when taint finalize will consume project state.
-    if ctx.taint_enabled && !preflight.cached_files.is_empty() {
-        accumulate_state_for_cached(registry, ctx, &preflight.cached_files);
+    // Accumulate cross-file detector state for cache-hit files when a
+    // detector explicitly opts into the capability, so finalize() can emit
+    // the same findings regardless of cache without reparsing for stateless
+    // detectors.
+    let needs_cache_state = registry
+        .detectors()
+        .iter()
+        .any(|detector| detector.requires_cache_state(ctx));
+    if needs_cache_state && !preflight.cached_files.is_empty() {
+        merged.errors.extend(accumulate_state_for_cached(
+            registry,
+            ctx,
+            &preflight.cached_files,
+        ));
     }
 
     tracing::debug!(
@@ -107,6 +124,7 @@ pub(crate) fn scan_entries_parallel(
 
 fn process_cache_hit(ctx: &ScanContext, cached: CacheEntry, source: Arc<str>) -> ScanOutcome {
     let cache_key = cached.file;
+    let suppressed_count = cached.suppressed_count;
     let mut findings = cached.findings;
     filter_findings(ctx, &mut findings);
     let file_ignore = parse_file_ignore(source.as_ref());
@@ -119,6 +137,7 @@ fn process_cache_hit(ctx: &ScanContext, cached: CacheEntry, source: Arc<str>) ->
         cache_key,
         source,
         stats: file_scan_stats,
+        suppressed_count,
     }
 }
 
@@ -234,7 +253,12 @@ fn preflight_cache_hits(
 /// detector state (e.g. call graphs for taint analysis) that `finalize()`
 /// needs. The generated per-file findings are discarded — cached findings
 /// are used instead.
-fn accumulate_state_for_cached(registry: &Registry, ctx: &ScanContext, files: &[CachedFileInfo]) {
+fn accumulate_state_for_cached(
+    registry: &Registry,
+    ctx: &ScanContext,
+    files: &[CachedFileInfo],
+) -> Vec<ScanError> {
+    let mut errors = Vec::new();
     let mut pool = ParsePool::new();
     for info in files {
         let Some(plugin) = registry.plugin_for_id(info.language) else {
@@ -261,8 +285,33 @@ fn accumulate_state_for_cached(registry: &Registry, ctx: &ScanContext, files: &[
         // cross-file analysis in `finalize()` has the same state regardless
         // of cache status.
         for &idx in registry.detector_indices(info.language) {
-            registry.detector(idx).accumulate_state(ctx, &unit);
+            if let Some(detector) = registry.detector(idx) {
+                if !detector.requires_cache_state(ctx) {
+                    continue;
+                }
+                let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    detector.accumulate_state(ctx, &unit);
+                }));
+                if let Err(payload) = result {
+                    reset_detector_after_panic(detector);
+                    errors.push(ScanError {
+                        path: unit.path.clone(),
+                        kind: ScanErrorKind::Engine,
+                        message: format!(
+                            "cached detector state accumulation panicked: {}",
+                            panic_message(&payload)
+                        ),
+                    });
+                }
+            }
         }
+    }
+    errors
+}
+
+fn reset_detector_after_panic(detector: &dyn crate::core::Detector) {
+    if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| detector.reset_state())).is_err() {
+        tracing::error!("detector reset_state panicked while recovering from a detector panic");
     }
 }
 
@@ -273,6 +322,7 @@ fn dispatch_parallel_scan(
     to_scan: &[(usize, Option<PreloadedSource>)],
     project_root: &Path,
     module_prefix: Option<&str>,
+    collect_stats: bool,
 ) -> Vec<ScanOutcome> {
     to_scan
         .par_iter()
@@ -285,9 +335,12 @@ fn dispatch_parallel_scan(
                     ctx,
                     entry,
                     pool,
-                    project_root,
-                    module_prefix,
-                    preloaded,
+                    ScanRequest {
+                        project_root,
+                        module_prefix,
+                        preloaded,
+                        collect_stats,
+                    },
                 )
             }));
             match unwind {
@@ -316,6 +369,7 @@ fn merge_parallel_results(
     cache_hit_count: usize,
     total: usize,
     retain_sources: bool,
+    collect_stats: bool,
 ) -> MergedScan {
     let mut merged = MergedScan {
         findings: Vec::new(),
@@ -328,20 +382,14 @@ fn merge_parallel_results(
         suppressed_count: 0,
         stats: ScanStats::default(),
         rescan_files: Vec::new(),
+        timing: TimingCollector::new(collect_stats),
     };
 
     for outcome in scan_outcomes {
         match outcome {
             ScanOutcome::Fresh(mut result) => {
-                write_cache_on_miss(
-                    cache,
-                    &result.cache_key,
-                    &result.source,
-                    result.content_hash.as_deref(),
-                    &result.findings,
-                    &result.dependencies,
-                    &mut merged.rescan_files,
-                );
+                write_cache_on_miss(cache, &result, &mut merged.rescan_files);
+                merged.timing.merge_owned(result.timing);
                 append_file_contribution(
                     &mut merged,
                     &mut result.findings,
@@ -367,7 +415,7 @@ fn merge_parallel_results(
                 cache_key,
                 source,
                 stats: file_stats,
-                ..
+                suppressed_count,
             } => {
                 append_file_contribution(
                     &mut merged,
@@ -375,7 +423,7 @@ fn merge_parallel_results(
                     cache_key,
                     source,
                     &file_stats,
-                    0,
+                    suppressed_count,
                     retain_sources,
                 );
             }
@@ -411,41 +459,40 @@ fn append_file_contribution(
 
 fn write_cache_on_miss(
     cache: &mut Option<&mut CacheSession<'_>>,
-    cache_key: &str,
-    source: &Arc<str>,
-    precomputed_hash: Option<&str>,
-    findings: &[Finding],
-    dependencies: &[String],
+    result: &ScanEntryResult,
     rescan_files: &mut Vec<(String, bool)>,
 ) {
     let Some(session) = cache.as_deref_mut() else {
         return;
     };
-    if !session.should_cache_bytes(source.len() as u64) {
-        session.invalidate_file(cache_key);
+    if !session.should_cache_bytes(result.source.len() as u64) {
+        session.invalidate_file(&result.cache_key);
         return;
     }
-    let hash = precomputed_hash
+    let hash = result
+        .content_hash
+        .as_deref()
         .map(str::to_string)
-        .unwrap_or_else(|| content_hash(source.as_ref()));
+        .unwrap_or_else(|| content_hash(result.source.as_ref()));
     let prior_hash = session
         .manifest()
         .files
-        .get(cache_key)
+        .get(&result.cache_key)
         .map(|m| m.content_hash.as_str());
     let hash_changed = prior_hash.map(|old| old != hash.as_str()).unwrap_or(false);
     let cached_at = iso8601_utc_now();
-    if let Err(e) = session.put(
-        cache_key,
+    if let Err(e) = session.put_with_suppressed_count_borrowed(
+        &result.cache_key,
         &hash,
-        dependencies,
-        findings.to_vec(),
+        &result.dependencies,
+        &result.findings,
+        result.suppressed_count,
         &cached_at,
     ) {
-        tracing::warn!(file = %cache_key, error = %e, "failed to write cache entry");
+        tracing::warn!(file = %result.cache_key, error = %e, "failed to write cache entry");
     }
     if hash_changed {
-        rescan_files.push((cache_key.to_string(), true));
+        rescan_files.push((result.cache_key.clone(), true));
     }
 }
 

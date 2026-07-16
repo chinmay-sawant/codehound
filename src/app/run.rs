@@ -20,11 +20,11 @@ use super::exit_codes::{EXIT_CLEAN, EXIT_FAILING, EXIT_INTERNAL};
 use super::init_cmd::init_subcommand;
 use super::rule_info::{print_rule_explanation, print_rules};
 
-pub fn run(cli: Cli) -> Result<ExitCode> {
+pub fn run(mut cli: Cli) -> Result<ExitCode> {
     configure_terminal_color(&cli);
 
     // Take subcommand ownership first so we can move `cli` into handlers.
-    let command = cli.command.clone();
+    let command = cli.command.take();
     match command {
         Some(Command::Init) => return Ok(init_subcommand()),
         Some(Command::Rules { category, explain }) => {
@@ -37,7 +37,6 @@ pub fn run(cli: Cli) -> Result<ExitCode> {
         Some(Command::Cache {
             action: CacheAction::Prune,
         }) => {
-            let mut cli = cli;
             cli.prune_cache = true;
             return run_scan(cli);
         }
@@ -45,7 +44,6 @@ pub fn run(cli: Cli) -> Result<ExitCode> {
             return run_baseline_command(&cli, &action);
         }
         Some(Command::Scan { paths }) => {
-            let mut cli = cli;
             if !paths.is_empty() {
                 cli.paths = paths;
             }
@@ -143,16 +141,10 @@ impl ScanRun {
         }
 
         let scan_paths = resolve_scan_paths(&cli.paths)?;
-        let mut result = match analyzer.analyze_paths(
+        let mut result = analyzer.analyze_paths(
             &scan_paths,
             CacheSession::from_optional(cache_store.as_mut()),
-        ) {
-            Ok(r) => r,
-            Err(e) => {
-                eprintln!("internal error during scan: {e:#}");
-                return Ok(ExitCode::from(EXIT_INTERNAL));
-            }
-        };
+        )?;
 
         report_scan_errors(&result);
 
@@ -178,7 +170,7 @@ impl ScanRun {
         write_diagnostics(&cli, &result)?;
         write_diagnostics_summary(&cli, &result);
 
-        Ok(scan_exit_code(&result, analyzer.ctx.fail_policy))
+        Ok(scan_exit_code(&result, analyzer.scan_context().fail_policy))
     }
 }
 
@@ -227,16 +219,13 @@ fn rebuild_cache_if_requested(
     }
     if let Err(reason) = validate_cache_purge_path(&dir) {
         if !cli.quiet {
-            eprintln!(
-                "warning: refusing to purge cache at {}: {reason}",
-                dir.display()
-            );
+            tracing::warn!("refusing to purge cache at {}: {reason}", dir.display());
         }
         return;
     }
     if let Err(e) = std::fs::remove_dir_all(&dir) {
         if !cli.quiet {
-            eprintln!("warning: could not purge cache at {}: {e}", dir.display());
+            tracing::warn!("could not purge cache at {}: {e}", dir.display());
         }
     } else if !cli.quiet {
         eprintln!("Purged cache at {}", dir.display());
@@ -285,14 +274,10 @@ fn resolve_scan_path(path: &str) -> Result<PathBuf> {
         return Ok(path);
     }
 
-    let Ok(text) = std::fs::read_to_string(&path) else {
-        return Ok(path);
-    };
-    if parse_fixture(&text, &path).is_err() {
-        return Ok(path);
-    }
-
-    materialize_fixture(&path)
+    let text = std::fs::read_to_string(&path)
+        .with_context(|| format!("reading fixture {}", path.display()))?;
+    parse_fixture(&text, &path).with_context(|| format!("parsing fixture {}", path.display()))?;
+    materialize_fixture(&path).with_context(|| format!("materializing fixture {}", path.display()))
 }
 
 fn run_prune_cache(
@@ -573,15 +558,16 @@ mod tests {
     }
 
     #[test]
-    fn resolve_scan_path_leaves_plain_text_files_unchanged() {
+    fn resolve_scan_path_rejects_invalid_text_fixtures() {
         let temp_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("target")
             .join("resolve-scan-path-plain.txt");
         fs::write(&temp_path, "plain text, not a fixture").expect("write temp text file");
 
-        let resolved = resolve_scan_path(temp_path.to_str().expect("utf8 temp path"))
-            .expect("resolve plain text path");
-        assert_eq!(resolved, temp_path);
+        let error = resolve_scan_path(temp_path.to_str().expect("utf8 temp path"))
+            .expect_err("invalid text fixture must fail loudly");
+        assert!(error.to_string().contains("parsing fixture"));
+        let _ = fs::remove_file(temp_path);
     }
 
     #[test]

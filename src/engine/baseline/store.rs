@@ -18,9 +18,13 @@ pub const BASELINE_VERSION: &str = "1";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BaselineEntry {
+    /// Finding file path.
     pub file: String,
+    /// One-indexed finding line.
     pub line: usize,
+    /// One-indexed finding column.
     pub column: usize,
+    /// Content-stable finding fingerprint.
     pub fingerprint: String,
     /// Optional free-text reason (brownfield adoption notes).
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -28,14 +32,6 @@ pub struct BaselineEntry {
     /// Optional ISO-8601 expiry; expired entries are ignored when filtering.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub expires: Option<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct BaselineLocationKey {
-    rule_id: String,
-    file: String,
-    line: usize,
-    column: usize,
 }
 
 pub fn discover_baseline(cwd: &Path) -> Option<PathBuf> {
@@ -52,17 +48,18 @@ pub fn discover_baseline(cwd: &Path) -> Option<PathBuf> {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Baseline {
+    /// Baseline wire-format version.
     pub version: String,
+    /// UTC timestamp at which the baseline was generated.
     pub generated_at: String,
+    /// CodeHound version that generated the baseline.
     pub tool_version: String,
+    /// Findings grouped by rule identifier.
     pub entries: HashMap<String, Vec<BaselineEntry>>,
-    #[serde(skip)]
-    fingerprint_index: HashSet<String>,
-    #[serde(skip)]
-    location_index: HashSet<BaselineLocationKey>,
 }
 
 impl Baseline {
+    /// Build a baseline from findings without optional entry metadata.
     pub fn from_findings(findings: &[Finding]) -> Self {
         Self::from_findings_with_meta(findings, None, None)
     }
@@ -88,26 +85,30 @@ impl Baseline {
                 });
         }
 
-        let mut baseline = Self {
+        Self {
             version: BASELINE_VERSION.to_string(),
             generated_at: iso8601_utc_now(),
             tool_version: env!("CARGO_PKG_VERSION").to_string(),
             entries,
-            fingerprint_index: HashSet::new(),
-            location_index: HashSet::new(),
-        };
-        baseline.rebuild_index();
-        baseline
+        }
     }
 
     #[must_use = "baseline load failures must be handled"]
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when the file cannot be read or decoded.
     pub fn from_file(path: &Path) -> Result<Self, Error> {
         let bytes = fs::read(path)?;
-        let mut baseline: Self = serde_json::from_slice(&bytes)?;
-        baseline.rebuild_index();
+        let baseline: Self = serde_json::from_slice(&bytes)?;
         Ok(baseline)
     }
 
+    /// Persist this baseline using an atomic file replacement.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] when serialization or the atomic write fails.
     pub fn to_file(&self, path: &Path) -> Result<(), Error> {
         write_atomic(path, self)
     }
@@ -119,9 +120,9 @@ impl Baseline {
     }
 
     pub fn contains_finding_with_now(&self, finding: &Finding, now_iso: &str) -> bool {
-        // Fingerprint path: check all non-expired entries for this rule.
         if let Some(entries) = self.entries.get(finding.rule_id) {
             let fp = finding.fingerprint_string();
+            let mut location_match = false;
             for entry in entries {
                 if entry_expired(entry, now_iso) {
                     continue;
@@ -129,30 +130,16 @@ impl Baseline {
                 if entry.fingerprint == fp {
                     return true;
                 }
-            }
-        }
-        // Location fallback (survives fingerprint format bumps).
-        let key = BaselineLocationKey {
-            rule_id: finding.rule_id.to_string(),
-            file: finding.file.clone(),
-            line: finding.line,
-            column: finding.column,
-        };
-        if !self.location_index.contains(&key) {
-            return false;
-        }
-        // Location hit must not be expired.
-        if let Some(entries) = self.entries.get(finding.rule_id) {
-            for entry in entries {
                 if entry.file == finding.file
                     && entry.line == finding.line
                     && entry.column == finding.column
-                    && !entry_expired(entry, now_iso)
                 {
-                    return true;
+                    location_match = true;
                 }
             }
-            return false;
+            if location_match {
+                return true;
+            }
         }
         false
     }
@@ -179,7 +166,6 @@ impl Baseline {
             removed += before.saturating_sub(entries.len());
         }
         self.entries.retain(|_, v| !v.is_empty());
-        self.rebuild_index();
         removed
     }
 
@@ -215,7 +201,6 @@ impl Baseline {
         }
         self.generated_at = iso8601_utc_now();
         self.tool_version = env!("CARGO_PKG_VERSION").to_string();
-        self.rebuild_index();
         (added, updated)
     }
 
@@ -237,25 +222,6 @@ impl Baseline {
     /// Live findings not covered by this baseline (new noise candidates).
     pub fn new_findings<'a>(&'a self, live: &'a [Finding]) -> Vec<&'a Finding> {
         live.iter().filter(|f| !self.contains_finding(f)).collect()
-    }
-
-    fn rebuild_index(&mut self) {
-        self.fingerprint_index.clear();
-        self.location_index.clear();
-        let entry_count = self.entry_count();
-        self.fingerprint_index.reserve(entry_count);
-        self.location_index.reserve(entry_count);
-        for (rule_id, entries) in &self.entries {
-            for entry in entries {
-                self.fingerprint_index.insert(entry.fingerprint.clone());
-                self.location_index.insert(BaselineLocationKey {
-                    rule_id: rule_id.clone(),
-                    file: entry.file.clone(),
-                    line: entry.line,
-                    column: entry.column,
-                });
-            }
-        }
     }
 }
 

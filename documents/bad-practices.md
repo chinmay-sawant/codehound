@@ -25,6 +25,13 @@ Godoc-style rules never fail CI under `style` (no-fail + info severity).
 
 `BP-63` is **reserved**: a curated module-advisory *snapshot* (`ruleset/golang/go_module_advisories.csv`), **not** a live [govulncheck](https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck) feed. It is quarantined from recommended/security packs. Prefer govulncheck in CI for real CVE coverage until a feed is wired.
 
+## Curated tiering policy
+
+- **Trusted correctness:** BP-6, BP-7, BP-8, BP-9, and BP-15; useful concurrency/runtime footguns, but still reviewed as heuristics.
+- **Review-required:** most error, lifecycle, testing, and dependency rules; keep them advisory and do not fail ordinary CI by default.
+- **Style/opinion:** BP-2, BP-3, BP-21, BP-28–31, BP-39–42, BP-45, and BP-62; report as `info` or keep disabled unless a team explicitly wants the policy.
+- **Reserved:** BP-63 remains quarantined until CodeHound has a live advisory feed.
+
 ## Overlap matrix vs golangci ecosystem
 
 Classify each rule before treating CodeHound BP as a substitute for `go vet` / staticcheck / errcheck / revive.  
@@ -64,6 +71,76 @@ Classify each rule before treating CodeHound BP as a substitute for `go vet` / s
 
 If you already run `golangci-lint` with errcheck + staticcheck + revive, prefer `--profile recommended` (PERF + optional taint) and treat `style` as an optional policy pack—not a replacement gate.
 
+## Curated Core Language Rules
+
+- `BP-67` flags `errors.As` targets passed without an address; pass an addressable target to avoid the stdlib runtime panic.
+- `BP-72` flags a directly returned typed nil pointer behind an `error` or anonymous interface result; return a bare `nil` interface instead.
+- `BP-73` flags a function-local zero-value map that is indexed before `make` initializes it; initialize the map before the first write. The detector intentionally ignores map parameters and cases where initialization is visible earlier in the same function.
+- `BP-75` flags a statically zero-length local slice used as the destination of `copy` with a non-empty literal source; allocate the destination to the required length.
+- `BP-80` flags exact `context.TODO()` calls outside tests; replace them with an explicit caller-owned or lifecycle-owned context. This remains a low-severity advisory policy signal.
+- `BP-79` flags a locally bound context cancellation function with no visible local call or defer. It is review-only because ownership may be transferred to a helper.
+- `BP-84` flags the narrow `a / b * 100` percentage shape when the destination or function name indicates a percentage; convert before dividing to avoid integer truncation.
+- `BP-68` flags discarded `errors.Join` results; return or assign the combined error.
+- `BP-85` flags unchecked `Context.Value` assertions in typed net/http handlers; check the `ok` result.
+- `BP-66` flags direct comparisons of wrapped sentinel errors; use `errors.Is`.
+- `BP-76` flags map-derived values passed to `strings.Join` without sorting; sort the values before treating them as ordered output.
+- `BP-81` flags multiple `time.Now()` reads in one condition; capture the current time once before comparing deadlines.
+- `BP-70` flags a local `err != nil` branch that logs with the standard logger and falls through; return or otherwise handle the error.
+- `BP-82` flags literal `time.Parse` layouts without timezone data; use `ParseInLocation` or an explicitly zoned layout when location matters.
+
+## Curated HTTP Rules
+
+- `BP-101` flags a `net/http` handler that writes a response body before `WriteHeader`; set the intended status before the first body write.
+- `BP-109` flags a Gin error JSON response that is not followed by `Abort` or `return`; terminate the handler after writing the error.
+- `BP-116` flags an Echo error JSON response followed by a raw error return; choose one response-handling path.
+- `BP-102` flags net/http error paths that return without writing an error response or status.
+- `BP-110`, `BP-117`, and `BP-120` flag discarded Gin, Echo, and Fiber binding errors.
+- `BP-104` flags duplicate literal registrations on a local `http.ServeMux`.
+- `BP-105` flags sensitive cookies missing `Secure` or `HttpOnly`.
+- `BP-107` flags typed net/http middleware that neither delegates nor writes a terminal response.
+- `BP-122` applies the same missing-next check to imported Chi middleware.
+- `BP-155` flags JSON decoders reading request bodies without a visible size limit.
+- `BP-111` flags direct Gin context use inside a goroutine without `c.Copy()`; copy request-scoped state before launching background work.
+- `BP-119` flags direct Fiber context use inside a goroutine; copy request data before launching background work.
+
+## Curated Concurrency and Resource Rules
+
+- `BP-88` flags direct send/receive operations on a local zero-value channel outside an intentional `select`; initialize the channel or keep the nil-channel select explicit.
+- `BP-98` flags local `os.Open`/`os.OpenFile` results with no same-function close or ownership transfer; close or return the file. This is review-only because the heuristic cannot prove interprocedural ownership.
+- `BP-99` flags a locally created `sync.Cond` whose `Wait` has no visible `Lock`/`RLock` on its associated locker; acquire the locker before waiting.
+- `BP-86` flags locally declared mutexes locked without a visible matching unlock.
+- `BP-87` flags a declared read lock held across an obvious blocking call or channel receive.
+- `BP-89` flags repeated unconditional closes of the same channel in one function.
+- `BP-90` flags infinite channel-receive loops without a visible exit path.
+- `BP-91` flags data-bearing boolean/integer notification channels whose received value is discarded.
+- `BP-92` flags errgroups that do not use the cancellation-aware `WithContext` form.
+- `BP-93` flags discarded errors inside errgroup closures.
+- `BP-94` flags goroutine map writes without a visible synchronization boundary.
+- `BP-96` flags database rows values without a visible close.
+- `BP-97` flags buffered/compressed writers read before flush.
+- `BP-100` flags unbounded goroutine fan-out from range loops.
+- `BP-83` flags synchronization-shaped `time.Sleep` calls without a visible coordination primitive; use channels, locks, or another explicit boundary.
+- `BP-95` flags locally acquired HTTP responses without a visible body close or ownership transfer; close `resp.Body` after a successful request. This is an advisory zero-dependency overlap with bodyclose/sqlclosecheck.
+
+## Curated Data and Configuration Rules
+
+- `BP-131` flags literal DML sent through `database/sql` `Query`/`QueryContext` without `RETURNING`; use `Exec`/`ExecContext`. This is an import- and type-gated advisory heuristic.
+- `BP-145` flags a typed `pgxpool.Acquire` result with no visible `Release`/`Close`; release the connection on every path. This remains review-only for same-function ownership limits.
+- `BP-159` flags flag-pointer dereferences before `flag.Parse`; parse command-line arguments before reading values.
+- `BP-136` flags GORM `AutoMigrate` in request handlers; run migrations during startup or separately.
+- `BP-142` flags `sqlx.In` output executed without `Rebind`; rebind for the target driver first.
+- `BP-138` flags direct HTTP or SMTP I/O inside GORM lifecycle hooks; move it after commit.
+- `BP-141` flags snake_case sqlx named placeholders without matching `db` tags.
+- `BP-151` flags sensitive `os.Getenv` values passed directly to loggers; redact or log presence only.
+- `BP-128` flags QueryRow.Scan paths that do not distinguish `sql.ErrNoRows`.
+- `BP-132` flags optimistic-lock-shaped updates that ignore `RowsAffected`.
+- `BP-133` flags GORM chain results whose `Error` field is not checked.
+- `BP-134` flags GORM First/Take paths that do not distinguish `gorm.ErrRecordNotFound`.
+- `BP-135` flags direct use of a package-level GORM handle in request paths without a session boundary.
+- `BP-140` flags bare sqlx retrieval calls whose errors are discarded.
+- `BP-143` flags bare go-redis command calls whose result errors are discarded.
+- `BP-126` flags locally acquired `database/sql` transactions without a visible commit, rollback, or ownership transfer; complete or explicitly transfer the transaction.
+
 ## Error Handling
 
 - `BP-1` flags discarded error returns because `_ = err` suppresses failure handling; keep the error, wrap it with context, or return it to the caller.
@@ -97,6 +174,22 @@ If you already run `golangci-lint` with errcheck + staticcheck + revive, prefer 
 - `BP-23` flags long tests without `testing.Short()` because they ignore the standard fast-test contract; skip the expensive path when `testing.Short()` is true.
 - `BP-24` flags `_test.go` files with no `Test*` functions because the file is dead test surface; add real test entry points or delete the file.
 - `BP-25` flags helpers that return `error` only to be converted into `t.Fatal` by callers because the helper can own the failure path; accept `*testing.T` and fail directly.
+- `BP-162` flags parallel tests that mutate package-level state; isolate the test state.
+- `BP-161` flags literal production database targets in tests; use local or container targets.
+- `BP-163` flags golden update writes without a `testing.Short` guard.
+
+## Curated Observability Rules
+
+- `BP-146` flags sensitive fields or values passed to loggers without an obvious redaction step.
+- `BP-147` flags standard logger calls mixed into structured-logging service packages.
+- `BP-149` flags error-level logger calls in error branches that omit the error attribute.
+- `BP-156` flags security-sensitive JSON fields relying on `omitempty`.
+- `BP-154` flags direct `json.Unmarshal` expression statements that discard the returned error; check and handle it.
+- `BP-158` flags gRPC-shaped methods that discard `status.FromError` or return a raw error; translate errors to an appropriate status.
+
+## Curated CLI Rules
+
+- `BP-160` flags Cobra command literals that provide `Run` but not `RunE`; return command errors through `RunE` when the command can fail.
 
 ## API Design
 
@@ -110,6 +203,7 @@ If you already run `golangci-lint` with errcheck + staticcheck + revive, prefer 
 - `BP-33` flags sentinel-style errors without `Is` because callers cannot compare them reliably across wrapping; implement `Is(error) bool` or expose a stable sentinel.
 - `BP-34` flags `fmt.Errorf(... %v, err)` because `%v` and `%s` discard wrapping semantics; use `%w` when you are propagating an error.
 - `BP-35` flags package names that diverge from directory names because the codebase becomes harder to navigate; align the package name with the directory unless there is a strong conventional reason not to.
+- `BP-164` flags exported functional options that mutate package-level defaults; apply options to the supplied instance.
 
 ## Code Organization
 

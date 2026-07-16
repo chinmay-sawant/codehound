@@ -17,7 +17,10 @@ fn export_uses_source_cache_after_source_file_is_removed() {
     std::fs::write(&source_path, source).unwrap();
 
     let analyzer = Analyzer::builder()
-        .scan_context(ScanContext::default())
+        .scan_context(ScanContext {
+            retain_sources: true,
+            ..ScanContext::default()
+        })
         .build();
     let result = analyzer.analyze_paths(&[&root], None).unwrap();
     assert_eq!(result.findings.len(), 1);

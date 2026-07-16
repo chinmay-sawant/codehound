@@ -84,21 +84,51 @@ fn merge_directive(
     }
 }
 
+fn find_comment_start(line: &str) -> Option<(usize, char)> {
+    let mut in_double_quote = false;
+    let mut in_single_quote = false;
+    let mut escaped = false;
+    let mut chars = line.char_indices().peekable();
+    while let Some((byte_idx, c)) = chars.next() {
+        if escaped {
+            escaped = false;
+            continue;
+        }
+        if c == '\\' {
+            escaped = true;
+            continue;
+        }
+        if c == '"' && !in_single_quote {
+            in_double_quote = !in_double_quote;
+        } else if c == '\'' && !in_double_quote {
+            in_single_quote = !in_single_quote;
+        } else if !in_double_quote && !in_single_quote {
+            if c == '/' && chars.peek().is_some_and(|(_, next)| *next == '/') {
+                return Some((byte_idx, '/'));
+            }
+            if c == '#' {
+                return Some((byte_idx, '#'));
+            }
+        }
+    }
+    None
+}
+
 /// Extract comment body after `//` or `#` (not shebang).
 fn comment_body(line: &str) -> Option<&str> {
     let trimmed = line.trim_start();
     if trimmed.starts_with("#!") {
         return None;
     }
-    if let Some(idx) = line.find("//") {
-        return Some(line[idx + 2..].trim_start());
+    if let Some((idx, kind)) = find_comment_start(line) {
+        if kind == '/' {
+            Some(line[idx + 2..].trim_start())
+        } else {
+            Some(line[idx + 1..].trim_start())
+        }
+    } else {
+        None
     }
-    // Python / shell-style `#` comments (skip string-only heuristics for MVP).
-    if let Some(idx) = line.find('#') {
-        // Avoid matching raw string runes like in Go `#` rarely appears outside comments.
-        return Some(line[idx + 1..].trim_start());
-    }
-    None
 }
 
 fn has_code_before_comment(line: &str) -> bool {
@@ -106,10 +136,7 @@ fn has_code_before_comment(line: &str) -> bool {
     if trimmed.starts_with("//") || trimmed.starts_with('#') {
         return false;
     }
-    if let Some(idx) = line.find("//") {
-        return !line[..idx].trim().is_empty();
-    }
-    if let Some(idx) = line.find('#') {
+    if let Some((idx, _)) = find_comment_start(line) {
         return !line[..idx].trim().is_empty();
     }
     false

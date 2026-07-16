@@ -3,10 +3,10 @@
 //! When disabled, the collector is a zero-cost no-op. When enabled, it records
 //! named spans and can aggregate them into a per-run summary.
 //!
-//! Per-file / per-detector timing uses a global collector so the
-//! [`TimingCollector`] does not appear in pipeline structs and function
-//! signatures. App-level and analyzer-level timing still use locally-owned
-//! [`TimingCollector`] instances.
+//! Production per-file / per-detector timing uses worker-local collectors
+//! merged at scan boundaries. The legacy global helpers are test-only
+//! compatibility coverage; app-level and analyzer-level timing use
+//! locally-owned [`TimingCollector`] instances.
 
 mod aggregate;
 mod collector;
@@ -16,7 +16,8 @@ mod summary;
 mod tests;
 
 pub use collector::TimingCollector;
-pub(crate) use collector::{drain_global, global_start, global_stop, init_global};
+#[cfg(test)]
+pub(crate) use collector::{global_start, global_stop};
 pub use summary::{PhaseTiming, TimingSummary};
 
 #[cfg(test)]

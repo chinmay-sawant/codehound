@@ -36,8 +36,8 @@ pub(crate) fn apply_inline_ignores(
 
         suppressed += 1;
         if show_ignored {
-            finding.severity = Severity::Info;
-            finding.suppressed = true;
+            finding.set_severity(Severity::Info);
+            finding.set_suppressed(true);
             tag_suppressed(finding);
             true
         } else {
@@ -79,8 +79,8 @@ fn apply_directive(
 
         suppressed += 1;
         if show_ignored {
-            finding.severity = Severity::Info;
-            finding.suppressed = true;
+            finding.set_severity(Severity::Info);
+            finding.set_suppressed(true);
             tag_suppressed(finding);
             true
         } else {
@@ -107,9 +107,7 @@ pub(crate) fn apply_ignores(
     }
 
     let mut suppressed_count = apply_file_ignore(findings, file_ignore, ctx.show_ignored);
-    if file_ignore.is_none() {
-        let inline_ignores = parse_inline_ignores(source);
-        suppressed_count += apply_inline_ignores(findings, &inline_ignores, ctx.show_ignored);
-    }
+    let inline_ignores = parse_inline_ignores(source);
+    suppressed_count += apply_inline_ignores(findings, &inline_ignores, ctx.show_ignored);
     suppressed_count
 }

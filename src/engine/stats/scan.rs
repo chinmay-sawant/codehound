@@ -8,23 +8,37 @@ use crate::engine::timing::TimingSummary;
 use crate::rules::Finding;
 
 #[derive(Debug, Default, Clone, Serialize)]
+/// Aggregate counters and optional timing data for one scan.
 pub struct ScanStats {
+    /// Number of files successfully scanned.
     pub files_scanned: usize,
+    /// Number of files skipped by filters or cache policy.
     pub files_skipped: usize,
+    /// Number of files that produced scan errors.
     pub files_errored: usize,
+    /// Total source bytes scanned.
     pub bytes_scanned: u64,
+    /// Total source lines scanned.
     pub lines_scanned: u64,
 
+    /// Number of cache hits.
     pub cache_hits: usize,
+    /// Number of cache misses.
     pub cache_misses: usize,
 
+    /// Total emitted findings.
     pub findings_total: usize,
+    /// Finding counts grouped by severity string.
     pub findings_by_severity: HashMap<String, usize>,
+    /// Number of findings suppressed by policy.
     pub findings_suppressed: usize,
 
+    /// Number of rules executed.
     pub rules_executed: usize,
+    /// Number of loaded detectors.
     pub detectors_loaded: usize,
 
+    /// Optional phase timing summary.
     pub timing: Option<TimingSummary>,
 }
 

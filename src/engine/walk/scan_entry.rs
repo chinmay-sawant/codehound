@@ -5,13 +5,12 @@ use std::sync::Arc;
 
 use crate::ast;
 use crate::core::{LanguagePlugin, ParsedUnit, ScanContext};
-use crate::engine::dependencies::extract_dependencies;
+use crate::engine::dependencies::extract_dependencies_with_registry;
 use crate::engine::ignore::{IgnoreDirective, apply_ignores, parse_file_ignore};
 use crate::engine::parse_pool::ParsePool;
 use crate::engine::registry::Registry;
 use crate::engine::result::{ScanError, ScanErrorKind};
-use crate::engine::stats::{FileStats, ScanStats};
-use crate::engine::timing;
+use crate::engine::stats::ScanStats;
 use crate::rules::Finding;
 
 use super::analyze::{analyze_parsed_unit, filter_findings};
@@ -22,6 +21,13 @@ use super::entry::ScanEntry;
 pub(crate) struct PreloadedSource {
     pub source: Arc<str>,
     pub content_hash: String,
+}
+
+pub(crate) struct ScanRequest<'a> {
+    pub project_root: &'a Path,
+    pub module_prefix: Option<&'a str>,
+    pub preloaded: Option<PreloadedSource>,
+    pub collect_stats: bool,
 }
 
 pub(super) fn scan_err(
@@ -92,33 +98,38 @@ pub(crate) struct ScanEntryResult {
     pub suppressed_count: usize,
     pub stats: ScanStats,
     pub dependencies: Vec<String>,
+    pub timing: crate::engine::timing::TimingCollector,
 }
 
 struct ReadOutcome {
     source: Arc<str>,
-    file_stats: FileStats,
+    bytes: u64,
+}
+
+struct AnalysisOptions<'a> {
+    file_ignore: Option<IgnoreDirective>,
+    timing: &'a mut crate::engine::timing::TimingCollector,
 }
 
 fn read_entry_source(
     entry: &ScanEntry,
     stats: &mut ScanStats,
     preloaded: Option<&PreloadedSource>,
+    timing: &mut crate::engine::timing::TimingCollector,
 ) -> Result<ReadOutcome, ScanError> {
     if let Some(preloaded) = preloaded {
-        let file_stats = FileStats::from_source(&preloaded.source);
         return Ok(ReadOutcome {
             source: Arc::clone(&preloaded.source),
-            file_stats,
+            bytes: preloaded.source.len() as u64,
         });
     }
 
-    let idx = timing::global_start("file_read");
-    let (source, _) = read_entry_utf8(entry).inspect_err(|_| {
+    let read = timing.measure("file_read", || read_entry_utf8(entry));
+    let (source, _) = read.inspect_err(|_| {
         stats.record_errored();
     })?;
-    timing::global_stop(idx);
-    let file_stats = FileStats::from_source(&source);
-    Ok(ReadOutcome { source, file_stats })
+    let bytes = source.len() as u64;
+    Ok(ReadOutcome { source, bytes })
 }
 
 fn parse_entry_unit(
@@ -127,6 +138,7 @@ fn parse_entry_unit(
     pool: &mut ParsePool,
     source: Arc<str>,
     stats: &mut ScanStats,
+    timing: &mut crate::engine::timing::TimingCollector,
 ) -> Result<ParsedUnit, ScanError> {
     let parser = pool.parser_for(plugin).map_err(|e| {
         stats.record_errored();
@@ -136,18 +148,17 @@ fn parse_entry_unit(
             format!("configuring parser for {}: {e}", entry.path.display()),
         )
     })?;
-    let idx = timing::global_start("tree_sitter_parse");
-    let unit = plugin
-        .parse_with(parser, &entry.path, Arc::clone(&source))
-        .map_err(|e| {
-            stats.record_errored();
-            scan_err(
-                entry,
-                ScanErrorKind::Parse,
-                format!("parsing {}: {e:#}", entry.path.display()),
-            )
-        })?;
-    timing::global_stop(idx);
+    let parsed = timing.measure("tree_sitter_parse", || {
+        plugin.parse_with(parser, &entry.path, Arc::clone(&source))
+    });
+    let unit = parsed.map_err(|e| {
+        stats.record_errored();
+        scan_err(
+            entry,
+            ScanErrorKind::Parse,
+            format!("parsing {}: {e:#}", entry.path.display()),
+        )
+    })?;
     Ok(unit)
 }
 
@@ -157,27 +168,27 @@ fn analyze_parsed_entry(
     plugin: &dyn LanguagePlugin,
     unit: &mut ParsedUnit,
     stats: &mut ScanStats,
-    file_stats: FileStats,
-    file_ignore: Option<IgnoreDirective>,
+    bytes: u64,
+    options: AnalysisOptions<'_>,
 ) -> (Vec<Finding>, usize) {
     let fn_kinds = plugin.function_node_kinds();
     if !fn_kinds.is_empty() {
-        unit.function_spans = ast::collect_function_spans(unit.tree.root_node(), fn_kinds);
+        unit.set_function_spans(ast::collect_function_spans(unit.tree.root_node(), fn_kinds));
     }
 
-    let det_idx = timing::global_start("detector_execution");
-    let (mut findings, rules_executed) = analyze_parsed_unit(registry, ctx, unit);
-    timing::global_stop(det_idx);
+    let det_idx = options.timing.start("detector_execution");
+    let (mut findings, rules_executed) = analyze_parsed_unit(registry, ctx, unit, options.timing);
+    options.timing.stop(det_idx);
     filter_findings(ctx, &mut findings);
     attach_function_context(&mut findings, unit);
     let suppressed_count = apply_ignores(
         ctx,
         unit.source.as_ref(),
         &mut findings,
-        file_ignore.as_ref(),
+        options.file_ignore.as_ref(),
     );
 
-    stats.record_file(file_stats.bytes, file_stats.lines);
+    stats.record_file(bytes, unit.line_starts.len() as u64);
     stats.findings_suppressed = suppressed_count;
     stats.rules_executed = rules_executed;
     stats.detectors_loaded = registry.detector_count();
@@ -198,11 +209,10 @@ pub(crate) fn scan_entry(
     ctx: &ScanContext,
     entry: &ScanEntry,
     pool: &mut ParsePool,
-    project_root: &Path,
-    module_prefix: Option<&str>,
-    preloaded: Option<PreloadedSource>,
+    request: ScanRequest<'_>,
 ) -> std::result::Result<ScanEntryResult, ScanError> {
     let mut stats = ScanStats::default();
+    let mut timing = crate::engine::timing::TimingCollector::new(request.collect_stats);
 
     let plugin = match registry.plugin_for_id(entry.language) {
         Some(p) => p,
@@ -216,15 +226,27 @@ pub(crate) fn scan_entry(
         }
     };
 
-    let content_hash = preloaded.as_ref().map(|p| p.content_hash.clone());
-    let ReadOutcome { source, file_stats } =
-        read_entry_source(entry, &mut stats, preloaded.as_ref())?;
-    let mut unit = parse_entry_unit(entry, plugin, pool, Arc::clone(&source), &mut stats)?;
-    let dependencies = extract_dependencies(&unit, project_root, module_prefix);
+    let content_hash = request.preloaded.as_ref().map(|p| p.content_hash.clone());
+    let ReadOutcome { source, bytes } =
+        read_entry_source(entry, &mut stats, request.preloaded.as_ref(), &mut timing)?;
+    let mut unit = parse_entry_unit(
+        entry,
+        plugin,
+        pool,
+        Arc::clone(&source),
+        &mut stats,
+        &mut timing,
+    )?;
+    let dependencies = extract_dependencies_with_registry(
+        registry,
+        &unit,
+        request.project_root,
+        request.module_prefix,
+    );
 
     let file_ignore = parse_file_ignore(unit.source.as_ref());
     if !ctx.show_ignored && file_ignore.as_ref().is_some_and(IgnoreDirective::is_all) {
-        stats.record_file(file_stats.bytes, file_stats.lines);
+        stats.record_file(bytes, unit.line_starts.len() as u64);
         return Ok(ScanEntryResult {
             findings: Vec::new(),
             cache_key: unit.display_path,
@@ -233,6 +255,7 @@ pub(crate) fn scan_entry(
             suppressed_count: 0,
             stats,
             dependencies,
+            timing,
         });
     }
 
@@ -242,8 +265,11 @@ pub(crate) fn scan_entry(
         plugin,
         &mut unit,
         &mut stats,
-        file_stats,
-        file_ignore,
+        bytes,
+        AnalysisOptions {
+            file_ignore,
+            timing: &mut timing,
+        },
     );
 
     Ok(ScanEntryResult {
@@ -254,6 +280,7 @@ pub(crate) fn scan_entry(
         suppressed_count,
         stats,
         dependencies,
+        timing,
     })
 }
 
@@ -270,13 +297,116 @@ pub(super) fn attach_function_context(findings: &mut [Finding], unit: &ParsedUni
     if unit.function_spans.is_empty() {
         return;
     }
-    let spans = &unit.function_spans;
-    for finding in findings.iter_mut() {
-        if let Some(span) = ast::enclosing_function(spans, finding.line) {
-            finding.function_start_byte = Some(span.start_byte);
-            finding.function_end_byte = Some(span.end_byte);
-            finding.function_start_line = Some(span.start_line);
-            finding.function_end_line = Some(span.end_line);
+    attach_function_context_to_spans(findings, &unit.function_spans);
+}
+
+pub(crate) fn attach_function_context_to_spans(
+    findings: &mut [Finding],
+    spans: &[ast::FunctionSpan],
+) {
+    let mut span_order: Vec<usize> = (0..spans.len()).collect();
+    span_order.sort_by_key(|&index| spans[index].start_line);
+    let mut finding_order: Vec<usize> = (0..findings.len()).collect();
+    finding_order.sort_by_key(|&index| findings[index].line);
+
+    let mut active = Vec::new();
+    let mut next_span = 0;
+    for finding_index in finding_order {
+        let line = findings[finding_index].line;
+        while next_span < span_order.len() && spans[span_order[next_span]].start_line <= line {
+            active.push(span_order[next_span]);
+            next_span += 1;
         }
+        active.retain(|&index| spans[index].end_line >= line);
+
+        if let Some(&span_index) = active
+            .iter()
+            .max_by_key(|&&index| (spans[index].depth, index))
+        {
+            let span = spans[span_index];
+            let finding = &mut findings[finding_index];
+            finding.set_function_context(
+                span.start_byte,
+                span.end_byte,
+                span.start_line,
+                span.end_line,
+            );
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::borrow::Cow;
+
+    use super::attach_function_context_to_spans;
+    use crate::ast::FunctionSpan;
+    use crate::rules::{Finding, FindingInputs, LineCol, Severity};
+
+    fn finding(line: usize) -> Finding {
+        Finding::new(FindingInputs::new(
+            "TEST-1",
+            "test",
+            "file.go",
+            LineCol::try_new(line, 1).expect("valid location"),
+            "message",
+            Severity::Info,
+            Cow::Owned(Vec::new()),
+        ))
+    }
+
+    #[test]
+    fn function_context_sweep_selects_deepest_nested_span() {
+        let spans = [
+            FunctionSpan {
+                start_byte: 0,
+                end_byte: 100,
+                start_line: 1,
+                end_line: 20,
+                depth: 0,
+            },
+            FunctionSpan {
+                start_byte: 20,
+                end_byte: 60,
+                start_line: 5,
+                end_line: 10,
+                depth: 1,
+            },
+        ];
+        let mut findings = vec![finding(7), finding(15), finding(30)];
+
+        attach_function_context_to_spans(&mut findings, &spans);
+
+        assert_eq!(findings[0].function_start_line, Some(5));
+        assert_eq!(findings[1].function_start_line, Some(1));
+        assert_eq!(findings[2].function_start_line, None);
+    }
+
+    #[test]
+    fn function_context_sweep_preserves_finding_order() {
+        let spans = [
+            FunctionSpan {
+                start_byte: 0,
+                end_byte: 10,
+                start_line: 1,
+                end_line: 3,
+                depth: 0,
+            },
+            FunctionSpan {
+                start_byte: 20,
+                end_byte: 30,
+                start_line: 5,
+                end_line: 7,
+                depth: 0,
+            },
+        ];
+        let mut findings = vec![finding(6), finding(2)];
+
+        attach_function_context_to_spans(&mut findings, &spans);
+
+        assert_eq!(findings[0].line, 6);
+        assert_eq!(findings[0].function_start_line, Some(5));
+        assert_eq!(findings[1].line, 2);
+        assert_eq!(findings[1].function_start_line, Some(1));
     }
 }
