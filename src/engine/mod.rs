@@ -42,7 +42,10 @@ pub use registry::{Registry, RegistryError};
 pub(crate) use result::PipelineAccumulator;
 pub use result::{AnalysisResult, ScanError, ScanErrorKind};
 pub use stats::ScanStats;
-pub use timing::{PhaseTiming, TimingCollector, TimingSummary};
+pub use timing::{
+    PhaseTiming, TimingCollector, TimingSummary, active_enabled, measure_active,
+    with_active_collector,
+};
 pub use walk::{
     EntrySource, FilesystemWalker, ListEntrySource, ScanEntry, collect_entries,
     collect_entries_with, scratch_contains,

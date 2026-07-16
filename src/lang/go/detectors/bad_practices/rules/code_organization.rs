@@ -473,10 +473,12 @@ fn is_local_function_name(text: &str) -> bool {
 
 fn collect_unexported_helpers(root: Node, src: &[u8]) -> Vec<(String, usize)> {
     let mut helpers = Vec::new();
-
-    fn walk(node: Node, src: &[u8], helpers: &mut Vec<(String, usize)>) {
-        if matches!(node.kind(), "function_declaration" | "method_declaration")
-            && let Some(name) = declaration_name(node, src)
+    // Named helpers are package-scope declarations only — walk root children,
+    // not the full AST (nested function literals are not package helpers).
+    let mut cursor = root.walk();
+    for child in root.named_children(&mut cursor) {
+        if matches!(child.kind(), "function_declaration" | "method_declaration")
+            && let Some(name) = declaration_name(child, src)
             && name != "init"
             && name != "main"
             && !name.starts_with("Test")
@@ -485,15 +487,9 @@ fn collect_unexported_helpers(root: Node, src: &[u8]) -> Vec<(String, usize)> {
             && !is_exported(name)
             && looks_like_helper_name(name)
         {
-            helpers.push((name.to_string(), node.start_byte()));
-        }
-        let mut cursor = node.walk();
-        for child in node.named_children(&mut cursor) {
-            walk(child, src, helpers);
+            helpers.push((name.to_string(), child.start_byte()));
         }
     }
-
-    walk(root, src, &mut helpers);
     helpers
 }
 

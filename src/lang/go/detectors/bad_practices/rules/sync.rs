@@ -48,9 +48,12 @@ pub(crate) fn detect_bp_6_waitgroup_add_inside_goroutine(
 /// BP-7: sync.Mutex copied by function parameter value.
 pub(crate) fn detect_bp_7_mutex_passed_by_value(
     unit: &ParsedUnit,
-    _index: &SourceIndex,
+    index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
+    if !index.has("sync.Mutex") && !unit.source.contains("sync.Mutex") {
+        return;
+    }
     let source = unit.source.as_ref();
     for (idx, line) in source.lines().enumerate() {
         let trimmed = line.trim();
@@ -112,9 +115,12 @@ pub(crate) fn detect_bp_8_defer_unlock_on_mutex_copy(
 /// Uses brace-depth matching for the select body (not first `}`).
 pub(crate) fn detect_bp_9_select_without_escape(
     unit: &ParsedUnit,
-    _index: &SourceIndex,
+    index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
+    if !index.has("select") {
+        return;
+    }
     let source = unit.source.as_ref();
     let mut search = 0;
     while let Some(rel) = source[search..].find("select") {

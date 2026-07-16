@@ -161,7 +161,8 @@ fn preflight_cache_hits(
         };
     };
 
-    // Phase 1: read + hash every eligible file; collect provisional hits/misses.
+    // Phase 1: read + hash every eligible file concurrently; collect provisional
+    // hits/misses. Cache lookups are read-only against the store, so Rayon is safe.
     struct Provisional {
         index: usize,
         source: Arc<str>,
@@ -170,44 +171,52 @@ fn preflight_cache_hits(
         hit: Option<CacheEntry>,
         language: LanguageId,
     }
+
+    enum Phase1Item {
+        SkipScan(usize),
+        Err(ScanError),
+        Ready(Provisional),
+    }
+
+    let phase1: Vec<Phase1Item> = entries
+        .par_iter()
+        .enumerate()
+        .map(|(i, entry)| {
+            if !cache.should_cache_path(entry.path.as_ref()) {
+                return Phase1Item::SkipScan(i);
+            }
+            let (source, rel) = match read_entry_utf8(entry) {
+                Ok(v) => v,
+                Err(e) => return Phase1Item::Err(e),
+            };
+            let rel = crate::engine::path_identity::normalize_project_path(&rel);
+            let hash = content_hash(&source);
+            let hit = match cache.lookup(&rel, &hash) {
+                CacheLookup::Hit(cached) => Some(cached),
+                _ => None,
+            };
+            Phase1Item::Ready(Provisional {
+                index: i,
+                source,
+                rel,
+                hash,
+                hit,
+                language: entry.language,
+            })
+        })
+        .collect();
+
     let mut provisional: Vec<Provisional> = Vec::with_capacity(total);
     let mut dirty: std::collections::HashSet<String> = std::collections::HashSet::new();
-
-    for (i, entry) in entries.iter().enumerate() {
-        if !cache.should_cache_path(entry.path.as_ref()) {
-            to_scan.push((i, None));
-            continue;
-        }
-        let (source, rel) = match read_entry_utf8(entry) {
-            Ok(v) => v,
-            Err(e) => {
-                cached_outcomes.push(ScanOutcome::Err(e));
-                continue;
-            }
-        };
-        let rel = crate::engine::path_identity::normalize_project_path(&rel);
-        let hash = content_hash(&source);
-        match cache.lookup(&rel, &hash) {
-            CacheLookup::Hit(cached) => {
-                provisional.push(Provisional {
-                    index: i,
-                    source,
-                    rel,
-                    hash,
-                    hit: Some(cached),
-                    language: entry.language,
-                });
-            }
-            _ => {
-                dirty.insert(rel.clone());
-                provisional.push(Provisional {
-                    index: i,
-                    source,
-                    rel,
-                    hash,
-                    hit: None,
-                    language: entry.language,
-                });
+    for item in phase1 {
+        match item {
+            Phase1Item::SkipScan(i) => to_scan.push((i, None)),
+            Phase1Item::Err(e) => cached_outcomes.push(ScanOutcome::Err(e)),
+            Phase1Item::Ready(p) => {
+                if p.hit.is_none() {
+                    dirty.insert(p.rel.clone());
+                }
+                provisional.push(p);
             }
         }
     }

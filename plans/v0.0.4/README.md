@@ -1,29 +1,30 @@
 # v0.0.4 — Cold-Scan Performance & Quality Gates
 
-> **Status:** Quality gate (missing docs) done; cold-scan performance plan ready  
-> **Baseline target:** gopdfsuit cold scan (~78 Go files / ~28k lines)  
-> **Measured wall time:** ~5.2s full re-analysis (0 cache hits)
+> **Status:** Implemented  
+> **Baseline target:** gopdfsuit cold scan (~78 Go files / ~28k lines)
 
 ## Documents
 
 | File | Purpose | Status |
 |------|---------|--------|
-| [`quality-gate.md`](./quality-gate.md) | **`missing_docs` zero-warning policy** — remove clippy carve-out, document public API | **Done** |
-| [`cold-scan-performance.md`](./cold-scan-performance.md) | Investigation + checklist for ultra-fast cold scans without correctness loss | Plan ready |
+| [`quality-gate.md`](./quality-gate.md) | `missing_docs` zero-warning policy | **Done** |
+| [`cold-scan-performance.md`](./cold-scan-performance.md) | Cold-scan investigation + phased implementation | **Done (Phases 0–5)** |
 
-## Quality gate summary (2026-07-16)
+## Cold-scan results (2026-07-16)
 
-- **Issue:** ~207 `missing documentation` warnings on `make test` because docs were only warned outside Clippy.
-- **Change:** `#![warn(missing_docs)]` always on; all public items documented.
-- **Result:** `make lint` green; **0** missing-docs warnings on `cargo test --no-run`.
+| Scenario | Before | After |
+|----------|--------|-------|
+| `--profile all --no-cache` | **5.21s** | **~353ms (~15×)** |
+| Findings | 943 | **943 (identical multiset)** |
+| Warm cache hits | ~14ms | **~12ms** |
 
-## Cold-scan performance snapshot
+### What fixed the 5s path
 
-| Scenario | Wall time | Notes |
-|----------|-----------|-------|
-| `--profile all --no-cache` | **5.21s** | matches ~5.23s user report |
-| `--only 'BP-*' --no-cache` | **4.34s** | ~83% of cold wall time |
-| `--no-bp --profile all --no-cache` | **172ms** | CWE + PERF + parse + I/O |
-| warm cache hit path | **~14ms** | not the problem |
+1. **Instrumentation** — per-BP-rule timing (no more “everything is BP-1”).
+2. **Short-circuits + cheaper walks** — NEEDLES, `walk_nodes`, single-cursor loops.
+3. **Project-level memoization** — `is_project_anchor` / project texts / go.mod / imports cached per root (was WalkDir thrashing every file).
+4. **Parallel preflight** — concurrent read+hash on cache miss path.
 
-**Conclusion:** cold-scan latency is dominated by **`GoBadPracticeScan`**, not chunk export, not tree-sitter parse, not CWE/PERF. See the performance plan for implementation phases.
+## Quality gate
+
+Public API is fully documented; `#![warn(missing_docs)]` always on; `make lint` enforces it via `-D warnings`.

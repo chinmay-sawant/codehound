@@ -1,16 +1,13 @@
 //! BP-46..BP-55 — production-hardening bad practices.
 
-use std::fs;
 use std::path::PathBuf;
 
 use tree_sitter::Node;
-use walkdir::WalkDir;
 
 use super::super::common::{is_materialized_fixture, is_project_anchor, is_test_file};
 use super::super::source_index::SourceIndex;
 use super::helpers::push_at;
 use crate::core::ParsedUnit;
-use crate::engine::discover_project_root;
 use crate::rules::Finding;
 
 pub(crate) fn detect_bp_46_http_server_missing_timeouts(
@@ -472,22 +469,7 @@ fn package_name(unit: &ParsedUnit) -> Option<&str> {
 }
 
 fn read_project_texts(unit: &ParsedUnit) -> Vec<(PathBuf, String)> {
-    let root = discover_project_root(&unit.path);
-    let mut files = Vec::new();
-    for entry in WalkDir::new(&root).into_iter().filter_map(Result::ok) {
-        let path = entry.path();
-        if !entry.file_type().is_file() {
-            continue;
-        }
-        if path.extension().and_then(|ext| ext.to_str()) != Some("go") {
-            continue;
-        }
-        if let Ok(text) = fs::read_to_string(path) {
-            files.push((path.to_path_buf(), text));
-        }
-    }
-    files.sort_by(|left, right| left.0.cmp(&right.0));
-    files
+    super::super::common::read_project_texts_cached(unit)
 }
 
 fn contains_server_start(text: &str) -> bool {

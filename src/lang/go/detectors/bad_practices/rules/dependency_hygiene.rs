@@ -299,6 +299,7 @@ pub(crate) fn detect_bp_65_missing_go_sum_entries(
     }
 }
 
+#[derive(Clone)]
 struct GoModContext {
     root: PathBuf,
     text: String,
@@ -310,6 +311,7 @@ struct Require {
     indirect: bool,
 }
 
+#[derive(Clone)]
 struct ProjectImports {
     all: BTreeSet<String>,
     non_test: BTreeSet<String>,
@@ -342,10 +344,22 @@ fn collect_import_paths(unit: &ParsedUnit) -> Vec<(usize, String)> {
 }
 
 fn read_go_mod(unit: &ParsedUnit) -> Option<GoModContext> {
+    use std::sync::{Mutex, OnceLock};
     let root = discover_project_root(&unit.path);
+    static CACHE: OnceLock<Mutex<std::collections::HashMap<PathBuf, Option<GoModContext>>>> =
+        OnceLock::new();
+    let cache = CACHE.get_or_init(|| Mutex::new(std::collections::HashMap::new()));
+    let mut guard = cache.lock().unwrap_or_else(|p| p.into_inner());
+    if let Some(cached) = guard.get(&root) {
+        return cached.clone();
+    }
     let path = root.join("go.mod");
-    let text = fs::read_to_string(&path).ok()?;
-    Some(GoModContext { root, text })
+    let loaded = fs::read_to_string(&path).ok().map(|text| GoModContext {
+        root: root.clone(),
+        text,
+    });
+    guard.insert(root, loaded.clone());
+    loaded
 }
 
 fn parse_requires(go_mod: &str) -> Vec<Require> {
@@ -543,6 +557,15 @@ fn collect_non_test_go_files(root: &Path) -> Vec<PathBuf> {
 }
 
 fn collect_project_imports(root: &Path) -> ProjectImports {
+    use std::sync::{Mutex, OnceLock};
+    static CACHE: OnceLock<Mutex<std::collections::HashMap<PathBuf, ProjectImports>>> =
+        OnceLock::new();
+    let cache = CACHE.get_or_init(|| Mutex::new(std::collections::HashMap::new()));
+    let mut guard = cache.lock().unwrap_or_else(|p| p.into_inner());
+    if let Some(cached) = guard.get(root) {
+        return cached.clone();
+    }
+
     let mut by_file: BTreeMap<PathBuf, BTreeSet<String>> = BTreeMap::new();
     for entry in WalkDir::new(root).into_iter().filter_map(Result::ok) {
         let path = entry.path();
@@ -573,11 +596,13 @@ fn collect_project_imports(root: &Path) -> ProjectImports {
         }
     }
     test_only.retain(|import| !non_test.contains(import));
-    ProjectImports {
+    let result = ProjectImports {
         all,
         non_test,
         test_only,
-    }
+    };
+    guard.insert(root.to_path_buf(), result.clone());
+    result
 }
 
 fn extract_imports_from_text(source: &str) -> BTreeSet<String> {

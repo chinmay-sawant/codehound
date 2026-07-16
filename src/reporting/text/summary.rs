@@ -165,7 +165,13 @@ pub(super) fn write_detector_timing(
     timing: &crate::engine::TimingSummary,
 ) -> Result<(), Error> {
     writeln!(out, "--- Detector Timing (top 10) ---")?;
-    let mut phases: Vec<_> = timing.phases.iter().collect();
+    // Exclude known parent/wrapper phases that nest other timed work so
+    // percentages are not double-counted against leaf detector/rule spans.
+    let mut phases: Vec<_> = timing
+        .phases
+        .iter()
+        .filter(|p| !is_wrapper_timing_phase(p.name))
+        .collect();
     phases.sort_by_key(|b| std::cmp::Reverse(b.duration));
     let total: Duration = phases.iter().map(|p| p.duration).sum();
     for phase in phases.iter().take(10) {
@@ -183,6 +189,10 @@ pub(super) fn write_detector_timing(
         phases.len()
     )?;
     Ok(())
+}
+
+fn is_wrapper_timing_phase(name: &str) -> bool {
+    matches!(name, "detector_execution")
 }
 
 fn write_phase_timing_line(

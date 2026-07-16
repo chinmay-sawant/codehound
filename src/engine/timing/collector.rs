@@ -5,7 +5,12 @@
 //! Production scans use one collector per file and merge those collectors at
 //! chunk boundaries. The legacy global helpers below are test-only coverage
 //! for the old compatibility behavior.
+//!
+//! Detectors may also record nested spans against a **thread-local active
+//! collector** installed by the scan worker (see [`with_active_collector`]).
 
+use std::cell::Cell;
+use std::ptr::NonNull;
 #[cfg(test)]
 use std::sync::Mutex;
 #[cfg(test)]
@@ -13,6 +18,50 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 use super::summary::TimingSummary;
+
+thread_local! {
+    /// Active per-file collector for nested detector/rule spans on this worker.
+    static ACTIVE_COLLECTOR: Cell<Option<NonNull<TimingCollector>>> = const { Cell::new(None) };
+}
+
+/// Install `collector` as the thread-local active collector for the duration of `f`.
+///
+/// Used so multi-rule detectors can record per-rule spans without threading the
+/// collector through the [`crate::core::Detector`] trait.
+pub fn with_active_collector<R>(collector: &mut TimingCollector, f: impl FnOnce() -> R) -> R {
+    ACTIVE_COLLECTOR.with(|cell| {
+        let prev = cell.replace(Some(NonNull::from(collector)));
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f));
+        cell.set(prev);
+        match result {
+            Ok(value) => value,
+            Err(payload) => std::panic::resume_unwind(payload),
+        }
+    })
+}
+
+/// Time `f` under `name` on the active thread-local collector when present and
+/// enabled; otherwise run `f` with no timing overhead.
+pub fn measure_active<R>(name: &'static str, f: impl FnOnce() -> R) -> R {
+    ACTIVE_COLLECTOR.with(|cell| {
+        let Some(ptr) = cell.get() else {
+            return f();
+        };
+        // SAFETY: pointer is set only for the duration of `with_active_collector`
+        // on this thread, and the collector outlives that scope.
+        let collector = unsafe { &mut *ptr.as_ptr() };
+        collector.measure(name, f)
+    })
+}
+
+/// Whether the active thread-local collector is present and enabled.
+pub fn active_enabled() -> bool {
+    ACTIVE_COLLECTOR.with(|cell| {
+        cell.get()
+            .map(|ptr| unsafe { ptr.as_ref().is_enabled() })
+            .unwrap_or(false)
+    })
+}
 
 #[cfg(test)]
 static GLOBAL: Mutex<Option<TimingCollector>> = Mutex::new(None);

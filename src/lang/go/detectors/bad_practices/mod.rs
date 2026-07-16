@@ -31,13 +31,21 @@ impl Detector for GoBadPracticeScan {
             return;
         }
         let index = source_index::SourceIndex::build(source_index::NEEDLES, unit.source.as_ref());
+        let time_rules = ctx.debug_timing && crate::engine::active_enabled();
         for (rule_id, detector) in dispatch::BAD_PRACTICE_RULES {
-            if ctx.allows(rule_id) {
-                let start = out.len();
+            if !ctx.allows(rule_id) {
+                continue;
+            }
+            let start = out.len();
+            if time_rules {
+                crate::engine::measure_active(rule_id, || {
+                    detector(unit, &index, out);
+                });
+            } else {
                 detector(unit, &index, out);
-                for finding in &mut out[start..] {
-                    ctx.apply_finding_overrides(finding);
-                }
+            }
+            for finding in &mut out[start..] {
+                ctx.apply_finding_overrides(finding);
             }
         }
     }
