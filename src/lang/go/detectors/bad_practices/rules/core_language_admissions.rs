@@ -28,6 +28,10 @@ pub(crate) fn detect_bp_66_wrapped_error_compared_directly(
     if is_test_file(unit) {
         return;
     }
+    // Needs a %w wrap plus a comparison; skip files without wrapping evidence.
+    if !unit.source.contains("%w") {
+        return;
+    }
 
     walk_functions(unit.tree.root_node(), unit.source.as_bytes(), unit, out);
 }

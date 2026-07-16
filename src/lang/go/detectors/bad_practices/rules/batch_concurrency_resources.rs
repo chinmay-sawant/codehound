@@ -21,6 +21,10 @@ pub(crate) fn detect_bp_88_nil_channel_operation(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
+    // Needs a channel type declaration; skip pure non-chan files.
+    if !unit.source.contains("chan ") && !unit.source.contains("chan\t") {
+        return;
+    }
     inspect_functions(
         unit.tree.root_node(),
         unit.source.as_bytes(),
@@ -137,6 +141,13 @@ pub(crate) fn detect_bp_99_cond_wait_without_lock(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
+    // Needs local sync.NewCond / Cond construction; skip files without it.
+    if !(unit.source.contains("NewCond")
+        || unit.source.contains("sync.Cond")
+        || unit.source.contains(".Wait("))
+    {
+        return;
+    }
     inspect_functions(
         unit.tree.root_node(),
         unit.source.as_bytes(),

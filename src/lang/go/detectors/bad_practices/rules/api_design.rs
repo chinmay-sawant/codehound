@@ -154,6 +154,10 @@ pub(crate) fn detect_bp_30_exported_interface_without_same_package_impl(
     if is_test_file(unit) {
         return;
     }
+    // Exported interface type specs only; most files have none.
+    if !unit.source.contains("interface") {
+        return;
+    }
     let package_methods = package_method_sets(unit);
     walk_type_specs(unit, |spec, src| {
         let name = declaration_name(spec, src)?;
@@ -194,6 +198,10 @@ pub(crate) fn detect_bp_31_constructor_returns_concrete_type(
     out: &mut Vec<Finding>,
 ) {
     if is_test_file(unit) {
+        return;
+    }
+    // Constructors are New* funcs; files without them cannot fire.
+    if !unit.source.contains("func New") {
         return;
     }
     let package_methods = package_method_sets(unit);

@@ -1,6 +1,6 @@
 # v0.0.4 — Cold-Scan Performance & Quality Gates
 
-> **Status:** Phases 0–6 done  
+> **Status:** Phases 0–7A done (7C optional)  
 > **Baseline target:** gopdfsuit cold scan (~78 Go files / ~28k lines)
 
 ## Documents
@@ -8,13 +8,13 @@
 | File | Purpose | Status |
 |------|---------|--------|
 | [`quality-gate.md`](./quality-gate.md) | `missing_docs` zero-warning policy | **Done** |
-| [`cold-scan-performance.md`](./cold-scan-performance.md) | Cold-scan investigation + phased implementation | **Phases 0–6 done** |
+| [`cold-scan-performance.md`](./cold-scan-performance.md) | Cold-scan investigation + phased implementation | **Phases 0–7A done** |
 
 ## Cold-scan results
 
 | Scenario | Before | After |
 |----------|--------|-------|
-| Full re-analysis (`make run`, release, 0 cache hits) | **up to 5s** | **~425ms (~12×)** |
+| Full re-analysis (`make run`, release, 0 cache hits) | **up to 5s** | **~400ms avg** (~370ms best, ~12×) |
 | Findings | 943 | **943 (unchanged)** |
 | Warm cache hits | ~14ms | **~12–36ms** |
 

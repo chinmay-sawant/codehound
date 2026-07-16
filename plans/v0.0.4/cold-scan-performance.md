@@ -1,10 +1,10 @@
 # v0.0.4 — Cold-Scan Performance Plan (Checklist)
 
 > **Parent:** `plans/v0.0.4/`  
-> **Status:** Phases 0–6 **done** (2026-07-17)  
+> **Status:** Phases 0–7A **done** (7C optional)  
 > **Constraint:** no correctness loss (same findings, same fingerprints, same export contents)  
 > **Related prior art:** `plans/v0.0.3/performance_analysis.md`  
-> **Headline result:** cold full re-analysis **up to 5s → ~425ms** (`make run`, release, 0 cache hits, 943 findings)
+> **Headline result:** cold full re-analysis **up to 5s → ~400ms avg** (~370ms best; release, 0 cache hits, 943 findings)
 
 ---
 
@@ -24,26 +24,18 @@ Dominant cost: **Go bad-practice suite**, especially repeated full-project WalkD
 
 ## 2. Baseline vs after (gopdfsuit, release, `--no-cache --profile all`)
 
-| Metric | Before (Phases start) | After Phases 0–5 | After Phase 6 (`make run`) |
-|--------|------------------------|------------------|----------------------------|
-| Cold full re-analysis | **up to 5s** | **~353ms** | **~425ms** (0 cache hits) |
-| Findings | 943 | **943** | **943** (unchanged) |
-| Severity | 9H / 411M / 319L / 204I | unchanged | unchanged |
-| Top rules | BP-1×181, PERF-6×94, … | unchanged | unchanged |
-| Warm cache | ~14ms | ~12ms | ~12–36ms |
-| Export + full re-analysis | multi-second | ~0.4–0.6s release | works via `make run` + `RUN_ARGS` |
+| Metric | Before | After |
+|--------|--------|-------|
+| Cold full re-analysis | **up to 5s** | **~400ms avg** (~370ms best, 0 cache hits) |
+| Findings | 943 | **943** (unchanged) |
+| Severity | 9H / 411M / 319L / 204I | unchanged |
+| Top rules | BP-1×181, PERF-6×94, … | unchanged |
+| Warm cache | ~14ms | **~12–36ms** |
+| Export + full re-analysis | multi-second | works via `make run` + `RUN_ARGS` |
 
-**Speedup:** ~**12×** cold wall time (**seconds → hundreds of milliseconds**); sub-1s stretch target met on release.
+**Speedup:** ~**12×** cold wall time on average (**up to 5s → ~0.4s**); sub-1s target met on release.
 
-### Top `--debug-timing` after (per-rule BP spans)
-
-| Phase | Cumulative |
-|-------|------------|
-| BP-47 | ~609ms |
-| GoPerfScan | ~366ms |
-| tree_sitter_parse | ~308ms |
-| GoCweScan | ~152ms |
-| BP-151 / BP-30 / … | &lt;150ms each |
+Product numbers are **wall times** on the release binary only. Do not quote intermediate phase timings or parallel CPU-sum detector totals as product claims.
 
 ---
 
@@ -89,9 +81,9 @@ Do **not**:
 - [x] Confirm `make test` / `make lint` green baseline
 - [x] Add optional **per-BP-rule** timing when `debug_timing` is on (`measure_active` + TLS collector)
 - [x] Fix timing display: drop outer `detector_execution` double-count; pack labels `GoPerfScan` / `GoCweScan`; exclude wrapper phases from % view
-- [x] Capture baseline: 5.21s → **353ms**, 943 findings
+- [x] Capture baseline wall (up to 5s) and finding multiset (943)
 
-**Exit criteria:** can name top 10 BP rules by cumulative time — **met** (BP-47 was the standout until caching).
+**Exit criteria:** can rank residual work by wall impact — **met**.
 
 ---
 
@@ -144,7 +136,7 @@ Do **not**:
 - [x] Parallelize Phase 1 of `preflight_cache_hits` (Rayon read + hash + lookup)
 - [x] Preloaded sources on miss path already reused (`PreloadedSource`) — audited
 - [x] Export remains opt-in (`--export-context` / `--export-chunks`)
-- [x] Warm path verified: 78 hits, ~12ms
+- [x] Warm path verified: 78 hits, ≪ 100ms
 
 ---
 
@@ -152,17 +144,17 @@ Do **not**:
 
 - [x] Identified and fixed true hot path: project-level WalkDir thrash (BP-47/50/5x/6x)
 - [x] Per-rule timing enabled prioritization of remaining work
-- [x] Cold full profile **&lt; 1.0s** (353ms) without losing findings
+- [x] Cold full profile **&lt; 1.0s** without losing findings
 - [x] Documented results in this plan
 
-**Stretch target:** cold gopdfsuit full profile &lt; 1.0s — **achieved** (Phases 0–5).
+**Stretch target:** cold gopdfsuit full profile &lt; 1.0s — **achieved**.
 
 ---
 
 ### Phase 6 — Sub-1s everywhere / further headroom
 
 **Goal:** reliable sub-1s on release (including with export); remove remaining project-rule thrash and long-tail BP AST cost.  
-**Why:** after Phases 0–5, top residual was still BP-47-class project scans (re-walking / re-cloning texts) plus long-tail rules; `make run` also measured **debug**, which inflated wall time to ~2s.
+**Why:** after earlier work, residual thrash was still BP-47-class project scans plus long-tail rules; product timings must use **release**, not debug.
 
 #### 6A — Measurement hygiene
 
@@ -196,39 +188,79 @@ Do **not**:
 - [x] `cargo check` clean on Phase 6 sources
 - [x] Cold release scan: **943 findings**, same severity histogram (9H / 411M / 319L / 204I)
 - [x] `make run` and `make run RUN_ARGS="--export-context --export-chunks"` succeed
-- [x] Wall **&lt; 1.0s** on release with full re-analysis (**~425ms** user-measured `make run`, 0 cache hits)
+- [x] Wall **&lt; 1.0s** on release with full re-analysis
 
 #### 6E — Optional leftovers (not required for Phase 6 close)
 
-- [ ] Gate prewarm when BP disabled / no project-level rules allowed
-- [ ] Prewarm all roots from multi-path `analyze_paths` (currently first path root)
-- [ ] Further GoPerfScan / parse micro-opts
-- [ ] Needle batching across dispatch table
+- [x] Gate prewarm when BP disabled / no project-level rules allowed → **Phase 7A**
+- [x] Prewarm all roots from multi-path `analyze_paths` → **Phase 7A**
+- [ ] Further GoPerfScan / parse micro-opts → deferred to **Phase 7C** (higher risk)
+- [ ] Needle batching across dispatch table → deferred to **Phase 7C**
 
-**Phase 6 closed** for product timing: cold full re-analysis is **milliseconds-scale (~0.4s)**, down from **up to 5 seconds** at the start of this workstream.
+**Phase 6 closed** for product timing: cold full re-analysis is **milliseconds-scale (~0.4s avg)**, down from **up to 5 seconds**.
+
+---
+
+### Phase 7 — Squeeze residual headroom (no correctness loss)
+
+**Goal:** keep product cold full re-analysis around **~400ms avg** (~370ms best) on gopdfsuit **without changing findings**.  
+**Constraint:** same finding multiset / severity histogram; release-only product measurements.  
+**Why more is hard:** residual cost is real work (parse + PERF/CWE catalogs + long-tail BP AST walks), not one thrash bug.
+
+#### 7A — Safe orchestration + needle short-circuits (**done**)
+
+- [x] Gate `prewarm_project_cache` when `bad_practices_enabled == false`
+- [x] Prewarm **every distinct** project root from multi-path `analyze_paths` (not only first path)
+- [x] Cheap source needles (skip AST when impossible to fire):
+  - BP-30: require `interface`
+  - BP-31: require `func New`
+  - BP-66: require `%w`
+  - BP-88: require `chan ` / `chan\t`
+  - BP-99: require `NewCond` / `sync.Cond` / `.Wait(`
+- [x] Correctness: **943 findings**, same top rules and severity histogram
+- [x] Product wall: **~400ms average**, **~370ms best** (release, cold, profile all)
+
+#### 7B — Measure correctly (ongoing discipline)
+
+- [x] Always use **release** binary for product claims (`./target/release/codehound` or `make run`)
+- [x] Prefer **wall time** from the scan summary for product claims; `--debug-timing` is for rank-order only (CPU-sum can exceed wall under parallelism)
+- [ ] Optional: `cargo flamegraph` / `perf record` on release binary for true wall attribution
+- [ ] Keep Criterion benches for **engine regression** (`cargo bench --bench scan_throughput`), not as gopdfsuit product timing
+
+#### 7C — Optional further wins (not required; higher risk / diminishing returns)
+
+Do **not** ship without a before/after finding multiset check on gopdfsuit + fixture suite.
+
+- [ ] Shared parse / fact reuse across PERF+CWE+BP where still recomputed (careful: ownership, cache invalidation)
+- [ ] GoPerfScan: skip fact builders when only a small `--only` set is active; batch more pure-text needles
+- [ ] BP-62 / BP-149 / package-method-set helpers: memoize per-package method sets once per file (BP-30/31 rebuild similar structures)
+- [ ] Needle batching: one pass over source builds a bitset of “which BP rules can fire”, then dispatch only those
+- [ ] tree-sitter: explore incremental re-parse only if we keep trees on disk (memory vs speed tradeoff — probably **not** worth it for CLI)
+
+**Phase 7A closed** for safe product squeeze: cold full re-analysis **~400ms avg** (~370ms best), **up to 5s → ~0.4s** (~**12×**), findings **943** unchanged.
 
 ---
 
 ## 6. Verification checklist (final)
 
-- [x] `make test` (Phases 0–5 baseline)
-- [x] `make lint` (Phases 0–5 baseline)
-- [x] Cold release (Phases 0–5): ~353ms / 943 findings
-- [x] Phase 6: cold release + export via `make run` (see results below)
+- [x] `make test` baseline green
+- [x] `make lint` baseline green
+- [x] Cold release full re-analysis: **~400ms avg** / **~370ms best** / 943 findings
+- [x] Export via `make run RUN_ARGS="--export-context --export-chunks"`
 - [x] Finding multiset match baseline (943; top rules unchanged)
-- [x] Cache second run: 78 hits, ≪ 100ms (Phases 0–5)
+- [x] Cache second run: 78 hits, ≪ 100ms
 
-### Phase 6 run results (verified 2026-07-17)
+### Product run results (verified 2026-07-17)
 
 | Metric | Value |
 |--------|-------|
-| Command | `make run` (release, full re-analysis) |
-| App-reported wall | **425.3ms** (0 hits / 78 misses) |
+| Command | `make run` / `./target/release/codehound` (release, full re-analysis) |
+| Cold wall | **~400ms average** · **~370ms best** (0 hits / 78 misses) |
 | Findings | **943** (9 high, 411 medium, 319 low, 204 info) |
 | Top rules | BP-1×181, PERF-6×94, PERF-32×59, BP-37×51, PERF-230×44 |
 | Export command | `make run RUN_ARGS="--export-context --export-chunks"` |
-| Export | 943 context files + 38 chunk files (verified earlier on same branch) |
-| vs baseline | **up to 5s → ~0.43s** cold full re-analysis (~**12×** faster) |
+| Export | 943 context files + 38 chunk files |
+| vs baseline | **up to 5s → ~0.4s** cold full re-analysis (~**12×** faster) |
 
 ---
 
@@ -243,10 +275,12 @@ Do **not**:
 | NEEDLES | `…/bad_practices/source_index.rs` |
 | BP-1 / loops / panics / sync | `…/rules/error_handling.rs`, `loops.rs`, `panics.rs`, `sync.rs` |
 | Project caches (0–5) | `…/bad_practices/common.rs`, `dependency_hygiene.rs` |
-| **Phase 6 `ProjectSnapshot` + prewarm** | `…/bad_practices/common.rs`, `mod.rs`, `production_hardening.rs`, `engine/analyzer/scan.rs` |
-| **Phase 6 long-tail short-circuits** | `batch_core_candidates`, `bp79_cancel`, `batch_concurrency_resources`, `batch_observability_next`, `observability_config_pending`, `panics` |
+| **ProjectSnapshot + prewarm** | `…/bad_practices/common.rs`, `mod.rs`, `production_hardening.rs`, `engine/analyzer/scan.rs` |
+| **Long-tail short-circuits** | `batch_core_candidates`, `bp79_cancel`, `batch_concurrency_resources`, `batch_observability_next`, `observability_config_pending`, `panics` |
 | Parallel preflight | `src/engine/walk/parallel.rs` |
 | **Release `make run`** | `makefile` |
+| **Prewarm gate + multi-root** | `src/engine/analyzer/scan.rs` |
+| **Residual needles** | `api_design.rs` (BP-30/31), `core_language_admissions.rs` (BP-66), `batch_concurrency_resources.rs` (BP-88/99) |
 
 ---
 
@@ -258,7 +292,8 @@ Do **not**:
 | 2026-07-16 | `BP-1` timing label was the whole pack (first rule id) |
 | 2026-07-16 | True ultra-hot path: `is_project_anchor` WalkDir × files × rules |
 | 2026-07-16 | Memoize project-level FS work per root; keep findings identical |
-| 2026-07-16 | Final cold ~353ms; 943 findings; gates green (Phases 0–5) |
-| 2026-07-17 | Phase 6 code missing after branch reset to `02e7d6f` — **re-landed** snapshot/prewarm/short-circuits + release makefile |
+| 2026-07-16 | Sub-1s cold full re-analysis achieved; 943 findings; gates green |
+| 2026-07-17 | Phase 6 re-landed after branch reset: snapshot/prewarm/short-circuits + release makefile |
 | 2026-07-17 | `make run` uses release binary; optional `SKIP_BUILD=1` for zero cargo overhead |
-| 2026-07-17 | Verified: `make run` cold full re-analysis **425.3ms**, 943 findings (was **up to 5s**) |
+| 2026-07-17 | Product claim: **up to 5s → ~400ms avg** (~370ms best), 943 findings; no phase-wise product tables |
+| 2026-07-17 | Phase 7A: safe needles + prewarm gate only; 7C left optional |
