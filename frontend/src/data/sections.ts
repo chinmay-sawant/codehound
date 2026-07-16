@@ -56,7 +56,7 @@ export const sections: Section[] = [
       { value: '~2k→2.7k', label: 'ops/sec after fixes', sub: 'gopdfsuit · CodeHound pass' },
       { value: '+35%', label: 'throughput lift', sub: 'same machines · same harness' },
       { value: '218', label: 'PERF findings fixed', sub: '226 exported · 8 CWE deferred' },
-      { value: '$0', label: 'scan cost', sub: 'offline · no API key' },
+      { value: '~425ms', label: 'cold full scan', sub: 'was ~5.2s · ~12× · release' },
     ],
     facts: [
       { k: 'What changed', v: 'Regex hoists, fmt→strconv/AppendInt, defer off hot paths, non-blocking logging' },
@@ -212,14 +212,16 @@ export const sections: Section[] = [
     icon: BarChart3,
     title: 'Benchmarks & latest scan',
     lead:
-      'Criterion.rs on release builds for engine throughput, plus a real export run — 1,042 findings, 42 review chunks, zero inference.',
+      'Cold full re-analysis on gopdfsuit dropped from ~5.2s to ~425ms on the release binary — about 12× faster — plus Criterion microbenches and a real export run.',
     stats: [
+      { value: '~425ms', label: 'cold full scan', sub: 'gopdfsuit · 0 cache hits · release' },
+      { value: '~12×', label: 'faster cold path', sub: '~5.2s → ~0.43s · profile all' },
       { value: '1,042', label: 'findings exported', sub: 'scripts/findings/functions' },
-      { value: '42', label: 'review chunks', sub: 'scripts/chunks · ~25 each' },
-      { value: '39.5ms', label: 'full fixture scan', sub: '900 Go files · 275 rules' },
-      { value: '+35%', label: 'gopdfsuit ops/s', sub: '~2,000 → ~2,700 after fixes' },
+      { value: '39.5ms', label: 'full fixture scan', sub: '900 Go files · Criterion' },
     ],
     facts: [
+      { k: 'Cold wall (release)', v: '~5.2s → ~425ms full re-analysis · 943 findings · 0 cache hits' },
+      { k: 'Warm cache', v: '~12–36ms second run when content hashes hit' },
       { k: 'Severity mix', v: '202 high · 533 medium · 307 low' },
       { k: 'Top rules', v: 'CWE-79 ×192 · BP-1 ×164 · PERF-6 ×96 · PERF-192 ×80 · PERF-32 ×43' },
       { k: 'Categories', v: '533 PERF · 202 CWE · 307 bad practices' },
@@ -227,9 +229,11 @@ export const sections: Section[] = [
     ],
     tables: [
       {
-        caption: 'Engine benchmarks (Criterion.rs, release profile)',
+        caption: 'Product timings & engine benchmarks (release profile)',
         headers: ['Benchmark', 'Time', 'Notes'],
         rows: [
+          ['gopdfsuit cold full re-analysis', '~425 ms', 'profile all · 0 cache hits · was ~5.2s (~12×)'],
+          ['gopdfsuit warm cache', '~12–36 ms', 'content-hash hits · same tree'],
           ['scan_materialized_fixtures', '39.5 ms', '275 detectors · 900 Go fixture files'],
           ['collect_entries_materialized', '1.0 ms', 'File discovery + language classification'],
           ['incremental warm vs cold', '≥5× faster', 'CI gate on cache-hit replay'],
@@ -238,6 +242,7 @@ export const sections: Section[] = [
       },
     ],
     body: [
+      'Timings are release builds (`cargo build --release` / `./target/release/codehound`). Debug binaries are several times slower — product claims always mean the optimized binary.',
       'The static pass still flags the essentials — regexes compiled inside loops, fmt.Sprintf boxing on hot paths, defer frames in tight loops — but the export path now batches context for agents: one file per finding, chunked for batch triage.',
       'Four outlier chunks (findings 451–550) carry ~50% of export tokens because enclosing functions are huge. Trim context before LLM review if you want triage cost to stay flat.',
     ],
@@ -317,7 +322,7 @@ for i := range members {
       { k: 'Text', v: 'color-coded severity, per-finding snippet, fix hint, summary footer' },
       { k: 'JSON', v: 'NDJSON stream, stable fingerprint (codehound:2:rule:file:msghash), jq-able' },
       { k: 'SARIF', v: '2.1.0, security-severity mapped, partialFingerprints, runs in GitHub Code Scanning' },
-      { k: 'Cache', v: 'per-file content-hash, ~27× speedup on repeat scans, enabled by default' },
+      { k: 'Cache', v: 'per-file content-hash; warm ~12–36ms after cold ~425ms on gopdfsuit; enabled by default' },
       { k: 'Agent export', v: 'scripts/findings/functions + scripts/chunks — fixed context for batch triage' },
     ],
     body: [
