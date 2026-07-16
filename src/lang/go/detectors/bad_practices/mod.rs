@@ -11,6 +11,11 @@ mod source_index;
 
 pub(crate) use metadata::*;
 
+/// Pre-warm project-level BP caches for `root` before parallel file work.
+pub(crate) fn prewarm_project_cache(root: &std::path::Path) {
+    common::prewarm_project_snapshot(root);
+}
+
 pub struct GoBadPracticeScan;
 
 impl Detector for GoBadPracticeScan {

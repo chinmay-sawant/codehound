@@ -62,7 +62,16 @@ pub(crate) fn detect_bp_75_copy_into_zero_length_slice(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
-    walk_functions_bp_75(unit.tree.root_node(), unit.source.as_bytes(), unit, out);
+    if !unit.source.contains("copy(") {
+        return;
+    }
+    crate::ast::walk_nodes(
+        unit.tree.root_node(),
+        &["function_declaration", "method_declaration"],
+        &mut |node| {
+            inspect_function_bp_75(node, unit.source.as_bytes(), unit, out);
+        },
+    );
 }
 
 #[derive(Clone, Copy)]
@@ -70,17 +79,6 @@ struct ZeroSlice<'a> {
     name: &'a str,
     declaration: Node<'a>,
     scope_id: usize,
-}
-
-fn walk_functions_bp_75(node: Node, source: &[u8], unit: &ParsedUnit, out: &mut Vec<Finding>) {
-    if matches!(node.kind(), "function_declaration" | "method_declaration") {
-        inspect_function_bp_75(node, source, unit, out);
-    }
-
-    let mut cursor = node.walk();
-    for child in node.named_children(&mut cursor) {
-        walk_functions_bp_75(child, source, unit, out);
-    }
 }
 
 fn inspect_function_bp_75(

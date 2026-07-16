@@ -33,53 +33,72 @@ pub(crate) fn is_flat_materialized_fixture(unit: &ParsedUnit) -> bool {
 }
 
 /// True when `unit` is the lexicographically first non-test `.go` file under the
-/// project root. Used so project-level rules emit once per repo, not per file.
-///
-/// The expensive WalkDir is memoized per project root for the process lifetime
-/// (safe across Rayon workers via a mutex).
+/// project root. Uses the shared project snapshot (one WalkDir per root).
 pub(crate) fn is_project_anchor(unit: &ParsedUnit) -> bool {
     let root = discover_project_root(&unit.path);
-    let Some(anchor) = project_anchor_for_root(&root) else {
+    let Some(anchor) = project_snapshot_for_root(&root).anchor else {
         return false;
     };
     anchor == unit.path
 }
 
-fn project_anchor_for_root(root: &Path) -> Option<PathBuf> {
-    static CACHE: OnceLock<Mutex<HashMap<PathBuf, Option<PathBuf>>>> = OnceLock::new();
-    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-    let mut guard = cache.lock().unwrap_or_else(|p| p.into_inner());
+/// Shared project-level facts for BP-47/50/54/55 (and friends).
+///
+/// Built once per project root via a single WalkDir + text scan. Production
+/// rules use the precomputed flags (no multi-MB clone under the mutex).
+#[derive(Clone)]
+pub(crate) struct ProjectSnapshot {
+    /// Lexicographically first non-test `.go` path (project anchor), if any.
+    pub anchor: Option<PathBuf>,
+    pub has_server_start: bool,
+    pub has_shutdown: bool,
+    pub has_signal_handling: bool,
+    pub has_public_route: bool,
+    pub has_rate_limiting: bool,
+    pub has_request_id: bool,
+    pub has_logging: bool,
+}
+
+/// Return the memoized project snapshot for `unit`'s project root.
+pub(crate) fn project_snapshot(unit: &ParsedUnit) -> ProjectSnapshot {
+    let root = discover_project_root(&unit.path);
+    project_snapshot_for_root(&root)
+}
+
+/// Pre-warm project snapshot for a scan root before parallel BP work.
+pub(crate) fn prewarm_project_snapshot(start: &Path) {
+    let root = discover_project_root(start);
+    let _ = project_snapshot_for_root(&root);
+}
+
+type SnapshotCache = HashMap<PathBuf, ProjectSnapshot>;
+
+fn snapshot_cache() -> &'static Mutex<SnapshotCache> {
+    static CACHE: OnceLock<Mutex<SnapshotCache>> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn project_snapshot_for_root(root: &Path) -> ProjectSnapshot {
+    let mut guard = snapshot_cache().lock().unwrap_or_else(|p| p.into_inner());
     if let Some(cached) = guard.get(root) {
         return cached.clone();
     }
-    let mut files: Vec<PathBuf> = WalkDir::new(root)
-        .into_iter()
-        .filter_map(Result::ok)
-        .filter(|entry| entry.file_type().is_file())
-        .map(|entry| entry.path().to_path_buf())
-        .filter(|path| path.extension().and_then(|ext| ext.to_str()) == Some("go"))
-        .filter(|path| !path.to_string_lossy().ends_with("_test.go"))
-        .collect();
-    files.sort();
-    let anchor = files.into_iter().next();
-    guard.insert(root.to_path_buf(), anchor.clone());
-    anchor
+    let built = build_project_snapshot(root);
+    guard.insert(root.to_path_buf(), built.clone());
+    built
 }
 
-type ProjectTexts = Vec<(PathBuf, String)>;
-type ProjectTextCache = HashMap<PathBuf, ProjectTexts>;
+fn build_project_snapshot(root: &Path) -> ProjectSnapshot {
+    let mut go_files: Vec<PathBuf> = Vec::new();
+    let mut has_server_start = false;
+    let mut has_shutdown = false;
+    let mut has_signal_handling = false;
+    let mut has_public_route = false;
+    let mut has_rate_limiting = false;
+    let mut has_request_id = false;
+    let mut has_logging = false;
 
-/// Memoized full-project `.go` text load for project-level BP rules.
-pub(crate) fn read_project_texts_cached(unit: &ParsedUnit) -> ProjectTexts {
-    let root = discover_project_root(&unit.path);
-    static CACHE: OnceLock<Mutex<ProjectTextCache>> = OnceLock::new();
-    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-    let mut guard = cache.lock().unwrap_or_else(|p| p.into_inner());
-    if let Some(cached) = guard.get(&root) {
-        return cached.clone();
-    }
-    let mut texts = Vec::new();
-    for entry in WalkDir::new(&root).into_iter().filter_map(Result::ok) {
+    for entry in WalkDir::new(root).into_iter().filter_map(Result::ok) {
         let path = entry.path();
         if !entry.file_type().is_file() {
             continue;
@@ -87,11 +106,84 @@ pub(crate) fn read_project_texts_cached(unit: &ParsedUnit) -> ProjectTexts {
         if path.extension().and_then(|ext| ext.to_str()) != Some("go") {
             continue;
         }
-        if let Ok(text) = std::fs::read_to_string(path) {
-            texts.push((path.to_path_buf(), text));
+        let path_buf = path.to_path_buf();
+        if !path_buf.to_string_lossy().ends_with("_test.go") {
+            go_files.push(path_buf);
+        }
+        let Ok(text) = std::fs::read_to_string(path) else {
+            continue;
+        };
+        if !has_server_start && contains_server_start(&text) {
+            has_server_start = true;
+        }
+        if !has_shutdown && text.contains(".Shutdown(") {
+            has_shutdown = true;
+        }
+        if !has_signal_handling
+            && (text.contains("signal.Notify(")
+                || text.contains("signal.NotifyContext(")
+                || text.contains("\"os/signal\""))
+        {
+            has_signal_handling = true;
+        }
+        if !has_public_route && contains_public_route(&text) {
+            has_public_route = true;
+        }
+        if !has_rate_limiting
+            && (text.contains("rate.NewLimiter(")
+                || text.contains("rate.Limiter")
+                || text.contains("tollbooth")
+                || text.contains("httprate")
+                || text.contains("Throttle("))
+        {
+            has_rate_limiting = true;
+        }
+        if !has_request_id
+            && (text.contains("Request-ID")
+                || text.contains("Request-Id")
+                || text.contains("X-Request-ID")
+                || text.contains("X-Request-Id")
+                || text.contains("requestid")
+                || text.contains("request_id")
+                || text.contains("RequestID"))
+        {
+            has_request_id = true;
+        }
+        if !has_logging
+            && (text.contains("log.") || text.contains("logger.") || text.contains("slog."))
+        {
+            has_logging = true;
         }
     }
-    texts.sort_by(|left, right| left.0.cmp(&right.0));
-    guard.insert(root, texts.clone());
-    texts
+    go_files.sort();
+    let anchor = go_files.into_iter().next();
+
+    ProjectSnapshot {
+        anchor,
+        has_server_start,
+        has_shutdown,
+        has_signal_handling,
+        has_public_route,
+        has_rate_limiting,
+        has_request_id,
+        has_logging,
+    }
+}
+
+fn contains_server_start(text: &str) -> bool {
+    text.contains("ListenAndServe(")
+        || text.contains(".ListenAndServe(")
+        || text.contains(".Serve(")
+        || text.contains("http.Serve(")
+}
+
+fn contains_public_route(text: &str) -> bool {
+    text.contains("HandleFunc(")
+        || text.contains(".HandleFunc(")
+        || text.contains(".Handle(")
+        || text.contains(".GET(")
+        || text.contains(".POST(")
+        || text.contains(".PUT(")
+        || text.contains(".DELETE(")
+        || text.contains(".PATCH(")
 }

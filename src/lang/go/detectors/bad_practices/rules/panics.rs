@@ -139,6 +139,9 @@ pub(crate) fn detect_bp_15_recursive_once_do(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
+    if !unit.source.contains(".Do(") || !unit.source.contains("Once") {
+        return;
+    }
     let src = unit.source.as_bytes();
     let function_facts = collect_function_facts(unit.tree.root_node(), src);
 

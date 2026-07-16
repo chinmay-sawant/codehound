@@ -88,6 +88,12 @@ pub(crate) fn detect_bp_98_open_file_without_close(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
+    if !(unit.source.contains("os.Open")
+        || unit.source.contains("os.OpenFile")
+        || unit.source.contains("os.Create"))
+    {
+        return;
+    }
     inspect_functions(
         unit.tree.root_node(),
         unit.source.as_bytes(),

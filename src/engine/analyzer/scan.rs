@@ -79,6 +79,10 @@ impl Analyzer {
         };
         let project_root = discover_project_root(start);
         let module_prefix = go_module_prefix(&project_root);
+        // Pre-warm Go BP project snapshot once so parallel workers share one
+        // WalkDir + text scan for project-level rules (BP-47/50/54/55).
+        #[cfg(feature = "go")]
+        crate::lang::go::detectors::bad_practices::prewarm_project_cache(&project_root);
         let dependency_root = if module_prefix.is_some() {
             project_root
         } else {

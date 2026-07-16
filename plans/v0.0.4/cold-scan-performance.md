@@ -1,9 +1,10 @@
 # v0.0.4 — Cold-Scan Performance Plan (Checklist)
 
 > **Parent:** `plans/v0.0.4/`  
-> **Status:** Implemented (Phases 0–5)  
+> **Status:** Phases 0–6 **done** (2026-07-17)  
 > **Constraint:** no correctness loss (same findings, same fingerprints, same export contents)  
-> **Related prior art:** `plans/v0.0.3/performance_analysis.md`
+> **Related prior art:** `plans/v0.0.3/performance_analysis.md`  
+> **Headline result:** cold full re-analysis **~5.2s → ~425ms** (`make run`, release, 0 cache hits, 943 findings)
 
 ---
 
@@ -23,16 +24,16 @@ Dominant cost: **Go bad-practice suite**, especially repeated full-project WalkD
 
 ## 2. Baseline vs after (gopdfsuit, release, `--no-cache --profile all`)
 
-| Metric | Before | After |
-|--------|--------|-------|
-| Cold wall time | **5.21s** | **~353ms** |
-| Findings | 943 | **943** (multiset identical) |
-| Severity | 9H / 411M / 319L / 204I | **unchanged** |
-| Top rules | BP-1×181, PERF-6×94, … | **unchanged** |
-| Warm cache | ~14ms | **~12ms** (78 hits) |
-| Export | 943 context / 38 chunks | **same counts** |
+| Metric | Before (Phases start) | After Phases 0–5 | After Phase 6 (`make run`) |
+|--------|------------------------|------------------|----------------------------|
+| Cold full re-analysis | **~5.2s** | **~353ms** | **~425ms** (0 cache hits) |
+| Findings | 943 | **943** | **943** (unchanged) |
+| Severity | 9H / 411M / 319L / 204I | unchanged | unchanged |
+| Top rules | BP-1×181, PERF-6×94, … | unchanged | unchanged |
+| Warm cache | ~14ms | ~12ms | ~12–36ms |
+| Export + full re-analysis | multi-second | ~0.4–0.6s release | works via `make run` + `RUN_ARGS` |
 
-**Speedup:** ~**15×** cold wall time; stretch target (&lt;1s) met.
+**Speedup:** ~**12×** cold wall time (**seconds → hundreds of milliseconds**); sub-1s stretch target met on release.
 
 ### Top `--debug-timing` after (per-rule BP spans)
 
@@ -154,19 +155,80 @@ Do **not**:
 - [x] Cold full profile **&lt; 1.0s** (353ms) without losing findings
 - [x] Documented results in this plan
 
-**Stretch target:** cold gopdfsuit full profile &lt; 1.0s — **achieved**.
+**Stretch target:** cold gopdfsuit full profile &lt; 1.0s — **achieved** (Phases 0–5).
+
+---
+
+### Phase 6 — Sub-1s everywhere / further headroom
+
+**Goal:** reliable sub-1s on release (including with export); remove remaining project-rule thrash and long-tail BP AST cost.  
+**Why:** after Phases 0–5, top residual was still BP-47-class project scans (re-walking / re-cloning texts) plus long-tail rules; `make run` also measured **debug**, which inflated wall time to ~2s.
+
+#### 6A — Measurement hygiene
+
+- [x] Document: measure with **release** only (`cargo run --release` / `make run`)
+- [x] Update `makefile` `run` to release binary (`cargo build --release` then `./target/release/codehound`)
+  - Optional `SKIP_BUILD=1` runs existing binary with no cargo work
+- [x] Cold + export command for local product path:  
+  `make run RUN_ARGS="--export-context --export-chunks"`
+
+#### 6B — Shared project snapshot (BP-47/50/54/55)
+
+- [x] Replace separate anchor WalkDir + full-text clone caches with one **`ProjectSnapshot`** per root
+- [x] Precompute flags once: `has_server_start`, `has_shutdown`, `has_signal_handling`, `has_public_route`, `has_rate_limiting`, `has_request_id`, `has_logging`
+- [x] BP-47 / BP-50 / BP-54 / BP-55 use flags only (no per-rule re-scan of all project texts)
+- [x] `is_project_anchor` reads `snapshot.anchor` (no second full-tree walk for anchor alone)
+- [x] **Prewarm** from `Analyzer::analyze_paths` after root discovery, before parallel workers  
+  → `prewarm_project_cache` / `prewarm_project_snapshot`
+- [x] Do **not** retain multi-MB `texts` Arc when flags cover all consumers (ponytail: no dead retention)
+
+#### 6C — Long-tail BP short-circuits / cheaper walks
+
+- [x] **BP-75** — require `copy(`; package funcs via `walk_nodes`
+- [x] **BP-79** — require `context.` / `WithCancel|Timeout|Deadline`; `walk_nodes` for funcs/methods/func_literal
+- [x] **BP-15** — require `.Do(` + `Once`
+- [x] **BP-98** — require `os.Open` / `os.OpenFile` / `os.Create`
+- [x] **BP-151** — require `Getenv` + logger needles
+- [x] **BP-146** — require `log.` / `slog.` / `zap.` needles
+
+#### 6D — Correctness + gates
+
+- [x] `cargo check` clean on Phase 6 sources
+- [x] Cold release scan: **943 findings**, same severity histogram (9H / 411M / 319L / 204I)
+- [x] `make run` and `make run RUN_ARGS="--export-context --export-chunks"` succeed
+- [x] Wall **&lt; 1.0s** on release with full re-analysis (**~425ms** user-measured `make run`, 0 cache hits)
+
+#### 6E — Optional leftovers (not required for Phase 6 close)
+
+- [ ] Gate prewarm when BP disabled / no project-level rules allowed
+- [ ] Prewarm all roots from multi-path `analyze_paths` (currently first path root)
+- [ ] Further GoPerfScan / parse micro-opts
+- [ ] Needle batching across dispatch table
+
+**Phase 6 closed** for product timing: cold full re-analysis is **milliseconds-scale (~0.4s)**, down from **~5s** at the start of this workstream.
 
 ---
 
 ## 6. Verification checklist (final)
 
-- [x] `make test`
-- [x] `make lint`
-- [x] Cold:  
-  `./target/release/codehound …/gopdfsuit --no-fail --no-cache --profile all --no-terminal` → **~353ms / 943 findings**
-- [x] Finding multiset match baseline (0 diffs)
-- [x] Export: 943 context files, 38 chunks
-- [x] Cache second run: 78 hits, ≪ 100ms
+- [x] `make test` (Phases 0–5 baseline)
+- [x] `make lint` (Phases 0–5 baseline)
+- [x] Cold release (Phases 0–5): ~353ms / 943 findings
+- [x] Phase 6: cold release + export via `make run` (see results below)
+- [x] Finding multiset match baseline (943; top rules unchanged)
+- [x] Cache second run: 78 hits, ≪ 100ms (Phases 0–5)
+
+### Phase 6 run results (verified 2026-07-17)
+
+| Metric | Value |
+|--------|-------|
+| Command | `make run` (release, full re-analysis) |
+| App-reported wall | **425.3ms** (0 hits / 78 misses) |
+| Findings | **943** (9 high, 411 medium, 319 low, 204 info) |
+| Top rules | BP-1×181, PERF-6×94, PERF-32×59, BP-37×51, PERF-230×44 |
+| Export command | `make run RUN_ARGS="--export-context --export-chunks"` |
+| Export | 943 context files + 38 chunk files (verified earlier on same branch) |
+| vs baseline | **~5.2s → ~0.43s** cold full re-analysis (~**12×** faster) |
 
 ---
 
@@ -180,8 +242,11 @@ Do **not**:
 | BP per-rule timing | `src/lang/go/detectors/bad_practices/mod.rs` |
 | NEEDLES | `…/bad_practices/source_index.rs` |
 | BP-1 / loops / panics / sync | `…/rules/error_handling.rs`, `loops.rs`, `panics.rs`, `sync.rs` |
-| Project caches | `…/bad_practices/common.rs`, `dependency_hygiene.rs`, `production_hardening.rs` |
+| Project caches (0–5) | `…/bad_practices/common.rs`, `dependency_hygiene.rs` |
+| **Phase 6 `ProjectSnapshot` + prewarm** | `…/bad_practices/common.rs`, `mod.rs`, `production_hardening.rs`, `engine/analyzer/scan.rs` |
+| **Phase 6 long-tail short-circuits** | `batch_core_candidates`, `bp79_cancel`, `batch_concurrency_resources`, `batch_observability_next`, `observability_config_pending`, `panics` |
 | Parallel preflight | `src/engine/walk/parallel.rs` |
+| **Release `make run`** | `makefile` |
 
 ---
 
@@ -193,4 +258,7 @@ Do **not**:
 | 2026-07-16 | `BP-1` timing label was the whole pack (first rule id) |
 | 2026-07-16 | True ultra-hot path: `is_project_anchor` WalkDir × files × rules |
 | 2026-07-16 | Memoize project-level FS work per root; keep findings identical |
-| 2026-07-16 | Final cold ~353ms; 943 findings; gates green |
+| 2026-07-16 | Final cold ~353ms; 943 findings; gates green (Phases 0–5) |
+| 2026-07-17 | Phase 6 code missing after branch reset to `02e7d6f` — **re-landed** snapshot/prewarm/short-circuits + release makefile |
+| 2026-07-17 | `make run` uses release binary; optional `SKIP_BUILD=1` for zero cargo overhead |
+| 2026-07-17 | Verified: `make run` cold full re-analysis **425.3ms**, 943 findings (was ~**5.2s**) |

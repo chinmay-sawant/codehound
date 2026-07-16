@@ -23,22 +23,24 @@ const CONSTRUCTORS: [&str; 3] = [
 /// BP-79: a local context cancel function has no visible call or defer.
 pub(crate) fn detect_bp_79_context_cancel_not_released(
     unit: &ParsedUnit,
-    _index: &SourceIndex,
+    index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
+    if !(index.has("context.")
+        || unit.source.contains("WithCancel")
+        || unit.source.contains("WithTimeout")
+        || unit.source.contains("WithDeadline"))
+    {
+        return;
+    }
     let source = unit.source.as_bytes();
-    walk_functions(unit.tree.root_node(), source, unit, out);
-}
-
-fn walk_functions(node: Node, source: &[u8], unit: &ParsedUnit, out: &mut Vec<Finding>) {
-    if is_function(node) {
-        inspect_function(node, source, unit, out);
-    }
-
-    let mut cursor = node.walk();
-    for child in node.named_children(&mut cursor) {
-        walk_functions(child, source, unit, out);
-    }
+    crate::ast::walk_nodes(
+        unit.tree.root_node(),
+        &["function_declaration", "method_declaration", "func_literal"],
+        &mut |node| {
+            inspect_function(node, source, unit, out);
+        },
+    );
 }
 
 fn inspect_function(function: Node, source: &[u8], unit: &ParsedUnit, out: &mut Vec<Finding>) {
