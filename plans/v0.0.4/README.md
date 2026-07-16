@@ -14,7 +14,7 @@
 
 | Scenario | Before | After |
 |----------|--------|-------|
-| Full re-analysis (`make run`, release, 0 cache hits) | **~5.2s** | **~425ms (~12×)** |
+| Full re-analysis (`make run`, release, 0 cache hits) | **up to 5s** | **~425ms (~12×)** |
 | Findings | 943 | **943 (unchanged)** |
 | Warm cache hits | ~14ms | **~12–36ms** |
 

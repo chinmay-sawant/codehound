@@ -56,7 +56,7 @@ export const sections: Section[] = [
       { value: '~2k→2.7k', label: 'ops/sec after fixes', sub: 'gopdfsuit · CodeHound pass' },
       { value: '+35%', label: 'throughput lift', sub: 'same machines · same harness' },
       { value: '218', label: 'PERF findings fixed', sub: '226 exported · 8 CWE deferred' },
-      { value: '~425ms', label: 'cold full scan', sub: 'was ~5.2s · ~12× · release' },
+      { value: '~425ms', label: 'cold full scan', sub: 'was up to 5s · ~12× · release' },
     ],
     facts: [
       { k: 'What changed', v: 'Regex hoists, fmt→strconv/AppendInt, defer off hot paths, non-blocking logging' },
@@ -212,15 +212,15 @@ export const sections: Section[] = [
     icon: BarChart3,
     title: 'Benchmarks & latest scan',
     lead:
-      'Cold full re-analysis on gopdfsuit dropped from ~5.2s to ~425ms on the release binary — about 12× faster — plus Criterion microbenches and a real export run.',
+      'Cold full re-analysis on gopdfsuit dropped from up to 5 seconds to ~425ms on the release binary — about 12× faster — plus Criterion microbenches and a real export run.',
     stats: [
       { value: '~425ms', label: 'cold full scan', sub: 'gopdfsuit · 0 cache hits · release' },
-      { value: '~12×', label: 'faster cold path', sub: '~5.2s → ~0.43s · profile all' },
+      { value: '~12×', label: 'faster cold path', sub: 'up to 5s → ~0.43s · profile all' },
       { value: '1,042', label: 'findings exported', sub: 'scripts/findings/functions' },
       { value: '39.5ms', label: 'full fixture scan', sub: '900 Go files · Criterion' },
     ],
     facts: [
-      { k: 'Cold wall (release)', v: '~5.2s → ~425ms full re-analysis · 943 findings · 0 cache hits' },
+      { k: 'Cold wall (release)', v: 'up to 5s → ~425ms full re-analysis · 943 findings · 0 cache hits' },
       { k: 'Warm cache', v: '~12–36ms second run when content hashes hit' },
       { k: 'Severity mix', v: '202 high · 533 medium · 307 low' },
       { k: 'Top rules', v: 'CWE-79 ×192 · BP-1 ×164 · PERF-6 ×96 · PERF-192 ×80 · PERF-32 ×43' },
@@ -232,7 +232,7 @@ export const sections: Section[] = [
         caption: 'Product timings & engine benchmarks (release profile)',
         headers: ['Benchmark', 'Time', 'Notes'],
         rows: [
-          ['gopdfsuit cold full re-analysis', '~425 ms', 'profile all · 0 cache hits · was ~5.2s (~12×)'],
+          ['gopdfsuit cold full re-analysis', '~425 ms', 'profile all · 0 cache hits · was up to 5s (~12×)'],
           ['gopdfsuit warm cache', '~12–36 ms', 'content-hash hits · same tree'],
           ['scan_materialized_fixtures', '39.5 ms', '275 detectors · 900 Go fixture files'],
           ['collect_entries_materialized', '1.0 ms', 'File discovery + language classification'],

@@ -4,13 +4,13 @@
 > **Status:** Phases 0–6 **done** (2026-07-17)  
 > **Constraint:** no correctness loss (same findings, same fingerprints, same export contents)  
 > **Related prior art:** `plans/v0.0.3/performance_analysis.md`  
-> **Headline result:** cold full re-analysis **~5.2s → ~425ms** (`make run`, release, 0 cache hits, 943 findings)
+> **Headline result:** cold full re-analysis **up to 5s → ~425ms** (`make run`, release, 0 cache hits, 943 findings)
 
 ---
 
 ## 1. Problem statement
 
-On first analysis of a project (full re-analysis / 0 cache hits), cold wall time was ~**5s** for gopdfsuit:
+On first analysis of a project (full re-analysis / 0 cache hits), cold wall time was **up to 5 seconds** for gopdfsuit:
 
 ```text
 scanned 78 files (28120 lines) in 5.23s
@@ -26,7 +26,7 @@ Dominant cost: **Go bad-practice suite**, especially repeated full-project WalkD
 
 | Metric | Before (Phases start) | After Phases 0–5 | After Phase 6 (`make run`) |
 |--------|------------------------|------------------|----------------------------|
-| Cold full re-analysis | **~5.2s** | **~353ms** | **~425ms** (0 cache hits) |
+| Cold full re-analysis | **up to 5s** | **~353ms** | **~425ms** (0 cache hits) |
 | Findings | 943 | **943** | **943** (unchanged) |
 | Severity | 9H / 411M / 319L / 204I | unchanged | unchanged |
 | Top rules | BP-1×181, PERF-6×94, … | unchanged | unchanged |
@@ -205,7 +205,7 @@ Do **not**:
 - [ ] Further GoPerfScan / parse micro-opts
 - [ ] Needle batching across dispatch table
 
-**Phase 6 closed** for product timing: cold full re-analysis is **milliseconds-scale (~0.4s)**, down from **~5s** at the start of this workstream.
+**Phase 6 closed** for product timing: cold full re-analysis is **milliseconds-scale (~0.4s)**, down from **up to 5 seconds** at the start of this workstream.
 
 ---
 
@@ -228,7 +228,7 @@ Do **not**:
 | Top rules | BP-1×181, PERF-6×94, PERF-32×59, BP-37×51, PERF-230×44 |
 | Export command | `make run RUN_ARGS="--export-context --export-chunks"` |
 | Export | 943 context files + 38 chunk files (verified earlier on same branch) |
-| vs baseline | **~5.2s → ~0.43s** cold full re-analysis (~**12×** faster) |
+| vs baseline | **up to 5s → ~0.43s** cold full re-analysis (~**12×** faster) |
 
 ---
 
@@ -261,4 +261,4 @@ Do **not**:
 | 2026-07-16 | Final cold ~353ms; 943 findings; gates green (Phases 0–5) |
 | 2026-07-17 | Phase 6 code missing after branch reset to `02e7d6f` — **re-landed** snapshot/prewarm/short-circuits + release makefile |
 | 2026-07-17 | `make run` uses release binary; optional `SKIP_BUILD=1` for zero cargo overhead |
-| 2026-07-17 | Verified: `make run` cold full re-analysis **425.3ms**, 943 findings (was ~**5.2s**) |
+| 2026-07-17 | Verified: `make run` cold full re-analysis **425.3ms**, 943 findings (was **up to 5s**) |
