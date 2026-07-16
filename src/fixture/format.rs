@@ -6,29 +6,41 @@ use std::str::FromStr;
 use thiserror::Error;
 
 const SEPARATOR: &str = "---";
+/// File extension used for text fixtures (without the leading dot).
 pub const FIXTURE_EXTENSION: &str = "txt";
 
 /// Typed failures while parsing or materializing a text fixture.
 #[derive(Debug, Error)]
 pub enum FixtureError {
+    /// Header named an unsupported language.
     #[error("unknown fixture language: {0}")]
     UnknownLanguage(String),
+    /// Header omitted the required `lang:` field.
     #[error("fixture header missing `lang:` (go | python)")]
     MissingLanguage,
+    /// Missing `---` separator between header and source body.
     #[error("fixture must contain a `{0}` separator between header and source")]
     MissingSeparator(&'static str),
+    /// Filename header used an absolute path.
     #[error("fixture filename must be relative, got absolute path {0:?}")]
     AbsoluteFilename(String),
+    /// Filename header contained a parent-directory segment.
     #[error("fixture filename must not contain '..': {0:?}")]
     ParentFilename(String),
+    /// Materialized path would escape the output root.
     #[error("fixture path escapes materialize root: {0}")]
     EscapedPath(String),
+    /// Directory walk failed while discovering fixtures.
     #[error("fixture traversal failed: {0}")]
     Walk(String),
+    /// Filesystem failure while reading or writing a fixture.
     #[error("{operation} {path}: {source}")]
     Io {
+        /// Operation label (`"read"`, `"write"`, …).
         operation: &'static str,
+        /// Path involved in the failure.
         path: String,
+        /// Underlying I/O error.
         #[source]
         source: std::io::Error,
     },
@@ -37,7 +49,9 @@ pub enum FixtureError {
 /// Target language encoded in the fixture header.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FixtureLanguage {
+    /// Go source fixture.
     Go,
+    /// Python source fixture.
     Python,
 }
 
@@ -78,8 +92,11 @@ impl FixtureLanguage {
 /// Parsed `.txt` fixture (header + source body).
 #[derive(Debug, Clone)]
 pub struct TextFixture {
+    /// Language declared in the fixture header.
     pub language: FixtureLanguage,
+    /// Relative output filename for the materialized source.
     pub filename: String,
+    /// Source body below the header separator.
     pub source: String,
 }
 

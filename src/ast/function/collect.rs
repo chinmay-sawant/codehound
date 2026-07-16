@@ -11,12 +11,15 @@ use tree_sitter::Node;
 /// want when they ask "what function is this line in?".
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FunctionSpan {
+    /// Inclusive start byte offset of the function node.
     pub start_byte: usize,
+    /// Exclusive end byte offset of the function node.
     pub end_byte: usize,
     /// 1-indexed start line.
     pub start_line: usize,
     /// 1-indexed end line.
     pub end_line: usize,
+    /// Nesting depth (`0` = outermost function containing a span).
     pub depth: usize,
 }
 

@@ -11,6 +11,11 @@ use crate::rules::FindingView;
 
 use super::options::TextOptions;
 
+/// Write the compact scan summary used by `--no-terminal`, including export notes.
+///
+/// # Errors
+///
+/// Returns [`Error`] when writing to `out` fails.
 pub fn write_no_terminal_summary(
     out: &mut impl Write,
     result: &AnalysisResult,

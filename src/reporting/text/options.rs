@@ -7,12 +7,18 @@ use crate::engine::AnalysisResult;
 
 use super::render::write_with_options;
 
+/// Formatting knobs for the human-readable text reporter.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct TextOptions {
+    /// Colorize severity and rule IDs when the terminal supports it.
     pub color: bool,
+    /// Omit source snippets under each finding.
     pub suppress_snippet: bool,
+    /// Print finding fingerprints in the text report.
     pub show_fingerprint: bool,
+    /// Include extra scan statistics in the footer.
     pub verbose: bool,
+    /// Print top detector timing after the report.
     pub debug_timing: bool,
 }
 

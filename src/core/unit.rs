@@ -11,12 +11,16 @@ use crate::ast::{self, FunctionSpan};
 /// A single source file parsed for analysis.
 #[derive(Debug)]
 pub struct ParsedUnit {
+    /// Language of this unit.
     pub language: LanguageId,
+    /// Absolute or project path of the source file.
     pub path: PathBuf,
     /// Cached `path.display().to_string()` — computed once at parse time so the
     /// ~175 detectors that emit a finding for this unit don't re-allocate it.
     pub display_path: String,
+    /// Full source text shared across detectors.
     pub source: Arc<str>,
+    /// Tree-sitter syntax tree for `source`.
     pub tree: Tree,
     /// Byte offsets of the first byte of each line (1-indexed lookup via
     /// binary search). Built once at parse time so `line_col` is O(log N)

@@ -12,6 +12,7 @@ use crate::engine::path_walk::{WalkUpAction, walk_up_dirs};
 use crate::engine::time::iso8601_utc_now;
 use crate::rules::Finding;
 
+/// Default baseline filename discovered by walking up from the cwd.
 pub const BASELINE_FILE_NAME: &str = ".codehound-baseline.json";
 /// Wire format version. Optional fields use serde defaults so v1 files still load.
 pub const BASELINE_VERSION: &str = "1";
@@ -34,6 +35,7 @@ pub struct BaselineEntry {
     pub expires: Option<String>,
 }
 
+/// Walk up from `cwd` looking for [`.codehound-baseline.json`](BASELINE_FILE_NAME).
 pub fn discover_baseline(cwd: &Path) -> Option<PathBuf> {
     walk_up_dirs(cwd, |current| {
         if current.join(BASELINE_FILE_NAME).is_file() {
@@ -46,6 +48,7 @@ pub fn discover_baseline(cwd: &Path) -> Option<PathBuf> {
     })
 }
 
+/// On-disk baseline document of suppressed finding fingerprints.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Baseline {
     /// Baseline wire-format version.
@@ -119,6 +122,7 @@ impl Baseline {
         self.contains_finding_with_now(finding, &iso8601_utc_now())
     }
 
+    /// Like [`Self::contains_finding`] but uses an explicit `now` for expiry checks.
     pub fn contains_finding_with_now(&self, finding: &Finding, now_iso: &str) -> bool {
         if let Some(entries) = self.entries.get(finding.rule_id) {
             let fp = finding.fingerprint_string();
@@ -144,6 +148,7 @@ impl Baseline {
         false
     }
 
+    /// Total number of baselined entries across all rules.
     pub fn entry_count(&self) -> usize {
         self.entries.values().map(Vec::len).sum()
     }

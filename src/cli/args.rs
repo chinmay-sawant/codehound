@@ -27,7 +27,9 @@ use clap::Parser;
         codehound --explain CWE-89           # details for a specific rule\n  \
         codehound init                       # write a starter codehound.toml"
 )]
+/// Top-level command-line interface for the `codehound` binary.
 pub struct Cli {
+    /// Optional subcommand (`init`, `rules`, `cache`, `baseline`, `scan`).
     #[command(subcommand)]
     pub command: Option<super::enums::Command>,
 

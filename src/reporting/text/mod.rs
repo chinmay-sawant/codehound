@@ -18,6 +18,7 @@ use crate::reporting::OutputReporter;
 
 /// Reporter that renders findings as human-readable text.
 pub struct TextReporter {
+    /// Text formatting options for this reporter instance.
     pub options: TextOptions,
 }
 
@@ -29,8 +30,11 @@ impl OutputReporter for TextReporter {
 
 /// Summary-only text reporter for `--no-terminal` runs.
 pub struct NoTerminalReporter {
+    /// Text formatting options for the compact summary.
     pub options: TextOptions,
+    /// Export flags used to annotate the summary line.
     pub export_options: ExportOptions,
+    /// Counts of context/chunk files written during export.
     pub export_summary: ExportSummary,
 }
 

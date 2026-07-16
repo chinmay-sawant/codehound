@@ -2,6 +2,7 @@
 
 use crate::rules::Severity;
 
+/// When the process should exit non-zero based on finding severity.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum FailPolicy {
     /// Fail on medium, high, or critical (default).
@@ -14,6 +15,7 @@ pub enum FailPolicy {
 }
 
 impl FailPolicy {
+    /// Whether a finding of `severity` should fail the run under this policy.
     pub fn should_fail(self, severity: Severity) -> bool {
         match self {
             Self::NoFail => false,

@@ -64,6 +64,7 @@ pub fn parse_inline_ignores(source: &str) -> HashMap<usize, IgnoreDirective> {
     ignores
 }
 
+/// Parse a file-level ignore directive from the top of `source`, if present.
 pub fn parse_file_ignore(source: &str) -> Option<IgnoreDirective> {
     source
         .lines()

@@ -2,6 +2,7 @@
 
 use serde::Serialize;
 
+/// Static CWE catalogue reference used on findings and SARIF output.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct CweRef {
     /// Numeric CWE identifier.

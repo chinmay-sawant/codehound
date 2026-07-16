@@ -8,6 +8,7 @@ use crate::core::{Detector, ParsedUnit};
 
 use super::id::LanguageId;
 
+/// Per-language backend: parse sources and supply detectors.
 pub trait LanguagePlugin: Send + Sync {
     /// Return the language implemented by this plugin.
     fn id(&self) -> LanguageId;
@@ -31,7 +32,9 @@ pub trait LanguagePlugin: Send + Sync {
         path: &Path,
         source: Arc<str>,
     ) -> Result<ParsedUnit, Error>;
+    /// Detectors contributed by this language plugin.
     fn detectors(&self) -> Vec<Box<dyn Detector>>;
+    /// Tree-sitter node kinds treated as loops for this language.
     fn loop_node_kinds(&self) -> &'static [&'static str];
 
     /// Node kinds that should be treated as function-like when resolving the

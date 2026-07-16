@@ -21,6 +21,7 @@ pub enum ScanProfile {
 }
 
 impl ScanProfile {
+    /// Stable lowercase profile name used in CLI/config.
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Recommended => "recommended",

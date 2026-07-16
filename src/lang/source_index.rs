@@ -89,6 +89,7 @@ impl SourceIndex {
         self.flags.get(idx).copied().unwrap_or(false)
     }
 
+    /// True if any of `needles` is present in the indexed source.
     #[inline]
     pub fn has_any(&self, needles: &[&str]) -> bool {
         needles.iter().any(|n| self.has(n))
@@ -100,6 +101,7 @@ impl SourceIndex {
         self.flags.len()
     }
 
+    /// True when the backing needle table is empty.
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.flags.is_empty()

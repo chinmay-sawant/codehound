@@ -3,6 +3,7 @@
 #[doc(hidden)]
 pub mod detectors;
 mod register;
+/// Perfect-hash sink tables used by Go CWE detectors and tests.
 pub mod sinks;
 
 const FUNCTION_NODE_KINDS: &[&str] = &["function_declaration", "method_declaration"];

@@ -21,12 +21,15 @@ pub(super) const FILES_SUBDIR: &str = "files";
 /// Cache manifest: cheap O(1) lookup for per-file state.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CacheManifest {
+    /// On-disk schema version for this manifest.
     pub schema_version: u32,
+    /// CodeHound version that last wrote the cache.
     pub tool_version: String,
     /// Fingerprint of rule-filter settings (profile/only/skip/taint/bp).
     /// Mismatch mass-stales entries so a narrow pack cannot poison a full run.
     #[serde(default)]
     pub rule_config_hash: String,
+    /// Per-file metadata keyed by normalized project-relative path.
     pub files: HashMap<String, FileCacheMeta>,
 }
 
@@ -49,13 +52,17 @@ pub struct FileCacheMeta {
 /// `<cache_dir>/files/<cache_key>.json`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CacheEntry {
+    /// On-disk schema version for this entry.
     pub schema_version: u32,
+    /// Project-relative file path this entry belongs to.
     pub file: String,
+    /// Findings captured for this file at scan time.
     pub findings: Vec<Finding>,
     /// Number of findings removed or marked suppressed by source ignores.
     /// Defaults to zero for entries written before this field existed.
     #[serde(default)]
     pub suppressed_count: usize,
+    /// ISO-8601 UTC timestamp when the entry was last written.
     pub cached_at: String,
 }
 

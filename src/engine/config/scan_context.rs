@@ -8,22 +8,37 @@ use super::types::CodehoundConfig;
 /// Parameters for [`build_scan_context`].
 #[derive(Debug, Clone, Default)]
 pub struct ScanContextParams {
+    /// Rule IDs / globs to run exclusively when non-empty.
     pub only: Vec<String>,
+    /// Rule IDs / globs to skip.
     pub skip: Vec<String>,
+    /// Process exit policy for findings.
     pub fail_policy: FailPolicy,
+    /// Optional loaded `codehound.toml` document.
     pub config: Option<CodehoundConfig>,
+    /// True when the CLI explicitly set the fail policy (blocks config override).
     pub cli_set_fail_policy: bool,
+    /// Enable per-detector timing collection and reporting.
     pub debug_timing: bool,
+    /// Emit machine-readable diagnostics after the scan.
     pub diagnostics: bool,
+    /// Print a compact scan summary to the terminal.
     pub diagnostics_summary: bool,
+    /// Verbose text output (extra stats / phase timing).
     pub verbose: bool,
+    /// Restrict the run to bad-practice (`BP-*`) rules only.
     pub bp_only: bool,
+    /// Disable the bad-practice pack entirely.
     pub no_bp: bool,
+    /// Enable experimental taint tracking.
     pub taint: bool,
+    /// Explicitly disable taint tracking.
     pub no_taint: bool,
+    /// Attach taint-path evidence when taint is enabled.
     pub taint_show_paths: bool,
     /// Inter-procedural hops (clamped 1..=4 when applied).
     pub taint_depth: u32,
+    /// Keep findings suppressed by inline/file ignores in results.
     pub show_ignored: bool,
     /// Product pack. Default [`ScanProfile::Recommended`] for CLI; library callers may use `All`.
     pub profile: ScanProfile,

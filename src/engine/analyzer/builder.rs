@@ -62,6 +62,7 @@ impl AnalyzerBuilder {
         self
     }
 
+    /// Finish configuration and construct an [`Analyzer`].
     pub fn build(self) -> Analyzer {
         Analyzer {
             registry: self.registry.unwrap_or_default(),
@@ -78,6 +79,7 @@ impl AnalyzerBuilder {
 }
 
 impl Analyzer {
+    /// Start a fluent builder for a new analyzer instance.
     #[must_use = "configure the analyzer before calling build()"]
     pub fn builder() -> AnalyzerBuilder {
         AnalyzerBuilder::new()

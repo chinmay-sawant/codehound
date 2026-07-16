@@ -14,8 +14,11 @@ use crate::rules::Finding;
 #[derive(Debug, Clone, Error)]
 #[error("{}: {message}", path.display())]
 pub struct ScanError {
+    /// File that produced the error.
     pub path: PathBuf,
+    /// Coarse error category for exit-code mapping.
     pub kind: ScanErrorKind,
+    /// Human-readable error detail.
     pub message: String,
 }
 

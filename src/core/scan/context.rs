@@ -6,6 +6,7 @@ use crate::rules::{Finding, Severity};
 
 use super::policy::FailPolicy;
 
+/// Per-run filters and flags passed to detectors and reporters.
 #[derive(Debug, Clone)]
 pub struct ScanContext {
     /// Optional allow-list of rule IDs or prefix patterns.
@@ -89,6 +90,7 @@ impl ScanContext {
         self
     }
 
+    /// Whether `rule_id` is enabled under the current only/skip/BP flags.
     pub fn allows(&self, rule_id: &str) -> bool {
         if rule_id.starts_with("BP-") && !self.bad_practices_enabled {
             return false;
@@ -112,6 +114,7 @@ impl ScanContext {
         true
     }
 
+    /// Apply global / per-rule severity overrides to a finding in place.
     pub fn apply_finding_overrides(&self, finding: &mut Finding) {
         if finding.rule_id.starts_with("BP-") {
             if let Some(severity) = self.bad_practice_severity {

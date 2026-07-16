@@ -138,6 +138,7 @@ pub(crate) struct TimingSpan {
     pub duration: Option<Duration>,
 }
 
+/// Collects named phase timings for a scan (or remains a no-op when disabled).
 #[derive(Debug, Default, Clone)]
 pub struct TimingCollector {
     spans: Vec<TimingSpan>,
@@ -145,6 +146,7 @@ pub struct TimingCollector {
 }
 
 impl TimingCollector {
+    /// Create a collector; when `enabled` is false, all timing calls are cheap no-ops.
     pub fn new(enabled: bool) -> Self {
         Self {
             spans: Vec::new(),

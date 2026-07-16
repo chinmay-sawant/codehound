@@ -3,6 +3,7 @@
 use std::fs;
 use std::path::Path;
 
+/// Read the `module` path from `project_root/go.mod`, if present.
 pub fn go_module_prefix(project_root: &Path) -> Option<String> {
     let path = project_root.join("go.mod");
     let text = fs::read_to_string(&path).ok()?;
