@@ -27,10 +27,20 @@ Godoc-style rules never fail CI under `style` (no-fail + info severity).
 
 ## Curated tiering policy
 
-- **Trusted correctness:** BP-6, BP-7, BP-8, BP-9, and BP-15; useful concurrency/runtime footguns, but still reviewed as heuristics.
+- **Trusted correctness:** BP-7, BP-8, BP-9, and BP-15; useful concurrency/runtime footguns, but still reviewed as heuristics.
 - **Review-required:** most error, lifecycle, testing, and dependency rules; keep them advisory and do not fail ordinary CI by default.
 - **Style/opinion:** BP-2, BP-3, BP-21, BP-28–31, BP-39–42, BP-45, and BP-62; report as `info` or keep disabled unless a team explicitly wants the policy.
 - **Reserved:** BP-63 remains quarantined until CodeHound has a live advisory feed.
+
+### Review-required contract
+
+Any BP detector that cannot establish the required Go type, ownership, alias, or
+control-flow fact is review-required: it remains advisory, must not be used as
+a CI gate, and its result must be classified before code is changed. This covers
+the explicit limitations in the rule notes below; a syntax match is not proof of
+runtime behavior. BP-6 is review-required because tree-sitter alone cannot prove
+that a `.Add` receiver is a `sync.WaitGroup` rather than, for example, an atomic
+counter.
 
 ## Overlap matrix vs golangci ecosystem
 
@@ -51,7 +61,7 @@ Classify each rule before treating CodeHound BP as a substitute for `go vet` / s
 | BP-3 | weaker | go vet / staticcheck | panic outside main/test |
 | BP-4 | unique-ish | — | recover without logging |
 | BP-5 | weaker | errcheck | ignored `Close()` |
-| BP-6 | fixed | staticcheck SA2000 | WaitGroup.Add inside a goroutine (AST-scoped; nested goroutines are reported once) |
+| BP-6 | review-required / fixed | staticcheck SA2000 | AST-scoped `.Add` in a goroutine; nested goroutines report once, but receiver type is unproven |
 | BP-7 | weaker / medium | go vet `-copylocks` | mutex by value |
 | BP-8 | fixed / medium | vet copylocks | defer Unlock **only** with by-value mutex param |
 | BP-9 | fixed / unique | — | select without escape (AST-scoped; comments and literals ignored) |
@@ -151,7 +161,7 @@ If you already run `golangci-lint` with errcheck + staticcheck + revive, prefer 
 
 ## Concurrency
 
-- `BP-6` flags `WaitGroup.Add` inside the goroutine it tracks because the goroutine may run after `Wait`; call `Add` before launching the goroutine. Nested goroutines are evaluated independently, so one inner `Add` produces one finding.
+- `BP-6` flags `WaitGroup.Add` inside the goroutine it tracks because the goroutine may run after `Wait`; call `Add` before launching the goroutine. Nested goroutines are evaluated independently, so one inner `Add` produces one finding. It is review-required: without Go type facts, an atomic counter's `.Add` can match and must not be treated as a WaitGroup defect.
 - `BP-7` flags `sync.Mutex` passed by value because copying a lock corrupts lock state; pass `*sync.Mutex` or move the lock into shared state.
 - `BP-8` flags deferred unlock on a copied mutex because the deferred call may operate on the wrong lock instance; it only reports a matching by-value `sync.Mutex` parameter in the same function or method. Avoid copying mutexes and unlock the original value.
 - `BP-9` flags `select` without timeout, default, or cancellation because it can block forever; add `ctx.Done()`, a timer, or another escape hatch. It inspects parsed select statements and their direct communication cases, not lookalikes in comments, literals, or nested selects.

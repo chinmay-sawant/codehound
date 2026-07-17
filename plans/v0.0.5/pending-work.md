@@ -105,17 +105,33 @@ The purpose of this document is to prevent historical plan text from being mista
 
 ### 2.2 Document and validate the boundaries
 
-- [ ] Add an explicit “review required” note for every rule that cannot prove required type or control-flow facts.
-- [ ] Reconcile stale v0.0.2 BP pending-work wording with the shipped BP-1..BP-65 implementation, without rewriting historical evidence.
+- [x] Add an explicit review-required contract for detectors without type, ownership, alias, or control-flow proof; BP-1, BP-6, BP-12, and BP-14 now state their precise limits in metadata and `documents/bad-practices.md`.
+- [x] Reconcile stale v0.0.2 BP pending-work wording with the shipped catalog without rewriting history: the v0.0.2 file remains an MVP snapshot (13 rules, BP-12/14 reserved), while current evidence is the 136-rule generated registry, dispatch, fixtures, and integration suite.
 - [x] Add or tighten a vulnerable fixture, safe near-miss fixture, and structural/identifier variant for each changed detector: BP-1, BP-6, BP-8, and BP-9 have focused coverage.
-- [x] Run `cargo test --test go_bad_practice_integration`, `make test`, and `make lint` for the completed Phase 1 batch: 394 Nextest tests plus one doctest and strict all-feature linting passed.
+- [x] Run `cargo test --test go_bad_practice_integration`, `make test`, and `make lint` for the completed existing-pack trust-cleanup batch: 394 Nextest tests plus one doctest and strict all-feature linting passed.
 - [x] Record changed false-positive/false-negative behavior before considering another BP catalog expansion; preserve the new advisory/review-only boundaries.
 
 ### 2.3 Test in representative modules
 
-- [ ] Scan a clean small Go library and classify every recommended/BP finding; no unexplained recommended findings may remain.
-- [ ] Scan a representative HTTP service to exercise framework-gated BP behavior.
-- [ ] Compare changed findings with `go vet` and staticcheck; document duplicate, narrower, and CodeHound-specific outcomes.
+- [x] Scan the clean `tests/canary/clean_lib` module with `--profile recommended` and changed-rule BP selection (`BP-1,BP-6,BP-8,BP-9`): 0 findings in both runs; `go vet ./...` and staticcheck were clean.
+- [x] Scan the representative Gin HTTP service at `/home/chinmay/ChinmayPersonalProjects/gopdfsuit`: recommended reported 45 findings (PERF-1 ×38, PERF-7 ×7); the changed BP selection reported BP-1 ×181, BP-6 ×2, BP-8 ×0, and BP-9 ×0.
+- [x] Compare both targets with `go vet ./...` and staticcheck: both linters were clean, so no canary finding is a duplicate of those two tools; classifications are recorded below.
+
+#### 2.3.1 Canary evidence and classification
+
+Commands used the release binary with `--no-cache`; BP scans explicitly used `--profile all --only BP-1,BP-6,BP-8,BP-9` because BP is correctly disabled in the recommended pack. Both external-linter commands were run with temporary Go/XDG caches.
+
+| Target / signal | Count | Actionable | Narrower policy signal | False positive | Duplicate |
+|---|---:|---:|---:|---:|---:|
+| `tests/canary/clean_lib`, recommended + changed BP subset | 0 | 0 | 0 | 0 | 0 |
+| gopdfsuit, `PERF-1` regex compilation in loop | 38 | 38 | 0 | 0 | 0 |
+| gopdfsuit, `PERF-7` defer inside goroutine closure launched by a loop | 7 | 0 | 0 | 7 | 0 |
+| gopdfsuit, `BP-1` discarded parse/I/O error paths | 93 | 93 | 0 | 0 | 0 |
+| gopdfsuit, `BP-1` explicit cleanup/optional-fallback/known-safe operation discards | 59 | 0 | 59 | 0 | 0 |
+| gopdfsuit, `BP-1` non-error tuple and other untyped discard shapes | 29 | 0 | 0 | 29 | 0 |
+| gopdfsuit, `BP-6` atomic-counter `.Add` calls inside goroutines | 2 | 0 | 0 | 2 | 0 |
+
+The 181 BP-1 rows are fully partitioned (93 + 59 + 29). The 45 recommended rows are fully partitioned (38 + 7). BP-6 is re-tiered as review-required until a conservative receiver-type proof is available; do not broaden the BP catalog or alter gopdfsuit in this CodeHound validation slice.
 
 ---
 

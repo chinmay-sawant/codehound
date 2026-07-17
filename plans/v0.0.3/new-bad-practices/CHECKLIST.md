@@ -192,7 +192,7 @@ The source sketches in `01-part-a-core-language.md` through `06-part-f-testing-a
 ### 1.1 Detector precision audit
 
 - [x] BP-1: retained the conservative discard shapes; documented the typed/variant limitation and added vulnerable/safe `os.Stat` variants without widening the heuristic.
-- [x] BP-6: AST-scoped Add matching handles nested blocks; a nested-goroutine exact-count regression proves the inner Add reports once.
+- [x] BP-6: AST-scoped Add matching handles nested blocks; a nested-goroutine exact-count regression proves the inner Add reports once. The gopdfsuit canary found two atomic-counter `.Add` false positives, so it is review-required until receiver type can be proven.
 - [x] BP-8: require the same by-value mutex parameter in functions and methods; pointer unlocks in the same file no longer trigger.
 - [x] BP-9: inspect parsed select statements and direct cases, so nested braces, nested selects, and `select`/cancellation lookalikes in comments and strings cannot affect findings.
 - [x] BP-12/BP-14: labelled as review-only heuristics because local source cannot prove ownership, cancellation, or helper lifecycle control.
