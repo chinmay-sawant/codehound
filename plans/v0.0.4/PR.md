@@ -2,21 +2,21 @@
 
 **Branch:** `chore/perf`  
 **Base:** `master` (`86b6811`)  
-**HEAD:** `249b15e`  
-**Commits:** 6 · **Diff:** 35 files · **+912 / −549**  
+**Prior committed HEAD:** `e980101`
+**This change:** Phase 8 cold-scan reductions, benchmark refresh, and regenerated frontend site
 **Date:** 2026-07-17  
 
 **Suggested title**
 
 ```
-perf: cut cold scan ~12× (up to 5s → ~0.4s) with BP short-circuits
+perf: cut cold scan ~22× (up to 5s → 229.4ms best observed) with BP short-circuits
 ```
 
 **Alternate titles**
 
 ```
 perf(engine): ProjectSnapshot + BP needles for sub-second cold scans
-perf(bp): Phase 0–7A cold-scan plan — 943 findings, ~400ms avg wall
+perf(bp): Phase 8 cold-scan plan — 943 findings, 229.4ms best observed release wall
 ```
 
 **Sources used for this write-up**
@@ -25,14 +25,14 @@ perf(bp): Phase 0–7A cold-scan plan — 943 findings, ~400ms avg wall
 |--------|------|
 | Commit messages (`86b6811..HEAD`) | Intent, phase milestones, validation notes |
 | `plans/v0.0.4/README.md` | Sprint overview & product before/after |
-| `plans/v0.0.4/cold-scan-performance.md` | Phases 0–7A checklist ([x] done items) |
+| `plans/v0.0.4/cold-scan-performance.md` | Phases 0–8 checklist and measurement record |
 | `plans/v0.0.4/quality-gate.md` | Related quality-gate status (Done; separate workstream) |
 
 ---
 
 ## Summary
 
-Cold full re-analysis of a real Go project (gopdfsuit, ~78 files / ~28k lines, profile `all`) dropped from **up to 5 seconds** to **~400ms average** (~370ms best) with an identical **943-finding** multiset. The win comes from per-BP-rule timing, expanded source-needle short-circuits, cheaper AST walks (`walk_nodes` / single-cursor), a shared **`ProjectSnapshot`** that collapses project-level WalkDir thrash, parallel cache preflight, and release-only product measurement via `make run`. Website and plan docs quote honest before/after wall times only.
+Cold full re-analysis of a real Go project (gopdfsuit, 78 files / 28,120 lines, profile `all`) has a **229.4ms best observed release** run with an identical **943-finding** multiset, down from up to 5 seconds. That is approximately **22×** faster. It is a best observation, not an average or p50. The win comes from per-BP-rule timing, source-needle short-circuits, cheaper AST walks, shared project/package snapshots, a one-pass source index, and release-only product measurement.
 
 ---
 
@@ -42,7 +42,7 @@ On first analysis (full re-analysis / 0 cache hits), wall time was dominated by 
 
 | Theme | Problem before | What this PR delivers |
 |-------|----------------|------------------------|
-| **Cold wall time** | Up to **5s** full re-analysis on gopdfsuit | **~400ms avg** / **~370ms best** (~**12×**) |
+| **Cold wall time** | Up to **5s** full re-analysis on gopdfsuit | **229.4ms best observed** release run (~**22×**) |
 | **Correctness** | Risk of “faster by dropping findings” | **943 findings** multiset + severity histogram unchanged |
 | **Instrumentation** | Pack labeled as first rule (BP-1) | Per-BP-rule TLS timing + honest pack labels |
 | **Project thrash** | `is_project_anchor` WalkDir × files × rules | One **`ProjectSnapshot`** + prewarm per root |
@@ -82,6 +82,13 @@ Plan-driven track (v0.0.4 cold-scan performance). Primary docs:
 - **Prewarm** from `Analyzer::analyze_paths` after root discovery, before parallel workers.
 - Gate prewarm when `bad_practices_enabled == false`; prewarm **every distinct** project root on multi-path scans.
 
+### Phase 8: source and package fast paths
+
+- Skip BP-57…BP-65 on non-anchor files before invoking their project-level detectors; BP-62 now counts files and module usage in one traversal.
+- Replace repeated per-needle `str::contains` scans with a one-pass `aho-corasick` `SourceIndex` while retaining O(1) detector lookup.
+- Cache BP-41's compact package-document snapshot, add sound import guards to BP-143/145/149, and skip PERF explicit-`var` facts when neither consumer can fire.
+- Preserve the full 943-finding fingerprint oracle, export content, and test/lint gates.
+
 ### Cache preflight (Phase 4)
 
 - Parallelize Phase 1 of `preflight_cache_hits` (Rayon read + hash + lookup) in `src/engine/walk/parallel.rs`.
@@ -91,7 +98,7 @@ Plan-driven track (v0.0.4 cold-scan performance). Primary docs:
 
 - `make run` uses the optimized, incremental **`perf-run`** profile for the local edit → scan loop; it keeps `opt-level=3` while avoiding release LTO/link cost.
 - `make run RUN_PROFILE=release` remains the release-only path for publishable performance measurements; `run-perf-enhanced` and `run-sarif` continue to use the release binary.
-- Optional `SKIP_BUILD=1` runs the existing release binary with no cargo work.
+- Optional `SKIP_BUILD=1` runs the existing selected-profile binary with no cargo work.
 - Export product path: `make run RUN_ARGS="--export-context --export-chunks"`.
 - `make test` runs all regular tests through bounded `cargo-nextest` parallelism
   (four test processes, four Rayon workers each) while the doctest runs concurrently.
@@ -102,7 +109,7 @@ Plan-driven track (v0.0.4 cold-scan performance). Primary docs:
 
 - Restructure plans path; keep v0.0.4 cold-scan checklist as the source of truth (Phases **0–7A done**, 7C optional).
 - Product docs quote **wall before/after only** (drop phase-wise intermediate benches as product claims).
-- Frontend / docs site: update benchmark copy to **up to 5s → ~0.4s**.
+- Frontend / docs site: update benchmark copy to **up to 5s → 229.4ms best observed**.
 
 ### Commits on this branch
 
@@ -153,9 +160,9 @@ pub(crate) fn is_project_anchor(unit: &ParsedUnit) -> bool {
 ### Product measurement (release only)
 
 ```sh
-make run
-make run RUN_ARGS="--export-context --export-chunks"
-make run SKIP_BUILD=1   # no recompile; uses existing target/release/codehound
+make run RUN_PROFILE=release
+make run RUN_PROFILE=release RUN_ARGS="--export-context --export-chunks"
+make run RUN_PROFILE=release SKIP_BUILD=1 RUN_ARGS="--no-cache" # no recompile; current release binary
 ```
 
 ---
@@ -164,11 +171,11 @@ make run SKIP_BUILD=1   # no recompile; uses existing target/release/codehound
 
 | Area | Impact |
 |------|--------|
-| **Performance** | Cold full re-analysis **up to 5s → ~400ms avg** (~370ms best) on gopdfsuit; ~**12×** wall speedup |
+| **Performance** | Cold full re-analysis **up to 5s → 229.4ms best observed** on gopdfsuit; ~**22×** wall speedup |
 | **Memory** | ProjectSnapshot flags avoid retaining multi-MB project text clones under mutex when flags cover consumers; prewarm is one-shot per root |
 | **Behavior / correctness** | **943 findings** unchanged; severity 9H / 411M / 319L / 204I unchanged; top-rule multiset unchanged |
 | **API / CLI** | No public CLI flag changes; `make run` uses `perf-run`, with explicit `RUN_PROFILE=release` for benchmark claims |
-| **Dependencies** | None added |
+| **Dependencies** | Direct `aho-corasick` use for one-pass source-needle matching (already present transitively) |
 | **Binary size / build time** | Negligible; local product path prefers release (LTO rebuild only when dirty) |
 
 ---
@@ -238,7 +245,7 @@ flowchart LR
 - [ ] `make test`
 - [ ] `make lint` (`cargo clippy -- -D warnings` + `cargo fmt --check`)
 - [ ] `cargo fmt --check`
-- [ ] Cold product scan: `make run` — expect **~0.4s** wall, **943 findings**, 0 cache hits on first full re-analysis
+- [ ] Cold product scan: release binary, profile all, no cache — expect **229.4ms best observed**, **943 findings**, 0 cache hits; collect a distribution before claiming an average
 - [ ] Export: `make run RUN_ARGS="--export-context --export-chunks"`
 - [ ] Warm second run: 78 hits, ≪ 100ms
 - [ ] Optional: `make run SKIP_BUILD=1` after a prior release build
@@ -258,11 +265,11 @@ make run SKIP_BUILD=1
 | Metric | Value |
 |--------|-------|
 | Command | `make run RUN_PROFILE=release` / `./target/release/codehound` (release, full re-analysis) |
-| Cold wall | **~400ms average** · **~370ms best** (0 hits / 78 misses) |
+| Cold wall | **229.4ms best observed** (release, 0 hits / 78 misses) |
 | Findings | **943** (9 high, 411 medium, 319 low, 204 info) |
 | Top rules | BP-1×181, PERF-6×94, PERF-32×59, BP-37×51, PERF-230×44 |
 | Export | 943 context files + 38 chunk files |
-| vs baseline | **up to 5s → ~0.4s** (~**12×** faster) |
+| vs baseline | **up to 5s → 229.4ms** best observed (~**22×** faster) |
 
 ### Test-runner result (verified 2026-07-17)
 
@@ -290,7 +297,7 @@ scanned 78 files (28120 lines) in 5.23s
 
 ```text
 # make run — release, cold full re-analysis
-# ~400ms average wall · ~370ms best · 943 findings unchanged
+# 229.4ms best observed release wall · 943 findings unchanged
 # severity: 9H / 411M / 319L / 204I
 ```
 
@@ -335,7 +342,7 @@ Explicitly **not** in this PR (Phase 7C / deferred):
 
 ## Release notes (if user-facing)
 
-- **Cold scan ~12× faster:** full re-analysis on mid-size Go trees drops from multi-second (up to ~5s) to ~0.4s average with unchanged findings; local `make run` now uses the release binary for honest timings.
+- **Cold scan ~22× faster (best observed):** full re-analysis on gopdfsuit drops from up to ~5s to 229.4ms on the release binary with unchanged findings; repeat runs are required before publishing an average.
 
 ---
 

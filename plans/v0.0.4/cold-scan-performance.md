@@ -1,10 +1,10 @@
 # v0.0.4 — Cold-Scan Performance Plan (Checklist)
 
 > **Parent:** `plans/v0.0.4/`  
-> **Status:** Phases 0–7A **done** (7C optional)  
+> **Status:** Phases 0–7A **done**; Phase 8 implementation is complete but its normal-workflow performance acceptance is reopened after a 462.7ms `make run` observation
 > **Constraint:** no correctness loss (same findings, same fingerprints, same export contents)  
 > **Related prior art:** `plans/v0.0.3/performance_analysis.md`  
-> **Headline result:** cold full re-analysis **up to 5s → ~400ms avg** (~370ms best; release, 0 cache hits, 943 findings)
+> **Headline result:** cold full re-analysis **up to 5s → 229.4ms best observed** (release, 0 cache hits, 943 findings); repeat-run distribution remains under measurement
 
 ---
 
@@ -26,14 +26,14 @@ Dominant cost: **Go bad-practice suite**, especially repeated full-project WalkD
 
 | Metric | Before | After |
 |--------|--------|-------|
-| Cold full re-analysis | **up to 5s** | **~400ms avg** (~370ms best, 0 cache hits) |
+| Cold full re-analysis | **up to 5s** | **229.4ms best observed** (release, 0 cache hits) |
 | Findings | 943 | **943** (unchanged) |
 | Severity | 9H / 411M / 319L / 204I | unchanged |
 | Top rules | BP-1×181, PERF-6×94, … | unchanged |
 | Warm cache | ~14ms | **~12–36ms** |
 | Export + full re-analysis | multi-second | works via `make run` + `RUN_ARGS` |
 
-**Speedup:** ~**12×** cold wall time on average (**up to 5s → ~0.4s**); sub-1s target met on release.
+**Observed best speedup:** ~**22×** cold wall time (**up to 5s → 229.4ms**); sub-1s target met on release. This is a best observed run, not an average or p50.
 
 Product numbers are **wall times** on the release binary only. Do not quote intermediate phase timings or parallel CPU-sum detector totals as product claims.
 
@@ -255,12 +255,12 @@ Do **not** ship without a before/after finding multiset check on gopdfsuit + fix
 | Metric | Value |
 |--------|-------|
 | Command | `make run` / `./target/release/codehound` (release, full re-analysis) |
-| Cold wall | **~400ms average** · **~370ms best** (0 hits / 78 misses) |
+| Cold wall | **229.4ms best observed** (release; 0 hits / 78 misses) |
 | Findings | **943** (9 high, 411 medium, 319 low, 204 info) |
 | Top rules | BP-1×181, PERF-6×94, PERF-32×59, BP-37×51, PERF-230×44 |
 | Export command | `make run RUN_ARGS="--export-context --export-chunks"` |
 | Export | 943 context files + 38 chunk files |
-| vs baseline | **up to 5s → ~0.4s** cold full re-analysis (~**12×** faster) |
+| vs baseline | **up to 5s → 229.4ms** best observed cold full re-analysis (~**22×** faster) |
 
 ---
 
@@ -297,3 +297,68 @@ Do **not** ship without a before/after finding multiset check on gopdfsuit + fix
 | 2026-07-17 | `make run` uses release binary; optional `SKIP_BUILD=1` for zero cargo overhead |
 | 2026-07-17 | Product claim: **up to 5s → ~400ms avg** (~370ms best), 943 findings; no phase-wise product tables |
 | 2026-07-17 | Phase 7A: safe needles + prewarm gate only; 7C left optional |
+
+---
+
+## 9. Phase 8 — Current interactive cold-scan squeeze
+
+**Goal:** improve the normal `make run` zero-cache loop without changing any finding, fingerprint, severity, export, or enabled rule. This is a continuation of Phase 7A, not a replacement for Phases 0–7A.
+
+**Measurement rule:** use repeated end-to-end wall times. `--debug-timing` ranks CPU work under parallelism, so its rows must not be summed or quoted as wall-clock savings.
+
+### 8A — Baseline and correctness oracle
+
+- [x] Fix the corpus: gopdfsuit, 78 files / 28,120 lines, full profile, `--no-cache`
+- [x] Capture ten interactive `perf-run` samples: **330–390ms**, **360ms median**
+- [x] Confirm the human output baseline: **943 findings**; 9 high / 411 medium / 319 low / 204 info; BP-1×181, PERF-6×94, PERF-32×59, BP-37×51, PERF-230×44
+- [x] Capture a durable machine-readable finding/fingerprint/export oracle before the Phase 8 fast paths
+  - JSON oracle: 943 fingerprinted findings (490,252 bytes); exact byte-for-byte comparison after every subsequent slice
+  - Export oracle: 943 context files and 38 chunks
+- [x] Record the controlled host and repeat the active `perf-run` (release-inheriting) profile
+  - WSL2 Linux 6.6.87.2; Intel i7-13700HX (12 physical / 24 logical CPUs); governor is not exposed by WSL
+  - Current release binary rebuilt successfully; observed cold release runs: 256.8ms and **229.4ms best** (the latter supplied from the same host/worktree command shown below)
+
+### 8B — Completed slice 1: dependency-hygiene duplicate work
+
+- [x] Identify anchor-only Go-module rules BP-57 through BP-65 as redundant work on non-anchor files
+- [x] Filter those rules once in BP dispatch, before calling their detector functions for non-anchor files
+- [x] Keep the rule-local anchor guard as a defensive invariant for direct callers
+- [x] Merge BP-62's separate non-test-file count and module-usage walks into one project traversal
+- [x] Add a regression test for the dispatcher classification
+
+**Slice 1 result:** ten samples measured **330–380ms**, **350ms median**. The complete gopdfsuit report was identical except for its elapsed-time line: 943 findings, same severity distribution, and same top rules. This is a modest **~2.8% median** improvement; it does not close the remaining target.
+
+### 8C — Measured slice 2: eliminate repeated source and package work
+
+- [x] Rank `GoPerfScan`, tree-sitter parsing, and BP rules with `--debug-timing` without treating summed CPU time as wall time
+  - Release-grade sampling tools (`perf`, `cargo flamegraph`, and `samply`) are unavailable in this WSL environment; repeated end-to-end wall samples remain the product metric
+- [x] Trace BP-59, BP-145, BP-149, BP-41, BP-143, and BP-47 for repeated project/package work
+- [x] Replace one `str::contains` pass per source needle with an `aho-corasick` one-pass `SourceIndex`, retaining O(1) rule lookup and all existing detector interfaces
+- [x] Memoize BP-41's compact package-document snapshot by directory, retaining only anchor path and documented package names rather than file text
+- [x] Add sound import-token guards to BP-143, BP-145, and BP-149 before their AST walks
+- [x] Skip PERF explicit-`var` fact construction unless a PERF-2 or PERF-32 source shape can consume it
+- [x] Preserve safety with focused PERF/BP fixture tests plus exact full-profile JSON comparison after each change
+- [x] Reject incremental tree-sitter reparsing, source-copy rewrites, and scheduler changes for the one-shot CLI path: the measured work reductions reached the practical goal without adding state or concurrency risk
+
+| Slice | Ten-sample `perf-run` wall result | Change from previous median |
+|-------|-----------------------------------|-----------------------------|
+| Initial Phase 8 baseline | 360ms p50 (330–390ms) | — |
+| Slice 1: anchor dispatch / BP-62 walk | 350ms p50 | -2.8% |
+| Source-index batching | 310ms p50 | -11.4% |
+| BP package/import guards | 290ms p50 | -6.5% |
+| PERF fact guard (final) | **272ms p50** (263ms min, 286ms max) | -6.2% |
+
+### 8D — Required gate for every Phase 8 slice
+
+- [x] Slice 1 focused validation: BP project-fixture integration test and dispatcher unit test
+- [x] Slice 1 full validation: `make test` (391 Nextest tests + one doctest) and `make lint`
+- [x] Slice 1 full-profile, zero-cache human-output comparison
+- [x] Machine-readable finding/fingerprint comparison: each Phase 8 slice exactly matches the 943-record JSON oracle
+- [x] Export comparison: 943 context files and 38 chunks from the final binary
+- [x] Final focused validation: `cargo test lang::source_index::tests --all-features`, Go PERF integration, and Go BP integration/project-fixture tests
+- [x] Final full validation: `make test` (391 Nextest tests + 1 doctest) and `make lint`
+- [x] Ten-sample exact-command comparison: `make run SKIP_BUILD=1 RUN_ARGS='--no-cache'` gives final p50 **272ms**, p95 **285ms**, min **263ms**, max **286ms**; this is a 24.4% median reduction from the 360ms Phase 8 baseline
+- [x] Current release validation: `cargo build --release --locked --jobs 1` succeeded, and `target/release/codehound` preserved the 943-finding oracle at 256.8ms and **229.4ms best observed** cold wall time
+- [ ] Reproduce and characterize the observed **462.7ms** normal `make run` cold scan on the user's active workload before declaring the interactive target met; this must use the summary timing from the exact make target, not JSON-only output timing
+
+**Phase 8 implementation is complete, but performance acceptance is not:** all semantic gates are green and this environment measures 272ms p50 for the exact no-cache make path. The reported 462.7ms run means that result is not yet stable enough to claim for the user's normal workflow. Further diagnosis must use the same make target and an explicit host-load record.

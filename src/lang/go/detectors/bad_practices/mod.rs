@@ -37,8 +37,17 @@ impl Detector for GoBadPracticeScan {
         }
         let index = source_index::SourceIndex::build(source_index::NEEDLES, unit.source.as_ref());
         let time_rules = ctx.debug_timing && crate::engine::active_enabled();
+        let has_enabled_project_rule = dispatch::BAD_PRACTICE_RULES
+            .iter()
+            .any(|(rule_id, _)| ctx.allows(rule_id) && dispatch::requires_project_anchor(rule_id));
+        let is_project_anchor = has_enabled_project_rule
+            && !common::is_materialized_fixture(unit)
+            && common::is_project_anchor(unit);
         for (rule_id, detector) in dispatch::BAD_PRACTICE_RULES {
             if !ctx.allows(rule_id) {
+                continue;
+            }
+            if dispatch::requires_project_anchor(rule_id) && !is_project_anchor {
                 continue;
             }
             let start = out.len();

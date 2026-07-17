@@ -56,7 +56,7 @@ export const sections: Section[] = [
       { value: '~2k→2.7k', label: 'ops/sec after fixes', sub: 'gopdfsuit · CodeHound pass' },
       { value: '+35%', label: 'throughput lift', sub: 'same machines · same harness' },
       { value: '218', label: 'PERF findings fixed', sub: '226 exported · 8 CWE deferred' },
-      { value: '~400ms', label: 'cold full scan', sub: 'was up to 5s · ~12× · release' },
+      { value: '229.4ms', label: 'best cold full scan', sub: 'release · 0 cache hits · was up to 5s' },
     ],
     facts: [
       { k: 'What changed', v: 'Regex hoists, fmt→strconv/AppendInt, defer off hot paths, non-blocking logging' },
@@ -212,27 +212,27 @@ export const sections: Section[] = [
     icon: BarChart3,
     title: 'Benchmarks & latest scan',
     lead:
-      'Cold full re-analysis on gopdfsuit dropped from up to 5 seconds to ~400ms average on the release binary (~370ms best) — about 12× faster — plus Criterion microbenches and a real export run.',
+      'Cold full re-analysis on gopdfsuit has a best observed release run of 229.4ms (0 cache hits), down from up to 5 seconds — about 22× faster — plus Criterion microbenches and a real export run.',
     stats: [
-      { value: '~400ms', label: 'cold full scan', sub: 'avg · gopdfsuit · 0 cache hits' },
-      { value: '~12×', label: 'faster cold path', sub: 'up to 5s → ~0.4s · profile all' },
-      { value: '1,042', label: 'findings exported', sub: 'scripts/findings/functions' },
+      { value: '229.4ms', label: 'best cold full scan', sub: 'release · gopdfsuit · 0 cache hits' },
+      { value: '~22×', label: 'faster cold path', sub: 'up to 5s → 229.4ms · profile all' },
+      { value: '943', label: 'findings exported', sub: '943 contexts · 38 chunks' },
       { value: '39.5ms', label: 'full fixture scan', sub: '900 Go files · Criterion' },
     ],
     facts: [
-      { k: 'Cold wall (release)', v: 'up to 5s → ~400ms avg (~370ms best) · 943 findings · 0 cache hits' },
+      { k: 'Cold wall (release)', v: 'up to 5s → 229.4ms best observed · 943 findings · 0 cache hits' },
       { k: 'Warm cache', v: '~12–36ms second run when content hashes hit' },
-      { k: 'Severity mix', v: '202 high · 533 medium · 307 low' },
-      { k: 'Top rules', v: 'CWE-79 ×192 · BP-1 ×164 · PERF-6 ×96 · PERF-192 ×80 · PERF-32 ×43' },
-      { k: 'Categories', v: '533 PERF · 202 CWE · 307 bad practices' },
-      { k: 'Export tokens', v: '~1.52M input tokens across 42 chunks (avg ~36K/chunk)' },
+      { k: 'Severity mix', v: '9 high · 411 medium · 319 low · 204 info' },
+      { k: 'Top rules', v: 'BP-1 ×181 · PERF-6 ×94 · PERF-32 ×59 · BP-37 ×51 · PERF-230 ×44' },
+      { k: 'Full profile', v: 'PERF + CWE + bad-practice rules enabled' },
+      { k: 'Export', v: '943 contexts across 38 chunks' },
     ],
     tables: [
       {
         caption: 'Product timings & engine benchmarks (release profile)',
         headers: ['Benchmark', 'Time', 'Notes'],
         rows: [
-          ['gopdfsuit cold full re-analysis', '~400 ms avg', 'profile all · 0 cache hits · ~370ms best · was up to 5s (~12×)'],
+          ['gopdfsuit cold full re-analysis', '229.4 ms best observed', 'release · profile all · 0 cache hits · was up to 5s (~22×)'],
           ['gopdfsuit warm cache', '~12–36 ms', 'content-hash hits · same tree'],
           ['scan_materialized_fixtures', '39.5 ms', '275 detectors · 900 Go fixture files'],
           ['collect_entries_materialized', '1.0 ms', 'File discovery + language classification'],
@@ -322,7 +322,7 @@ for i := range members {
       { k: 'Text', v: 'color-coded severity, per-finding snippet, fix hint, summary footer' },
       { k: 'JSON', v: 'NDJSON stream, stable fingerprint (codehound:2:rule:file:msghash), jq-able' },
       { k: 'SARIF', v: '2.1.0, security-severity mapped, partialFingerprints, runs in GitHub Code Scanning' },
-      { k: 'Cache', v: 'per-file content-hash; warm ~12–36ms after cold ~400ms avg on gopdfsuit; enabled by default' },
+      { k: 'Cache', v: 'per-file content-hash; warm ~12–36ms after a 229.4ms best observed cold release scan on gopdfsuit; enabled by default' },
       { k: 'Agent export', v: 'scripts/findings/functions + scripts/chunks — fixed context for batch triage' },
     ],
     body: [

@@ -76,6 +76,9 @@ pub(crate) fn detect_bp_145_pool_conn_not_released(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
+    if !unit.source.contains("pgxpool") {
+        return;
+    }
     let source = unit.source.as_bytes();
     if !has_any_import(
         unit.tree.root_node(),

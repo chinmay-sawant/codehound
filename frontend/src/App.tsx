@@ -237,7 +237,7 @@ export default function App() {
                 </div>
                 <div className="hero-meta-cell">
                   <span className="hero-meta-k">cold scan</span>
-                  <span className="hero-meta-v">~400ms · release</span>
+                  <span className="hero-meta-v">229.4ms best · release</span>
                 </div>
                 <div className="hero-meta-cell">
                   <span className="hero-meta-k">triage</span>

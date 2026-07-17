@@ -350,6 +350,9 @@ pub(crate) fn detect_bp_143_redis_result_error_ignored(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
+    if !unit.source.contains("redis") {
+        return;
+    }
     let source = unit.source.as_bytes();
     let root = unit.tree.root_node();
     if !has_any_import(

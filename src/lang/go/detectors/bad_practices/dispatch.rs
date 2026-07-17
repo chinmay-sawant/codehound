@@ -173,3 +173,28 @@ pub(crate) fn rule_ids() -> &'static [&'static str] {
     IDS.get_or_init(|| BAD_PRACTICE_RULES.iter().map(|(id, _)| *id).collect())
         .as_slice()
 }
+
+/// Go-module hygiene rules emit once per project, on its anchor file.
+///
+/// Keeping this classification beside the dispatch table lets the scan skip all
+/// nine detector calls for non-anchor files, rather than asking each rule to
+/// rediscover the same project anchor independently.
+pub(crate) fn requires_project_anchor(rule_id: &str) -> bool {
+    matches!(
+        rule_id,
+        "BP-57" | "BP-58" | "BP-59" | "BP-60" | "BP-61" | "BP-62" | "BP-63" | "BP-64" | "BP-65"
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::requires_project_anchor;
+
+    #[test]
+    fn requires_project_anchor_only_for_go_module_hygiene_rules() {
+        assert!(requires_project_anchor("BP-57"));
+        assert!(requires_project_anchor("BP-65"));
+        assert!(!requires_project_anchor("BP-56"));
+        assert!(!requires_project_anchor("BP-66"));
+    }
+}
