@@ -37,7 +37,21 @@ Success means every future `structural` promotion has generalized syntax or fact
 - [x] Record the source evidence for their quarantine rather than treating their fixture coverage as product proof.
 - [ ] Audit the remaining long-tail rules in domain-sized tranches; create an explicit disposition for every rule changed or promoted.
 
-### 1.2 Structural promotion bar
+### 1.2 Canary decision — 2026-07-18
+
+The six-rule family was run with `--profile all --only
+CWE-334,CWE-335,CWE-338,CWE-342,CWE-343,CWE-798 --no-cache` against three real
+Go repositories: gopdfsuit (78 files), monsoon (43 files), and go-retry (5
+files). It produced **0 useful hits / 126 scanned files**.
+
+**Decision (2026-07-18):** keep the family available only through `--profile
+all` and retain its fixture coverage as regression evidence. Do not promote it,
+and do not delete it solely for this zero-hit canary; review it again only when
+a detector has generalized evidence meeting the structural promotion bar.
+
+- [x] Record the canary rate and a dated zero-useful-hit disposition for this completed family.
+
+### 1.3 Structural promotion bar
 
 A CWE rule may be promoted to `structural` only when all of the following are true:
 
@@ -53,7 +67,7 @@ A CWE rule may be promoted to `structural` only when all of the following are tr
 
 - [ ] Select one long-tail detector whose call facts already provide a complete primary signal, then replace its primary `SourceIndex.has` logic without changing its finding oracle.
 - [ ] Retain only API/stdlib needles that can cheaply prove a detector impossible; label fixture-only corpus literals in the source index as they are audited.
-- [ ] Record a canary hit-rate and a dated keep/narrow/quarantine/delete decision for each completed family.
+- [ ] Record a canary hit-rate and a dated keep/narrow/quarantine/delete decision for each completed family; the first fixture-only family is recorded above.
 
 ---
 

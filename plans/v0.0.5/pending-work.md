@@ -209,7 +209,7 @@ The seven gopdfsuit false positives were `defer wg.Done()` or semaphore cleanup 
 - [x] Define and enforce the rewrite bar before promoting a rule to `structural` maturity; the bar, evidence requirements, and same-change maturity/profile update rule are recorded in `plans/v0.0.5/cwe-catalog-trust-audit.md`.
 - [ ] Prefer call facts and callee classification over `SourceIndex.has` as the primary detector signal where the currently selected rule proves that feasible.
 - [ ] Use NEEDLES as negative gates where possible and complete the remaining NEEDLES-comment pass incrementally.
-- [ ] Track canary hit rates and create a dated deletion/review decision for rules with zero useful hits.
+- [ ] Track canary hit rates and create a dated deletion/review decision for rules with zero useful hits. The 2026-07-18 fixture-only tranche recorded 0/126 files across gopdfsuit, monsoon, and go-retry and remains quarantined pending a structural rewrite.
 
 ---
 
