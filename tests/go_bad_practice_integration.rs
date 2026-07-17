@@ -192,6 +192,26 @@ fn bp_6_reports_nested_goroutine_add_once() {
 }
 
 #[test]
+fn bp_9_reports_outer_select_despite_nested_default() {
+    let analyzer = bp_analyzer();
+    let fixture = "tests/fixtures/go/bad_practices/BP-9-variant-vulnerable.txt";
+    let source = helpers::assert_fixture_materializes(fixture);
+    let result = analyzer
+        .analyze_paths(&[&source], None)
+        .unwrap_or_else(|e| panic!("analyze {fixture}: {e:#}"));
+    let bp_9_findings = result
+        .findings
+        .iter()
+        .filter(|finding| finding.rule_id == "BP-9")
+        .count();
+
+    assert_eq!(
+        bp_9_findings, 1,
+        "a nested select default must not suppress the outer BP-9 finding"
+    );
+}
+
+#[test]
 fn bp_8_reports_each_by_value_mutex_parameter() {
     let analyzer = bp_analyzer();
     let fixture = "tests/fixtures/go/bad_practices/BP-8-vulnerable.txt";

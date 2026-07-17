@@ -121,18 +121,7 @@ pub(crate) fn detect_bp_9_select_without_escape(
         unit.tree.root_node(),
         &["select_statement"],
         &mut |select_statement| {
-            let Ok(block) = select_statement.utf8_text(unit.source.as_bytes()) else {
-                return;
-            };
-            let has_escape = contains_code_token(block, "default:")
-                || contains_code_token(block, "time.After(")
-                || contains_code_token(block, "time.NewTimer(")
-                || contains_code_token(block, "ctx.Done()")
-                || contains_code_token(block, "context.Done()")
-                || contains_code_token(block, "<-stop")
-                || contains_code_token(block, "<-done")
-                || contains_code_token(block, "<-ctx.Done()");
-            if !has_escape {
+            if !select_has_escape(select_statement, unit.source.as_bytes()) {
                 push_at(
                     unit,
                     out,
@@ -143,6 +132,28 @@ pub(crate) fn detect_bp_9_select_without_escape(
             }
         },
     );
+}
+
+fn select_has_escape(select_statement: Node, source: &[u8]) -> bool {
+    let mut cursor = select_statement.walk();
+    select_statement
+        .named_children(&mut cursor)
+        .any(|case| match case.kind() {
+            "default_case" => true,
+            "communication_case" => case
+                .child_by_field_name("communication")
+                .and_then(|communication| communication.utf8_text(source).ok())
+                .is_some_and(|communication| {
+                    contains_code_token(communication, "time.After(")
+                        || contains_code_token(communication, "time.NewTimer(")
+                        || contains_code_token(communication, "ctx.Done()")
+                        || contains_code_token(communication, "context.Done()")
+                        || contains_code_token(communication, "<-stop")
+                        || contains_code_token(communication, "<-done")
+                        || contains_code_token(communication, "<-ctx.Done()")
+                }),
+            _ => false,
+        })
 }
 
 fn function_literal_body(node: Node) -> Option<Node> {
