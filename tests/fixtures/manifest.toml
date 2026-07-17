@@ -5212,7 +5212,7 @@ lang = "go"
 path = "tests/fixtures/go/taint/IP-006-safe.txt"
 required_rules = []
 
-# Deferred inter-procedural fixtures (P1-F Phase 6 follow-up)
+# Inter-procedural fixtures (P1-F Phase 6 follow-up)
 [[fixture]]
 lang = "go"
 path = "tests/fixtures/go/taint/IP-007-vulnerable.txt"

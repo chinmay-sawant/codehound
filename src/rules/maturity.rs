@@ -63,14 +63,17 @@ fn is_taint_core(rule_id: &str) -> bool {
 }
 
 fn is_structural_cwe(rule_id: &str) -> bool {
+    // Structural eligibility is deliberately an explicit allow-list. Do not add
+    // a rule without satisfying the promotion bar in the CWE catalog trust audit.
     matches!(
         rule_id,
         "CWE-41" | "CWE-59" | "CWE-76" | "CWE-93" | "CWE-112" | "CWE-22"
     )
 }
 
-/// Rules known to encode fixture-only needles (magic numbers, exact ids, PRNG museum).
-/// Expand as audits land; keep sorted for review.
+/// Rules audited as fixture-only: their current evidence is a corpus literal,
+/// magic value, or project-specific identifier rather than a generalized fact.
+/// Keep sorted for review; see `plans/v0.0.5/cwe-catalog-trust-audit.md`.
 fn is_fixture_only(rule_id: &str) -> bool {
     matches!(
         rule_id,

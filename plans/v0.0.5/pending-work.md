@@ -29,9 +29,9 @@ The purpose of this document is to prevent historical plan text from being mista
 
 ### 0.1 Preserve the audit boundary
 
-- [ ] Record the Phase 1–3 decisions in the owning source documents and update `ROADMAP.md` whenever a decision changes 0.1.x scope.
+- [x] Record the Phase 1–3 decisions in the owning source documents and update `ROADMAP.md`: cold-scan, BP canary, and recommended-pack pilot evidence are now linked from their owning documents.
 - [ ] For each archived source below, mark its surviving outcome as completed, deferred, or superseded only after source/test evidence is attached; do not bulk-check historical rows.
-- [ ] Remove the stale claim that Go taint integration tests are ignored and correct the stale IP-007/IP-008 deferred manifest comment. The current integration test already runs two tests with no ignored cases.
+- [x] Remove the stale claim that Go taint integration tests are ignored and correct the stale IP-007/IP-008 deferred manifest comment; the active integration suite runs the registered cases, while channel/goroutine flows remain an explicit unsupported boundary.
 - [ ] Keep `plans/v0.0.5/pending-work.md` as this reconciliation snapshot; create an issue for any item selected for implementation.
 
 ### 0.2 Complete unchecked-box source index
@@ -205,8 +205,8 @@ The seven gopdfsuit false positives were `defer wg.Done()` or semaphore cleanup 
 
 ### 3.2 Continue catalog honesty
 
-- [ ] Audit the CWE long-tail needles and expand the maturity table from evidence.
-- [ ] Define and enforce the rewrite bar before promoting a rule to `structural` maturity.
+- [ ] Audit the CWE long-tail needles and expand the maturity table from evidence. Tranche 1 confirms CWE-334/335/338/342/343/798 remain fixture-only; see `plans/v0.0.5/cwe-catalog-trust-audit.md`.
+- [x] Define and enforce the rewrite bar before promoting a rule to `structural` maturity; the bar, evidence requirements, and same-change maturity/profile update rule are recorded in `plans/v0.0.5/cwe-catalog-trust-audit.md`.
 - [ ] Prefer call facts and callee classification over `SourceIndex.has` as the primary detector signal where the currently selected rule proves that feasible.
 - [ ] Use NEEDLES as negative gates where possible and complete the remaining NEEDLES-comment pass incrementally.
 - [ ] Track canary hit rates and create a dated deletion/review decision for rules with zero useful hits.

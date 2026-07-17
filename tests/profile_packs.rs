@@ -55,7 +55,9 @@ fn recommended_does_not_allow_fixture_only_ids() {
         profile: ScanProfile::Recommended,
         ..Default::default()
     });
-    for id in ["CWE-334", "CWE-335", "CWE-338", "CWE-342", "CWE-343"] {
+    for id in [
+        "CWE-334", "CWE-335", "CWE-338", "CWE-342", "CWE-343", "CWE-798",
+    ] {
         assert!(
             is_quarantined_from_default_packs(id),
             "{id} should be fixture-only"

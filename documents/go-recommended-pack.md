@@ -51,7 +51,7 @@ Taint analysis is **off** under `recommended` unless you pass `--taint`. The CWE
 
 ## Fixture-only quarantine
 
-Rules tagged `fixture-only` (e.g. CWE-334/335/338/342/343 PRNG museum) are **never** in recommended/security. Use `--profile all` for the full corpus.
+Rules tagged `fixture-only` (CWE-334/335/338/342/343 PRNG corpus patterns and CWE-798's literal-DSN pattern) are **never** in recommended/security. Use `--profile all` for the full corpus. The evidence and structural-promotion bar are recorded in [`plans/v0.0.5/cwe-catalog-trust-audit.md`](../plans/v0.0.5/cwe-catalog-trust-audit.md).
 
 See `src/rules/maturity.rs` and `src/core/profile.rs`.
 

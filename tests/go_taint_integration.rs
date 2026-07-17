@@ -1,7 +1,6 @@
 //! Inter-procedural taint tracking integration tests.
 //!
-//! Fixtures are written and registered. Tests are `#[ignore]`'d until
-//! Phase 3 (cross-function propagation) is implemented.
+//! Registered inter-procedural fixtures run with the enabled taint analyzer.
 
 #[path = "helpers/go_taint_cases.rs"]
 mod go_taint_cases;
@@ -26,7 +25,7 @@ fn taint_analyzer() -> &'static Analyzer {
     })
 }
 
-/// Fixtures deferred to Phase 6 (goroutines require channel modeling).
+/// Channel/goroutine cases are deliberately absent until that flow model exists.
 const DEFERRED: &[&str] = &[];
 
 #[test]
