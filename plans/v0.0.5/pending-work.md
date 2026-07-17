@@ -119,7 +119,16 @@ The purpose of this document is to prevent historical plan text from being mista
 
 #### 2.3.1 Canary evidence and classification
 
-Commands used the release binary with `--no-cache`; BP scans explicitly used `--profile all --only BP-1,BP-6,BP-8,BP-9` because BP is correctly disabled in the recommended pack. Both external-linter commands were run with temporary Go/XDG caches.
+The target revisions were CodeHound detector source `c23bf18` (the release binary used for the scan) and gopdfsuit `26d71268937136036c3be1770c0f7bdd89f87dc6` (clean worktree). Commands used the release binary with `--no-cache`; BP scans explicitly used `--profile all --only BP-1,BP-6,BP-8,BP-9` because BP is correctly disabled in the recommended pack. Both external-linter commands were run with temporary Go/XDG caches:
+
+```sh
+target/release/codehound tests/canary/clean_lib --no-fail --no-terminal --profile recommended --no-cache
+target/release/codehound tests/canary/clean_lib --no-fail --no-terminal --profile all --only BP-1,BP-6,BP-8,BP-9 --no-cache --format json
+target/release/codehound /home/chinmay/ChinmayPersonalProjects/gopdfsuit --no-fail --no-terminal --profile recommended --no-cache
+target/release/codehound /home/chinmay/ChinmayPersonalProjects/gopdfsuit --no-fail --no-terminal --profile all --only BP-1,BP-6,BP-8,BP-9 --no-cache --format json
+GOCACHE=/tmp/codehound-canary-go-cache XDG_CACHE_HOME=/tmp/codehound-canary-xdg go vet ./...
+GOCACHE=/tmp/codehound-canary-go-cache XDG_CACHE_HOME=/tmp/codehound-canary-xdg staticcheck ./...
+```
 
 | Target / signal | Count | Actionable | Narrower policy signal | False positive | Duplicate |
 |---|---:|---:|---:|---:|---:|
@@ -131,7 +140,7 @@ Commands used the release binary with `--no-cache`; BP scans explicitly used `--
 | gopdfsuit, `BP-1` non-error tuple and other untyped discard shapes | 29 | 0 | 0 | 29 | 0 |
 | gopdfsuit, `BP-6` atomic-counter `.Add` calls inside goroutines | 2 | 0 | 0 | 2 | 0 |
 
-The 181 BP-1 rows are fully partitioned (93 + 59 + 29). The 45 recommended rows are fully partitioned (38 + 7). BP-6 is re-tiered as review-required until a conservative receiver-type proof is available; do not broaden the BP catalog or alter gopdfsuit in this CodeHound validation slice.
+The 181 BP-1 rows are fully partitioned (93 + 59 + 29). The 45 recommended rows are fully partitioned (38 + 7). Location-level source review used the JSON `file` and `line` fields from the fourth command above at the pinned gopdfsuit revision: each BP-1 row is in exactly one of the three BP-1 classes, every `PERF-1` and `PERF-7` row is in its corresponding row above, and the two BP-6 locations are `internal/benchmarktemplates/runner.go:98` and `sampledata/benchmarks/gopdflib/databench_gopdflib.go:154`. This is the disposition ledger for this pilot; re-run the recorded JSON command if the target revision changes. BP-6 is re-tiered as review-required until a conservative receiver-type proof is available; do not broaden the BP catalog or alter gopdfsuit in this CodeHound validation slice.
 
 ---
 
