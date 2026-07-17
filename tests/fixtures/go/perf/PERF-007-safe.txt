@@ -18,3 +18,11 @@ func CloseAll(paths []string) error {
 	}
 	return nil
 }
+
+func StartWorkers(values []int, done func(int)) {
+	for _, value := range values {
+		func(v int) {
+			defer done(v)
+		}(value)
+	}
+}

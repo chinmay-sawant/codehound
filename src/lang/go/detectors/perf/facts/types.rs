@@ -53,6 +53,7 @@ pub struct GoPerfFacts {
     pub defer_starts: Vec<(usize, usize)>,
     pub go_starts: Vec<(usize, usize)>,
     pub for_ranges: Vec<(usize, usize)>,
+    pub function_literal_ranges: Vec<(usize, usize)>,
     pub type_assertions: Vec<(usize, usize)>,
 }
 

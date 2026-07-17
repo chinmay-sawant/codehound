@@ -117,7 +117,7 @@
     ],
     "category": "Performance",
     "description": "Places defer statements inside loops, causing cleanup work to stack until function exit and adding avoidable per-iteration overhead.",
-    "detection_notes": "Future Go performance heuristic. Match defer statements in loops and suppress when the loop is not on a hot path or when a helper function intentionally scopes the defer per iteration.",
+    "detection_notes": "Match a defer whose nearest enclosing loop executes in the same function scope. Suppress a defer inside a function literal declared by that loop, because it runs when each closure returns; still report a loop nested inside that closure.",
     "go_relevance": "High",
     "id": "PERF-007",
     "name": "Defer Inside Loop",

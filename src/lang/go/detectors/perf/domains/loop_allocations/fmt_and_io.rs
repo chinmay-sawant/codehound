@@ -40,11 +40,21 @@ pub(crate) fn detect_perf_7(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Ve
     let file = unit.display_path.as_str();
 
     for &(start_byte, _end_byte) in &facts.defer_starts {
-        let in_loop = facts
+        let Some(&(loop_start, loop_end)) = facts
             .for_ranges
             .iter()
-            .any(|&(s, e)| s <= start_byte && start_byte <= e);
-        if !in_loop {
+            .filter(|&&(start, end)| start <= start_byte && start_byte <= end)
+            .min_by_key(|&&(start, end)| end - start)
+        else {
+            continue;
+        };
+        // A defer in a closure launched by the loop runs when that closure
+        // returns, not when the enclosing function returns. Only skip this
+        // boundary; a loop nested inside the closure still reports normally.
+        let is_per_iteration_closure = facts.function_literal_ranges.iter().any(|&(start, end)| {
+            loop_start <= start && start < start_byte && start_byte < end && end <= loop_end
+        });
+        if is_per_iteration_closure {
             continue;
         }
         let (line, col) = unit.line_col(start_byte);

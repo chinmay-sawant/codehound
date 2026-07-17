@@ -15,7 +15,7 @@ Bad practices (`BP-*`) are **off**. Fail policy defaults to **strict** (high+ on
 | Rule | Why |
 |------|-----|
 | `PERF-1` | Regex compilation inside a loop |
-| `PERF-7` | `defer` inside a loop |
+| `PERF-7` | `defer` inside a loop in the same function scope; per-iteration function literals are excluded |
 | `PERF-50` | `regexp.MatchString` inside a loop |
 | `PERF-58` | Gin `c.Request.Body` not closed |
 | `PERF-71` | GORM N+1 query pattern |
