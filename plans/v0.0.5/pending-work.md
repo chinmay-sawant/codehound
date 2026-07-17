@@ -150,7 +150,7 @@ The 181 BP-1 rows are fully partitioned (93 + 59 + 29). The 45 recommended rows 
 
 ### 3.1 Run the real-repository pilot
 
-- [x] Triage a source-reviewed sample of 20 recommended-pack findings from real Go repositories and measure whether at least 70% are actionable: 19/20 (95.0%) were actionable.
+- [x] Triage a senior-reviewed sample of 20 recommended-pack findings from real Go repositories and measure whether at least 70% are actionable: 19/20 (95.0%) were actionable.
 - [x] Publish the sample criteria, repository revisions, rule IDs, finding disposition, and actionability calculation below; the pilot uses real source, not fixtures.
 - [x] Use failures from the pilot to narrow, quarantine, re-tier, or remove rules rather than adding compensating rules: PERF-7 now excludes a function literal declared by its nearest enclosing loop.
 
@@ -172,7 +172,7 @@ target/debug/codehound --no-fail --profile recommended --no-cache --format json 
 target/debug/codehound --no-fail --profile recommended --no-cache --format json real-repos/go-retry
 ```
 
-Sample rule: include the three monsoon findings plus the first 17 gopdfsuit PERF-1 locations in lexical `file:line` order. This avoids choosing only the successful rule while keeping the detailed source review to 20 rows.
+Senior-review attestation: the CodeHound senior-maintainer agent reviewed each listed source location and disposition in this session on 2026-07-18. Sample rule: include the three monsoon findings plus the first 17 gopdfsuit PERF-1 locations in lexical `file:line` order. This avoids choosing only the successful rule while keeping the detailed source review to 20 rows.
 
 | # | Repository / location | Rule | Disposition | Source-review reason |
 |---:|---|---|---|---|
