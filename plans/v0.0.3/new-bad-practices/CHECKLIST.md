@@ -191,7 +191,7 @@ The source sketches in `01-part-a-core-language.md` through `06-part-f-testing-a
 
 ### 1.1 Detector precision audit
 
-- [ ] BP-1: retain the conservative discard shapes; add a typed/variant limitation note rather than widening it to every ignored call.
+- [x] BP-1: retained the conservative discard shapes; documented the typed/variant limitation and added vulnerable/safe `os.Stat` variants without widening the heuristic.
 - [ ] BP-6: verify nested blocks and multiple goroutines do not produce duplicate or misplaced findings.
 - [ ] BP-8: require the same mutex object to be implicated; reject file-level co-presence.
 - [ ] BP-9: validate block matching around nested braces, comments, and strings.

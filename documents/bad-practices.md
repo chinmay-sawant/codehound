@@ -46,7 +46,7 @@ Classify each rule before treating CodeHound BP as a substitute for `go vet` / s
 
 | Rule | Class | Overlaps | Notes |
 |------|-------|----------|-------|
-| BP-1 | weaker / fixed | errcheck, staticcheck | Assignment shapes for discarded `_`; skips non-error builtins; still no types |
+| BP-1 | weaker / fixed | errcheck, staticcheck | Review-required syntax heuristic for discarded `_` assignment shapes; skips known non-error builtins but has no Go type facts |
 | BP-2 | weaker | wrapcheck, errorlint | Naked `return err` |
 | BP-3 | weaker | go vet / staticcheck | panic outside main/test |
 | BP-4 | unique-ish | — | recover without logging |
@@ -143,7 +143,7 @@ If you already run `golangci-lint` with errcheck + staticcheck + revive, prefer 
 
 ## Error Handling
 
-- `BP-1` flags discarded error returns because `_ = err` suppresses failure handling; keep the error, wrap it with context, or return it to the caller.
+- `BP-1` flags error-shaped call returns assigned to `_`; keep the error, wrap it with context, or return it to the caller. It is advisory: without Go type facts, it cannot prove that a blank multi-return value is an `error`, so review non-standard call shapes before acting.
 - `BP-2` flags naked `return err` paths because they lose operation-specific context; wrap the error with the failing action before returning.
 - `BP-3` flags `panic` outside `main` or tests because library code should not abort the process; return an error or convert the failure into an explicit contract.
 - `BP-4` flags `recover()` without visible reporting because swallowed panics destroy debugging signal; log, report, or re-panic with context.

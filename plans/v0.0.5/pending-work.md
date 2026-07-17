@@ -95,7 +95,7 @@ The purpose of this document is to prevent historical plan text from being mista
 
 ### 2.1 Audit existing-pack precision
 
-- [ ] BP-1: retain conservative discard shapes and document the typed/variant limitation instead of widening every ignored call.
+- [x] BP-1: retained conservative discard shapes, documented the no-type-facts limitation, and added vulnerable/safe `os.Stat` variants instead of widening every ignored call.
 - [ ] BP-6: test nested blocks and multiple goroutines for duplicate or misplaced findings.
 - [ ] BP-8: prove the same mutex object is implicated; reject file-level co-presence.
 - [ ] BP-9: test matching around nested braces, comments, and strings.

@@ -5281,6 +5281,16 @@ required_rules = []
 
 [[fixture]]
 lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-1-variant-vulnerable.txt"
+required_rules = ["BP-1"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-1-variant-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
 path = "tests/fixtures/go/bad_practices/BP-2-vulnerable.txt"
 required_rules = ["BP-2"]
 
