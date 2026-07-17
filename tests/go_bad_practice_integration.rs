@@ -172,7 +172,27 @@ fn go_bad_practice_fixture_inventory_is_sorted_and_deduplicated() {
 }
 
 #[test]
-fn bp_8_only_reports_the_by_value_mutex_parameter() {
+fn bp_6_reports_nested_goroutine_add_once() {
+    let analyzer = bp_analyzer();
+    let fixture = "tests/fixtures/go/bad_practices/BP-6-nested-vulnerable.txt";
+    let source = helpers::assert_fixture_materializes(fixture);
+    let result = analyzer
+        .analyze_paths(&[&source], None)
+        .unwrap_or_else(|e| panic!("analyze {fixture}: {e:#}"));
+    let bp_6_findings = result
+        .findings
+        .iter()
+        .filter(|finding| finding.rule_id == "BP-6")
+        .count();
+
+    assert_eq!(
+        bp_6_findings, 1,
+        "nested goroutines must not duplicate BP-6"
+    );
+}
+
+#[test]
+fn bp_8_reports_each_by_value_mutex_parameter() {
     let analyzer = bp_analyzer();
     let fixture = "tests/fixtures/go/bad_practices/BP-8-vulnerable.txt";
     let source = helpers::assert_fixture_materializes(fixture);
@@ -186,8 +206,8 @@ fn bp_8_only_reports_the_by_value_mutex_parameter() {
         .count();
 
     assert_eq!(
-        bp_8_findings, 1,
-        "only UnlockCopy's by-value mutex parameter should trigger BP-8"
+        bp_8_findings, 2,
+        "the top-level function and method by-value mutex parameters should trigger BP-8"
     );
 }
 

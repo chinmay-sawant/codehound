@@ -8,8 +8,8 @@ use tree_sitter::Node;
 
 /// BP-6: sync.WaitGroup.Add inside the goroutine it tracks.
 ///
-/// Uses brace-depth over the `go func…{…}` literal body instead of a
-/// line-level state machine (which mis-handles nested blocks).
+/// Uses the AST-scoped `func_literal` body and attributes nested goroutines
+/// only to their own `go_statement`.
 pub(crate) fn detect_bp_6_waitgroup_add_inside_goroutine(
     unit: &ParsedUnit,
     index: &SourceIndex,
@@ -25,23 +25,7 @@ pub(crate) fn detect_bp_6_waitgroup_add_inside_goroutine(
             let Some(body) = function_literal_body(go_statement) else {
                 return;
             };
-            crate::ast::walk_nodes(body, &["call_expression"], &mut |call| {
-                let Some(function) = call.child_by_field_name("function") else {
-                    return;
-                };
-                let Ok(name) = function.utf8_text(unit.source.as_bytes()) else {
-                    return;
-                };
-                if name.ends_with(".Add") {
-                    push_at(
-                        unit,
-                        out,
-                        &crate::lang::go::detectors::bad_practices::BP_6_META,
-                        call.start_byte(),
-                        "WaitGroup.Add is inside the goroutine; call Add before launching it",
-                    );
-                }
-            });
+            push_waitgroup_adds_in_goroutine(unit, body, out);
         },
     );
 }
@@ -87,7 +71,7 @@ pub(crate) fn detect_bp_8_defer_unlock_on_mutex_copy(
     }
     crate::ast::walk_nodes(
         unit.tree.root_node(),
-        &["function_declaration"],
+        &["function_declaration", "method_declaration"],
         &mut |function| {
             let mutex_params = by_value_mutex_parameter_names(function, unit.source.as_bytes());
             if mutex_params.is_empty() {
@@ -124,7 +108,7 @@ pub(crate) fn detect_bp_8_defer_unlock_on_mutex_copy(
 
 /// BP-9: select without default, timeout, or context cancellation.
 ///
-/// Uses brace-depth matching for the select body (not first `}`).
+/// Uses AST select statements and ignores control-flow lookalikes in prose.
 pub(crate) fn detect_bp_9_select_without_escape(
     unit: &ParsedUnit,
     index: &SourceIndex,
@@ -133,69 +117,32 @@ pub(crate) fn detect_bp_9_select_without_escape(
     if !index.has("select") {
         return;
     }
-    let source = unit.source.as_ref();
-    let mut search = 0;
-    while let Some(rel) = source[search..].find("select") {
-        let start = search + rel;
-        // Require `select {` (allow whitespace before brace).
-        let after = source[start + "select".len()..].trim_start();
-        if !after.starts_with('{') {
-            search = start + 6;
-            continue;
-        }
-        let brace_pos =
-            start + "select".len() + (source[start + "select".len()..].len() - after.len());
-        let Some(block) = braced_block(source, brace_pos) else {
-            search = brace_pos + 1;
-            continue;
-        };
-        let has_escape = contains_code_token(block, "default:")
-            || contains_code_token(block, "time.After(")
-            || contains_code_token(block, "time.NewTimer(")
-            || contains_code_token(block, "ctx.Done()")
-            || contains_code_token(block, "context.Done()")
-            || contains_code_token(block, "<-stop")
-            || contains_code_token(block, "<-done")
-            || contains_code_token(block, "<-ctx.Done()");
-        if !has_escape {
-            push_at(
-                unit,
-                out,
-                &crate::lang::go::detectors::bad_practices::BP_9_META,
-                start,
-                "select can block indefinitely without default, timeout, or context cancellation",
-            );
-        }
-        search = brace_pos + block.len().max(1);
-    }
-}
-
-/// Extract a `{ ... }` block starting at `open` (must point at `{`).
-fn braced_block(source: &str, open: usize) -> Option<&str> {
-    if source.as_bytes().get(open).is_none_or(|b| *b != b'{') {
-        return None;
-    }
-    let bytes = source.as_bytes();
-    let mut depth = 0i32;
-    let mut i = open;
-    while i < bytes.len() {
-        if let Some(next) = skip_non_code(bytes, i) {
-            i = next;
-            continue;
-        }
-        match bytes[i] {
-            b'{' => depth += 1,
-            b'}' => {
-                depth -= 1;
-                if depth == 0 {
-                    return Some(&source[open..=i]);
-                }
+    crate::ast::walk_nodes(
+        unit.tree.root_node(),
+        &["select_statement"],
+        &mut |select_statement| {
+            let Ok(block) = select_statement.utf8_text(unit.source.as_bytes()) else {
+                return;
+            };
+            let has_escape = contains_code_token(block, "default:")
+                || contains_code_token(block, "time.After(")
+                || contains_code_token(block, "time.NewTimer(")
+                || contains_code_token(block, "ctx.Done()")
+                || contains_code_token(block, "context.Done()")
+                || contains_code_token(block, "<-stop")
+                || contains_code_token(block, "<-done")
+                || contains_code_token(block, "<-ctx.Done()");
+            if !has_escape {
+                push_at(
+                    unit,
+                    out,
+                    &crate::lang::go::detectors::bad_practices::BP_9_META,
+                    select_statement.start_byte(),
+                    "select can block indefinitely without default, timeout, or context cancellation",
+                );
             }
-            _ => {}
-        }
-        i += 1;
-    }
-    None
+        },
+    );
 }
 
 fn function_literal_body(node: Node) -> Option<Node> {
@@ -205,6 +152,33 @@ fn function_literal_body(node: Node) -> Option<Node> {
     let mut cursor = node.walk();
     node.named_children(&mut cursor)
         .find_map(function_literal_body)
+}
+
+fn push_waitgroup_adds_in_goroutine(unit: &ParsedUnit, body: Node, out: &mut Vec<Finding>) {
+    fn visit(unit: &ParsedUnit, node: Node, out: &mut Vec<Finding>) {
+        if node.kind() == "go_statement" {
+            return;
+        }
+        if node.kind() == "call_expression"
+            && let Some(function) = node.child_by_field_name("function")
+            && let Ok(name) = function.utf8_text(unit.source.as_bytes())
+            && name.ends_with(".Add")
+        {
+            push_at(
+                unit,
+                out,
+                &crate::lang::go::detectors::bad_practices::BP_6_META,
+                node.start_byte(),
+                "WaitGroup.Add is inside the goroutine; call Add before launching it",
+            );
+        }
+        let mut cursor = node.walk();
+        for child in node.named_children(&mut cursor) {
+            visit(unit, child, out);
+        }
+    }
+
+    visit(unit, body, out);
 }
 
 fn by_value_mutex_parameter_names<'a>(function: Node, source: &'a [u8]) -> Vec<&'a str> {

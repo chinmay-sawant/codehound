@@ -192,18 +192,18 @@ The source sketches in `01-part-a-core-language.md` through `06-part-f-testing-a
 ### 1.1 Detector precision audit
 
 - [x] BP-1: retained the conservative discard shapes; documented the typed/variant limitation and added vulnerable/safe `os.Stat` variants without widening the heuristic.
-- [x] BP-6: verified nested blocks and multiple goroutines with AST-scoped Add matching and string-brace variants.
-- [x] BP-8: require the same by-value mutex parameter; pointer unlocks in the same file no longer trigger.
-- [x] BP-9: validate block matching around nested braces, comments, and strings; cancellation text in a literal no longer suppresses a finding.
+- [x] BP-6: AST-scoped Add matching handles nested blocks; a nested-goroutine exact-count regression proves the inner Add reports once.
+- [x] BP-8: require the same by-value mutex parameter in functions and methods; pointer unlocks in the same file no longer trigger.
+- [x] BP-9: inspect parsed select statements, so nested braces plus `select`/cancellation lookalikes in comments and strings cannot affect findings.
 - [x] BP-12/BP-14: labelled as review-only heuristics because local source cannot prove ownership, cancellation, or helper lifecycle control.
 - [x] BP-46..BP-55: audited project-level lifecycle findings; BP-47/50/54/55 now explicitly report missing project-visible evidence and remain review-only for external ownership boundaries.
 - [x] BP-56..BP-65: documented BP-57..BP-65 as one-per-project module audits rather than source findings; BP-63 remains reserved and is not a live vulnerability feed.
 
 ### 1.2 Existing-pack validation
 
-- [x] Add or tighten safe near-miss fixtures for each changed detector: BP-1, BP-6, BP-8, and BP-9 have focused vulnerable/safe coverage.
+- [x] Add or tighten safe near-miss fixtures for each changed detector: BP-1, BP-6, BP-8, and BP-9 have focused vulnerable/safe coverage and exact-count regressions where attribution matters.
 - [x] Run the focused BP integration and fixture-manifest suites for the changed detector batch.
-- [x] Run the full Rust test suite after Phase 1: `make test` passed 392 Nextest tests plus one doctest; `make lint` passed with all features.
+- [x] Run the full Rust test suite after Phase 1: `make test` passed 393 Nextest tests plus one doctest; `make lint` passed with all features.
 - [x] Review the changed existing-pack behavior before starting BP-66+ work; retain advisory/review-only boundaries rather than broadening the catalog.
 
 ---

@@ -5351,6 +5351,16 @@ required_rules = []
 
 [[fixture]]
 lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-6-nested-vulnerable.txt"
+required_rules = ["BP-6"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-6-nested-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
 path = "tests/fixtures/go/bad_practices/BP-7-vulnerable.txt"
 required_rules = ["BP-7"]
 

@@ -96,9 +96,9 @@ The purpose of this document is to prevent historical plan text from being mista
 ### 2.1 Audit existing-pack precision
 
 - [x] BP-1: retained conservative discard shapes, documented the no-type-facts limitation, and added vulnerable/safe `os.Stat` variants instead of widening every ignored call.
-- [x] BP-6: verified nested blocks and multiple goroutines with AST-scoped Add matching and string-brace variants.
-- [x] BP-8: require the same by-value mutex parameter; pointer unlocks in the same file no longer trigger.
-- [x] BP-9: validate block matching around nested braces, comments, and strings; cancellation text in a literal no longer suppresses a finding.
+- [x] BP-6: AST-scoped Add matching handles nested blocks; a nested-goroutine exact-count regression proves the inner Add reports once.
+- [x] BP-8: require the same by-value mutex parameter in functions and methods; pointer unlocks in the same file no longer trigger.
+- [x] BP-9: inspect parsed select statements, so nested braces plus `select`/cancellation lookalikes in comments and strings cannot affect findings.
 - [x] BP-12 and BP-14: labelled as review-only heuristics because local source cannot prove ownership, cancellation, or helper lifecycle control.
 - [x] BP-46..BP-55: audited project-level lifecycle findings; BP-47/50/54/55 now explicitly report missing project-visible evidence and remain review-only for external ownership boundaries.
 - [x] BP-56..BP-65: documented BP-57..BP-65 as one-per-project module audits rather than source findings; BP-63 remains reserved and is not a live vulnerability feed.
@@ -108,7 +108,7 @@ The purpose of this document is to prevent historical plan text from being mista
 - [ ] Add an explicit “review required” note for every rule that cannot prove required type or control-flow facts.
 - [ ] Reconcile stale v0.0.2 BP pending-work wording with the shipped BP-1..BP-65 implementation, without rewriting historical evidence.
 - [x] Add or tighten a vulnerable fixture, safe near-miss fixture, and structural/identifier variant for each changed detector: BP-1, BP-6, BP-8, and BP-9 have focused coverage.
-- [x] Run `cargo test --test go_bad_practice_integration`, `make test`, and `make lint` for the completed Phase 1 batch: 392 Nextest tests plus one doctest and strict all-feature linting passed.
+- [x] Run `cargo test --test go_bad_practice_integration`, `make test`, and `make lint` for the completed Phase 1 batch: 393 Nextest tests plus one doctest and strict all-feature linting passed.
 - [x] Record changed false-positive/false-negative behavior before considering another BP catalog expansion; preserve the new advisory/review-only boundaries.
 
 ### 2.3 Test in representative modules

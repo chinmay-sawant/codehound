@@ -17,3 +17,10 @@ func UnlockOriginal(mu *sync.Mutex) {
 	mu.Lock()
 	defer mu.Unlock()
 }
+
+type Locker struct{}
+
+func (Locker) UnlockMethodCopy(mu sync.Mutex) {
+	mu.Lock()
+	defer mu.Unlock()
+}

@@ -51,10 +51,10 @@ Classify each rule before treating CodeHound BP as a substitute for `go vet` / s
 | BP-3 | weaker | go vet / staticcheck | panic outside main/test |
 | BP-4 | unique-ish | — | recover without logging |
 | BP-5 | weaker | errcheck | ignored `Close()` |
-| BP-6 | fixed | staticcheck SA2000 | WaitGroup.Add inside goroutine (brace-matched body) |
+| BP-6 | fixed | staticcheck SA2000 | WaitGroup.Add inside a goroutine (AST-scoped; nested goroutines are reported once) |
 | BP-7 | weaker / medium | go vet `-copylocks` | mutex by value |
 | BP-8 | fixed / medium | vet copylocks | defer Unlock **only** with by-value mutex param |
-| BP-9 | fixed / unique | — | select without escape (brace-depth body) |
+| BP-9 | fixed / unique | — | select without escape (AST-scoped; comments and literals ignored) |
 | BP-10 | weaker | staticcheck SA1015, PERF | `time.After` in loop |
 | BP-11 | weaker | staticcheck SA2006-ish | defer in loop |
 | BP-12 | unique / heuristic | — | multi-sender unbuffered channel |
@@ -151,10 +151,10 @@ If you already run `golangci-lint` with errcheck + staticcheck + revive, prefer 
 
 ## Concurrency
 
-- `BP-6` flags `WaitGroup.Add` inside the goroutine it tracks because the goroutine may run after `Wait`; call `Add` before launching the goroutine.
+- `BP-6` flags `WaitGroup.Add` inside the goroutine it tracks because the goroutine may run after `Wait`; call `Add` before launching the goroutine. Nested goroutines are evaluated independently, so one inner `Add` produces one finding.
 - `BP-7` flags `sync.Mutex` passed by value because copying a lock corrupts lock state; pass `*sync.Mutex` or move the lock into shared state.
-- `BP-8` flags deferred unlock on a copied mutex because the deferred call may operate on the wrong lock instance; avoid copying mutexes and unlock the original value.
-- `BP-9` flags `select` without timeout, default, or cancellation because it can block forever; add `ctx.Done()`, a timer, or another escape hatch.
+- `BP-8` flags deferred unlock on a copied mutex because the deferred call may operate on the wrong lock instance; it only reports a matching by-value `sync.Mutex` parameter in the same function or method. Avoid copying mutexes and unlock the original value.
+- `BP-9` flags `select` without timeout, default, or cancellation because it can block forever; add `ctx.Done()`, a timer, or another escape hatch. It inspects parsed select statements, not `select` lookalikes in comments or literals.
 - `BP-10` flags `time.After` inside loops because it allocates a new timer every iteration; reuse a `time.Timer` or `time.Ticker`.
 - `BP-11` flags `defer` inside loops because cleanup accumulates until function exit; close or release resources explicitly inside the loop body.
 - `BP-12` flags unbuffered channel sends from multiple goroutines without obvious coordinated receivers because senders can deadlock behind each other; add a buffer, a receiver loop, or a different synchronization pattern. It is review-only: source text cannot prove channel ownership or every receiver path.
