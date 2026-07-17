@@ -186,9 +186,15 @@ pub(crate) fn requires_project_anchor(rule_id: &str) -> bool {
     )
 }
 
+/// Server-policy rules emit once on the executable server entrypoint rather
+/// than on an arbitrary file in the project.
+pub(crate) fn requires_server_anchor(rule_id: &str) -> bool {
+    matches!(rule_id, "BP-47" | "BP-50" | "BP-54" | "BP-55")
+}
+
 #[cfg(test)]
 mod tests {
-    use super::requires_project_anchor;
+    use super::{requires_project_anchor, requires_server_anchor};
 
     #[test]
     fn requires_project_anchor_only_for_go_module_hygiene_rules() {
@@ -196,5 +202,13 @@ mod tests {
         assert!(requires_project_anchor("BP-65"));
         assert!(!requires_project_anchor("BP-56"));
         assert!(!requires_project_anchor("BP-66"));
+    }
+
+    #[test]
+    fn requires_server_anchor_only_for_server_policy_rules() {
+        assert!(requires_server_anchor("BP-47"));
+        assert!(requires_server_anchor("BP-55"));
+        assert!(!requires_server_anchor("BP-46"));
+        assert!(!requires_server_anchor("BP-57"));
     }
 }

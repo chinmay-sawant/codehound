@@ -161,26 +161,49 @@ pub(crate) fn detect_bp_5_ignored_close_error(
     out: &mut Vec<Finding>,
 ) {
     let source = unit.source.as_ref();
-    if !source.contains(".Close()") {
+    if !source.contains(".Close(") {
         return;
     }
-    for (idx, line) in source.lines().enumerate() {
-        let trimmed = line.trim();
-        if !trimmed.contains(".Close()") {
-            continue;
+    let file = unit.display_path.as_str();
+    let src = unit.source.as_bytes();
+
+    crate::ast::walk_nodes(unit.tree.root_node(), &["call_expression"], &mut |call| {
+        let Ok(text) = call.utf8_text(src) else {
+            return;
+        };
+        if !text.ends_with(".Close()") || close_call_is_handled(call, src) {
+            return;
         }
-        let handled = trimmed.contains("if err :=")
-            || trimmed.contains("if closeErr :=")
-            || trimmed.contains("= ")
-            || trimmed.starts_with("_ =");
-        if !handled || trimmed.starts_with("defer ") {
-            push_at(
-                unit,
-                out,
-                &crate::lang::go::detectors::bad_practices::BP_5_META,
-                line_start_byte(source, idx) + line.find(".Close()").unwrap_or(0),
-                "Close() return value is ignored; check the close error where it can affect correctness",
-            );
+        let (line, col) = unit.line_col(call.start_byte());
+        emit::push_finding(
+            &crate::lang::go::detectors::bad_practices::BP_5_META,
+            file,
+            line,
+            col,
+            "Close() return value is ignored; check the close error where it can affect correctness",
+            out,
+        );
+    });
+}
+
+/// A Close call is handled when its value is returned or assigned for later
+/// inspection. A direct `defer x.Close()` and `_ = x.Close()` remain findings
+/// because both discard the returned error.
+fn close_call_is_handled(mut node: tree_sitter::Node, src: &[u8]) -> bool {
+    while let Some(parent) = node.parent() {
+        match parent.kind() {
+            "return_statement" | "short_var_declaration" => return true,
+            "assignment_statement" => {
+                let Ok(text) = parent.utf8_text(src) else {
+                    return false;
+                };
+                return text
+                    .split_once('=')
+                    .is_some_and(|(left, _)| left.trim() != "_");
+            }
+            "defer_statement" | "expression_statement" => return false,
+            _ => node = parent,
         }
     }
+    false
 }

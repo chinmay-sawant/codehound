@@ -2,9 +2,7 @@
 
 use tree_sitter::Node;
 
-use super::super::common::{
-    is_materialized_fixture, is_project_anchor, is_test_file, project_snapshot,
-};
+use super::super::common::{is_materialized_fixture, is_test_file, project_snapshot};
 use super::super::source_index::SourceIndex;
 use super::helpers::push_at;
 use crate::core::ParsedUnit;
@@ -36,7 +34,7 @@ pub(crate) fn detect_bp_47_no_graceful_shutdown(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
-    if is_materialized_fixture(unit) || !is_project_anchor(unit) {
+    if is_materialized_fixture(unit) {
         return;
     }
     let snap = project_snapshot(unit);
@@ -123,7 +121,7 @@ pub(crate) fn detect_bp_50_no_signal_handling_for_server(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
-    if is_materialized_fixture(unit) || !is_project_anchor(unit) {
+    if is_materialized_fixture(unit) {
         return;
     }
     let snap = project_snapshot(unit);
@@ -260,7 +258,7 @@ pub(crate) fn detect_bp_54_public_http_endpoint_without_rate_limiting(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
-    if is_materialized_fixture(unit) || !is_project_anchor(unit) {
+    if is_materialized_fixture(unit) {
         return;
     }
     let snap = project_snapshot(unit);
@@ -281,7 +279,7 @@ pub(crate) fn detect_bp_55_missing_request_id_propagation(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
-    if is_materialized_fixture(unit) || !is_project_anchor(unit) {
+    if is_materialized_fixture(unit) {
         return;
     }
     let snap = project_snapshot(unit);

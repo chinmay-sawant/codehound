@@ -55,7 +55,7 @@ pub(crate) fn detect_perf_214(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         let Some(key) = call.arguments.first().map(|arg| arg.as_ref()) else {
             continue;
         };
-        if volatile_cache_key(key) {
+        if cache_key_is_volatile(unit, facts, call.start_byte, key) {
             let (line, col) = unit.line_col(call.start_byte);
             emit::push_finding(
                 &META_PERF_214,
@@ -67,23 +67,6 @@ pub(crate) fn detect_perf_214(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
             );
             return;
         }
-    }
-
-    if source.contains("&entry") || source.contains("&item") || source.contains("requestID") {
-        let byte = source
-            .find("&entry")
-            .or_else(|| source.find("&item"))
-            .or_else(|| source.find("requestID"))
-            .unwrap_or(0);
-        let (line, col) = unit.line_col(byte);
-        emit::push_finding(
-            &META_PERF_214,
-            file,
-            line,
-            col,
-            "cache key includes request-scoped or volatile fields, which collapses cache hit rate",
-            out,
-        );
     }
 }
 
@@ -687,6 +670,36 @@ fn volatile_cache_key(key: &str) -> bool {
         || lower.contains("index")
         || lower.contains("timestamp")
         || lower.contains("time.now")
+}
+
+/// Resolve a local key assignment only inside the call's enclosing function.
+/// This preserves common `key := fmt.Sprintf(...)` patterns without letting an
+/// unrelated pointer or request id elsewhere in the file prove a cache smell.
+fn cache_key_is_volatile(
+    unit: &ParsedUnit,
+    facts: &GoPerfFacts,
+    call_start: usize,
+    key: &str,
+) -> bool {
+    if volatile_cache_key(key) || !is_simple_ident_token(key) {
+        return volatile_cache_key(key);
+    }
+    let Some((scope_start, scope_end)) =
+        crate::lang::go::detectors::perf::common::enclosing_function_body_range(
+            unit.source.as_ref(),
+            call_start,
+        )
+    else {
+        return false;
+    };
+
+    facts.assignments.iter().rev().any(|assignment| {
+        assignment.name.as_ref() == key
+            && assignment.start_byte >= scope_start
+            && assignment.start_byte < call_start
+            && assignment.start_byte < scope_end
+            && volatile_cache_key(assignment.expr.as_ref())
+    })
 }
 
 fn receiver_name(callee: &str) -> &str {

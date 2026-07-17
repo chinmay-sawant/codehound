@@ -20,3 +20,8 @@ func Render(entry Entry) int {
 	cache.Store(key, len(entry.ID))
 	return len(entry.ID)
 }
+
+func StableValue(item Entry) string {
+	pointer := &item
+	return pointer.ID
+}

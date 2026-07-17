@@ -210,6 +210,7 @@ The seven gopdfsuit false positives were `defer wg.Done()` or semaphore cleanup 
 - [ ] Prefer call facts and callee classification over `SourceIndex.has` as the primary detector signal where the currently selected rule proves that feasible.
 - [ ] Use NEEDLES as negative gates where possible and complete the remaining NEEDLES-comment pass incrementally.
 - [ ] Track canary hit rates and create a dated deletion/review decision for rules with zero useful hits. The 2026-07-18 fixture-only tranche recorded 0/126 files across gopdfsuit, monsoon, and go-retry and remains quarantined pending a structural rewrite.
+- [ ] Execute the pinned gorl full-catalog noise-reduction plan one issue-sized detector batch at a time; the initial tranche reduced the pinned canary from 85 to 75 findings; see `plans/v0.0.5/noise-reduce-1.md`.
 
 ---
 

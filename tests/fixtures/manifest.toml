@@ -5331,6 +5331,41 @@ required_rules = []
 
 [[fixture]]
 lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-5-variant-vulnerable.txt"
+required_rules = ["BP-5"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-5-variant-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-5-blank-identifier-vulnerable.txt"
+required_rules = ["BP-5"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-5-blank-identifier-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices_project_text/library.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices_project_text/example_server.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices_project_text/comment_only_server.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
 path = "tests/fixtures/go/bad_practices/BP-6-vulnerable.txt"
 required_rules = ["BP-6"]
 
