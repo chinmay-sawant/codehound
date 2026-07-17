@@ -139,7 +139,8 @@ pub(crate) fn detect_perf_102(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     }
 
     let src = unit.source.as_bytes();
-    let mut calls_by_scope_and_receiver: HashMap<(usize, String), Vec<usize>> = HashMap::new();
+    let mut calls_by_scope_and_receiver: HashMap<(usize, String), Vec<(usize, bool)>> =
+        HashMap::new();
     crate::ast::walk_nodes(unit.tree.root_node(), &["call_expression"], &mut |call| {
         let Ok(text) = call.utf8_text(src) else {
             return;
@@ -153,14 +154,14 @@ pub(crate) fn detect_perf_102(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         calls_by_scope_and_receiver
             .entry((scope_start, receiver.trim().to_owned()))
             .or_default()
-            .push(call.start_byte());
+            .push((call.start_byte(), call_is_followed_by_return(call)));
     });
 
-    for starts in calls_by_scope_and_receiver.values() {
-        if starts.len() < 2 {
+    for calls in calls_by_scope_and_receiver.values() {
+        if calls.len() < 2 || calls[..calls.len() - 1].iter().all(|(_, returns)| *returns) {
             continue;
         }
-        let (line, col) = unit.line_col(starts[0]);
+        let (line, col) = unit.line_col(calls[0].0);
         emit::push_finding(
             &META_PERF_102,
             file,
@@ -169,6 +170,37 @@ pub(crate) fn detect_perf_102(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
             "w.WriteHeader called multiple times; only the first call takes effect",
             out,
         );
+    }
+}
+
+/// A `return` later in the same direct statement list terminates this write's
+/// path before a later lexical WriteHeader call can execute.
+fn call_is_followed_by_return(mut node: tree_sitter::Node) -> bool {
+    loop {
+        let Some(parent) = node.parent() else {
+            return false;
+        };
+        if matches!(parent.kind(), "statement_list" | "block") {
+            let mut after_statement = false;
+            let mut cursor = parent.walk();
+            for sibling in parent.named_children(&mut cursor) {
+                if !after_statement {
+                    after_statement = sibling.id() == node.id();
+                    continue;
+                }
+                if sibling.kind() == "return_statement" {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if matches!(
+            parent.kind(),
+            "function_declaration" | "method_declaration" | "func_literal"
+        ) {
+            return false;
+        }
+        node = parent;
     }
 }
 

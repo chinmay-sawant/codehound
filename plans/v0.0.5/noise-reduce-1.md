@@ -55,6 +55,11 @@ entire plan. Success remains a lower gorl `--profile all` count
 without losing vulnerable fixtures, a zero false-positive result for the
 recorded shapes, and no regression in the recommended pack.
 
+The 2026-07-18 PERF-102 control-flow follow-up added a mutually exclusive
+returning-branch fixture. It does not change gorl's 75-finding total because
+gorl did not contain that shape; the fresh release full-catalog and recommended
+controls remained 75 and zero findings respectively.
+
 ---
 
 ## Phase 1: Lock the Canary and Its Evidence
@@ -100,9 +105,9 @@ middleware function into another and reported a duplicate `WriteHeader` where
 there was one call per function.
 
 - [x] Replace the fixed byte-window search with calls grouped by the exact enclosing function or function literal.
-- [ ] Emit only when multiple calls target the same response-writer receiver in that scope and are not separated by an unconditional return.
+- [x] Emit only when multiple calls target the same response-writer receiver in that scope and are not separated by an unconditional return.
 - [x] Add a canonical text negative fixture for separate functions and retain a real duplicate-write positive fixture.
-- [ ] Add the mutually exclusive returning-branches fixture before adding control-flow sensitivity.
+- [x] Add the mutually exclusive returning-branches fixture before adding control-flow sensitivity.
 - [x] Re-scan gorl and confirm the middleware false positive is gone.
 
 ### 2.3 PERF-214 — remove source-only cache-key fallback
