@@ -1,7 +1,5 @@
 //! BP-1, BP-2, BP-4, BP-5 — error-handling bad practices.
 
-use tree_sitter::Node;
-
 use super::super::source_index::SourceIndex;
 use super::helpers::{line_start_byte, push_at};
 use crate::core::ParsedUnit;
@@ -16,15 +14,22 @@ use crate::rules::{Finding, emit};
 /// Does **not** flag non-call discards (`_ = x`) or pure builtins (`_ = len(s)`).
 pub(crate) fn detect_bp_1_discarded_error(
     unit: &ParsedUnit,
-    _index: &SourceIndex,
+    index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
+    // Fast-path: discarded-error assignments need `_` and an assignment operator.
+    if !index.has("_") || !(index.has(":=") || unit.source.contains('=')) {
+        return;
+    }
+
     let file = unit.display_path.as_str();
     let src = unit.source.as_bytes();
     let root = unit.tree.root_node();
 
-    fn walk(node: Node, src: &[u8], file: &str, unit: &ParsedUnit, out: &mut Vec<Finding>) {
-        if node.kind() == "assignment_statement" || node.kind() == "short_var_declaration" {
+    crate::ast::walk_nodes(
+        root,
+        &["assignment_statement", "short_var_declaration"],
+        &mut |node| {
             if let Ok(text) = node.utf8_text(src) {
                 if let Some((lhs, rhs)) = split_assign(text) {
                     if rhs.contains('(')
@@ -43,14 +48,8 @@ pub(crate) fn detect_bp_1_discarded_error(
                     }
                 }
             }
-        }
-        let mut cursor = node.walk();
-        for child in node.named_children(&mut cursor) {
-            walk(child, src, file, unit, out);
-        }
-    }
-
-    walk(root, src, file, unit, out);
+        },
+    );
 }
 
 fn split_assign(text: &str) -> Option<(&str, &str)> {
@@ -108,6 +107,10 @@ pub(crate) fn detect_bp_2_naked_error_return(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
+    // Fast-path: naked `return err` must appear as a line.
+    if !unit.source.contains("return err") {
+        return;
+    }
     for (idx, line) in unit.source.lines().enumerate() {
         if line.trim() == "return err" {
             push_at(
@@ -158,6 +161,9 @@ pub(crate) fn detect_bp_5_ignored_close_error(
     out: &mut Vec<Finding>,
 ) {
     let source = unit.source.as_ref();
+    if !source.contains(".Close()") {
+        return;
+    }
     for (idx, line) in source.lines().enumerate() {
         let trimmed = line.trim();
         if !trimmed.contains(".Close()") {

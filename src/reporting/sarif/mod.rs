@@ -12,6 +12,7 @@ use crate::reporting::OutputReporter;
 
 /// Reporter that serializes findings as SARIF 2.1.0 JSON.
 pub struct SarifReporter {
+    /// When true, emit compact (non-pretty) JSON.
     pub compact: bool,
 }
 

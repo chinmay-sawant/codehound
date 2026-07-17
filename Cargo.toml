@@ -52,6 +52,9 @@ tree-sitter-python = { version = "0.25", optional = true }
 # Parallel file scan
 rayon = "1.10"
 
+# One-pass multi-pattern source-needle index for detector fast paths.
+aho-corasick = "1.1"
+
 # Logging / output
 colored = { version = "3.1", optional = true }
 tracing = "0.1"
@@ -122,3 +125,12 @@ opt-level = 3
 lto = "thin"
 codegen-units = 1
 strip = "symbols"
+
+# Optimized profile for the edit → scan loop. Keep release LTO intact for
+# distribution and benchmark claims; this profile trades a small amount of
+# whole-program optimization for incremental rebuild speed.
+[profile.perf-run]
+inherits = "release"
+lto = "off"
+codegen-units = 16
+incremental = true

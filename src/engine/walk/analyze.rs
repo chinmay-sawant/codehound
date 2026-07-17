@@ -34,28 +34,57 @@ pub(crate) fn analyze_parsed_unit(
             continue;
         }
         rules_executed += 1;
-        if timing.is_enabled() {
-            let name = det.rule_ids().first().copied().unwrap_or("detector");
-            let span = timing.start(name);
-            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                det.run(ctx, unit, &mut findings);
-            }));
-            timing.stop(span);
-            if let Err(payload) = result {
-                reset_detector_after_panic(det);
-                std::panic::resume_unwind(payload);
-            }
-        } else {
-            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                det.run(ctx, unit, &mut findings);
-            }));
-            if let Err(payload) = result {
-                reset_detector_after_panic(det);
-                std::panic::resume_unwind(payload);
-            }
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            run_detector(det, ctx, unit, &mut findings, timing);
+        }));
+        if let Err(payload) = result {
+            reset_detector_after_panic(det);
+            std::panic::resume_unwind(payload);
         }
     }
     (findings, rules_executed)
+}
+
+fn run_detector(
+    det: &dyn crate::core::Detector,
+    ctx: &ScanContext,
+    unit: &ParsedUnit,
+    findings: &mut Vec<Finding>,
+    timing: &mut TimingCollector,
+) {
+    if !timing.is_enabled() {
+        det.run(ctx, unit, findings);
+        return;
+    }
+
+    if multi_rule_self_times(det.rule_ids()) {
+        // BP pack records per-rule spans via the thread-local active collector.
+        // No outer pack span — avoids double-counting first-rule labels like "BP-1".
+        crate::engine::with_active_collector(timing, || {
+            det.run(ctx, unit, findings);
+        });
+    } else {
+        // Single-rule or non-self-timing multi-rule packs (PERF/CWE): one span each.
+        let name = pack_timing_name(det.rule_ids());
+        timing.measure(name, || {
+            det.run(ctx, unit, findings);
+        });
+    }
+}
+
+/// Packs that record their own per-rule spans via [`crate::engine::timing::measure_active`].
+fn multi_rule_self_times(rule_ids: &[&'static str]) -> bool {
+    rule_ids.len() > 1 && rule_ids.first().is_some_and(|id| id.starts_with("BP-"))
+}
+
+/// Stable timing label for a detector object (not the first rule alone for packs).
+fn pack_timing_name(rule_ids: &[&'static str]) -> &'static str {
+    match rule_ids.first().copied() {
+        Some(id) if id.starts_with("PERF-") && rule_ids.len() > 1 => "GoPerfScan",
+        Some(id) if id.starts_with("CWE-") && rule_ids.len() > 1 => "GoCweScan",
+        Some(id) => id,
+        None => "detector",
+    }
 }
 
 fn reset_detector_after_panic(detector: &dyn crate::core::Detector) {

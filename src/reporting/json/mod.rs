@@ -16,6 +16,7 @@ use crate::reporting::OutputReporter;
 
 /// Reporter that serializes findings as NDJSON or a JSON envelope.
 pub struct JsonReporter {
+    /// When true, emit a single JSON envelope instead of NDJSON lines.
     pub envelope: bool,
 }
 

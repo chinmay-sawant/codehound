@@ -2,7 +2,8 @@
 
 use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
 
 use tree_sitter::Node;
 
@@ -164,16 +165,17 @@ pub(crate) fn detect_bp_41_missing_package_doc_comment(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
-    if is_test_file(unit) || is_flat_materialized_fixture(unit) || !is_package_anchor(unit) {
+    if is_test_file(unit) || is_flat_materialized_fixture(unit) {
+        return;
+    }
+    let snapshot = package_doc_snapshot(unit);
+    if snapshot.anchor.as_ref() != Some(&unit.path) {
         return;
     }
     let Some(package) = package_name(unit) else {
         return;
     };
-    let has_doc = package_file_texts(unit)
-        .into_iter()
-        .any(|(_, text)| has_package_doc_comment(&text, package));
-    if !has_doc {
+    if !snapshot.documented_packages.contains(package) {
         push_at(
             unit,
             out,
@@ -282,18 +284,39 @@ pub(crate) fn detect_bp_45_inconsistent_receiver_name(
     }
 }
 
-fn is_package_anchor(unit: &ParsedUnit) -> bool {
-    package_file_texts(unit)
-        .first()
-        .is_some_and(|(path, _)| path == &unit.path)
+#[derive(Clone, Default)]
+struct PackageDocSnapshot {
+    anchor: Option<PathBuf>,
+    documented_packages: HashSet<String>,
 }
 
-fn package_file_texts(unit: &ParsedUnit) -> Vec<(PathBuf, String)> {
+fn package_doc_snapshot(unit: &ParsedUnit) -> PackageDocSnapshot {
     let Some(dir) = unit.path.parent() else {
-        return Vec::new();
+        return PackageDocSnapshot::default();
     };
+    package_doc_snapshot_for_dir(dir)
+}
+
+fn package_doc_snapshot_for_dir(dir: &Path) -> PackageDocSnapshot {
+    type Cache = HashMap<PathBuf, PackageDocSnapshot>;
+    static CACHE: OnceLock<Mutex<Cache>> = OnceLock::new();
+
+    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    let mut guard = cache
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    if let Some(snapshot) = guard.get(dir) {
+        return snapshot.clone();
+    }
+
+    let snapshot = build_package_doc_snapshot(dir);
+    guard.insert(dir.to_path_buf(), snapshot.clone());
+    snapshot
+}
+
+fn build_package_doc_snapshot(dir: &Path) -> PackageDocSnapshot {
     let Ok(entries) = fs::read_dir(dir) else {
-        return Vec::new();
+        return PackageDocSnapshot::default();
     };
     let mut files = Vec::new();
     for entry in entries.filter_map(Result::ok) {
@@ -312,11 +335,26 @@ fn package_file_texts(unit: &ParsedUnit) -> Vec<(PathBuf, String)> {
         }
     }
     files.sort_by(|left, right| left.0.cmp(&right.0));
-    files
+    let anchor = files.first().map(|(path, _)| path.clone());
+    let documented_packages = files
+        .iter()
+        .filter_map(|(_, text)| {
+            let package = package_name_from_source(text)?;
+            has_package_doc_comment(text, package).then(|| package.to_string())
+        })
+        .collect();
+    PackageDocSnapshot {
+        anchor,
+        documented_packages,
+    }
 }
 
 fn package_name(unit: &ParsedUnit) -> Option<&str> {
-    for line in unit.source.lines() {
+    package_name_from_source(unit.source.as_ref())
+}
+
+fn package_name_from_source(source: &str) -> Option<&str> {
+    for line in source.lines() {
         let trimmed = line.trim();
         if let Some(rest) = trimmed.strip_prefix("package ") {
             return Some(rest.trim());
@@ -473,10 +511,12 @@ fn is_local_function_name(text: &str) -> bool {
 
 fn collect_unexported_helpers(root: Node, src: &[u8]) -> Vec<(String, usize)> {
     let mut helpers = Vec::new();
-
-    fn walk(node: Node, src: &[u8], helpers: &mut Vec<(String, usize)>) {
-        if matches!(node.kind(), "function_declaration" | "method_declaration")
-            && let Some(name) = declaration_name(node, src)
+    // Named helpers are package-scope declarations only — walk root children,
+    // not the full AST (nested function literals are not package helpers).
+    let mut cursor = root.walk();
+    for child in root.named_children(&mut cursor) {
+        if matches!(child.kind(), "function_declaration" | "method_declaration")
+            && let Some(name) = declaration_name(child, src)
             && name != "init"
             && name != "main"
             && !name.starts_with("Test")
@@ -485,15 +525,9 @@ fn collect_unexported_helpers(root: Node, src: &[u8]) -> Vec<(String, usize)> {
             && !is_exported(name)
             && looks_like_helper_name(name)
         {
-            helpers.push((name.to_string(), node.start_byte()));
-        }
-        let mut cursor = node.walk();
-        for child in node.named_children(&mut cursor) {
-            walk(child, src, helpers);
+            helpers.push((name.to_string(), child.start_byte()));
         }
     }
-
-    walk(root, src, &mut helpers);
     helpers
 }
 

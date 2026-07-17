@@ -15,9 +15,12 @@ use crate::rules::Finding;
 /// redaction step.
 pub(crate) fn detect_bp_146_sensitive_fields_logged(
     unit: &ParsedUnit,
-    _index: &SourceIndex,
+    index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
+    if !(index.has("log.") || unit.source.contains("slog.") || unit.source.contains("zap.")) {
+        return;
+    }
     let root = unit.tree.root_node();
     let source = unit.source.as_bytes();
     let has_log = has_import(root, source, "log");
@@ -97,6 +100,9 @@ pub(crate) fn detect_bp_149_error_log_without_attribute(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
+    if !unit.source.contains("log/slog") && !unit.source.contains("go.uber.org/zap") {
+        return;
+    }
     let root = unit.tree.root_node();
     let source = unit.source.as_bytes();
     let has_slog = has_import(root, source, "log/slog");

@@ -25,14 +25,18 @@ fn deserialize_id<'de, D: Deserializer<'de>>(de: D) -> Result<String, D::Error> 
     }
 }
 
+/// Rich catalogue description for a single rule (from ruleset JSON chunks).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RuleDescription {
     /// Free-form rule id (e.g. `"22"` for CWE-22 or `"PERF-001"`).
     /// String because the JSON mix has both numeric and prefixed ids.
     #[serde(deserialize_with = "deserialize_id")]
     pub id: String,
+    /// Short human-readable rule name.
     pub name: String,
+    /// Longer prose description of the issue.
     pub description: String,
+    /// Optional notes about how detection works or limitations.
     #[serde(default)]
     pub detection_notes: String,
 }

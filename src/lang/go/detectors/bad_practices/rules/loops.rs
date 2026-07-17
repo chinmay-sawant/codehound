@@ -10,18 +10,16 @@ use crate::rules::{Finding, emit};
 /// BP-10: time.After inside a loop.
 pub(crate) fn detect_bp_10_time_after_in_loop(
     unit: &ParsedUnit,
-    _index: &SourceIndex,
+    index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
-    let src = unit.source.as_bytes();
-    let root = unit.tree.root_node();
-
-    fn is_loop(node: Node) -> bool {
-        matches!(node.kind(), "for_statement" | "range_statement")
+    if !index.has("time.After") {
+        return;
     }
 
-    fn walk(node: Node, src: &[u8], unit: &ParsedUnit, out: &mut Vec<Finding>, inside_loop: bool) {
-        let inside_loop = inside_loop || is_loop(node);
+    let src = unit.source.as_bytes();
+    let root = unit.tree.root_node();
+    walk_with_loop_context(root, |node, inside_loop| {
         if inside_loop && node.kind() == "call_expression" {
             if let Some(func) = node.child_by_field_name("function") {
                 if func.utf8_text(src).ok() == Some("time.After") {
@@ -35,33 +33,22 @@ pub(crate) fn detect_bp_10_time_after_in_loop(
                 }
             }
         }
-        let mut cursor = node.walk();
-        for child in node.named_children(&mut cursor) {
-            walk(child, src, unit, out, inside_loop);
-        }
-    }
-
-    walk(root, src, unit, out, false);
+    });
 }
 
 /// BP-11: `defer` inside a `for`/`range` loop body.
 pub(crate) fn detect_bp_11_defer_in_loop(
     unit: &ParsedUnit,
-    _index: &SourceIndex,
+    index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
-    let file = unit.display_path.as_str();
-    let root = unit.tree.root_node();
-
-    fn is_loop(node: Node) -> bool {
-        matches!(
-            node.kind(),
-            "for_statement" | "range_statement" | "for_clause" | "range_clause"
-        )
+    if !index.has("defer") {
+        return;
     }
 
-    fn walk(node: Node, file: &str, unit: &ParsedUnit, out: &mut Vec<Finding>, inside_loop: bool) {
-        let inside_loop = inside_loop || is_loop(node);
+    let file = unit.display_path.as_str();
+    let root = unit.tree.root_node();
+    walk_with_loop_context(root, |node, inside_loop| {
         if inside_loop && node.kind() == "defer_statement" {
             let (line, col) = unit.line_col(node.start_byte());
             emit::push_finding(
@@ -73,11 +60,49 @@ pub(crate) fn detect_bp_11_defer_in_loop(
                 out,
             );
         }
-        let mut cursor = node.walk();
-        for child in node.named_children(&mut cursor) {
-            walk(child, file, unit, out, inside_loop);
+    });
+}
+
+fn is_loop(node: Node<'_>) -> bool {
+    matches!(
+        node.kind(),
+        "for_statement" | "range_statement" | "for_clause" | "range_clause"
+    )
+}
+
+/// Single-cursor DFS that tracks loop nesting without allocating a cursor per node.
+fn walk_with_loop_context(root: Node<'_>, mut visit: impl FnMut(Node<'_>, bool)) {
+    let mut cursor = root.walk();
+    // Stack of "this node is a loop" for ancestors including current.
+    let mut is_loop_stack: Vec<bool> = Vec::new();
+    let mut loop_depth = 0usize;
+
+    loop {
+        let node = cursor.node();
+        let node_is_loop = is_loop(node);
+        is_loop_stack.push(node_is_loop);
+        if node_is_loop {
+            loop_depth += 1;
+        }
+        visit(node, loop_depth > 0);
+
+        if cursor.goto_first_child() {
+            continue;
+        }
+
+        // Backtrack until we can move to a next sibling.
+        loop {
+            if let Some(was_loop) = is_loop_stack.pop() {
+                if was_loop {
+                    loop_depth = loop_depth.saturating_sub(1);
+                }
+            }
+            if cursor.goto_next_sibling() {
+                break;
+            }
+            if !cursor.goto_parent() {
+                return;
+            }
         }
     }
-
-    walk(root, file, unit, out, false);
 }

@@ -4,6 +4,7 @@
 //! via [`SourceIndex::has`] is O(1) average using a process-lifetime map keyed
 //! by the static needle table pointer — not a linear `position` scan.
 
+use aho_corasick::AhoCorasick;
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 
@@ -27,6 +28,7 @@ impl Eq for SourceIndex {}
 #[derive(Debug)]
 struct NeedleLookup {
     by_name: HashMap<&'static str, usize>,
+    matcher: Option<AhoCorasick>,
 }
 
 impl Default for SourceIndex {
@@ -34,6 +36,7 @@ impl Default for SourceIndex {
         static EMPTY: OnceLock<NeedleLookup> = OnceLock::new();
         let lookup = EMPTY.get_or_init(|| NeedleLookup {
             by_name: HashMap::new(),
+            matcher: None,
         });
         Self {
             flags: Vec::new(),
@@ -62,22 +65,24 @@ fn lookup_for(needles: &'static [&'static str]) -> &'static NeedleLookup {
         // First occurrence wins if a table ever duplicates a string.
         by_name.entry(*needle).or_insert(i);
     }
-    let leaked: &'static NeedleLookup = Box::leak(Box::new(NeedleLookup { by_name }));
+    let matcher = (!needles.is_empty())
+        .then(|| AhoCorasick::new(needles).expect("static source-index needles must compile"));
+    let leaked: &'static NeedleLookup = Box::leak(Box::new(NeedleLookup { by_name, matcher }));
     guard.insert(key, leaked);
     leaked
 }
 
 impl SourceIndex {
-    /// One `contains` pass per needle; lookup map is shared across files.
+    /// One multi-pattern scan marks every needle; lookup data is shared across files.
     pub fn build(needles: &'static [&'static str], source: &str) -> Self {
-        let flags = needles
-            .iter()
-            .map(|needle| source.contains(*needle))
-            .collect();
-        Self {
-            flags,
-            lookup: lookup_for(needles),
+        let lookup = lookup_for(needles);
+        let mut flags = vec![false; needles.len()];
+        if let Some(matcher) = &lookup.matcher {
+            for matched in matcher.find_overlapping_iter(source) {
+                flags[matched.pattern().as_usize()] = true;
+            }
         }
+        Self { flags, lookup }
     }
 
     /// O(1) average membership check. Unknown needles return `false`.
@@ -89,6 +94,7 @@ impl SourceIndex {
         self.flags.get(idx).copied().unwrap_or(false)
     }
 
+    /// True if any of `needles` is present in the indexed source.
     #[inline]
     pub fn has_any(&self, needles: &[&str]) -> bool {
         needles.iter().any(|n| self.has(n))
@@ -100,6 +106,7 @@ impl SourceIndex {
         self.flags.len()
     }
 
+    /// True when the backing needle table is empty.
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.flags.is_empty()

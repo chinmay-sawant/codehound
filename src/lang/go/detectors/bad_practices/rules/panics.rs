@@ -12,15 +12,16 @@ use crate::rules::{Finding, emit};
 /// BP-3: `panic(...)` called outside `main()` or test files.
 pub(crate) fn detect_bp_3_panic_outside_main(
     unit: &ParsedUnit,
-    _index: &SourceIndex,
+    index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
+    if !index.has("panic(") {
+        return;
+    }
     let file = unit.display_path.as_str();
     let src = unit.source.as_bytes();
     let root = unit.tree.root_node();
-
     let is_test_file = file.ends_with("_test.go");
-    let mut in_main = false;
 
     fn walk(
         node: Node,
@@ -29,32 +30,31 @@ pub(crate) fn detect_bp_3_panic_outside_main(
         unit: &ParsedUnit,
         out: &mut Vec<Finding>,
         is_test_file: bool,
-        in_main: &mut bool,
+        in_main: bool,
     ) {
-        if node.kind() == "function_declaration" {
-            if let Some(name) = node
+        let mut in_main = in_main;
+        if node.kind() == "function_declaration"
+            && let Some(name) = node
                 .child_by_field_name("name")
                 .and_then(|n| n.utf8_text(src).ok())
-            {
-                *in_main = name == "main";
-            }
+        {
+            in_main = name == "main";
         }
-        if node.kind() == "call_expression" {
-            if let Some(func) = node.child_by_field_name("function") {
-                if let Ok(text) = func.utf8_text(src) {
-                    if text == "panic" && !*in_main && !is_test_file {
-                        let (line, col) = unit.line_col(node.start_byte());
-                        emit::push_finding(
-                            &crate::lang::go::detectors::bad_practices::BP_3_META,
-                            file,
-                            line,
-                            col,
-                            "panic outside main() or test files; prefer returning errors up the call stack",
-                            out,
-                        );
-                    }
-                }
-            }
+        if node.kind() == "call_expression"
+            && let Some(func) = node.child_by_field_name("function")
+            && func.utf8_text(src).ok() == Some("panic")
+            && !in_main
+            && !is_test_file
+        {
+            let (line, col) = unit.line_col(node.start_byte());
+            emit::push_finding(
+                &crate::lang::go::detectors::bad_practices::BP_3_META,
+                file,
+                line,
+                col,
+                "panic outside main() or test files; prefer returning errors up the call stack",
+                out,
+            );
         }
         let mut cursor = node.walk();
         for child in node.named_children(&mut cursor) {
@@ -62,15 +62,18 @@ pub(crate) fn detect_bp_3_panic_outside_main(
         }
     }
 
-    walk(root, src, file, unit, out, is_test_file, &mut in_main);
+    walk(root, src, file, unit, out, is_test_file, false);
 }
 
 /// BP-13: context.Background used outside main/test code.
 pub(crate) fn detect_bp_13_background_context_in_library(
     unit: &ParsedUnit,
-    _index: &SourceIndex,
+    index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
+    if !index.has("context.Background") && !unit.source.contains("context.Background") {
+        return;
+    }
     let file = unit.display_path.as_str();
     if file.ends_with("_test.go") {
         return;
@@ -136,6 +139,9 @@ pub(crate) fn detect_bp_15_recursive_once_do(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
+    if !unit.source.contains(".Do(") || !unit.source.contains("Once") {
+        return;
+    }
     let src = unit.source.as_bytes();
     let function_facts = collect_function_facts(unit.tree.root_node(), src);
 

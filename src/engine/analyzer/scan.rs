@@ -79,6 +79,24 @@ impl Analyzer {
         };
         let project_root = discover_project_root(start);
         let module_prefix = go_module_prefix(&project_root);
+        // Pre-warm Go BP project snapshot so parallel workers share one
+        // WalkDir + text scan for project-level rules (BP-47/50/54/55).
+        // Skip when BP is disabled (recommended pack often has BP off).
+        // Prewarm every distinct path root so multi-root scans stay correct.
+        #[cfg(feature = "go")]
+        if self.scan_context().bad_practices_enabled {
+            let mut seen = std::collections::HashSet::new();
+            for path in paths {
+                let p = path.as_ref();
+                let root = discover_project_root(p);
+                if seen.insert(root.clone()) {
+                    crate::lang::go::detectors::bad_practices::prewarm_project_cache(&root);
+                }
+            }
+            if seen.is_empty() {
+                crate::lang::go::detectors::bad_practices::prewarm_project_cache(&project_root);
+            }
+        }
         let dependency_root = if module_prefix.is_some() {
             project_root
         } else {

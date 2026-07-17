@@ -18,6 +18,7 @@ use crate::rules::Finding;
 /// Prefer building project units off-lock and pushing under a short critical
 /// section (see Go CWE taint accumulation).
 pub trait Detector: Send + Sync {
+    /// Language this detector analyzes.
     fn language(&self) -> LanguageId;
 
     /// Rule ids implemented by this detector (one id, or all ids in a language bundle).
@@ -29,6 +30,7 @@ pub trait Detector: Send + Sync {
         None
     }
 
+    /// Run the detector on one parsed unit, appending findings to `out`.
     fn run(&self, ctx: &ScanContext, unit: &ParsedUnit, out: &mut Vec<Finding>);
 
     /// Accumulate cross-file analysis state from a parsed unit without

@@ -2,28 +2,33 @@
 //!
 //! Used for next-line, EOL, file-level, and block-range ignores.
 
+/// Suppression directive: a rule allow-list or “all rules”.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IgnoreDirective {
     rule_ids: Option<Vec<String>>,
 }
 
 impl IgnoreDirective {
+    /// Suppress every rule.
     pub fn all() -> Self {
         Self { rule_ids: None }
     }
 
+    /// Suppress only the listed rule IDs.
     pub fn rules(rule_ids: Vec<String>) -> Self {
         Self {
             rule_ids: Some(rule_ids),
         }
     }
 
+    /// Whether this directive suppresses `rule_id`.
     pub fn matches(&self, rule_id: &str) -> bool {
         self.rule_ids
             .as_ref()
             .is_none_or(|ids| ids.iter().any(|id| id == rule_id))
     }
 
+    /// True when every rule is suppressed.
     pub fn is_all(&self) -> bool {
         self.rule_ids.is_none()
     }

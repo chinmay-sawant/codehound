@@ -1,13 +1,16 @@
 //! Supported languages (honest: Go is production; Python is opt-in).
 
+/// Supported analysis languages.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LanguageId {
+    /// Go (production default).
     Go,
     /// Python support variant (experimental).
     Python,
 }
 
 impl LanguageId {
+    /// Map a file extension (without the dot) to a language id.
     pub fn from_extension(ext: &str) -> Option<Self> {
         match ext {
             "go" => Some(Self::Go),
@@ -28,6 +31,7 @@ impl LanguageId {
         }
     }
 
+    /// Config / TOML names accepted for this language.
     pub fn config_names(self) -> &'static [&'static str] {
         match self {
             Self::Go => &["go"],

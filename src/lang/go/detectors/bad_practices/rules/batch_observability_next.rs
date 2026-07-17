@@ -19,9 +19,14 @@ use crate::rules::Finding;
 /// variables are intentionally left for a future dataflow-aware detector.
 pub(crate) fn detect_bp_151_secret_env_logged(
     unit: &ParsedUnit,
-    _index: &SourceIndex,
+    index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
+    if !unit.source.contains("Getenv")
+        || !(index.has("log.") || unit.source.contains("slog.") || unit.source.contains("zap."))
+    {
+        return;
+    }
     let root = unit.tree.root_node();
     let source = unit.source.as_bytes();
     let has_log = has_import(root, source, "log");

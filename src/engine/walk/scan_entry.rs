@@ -176,9 +176,10 @@ fn analyze_parsed_entry(
         unit.set_function_spans(ast::collect_function_spans(unit.tree.root_node(), fn_kinds));
     }
 
-    let det_idx = options.timing.start("detector_execution");
+    // Per-detector / per-rule spans are recorded inside `analyze_parsed_unit`.
+    // Avoid an outer `detector_execution` parent that double-counts those spans
+    // in the top-10 percentage view.
     let (mut findings, rules_executed) = analyze_parsed_unit(registry, ctx, unit, options.timing);
-    options.timing.stop(det_idx);
     filter_findings(ctx, &mut findings);
     attach_function_context(&mut findings, unit);
     let suppressed_count = apply_ignores(

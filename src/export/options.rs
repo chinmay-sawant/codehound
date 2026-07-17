@@ -2,6 +2,7 @@
 
 use std::path::PathBuf;
 
+/// Options controlling on-disk finding context/chunk export.
 #[derive(Debug, Clone)]
 pub struct ExportOptions {
     /// Write one context file per finding.
@@ -16,6 +17,7 @@ pub struct ExportOptions {
     pub chunks_output_dir: PathBuf,
 }
 
+/// Counts of files written by a successful export pass.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct ExportSummary {
     /// Number of context files written.

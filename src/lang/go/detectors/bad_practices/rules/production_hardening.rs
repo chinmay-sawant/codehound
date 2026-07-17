@@ -1,16 +1,13 @@
 //! BP-46..BP-55 — production-hardening bad practices.
 
-use std::fs;
-use std::path::PathBuf;
-
 use tree_sitter::Node;
-use walkdir::WalkDir;
 
-use super::super::common::{is_materialized_fixture, is_project_anchor, is_test_file};
+use super::super::common::{
+    is_materialized_fixture, is_project_anchor, is_test_file, project_snapshot,
+};
 use super::super::source_index::SourceIndex;
 use super::helpers::push_at;
 use crate::core::ParsedUnit;
-use crate::engine::discover_project_root;
 use crate::rules::Finding;
 
 pub(crate) fn detect_bp_46_http_server_missing_timeouts(
@@ -42,11 +39,8 @@ pub(crate) fn detect_bp_47_no_graceful_shutdown(
     if is_materialized_fixture(unit) || !is_project_anchor(unit) {
         return;
     }
-    let project = read_project_texts(unit);
-    if !project.iter().any(|(_, text)| contains_server_start(text)) {
-        return;
-    }
-    if project.iter().any(|(_, text)| text.contains(".Shutdown(")) {
+    let snap = project_snapshot(unit);
+    if !snap.has_server_start || snap.has_shutdown {
         return;
     }
     push_at(
@@ -132,24 +126,17 @@ pub(crate) fn detect_bp_50_no_signal_handling_for_server(
     if is_materialized_fixture(unit) || !is_project_anchor(unit) {
         return;
     }
-    let project = read_project_texts(unit);
-    if !project.iter().any(|(_, text)| contains_server_start(text)) {
+    let snap = project_snapshot(unit);
+    if !snap.has_server_start || snap.has_signal_handling {
         return;
     }
-    let has_signal_handling = project.iter().any(|(_, text)| {
-        text.contains("signal.Notify(")
-            || text.contains("signal.NotifyContext(")
-            || text.contains("\"os/signal\"")
-    });
-    if !has_signal_handling {
-        push_at(
-            unit,
-            out,
-            &crate::lang::go::detectors::bad_practices::BP_50_META,
-            0,
-            "long-running server should handle SIGTERM or SIGINT",
-        );
-    }
+    push_at(
+        unit,
+        out,
+        &crate::lang::go::detectors::bad_practices::BP_50_META,
+        0,
+        "long-running server should handle SIGTERM or SIGINT",
+    );
 }
 
 pub(crate) fn detect_bp_51_recover_without_repanic_in_library(
@@ -276,28 +263,17 @@ pub(crate) fn detect_bp_54_public_http_endpoint_without_rate_limiting(
     if is_materialized_fixture(unit) || !is_project_anchor(unit) {
         return;
     }
-    let project = read_project_texts(unit);
-    if !project.iter().any(|(_, text)| contains_server_start(text))
-        || !project.iter().any(|(_, text)| contains_public_route(text))
-    {
+    let snap = project_snapshot(unit);
+    if !snap.has_server_start || !snap.has_public_route || snap.has_rate_limiting {
         return;
     }
-    let has_rate_limiting = project.iter().any(|(_, text)| {
-        text.contains("rate.NewLimiter(")
-            || text.contains("rate.Limiter")
-            || text.contains("tollbooth")
-            || text.contains("httprate")
-            || text.contains("Throttle(")
-    });
-    if !has_rate_limiting {
-        push_at(
-            unit,
-            out,
-            &crate::lang::go::detectors::bad_practices::BP_54_META,
-            0,
-            "public HTTP handlers should enforce a rate-limiting guard",
-        );
-    }
+    push_at(
+        unit,
+        out,
+        &crate::lang::go::detectors::bad_practices::BP_54_META,
+        0,
+        "public HTTP handlers should enforce a rate-limiting guard",
+    );
 }
 
 pub(crate) fn detect_bp_55_missing_request_id_propagation(
@@ -308,33 +284,18 @@ pub(crate) fn detect_bp_55_missing_request_id_propagation(
     if is_materialized_fixture(unit) || !is_project_anchor(unit) {
         return;
     }
-    let project = read_project_texts(unit);
-    if !project.iter().any(|(_, text)| contains_server_start(text))
-        || !project.iter().any(|(_, text)| contains_public_route(text))
-        || !project.iter().any(|(_, text)| {
-            text.contains("log.") || text.contains("logger.") || text.contains("slog.")
-        })
+    let snap = project_snapshot(unit);
+    if !snap.has_server_start || !snap.has_public_route || !snap.has_logging || snap.has_request_id
     {
         return;
     }
-    let has_request_id = project.iter().any(|(_, text)| {
-        text.contains("Request-ID")
-            || text.contains("Request-Id")
-            || text.contains("X-Request-ID")
-            || text.contains("X-Request-Id")
-            || text.contains("requestid")
-            || text.contains("request_id")
-            || text.contains("RequestID")
-    });
-    if !has_request_id {
-        push_at(
-            unit,
-            out,
-            &crate::lang::go::detectors::bad_practices::BP_55_META,
-            0,
-            "request-handling code logs traffic without a visible request-id propagation path",
-        );
-    }
+    push_at(
+        unit,
+        out,
+        &crate::lang::go::detectors::bad_practices::BP_55_META,
+        0,
+        "request-handling code logs traffic without a visible request-id propagation path",
+    );
 }
 
 fn http_server_literals(source: &str) -> Vec<(usize, &str)> {
@@ -469,43 +430,6 @@ fn package_name(unit: &ParsedUnit) -> Option<&str> {
         }
     }
     None
-}
-
-fn read_project_texts(unit: &ParsedUnit) -> Vec<(PathBuf, String)> {
-    let root = discover_project_root(&unit.path);
-    let mut files = Vec::new();
-    for entry in WalkDir::new(&root).into_iter().filter_map(Result::ok) {
-        let path = entry.path();
-        if !entry.file_type().is_file() {
-            continue;
-        }
-        if path.extension().and_then(|ext| ext.to_str()) != Some("go") {
-            continue;
-        }
-        if let Ok(text) = fs::read_to_string(path) {
-            files.push((path.to_path_buf(), text));
-        }
-    }
-    files.sort_by(|left, right| left.0.cmp(&right.0));
-    files
-}
-
-fn contains_server_start(text: &str) -> bool {
-    text.contains("ListenAndServe(")
-        || text.contains(".ListenAndServe(")
-        || text.contains(".Serve(")
-        || text.contains("http.Serve(")
-}
-
-fn contains_public_route(text: &str) -> bool {
-    text.contains("HandleFunc(")
-        || text.contains(".HandleFunc(")
-        || text.contains(".Handle(")
-        || text.contains(".GET(")
-        || text.contains(".POST(")
-        || text.contains(".PUT(")
-        || text.contains(".DELETE(")
-        || text.contains(".PATCH(")
 }
 
 fn collect_call_targets(source: &str, needle: &str) -> Vec<String> {

@@ -42,12 +42,12 @@ fn reported_rule_ids(stdout: &str) -> Vec<&str> {
 fn go_perf_fixtures_fire_vulnerable_and_silence_safe() {
     let cases = go_perf_cases::discover_go_perf_cases();
     let mut failures: Vec<String> = Vec::new();
+    let analyzer = Analyzer::builder().build();
 
     for perf_id in &cases {
         let vulnerable = go_perf_cases::fixture_path(*perf_id, true);
         let safe = go_perf_cases::fixture_path(*perf_id, false);
         let rule = format!("PERF-{perf_id}");
-        let analyzer = Analyzer::builder().build();
         if let Err(e) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             helpers::assert_fixture_rules(&vulnerable, &[rule.as_str()], &analyzer);
             helpers::assert_fixture_rules(&safe, &[], &analyzer);
@@ -66,53 +66,60 @@ fn go_perf_fixtures_fire_vulnerable_and_silence_safe() {
 
 #[test]
 fn go_perf_text_fixtures_also_work_via_cli_scan_path() {
+    // Full detector coverage lives in
+    // `go_perf_fixtures_fire_vulnerable_and_silence_safe` (in-process).
+    // A full CLI matrix was hundreds of process spawns and dominated suite time.
     let cases = go_perf_cases::discover_go_perf_cases();
-    let mut failures: Vec<String> = Vec::new();
+    let perf_id = *cases
+        .first()
+        .expect("expected at least one Go PERF fixture");
+    let vulnerable = go_perf_cases::fixture_path(perf_id, true);
+    let safe = go_perf_cases::fixture_path(perf_id, false);
+    let expected_rule = format!("PERF-{perf_id}");
     let exe = env!("CARGO_BIN_EXE_codehound");
 
-    for perf_id in &cases {
-        let vulnerable = go_perf_cases::fixture_path(*perf_id, true);
-        let safe = go_perf_cases::fixture_path(*perf_id, false);
-        let expected_rule = format!("PERF-{perf_id}");
-
-        let vulnerable_run = Command::new(exe)
-            .args(["--profile", "all", vulnerable.as_str()])
-            .output()
-            .unwrap_or_else(|e| panic!("run {vulnerable}: {e}"));
-        let vulnerable_stdout = String::from_utf8_lossy(&vulnerable_run.stdout);
-        let vulnerable_ids = reported_rule_ids(&vulnerable_stdout);
-        // Info-tier PERF (B/C) correctly exits 0 under MediumAsErrors; only require
-        // the rule to fire. Medium/high findings exit 1.
-        if !vulnerable_ids.contains(&expected_rule.as_str()) {
-            failures.push(format!(
-                "{vulnerable}: expected {expected_rule}, got status {:?}, ids {:?}, stdout:\n{}",
-                vulnerable_run.status.code(),
-                vulnerable_ids,
-                vulnerable_stdout
-            ));
-        }
-
-        let safe_run = Command::new(exe)
-            .args(["--profile", "all", safe.as_str()])
-            .output()
-            .unwrap_or_else(|e| panic!("run {safe}: {e}"));
-        let safe_stdout = String::from_utf8_lossy(&safe_run.stdout);
-        let safe_ids = reported_rule_ids(&safe_stdout);
-        if safe_ids.iter().any(|rule_id| rule_id.starts_with("PERF-")) {
-            failures.push(format!(
-                "{safe}: expected no PERF findings, got status {:?}, ids {:?}, stdout:\n{}",
-                safe_run.status.code(),
-                safe_ids,
-                safe_stdout
-            ));
-        }
-    }
-
+    let vulnerable_run = Command::new(exe)
+        .args([
+            "--profile",
+            "perf",
+            "--only",
+            expected_rule.as_str(),
+            "--no-cache",
+            vulnerable.as_str(),
+        ])
+        .output()
+        .unwrap_or_else(|e| panic!("run {vulnerable}: {e}"));
+    let vulnerable_stdout = String::from_utf8_lossy(&vulnerable_run.stdout);
+    let vulnerable_ids = reported_rule_ids(&vulnerable_stdout);
+    // Info-tier PERF (B/C) correctly exits 0 under MediumAsErrors; only require
+    // the rule to fire. Medium/high findings exit 1.
     assert!(
-        failures.is_empty(),
-        "{} of {} CLI PERF fixture scans failed: {failures:#?}",
-        failures.len(),
-        cases.len() * 2,
+        vulnerable_ids.contains(&expected_rule.as_str()),
+        "{vulnerable}: expected {expected_rule}, got status {:?}, ids {:?}, stdout:\n{}",
+        vulnerable_run.status.code(),
+        vulnerable_ids,
+        vulnerable_stdout
+    );
+
+    let safe_run = Command::new(exe)
+        .args([
+            "--profile",
+            "perf",
+            "--only",
+            expected_rule.as_str(),
+            "--no-cache",
+            safe.as_str(),
+        ])
+        .output()
+        .unwrap_or_else(|e| panic!("run {safe}: {e}"));
+    let safe_stdout = String::from_utf8_lossy(&safe_run.stdout);
+    let safe_ids = reported_rule_ids(&safe_stdout);
+    assert!(
+        !safe_ids.iter().any(|rule_id| rule_id.starts_with("PERF-")),
+        "{safe}: expected no PERF findings, got status {:?}, ids {:?}, stdout:\n{}",
+        safe_run.status.code(),
+        safe_ids,
+        safe_stdout
     );
 }
 

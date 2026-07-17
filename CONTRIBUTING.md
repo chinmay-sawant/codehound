@@ -6,12 +6,23 @@ Thanks for helping. This doc is the short path to a good PR.
 
 - Rust **1.85+** (`rustup default stable`)
 - Optional: Go (for local fixture realism)
+- `cargo-nextest` for the default parallel test target:
+  `cargo install cargo-nextest --locked`
 
 ## Build & test
 
 ```sh
 # Default = Go-first (no Python)
 cargo build --bin codehound
+make test
+
+# Optimized edit → scan loop (incremental; not the release benchmark profile)
+make run
+
+# Publishable performance measurements: thin-LTO release profile
+make run RUN_PROFILE=release
+
+# Cargo-equivalent all-target check (includes benches)
 cargo test --all-targets
 
 # Optional experimental Python (SLOP101)

@@ -20,6 +20,7 @@ pub enum LanguageFilter {
 }
 
 impl LanguageFilter {
+    /// Whether `language` is included by this filter.
     pub fn allows(&self, language: LanguageId) -> bool {
         match self {
             Self::All => true,

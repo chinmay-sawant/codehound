@@ -37,12 +37,12 @@ pub(crate) fn detect_bp_57_stale_go_version_in_go_mod(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
-    let Some(go_mod) = read_go_mod(unit) else {
-        return;
-    };
     if is_materialized_fixture(unit) || !is_project_anchor(unit) {
         return;
     }
+    let Some(go_mod) = read_go_mod(unit) else {
+        return;
+    };
     // ponytail: tracks Go's two-release support window as of 2026-07-03.
     const MIN_SUPPORTED_GO_MINOR: u64 = 25;
     let Some((major, minor)) = parse_go_version(&go_mod.text) else {
@@ -64,12 +64,12 @@ pub(crate) fn detect_bp_58_unpinned_dependency_version(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
-    let Some(go_mod) = read_go_mod(unit) else {
-        return;
-    };
     if is_materialized_fixture(unit) || !is_project_anchor(unit) {
         return;
     }
+    let Some(go_mod) = read_go_mod(unit) else {
+        return;
+    };
     for require in parse_requires(&go_mod.text) {
         if version_missing_patch(&require.version) {
             push_at(
@@ -89,12 +89,12 @@ pub(crate) fn detect_bp_59_unused_direct_dependency(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
-    let Some(go_mod) = read_go_mod(unit) else {
-        return;
-    };
     if is_materialized_fixture(unit) || !is_project_anchor(unit) {
         return;
     }
+    let Some(go_mod) = read_go_mod(unit) else {
+        return;
+    };
     let imports = collect_project_imports(go_mod.root.as_path());
     for require in parse_requires(&go_mod.text) {
         if require.indirect {
@@ -120,12 +120,12 @@ pub(crate) fn detect_bp_60_test_only_dependency_in_main_go_mod(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
-    let Some(go_mod) = read_go_mod(unit) else {
-        return;
-    };
     if is_materialized_fixture(unit) || !is_project_anchor(unit) {
         return;
     }
+    let Some(go_mod) = read_go_mod(unit) else {
+        return;
+    };
     let imports = collect_project_imports(go_mod.root.as_path());
     for require in parse_requires(&go_mod.text) {
         let used_in_tests = imports.test_only.iter().any(|import| {
@@ -152,12 +152,12 @@ pub(crate) fn detect_bp_61_indirect_dependency_missing_annotation(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
-    let Some(go_mod) = read_go_mod(unit) else {
-        return;
-    };
     if is_materialized_fixture(unit) || !is_project_anchor(unit) {
         return;
     }
+    let Some(go_mod) = read_go_mod(unit) else {
+        return;
+    };
     let imports = collect_project_imports(go_mod.root.as_path());
     for require in parse_requires(&go_mod.text) {
         if require.indirect {
@@ -184,23 +184,22 @@ pub(crate) fn detect_bp_62_dependency_used_in_one_file(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
-    let Some(go_mod) = read_go_mod(unit) else {
-        return;
-    };
     if is_materialized_fixture(unit) || !is_project_anchor(unit) {
         return;
     }
+    let Some(go_mod) = read_go_mod(unit) else {
+        return;
+    };
     let requires = parse_requires(&go_mod.text);
-    let project_files = collect_non_test_go_files(go_mod.root.as_path());
-    if project_files.len() < 2 {
+    let usage = collect_project_module_usage(go_mod.root.as_path(), &requires);
+    if usage.non_test_file_count < 2 {
         return;
     }
-    let usage = collect_project_module_usage(go_mod.root.as_path(), &requires);
     for require in requires {
         if require.indirect {
             continue;
         }
-        let Some(files) = usage.get(&require.module) else {
+        let Some(files) = usage.by_module.get(&require.module) else {
             continue;
         };
         if files.len() == 1 {
@@ -221,12 +220,12 @@ pub(crate) fn detect_bp_63_dependency_with_known_cve_not_updated(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
-    let Some(go_mod) = read_go_mod(unit) else {
-        return;
-    };
     if is_materialized_fixture(unit) || !is_project_anchor(unit) {
         return;
     }
+    let Some(go_mod) = read_go_mod(unit) else {
+        return;
+    };
     let advisories = parse_advisories();
     for require in parse_requires(&go_mod.text) {
         let Some(advisory) = advisories.get(&require.module) else {
@@ -250,12 +249,12 @@ pub(crate) fn detect_bp_64_replace_directive_local_filesystem(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
-    let Some(go_mod) = read_go_mod(unit) else {
-        return;
-    };
     if is_materialized_fixture(unit) || !is_project_anchor(unit) {
         return;
     }
+    let Some(go_mod) = read_go_mod(unit) else {
+        return;
+    };
     if parse_replace_targets(&go_mod.text)
         .into_iter()
         .any(|target| {
@@ -277,12 +276,12 @@ pub(crate) fn detect_bp_65_missing_go_sum_entries(
     _index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
-    let Some(go_mod) = read_go_mod(unit) else {
-        return;
-    };
     if is_materialized_fixture(unit) || !is_project_anchor(unit) {
         return;
     }
+    let Some(go_mod) = read_go_mod(unit) else {
+        return;
+    };
     let go_sum = go_mod.root.join("go.sum");
     let missing = !go_sum.is_file()
         || fs::read_to_string(&go_sum)
@@ -299,6 +298,7 @@ pub(crate) fn detect_bp_65_missing_go_sum_entries(
     }
 }
 
+#[derive(Clone)]
 struct GoModContext {
     root: PathBuf,
     text: String,
@@ -310,10 +310,16 @@ struct Require {
     indirect: bool,
 }
 
+#[derive(Clone)]
 struct ProjectImports {
     all: BTreeSet<String>,
     non_test: BTreeSet<String>,
     test_only: BTreeSet<String>,
+}
+
+struct ProjectModuleUsage {
+    non_test_file_count: usize,
+    by_module: BTreeMap<String, BTreeSet<PathBuf>>,
 }
 
 struct Advisory {
@@ -342,10 +348,22 @@ fn collect_import_paths(unit: &ParsedUnit) -> Vec<(usize, String)> {
 }
 
 fn read_go_mod(unit: &ParsedUnit) -> Option<GoModContext> {
+    use std::sync::{Mutex, OnceLock};
     let root = discover_project_root(&unit.path);
+    static CACHE: OnceLock<Mutex<std::collections::HashMap<PathBuf, Option<GoModContext>>>> =
+        OnceLock::new();
+    let cache = CACHE.get_or_init(|| Mutex::new(std::collections::HashMap::new()));
+    let mut guard = cache.lock().unwrap_or_else(|p| p.into_inner());
+    if let Some(cached) = guard.get(&root) {
+        return cached.clone();
+    }
     let path = root.join("go.mod");
-    let text = fs::read_to_string(&path).ok()?;
-    Some(GoModContext { root, text })
+    let loaded = fs::read_to_string(&path).ok().map(|text| GoModContext {
+        root: root.clone(),
+        text,
+    });
+    guard.insert(root, loaded.clone());
+    loaded
 }
 
 fn parse_requires(go_mod: &str) -> Vec<Require> {
@@ -491,11 +509,9 @@ impl Advisory {
     }
 }
 
-fn collect_project_module_usage(
-    root: &Path,
-    requires: &[Require],
-) -> BTreeMap<String, BTreeSet<PathBuf>> {
-    let mut usage = BTreeMap::<String, BTreeSet<PathBuf>>::new();
+fn collect_project_module_usage(root: &Path, requires: &[Require]) -> ProjectModuleUsage {
+    let mut non_test_file_count = 0;
+    let mut by_module = BTreeMap::<String, BTreeSet<PathBuf>>::new();
     for entry in WalkDir::new(root).into_iter().filter_map(Result::ok) {
         let path = entry.path();
         if !entry.file_type().is_file() {
@@ -506,6 +522,7 @@ fn collect_project_module_usage(
         {
             continue;
         }
+        non_test_file_count += 1;
         let Ok(text) = fs::read_to_string(path) else {
             continue;
         };
@@ -514,35 +531,29 @@ fn collect_project_module_usage(
             if imports.iter().any(|import| {
                 import == &require.module || import.starts_with(&(require.module.clone() + "/"))
             }) {
-                usage
+                by_module
                     .entry(require.module.clone())
                     .or_default()
                     .insert(path.to_path_buf());
             }
         }
     }
-    usage
-}
-
-fn collect_non_test_go_files(root: &Path) -> Vec<PathBuf> {
-    let mut files = Vec::new();
-    for entry in WalkDir::new(root).into_iter().filter_map(Result::ok) {
-        let path = entry.path();
-        if !entry.file_type().is_file() {
-            continue;
-        }
-        if path.extension().and_then(|ext| ext.to_str()) != Some("go")
-            || path.to_string_lossy().ends_with("_test.go")
-        {
-            continue;
-        }
-        files.push(path.to_path_buf());
+    ProjectModuleUsage {
+        non_test_file_count,
+        by_module,
     }
-    files.sort();
-    files
 }
 
 fn collect_project_imports(root: &Path) -> ProjectImports {
+    use std::sync::{Mutex, OnceLock};
+    static CACHE: OnceLock<Mutex<std::collections::HashMap<PathBuf, ProjectImports>>> =
+        OnceLock::new();
+    let cache = CACHE.get_or_init(|| Mutex::new(std::collections::HashMap::new()));
+    let mut guard = cache.lock().unwrap_or_else(|p| p.into_inner());
+    if let Some(cached) = guard.get(root) {
+        return cached.clone();
+    }
+
     let mut by_file: BTreeMap<PathBuf, BTreeSet<String>> = BTreeMap::new();
     for entry in WalkDir::new(root).into_iter().filter_map(Result::ok) {
         let path = entry.path();
@@ -573,11 +584,13 @@ fn collect_project_imports(root: &Path) -> ProjectImports {
         }
     }
     test_only.retain(|import| !non_test.contains(import));
-    ProjectImports {
+    let result = ProjectImports {
         all,
         non_test,
         test_only,
-    }
+    };
+    guard.insert(root.to_path_buf(), result.clone());
+    result
 }
 
 fn extract_imports_from_text(source: &str) -> BTreeSet<String> {

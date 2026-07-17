@@ -4,6 +4,7 @@ use clap::Args;
 
 use crate::core::FailPolicy;
 
+/// Mutually exclusive CLI flags that select the process exit policy.
 #[derive(Debug, Clone, Copy, Args)]
 #[group(multiple = false)]
 pub struct SeverityArgs {
@@ -23,6 +24,7 @@ pub struct SeverityArgs {
 }
 
 impl SeverityArgs {
+    /// Resolve the exit policy from the selected severity flags.
     pub fn fail_policy(self) -> FailPolicy {
         if self.no_fail {
             FailPolicy::NoFail

@@ -8,14 +8,18 @@ use super::types::{CodehoundConfig, PathFilters};
 /// Scan context and path filters built together from CLI + TOML.
 #[derive(Debug, Clone)]
 pub struct RunConfig {
+    /// Detector filters, profile flags, and fail policy for this run.
     pub scan_context: ScanContext,
+    /// Path include/exclude filters applied during discovery.
     pub path_filters: PathFilters,
 }
 
 /// Inputs for [`build_run_config`].
 #[derive(Debug, Clone, Default)]
 pub struct RunConfigParams {
+    /// Parameters used to build [`ScanContext`].
     pub scan: ScanContextParams,
+    /// When true, do not exclude test files from discovery.
     pub include_tests: bool,
 }
 

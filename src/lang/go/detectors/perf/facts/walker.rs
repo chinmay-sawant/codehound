@@ -32,13 +32,19 @@ pub fn build_go_perf_facts(unit: &ParsedUnit) -> GoPerfFacts {
         },
     );
 
-    // Walk `var_spec` nodes to capture variables declared with an explicit
-    // type (`var x int = 5`, `var s string`, `var buf []byte`). The explicit
-    // type always wins; if the spec also has an initializer it is only used
-    // as a fallback (e.g. `var x = 0.0`).
-    walk_nodes(root, &["var_spec"], &mut |spec| {
-        collect_var_spec_kinds(spec, src, &mut facts.var_kinds, &mut interner);
-    });
+    // PERF-2 and PERF-32 are the only consumers of explicit `var` kinds. Do
+    // not walk every `var_spec` when their source shapes are absent.
+    let needs_var_kinds = unit.source.contains("+=")
+        || unit.source.contains("= s +")
+        || unit.source.contains("[]byte(")
+        || unit.source.contains("[]uint8(")
+        || unit.source.contains("string(");
+    if needs_var_kinds {
+        // The explicit type wins; an initializer is only a fallback.
+        walk_nodes(root, &["var_spec"], &mut |spec| {
+            collect_var_spec_kinds(spec, src, &mut facts.var_kinds, &mut interner);
+        });
+    }
 
     facts.source_index = PerfSourceIndex::build(NEEDLES, unit.source.as_ref());
     facts

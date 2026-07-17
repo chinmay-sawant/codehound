@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 
 use crate::engine::path_walk::{WalkUpAction, walk_up_dirs};
 
+/// Discover the project root by walking up from `start` for `.git` or `go.mod`.
 pub fn discover_project_root(start: &Path) -> PathBuf {
     walk_up_dirs(start, |current| {
         if current.join(".git").exists() || current.join("go.mod").is_file() {

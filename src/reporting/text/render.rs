@@ -12,6 +12,11 @@ use super::options::TextOptions;
 use super::style;
 use super::summary::write_summary;
 
+/// Write a human-readable finding report to `out` using `options`.
+///
+/// # Errors
+///
+/// Returns [`Error`] when formatting or writing fails.
 #[must_use = "I/O errors from writing text output must be handled"]
 pub fn write_with_options(
     out: &mut impl Write,

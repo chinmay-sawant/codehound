@@ -10,10 +10,16 @@ use crate::core::{Detector, LanguageId, LanguagePlugin};
 pub enum RegistryError {
     /// Two plugins claimed the same language identifier.
     #[error("duplicate language plugin: {language:?}")]
-    DuplicateLanguage { language: LanguageId },
+    DuplicateLanguage {
+        /// Language claimed by more than one plugin.
+        language: LanguageId,
+    },
     /// Two plugins claimed the same file extension.
     #[error("extension {extension:?} is registered by more than one plugin")]
-    DuplicateExtension { extension: &'static str },
+    DuplicateExtension {
+        /// Extension claimed by more than one plugin.
+        extension: &'static str,
+    },
     /// A plugin returned a detector for a different language.
     #[error(
         "detector language {detector_language:?} does not match plugin language {plugin_language:?}"
@@ -86,6 +92,7 @@ impl Registry {
         }
     }
 
+    /// Indices of detectors registered for `language`.
     pub fn detector_indices(&self, language: LanguageId) -> &[usize] {
         self.by_language
             .get(&language)
@@ -104,6 +111,7 @@ impl Registry {
         self.detectors.get(index).map(|detector| detector.as_ref())
     }
 
+    /// Resolve the language plugin for a file path by extension.
     pub fn plugin_for_path(&self, path: &Path) -> Option<&dyn LanguagePlugin> {
         let ext = path.extension().and_then(|s| s.to_str())?;
         self.by_extension
@@ -111,10 +119,12 @@ impl Registry {
             .map(|&idx| self.plugins[idx].as_ref())
     }
 
+    /// Resolve the language plugin for a language id.
     pub fn plugin_for_id(&self, id: LanguageId) -> Option<&dyn LanguagePlugin> {
         self.by_id.get(&id).map(|&idx| self.plugins[idx].as_ref())
     }
 
+    /// Iterate language ids with registered plugins.
     pub fn enabled_languages(&self) -> impl Iterator<Item = LanguageId> + '_ {
         self.plugins.iter().map(|p| p.id())
     }

@@ -6,44 +6,61 @@ use serde::Deserialize;
 
 use crate::rules::Severity;
 
+/// Root document for `codehound.toml`.
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CodehoundConfig {
+    /// Top-level `[codehound]` section.
     #[serde(default)]
     pub codehound: CodehoundSection,
 }
 
+/// Contents of the `[codehound]` TOML table.
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CodehoundSection {
+    /// Enabled language names (e.g. `"go"`, `"python"`).
     #[serde(default)]
     pub languages: Vec<String>,
+    /// Exit policy name (`"high"`, `"medium"`, `"never"`, …).
     #[serde(default)]
     pub fail_on: Option<String>,
+    /// Rule IDs / globs to skip.
     #[serde(default)]
     pub skip: Vec<String>,
+    /// Rule IDs / globs to run exclusively when non-empty.
     #[serde(default)]
     pub only: Vec<String>,
+    /// Glob include filters for scanned paths.
     #[serde(default)]
     pub include: Vec<String>,
+    /// Glob exclude filters for scanned paths.
     #[serde(default)]
     pub exclude: Vec<String>,
+    /// When `Some(true)`, skip test files; `None` uses engine default.
     #[serde(default)]
     pub exclude_tests: Option<bool>,
+    /// Baseline adoption settings.
     #[serde(default)]
     pub baseline: BaselineConfig,
+    /// Incremental analysis cache settings.
     #[serde(default)]
     pub cache: CacheConfig,
+    /// Experimental taint-tracking settings.
     #[serde(default)]
     pub taint: TaintConfig,
+    /// Go bad-practice pack settings.
     #[serde(default)]
     pub bad_practices: BadPracticesConfig,
 }
 
+/// Baseline file configuration.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct BaselineConfig {
+    /// Whether baseline filtering is enabled.
     pub enabled: bool,
+    /// Optional explicit baseline path (otherwise auto-discovered).
     pub path: Option<PathBuf>,
 }
 
@@ -63,7 +80,9 @@ impl Default for BaselineConfig {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct CacheConfig {
+    /// Whether the incremental cache is used for this run.
     pub enabled: bool,
+    /// Optional custom cache directory.
     pub path: Option<PathBuf>,
 
     /// Maximum on-disk size of the cache directory in MiB.
@@ -109,7 +128,9 @@ impl Default for CacheConfig {
 #[serde(default, deny_unknown_fields)]
 #[derive(Default)]
 pub struct TaintConfig {
+    /// Explicit enable/disable; `None` leaves profile defaults in control.
     pub enabled: Option<bool>,
+    /// When true, attach taint-path evidence to findings.
     pub show_paths: Option<bool>,
 }
 
@@ -117,7 +138,9 @@ pub struct TaintConfig {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct BadPracticesConfig {
+    /// Whether the bad-practice pack is enabled.
     pub enabled: bool,
+    /// Optional default severity override for all BP rules.
     pub severity: Option<Severity>,
     /// Per-rule severity overrides keyed by rule ID (e.g. `"BP-1" = "high"`).
     #[serde(default)]
@@ -134,10 +157,14 @@ impl Default for BadPracticesConfig {
     }
 }
 
+/// Path include/exclude filters applied during discovery.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PathFilters {
+    /// Glob include patterns (empty = include all).
     pub include: Vec<String>,
+    /// Glob exclude patterns.
     pub exclude: Vec<String>,
+    /// When true, skip common test file patterns.
     pub exclude_tests: bool,
 }
 

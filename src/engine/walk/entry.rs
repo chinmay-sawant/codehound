@@ -18,7 +18,9 @@ use crate::engine::registry::Registry;
 /// A source file queued for analysis.
 #[derive(Debug, Clone)]
 pub struct ScanEntry {
+    /// Absolute path of the source file.
     pub path: Arc<Path>,
+    /// Detected or forced language for this file.
     pub language: LanguageId,
 }
 
@@ -101,6 +103,7 @@ pub struct ListEntrySource {
 }
 
 impl ListEntrySource {
+    /// Create an entry source from a pre-built entry list.
     pub fn new(entries: Vec<ScanEntry>) -> Self {
         Self { entries }
     }

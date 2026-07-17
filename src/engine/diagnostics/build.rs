@@ -14,19 +14,28 @@ use super::types::{
     DetectorsDiagnostics, FindingsDiagnostics, RuleTiming, ScanDiagnostics, TimingDiagnostics,
 };
 
+/// Machine-readable diagnostics document for a completed scan.
 #[derive(Debug, Serialize)]
 pub struct Diagnostics {
+    /// Tool name (`"codehound"`).
     pub tool: &'static str,
+    /// Tool version string.
     pub version: &'static str,
+    /// ISO-8601 UTC timestamp when diagnostics were produced.
     pub timestamp: String,
+    /// Aggregate scan counters (files, bytes, duration).
     pub scan: ScanDiagnostics,
+    /// Finding totals by severity.
     pub findings: FindingsDiagnostics,
+    /// Optional phase timing breakdown when stats collection was enabled.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timing: Option<TimingDiagnostics>,
+    /// Detector load/execution summary.
     pub detectors: DetectorsDiagnostics,
 }
 
 impl Diagnostics {
+    /// Build a diagnostics document from accumulated [`ScanStats`].
     pub fn from_stats(stats: &ScanStats) -> Self {
         let duration_ms = stats
             .timing
