@@ -172,6 +172,26 @@ fn go_bad_practice_fixture_inventory_is_sorted_and_deduplicated() {
 }
 
 #[test]
+fn bp_8_only_reports_the_by_value_mutex_parameter() {
+    let analyzer = bp_analyzer();
+    let fixture = "tests/fixtures/go/bad_practices/BP-8-vulnerable.txt";
+    let source = helpers::assert_fixture_materializes(fixture);
+    let result = analyzer
+        .analyze_paths(&[&source], None)
+        .unwrap_or_else(|e| panic!("analyze {fixture}: {e:#}"));
+    let bp_8_findings = result
+        .findings
+        .iter()
+        .filter(|finding| finding.rule_id == "BP-8")
+        .count();
+
+    assert_eq!(
+        bp_8_findings, 1,
+        "only UnlockCopy's by-value mutex parameter should trigger BP-8"
+    );
+}
+
+#[test]
 fn scan_context_can_disable_bad_practice_category() {
     let ctx = ScanContext {
         bad_practices_enabled: false,

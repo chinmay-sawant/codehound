@@ -1,0 +1,16 @@
+# BP-9 negative variant: a timeout remains visible with braces in a string
+lang: go
+file: BP-9-variant-safe.go
+variant: stdlib
+---
+package sample
+
+import "time"
+
+func wait(ch <-chan struct{}) {
+	select {
+	case <-ch:
+		_ = "{"
+	case <-time.After(time.Second):
+	}
+}

@@ -96,20 +96,20 @@ The purpose of this document is to prevent historical plan text from being mista
 ### 2.1 Audit existing-pack precision
 
 - [x] BP-1: retained conservative discard shapes, documented the no-type-facts limitation, and added vulnerable/safe `os.Stat` variants instead of widening every ignored call.
-- [ ] BP-6: test nested blocks and multiple goroutines for duplicate or misplaced findings.
-- [ ] BP-8: prove the same mutex object is implicated; reject file-level co-presence.
-- [ ] BP-9: test matching around nested braces, comments, and strings.
-- [ ] BP-12 and BP-14: label as heuristic/review-only unless local ownership/cancellation evidence proves otherwise.
-- [ ] BP-46..BP-55: audit project-level lifecycle findings for intent-dependent false positives.
-- [ ] BP-56..BP-65: keep module/dependency findings distinct from source-level BP output and keep BP-63 reserved.
+- [x] BP-6: verified nested blocks and multiple goroutines with AST-scoped Add matching and string-brace variants.
+- [x] BP-8: require the same by-value mutex parameter; pointer unlocks in the same file no longer trigger.
+- [x] BP-9: validate block matching around nested braces, comments, and strings; cancellation text in a literal no longer suppresses a finding.
+- [x] BP-12 and BP-14: labelled as review-only heuristics because local source cannot prove ownership, cancellation, or helper lifecycle control.
+- [x] BP-46..BP-55: audited project-level lifecycle findings; BP-47/50/54/55 now explicitly report missing project-visible evidence and remain review-only for external ownership boundaries.
+- [x] BP-56..BP-65: documented BP-57..BP-65 as one-per-project module audits rather than source findings; BP-63 remains reserved and is not a live vulnerability feed.
 
 ### 2.2 Document and validate the boundaries
 
 - [ ] Add an explicit “review required” note for every rule that cannot prove required type or control-flow facts.
 - [ ] Reconcile stale v0.0.2 BP pending-work wording with the shipped BP-1..BP-65 implementation, without rewriting historical evidence.
-- [ ] Add or tighten a vulnerable fixture, safe near-miss fixture, and structural/identifier variant for each detector changed in 2.1.
-- [ ] Run `cargo test --test go_bad_practice_integration` after each changed detector, then `make test` and `make lint` for the phase.
-- [ ] Record changed false-positive/false-negative behavior before considering another BP catalog expansion.
+- [x] Add or tighten a vulnerable fixture, safe near-miss fixture, and structural/identifier variant for each changed detector: BP-1, BP-6, BP-8, and BP-9 have focused coverage.
+- [x] Run `cargo test --test go_bad_practice_integration`, `make test`, and `make lint` for the completed Phase 1 batch: 392 Nextest tests plus one doctest and strict all-feature linting passed.
+- [x] Record changed false-positive/false-negative behavior before considering another BP catalog expansion; preserve the new advisory/review-only boundaries.
 
 ### 2.3 Test in representative modules
 

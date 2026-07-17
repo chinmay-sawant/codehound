@@ -192,19 +192,19 @@ The source sketches in `01-part-a-core-language.md` through `06-part-f-testing-a
 ### 1.1 Detector precision audit
 
 - [x] BP-1: retained the conservative discard shapes; documented the typed/variant limitation and added vulnerable/safe `os.Stat` variants without widening the heuristic.
-- [ ] BP-6: verify nested blocks and multiple goroutines do not produce duplicate or misplaced findings.
-- [ ] BP-8: require the same mutex object to be implicated; reject file-level co-presence.
-- [ ] BP-9: validate block matching around nested braces, comments, and strings.
-- [ ] BP-12/BP-14: label them heuristic and review-only unless local evidence proves ownership/cancellation.
-- [ ] BP-46..BP-55: review project-level lifecycle findings for intent-dependent false positives.
-- [ ] BP-56..BP-65: keep module/dependency findings separate from source-level BP output; BP-63 remains reserved.
+- [x] BP-6: verified nested blocks and multiple goroutines with AST-scoped Add matching and string-brace variants.
+- [x] BP-8: require the same by-value mutex parameter; pointer unlocks in the same file no longer trigger.
+- [x] BP-9: validate block matching around nested braces, comments, and strings; cancellation text in a literal no longer suppresses a finding.
+- [x] BP-12/BP-14: labelled as review-only heuristics because local source cannot prove ownership, cancellation, or helper lifecycle control.
+- [x] BP-46..BP-55: audited project-level lifecycle findings; BP-47/50/54/55 now explicitly report missing project-visible evidence and remain review-only for external ownership boundaries.
+- [x] BP-56..BP-65: documented BP-57..BP-65 as one-per-project module audits rather than source findings; BP-63 remains reserved and is not a live vulnerability feed.
 
 ### 1.2 Existing-pack validation
 
-- [ ] Add or tighten safe near-miss fixtures for every detector changed in 1.1.
-- [ ] Run the focused BP integration suite after each detector change.
-- [ ] Run the full Rust test suite after Phase 1.
-- [ ] Review the changed existing-pack behavior before starting BP-66+ work.
+- [x] Add or tighten safe near-miss fixtures for each changed detector: BP-1, BP-6, BP-8, and BP-9 have focused vulnerable/safe coverage.
+- [x] Run the focused BP integration and fixture-manifest suites for the changed detector batch.
+- [x] Run the full Rust test suite after Phase 1: `make test` passed 392 Nextest tests plus one doctest; `make lint` passed with all features.
+- [x] Review the changed existing-pack behavior before starting BP-66+ work; retain advisory/review-only boundaries rather than broadening the catalog.
 
 ---
 

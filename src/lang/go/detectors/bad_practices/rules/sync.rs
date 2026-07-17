@@ -4,6 +4,7 @@ use super::super::source_index::SourceIndex;
 use super::helpers::{line_start_byte, push_at};
 use crate::core::ParsedUnit;
 use crate::rules::Finding;
+use tree_sitter::Node;
 
 /// BP-6: sync.WaitGroup.Add inside the goroutine it tracks.
 ///
@@ -14,35 +15,35 @@ pub(crate) fn detect_bp_6_waitgroup_add_inside_goroutine(
     index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
-    let source = unit.source.as_ref();
     if !index.has("go func") || !index.has(".Add(") {
         return;
     }
-    let mut search = 0;
-    while let Some(rel) = source[search..].find("go func") {
-        let start = search + rel;
-        // Find the opening brace of the func literal.
-        let Some(brace_rel) = source[start..].find('{') else {
-            search = start + 7;
-            continue;
-        };
-        let body_open = start + brace_rel;
-        let Some(body) = braced_block(source, body_open) else {
-            search = body_open + 1;
-            continue;
-        };
-        if let Some(add_rel) = body.find(".Add(") {
-            let byte = body_open + add_rel;
-            push_at(
-                unit,
-                out,
-                &crate::lang::go::detectors::bad_practices::BP_6_META,
-                byte,
-                "WaitGroup.Add is inside the goroutine; call Add before launching it",
-            );
-        }
-        search = body_open + body.len().max(1);
-    }
+    crate::ast::walk_nodes(
+        unit.tree.root_node(),
+        &["go_statement"],
+        &mut |go_statement| {
+            let Some(body) = function_literal_body(go_statement) else {
+                return;
+            };
+            crate::ast::walk_nodes(body, &["call_expression"], &mut |call| {
+                let Some(function) = call.child_by_field_name("function") else {
+                    return;
+                };
+                let Ok(name) = function.utf8_text(unit.source.as_bytes()) else {
+                    return;
+                };
+                if name.ends_with(".Add") {
+                    push_at(
+                        unit,
+                        out,
+                        &crate::lang::go::detectors::bad_practices::BP_6_META,
+                        call.start_byte(),
+                        "WaitGroup.Add is inside the goroutine; call Add before launching it",
+                    );
+                }
+            });
+        },
+    );
 }
 
 /// BP-7: sync.Mutex copied by function parameter value.
@@ -81,33 +82,44 @@ pub(crate) fn detect_bp_8_defer_unlock_on_mutex_copy(
     index: &SourceIndex,
     out: &mut Vec<Finding>,
 ) {
-    let source = unit.source.as_ref();
     if !(index.has("defer ") && index.has(".Unlock()")) {
         return;
     }
-    // Require evidence of a by-value mutex parameter (not *sync.Mutex).
-    let has_value_mutex_param = source.lines().any(|line| {
-        let t = line.trim();
-        t.starts_with("func ")
-            && t.contains("sync.Mutex")
-            && !t.contains("*sync.Mutex")
-            && !t.contains("*sync.RWMutex")
-            && (t.contains("sync.Mutex)") || t.contains("sync.Mutex,") || t.contains("sync.Mutex "))
-    });
-    if !has_value_mutex_param {
-        return;
-    }
-    for (idx, line) in source.lines().enumerate() {
-        if line.trim().starts_with("defer ") && line.contains(".Unlock()") {
-            push_at(
-                unit,
-                out,
-                &crate::lang::go::detectors::bad_practices::BP_8_META,
-                line_start_byte(source, idx) + line.find(".Unlock()").unwrap_or(0),
-                "defer unlock is operating on a mutex value copy; pass *sync.Mutex",
-            );
-        }
-    }
+    crate::ast::walk_nodes(
+        unit.tree.root_node(),
+        &["function_declaration"],
+        &mut |function| {
+            let mutex_params = by_value_mutex_parameter_names(function, unit.source.as_bytes());
+            if mutex_params.is_empty() {
+                return;
+            }
+            let Some(body) = function.child_by_field_name("body") else {
+                return;
+            };
+            crate::ast::walk_nodes(body, &["defer_statement"], &mut |defer_statement| {
+                let Ok(text) = defer_statement.utf8_text(unit.source.as_bytes()) else {
+                    return;
+                };
+                let Some(receiver) = text
+                    .trim_start()
+                    .strip_prefix("defer ")
+                    .and_then(|call| call.trim().strip_suffix(".Unlock()"))
+                    .map(str::trim)
+                else {
+                    return;
+                };
+                if mutex_params.contains(&receiver) {
+                    push_at(
+                        unit,
+                        out,
+                        &crate::lang::go::detectors::bad_practices::BP_8_META,
+                        defer_statement.start_byte(),
+                        "defer unlock is operating on a mutex value copy; pass *sync.Mutex",
+                    );
+                }
+            });
+        },
+    );
 }
 
 /// BP-9: select without default, timeout, or context cancellation.
@@ -137,14 +149,14 @@ pub(crate) fn detect_bp_9_select_without_escape(
             search = brace_pos + 1;
             continue;
         };
-        let has_escape = block.contains("default:")
-            || block.contains("time.After(")
-            || block.contains("time.NewTimer(")
-            || block.contains("ctx.Done()")
-            || block.contains("context.Done()")
-            || block.contains("<-stop")
-            || block.contains("<-done")
-            || block.contains("<-ctx.Done()");
+        let has_escape = contains_code_token(block, "default:")
+            || contains_code_token(block, "time.After(")
+            || contains_code_token(block, "time.NewTimer(")
+            || contains_code_token(block, "ctx.Done()")
+            || contains_code_token(block, "context.Done()")
+            || contains_code_token(block, "<-stop")
+            || contains_code_token(block, "<-done")
+            || contains_code_token(block, "<-ctx.Done()");
         if !has_escape {
             push_at(
                 unit,
@@ -163,20 +175,116 @@ fn braced_block(source: &str, open: usize) -> Option<&str> {
     if source.as_bytes().get(open).is_none_or(|b| *b != b'{') {
         return None;
     }
+    let bytes = source.as_bytes();
     let mut depth = 0i32;
-    for (i, ch) in source[open..].char_indices() {
-        match ch {
-            '{' => depth += 1,
-            '}' => {
+    let mut i = open;
+    while i < bytes.len() {
+        if let Some(next) = skip_non_code(bytes, i) {
+            i = next;
+            continue;
+        }
+        match bytes[i] {
+            b'{' => depth += 1,
+            b'}' => {
                 depth -= 1;
                 if depth == 0 {
-                    return Some(&source[open..open + i + 1]);
+                    return Some(&source[open..=i]);
                 }
             }
             _ => {}
         }
+        i += 1;
     }
     None
+}
+
+fn function_literal_body(node: Node) -> Option<Node> {
+    if node.kind() == "func_literal" {
+        return node.child_by_field_name("body");
+    }
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .find_map(function_literal_body)
+}
+
+fn by_value_mutex_parameter_names<'a>(function: Node, source: &'a [u8]) -> Vec<&'a str> {
+    let Some(parameters) = function.child_by_field_name("parameters") else {
+        return Vec::new();
+    };
+    let mut names = Vec::new();
+    let mut cursor = parameters.walk();
+    for parameter in parameters.named_children(&mut cursor) {
+        if parameter.kind() != "parameter_declaration" {
+            continue;
+        }
+        let Some(ty) = parameter.child_by_field_name("type") else {
+            continue;
+        };
+        if ty.utf8_text(source).ok() != Some("sync.Mutex") {
+            continue;
+        }
+        let mut parameter_cursor = parameter.walk();
+        for child in parameter.named_children(&mut parameter_cursor) {
+            if child.kind() == "identifier"
+                && let Ok(name) = child.utf8_text(source)
+            {
+                names.push(name);
+            }
+        }
+    }
+    names
+}
+
+fn skip_quoted_literal(bytes: &[u8], mut i: usize) -> usize {
+    let quote = bytes[i];
+    i += 1;
+    while i < bytes.len() {
+        if bytes[i] == b'\\' {
+            i += 2;
+        } else if bytes[i] == quote {
+            return i + 1;
+        } else {
+            i += 1;
+        }
+    }
+    i
+}
+
+fn contains_code_token(source: &str, needle: &str) -> bool {
+    let bytes = source.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if let Some(next) = skip_non_code(bytes, i) {
+            i = next;
+            continue;
+        }
+        match bytes[i] {
+            _ if bytes[i..].starts_with(needle.as_bytes()) => return true,
+            _ => {}
+        }
+        i += 1;
+    }
+    false
+}
+
+/// Skip a Go literal or comment so text-only fallbacks inspect syntax, not prose.
+fn skip_non_code(bytes: &[u8], i: usize) -> Option<usize> {
+    match bytes[i] {
+        b'\'' | b'"' => Some(skip_quoted_literal(bytes, i)),
+        b'`' => bytes[i + 1..]
+            .iter()
+            .position(|byte| *byte == b'`')
+            .map_or(Some(bytes.len()), |offset| Some(i + offset + 2)),
+        b'/' if bytes.get(i + 1) == Some(&b'/') => bytes[i + 2..]
+            .iter()
+            .position(|byte| *byte == b'\n')
+            .map_or(Some(bytes.len()), |offset| Some(i + offset + 2)),
+        b'/' if bytes.get(i + 1) == Some(&b'*') => bytes[i + 2..]
+            .windows(2)
+            .position(|window| window == b"*/")
+            .map_or(Some(bytes.len()), |offset| Some(i + offset + 4)),
+        _ => None,
+    }
 }
 
 /// BP-12: unbuffered channel receives sends from multiple goroutines.

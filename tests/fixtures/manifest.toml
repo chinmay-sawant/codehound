@@ -5341,6 +5341,16 @@ required_rules = []
 
 [[fixture]]
 lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-6-variant-vulnerable.txt"
+required_rules = ["BP-6"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-6-variant-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
 path = "tests/fixtures/go/bad_practices/BP-7-vulnerable.txt"
 required_rules = ["BP-7"]
 
@@ -5367,6 +5377,16 @@ required_rules = ["BP-9"]
 [[fixture]]
 lang = "go"
 path = "tests/fixtures/go/bad_practices/BP-9-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-9-variant-vulnerable.txt"
+required_rules = ["BP-9"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-9-variant-safe.txt"
 required_rules = []
 
 [[fixture]]

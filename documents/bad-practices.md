@@ -64,8 +64,8 @@ Classify each rule before treating CodeHound BP as a substitute for `go vet` / s
 | BP-16–25 | unique / opinion | tparallel, testifylint | test hygiene; **BP-21 default-off** |
 | BP-26–35 | mixed | revive, staticcheck | API design; **BP-28 default-off** |
 | BP-36–45 | mixed | revive, unused | org/docs; godoc rules are **info** |
-| BP-46–55 | unique | — | production hardening (timeouts, signals, rate limits) |
-| BP-56–62 | mixed | govulncheck, go mod tidy | dep hygiene heuristics |
+| BP-46–55 | unique / review-required | — | production-hardening heuristics; BP-47/50/54/55 report only missing project-visible lifecycle evidence |
+| BP-56–62 | mixed / review-required | govulncheck, go mod tidy | dependency hygiene; BP-57–65 are one-per-project module audits, not source findings |
 | BP-63 | reserved | **govulncheck** | curated snapshot only — not a feed |
 | BP-64–65 | unique-ish | — | local `replace`, missing `go.sum` |
 
@@ -157,9 +157,9 @@ If you already run `golangci-lint` with errcheck + staticcheck + revive, prefer 
 - `BP-9` flags `select` without timeout, default, or cancellation because it can block forever; add `ctx.Done()`, a timer, or another escape hatch.
 - `BP-10` flags `time.After` inside loops because it allocates a new timer every iteration; reuse a `time.Timer` or `time.Ticker`.
 - `BP-11` flags `defer` inside loops because cleanup accumulates until function exit; close or release resources explicitly inside the loop body.
-- `BP-12` flags unbuffered channel sends from multiple goroutines without obvious coordinated receivers because senders can deadlock behind each other; add a buffer, a receiver loop, or a different synchronization pattern.
+- `BP-12` flags unbuffered channel sends from multiple goroutines without obvious coordinated receivers because senders can deadlock behind each other; add a buffer, a receiver loop, or a different synchronization pattern. It is review-only: source text cannot prove channel ownership or every receiver path.
 - `BP-13` flags `context.Background()` in library code because it severs caller cancellation and deadlines; accept a `context.Context` parameter and propagate it.
-- `BP-14` flags long-running goroutines that ignore `ctx.Done()` because they can outlive the request or job that created them; select on `ctx.Done()` or pass an explicit shutdown channel.
+- `BP-14` flags long-running goroutines that ignore `ctx.Done()` because they can outlive the request or job that created them; select on `ctx.Done()` or pass an explicit shutdown channel. It is review-only: the detector cannot prove ownership, alternative cancellation channels, or helper-mediated lifecycle control.
 - `BP-15` flags recursive `sync.Once.Do` because the same `Once` can deadlock itself; restructure initialization so the closure does not call back into the same `Once`.
 
 ## Testing
@@ -221,25 +221,25 @@ If you already run `golangci-lint` with errcheck + staticcheck + revive, prefer 
 ## Production Hardening
 
 - `BP-46` flags `http.Server` without read and write timeouts because unbounded request lifetimes invite resource exhaustion; set both timeout fields explicitly.
-- `BP-47` flags servers without graceful shutdown because in-flight requests are dropped abruptly; add a shutdown path that reacts to termination signals.
+- `BP-47` flags servers without a project-visible graceful shutdown because in-flight requests can be dropped abruptly; add a shutdown path that reacts to termination signals. Review-only: shutdown can be owned by another binary, package, or runtime layer.
 - `BP-48` flags `log.Fatal` and `os.Exit` in library code because helpers should not terminate the host process; return errors to the caller instead.
 - `BP-49` flags deferred cleanup that drops returned errors because close and flush failures can still matter; wrap the deferred cleanup in a function and check the error.
-- `BP-50` flags long-running servers without signal handling because they cannot terminate cleanly under orchestration; wire `SIGTERM` and `SIGINT` into shutdown.
+- `BP-50` flags long-running servers without project-visible signal handling because they cannot terminate cleanly under orchestration; wire `SIGTERM` and `SIGINT` into shutdown. Review-only: signal ownership can legitimately sit outside the scanned package.
 - `BP-51` flags `recover` in library code without re-panicking or converting the panic because it silently changes failure semantics; re-panic or return an explicit error contract.
 - `BP-52` flags allocation-size multiplication without overflow guards because large integer products can wrap before `make`; add a bounds check against `math.MaxInt` or use a checked multiplication helper.
 - `BP-53` flags `gob.Register` types that do not line up with nearby `Encode` or `Decode` payloads because gob registration should reflect the serialized types; register the actual payload type or adjust the encode/decode path.
-- `BP-54` flags public HTTP endpoints without visible rate limiting because unauthenticated traffic can overwhelm the service; add rate-limiter middleware or a request limiter in the handler path.
-- `BP-55` flags request logging without request-id propagation because logs become hard to correlate across systems; generate or forward a request id through the handler chain.
+- `BP-54` flags public HTTP endpoints without a project-visible rate limit because unauthenticated traffic can overwhelm the service; add rate-limiter middleware or a request limiter in the handler path. Review-only: infrastructure or upstream controls are outside source visibility.
+- `BP-55` flags request logging without project-visible request-id propagation because logs become hard to correlate across systems; generate or forward a request id through the handler chain. Review-only: an ingress, logger wrapper, or tracing layer can provide the identifier externally.
 
 ## Dependency Hygiene
 
 - `BP-56` flags deprecated packages such as `io/ioutil` because newer standard-library replacements are clearer and better maintained; migrate to the current package path.
-- `BP-57` flags stale `go` toolchain versions in `go.mod` because unsupported Go releases miss fixes and ecosystem support; update to a currently supported Go release line.
-- `BP-58` flags major or minor only module versions because reproducibility depends on full module versions; pin dependencies to exact versions.
-- `BP-59` flags direct requirements not imported by the project because they add maintenance cost without value; remove the dependency or import it intentionally.
-- `BP-60` flags dependencies used only by tests in the main module set because production requirements should reflect production code; move test-only needs behind the correct module boundary or tooling.
-- `BP-61` flags non-imported requirements missing `// indirect` because the file no longer communicates why the dependency exists; mark it indirect or remove it.
-- `BP-62` flags direct dependencies imported by only one non-test file in multi-file projects because the abstraction cost may exceed the value; internalize the code or narrow the module boundary if the dependency is trivial.
-- `BP-63` flags module versions that match the curated advisory snapshot because known-vulnerable dependencies should not remain pinned in active code; upgrade, replace, or delete the vulnerable module.
-- `BP-64` flags local filesystem `replace` directives because they hide non-reproducible builds behind local paths; replace them with tagged modules or keep them out of committed production manifests.
-- `BP-65` flags missing or empty `go.sum` because dependency integrity data is incomplete; regenerate and commit a complete `go.sum`.
+- `BP-57` flags stale `go` toolchain versions in `go.mod` because unsupported Go releases miss fixes and ecosystem support; update to a currently supported Go release line. This is a project-level module audit, emitted once per project rather than attributed to a Go source file.
+- `BP-58` flags major or minor only module versions because reproducibility depends on full module versions; pin dependencies to exact versions. This is a project-level module audit, emitted once per project rather than attributed to a Go source file.
+- `BP-59` flags direct requirements not imported by the project because they add maintenance cost without value; remove the dependency or import it intentionally. This is a project-level module audit, emitted once per project rather than attributed to a Go source file.
+- `BP-60` flags dependencies used only by tests in the main module set because production requirements should reflect production code; move test-only needs behind the correct module boundary or tooling. This is a project-level module audit, emitted once per project rather than attributed to a Go source file.
+- `BP-61` flags non-imported requirements missing `// indirect` because the file no longer communicates why the dependency exists; mark it indirect or remove it. This is a project-level module audit, emitted once per project rather than attributed to a Go source file.
+- `BP-62` flags direct dependencies imported by only one non-test file in multi-file projects because the abstraction cost may exceed the value; internalize the code or narrow the module boundary if the dependency is trivial. This is a project-level module audit, emitted once per project rather than attributed to a Go source file.
+- `BP-63` flags module versions that match the curated advisory snapshot because known-vulnerable dependencies should not remain pinned in active code; upgrade, replace, or delete the vulnerable module. It remains reserved, uses no live vulnerability feed, and is a project-level module audit rather than a source finding.
+- `BP-64` flags local filesystem `replace` directives because they hide non-reproducible builds behind local paths; replace them with tagged modules or keep them out of committed production manifests. This is a project-level module audit, emitted once per project rather than attributed to a Go source file.
+- `BP-65` flags missing or empty `go.sum` because dependency integrity data is incomplete; regenerate and commit a complete `go.sum`. This is a project-level module audit, emitted once per project rather than attributed to a Go source file.
