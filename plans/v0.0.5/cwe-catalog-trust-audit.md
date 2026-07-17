@@ -39,10 +39,25 @@ Success means every future `structural` promotion has generalized syntax or fact
 
 ### 1.2 Canary decision — 2026-07-18
 
-The six-rule family was run with `--profile all --only
-CWE-334,CWE-335,CWE-338,CWE-342,CWE-343,CWE-798 --no-cache` against three real
-Go repositories: gopdfsuit (78 files), monsoon (43 files), and go-retry (5
-files). It produced **0 useful hits / 126 scanned files**.
+The six-rule family was run from CodeHound source revision
+`ecab267207d4cff9a7dd814d5b9f4bc975e2e78e` after `cargo build --release
+--locked`. The target revisions and results were:
+
+| Repository | Revision | Files scanned | Findings |
+|---|---|---:|---:|
+| gopdfsuit | `26d71268937136036c3be1770c0f7bdd89f87dc6` | 78 | 0 |
+| monsoon | `e0f1027cb0c256853b835d8e20d8d206a96e44ed` | 43 | 0 |
+| go-retry | `d3eb50afd37a09a9c0606c218d0dbe06e29d1544` | 5 | 0 |
+
+All three used this command shape (with the target path substituted):
+
+```sh
+target/release/codehound TARGET --profile all \
+  --only CWE-334,CWE-335,CWE-338,CWE-342,CWE-343,CWE-798 \
+  --format json --json-envelope --no-fail --no-cache
+```
+
+It produced **0 useful hits / 126 scanned files**.
 
 **Decision (2026-07-18):** keep the family available only through `--profile
 all` and retain its fixture coverage as regression evidence. Do not promote it,
