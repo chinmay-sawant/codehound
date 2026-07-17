@@ -126,8 +126,10 @@ target/release/codehound tests/canary/clean_lib --no-fail --no-terminal --profil
 target/release/codehound tests/canary/clean_lib --no-fail --no-terminal --profile all --only BP-1,BP-6,BP-8,BP-9 --no-cache --format json
 target/release/codehound /home/chinmay/ChinmayPersonalProjects/gopdfsuit --no-fail --no-terminal --profile recommended --no-cache
 target/release/codehound /home/chinmay/ChinmayPersonalProjects/gopdfsuit --no-fail --no-terminal --profile all --only BP-1,BP-6,BP-8,BP-9 --no-cache --format json
-GOCACHE=/tmp/codehound-canary-go-cache XDG_CACHE_HOME=/tmp/codehound-canary-xdg go vet ./...
-GOCACHE=/tmp/codehound-canary-go-cache XDG_CACHE_HOME=/tmp/codehound-canary-xdg staticcheck ./...
+(cd tests/canary/clean_lib && GOCACHE=/tmp/codehound-canary-go-cache XDG_CACHE_HOME=/tmp/codehound-canary-xdg go vet ./...)
+(cd tests/canary/clean_lib && GOCACHE=/tmp/codehound-canary-go-cache XDG_CACHE_HOME=/tmp/codehound-canary-xdg staticcheck ./...)
+(cd /home/chinmay/ChinmayPersonalProjects/gopdfsuit && GOCACHE=/tmp/codehound-canary-go-cache XDG_CACHE_HOME=/tmp/codehound-canary-xdg go vet ./...)
+(cd /home/chinmay/ChinmayPersonalProjects/gopdfsuit && GOCACHE=/tmp/codehound-canary-go-cache XDG_CACHE_HOME=/tmp/codehound-canary-xdg staticcheck ./...)
 ```
 
 | Target / signal | Count | Actionable | Narrower policy signal | False positive | Duplicate |
