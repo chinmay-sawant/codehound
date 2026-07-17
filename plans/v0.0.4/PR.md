@@ -48,6 +48,7 @@ On first analysis (full re-analysis / 0 cache hits), wall time was dominated by 
 | **Project thrash** | `is_project_anchor` WalkDir × files × rules | One **`ProjectSnapshot`** + prewarm per root |
 | **Product timing honesty** | Debug `cargo run` inflated claims | **Release** `make run` (+ optional `SKIP_BUILD=1`) |
 | **Warm path** | Already fast | Parallel preflight; warm still ≪ 100ms |
+| **Developer test feedback** | `make test` serialized test binaries: **51.23s warm** | **30.39s** for 390 tests + 1 doctest; all pass |
 
 Plan-driven track (v0.0.4 cold-scan performance). Primary docs:
 
@@ -91,6 +92,10 @@ Plan-driven track (v0.0.4 cold-scan performance). Primary docs:
 - `make run` / `run-perf-enhanced` / `run-sarif` use the **release** binary (`cargo build --release` then `./target/release/codehound`).
 - Optional `SKIP_BUILD=1` runs the existing release binary with no cargo work.
 - Export product path: `make run RUN_ARGS="--export-context --export-chunks"`.
+- `make test` runs all regular tests through bounded `cargo-nextest` parallelism
+  (four test processes, four Rayon workers each) while the doctest runs concurrently.
+  This retains all **390** regular tests plus the doctest; `CONTRIBUTING.md`
+  documents the one-time `cargo install cargo-nextest --locked` prerequisite.
 
 ### Plans & website
 
@@ -209,7 +214,8 @@ flowchart LR
 | `src/lang/go/detectors/bad_practices/source_index.rs` | Expanded NEEDLES |
 | `src/lang/go/detectors/bad_practices/rules/*` | Short-circuits + cheaper walks |
 | `src/reporting/text/summary.rs` | Timing summary honesty |
-| `makefile` | Release `make run` + `SKIP_BUILD` |
+| `makefile` | Release `make run` + `SKIP_BUILD`; bounded parallel `make test` + concurrent doctest |
+| `CONTRIBUTING.md` | `cargo-nextest` setup and the default fast test command |
 | `plans/v0.0.4/*` | Checklist + results docs |
 | `frontend/` / `docs/` | Product before/after benchmark copy |
 
@@ -255,6 +261,16 @@ make run SKIP_BUILD=1
 | Top rules | BP-1×181, PERF-6×94, PERF-32×59, BP-37×51, PERF-230×44 |
 | Export | 943 context files + 38 chunk files |
 | vs baseline | **up to 5s → ~0.4s** (~**12×** faster) |
+
+### Test-runner result (verified 2026-07-17)
+
+| Metric | Value |
+|--------|-------|
+| Command | `make test` |
+| Coverage | **390** regular tests across 74 binaries + **1** doctest |
+| Result | All tests passed; no tests removed or performance budgets relaxed |
+| Warm wall | **30.39s** (previous serial runner: **51.23s**) |
+| Cold constraint | A clean test-profile compile measured **43.02s** before execution, so sub-30s cold runs require separate compile-graph work |
 
 ---
 

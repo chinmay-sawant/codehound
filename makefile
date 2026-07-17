@@ -13,7 +13,11 @@ build:
 
 # Run project tests
 test:
-	$(CARGO) test
+	@RAYON_NUM_THREADS=4 $(CARGO) nextest run --test-threads 4 --no-fail-fast --status-level fail --final-status-level fail & nextest_pid=$$!; \
+	$(CARGO) test --doc & doctest_pid=$$!; \
+	wait $$nextest_pid; nextest_status=$$?; \
+	wait $$doctest_pid; doctest_status=$$?; \
+	test $$nextest_status -eq 0 -a $$doctest_status -eq 0
 
 # Drop accumulated materialize roots from prior test/CLI runs.
 # Safe while tests are not running; each run also prunes dead-PID roots.
