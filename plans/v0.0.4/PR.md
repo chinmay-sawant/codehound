@@ -89,7 +89,8 @@ Plan-driven track (v0.0.4 cold-scan performance). Primary docs:
 
 ### Tooling / makefile
 
-- `make run` / `run-perf-enhanced` / `run-sarif` use the **release** binary (`cargo build --release` then `./target/release/codehound`).
+- `make run` uses the optimized, incremental **`perf-run`** profile for the local edit → scan loop; it keeps `opt-level=3` while avoiding release LTO/link cost.
+- `make run RUN_PROFILE=release` remains the release-only path for publishable performance measurements; `run-perf-enhanced` and `run-sarif` continue to use the release binary.
 - Optional `SKIP_BUILD=1` runs the existing release binary with no cargo work.
 - Export product path: `make run RUN_ARGS="--export-context --export-chunks"`.
 - `make test` runs all regular tests through bounded `cargo-nextest` parallelism
@@ -166,7 +167,7 @@ make run SKIP_BUILD=1   # no recompile; uses existing target/release/codehound
 | **Performance** | Cold full re-analysis **up to 5s → ~400ms avg** (~370ms best) on gopdfsuit; ~**12×** wall speedup |
 | **Memory** | ProjectSnapshot flags avoid retaining multi-MB project text clones under mutex when flags cover consumers; prewarm is one-shot per root |
 | **Behavior / correctness** | **943 findings** unchanged; severity 9H / 411M / 319L / 204I unchanged; top-rule multiset unchanged |
-| **API / CLI** | No public CLI flag changes; `make run` now builds/runs release binary |
+| **API / CLI** | No public CLI flag changes; `make run` uses `perf-run`, with explicit `RUN_PROFILE=release` for benchmark claims |
 | **Dependencies** | None added |
 | **Binary size / build time** | Negligible; local product path prefers release (LTO rebuild only when dirty) |
 
@@ -177,7 +178,7 @@ make run SKIP_BUILD=1   # no recompile; uses existing target/release/codehound
 | Item | Migration |
 |------|-----------|
 | None for CLI users | Findings, fingerprints, and export contents unchanged |
-| Local `make run` | Now uses release binary (was `cargo run` debug). Use `cargo run` explicitly if you need a debug build; use `SKIP_BUILD=1` to skip cargo when the release binary exists |
+| Local `make run` | Uses optimized incremental `perf-run` by default. Use `RUN_PROFILE=release` for benchmark claims; use `SKIP_BUILD=1` to skip cargo when the selected profile binary exists |
 
 ---
 
@@ -214,7 +215,8 @@ flowchart LR
 | `src/lang/go/detectors/bad_practices/source_index.rs` | Expanded NEEDLES |
 | `src/lang/go/detectors/bad_practices/rules/*` | Short-circuits + cheaper walks |
 | `src/reporting/text/summary.rs` | Timing summary honesty |
-| `makefile` | Release `make run` + `SKIP_BUILD`; bounded parallel `make test` + concurrent doctest |
+| `Cargo.toml` | `perf-run` profile: optimized incremental local scan loop; release LTO unchanged |
+| `makefile` | Profile-selectable `make run` + `SKIP_BUILD`; bounded parallel `make test` + concurrent doctest |
 | `CONTRIBUTING.md` | `cargo-nextest` setup and the default fast test command |
 | `plans/v0.0.4/*` | Checklist + results docs |
 | `frontend/` / `docs/` | Product before/after benchmark copy |
@@ -255,7 +257,7 @@ make run SKIP_BUILD=1
 
 | Metric | Value |
 |--------|-------|
-| Command | `make run` / `./target/release/codehound` (release, full re-analysis) |
+| Command | `make run RUN_PROFILE=release` / `./target/release/codehound` (release, full re-analysis) |
 | Cold wall | **~400ms average** · **~370ms best** (0 hits / 78 misses) |
 | Findings | **943** (9 high, 411 medium, 319 low, 204 info) |
 | Top rules | BP-1×181, PERF-6×94, PERF-32×59, BP-37×51, PERF-230×44 |

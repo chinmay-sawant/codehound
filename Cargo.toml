@@ -122,3 +122,12 @@ opt-level = 3
 lto = "thin"
 codegen-units = 1
 strip = "symbols"
+
+# Optimized profile for the edit → scan loop. Keep release LTO intact for
+# distribution and benchmark claims; this profile trades a small amount of
+# whole-program optimization for incremental rebuild speed.
+[profile.perf-run]
+inherits = "release"
+lto = "off"
+codegen-units = 16
+incremental = true

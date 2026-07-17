@@ -16,6 +16,12 @@ Thanks for helping. This doc is the short path to a good PR.
 cargo build --bin codehound
 make test
 
+# Optimized edit → scan loop (incremental; not the release benchmark profile)
+make run
+
+# Publishable performance measurements: thin-LTO release profile
+make run RUN_PROFILE=release
+
 # Cargo-equivalent all-target check (includes benches)
 cargo test --all-targets
 
