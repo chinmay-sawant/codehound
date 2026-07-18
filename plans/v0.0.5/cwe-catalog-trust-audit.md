@@ -1,8 +1,8 @@
 # v0.0.5 — CWE Catalog Trust Audit, Tranche 1
 
 > **Parent:** `plans/v0.0.5/pending-work.md` — Phase 3.2
-> **Status:** Tranche 1 complete (PRNG + CWE-798 quarantined). Tranche 2 complete (cipher misuse: CWE-1204/1240 fixture-only; CWE-325 stays Heuristic). §2.3 call-facts rewrites for CWE-325/328 done. Tranche 3 long-tail NEEDLES/maturity (§2.4): CWE-323/331/347 fixture-only; CWE-328 stays Heuristic. Tranche 4 OAuth authorization-bypass (§2.5): CWE-940/941 fixture-only; CWE-941 call-facts primary for `smtp.SendMail`. Further long-tail NEEDLES audit and maturity expansion remain under GitHub issue [#39](https://github.com/chinmay-sawant/codehound/issues/39). The remaining CWE catalog is not yet certified.
-> **Estimated effort:** Incremental, rule-family by rule-family; do not bulk-promote or bulk-check the remaining catalog.
+> **Status:** Tranches 1–4 complete (merged [#41](https://github.com/chinmay-sawant/codehound/pull/41); process issue [#39](https://github.com/chinmay-sawant/codehound/issues/39) closed). **Next batch** is gated by [#42](https://github.com/chinmay-sawant/codehound/issues/42) with checklist `plans/v0.0.5/cwe-catalog-trust-next.md` (file/path, network bind, TOCTOU, permissions, TLS/JWT neighbors, more call-facts). The remaining CWE catalog is not yet certified.
+> **Estimated effort:** Incremental, rule-family by rule-family under #42; do not bulk-promote or bulk-check the remaining catalog.
 
 ---
 
@@ -364,7 +364,9 @@ target/release/codehound TARGET --profile all \
 
 **Decision (2026-07-18):** quarantine CWE-940 and CWE-941 as fixture-only (`--profile all` only). Keep CWE-941 call-facts primary for `smtp.SendMail` without structural promotion. Do not delete needles solely for this zero-hit canary; retain fixture coverage as regression evidence. Revisit only when evidence is generalized beyond corpus helper names / exact SQL / recipient-slice literals (e.g. user-controlled binding into `smtp.SendMail` recipients without `SendResetLink` name gates).
 
-#### Next long-tail candidates (not in this tranche)
+#### Next long-tail candidates → issue [#42](https://github.com/chinmay-sawant/codehound/issues/42)
+
+Checklist plan: **`plans/v0.0.5/cwe-catalog-trust-next.md`** (branch `chore/cwe-trust-tranche5`).
 
 - Continue NEEDLES-comment pass only within domain-sized families; do not bulk-edit the index.
 - file_handling / path: CWE-434 (client filename + `/var/www/static/avatars` corpus paths).
@@ -372,7 +374,8 @@ target/release/codehound TARGET --profile all \
 - concurrency TOCTOU: CWE-367 (`os.Stat(target)` + `os.ReadFile(target)` exact names).
 - permissions chown: CWE-648 / CWE-708 (`os.Chown` + FormValue uid/path / `owner_uid` shapes) — rewrite candidate for call_facts `os.Chown` when oracle-safe.
 - Transport TLS: CWE-319 (still needle-primary).
-- Remaining needle-primary long-tail without dated disposition stays under [#39](https://github.com/chinmay-sawant/codehound/issues/39).
+- JWT neighbors: CWE-358 (and similar undated dispositions).
+- Do **not** track further work under closed [#39](https://github.com/chinmay-sawant/codehound/issues/39).
 
 ---
 
