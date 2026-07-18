@@ -1,4 +1,4 @@
-# BP-28 positive: interface has a single method
+# BP-28 positive: explicit opt-in flags an interface with a single method
 lang: go
 file: BP-28-vulnerable.go
 variant: stdlib

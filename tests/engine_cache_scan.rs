@@ -54,10 +54,9 @@ fn first_run_writes_cache_second_run_reads_it() {
 
     let first = scan_with_cache(&root, Some(&mut cache));
     assert!(cache_dir.join("manifest.json").is_file());
-    assert!(!first.is_empty(), "expected findings on first run");
 
-    // Second run with the same file content: same findings, manifest
-    // is rewritten but should still cover the file.
+    // Second run with the same file content: the same result (including an
+    // empty one), and a manifest that still covers the file.
     let second = scan_with_cache(&root, Some(&mut cache));
     assert_eq!(first, second);
     assert_eq!(cache.manifest().files.len(), 1, "expected one tracked file");

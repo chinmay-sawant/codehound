@@ -1,4 +1,4 @@
-# BP-30 positive: exported interface has no same-package implementation
+# BP-30 positive: explicit opt-in flags an exported interface without a same-package implementation
 lang: go
 file: bp30/BP-30-vulnerable.go
 variant: stdlib

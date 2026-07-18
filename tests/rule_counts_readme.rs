@@ -29,7 +29,7 @@ fn readme_rule_counts_match_registry() {
     // `other` only when the opt-in `python` feature is enabled.
     assert_eq!(cwe, 175, "CWE count drifted; update README.md");
     assert_eq!(perf, 239, "PERF count drifted; update README.md");
-    assert_eq!(bp, 136, "BP count drifted; update README.md");
+    assert_eq!(bp, 135, "BP count drifted; update README.md");
     let expected_other = usize::from(cfg!(feature = "python"));
     assert_eq!(
         other, expected_other,

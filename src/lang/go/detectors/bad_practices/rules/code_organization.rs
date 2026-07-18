@@ -413,13 +413,13 @@ pub(crate) fn detect_bp_41_missing_package_doc_comment(
     if is_test_file(unit) || is_flat_materialized_fixture(unit) {
         return;
     }
-    let snapshot = package_doc_snapshot(unit);
-    if snapshot.anchor.as_ref() != Some(&unit.path) {
-        return;
-    }
     let Some(package) = package_name(unit) else {
         return;
     };
+    let snapshot = package_doc_snapshot(unit);
+    if snapshot.anchors.get(package) != Some(&unit.path) {
+        return;
+    }
     if !snapshot.documented_packages.contains(package) {
         push_at(
             unit,
@@ -531,7 +531,7 @@ pub(crate) fn detect_bp_45_inconsistent_receiver_name(
 
 #[derive(Clone, Default)]
 struct PackageDocSnapshot {
-    anchor: Option<PathBuf>,
+    anchors: HashMap<String, PathBuf>,
     documented_packages: HashSet<String>,
 }
 
@@ -580,16 +580,21 @@ fn build_package_doc_snapshot(dir: &Path) -> PackageDocSnapshot {
         }
     }
     files.sort_by(|left, right| left.0.cmp(&right.0));
-    let anchor = files.first().map(|(path, _)| path.clone());
-    let documented_packages = files
-        .iter()
-        .filter_map(|(_, text)| {
-            let package = package_name_from_source(text)?;
-            has_package_doc_comment(text, package).then(|| package.to_string())
-        })
-        .collect();
+    let mut anchors = HashMap::new();
+    let mut documented_packages = HashSet::new();
+    for (path, text) in &files {
+        let Some(package) = package_name_from_source(text) else {
+            continue;
+        };
+        anchors
+            .entry(package.to_string())
+            .or_insert_with(|| path.clone());
+        if has_package_doc_comment(text, package) {
+            documented_packages.insert(package.to_string());
+        }
+    }
     PackageDocSnapshot {
-        anchor,
+        anchors,
         documented_packages,
     }
 }
@@ -619,10 +624,11 @@ fn has_package_doc_comment(text: &str, package: &str) -> bool {
         if let Some(rest) = trimmed.strip_prefix("package ") {
             return rest.trim() == package
                 && comments
-                    .last()
+                    .first()
                     .is_some_and(|comment| comment.starts_with(&format!("Package {package}")));
         }
         if trimmed.is_empty() {
+            comments.clear();
             continue;
         }
         comments.clear();

@@ -15,6 +15,7 @@ use codehound::reporting::json::FindingJson;
 use codehound::reporting::sarif::render_to_string;
 use codehound::rules::{Finding, FindingInputs, LineCol, Severity};
 use std::borrow::Cow;
+use std::fs;
 use std::process::Command;
 
 fn scan_context_from_cli(cli: &Cli, config: Option<CodehoundConfig>) -> ScanContext {
@@ -228,6 +229,35 @@ fn bp_8_reports_each_by_value_mutex_parameter() {
     assert_eq!(
         bp_8_findings, 2,
         "the top-level function and method by-value mutex parameters should trigger BP-8"
+    );
+}
+
+#[test]
+fn bp_41_accepts_a_package_doc_from_a_sibling_file() {
+    let root = helpers::unique_temp_root("bp-41-sibling-package-doc");
+    fs::create_dir_all(&root).unwrap_or_else(|error| panic!("create {}: {error}", root.display()));
+    fs::write(root.join("api.go"), "package fixture\n")
+        .unwrap_or_else(|error| panic!("write api.go: {error}"));
+    fs::write(
+        root.join("doc.go"),
+        "//go:build linux\n\n// Package fixture documents the package from a sibling file.\n// It may span multiple comment lines.\npackage fixture\n",
+    )
+    .unwrap_or_else(|error| panic!("write doc.go: {error}"));
+
+    let analyzer = bp_analyzer();
+    let result = analyzer
+        .analyze_paths(&[&root], None)
+        .unwrap_or_else(|error| panic!("analyze {}: {error:#}", root.display()));
+    let missing_docs = result
+        .findings
+        .iter()
+        .filter(|finding| finding.rule_id == "BP-41")
+        .count();
+
+    fs::remove_dir_all(&root).unwrap_or_else(|error| panic!("remove {}: {error}", root.display()));
+    assert_eq!(
+        missing_docs, 0,
+        "a package doc in any sibling Go file should satisfy BP-41"
     );
 }
 

@@ -205,14 +205,13 @@ If you already run `golangci-lint` with errcheck + staticcheck + revive, prefer 
 
 - `BP-26` flags `context.Context` that is not the first parameter because Go APIs conventionally put cancellation first; move `ctx` to the first non-receiver position.
 - `BP-27` flags exported functions returning unexported concrete types because callers depend on implementation details they cannot name clearly; return an exported type or an interface.
-- `BP-28` flags single-method interfaces because many of them are simpler as function types; use a function type unless you need interface semantics.
+- `BP-28` is an opt-in style rule that flags single-method interfaces because many are simpler as function types; retain an interface when its capability boundary or interoperability is intentional.
 - `BP-29` flags bloated interfaces because large method sets are hard to implement and mock; split the contract into smaller focused interfaces.
-- `BP-30` flags exported interfaces with no same-package implementation because the API surface is speculative and hard to validate; ship a concrete implementation or collapse the interface.
+- `BP-30` is an opt-in style rule that flags exported interfaces with no same-package implementation. External implementations and intentional capability boundaries are common in Go, so review the result rather than treating it as a defect.
 - `BP-31` flags constructors returning concrete types when the package already exposes a fitting interface because it leaks implementation details; return the interface boundary.
 - `BP-32` flags `type X string` error aliases because string errors are hard to extend with fields and behavior; use a struct-backed error type.
 - `BP-33` flags sentinel-style errors without `Is` because callers cannot compare them reliably across wrapping; implement `Is(error) bool` or expose a stable sentinel.
 - `BP-34` flags `fmt.Errorf(... %v, err)` because `%v` and `%s` discard wrapping semantics; use `%w` when you are propagating an error.
-- `BP-35` flags package names that diverge from directory names because the codebase becomes harder to navigate; align the package name with the directory unless there is a strong conventional reason not to.
 - `BP-164` flags exported functional options that mutate package-level defaults; apply options to the supplied instance.
 
 ## Code Organization

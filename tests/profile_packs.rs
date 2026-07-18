@@ -98,6 +98,7 @@ fn style_is_bp_only_advisory() {
     // Opinion rules off by default in style.
     assert!(!ctx.allows("BP-21"));
     assert!(!ctx.allows("BP-28"));
+    assert!(!ctx.allows("BP-30"));
 }
 
 #[test]
@@ -109,6 +110,14 @@ fn style_can_opt_into_opinion_rules_via_only() {
     });
     assert!(ctx.allows("BP-28"));
     assert!(!ctx.allows("BP-21"), "unrequested opinion rule stays off");
+
+    let ctx = build_scan_context(ScanContextParams {
+        profile: ScanProfile::Style,
+        only: vec!["BP-30".to_string()],
+        ..Default::default()
+    });
+    assert!(ctx.allows("BP-30"));
+    assert!(!ctx.allows("BP-28"), "unrequested opinion rule stays off");
 }
 
 #[test]

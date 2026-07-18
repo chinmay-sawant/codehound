@@ -1,7 +1,7 @@
 # v0.0.5 — Noise Reduction 1: gorl Full-Catalog Canary
 
 > **Parent:** `plans/v0.0.5/pending-work.md` — Phase 3.2 catalog trust and Phase 4 implementation selection
-> **Status:** The initial tranche and the BP-37 write-evidence follow-up are implemented and validated. Five project-agnostic rule boundaries are narrowed; structural, coverage, and governance work remains pending.
+> **Status:** The initial tranche, BP-37 follow-up, and second parallel noise-reduction batch are implemented and validated. BP-35 is retired; BP-28/BP-30 are opt-in style advice; BP-41 and PERF-121 now require stronger evidence. Structural, coverage, and governance work remains pending.
 > **Estimated effort:** 2–4 focused detector batches, each with fixtures, a preserved finding oracle, and a gorl re-scan.
 
 ---
@@ -72,6 +72,16 @@ initialized by `init`. Its full-catalog total fell from **978 to 929**. The
 post-change scans repeated the release-binary command recorded above with
 `--no-cache`; the gopdfsuit validation additionally used `--only BP-37` for
 the focused count.
+
+The 2026-07-18 second batch reduced the pinned gorl canary from **71 to 60**
+findings while preserving a zero-finding recommended control. BP-35 was
+retired after its four reports proved to be intentional adapter package names;
+PERF-121 fell 1→0 after requiring a real local source-to-target field flow;
+and BP-41 fell 8→2 after sibling package docs and multi-line package comments
+were recognized correctly. BP-28/BP-30 remain available under `--only`, but
+are excluded from the default style profile as capability-interface advice.
+The corresponding gopdfsuit full-catalog total fell **929→916**. All results
+use the release binary with `--no-cache` and no context/chunk export.
 
 ---
 
@@ -152,15 +162,15 @@ though gorl is a library and that file only loads configuration.
 
 ### 3.1 Retire or re-tier unprovable style claims
 
-- [ ] BP-35: decide whether package/directory naming is valuable enough to retain as style-only advice; do not present intentional names such as `echomw` as a correctness defect.
+- [x] BP-35: retire package/directory naming advice. gorl's four reports (`echomw`, `fibermw`, `ginmw`, and `middleware`) are intentional adapter names, not actionable defects; the detector, catalog entry, and canonical fixtures are removed.
 - [x] BP-37: require evidence of a post-initialization write before warning about a package-level map; static registry maps are not mutable runtime state merely because Go maps are mutable. This same-file AST pass excludes lexically shadowed bindings and retains compound scalar and map-index writes. Canonical `.txt` fixtures prove both boundaries; gorl BP-37 fell 4→0 and gopdfsuit 51→2 (the two remaining writes are real).
-- [ ] BP-28 and BP-30: document external implementation/capability-interface exceptions, or move them to an explicitly opt-in style tier.
-- [ ] BP-41/BP-39: preserve documentation feedback but ensure a package doc in any package file satisfies the rule.
+- [x] BP-28 and BP-30: retain the rules only as explicit opt-in style advice. The default style profile excludes both; `--only BP-28` or `--only BP-30` still runs their canonical positive fixtures.
+- [x] BP-41/BP-39: preserve documentation feedback. BP-41 now accepts a multi-line package doc from any sibling file of the same package and anchors once per package; BP-39 behavior and fixtures remain unchanged. gorl BP-41 fell 8→2, leaving only genuinely undocumented packages.
 
 ### 3.2 Require stronger structural evidence for PERF rules
 
 - [ ] PERF-114: do not recommend `copy()` when the range loop performs a required element conversion (for example `[]int64` to `[]interface{}`).
-- [ ] PERF-121: require a real source-to-target conversion relationship, not merely adjacent literals with similar fields.
+- [x] PERF-121: require a real source-to-target conversion relationship, not merely adjacent literals with similar fields. The later literal must read every keyed field from the immediately bound local source value; gorl's independent Prometheus option literals no longer report (1→0).
 - [ ] PERF-143: ignore comment text and require an executable handler-registration call before recommending `http.TimeoutHandler`.
 - [ ] PERF-38, PERF-40, PERF-44, and PERF-46: add gorl-shaped safe fixtures for deliberate channel coordination, distinct timestamps, distinct type assertions, and `TrimSpace` use; narrow only where the AST/facts prove the current report invalid.
 - [ ] PERF-145: retain as advisory only unless a benchmark proves a practical alternative to the intentionally allocating `WithContext` helper.

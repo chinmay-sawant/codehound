@@ -53,7 +53,6 @@ pub(crate) const BAD_PRACTICE_RULES: &[BadPracticeEntry] = &[
     ("BP-32", detect_bp_32_string_alias_error_type),
     ("BP-33", detect_bp_33_sentinel_error_without_is_method),
     ("BP-34", detect_bp_34_error_wrapping_without_percent_w),
-    ("BP-35", detect_bp_35_package_name_directory_mismatch),
     ("BP-36", detect_bp_36_init_with_side_effects),
     ("BP-37", detect_bp_37_package_level_mutable_global),
     ("BP-38", detect_bp_38_unused_unexported_helper),

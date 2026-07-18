@@ -116,8 +116,7 @@ pub(crate) fn detect_perf_114(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 
     for (start, end) in &facts.for_ranges {
         let range_text = &source[*start..*end];
-        let body_start = range_text.find('{');
-        let Some(body_start) = body_start else {
+        let Some(body_start) = range_text.find('{') else {
             continue;
         };
         let head = &range_text[..body_start];
@@ -130,7 +129,6 @@ pub(crate) fn detect_perf_114(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         if head.contains("range m") || head.contains("range map") {
             continue;
         }
-        // Skip the opening `{` so the body parser doesn't see it.
         let body = &range_text[body_start + 1..];
         if !looks_like_loop_copy(body) {
             continue;
@@ -177,6 +175,12 @@ pub(crate) fn detect_perf_121(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         if between.matches('\n').count() > 2 {
             continue;
         }
+        let Some(binding) = literal_binding(source, a.start) else {
+            continue;
+        };
+        if !literal_fields_read_from(source, b, binding) {
+            continue;
+        }
         let (line, col) = unit.line_col(a.start);
         emit::push_finding(
             &META_PERF_121,
@@ -188,6 +192,107 @@ pub(crate) fn detect_perf_121(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         );
         return;
     }
+}
+
+/// Return the local name receiving a struct literal, when the literal is the
+/// complete right-hand side of a short declaration.  PERF-121 is only useful
+/// when the later literal demonstrably copies that value, rather than merely
+/// having a similar shape.
+fn literal_binding(source: &str, literal_start: usize) -> Option<&str> {
+    let prefix = source[..literal_start].trim_end();
+    let (binding, _) = prefix.rsplit_once(":=")?;
+    let binding = binding.trim();
+    let binding = binding
+        .rsplit_once('\n')
+        .map_or(binding, |(_, name)| name)
+        .trim();
+    is_simple_ident(binding).then_some(binding)
+}
+
+/// Require every keyed field in the target literal to read the corresponding
+/// field from the value built immediately before it.  Matching field names
+/// alone does not prove a conversion relationship (for example, independent
+/// configuration literals in one composite literal).
+fn literal_fields_read_from(source: &str, literal: &StructLiteral, binding: &str) -> bool {
+    let body = &source[literal.start + 1..literal.end - 1];
+    let keyed_values = parse_keyed_field_values(body);
+    literal.fields.iter().all(|field| {
+        keyed_values
+            .iter()
+            .any(|(name, value)| name == field && value == &format!("{binding}.{field}"))
+    })
+}
+
+fn parse_keyed_field_values(body: &str) -> Vec<(String, String)> {
+    let mut fields = Vec::new();
+    let mut current = String::new();
+    let mut depth = 0usize;
+    let mut chars = body.chars().peekable();
+    let mut quote = None;
+
+    while let Some(ch) = chars.next() {
+        if let Some(delimiter) = quote {
+            current.push(ch);
+            if ch == '\\' {
+                if let Some(escaped) = chars.next() {
+                    current.push(escaped);
+                }
+            } else if ch == delimiter {
+                quote = None;
+            }
+            continue;
+        }
+        match ch {
+            '"' | '`' => {
+                quote = Some(ch);
+                current.push(ch);
+            }
+            '/' if chars.peek() == Some(&'/') => {
+                chars.next();
+                for comment in chars.by_ref() {
+                    if comment == '\n' {
+                        break;
+                    }
+                }
+            }
+            '/' if chars.peek() == Some(&'*') => {
+                chars.next();
+                let mut previous = '\0';
+                for comment in chars.by_ref() {
+                    if previous == '*' && comment == '/' {
+                        break;
+                    }
+                    previous = comment;
+                }
+            }
+            '(' | '[' | '{' => {
+                depth += 1;
+                current.push(ch);
+            }
+            ')' | ']' | '}' => {
+                depth = depth.saturating_sub(1);
+                current.push(ch);
+            }
+            ',' if depth == 0 => {
+                if let Some(field) = keyed_field_value(&current) {
+                    fields.push(field);
+                }
+                current.clear();
+            }
+            _ => current.push(ch),
+        }
+    }
+    if let Some(field) = keyed_field_value(&current) {
+        fields.push(field);
+    }
+    fields
+}
+
+fn keyed_field_value(field: &str) -> Option<(String, String)> {
+    let (name, value) = field.split_once(':')?;
+    let name = name.trim();
+    let value = value.trim();
+    (!name.is_empty() && !value.is_empty()).then(|| (name.to_string(), value.to_string()))
 }
 
 struct StructLiteral {
