@@ -202,6 +202,12 @@ pub struct Cli {
     #[arg(long)]
     pub include_tests: bool,
 
+    /// Exclude example/demo paths from discovery
+    /// (`**/examples/**`, `**/example/**`, `**/sampledata/**`, `**/samples/**`).
+    /// Default still scans examples and labels those findings with the `example` tag.
+    #[arg(long)]
+    pub exclude_examples: bool,
+
     /// Disable the incremental analysis cache for this run.
     #[arg(long)]
     pub no_cache: bool,

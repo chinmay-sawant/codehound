@@ -1,19 +1,20 @@
-# PERF-114 negative: copy() builtin used instead of manual loop
+# PERF-114 negative: intermediate conversion is not a pure memmove copy
 lang: go
 file: PERF-114-safe.go
 variant: stdlib
 ---
 package sample
 
-import "fmt"
-
-func Copy(src []int) []int {
-	dst := make([]int, len(src))
-	copy(dst, src)
-	return dst
+func convert(value int64) int64 {
+	return value
 }
 
-func _() {
-	out := Copy([]int{1, 2, 3})
-	fmt.Println(out)
+// Convert maps each source value through a required element conversion.
+func Convert(src []int64) []int64 {
+	dst := make([]int64, len(src))
+	for i, value := range src {
+		converted := convert(value)
+		dst[i] = converted
+	}
+	return dst
 }

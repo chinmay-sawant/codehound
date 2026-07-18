@@ -39,8 +39,8 @@ The source sketches in `01-part-a-core-language.md` through `06-part-f-testing-a
 
 ## Pending work now
 
-- [ ] Complete the existing-pack trust cleanup in Phase 1, or explicitly record why each audit item remains deferred.
-- [ ] Reconcile the stale v0.0.2 pending-work documentation with the current BP-1..BP-65 implementation.
+- [x] Complete the existing-pack trust cleanup: detector boundaries, review-required limits, and real-module canary results are recorded in `plans/v0.0.5/pending-work.md`.
+- [x] Reconcile the stale v0.0.2 pending-work documentation without rewriting history: it is explicitly marked as an MVP snapshot and points to this live ledger.
 - [x] Decide whether to admit BP-102, BP-111, BP-119, BP-136, and BP-142 after fresh overlap and fixture review; all five shipped with bounded framework/handler gates and documented PERF overlap boundaries.
 - [ ] Revisit deferred-gate candidates BP-108 and BP-165 only when stronger static proof is available.
 - [ ] Resolve the remaining 29 proposed BP-66..BP-165 candidates that are not present in the live ruleset/dispatch, either by implementing them through the admission gate or explicitly retiring them.
@@ -49,7 +49,7 @@ The source sketches in `01-part-a-core-language.md` through `06-part-f-testing-a
 - [x] Complete the remaining Phase 4 candidate reviews and record dropped/replacement candidates.
 - [x] Resolve the repository-wide `cargo fmt --check` blockers in `src/engine/cache/mod.rs` and `src/engine/mod.rs`.
 - [x] Resolve the repository-wide Clippy blocker from deprecated `criterion::black_box` in `benches/scan_throughput.rs`.
-- [ ] Run clean-library and representative-HTTP canary scans, then compare new findings with `go vet`/staticcheck output.
+- [x] Run clean-library and representative-HTTP canary scans, then compare new findings with `go vet`/staticcheck output; reproducible commands, target revision, and dispositions are in `plans/v0.0.5/pending-work.md`.
 - [x] Select and launch five disjoint next-domain batches after the next candidate set was approved.
 - [x] Review the five worker reports and personally audit each accepted detector.
 - [x] Centrally integrate only admitted candidates into ruleset metadata, dispatch, manifest, docs, and this checklist.
@@ -169,14 +169,14 @@ The source sketches in `01-part-a-core-language.md` through `06-part-f-testing-a
 
 | Tier | Current rules | Policy |
 |------|---------------|--------|
-| Trusted correctness | BP-6, BP-7, BP-8, BP-9, BP-15 | Keep available in `style`; medium/low severity; still review detector precision. |
-| Useful but review-required | BP-1, BP-4, BP-5, BP-10, BP-11, BP-12, BP-13, BP-14, BP-16..BP-20, BP-22..BP-27, BP-32..BP-38, BP-43, BP-44, BP-46..BP-61, BP-64, BP-65 | Keep advisory; do not fail ordinary CI by default. |
+| Trusted correctness | BP-7, BP-8, BP-9, BP-15 | Keep available in `style`; medium/low severity; still review detector precision. |
+| Useful but review-required | BP-1, BP-4, BP-5, BP-6, BP-10, BP-11, BP-12, BP-13, BP-14, BP-16..BP-20, BP-22..BP-27, BP-32..BP-38, BP-43, BP-44, BP-46..BP-61, BP-64, BP-65 | Keep advisory; do not fail ordinary CI by default. |
 | Style/opinion | BP-2, BP-3, BP-21, BP-28..BP-31, BP-39..BP-42, BP-45, BP-62 | `info` or low; off by default where the current policy already says so. |
 | Reserved | BP-63 | Keep quarantined until a real advisory feed exists. |
 
 - [x] Record the tiering decision in `documents/bad-practices.md`.
-- [ ] Add an explicit “review required” note to rules whose detector cannot prove type or control-flow facts.
-- [ ] Reconcile the stale v0.0.2 pending-work status with the shipped BP-1..BP-65 code.
+- [x] Add an explicit “review required” note to rules whose detector cannot prove type or control-flow facts; BP-1, BP-6, BP-12, and BP-14 state their limits in metadata and `documents/bad-practices.md`.
+- [x] Reconcile the stale v0.0.2 pending-work status with the shipped BP-1..BP-65 code by marking it as a historical MVP snapshot and linking to the live v0.0.3/v0.0.5 ledgers.
 
 ### 0.3 Profile contract
 
@@ -191,20 +191,20 @@ The source sketches in `01-part-a-core-language.md` through `06-part-f-testing-a
 
 ### 1.1 Detector precision audit
 
-- [ ] BP-1: retain the conservative discard shapes; add a typed/variant limitation note rather than widening it to every ignored call.
-- [ ] BP-6: verify nested blocks and multiple goroutines do not produce duplicate or misplaced findings.
-- [ ] BP-8: require the same mutex object to be implicated; reject file-level co-presence.
-- [ ] BP-9: validate block matching around nested braces, comments, and strings.
-- [ ] BP-12/BP-14: label them heuristic and review-only unless local evidence proves ownership/cancellation.
-- [ ] BP-46..BP-55: review project-level lifecycle findings for intent-dependent false positives.
-- [ ] BP-56..BP-65: keep module/dependency findings separate from source-level BP output; BP-63 remains reserved.
+- [x] BP-1: retained the conservative discard shapes; documented the typed/variant limitation and added vulnerable/safe `os.Stat` variants without widening the heuristic.
+- [x] BP-6: AST-scoped Add matching handles nested blocks; a nested-goroutine exact-count regression proves the inner Add reports once. The gopdfsuit canary found two atomic-counter `.Add` false positives, so it is review-required until receiver type can be proven.
+- [x] BP-8: require the same by-value mutex parameter in functions and methods; pointer unlocks in the same file no longer trigger.
+- [x] BP-9: inspect parsed select statements and direct cases, so nested braces, nested selects, and `select`/cancellation lookalikes in comments and strings cannot affect findings.
+- [x] BP-12/BP-14: labelled as review-only heuristics because local source cannot prove ownership, cancellation, or helper lifecycle control.
+- [x] BP-46..BP-55: audited project-level lifecycle findings; BP-47/50/54/55 now explicitly report missing project-visible evidence and remain review-only for external ownership boundaries.
+- [x] BP-56..BP-65: documented BP-57..BP-65 as one-per-project module audits rather than source findings; BP-63 remains reserved and is not a live vulnerability feed.
 
 ### 1.2 Existing-pack validation
 
-- [ ] Add or tighten safe near-miss fixtures for every detector changed in 1.1.
-- [ ] Run the focused BP integration suite after each detector change.
-- [ ] Run the full Rust test suite after Phase 1.
-- [ ] Review the changed existing-pack behavior before starting BP-66+ work.
+- [x] Add or tighten safe near-miss fixtures for each changed detector: BP-1, BP-6, BP-8, and BP-9 have focused vulnerable/safe coverage and exact-count regressions where attribution matters.
+- [x] Run the focused BP integration and fixture-manifest suites for the changed detector batch.
+- [x] Run the full Rust test suite after Phase 1: `make test` passed 394 Nextest tests plus one doctest; `make lint` passed with all features.
+- [x] Review the changed existing-pack behavior before starting BP-66+ work; retain advisory/review-only boundaries rather than broadening the catalog.
 
 ---
 
@@ -443,9 +443,9 @@ For each future admitted rule, complete these in order before moving to the next
 - [x] Full `cargo test` green.
 - [x] `cargo fmt --check` green after the cleanup commit.
 - [x] `cargo clippy --all-targets --all-features -- -D warnings` green after switching the benchmark to `std::hint::black_box`.
-- [ ] Scan a clean small Go library: no unexpected recommended findings.
-- [ ] Scan a representative HTTP service for framework-gated behavior.
-- [ ] Compare changed findings with staticcheck/go vet output and document overlap.
+- [x] Scan a clean small Go library: no unexpected recommended findings (0); evidence is in `plans/v0.0.5/pending-work.md`.
+- [x] Scan a representative HTTP service for framework-gated behavior; evidence is pinned to the gopdfsuit revision in `plans/v0.0.5/pending-work.md`.
+- [x] Compare changed findings with staticcheck/go vet output and document overlap; both linters were clean and every CodeHound row is dispositioned in the v0.0.5 plan.
 - [x] Update `documents/bad-practices.md` for every shipped rule.
 - [x] Update the v0.0.3 README and checklist counts from measured shipped IDs.
 - [x] Personally review the completed slice; no review subagents were used.

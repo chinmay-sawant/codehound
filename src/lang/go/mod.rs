@@ -17,6 +17,7 @@ pub(crate) const CALL_ASSIGN_NODE_KINDS: &[&str] = &[
     "defer_statement",
     "go_statement",
     "for_statement",
+    "func_literal",
     "type_assertion_expression",
 ];
 

@@ -53,7 +53,6 @@ pub(crate) const BAD_PRACTICE_RULES: &[BadPracticeEntry] = &[
     ("BP-32", detect_bp_32_string_alias_error_type),
     ("BP-33", detect_bp_33_sentinel_error_without_is_method),
     ("BP-34", detect_bp_34_error_wrapping_without_percent_w),
-    ("BP-35", detect_bp_35_package_name_directory_mismatch),
     ("BP-36", detect_bp_36_init_with_side_effects),
     ("BP-37", detect_bp_37_package_level_mutable_global),
     ("BP-38", detect_bp_38_unused_unexported_helper),
@@ -186,9 +185,15 @@ pub(crate) fn requires_project_anchor(rule_id: &str) -> bool {
     )
 }
 
+/// Server-policy rules emit once on the executable server entrypoint rather
+/// than on an arbitrary file in the project.
+pub(crate) fn requires_server_anchor(rule_id: &str) -> bool {
+    matches!(rule_id, "BP-47" | "BP-50" | "BP-54" | "BP-55")
+}
+
 #[cfg(test)]
 mod tests {
-    use super::requires_project_anchor;
+    use super::{requires_project_anchor, requires_server_anchor};
 
     #[test]
     fn requires_project_anchor_only_for_go_module_hygiene_rules() {
@@ -196,5 +201,13 @@ mod tests {
         assert!(requires_project_anchor("BP-65"));
         assert!(!requires_project_anchor("BP-56"));
         assert!(!requires_project_anchor("BP-66"));
+    }
+
+    #[test]
+    fn requires_server_anchor_only_for_server_policy_rules() {
+        assert!(requires_server_anchor("BP-47"));
+        assert!(requires_server_anchor("BP-55"));
+        assert!(!requires_server_anchor("BP-46"));
+        assert!(!requires_server_anchor("BP-57"));
     }
 }

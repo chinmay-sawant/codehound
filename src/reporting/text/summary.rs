@@ -54,10 +54,17 @@ pub(crate) fn write_summary(
     let n = result.findings.len();
     let mut by_sev: BTreeMap<&'static str, usize> = BTreeMap::new();
     let mut by_rule: BTreeMap<&'static str, usize> = BTreeMap::new();
+    let mut example_count = 0usize;
     for f in &result.findings {
         let view = FindingView::new(f);
         *by_sev.entry(view.severity().as_str()).or_insert(0) += 1;
         *by_rule.entry(view.rule_id()).or_insert(0) += 1;
+        if view
+            .non_empty_tags()
+            .is_some_and(|tags| tags.iter().any(|t| t == "example"))
+        {
+            example_count += 1;
+        }
     }
 
     if result.suppressed_count > 0 {
@@ -138,6 +145,9 @@ pub(crate) fn write_summary(
         .collect();
     if !top.is_empty() {
         writeln!(out, "  top rules: {}", top.join(", "))?;
+    }
+    if example_count > 0 {
+        writeln!(out, "  example findings: {example_count} (of {n} total)")?;
     }
 
     if options.verbose {

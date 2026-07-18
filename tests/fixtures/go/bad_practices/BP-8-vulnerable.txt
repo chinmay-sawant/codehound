@@ -11,3 +11,16 @@ func UnlockCopy(mu sync.Mutex) {
 	mu.Lock()
 	defer mu.Unlock()
 }
+
+// UnlockOriginal is safe even though this file also has a copied mutex parameter.
+func UnlockOriginal(mu *sync.Mutex) {
+	mu.Lock()
+	defer mu.Unlock()
+}
+
+type Locker struct{}
+
+func (Locker) UnlockMethodCopy(mu sync.Mutex) {
+	mu.Lock()
+	defer mu.Unlock()
+}

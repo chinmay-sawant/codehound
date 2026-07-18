@@ -44,9 +44,11 @@ pub const TIER_B: &[u32] = &[
     19,  // range value copy
     35,  // interface boxing
     42,  // fmt.Errorf static string
+    46,  // strings.Trim* on hot path (advisory; intentional header trim is common)
     120, // time.Now().Sub vs Since
     122, // HasPrefix+slice vs TrimPrefix
     127, // fmt.Sprintf in log
+    145, // r.WithContext in middleware (advisory; stdlib allocates by design)
     146, // fmt.Sprintf single string
     157, // fmt.Sprint single string
     188, // fmt.Sscanf hot path
@@ -105,7 +107,9 @@ mod tests {
     #[test]
     fn b_tier_is_info() {
         assert_eq!(severity_for_tier(42), Severity::Info);
+        assert_eq!(severity_for_tier(46), Severity::Info);
         assert_eq!(severity_for_tier(120), Severity::Info);
+        assert_eq!(severity_for_tier(145), Severity::Info);
     }
 
     #[test]

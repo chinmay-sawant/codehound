@@ -1,5 +1,7 @@
 //! PERF-102, 120, 122, 126, 127: HTTP server / general misuse detectors.
 
+use std::collections::HashMap;
+
 use super::common::{extract_first_quoted, fmt_contains_verb, is_log_call};
 use super::header_allowlist::is_canonical_header;
 use crate::core::ParsedUnit;
@@ -131,32 +133,86 @@ pub(crate) fn detect_perf_127(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
 /// call takes effect; subsequent calls log a warning at runtime.
 pub(crate) fn detect_perf_102(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
 
     if !facts.source_index.has(".WriteHeader(") {
         return;
     }
 
-    // Walk every `.WriteHeader(` call and check whether the
-    // enclosing function body (approximated by a 2 KiB window
-    // since handlers are rarely longer) contains more than one.
-    let mut search_from = 0;
-    while let Some(rel) = source[search_from..].find(".WriteHeader(") {
-        let start = search_from + rel;
-        let window_end = (start + 2048).min(source.len());
-        let window = &source[start..window_end];
-        let count = window.matches(".WriteHeader(").count();
-        if count > 1 {
-            let (line, col) = unit.line_col(start);
-            emit::push_finding(
-                &META_PERF_102,
-                file,
-                line,
-                col,
-                "w.WriteHeader called multiple times; only the first call takes effect",
-                out,
-            );
+    let src = unit.source.as_bytes();
+    let mut calls_by_scope_and_receiver: HashMap<(usize, String), Vec<(usize, bool)>> =
+        HashMap::new();
+    crate::ast::walk_nodes(unit.tree.root_node(), &["call_expression"], &mut |call| {
+        let Ok(text) = call.utf8_text(src) else {
+            return;
+        };
+        let Some((receiver, _)) = text.split_once(".WriteHeader(") else {
+            return;
+        };
+        let Some(scope_start) = enclosing_callable_start(call) else {
+            return;
+        };
+        calls_by_scope_and_receiver
+            .entry((scope_start, receiver.trim().to_owned()))
+            .or_default()
+            .push((call.start_byte(), call_is_followed_by_return(call)));
+    });
+
+    for calls in calls_by_scope_and_receiver.values() {
+        if calls.len() < 2 || calls[..calls.len() - 1].iter().all(|(_, returns)| *returns) {
+            continue;
         }
-        search_from = start + ".WriteHeader(".len();
+        let (line, col) = unit.line_col(calls[0].0);
+        emit::push_finding(
+            &META_PERF_102,
+            file,
+            line,
+            col,
+            "w.WriteHeader called multiple times; only the first call takes effect",
+            out,
+        );
     }
+}
+
+/// A `return` later in the same direct statement list terminates this write's
+/// path before a later lexical WriteHeader call can execute.
+fn call_is_followed_by_return(mut node: tree_sitter::Node) -> bool {
+    loop {
+        let Some(parent) = node.parent() else {
+            return false;
+        };
+        if matches!(parent.kind(), "statement_list" | "block") {
+            let mut after_statement = false;
+            let mut cursor = parent.walk();
+            for sibling in parent.named_children(&mut cursor) {
+                if !after_statement {
+                    after_statement = sibling.id() == node.id();
+                    continue;
+                }
+                if sibling.kind() == "return_statement" {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if matches!(
+            parent.kind(),
+            "function_declaration" | "method_declaration" | "func_literal"
+        ) {
+            return false;
+        }
+        node = parent;
+    }
+}
+
+fn enclosing_callable_start(mut node: tree_sitter::Node) -> Option<usize> {
+    while let Some(parent) = node.parent() {
+        if matches!(
+            parent.kind(),
+            "function_declaration" | "method_declaration" | "func_literal"
+        ) {
+            return Some(parent.start_byte());
+        }
+        node = parent;
+    }
+    None
 }

@@ -1,4 +1,4 @@
-//! BP-26..BP-35 — API design bad practices.
+//! BP-26..BP-34 — API design bad practices.
 
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use tree_sitter::Node;
 
-use super::super::common::{is_flat_materialized_fixture, is_test_file};
+use super::super::common::is_test_file;
 use super::super::source_index::SourceIndex;
 use super::helpers::push_at;
 use crate::core::ParsedUnit;
@@ -328,39 +328,6 @@ pub(crate) fn detect_bp_34_error_wrapping_without_percent_w(
     });
 }
 
-pub(crate) fn detect_bp_35_package_name_directory_mismatch(
-    unit: &ParsedUnit,
-    _index: &SourceIndex,
-    out: &mut Vec<Finding>,
-) {
-    if is_test_file(unit) || is_flat_materialized_fixture(unit) {
-        return;
-    }
-    let Some(package) = package_name(unit) else {
-        return;
-    };
-    if package == "main" {
-        return;
-    }
-    let Some(dir_name) = unit
-        .path
-        .parent()
-        .and_then(|path| path.file_name())
-        .and_then(|name| name.to_str())
-    else {
-        return;
-    };
-    if package != dir_name {
-        push_at(
-            unit,
-            out,
-            &crate::lang::go::detectors::bad_practices::BP_35_META,
-            0,
-            "package name diverges from its directory name",
-        );
-    }
-}
-
 fn walk_functions_and_methods(
     unit: &ParsedUnit,
     mut visit: impl FnMut(Node, &[u8]) -> Option<(usize, &'static str)>,
@@ -630,30 +597,6 @@ fn looks_like_error_expr(text: &str) -> bool {
         || trimmed.ends_with(".Err")
         || trimmed.ends_with(".err")
         || trimmed.contains("error")
-}
-
-fn package_name(unit: &ParsedUnit) -> Option<String> {
-    fn walk(node: Node, src: &[u8]) -> Option<String> {
-        if node.kind() == "package_clause" {
-            let mut cursor = node.walk();
-            for child in node.named_children(&mut cursor) {
-                if let Ok(text) = child.utf8_text(src)
-                    && text != "package"
-                {
-                    return Some(text.to_string());
-                }
-            }
-        }
-        let mut cursor = node.walk();
-        for child in node.named_children(&mut cursor) {
-            if let Some(found) = walk(child, src) {
-                return Some(found);
-            }
-        }
-        None
-    }
-
-    walk(unit.tree.root_node(), unit.source.as_bytes())
 }
 
 fn is_exported(name: &str) -> bool {

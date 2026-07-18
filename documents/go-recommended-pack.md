@@ -15,7 +15,7 @@ Bad practices (`BP-*`) are **off**. Fail policy defaults to **strict** (high+ on
 | Rule | Why |
 |------|-----|
 | `PERF-1` | Regex compilation inside a loop |
-| `PERF-7` | `defer` inside a loop |
+| `PERF-7` | `defer` inside a loop in the same function scope; per-iteration function literals are excluded |
 | `PERF-50` | `regexp.MatchString` inside a loop |
 | `PERF-58` | Gin `c.Request.Body` not closed |
 | `PERF-71` | GORM N+1 query pattern |
@@ -51,7 +51,7 @@ Taint analysis is **off** under `recommended` unless you pass `--taint`. The CWE
 
 ## Fixture-only quarantine
 
-Rules tagged `fixture-only` (e.g. CWE-334/335/338/342/343 PRNG museum) are **never** in recommended/security. Use `--profile all` for the full corpus.
+Rules tagged `fixture-only` (CWE-334/335/338/342/343 PRNG corpus patterns and CWE-798's literal-DSN pattern) are **never** in recommended/security. Use `--profile all` for the full corpus. The evidence and structural-promotion bar are recorded in [`plans/v0.0.5/cwe-catalog-trust-audit.md`](../plans/v0.0.5/cwe-catalog-trust-audit.md).
 
 See `src/rules/maturity.rs` and `src/core/profile.rs`.
 

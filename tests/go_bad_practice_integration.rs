@@ -15,6 +15,7 @@ use codehound::reporting::json::FindingJson;
 use codehound::reporting::sarif::render_to_string;
 use codehound::rules::{Finding, FindingInputs, LineCol, Severity};
 use std::borrow::Cow;
+use std::fs;
 use std::process::Command;
 
 fn scan_context_from_cli(cli: &Cli, config: Option<CodehoundConfig>) -> ScanContext {
@@ -168,6 +169,95 @@ fn go_bad_practice_fixture_inventory_is_sorted_and_deduplicated() {
     assert!(
         go_bp_cases::is_sorted_and_deduplicated(&cases),
         "Go BP fixture ids must be sorted and deduplicated"
+    );
+}
+
+#[test]
+fn bp_6_reports_nested_goroutine_add_once() {
+    let analyzer = bp_analyzer();
+    let fixture = "tests/fixtures/go/bad_practices/BP-6-nested-vulnerable.txt";
+    let source = helpers::assert_fixture_materializes(fixture);
+    let result = analyzer
+        .analyze_paths(&[&source], None)
+        .unwrap_or_else(|e| panic!("analyze {fixture}: {e:#}"));
+    let bp_6_findings = result
+        .findings
+        .iter()
+        .filter(|finding| finding.rule_id == "BP-6")
+        .count();
+
+    assert_eq!(
+        bp_6_findings, 1,
+        "nested goroutines must not duplicate BP-6"
+    );
+}
+
+#[test]
+fn bp_9_reports_outer_select_despite_nested_default() {
+    let analyzer = bp_analyzer();
+    let fixture = "tests/fixtures/go/bad_practices/BP-9-variant-vulnerable.txt";
+    let source = helpers::assert_fixture_materializes(fixture);
+    let result = analyzer
+        .analyze_paths(&[&source], None)
+        .unwrap_or_else(|e| panic!("analyze {fixture}: {e:#}"));
+    let bp_9_findings = result
+        .findings
+        .iter()
+        .filter(|finding| finding.rule_id == "BP-9")
+        .count();
+
+    assert_eq!(
+        bp_9_findings, 1,
+        "a nested select default must not suppress the outer BP-9 finding"
+    );
+}
+
+#[test]
+fn bp_8_reports_each_by_value_mutex_parameter() {
+    let analyzer = bp_analyzer();
+    let fixture = "tests/fixtures/go/bad_practices/BP-8-vulnerable.txt";
+    let source = helpers::assert_fixture_materializes(fixture);
+    let result = analyzer
+        .analyze_paths(&[&source], None)
+        .unwrap_or_else(|e| panic!("analyze {fixture}: {e:#}"));
+    let bp_8_findings = result
+        .findings
+        .iter()
+        .filter(|finding| finding.rule_id == "BP-8")
+        .count();
+
+    assert_eq!(
+        bp_8_findings, 2,
+        "the top-level function and method by-value mutex parameters should trigger BP-8"
+    );
+}
+
+#[test]
+fn bp_41_accepts_a_package_doc_from_a_sibling_file() {
+    let root = helpers::unique_temp_root("bp-41-sibling-package-doc");
+    fs::create_dir_all(&root).unwrap_or_else(|error| panic!("create {}: {error}", root.display()));
+    fs::write(root.join("api.go"), "package fixture\n")
+        .unwrap_or_else(|error| panic!("write api.go: {error}"));
+    fs::write(
+        root.join("doc.go"),
+        "//go:build linux\n\n// Package fixture documents the package from a sibling file.\n// It may span multiple comment lines.\npackage fixture\n",
+    )
+    .unwrap_or_else(|error| panic!("write doc.go: {error}"));
+
+    let analyzer = bp_analyzer();
+    let result = analyzer
+        .analyze_paths(&[&root], None)
+        .unwrap_or_else(|error| panic!("analyze {}: {error:#}", root.display()));
+    let missing_docs = result
+        .findings
+        .iter()
+        .filter(|finding| finding.rule_id == "BP-41")
+        .count();
+
+    fs::remove_dir_all(&root).unwrap_or_else(|error| panic!("remove {}: {error}", root.display()));
+    assert_eq!(
+        missing_docs, 0,
+        "a package doc in any sibling Go file should satisfy BP-41"
     );
 }
 

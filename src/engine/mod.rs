@@ -37,7 +37,10 @@ pub use dependencies::{discover_project_root, extract_dependencies, go_module_pr
 pub use diagnostics::Diagnostics;
 pub use ignore::{IgnoreDirective, parse_file_ignore, parse_inline_ignores};
 pub use language_filter::{LanguageFilter, resolve_language_filter};
-pub use path_identity::{normalize_project_path, project_paths_eq};
+pub use path_identity::{
+    EXAMPLE_EXCLUDE_GLOBS, EXAMPLE_FINDING_TAG, EXAMPLE_PATH_COMPONENTS, is_example_demo_path,
+    normalize_project_path, project_paths_eq,
+};
 pub use registry::{Registry, RegistryError};
 pub(crate) use result::PipelineAccumulator;
 pub use result::{AnalysisResult, ScanError, ScanErrorKind};

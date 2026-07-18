@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 
+use tree_sitter::Parser;
 use walkdir::WalkDir;
 
 use crate::core::ParsedUnit;
@@ -42,14 +43,27 @@ pub(crate) fn is_project_anchor(unit: &ParsedUnit) -> bool {
     anchor == unit.path
 }
 
+/// True when `unit` is the executable server entrypoint selected from the
+/// project snapshot. Example programs never qualify as a deployment entrypoint.
+pub(crate) fn is_server_anchor(unit: &ParsedUnit) -> bool {
+    let root = discover_project_root(&unit.path);
+    let Some(anchor) = project_snapshot_for_root(&root).server_anchor else {
+        return false;
+    };
+    anchor == unit.path
+}
+
 /// Shared project-level facts for BP-47/50/54/55 (and friends).
 ///
-/// Built once per project root via a single WalkDir + text scan. Production
-/// rules use the precomputed flags (no multi-MB clone under the mutex).
+/// Built once per project root via a single WalkDir plus small parsed entrypoint
+/// checks. Production rules use the precomputed flags (no multi-MB clone under
+/// the mutex).
 #[derive(Clone)]
 pub(crate) struct ProjectSnapshot {
     /// Lexicographically first non-test `.go` path (project anchor), if any.
     pub anchor: Option<PathBuf>,
+    /// A non-example `package main` file that starts an HTTP server, if any.
+    pub server_anchor: Option<PathBuf>,
     pub has_server_start: bool,
     pub has_shutdown: bool,
     pub has_signal_handling: bool,
@@ -126,6 +140,7 @@ fn build_project_snapshot(root: &Path) -> ProjectSnapshot {
     let mut has_rate_limiting = false;
     let mut has_request_id = false;
     let mut has_logging = false;
+    let mut server_anchor = None;
 
     let walker = WalkDir::new(root)
         .into_iter()
@@ -140,13 +155,17 @@ fn build_project_snapshot(root: &Path) -> ProjectSnapshot {
         }
         let path_buf = path.to_path_buf();
         if !path_buf.to_string_lossy().ends_with("_test.go") {
-            go_files.push(path_buf);
+            go_files.push(path_buf.clone());
         }
         let Ok(text) = std::fs::read_to_string(path) else {
             continue;
         };
-        if !has_server_start && contains_server_start(&text) {
+        if is_example_source(path) {
+            continue;
+        }
+        if !has_server_start && is_server_entrypoint(&text) {
             has_server_start = true;
+            server_anchor = Some(path_buf.clone());
         }
         if !has_shutdown && text.contains(".Shutdown(") {
             has_shutdown = true;
@@ -192,6 +211,7 @@ fn build_project_snapshot(root: &Path) -> ProjectSnapshot {
 
     ProjectSnapshot {
         anchor,
+        server_anchor,
         has_server_start,
         has_shutdown,
         has_signal_handling,
@@ -202,11 +222,63 @@ fn build_project_snapshot(root: &Path) -> ProjectSnapshot {
     }
 }
 
-fn contains_server_start(text: &str) -> bool {
-    text.contains("ListenAndServe(")
-        || text.contains(".ListenAndServe(")
-        || text.contains(".Serve(")
-        || text.contains("http.Serve(")
+fn is_example_source(path: &Path) -> bool {
+    path.components()
+        .filter_map(|component| component.as_os_str().to_str())
+        .any(|component| component == "examples")
+}
+
+fn is_server_entrypoint(text: &str) -> bool {
+    let mut parser = Parser::new();
+    if parser
+        .set_language(&tree_sitter_go::LANGUAGE.into())
+        .is_err()
+    {
+        return false;
+    }
+    let Some(tree) = parser.parse(text, None) else {
+        return false;
+    };
+    let src = text.as_bytes();
+    // Import + constructor gates avoid treating unrelated `.Run`/`.Start`/`.Listen`
+    // calls (e.g. `cmd.Run`, `net.Listen`) as HTTP server entrypoints.
+    let gin_app = text.contains("github.com/gin-gonic/gin")
+        && (text.contains("gin.New(") || text.contains("gin.Default("));
+    let echo_app = text.contains("github.com/labstack/echo") && text.contains("echo.New(");
+    let fiber_app = text.contains("github.com/gofiber/fiber") && text.contains("fiber.New(");
+    let mut is_main_package = false;
+    let mut has_server_start = false;
+    crate::ast::walk_nodes(
+        tree.root_node(),
+        &["package_clause", "call_expression"],
+        &mut |node| match node.kind() {
+            "package_clause" => {
+                let mut cursor = node.walk();
+                is_main_package = node
+                    .named_children(&mut cursor)
+                    .any(|child| child.utf8_text(src).ok() == Some("main"));
+            }
+            "call_expression" => {
+                let Some(function) = node.child_by_field_name("function") else {
+                    return;
+                };
+                let Ok(name) = function.utf8_text(src) else {
+                    return;
+                };
+                has_server_start |= matches!(name, "http.ListenAndServe" | "http.Serve")
+                    || name.ends_with(".ListenAndServe")
+                    || name.ends_with(".Serve")
+                    || (gin_app && (name.ends_with(".Run") || name.ends_with(".RunTLS")))
+                    || (echo_app
+                        && (name.ends_with(".Start")
+                            || name.ends_with(".StartTLS")
+                            || name.ends_with(".StartServer")))
+                    || (fiber_app && (name.ends_with(".Listen") || name.ends_with(".ListenTLS")));
+            }
+            _ => {}
+        },
+    );
+    is_main_package && has_server_start
 }
 
 fn contains_public_route(text: &str) -> bool {

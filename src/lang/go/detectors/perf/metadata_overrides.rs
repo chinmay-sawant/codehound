@@ -101,8 +101,8 @@ pub const fn fix_for(id: u32) -> Option<&'static str> {
         44 => Some("Bind the asserted value to a local once (v, ok := x.(T)) and reuse the binding."),
         // PERF-45: Slice preallocation
         45 => Some("Preallocate with make([]T, 0, hint) before the loop so append does not reallocate."),
-        // PERF-46: strings.TrimSpace
-        46 => Some("Use strings.TrimFunc with an explicit predicate, or check s == strings.TrimSpace(s) before allocating."),
+        // PERF-46: strings.TrimSpace (advisory / micro-opt; Info tier)
+        46 => Some("Advisory micro-opt: guard before TrimSpace/Trim when a cheap length or edge-byte check avoids the alloc; intentional header/value trimming is often fine."),
         // PERF-47: strings.Split allocation
         47 => Some("Use strings.SplitSeq or a manual index loop over strings.IndexByte to avoid the []string allocation."),
         // PERF-48: Early string comparison
@@ -247,8 +247,8 @@ pub const fn fix_for(id: u32) -> Option<&'static str> {
         140 => Some("Remove the debug.SetGCPercent(-1) call (it disables the GC assist entirely) or set it above 50 unless GOMEMLIMIT is also configured."),
         // PERF-141: r.URL.Query() cache
         141 => Some("Cache r.URL.Query() in a local variable at the top of the handler; subsequent calls re-parse the query string."),
-        // PERF-145: r.WithContext reuse
-        145 => Some("Hoist the request context to a long-lived middleware boundary; r.WithContext allocates a new *http.Request per call."),
+        // PERF-145: r.WithContext reuse (advisory / micro-opt; Info tier)
+        145 => Some("Advisory micro-opt: r.WithContext allocates a new *http.Request by design; hoist context at a long-lived middleware boundary only when benchmarks show the copy matters."),
         // PERF-149: Connection deadline
         149 => Some("Set a deadline before conn.Read / conn.Write with conn.SetReadDeadline / SetWriteDeadline to avoid hanging the request."),
         // PERF-156: Rune range vs byte range

@@ -55,7 +55,9 @@ fn recommended_does_not_allow_fixture_only_ids() {
         profile: ScanProfile::Recommended,
         ..Default::default()
     });
-    for id in ["CWE-334", "CWE-335", "CWE-338", "CWE-342", "CWE-343"] {
+    for id in [
+        "CWE-334", "CWE-335", "CWE-338", "CWE-342", "CWE-343", "CWE-798",
+    ] {
         assert!(
             is_quarantined_from_default_packs(id),
             "{id} should be fixture-only"
@@ -96,6 +98,7 @@ fn style_is_bp_only_advisory() {
     // Opinion rules off by default in style.
     assert!(!ctx.allows("BP-21"));
     assert!(!ctx.allows("BP-28"));
+    assert!(!ctx.allows("BP-30"));
 }
 
 #[test]
@@ -107,6 +110,14 @@ fn style_can_opt_into_opinion_rules_via_only() {
     });
     assert!(ctx.allows("BP-28"));
     assert!(!ctx.allows("BP-21"), "unrequested opinion rule stays off");
+
+    let ctx = build_scan_context(ScanContextParams {
+        profile: ScanProfile::Style,
+        only: vec!["BP-30".to_string()],
+        ..Default::default()
+    });
+    assert!(ctx.allows("BP-30"));
+    assert!(!ctx.allows("BP-28"), "unrequested opinion rule stays off");
 }
 
 #[test]

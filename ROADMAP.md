@@ -12,6 +12,8 @@
 - Baseline list/prune/update/diff; richer ignores
 - Canary budgets + multi-arch release workflow
 - **Taint depth (Phase 8):** versioned last-write, field keys, explicit channel/goroutine FNs, `--taint-depth`
+- **Trust evidence:** cold-scan gate closed; BP precision canaries completed; recommended-pack pilot reviewed 20 real findings (95% actionable).
+- **Catalog honesty:** fixture-only CWE rules stay quarantined; long-tail CWE maturity audit proceeds in explicit evidence-backed tranches.
 
 ## Next
 

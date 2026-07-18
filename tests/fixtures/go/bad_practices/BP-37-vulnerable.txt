@@ -1,4 +1,4 @@
-# BP-37 positive: package-level mutable global variable
+# BP-37 positive: package-level counter receives a compound later write
 lang: go
 file: BP-37-vulnerable.go
 variant: stdlib
@@ -8,5 +8,5 @@ package sample
 var counter int
 
 func bump() {
-	counter++
+	counter += 1
 }

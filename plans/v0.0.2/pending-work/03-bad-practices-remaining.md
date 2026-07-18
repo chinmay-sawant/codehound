@@ -5,6 +5,8 @@
 > **Estimated effort:** ~6 weeks total
 > **See also:** `plans/v0.0.2/antipattern-remediation/bad-practices-scope.md`, `plans/v0.0.2/antipattern-remediation/rust-best-practices.md`
 
+> **Current-status note (2026-07-17):** This is an historical MVP snapshot, not the live BP ledger. Its 13-rule/"not started" statements describe the v0.0.2 baseline only. The shipped catalog, detector boundaries, and current checklist live in `plans/v0.0.3/new-bad-practices/CHECKLIST.md`; the latest real-module canary evidence and dispositions live in `plans/v0.0.5/pending-work.md`.
+
 ---
 
 ## Overview

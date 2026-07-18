@@ -3907,6 +3907,16 @@ required_rules = []
 
 [[fixture]]
 lang = "go"
+path = "tests/fixtures/go/perf/PERF-038-done-vulnerable.txt"
+required_rules = ["PERF-38"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-038-done-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
 path = "tests/fixtures/go/perf/PERF-039-vulnerable.txt"
 required_rules = ["PERF-39"]
 
@@ -3924,6 +3934,28 @@ required_rules = ["PERF-40"]
 lang = "go"
 path = "tests/fixtures/go/perf/PERF-040-safe.txt"
 required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-040-per-func-vulnerable.txt"
+required_rules = ["PERF-40"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-040-per-func-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-040-loop-demo-vulnerable.txt"
+required_rules = ["PERF-40"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-040-loop-demo-safe.txt"
+required_rules = []
+
+
 
 [[fixture]]
 lang = "go"
@@ -3963,6 +3995,16 @@ required_rules = ["PERF-44"]
 [[fixture]]
 lang = "go"
 path = "tests/fixtures/go/perf/PERF-044-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-044-per-func-vulnerable.txt"
+required_rules = ["PERF-44"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-044-per-func-safe.txt"
 required_rules = []
 
 [[fixture]]
@@ -4638,6 +4680,16 @@ required_rules = ["PERF-114"]
 lang = "go"
 path = "tests/fixtures/go/perf/PERF-114-safe.txt"
 required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-114-interface-vulnerable.txt"
+required_rules = ["PERF-114"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-114-interface-safe.txt"
+required_rules = []
 [[fixture]]
 lang = "go"
 path = "tests/fixtures/go/perf/PERF-115-vulnerable.txt"
@@ -5212,7 +5264,7 @@ lang = "go"
 path = "tests/fixtures/go/taint/IP-006-safe.txt"
 required_rules = []
 
-# Deferred inter-procedural fixtures (P1-F Phase 6 follow-up)
+# Inter-procedural fixtures (P1-F Phase 6 follow-up)
 [[fixture]]
 lang = "go"
 path = "tests/fixtures/go/taint/IP-007-vulnerable.txt"
@@ -5281,6 +5333,16 @@ required_rules = []
 
 [[fixture]]
 lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-1-variant-vulnerable.txt"
+required_rules = ["BP-1"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-1-variant-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
 path = "tests/fixtures/go/bad_practices/BP-2-vulnerable.txt"
 required_rules = ["BP-2"]
 
@@ -5321,12 +5383,67 @@ required_rules = []
 
 [[fixture]]
 lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-5-variant-vulnerable.txt"
+required_rules = ["BP-5"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-5-variant-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-5-blank-identifier-vulnerable.txt"
+required_rules = ["BP-5"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-5-blank-identifier-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices_project_text/library.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices_project_text/example_server.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices_project_text/comment_only_server.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
 path = "tests/fixtures/go/bad_practices/BP-6-vulnerable.txt"
 required_rules = ["BP-6"]
 
 [[fixture]]
 lang = "go"
 path = "tests/fixtures/go/bad_practices/BP-6-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-6-variant-vulnerable.txt"
+required_rules = ["BP-6"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-6-variant-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-6-nested-vulnerable.txt"
+required_rules = ["BP-6"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-6-nested-safe.txt"
 required_rules = []
 
 [[fixture]]
@@ -5357,6 +5474,16 @@ required_rules = ["BP-9"]
 [[fixture]]
 lang = "go"
 path = "tests/fixtures/go/bad_practices/BP-9-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-9-variant-vulnerable.txt"
+required_rules = ["BP-9"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-9-variant-safe.txt"
 required_rules = []
 
 [[fixture]]
@@ -5602,16 +5729,6 @@ required_rules = []
 
 [[fixture]]
 lang = "go"
-path = "tests/fixtures/go/bad_practices/BP-35-vulnerable.txt"
-required_rules = ["BP-35"]
-
-[[fixture]]
-lang = "go"
-path = "tests/fixtures/go/bad_practices/BP-35-safe.txt"
-required_rules = []
-
-[[fixture]]
-lang = "go"
 path = "tests/fixtures/go/bad_practices/BP-36-vulnerable.txt"
 required_rules = ["BP-36"]
 
@@ -5628,6 +5745,36 @@ required_rules = ["BP-37"]
 [[fixture]]
 lang = "go"
 path = "tests/fixtures/go/bad_practices/BP-37-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-37-map-vulnerable.txt"
+required_rules = ["BP-37"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-37-map-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-37-type-switch-vulnerable.txt"
+required_rules = ["BP-37"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-37-type-switch-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-37-type-init-vulnerable.txt"
+required_rules = ["BP-37"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-37-type-init-safe.txt"
 required_rules = []
 
 [[fixture]]
@@ -6188,6 +6335,16 @@ required_rules = ["PERF-143"]
 [[fixture]]
 lang = "go"
 path = "tests/fixtures/go/perf/PERF-143-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-143-comment-vulnerable.txt"
+required_rules = ["PERF-143"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-143-comment-safe.txt"
 required_rules = []
 
 [[fixture]]

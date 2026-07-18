@@ -335,9 +335,40 @@ fn build_run_config_unifies_context_and_path_filters() {
             ..ScanContextParams::default()
         },
         include_tests: true,
+        exclude_examples: false,
     });
 
     assert!(run_config.scan_context.taint_enabled);
     assert!(run_config.scan_context.show_ignored);
     assert!(!run_config.path_filters.exclude_tests);
+}
+
+#[test]
+fn exclude_examples_adds_discovery_globs() {
+    use codehound::engine::EXAMPLE_EXCLUDE_GLOBS;
+
+    let run_config = build_run_config(RunConfigParams {
+        scan: ScanContextParams::default(),
+        include_tests: false,
+        exclude_examples: true,
+    });
+
+    for glob in EXAMPLE_EXCLUDE_GLOBS {
+        assert!(
+            run_config
+                .path_filters
+                .exclude
+                .iter()
+                .any(|pattern| pattern == glob),
+            "missing exclude glob {glob:?} in {:?}",
+            run_config.path_filters.exclude
+        );
+    }
+
+    let default_config = build_run_config(RunConfigParams::default());
+    assert!(
+        default_config.path_filters.exclude.is_empty(),
+        "default must still scan example paths: {:?}",
+        default_config.path_filters.exclude
+    );
 }

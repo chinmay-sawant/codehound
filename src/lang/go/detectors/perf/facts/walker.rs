@@ -25,7 +25,11 @@ pub fn build_go_perf_facts(unit: &ParsedUnit) -> GoPerfFacts {
             "assignment_statement" | "short_var_declaration" => {
                 record_assignment_fact(node, &mut facts, src, &mut interner);
             }
-            "defer_statement" | "go_statement" | "for_statement" | "type_assertion_expression" => {
+            "defer_statement"
+            | "go_statement"
+            | "for_statement"
+            | "func_literal"
+            | "type_assertion_expression" => {
                 record_perf_node(node, &mut facts);
             }
             _ => {}
@@ -120,6 +124,11 @@ pub(crate) fn record_perf_node(node: Node, facts: &mut GoPerfFacts) {
         }
         "for_statement" => {
             facts.for_ranges.push((node.start_byte(), node.end_byte()));
+        }
+        "func_literal" => {
+            facts
+                .function_literal_ranges
+                .push((node.start_byte(), node.end_byte()));
         }
         "type_assertion_expression" => {
             facts

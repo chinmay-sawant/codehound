@@ -12,3 +12,16 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "text/plain")
 }
+
+func HandleError(w http.ResponseWriter, r *http.Request) {
+	_ = r
+	w.WriteHeader(http.StatusInternalServerError)
+}
+
+func HandleMethod(w http.ResponseWriter, accepted bool) {
+	if accepted {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	w.WriteHeader(http.StatusMethodNotAllowed)
+}

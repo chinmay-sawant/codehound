@@ -138,19 +138,16 @@ pub(crate) fn detect_perf_143(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
     if !file_has_handler(source) && !facts.source_index.has("http.ResponseWriter") {
         return;
     }
-    if !source.contains("http.HandleFunc") && !source.contains("http.Handle(") {
+    // Ignore comment/doc text: libraries often document `http.Handle` usage
+    // without actually registering a route in this package.
+    let Some(pos) = find_code_occurrence(source, "http.HandleFunc")
+        .or_else(|| find_code_occurrence(source, "http.Handle("))
+    else {
+        return;
+    };
+    if find_code_occurrence(source, "http.TimeoutHandler").is_some() {
         return;
     }
-    if source.contains("http.TimeoutHandler") {
-        return;
-    }
-    // The file uses http.Handle / http.HandleFunc without
-    // wrapping in TimeoutHandler. We accept any handler
-    // registration as a signal.
-    let pos = source
-        .find("http.HandleFunc")
-        .or_else(|| source.find("http.Handle("))
-        .unwrap_or(0);
     let (line, col) = unit.line_col(pos);
     emit::push_finding(
         &META_PERF_143,
@@ -160,6 +157,97 @@ pub(crate) fn detect_perf_143(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         "handler registered without http.TimeoutHandler; wrap slow handlers in TimeoutHandler to enforce per-route deadlines",
         out,
     );
+}
+
+/// First byte offset of `needle` outside line/block comments and string literals.
+fn find_code_occurrence(source: &str, needle: &str) -> Option<usize> {
+    if needle.is_empty() {
+        return None;
+    }
+    let bytes = source.as_bytes();
+    let n = needle.as_bytes();
+    if bytes.len() < n.len() {
+        return None;
+    }
+
+    let mut i = 0usize;
+    let mut line_comment = false;
+    let mut block_comment = false;
+    let mut in_string: Option<u8> = None;
+    let mut raw_string = false;
+
+    while i + n.len() <= bytes.len() {
+        let b = bytes[i];
+        if line_comment {
+            if b == b'\n' {
+                line_comment = false;
+            }
+            i += 1;
+            continue;
+        }
+        if block_comment {
+            if b == b'*' && bytes.get(i + 1) == Some(&b'/') {
+                block_comment = false;
+                i += 2;
+                continue;
+            }
+            i += 1;
+            continue;
+        }
+        if let Some(delim) = in_string {
+            if raw_string {
+                if b == delim {
+                    in_string = None;
+                    raw_string = false;
+                }
+                i += 1;
+                continue;
+            }
+            if b == b'\\' {
+                i = (i + 2).min(bytes.len());
+                continue;
+            }
+            if b == delim {
+                in_string = None;
+            }
+            i += 1;
+            continue;
+        }
+        if b == b'/' {
+            match bytes.get(i + 1) {
+                Some(b'/') => {
+                    line_comment = true;
+                    i += 2;
+                    continue;
+                }
+                Some(b'*') => {
+                    block_comment = true;
+                    i += 2;
+                    continue;
+                }
+                _ => {}
+            }
+        }
+        match b {
+            b'"' | b'\'' => {
+                in_string = Some(b);
+                i += 1;
+                continue;
+            }
+            b'`' => {
+                in_string = Some(b'`');
+                raw_string = true;
+                i += 1;
+                continue;
+            }
+            _ => {}
+        }
+        if bytes[i..].starts_with(n) {
+            return Some(i);
+        }
+        i += 1;
+    }
+    None
 }
 
 pub(crate) fn detect_perf_144(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {

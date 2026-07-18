@@ -137,6 +137,7 @@ fn scan_live(cli: &Cli, paths: &[String]) -> Result<AnalysisResult> {
     let run_config = build_run_config(RunConfigParams {
         scan: scan_context_params_for_run(cli, config.clone()),
         include_tests: cli.include_tests,
+        exclude_examples: cli.exclude_examples,
     });
     let analyzer = Analyzer::builder()
         .scan_context(run_config.scan_context)
