@@ -2,7 +2,7 @@
 
 /// Frequently scanned literals across the Go CWE bundle (one `contains` per needle).
 ///
-/// Hygiene notes (Phase 1 + Tranche 2 + Tranche 3 §2.4 + Tranche 4 §2.5):
+/// Hygiene notes (Phase 1 + Tranche 2–4 + Tranche 5 §2.6–§2.10):
 /// - Prefer structural facts/call classification over needles for primary detection.
 /// - `// fixture-only:` / `// fixture-literal:` encode corpus strings; paired detectors
 ///   stay out of recommended/security packs via `rules::maturity` when quarantined.
@@ -52,6 +52,7 @@ pub const NEEDLES: &[&str] = &[
     "/maintenance-portal-9f3c2a",
     "/opt/vendor/activex-bridge",
     "/srv/contracts",
+    // fixture-literal: CWE-434 corpus static serve path prefix
     "/static/avatars/",
     "/tmp/integration.key",
     "/tmp/shared-reports",
@@ -60,6 +61,7 @@ pub const NEEDLES: &[&str] = &[
     "/var/lib/codehound/private",
     "/var/www/",
     "/var/www/html/public/",
+    // fixture-literal: CWE-434 corpus upload destination path
     "/var/www/static/avatars",
     "0600",
     "0644",
@@ -70,6 +72,7 @@ pub const NEEDLES: &[&str] = &[
     "10.20.30.40:9090",
     // fixture-literal: fixed 16-byte IV from CWE-1204 corpus (not a general IV detector)
     "1234567890123456",
+    // negative-gate: loopback bind (CWE-1327 safe-path prefilter)
     "127.0.0.1:9090",
     "<!DOCTYPE",
     "= 0",
@@ -94,6 +97,7 @@ pub const NEEDLES: &[&str] = &[
     "BindJSON(&evt)",
     "BootstrapAdmin(",
     "BootstrapAdminPure(",
+    // fixture-literal: payment CVV field from CWE-319 corpus
     "CVV",
     "Cache-Control",
     "Card",
@@ -142,11 +146,14 @@ pub const NEEDLES: &[&str] = &[
     "FetchSharedAssetPure(",
     "ForgotPassword",
     "FormFile(\"contract\")",
+    // fixture-literal / co-signal: dest form key (CWE-708 corpus co-presence)
     "FormValue(\"dest\")",
     "FormValue(\"nonce\")",
     "FormValue(\"password\")",
+    // fixture-literal / co-signal: path form key (CWE-648 corpus co-presence)
     "FormValue(\"path\")",
     "FormValue(\"totp\")",
+    // fixture-literal / co-signal: uid form key (CWE-648 corpus co-presence)
     "FormValue(\"uid\")",
     "FormValue(\"username\")",
     "GenerateFromPassword(",
@@ -180,8 +187,11 @@ pub const NEEDLES: &[&str] = &[
     "Intn(900000) + 100000",
     "LIKE",
     "LimitReader",
+    // negative-gate: cleartext listen prefilter (CWE-319; call_facts primary after §2.10)
     "ListenAndServe(",
+    // fixture-literal: unrestricted :9090 bind from CWE-1327 pure corpus
     "ListenAndServe(\":9090\",",
+    // negative-gate: TLS listen safe-path (CWE-319)
     "ListenAndServeTLS(",
     "LoadOrStore(key, 0)",
     "LoadOrStore(nonce, true)",
@@ -196,6 +206,7 @@ pub const NEEDLES: &[&str] = &[
     "MkdirTemp(",
     "MountWideSurface(",
     "MountWideSurfacePure(",
+    // fixture-literal: payment Number/PAN field from CWE-319 corpus
     "Number",
     // fixture-literal: CWE-940 frameworks OAuth callback helper
     "OAuthCallback(",
@@ -210,11 +221,14 @@ pub const NEEDLES: &[&str] = &[
     "PasswordHash string",
     "PersonRecord",
     "Phone",
+    // fixture-literal / co-signal: dest form key (CWE-708 frameworks corpus)
     "PostForm(\"dest\")",
     "PostForm(\"nonce\")",
     "PostForm(\"password\")",
+    // fixture-literal / co-signal: path form key (CWE-648 frameworks corpus)
     "PostForm(\"path\")",
     "PostForm(\"totp\")",
+    // fixture-literal / co-signal: uid form key (CWE-648 frameworks corpus)
     "PostForm(\"uid\")",
     "PostForm(\"username\")",
     "PostTransfer(",
@@ -242,6 +256,7 @@ pub const NEEDLES: &[&str] = &[
     "Role    string `form:\"role\"`",
     "Role != \"support\"",
     "Role: role",
+    // fixture-literal: gin.Run all-interfaces bind from CWE-1327 frameworks corpus
     "Run(\":9090\")",
     "SELECT * FROM orders WHERE tenant_id = ?",
     "SELECT email FROM profiles",
@@ -259,6 +274,7 @@ pub const NEEDLES: &[&str] = &[
     "Salary",
     "SaveHookConfig(",
     "SaveHookConfigPure(",
+    // fixture-literal: CWE-434 gin SaveUploadedFile dest shape
     "SaveUploadedFile(file, dest)",
     // negative-gate: AEAD Seal call token (CWE-325 safe-path prefilter; broad)
     "Seal(",
@@ -276,6 +292,7 @@ pub const NEEDLES: &[&str] = &[
     "ServeFile(w, r, f.Name())",
     "SetCookie(\"sid\", sid, 0,",
     "SetsockoptInt",
+    // negative-gate: privilege-drop token (CWE-648 safe-path prefilter; also CWE-272 shape)
     "Setuid(",
     "ShouldBindJSON(&msg)",
     "ShouldBindJSON(&payload)",
@@ -287,7 +304,9 @@ pub const NEEDLES: &[&str] = &[
     "SignupPayload{}",
     "SplitHostPort(",
     "StartCleartextLogin",
+    // fixture-literal: CWE-1327 frameworks public-API helper
     "StartPublicAPI(",
+    // fixture-literal: CWE-1327 pure-fixture public-API helper
     "StartPublicAPIPure(",
     "StartWebhookWorker(",
     "StartWebhookWorkerPure(",
@@ -382,6 +401,7 @@ pub const NEEDLES: &[&str] = &[
     "c.JSON(200, gin.H{\"rotated\": true})",
     "c.PostForm(\"auth_token\")",
     "c.Query(\"url\")",
+    // fixture-literal: CWE-434 gin redirect with client filename
     "c.Redirect(http.StatusFound, \"/static/avatars/\"+file.Filename)",
     "c.Redirect(http.StatusFound, target)",
     "c.String(http.StatusInternalServerError, err.Error())",
@@ -443,11 +463,13 @@ pub const NEEDLES: &[&str] = &[
     "failedAttempts[user] >= 1",
     "failedAttempts[user] >= 5",
     "failedAttempts[user]++",
+    // fixture-literal: CWE-434 gin multipart client filename field
     "file.Filename",
     "filepath.Abs(",
     "filepath.Base(",
     "filepath.Clean(",
     "filepath.Clean(filepath.Join(root, requested))",
+    // negative-gate: extension allowlist API (CWE-434 safe-path prefilter)
     "filepath.Ext(",
     "filepath.Join(",
     "filepath.Join(root, requested)",
@@ -481,7 +503,9 @@ pub const NEEDLES: &[&str] = &[
     "hash",
     "hashIterations = 100_000",
     "hashPassphrase(",
+    // fixture-literal: CWE-434 pure-stdlib multipart client filename
     "hdr.Filename",
+    // negative-gate: random stored-name token (CWE-434 safe-path prefilter)
     "hex.EncodeToString(",
     "hmac.Equal(",
     "hmac.New(",
@@ -495,9 +519,11 @@ pub const NEEDLES: &[&str] = &[
     "http.Get(target)",
     "http.Handle(\"/api/invoices\", protected)",
     "http.HandleFunc(\"/debug/sqltrace\"",
+    // negative-gate: package cleartext listen (CWE-319 prefilter; call_facts primary after §2.10)
     "http.ListenAndServe",
     "http.ListenAndServe(",
     "http.NewRequest(",
+    // fixture-literal: CWE-434 pure-stdlib redirect with client filename
     "http.Redirect(w, r, \"/static/avatars/\"+hdr.Filename, http.StatusFound)",
     "http.Redirect(w, r, target, http.StatusFound)",
     "http.SetCookie(w, &http.Cookie{Name: \"sid\", Value: sid, Path: \"/\", HttpOnly: true})",
@@ -514,6 +540,7 @@ pub const NEEDLES: &[&str] = &[
     "info.Sys().(*syscall.Stat_t)",
     "integrity check failed",
     "invalid credentials",
+    // fixture-literal: CWE-358 safe-path JWT structure error string
     "invalid jwt structure",
     // fixture-literal: CWE-940 safe-path error string (not a general OAuth fact)
     "invalid oauth state",
@@ -587,7 +614,9 @@ pub const NEEDLES: &[&str] = &[
     "operator_id",
     "os.Chmod(dest, 0o600)",
     "os.Chmod(dest, 0o777)",
+    // negative-gate: stdlib chown sink (CWE-648 / CWE-708 prefilter; call_facts primary after §2.9)
     "os.Chown(",
+    // fixture-literal: CWE-434 pure-stdlib create dest shape
     "os.Create(dest)",
     "os.Environ()",
     "os.Getenv(",
@@ -603,17 +632,23 @@ pub const NEEDLES: &[&str] = &[
     "os.Open(",
     "os.Open(\"/etc/codehound/master.key\")",
     "os.OpenFile",
+    // negative-gate: stdlib file-read API (CWE-367 prefilter; call_facts primary after §2.8)
     "os.ReadFile",
     "os.ReadFile(lockPath)",
+    // fixture-literal: exact ReadFile path arg from CWE-367 corpus (not required for emit)
     "os.ReadFile(target)",
     "os.Remove(f.Name())",
     "os.Setenv(",
     "os.Setenv(\"PATH\",",
+    // negative-gate: stdlib Stat API (CWE-367 prefilter; call_facts primary after §2.8)
+    "os.Stat(",
+    // fixture-literal: exact Stat path arg from CWE-367 corpus (not required for emit)
     "os.Stat(target)",
     "os.TempDir()",
     "os.WriteFile(",
     "ownerID",
     "owner_id = $2",
+    // fixture-literal: client-chosen owner uid identifier (CWE-708 corpus)
     "owner_uid",
     "p == \"export\"",
     "p == \"read\"",
@@ -684,7 +719,9 @@ pub const NEEDLES: &[&str] = &[
     "sanitizeCSVFieldPure(",
     "secret.Fd()",
     "seed := time.Now().Unix()",
+    // negative-gate: fixed service group id (CWE-708 safe-path prefilter)
     "serviceGID",
+    // negative-gate: fixed service uid (CWE-648 / CWE-708 safe-path prefilter)
     "serviceUID",
     "session",
     // negative-gate: session identity binding (CWE-941 safe-path prefilter)
@@ -701,6 +738,7 @@ pub const NEEDLES: &[&str] = &[
     // negative-gate: stdlib SMTP sink (CWE-941 prefilter; call_facts primary after §2.5)
     "smtp.SendMail",
     "spentNonces",
+    // negative-gate: controlled spool directory (CWE-648 / CWE-708 safe-path prefilter)
     "spoolDir",
     "sql.Open",
     "sql.Open(\"postgres\", appDSNPure)",
@@ -724,6 +762,7 @@ pub const NEEDLES: &[&str] = &[
     "strings.Split(",
     // fixture-literal: JWT three-part split on raw (CWE-347 / CWE-358 corpus)
     "strings.Split(raw, \".\")",
+    // fixture-literal: Bearer strip before JWT decode (CWE-358 corpus shape)
     "strings.TrimPrefix(raw, \"Bearer \")",
     "strongPassword(",
     "subtle.ConstantTimeCompare(",
@@ -742,6 +781,7 @@ pub const NEEDLES: &[&str] = &[
     "time.Since(",
     "time.Sleep(2 * time.Second)",
     "time.Sleep(200 * time.Millisecond)",
+    // negative-gate: tls.Config presence (CWE-319 safe-path prefilter)
     "tls.Config",
     "tls.Dial(",
     "tls.LoadX509KeyPair(",
@@ -760,8 +800,11 @@ pub const NEEDLES: &[&str] = &[
     "type paymentExport struct",
     "type userRecord struct",
     "uid",
+    // fixture-literal: CWE-434 safe-path error string
     "unsupported file type",
+    // fixture-literal: CWE-358 safe-path JWT algorithm error string
     "unsupported jwt algorithm",
+    // negative-gate: controlled upload root (CWE-648 safe-path prefilter)
     "uploadRoot",
     "url.PathUnescape(raw)",
     // negative-gate: stored user email field (CWE-941 safe-path prefilter)

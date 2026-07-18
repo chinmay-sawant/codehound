@@ -5,27 +5,34 @@ use crate::rules::{Finding, emit};
 
 pub(crate) fn detect_cwe_319(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
 
+    // Cheap impossibility prefilter: no cleartext listen text ⇒ no sink of this shape.
+    if !(facts.source_index.has("ListenAndServe(")
+        || facts.source_index.has("http.ListenAndServe(")
+        || facts.source_index.has("http.ListenAndServe"))
+    {
+        return;
+    }
+    // Corpus co-signals still required for oracle (payment card field names).
+    // Maturity is fixture-only; call_facts is the primary sink proof only.
     let handles_card_data = facts.source_index.has("CVV") && facts.source_index.has("Number");
     if !handles_card_data {
         return;
     }
+    // Negative prefilters: TLS listener or explicit tls.Config evidence.
     if facts.source_index.has("ListenAndServeTLS(") || facts.source_index.has("tls.Config") {
         return;
     }
-    if !(facts.source_index.has("ListenAndServe(")
-        || facts.source_index.has("http.ListenAndServe("))
-    {
-        return;
-    }
 
-    let start_byte = if let Some(idx) = source.find("ListenAndServe") {
-        idx
-    } else {
+    // Primary signal: call facts — package or method ListenAndServe (not TLS).
+    let Some(listen_call) = facts.call_facts.iter().find(|call| {
+        let c = call.callee.as_ref();
+        c.ends_with("ListenAndServe") && !c.ends_with("ListenAndServeTLS")
+    }) else {
         return;
     };
-    let (line, col) = unit.line_col(start_byte);
+
+    let (line, col) = unit.line_col(listen_call.start_byte);
     emit::push_finding(
         &META_CWE_319,
         file,

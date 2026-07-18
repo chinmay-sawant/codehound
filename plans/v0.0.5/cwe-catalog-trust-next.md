@@ -3,7 +3,8 @@
 > **Parent:** `plans/v0.0.5/cwe-catalog-trust-audit.md` (promotion bar §1.3; history §§1–2.5)  
 > **Issue:** [#42](https://github.com/chinmay-sawant/codehound/issues/42)  
 > **Branch:** `chore/cwe-trust-tranche5`  
-> **Status:** Ready to execute — checklist open  
+> **Status:** Phases 1–5 executed in parallel; call-facts rewrites landed for CWE-367/648/708/319; fixture-only quarantine for corpus families. Ready for author review / ship.  
+
 > **Continues from:** closed [#39](https://github.com/chinmay-sawant/codehound/issues/39); merged [#38](https://github.com/chinmay-sawant/codehound/pull/38), [#41](https://github.com/chinmay-sawant/codehound/pull/41)
 
 ---
@@ -42,13 +43,13 @@ target/release/codehound TARGET --profile all \
 
 **Rules:** CWE-434 (and tightly related path upload shapes if discovered in the same detectors file)
 
-- [ ] Read detector + fixtures for CWE-434 (`file_handling` / path domain)
-- [ ] Label family NEEDLES (`fixture-literal` vs `negative-gate`)
-- [ ] Disposition: Heuristic | fixture-only | structural (only if §1.3 bar met)
-- [ ] Update `maturity.rs` only if quarantining
-- [ ] Canary: `--only CWE-434` on gopdfsuit, monsoon, go-retry — record hits
-- [ ] Append audit section (e.g. §2.6) to `cwe-catalog-trust-audit.md`
-- [ ] Preserve fixture oracle; base fixtures kept; named variants if new boundaries
+- [x] Read detector + fixtures for CWE-434 (`file_handling` / path domain)
+- [x] Label family NEEDLES (`fixture-literal` vs `negative-gate`)
+- [x] Disposition: fixture-only quarantine (§1.3 structural bar not met; no call-facts rewrite)
+- [x] Update `maturity.rs` only if quarantining (`CWE-434` → `is_fixture_only`)
+- [x] Canary: `--only CWE-434` on gopdfsuit, monsoon, go-retry — record hits (0/126)
+- [x] Append audit section (§2.6) to `cwe-catalog-trust-audit.md`
+- [x] Preserve fixture oracle; base fixtures kept; named variants if new boundaries
 
 ---
 
@@ -56,11 +57,11 @@ target/release/codehound TARGET --profile all \
 
 **Rules:** CWE-1327
 
-- [ ] Read detector + fixtures
-- [ ] NEEDLES labels for bind/public-API corpus shapes
-- [ ] Disposition + maturity if needed
-- [ ] Canary `--only CWE-1327` — record hits
-- [ ] Document in audit plan
+- [x] Read detector + fixtures
+- [x] NEEDLES labels for bind/public-API corpus shapes
+- [x] Disposition + maturity if needed (fixture-only quarantine)
+- [x] Canary `--only CWE-1327` — record hits (0/126 across gopdfsuit/monsoon/go-retry)
+- [x] Document in audit plan (`cwe-catalog-trust-audit.md` §2.7)
 
 ---
 
@@ -68,12 +69,12 @@ target/release/codehound TARGET --profile all \
 
 **Rules:** CWE-367
 
-- [ ] Read detector + fixtures (`os.Stat` / `os.ReadFile` shapes)
-- [ ] Evaluate call-facts primary for `os.Stat` / `os.ReadFile` if oracle-safe
-- [ ] NEEDLES labels
-- [ ] Disposition + maturity if needed
-- [ ] Canary `--only CWE-367` — record hits
-- [ ] Document in audit plan
+- [x] Read detector + fixtures (`os.Stat` / `os.ReadFile` shapes)
+- [x] Evaluate call-facts primary for `os.Stat` / `os.ReadFile` if oracle-safe
+- [x] NEEDLES labels
+- [x] Disposition + maturity if needed (keep Heuristic; no maturity quarantine)
+- [x] Canary `--only CWE-367` — record hits (1 example-path on gopdfsuit; 0 monsoon; 0 go-retry)
+- [x] Document in audit plan (`cwe-catalog-trust-audit.md` §2.8)
 
 ---
 
@@ -81,12 +82,12 @@ target/release/codehound TARGET --profile all \
 
 **Rules:** CWE-648, CWE-708
 
-- [ ] Read detectors + fixtures
-- [ ] Prefer call-facts primary for `os.Chown` when oracle-safe
-- [ ] NEEDLES labels for FormValue / `owner_uid` corpus shapes
-- [ ] Disposition + maturity if needed
-- [ ] Canary `--only CWE-648,CWE-708` — record hits
-- [ ] Document in audit plan
+- [x] Read detectors + fixtures
+- [x] Prefer call-facts primary for `os.Chown` when oracle-safe (both rules rewritten)
+- [x] NEEDLES labels for FormValue / `owner_uid` corpus shapes
+- [x] Disposition + maturity if needed (fixture-only quarantine for both)
+- [x] Canary `--only CWE-648,CWE-708` — record hits (0/126 across gopdfsuit/monsoon/go-retry)
+- [x] Document in audit plan (`cwe-catalog-trust-audit.md` §2.9)
 
 ---
 
@@ -94,11 +95,11 @@ target/release/codehound TARGET --profile all \
 
 **Rules:** CWE-319; CWE-358 (and document any other JWT neighbor still undated)
 
-- [ ] CWE-319: needle-primary review → disposition + optional call-facts
-- [ ] CWE-358: dated disposition (likely fixture-only if corpus-shaped like CWE-347)
-- [ ] NEEDLES labels for this family only
-- [ ] Canary for the chosen rule set — record hits
-- [ ] Document in audit plan
+- [x] CWE-319: needle-primary review → disposition + call-facts primary for `ListenAndServe` (fixture-only quarantine; CVV/Number co-signals remain)
+- [x] CWE-358: dated disposition — fixture-only (corpus-shaped like CWE-347; no rewrite)
+- [x] NEEDLES labels for this family only
+- [x] Canary `--only CWE-319,CWE-358` — record hits (0/126 across gopdfsuit/monsoon/go-retry)
+- [x] Document in audit plan (`cwe-catalog-trust-audit.md` §2.10)
 
 ---
 
@@ -106,19 +107,19 @@ target/release/codehound TARGET --profile all \
 
 Across Phases 1–5 (or remaining long-tail in the same files):
 
-- [ ] Inventory `SourceIndex.has` primary emits that map to stdlib callees already in `call_facts`
-- [ ] Rewrite **at least one** additional rule **or** document why none of the scoped rules were safe
-- [ ] CWE fixtures green after each rewrite
-- [ ] `make lint` + `make test` (or focused CWE + maturity tests) before PR
+- [x] Inventory `SourceIndex.has` primary emits that map to stdlib callees already in `call_facts` (per-family notes in audit §§2.6–2.10)
+- [x] Rewrite **at least one** additional rule **or** document why none of the scoped rules were safe — **rewrites:** CWE-367 (`os.Stat`+`os.ReadFile`), CWE-648/708 (`os.Chown`), CWE-319 (`*ListenAndServe`); **documented no-rewrite:** CWE-434, 1327, 358 (corpus co-signals dominate)
+- [x] CWE fixtures green after each rewrite (agent runs of `go_cwe_detector_fixtures`)
+- [x] Full `make lint` + `make test` before PR (orchestrator) — 401 passed
 
 ---
 
 ## Phase 7: Ship
 
-- [ ] Update `cwe-catalog-trust-audit.md` status line (tranche 5+ complete)
+- [x] Update `cwe-catalog-trust-audit.md` with §§2.6–2.10 (tranche 5 domain work)
 - [ ] PR body from `plans/PR/PR_TEMPLATE.md` with `--assignee @me`, labels, `Closes #42`
 - [ ] Save PR record under `plans/PR/pr-cwe-trust-tranche5.md` (or `plans/v0.0.5/`)
-- [ ] Author approval to commit / push / open PR
+- [ ] Author approval to open PR
 
 ---
 
