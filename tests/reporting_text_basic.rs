@@ -41,6 +41,32 @@ fn finding_with_cwe_renders() {
 }
 
 #[test]
+fn example_tagged_finding_shows_tag_and_summary_count() {
+    let mut finding = Finding::new(FindingInputs::new(
+        "CWE-89",
+        "SQL injection",
+        "examples/demo/main.go",
+        LineCol { line: 1, column: 1 },
+        "msg",
+        Severity::High,
+        Cow::Borrowed(&[]),
+    ));
+    finding.add_tag("example");
+    let r = helpers::reporting::sample_result(vec![finding]);
+    let mut out = Vec::new();
+    write_with_options(&mut out, &r, TextOptions::default()).unwrap();
+    let rendered = String::from_utf8(out).unwrap();
+
+    assert!(rendered.contains("tags: example"), "{rendered}");
+    assert!(
+        rendered.contains("example findings: 1 (of 1 total)"),
+        "{rendered}"
+    );
+    // Still listed in the main finding body, not suppressed.
+    assert!(rendered.contains("examples/demo/main.go"), "{rendered}");
+}
+
+#[test]
 fn text_output_hides_fingerprint_by_default() {
     let r = one_finding_result();
     let mut out = Vec::new();

@@ -330,6 +330,15 @@ fn structured_output_builders_chain_and_serialize() {
     ));
     assert_eq!(f.confidence, Some(0.8));
     assert_eq!(f.tags.as_deref(), Some(&["needs-review".to_string()][..]));
+    // add_tag appends without duplicating existing tags.
+    let mut tagged = f.clone();
+    tagged.add_tag("example");
+    tagged.add_tag("example");
+    tagged.add_tag("needs-review");
+    assert_eq!(
+        tagged.tags.as_deref(),
+        Some(&["needs-review".to_string(), "example".to_string()][..])
+    );
     assert!(f.suppressed);
     assert_eq!(
         f.remediation.as_deref(),

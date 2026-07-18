@@ -114,6 +114,7 @@ impl ScanRun {
         let run_config = build_run_config(RunConfigParams {
             scan: scan_context_params_for_run(&cli, config.clone()),
             include_tests: cli.include_tests,
+            exclude_examples: cli.exclude_examples,
         });
         let collect_stats = run_config.scan_context.collect_stats();
         let mut app_timing = TimingCollector::new(collect_stats);
@@ -580,6 +581,7 @@ mod tests {
                 ..ScanContextParams::default()
             },
             include_tests: false,
+            exclude_examples: false,
         });
         assert!(run_config.scan_context.bad_practices_enabled);
         assert!(

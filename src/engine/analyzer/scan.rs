@@ -198,6 +198,8 @@ impl Analyzer {
             }
         }
         crate::engine::walk::filter_findings(self.scan_context(), acc.findings_mut());
+        // Label example/demo paths; do not suppress (see --exclude-examples).
+        tag_example_findings(acc.findings_mut());
         timing.stop(det_idx);
 
         timing.measure("sort_results", || {
@@ -251,6 +253,18 @@ impl Analyzer {
         }
 
         Ok(result)
+    }
+}
+
+/// Tag findings under example/demo path components (`examples`, `example`,
+/// `sampledata`, `samples`). Keeps them visible; default scan never drops them.
+fn tag_example_findings(findings: &mut [crate::rules::Finding]) {
+    use crate::engine::path_identity::{EXAMPLE_FINDING_TAG, is_example_demo_path};
+
+    for finding in findings {
+        if is_example_demo_path(&finding.file) {
+            finding.add_tag(EXAMPLE_FINDING_TAG);
+        }
     }
 }
 

@@ -403,6 +403,19 @@ impl Finding {
         self
     }
 
+    /// Append a tag if it is not already present.
+    pub fn add_tag(&mut self, tag: impl Into<String>) {
+        let tag = tag.into();
+        match &mut self.tags {
+            Some(tags) => {
+                if !tags.iter().any(|existing| existing == &tag) {
+                    tags.push(tag);
+                }
+            }
+            None => self.tags = Some(vec![tag]),
+        }
+    }
+
     /// Attach longer remediation guidance.
     pub fn with_remediation(mut self, remediation: impl Into<String>) -> Self {
         self.remediation = Some(remediation.into());
