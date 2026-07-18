@@ -58,6 +58,62 @@ gh label list
 
 ---
 
+## Multi-workstream / epic integration (parallel agents)
+
+When **multiple issue-sized branches** are developed in parallel (one PR per child issue under an epic), also ship a **single integration branch** so full-suite validation is not left to “merge order luck.”
+
+### Why
+
+- Per-branch `make test` only proves **that branch alone**.
+- Merging several PRs into `master` can still fail on **combined** conflicts or interaction bugs.
+- An integration branch merges all child heads, runs the full validation suite once, and is the preferred path to `master` for the epic.
+
+### Workflow
+
+```sh
+git fetch origin master
+git checkout -b chore/epic-N-integration origin/master
+
+# Prefer docs-only branches first, then detectors, then engine/taint last
+for b in origin/chore/child-a origin/chore/child-b origin/chore/child-c; do
+  git merge "$b" -m "merge: integrate $b into epic-N integration"
+done
+
+make lint
+make test
+# plus focused tests for areas touched (CWE fixtures, taint, etc.)
+
+git push -u origin HEAD
+gh pr create \
+  --base master \
+  --title "chore: integrate epic #N workstreams" \
+  --body-file plans/PR/pr-epic-N-integration.md \
+  --assignee "@me" \
+  --label documentation \
+  --label enhancement
+```
+
+### Rules
+
+| Rule | Detail |
+|------|--------|
+| **Child PRs** | May still target `master` for review visibility; note they are **superseded by** the integration PR when one exists. |
+| **Integration PR** | `Closes` every child issue this stack completes (or `Closes` epic when all children land). |
+| **Merge order** | Prefer **merging only the integration PR** into `master`, then close/supersede individual child PRs without merging them separately (avoids double-merge). |
+| **Conflicts** | Resolve on the integration branch; re-run full tests after every conflict resolution. |
+| **Validation gate** | Do not mark the epic ready until `make lint` + `make test` pass on the **integrated** tree. |
+
+### Child PR body note (optional one-liner)
+
+```markdown
+## Integration
+
+This branch is also merged into `chore/epic-N-integration` for combined validation.
+Prefer reviewing/merging the integration PR when present.
+```
+
+---
+
 ## Self-assign
 
 - Every PR the author opens **must** list them as assignee (`--assignee "@me"`).
