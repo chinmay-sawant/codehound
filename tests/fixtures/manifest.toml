@@ -5707,6 +5707,36 @@ required_rules = []
 
 [[fixture]]
 lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-37-map-vulnerable.txt"
+required_rules = ["BP-37"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-37-map-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-37-type-switch-vulnerable.txt"
+required_rules = ["BP-37"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-37-type-switch-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-37-type-init-vulnerable.txt"
+required_rules = ["BP-37"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/bad_practices/BP-37-type-init-safe.txt"
+required_rules = []
+
+[[fixture]]
+lang = "go"
 path = "tests/fixtures/go/bad_practices/BP-38-vulnerable.txt"
 required_rules = ["BP-38"]
 

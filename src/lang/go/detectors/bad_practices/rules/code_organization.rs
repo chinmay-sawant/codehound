@@ -53,6 +53,13 @@ pub(crate) fn detect_bp_37_package_level_mutable_global(
     if is_test_file(unit) {
         return;
     }
+    let src = unit.source.as_bytes();
+    let globals = package_level_var_names(unit.tree.root_node(), src);
+    if globals.is_empty() {
+        return;
+    }
+    let written_globals = collect_written_globals(unit.tree.root_node(), src, &globals);
+
     for (byte, message) in walk_top_level_nodes(unit, |node, src| {
         if node.kind() != "var_declaration" {
             return None;
@@ -61,11 +68,13 @@ pub(crate) fn detect_bp_37_package_level_mutable_global(
         if !names.is_empty() && names.iter().all(|name| name.starts_with("Err")) {
             return None;
         }
-        let text = node_text(node, src)?;
-        (!text.contains("const")).then_some((
-            node.start_byte(),
-            "package-level mutable global state makes behavior harder to reason about",
-        ))
+        names
+            .iter()
+            .any(|name| written_globals.contains(name))
+            .then_some((
+                node.start_byte(),
+                "package-level mutable global state makes behavior harder to reason about",
+            ))
     }) {
         push_at(
             unit,
@@ -74,6 +83,242 @@ pub(crate) fn detect_bp_37_package_level_mutable_global(
             byte,
             message,
         );
+    }
+}
+
+fn collect_written_globals(root: Node, src: &[u8], globals: &HashSet<String>) -> HashSet<String> {
+    let mut written = HashSet::new();
+
+    fn walk(
+        node: Node,
+        src: &[u8],
+        globals: &HashSet<String>,
+        shadowed: &HashSet<String>,
+        written: &mut HashSet<String>,
+    ) {
+        if matches!(
+            node.kind(),
+            "function_declaration" | "method_declaration" | "function_literal"
+        ) {
+            let mut function_shadowed = shadowed.clone();
+            function_shadowed.extend(function_signature_names(node, src, globals));
+            let mut cursor = node.walk();
+            for child in node.named_children(&mut cursor) {
+                walk(child, src, globals, &function_shadowed, written);
+            }
+            return;
+        }
+
+        if matches!(
+            node.kind(),
+            "block" | "statement_list" | "expression_case" | "type_case" | "default_case"
+        ) {
+            let mut block_shadowed = shadowed.clone();
+            let mut cursor = node.walk();
+            for child in node.named_children(&mut cursor) {
+                walk(child, src, globals, &block_shadowed, written);
+                block_shadowed.extend(statement_binding_names(child, src, globals));
+            }
+            return;
+        }
+
+        if node.kind() == "communication_case" {
+            let mut case_shadowed = shadowed.clone();
+            case_shadowed.extend(case_binding_names(node, src, globals));
+            let mut cursor = node.walk();
+            for child in node.named_children(&mut cursor) {
+                walk(child, src, globals, &case_shadowed, written);
+                case_shadowed.extend(statement_binding_names(child, src, globals));
+            }
+            return;
+        }
+
+        if node.kind() == "type_switch_statement" {
+            let initializer = node.child_by_field_name("initializer");
+            let mut case_shadowed = shadowed.clone();
+            if let Some(initializer) = initializer {
+                walk(initializer, src, globals, shadowed, written);
+                case_shadowed.extend(statement_binding_names(initializer, src, globals));
+            }
+            let value = node.child_by_field_name("value");
+            if let Some(value) = value {
+                walk(value, src, globals, &case_shadowed, written);
+            }
+            if let Some(alias) = node.child_by_field_name("alias")
+                && let Ok(text) = alias.utf8_text(src)
+            {
+                collect_binding_names(text, globals, &mut case_shadowed);
+            }
+            let mut cursor = node.walk();
+            for child in node.named_children(&mut cursor) {
+                if initializer.is_some_and(|initializer| initializer.id() == child.id())
+                    || value.is_some_and(|value| value.id() == child.id())
+                {
+                    continue;
+                }
+                walk(child, src, globals, &case_shadowed, written);
+            }
+            return;
+        }
+
+        if matches!(
+            node.kind(),
+            "if_statement" | "for_statement" | "expression_switch_statement" | "select_statement"
+        ) {
+            let mut control_shadowed = shadowed.clone();
+            let mut cursor = node.walk();
+            for child in node.named_children(&mut cursor) {
+                if matches!(
+                    child.kind(),
+                    "for_clause" | "range_clause" | "type_switch_guard"
+                ) {
+                    control_shadowed.extend(statement_binding_names(child, src, globals));
+                }
+                walk(child, src, globals, &control_shadowed, written);
+                if !matches!(
+                    child.kind(),
+                    "for_clause" | "range_clause" | "type_switch_guard"
+                ) {
+                    control_shadowed.extend(statement_binding_names(child, src, globals));
+                }
+            }
+            return;
+        }
+
+        match node.kind() {
+            "assignment_statement" | "inc_statement" => {
+                if let Ok(text) = node.utf8_text(src) {
+                    let lhs = if node.kind() == "inc_statement" {
+                        text.trim().trim_end_matches(['+', '-'])
+                    } else {
+                        text.split_once('=').map_or("", |(lhs, _)| {
+                            lhs.trim_end_matches(['+', '-', '*', '/', '%', '&', '|', '^', '<', '>'])
+                                .trim()
+                        })
+                    };
+                    collect_written_targets(lhs, globals, shadowed, written);
+                }
+            }
+            "send_statement" => {
+                if let Ok(text) = node.utf8_text(src)
+                    && let Some((target, _)) = text.split_once("<-")
+                {
+                    collect_written_targets(target, globals, shadowed, written);
+                }
+            }
+            _ => {}
+        }
+
+        let mut cursor = node.walk();
+        for child in node.named_children(&mut cursor) {
+            walk(child, src, globals, shadowed, written);
+        }
+    }
+
+    walk(root, src, globals, &HashSet::new(), &mut written);
+    written
+}
+
+fn function_signature_names(node: Node, src: &[u8], globals: &HashSet<String>) -> HashSet<String> {
+    let mut names = HashSet::new();
+    for field in ["parameters", "receiver", "result"] {
+        if let Some(part) = node.child_by_field_name(field)
+            && let Ok(text) = part.utf8_text(src)
+        {
+            collect_binding_names(text.trim_matches(['(', ')']), globals, &mut names);
+        }
+    }
+    names
+}
+
+fn statement_binding_names(node: Node, src: &[u8], globals: &HashSet<String>) -> HashSet<String> {
+    let mut names = HashSet::new();
+    match node.kind() {
+        "var_declaration" => {
+            names.extend(
+                collect_declared_names(node, src, "var_spec")
+                    .into_iter()
+                    .filter(|name| globals.contains(name)),
+            );
+        }
+        "short_var_declaration" => {
+            if let Ok(text) = node.utf8_text(src) {
+                collect_binding_names(
+                    text.split_once(":=").map_or("", |(left, _)| left),
+                    globals,
+                    &mut names,
+                );
+            }
+        }
+        "range_clause" => {
+            if let Ok(text) = node.utf8_text(src)
+                && let Some((left, _)) = text.split_once(":=")
+            {
+                collect_binding_names(left, globals, &mut names);
+            }
+        }
+        "for_clause" => {
+            let mut cursor = node.walk();
+            for child in node.named_children(&mut cursor) {
+                names.extend(statement_binding_names(child, src, globals));
+            }
+        }
+        _ => {}
+    }
+    names
+}
+
+fn case_binding_names(node: Node, src: &[u8], globals: &HashSet<String>) -> HashSet<String> {
+    let mut names = HashSet::new();
+    let Ok(text) = node.utf8_text(src) else {
+        return names;
+    };
+    let Some((left, _)) = text.split_once(":=") else {
+        return names;
+    };
+    collect_binding_names(left.trim_start_matches("case").trim(), globals, &mut names);
+    names
+}
+
+fn collect_binding_names(text: &str, globals: &HashSet<String>, names: &mut HashSet<String>) {
+    for binding in text.split(',') {
+        let Some(name) = binding.split_whitespace().next() else {
+            continue;
+        };
+        if globals.contains(name) {
+            names.insert(name.to_string());
+        }
+    }
+}
+
+fn package_level_var_names(root: Node, src: &[u8]) -> HashSet<String> {
+    let mut names = HashSet::new();
+    let mut cursor = root.walk();
+    for child in root.named_children(&mut cursor) {
+        if child.kind() == "var_declaration" {
+            names.extend(collect_declared_names(child, src, "var_spec"));
+        }
+    }
+    names
+}
+
+fn collect_written_targets(
+    targets: &str,
+    globals: &HashSet<String>,
+    shadowed: &HashSet<String>,
+    written: &mut HashSet<String>,
+) {
+    for target in targets.split(',') {
+        let target = target.trim().trim_start_matches('*').trim();
+        for global in globals {
+            if !shadowed.contains(global)
+                && (target == global
+                    || target.starts_with(&format!("{global}."))
+                    || target.starts_with(&format!("{global}[")))
+            {
+                written.insert(global.clone());
+            }
+        }
     }
 }
 
@@ -436,10 +681,6 @@ fn declaration_name<'a>(node: Node<'a>, src: &'a [u8]) -> Option<&'a str> {
     node.child_by_field_name("name")?.utf8_text(src).ok()
 }
 
-fn node_text<'a>(node: Node<'a>, src: &'a [u8]) -> Option<&'a str> {
-    node.utf8_text(src).ok()
-}
-
 fn is_exported(name: &str) -> bool {
     name.chars()
         .next()
@@ -564,14 +805,20 @@ fn collect_declared_names(node: Node, src: &[u8], wanted_spec: &str) -> Vec<Stri
 
     fn walk(node: Node, src: &[u8], wanted_spec: &str, names: &mut Vec<String>) {
         if node.kind() == wanted_spec {
-            let mut cursor = node.walk();
-            for child in node.named_children(&mut cursor) {
-                if child.kind() == "identifier"
-                    && let Ok(text) = child.utf8_text(src)
-                {
-                    names.push(text.to_string());
+            if let Ok(text) = node.utf8_text(src) {
+                let left = text.split_once('=').map_or(text, |(left, _)| left).trim();
+                for name in left.split(',').map(str::trim) {
+                    if let Some(name) = name.split_whitespace().next()
+                        && !name.is_empty()
+                        && name
+                            .bytes()
+                            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
+                    {
+                        names.push(name.to_string());
+                    }
                 }
             }
+            return;
         }
         let mut cursor = node.walk();
         for child in node.named_children(&mut cursor) {

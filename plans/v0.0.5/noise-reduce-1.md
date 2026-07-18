@@ -1,7 +1,7 @@
 # v0.0.5 — Noise Reduction 1: gorl Full-Catalog Canary
 
 > **Parent:** `plans/v0.0.5/pending-work.md` — Phase 3.2 catalog trust and Phase 4 implementation selection
-> **Status:** Initial evidence-backed detector tranche is implemented and under final validation. Four project-agnostic rule boundaries are narrowed; structural, coverage, and governance work remains pending.
+> **Status:** The initial tranche and the BP-37 write-evidence follow-up are implemented and validated. Five project-agnostic rule boundaries are narrowed; structural, coverage, and governance work remains pending.
 > **Estimated effort:** 2–4 focused detector batches, each with fixtures, a preserved finding oracle, and a gorl re-scan.
 
 ---
@@ -38,7 +38,7 @@ suggestions, 26 example-only reports, and detector noise caused by line-text or
 file-window matching. The highest-value fixes are BP-5, PERF-102, the
 project-level BP-47/50/54/55 family, and the source-only fallback in PERF-214.
 
-The final fresh release re-scan, using the same arguments, produced **75 findings**:
+The pre-BP-37 fresh release re-scan, using the same arguments, produced **75 findings**:
 29 info, 31 low, and 15 medium. The initial tranche removed 10 reports:
 
 | Rule(s) | Before | After | Boundary proved |
@@ -59,6 +59,19 @@ The 2026-07-18 PERF-102 control-flow follow-up added a mutually exclusive
 returning-branch fixture. It does not change gorl's 75-finding total because
 gorl did not contain that shape; the fresh release full-catalog and recommended
 controls remained 75 and zero findings respectively.
+
+The 2026-07-18 BP-37 follow-up changed the rule from "any package `var`" to
+"a package `var` with a direct later write in the same parsed file." Its
+canonical text fixtures retain compound scalar and map-index writes
+as positives, while proving that an initialized read-only map and a shadowing
+parameter are silent. The pinned gorl canary fell from **75 to 71** findings
+(BP-37: 4 to 0) while the recommended control remained zero. A focused
+gopdfsuit scan fell from **51 to 2** BP-37 findings; the two survivors are
+intentional writes: `imgCache` is reset and populated, and `hexNibble` is
+initialized by `init`. Its full-catalog total fell from **978 to 929**. The
+post-change scans repeated the release-binary command recorded above with
+`--no-cache`; the gopdfsuit validation additionally used `--only BP-37` for
+the focused count.
 
 ---
 
@@ -140,7 +153,7 @@ though gorl is a library and that file only loads configuration.
 ### 3.1 Retire or re-tier unprovable style claims
 
 - [ ] BP-35: decide whether package/directory naming is valuable enough to retain as style-only advice; do not present intentional names such as `echomw` as a correctness defect.
-- [ ] BP-37: require evidence of a post-initialization write before warning about a package-level map; static registry maps are not mutable runtime state merely because Go maps are mutable.
+- [x] BP-37: require evidence of a post-initialization write before warning about a package-level map; static registry maps are not mutable runtime state merely because Go maps are mutable. This same-file AST pass excludes lexically shadowed bindings and retains compound scalar and map-index writes. Canonical `.txt` fixtures prove both boundaries; gorl BP-37 fell 4→0 and gopdfsuit 51→2 (the two remaining writes are real).
 - [ ] BP-28 and BP-30: document external implementation/capability-interface exceptions, or move them to an explicitly opt-in style tier.
 - [ ] BP-41/BP-39: preserve documentation feedback but ensure a package doc in any package file satisfies the rule.
 
