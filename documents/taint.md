@@ -64,7 +64,7 @@ paths to recognized sources.
 | `Path` | `filepath.Base()` only (strips to final component). **`filepath.Clean` / `path.Clean` alone are not path-safe** and are not treated as sanitizers. |
 | `HTML` | `html.EscapeString()`, `template.HTMLEscaper()` |
 | `URL` | `url.QueryEscape()`, `url.PathEscape()` |
-| `SQL` | **Not** bare `.Prepare` (dynamic Prepare is still injectable). Safe path today: **literal** first arg at Query/Exec (parameterized query heuristic). |
+| `SQL` | **Not** bare `.Prepare` (dynamic Prepare is still injectable). Safe paths: (1) **literal** first arg at Query/Exec; (2) same-function same-var literal `Prepare`/`PrepareContext` → `Stmt.Query`/`Exec` (or `*Context` forms). |
 | `Validation` | `strconv.Atoi()`, `strconv.ParseInt()`, allowlist-style `sanitize*` / `escape*` / `validate*` helpers |
 | `Bounded` | `len` (weak; prefer explicit validation) |
 
@@ -87,8 +87,11 @@ accept Path sanitizers.
 - **CWE-79 is not full XSS.** Template + HTTPWrite sinks only; no DOM model.
 - **CWE-90/91** use real LDAP/XML sink classification; quarantine long-tail
   CWE IDs that only match fixture needles (catalog honesty — Phase 1).
-- **Bare `.Prepare` is not a sanitizer.** Same-stmt Prepare→Stmt.Query proof
-  is not implemented; do not rely on Prepare alone to silence CWE-89.
+- **Bare `.Prepare` is not a sanitizer.** CWE-89 suppresses only when the
+  **same function** binds a simple receiver via literal `Prepare`/`PrepareContext`
+  and that binding is the latest write before `Stmt.Query`/`Exec` (or `*Context`).
+  Dynamic Prepare SQL, rebinding, and cross-function Prepare factories are not
+  proven safe. Residual FN: dynamic Prepare with no tainted Query/Exec arg.
 - **Inter-procedural tracking is depth-limited.** Cross-function analysis
   works for direct chains (A→B→C), return propagation, method calls, and
   recursion, but does not iterate to a fixed point. Mutual recursion and
