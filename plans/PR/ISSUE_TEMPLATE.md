@@ -12,6 +12,7 @@ Use this when opening a **process-gated** implementation issue (same discipline 
 4. **Create the issue** with the `gh` command in [Open the issue](#open-the-issue-gh--required-metadata).
 5. **Open a local branch** after the issue exists, named after the work (e.g. `chore/cwe-trust-tranche5`).
 6. When shipping: open the PR with `PR_TEMPLATE.md` and `Closes #N` / `Relates to #N`.
+7. Progress comments on the issue must follow `COMMENT_TEMPLATE.md` (factual tables; no chatty remaining-step lines).
 
 ---
 

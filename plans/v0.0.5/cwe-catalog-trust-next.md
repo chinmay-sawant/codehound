@@ -117,9 +117,9 @@ Across Phases 1–5 (or remaining long-tail in the same files):
 ## Phase 7: Ship
 
 - [x] Update `cwe-catalog-trust-audit.md` with §§2.6–2.10 (tranche 5 domain work)
-- [ ] PR body from `plans/PR/PR_TEMPLATE.md` with `--assignee @me`, labels, `Closes #42`
-- [ ] Save PR record under `plans/PR/pr-cwe-trust-tranche5.md` (or `plans/v0.0.5/`)
-- [ ] Author approval to open PR
+- [x] PR body from `plans/PR/PR_TEMPLATE.md` with `--assignee @me`, labels, `Closes #42`
+- [x] Save PR record under `plans/PR/pr-cwe-trust-tranche5.md`
+- [x] PR opened for review
 
 ---
 
