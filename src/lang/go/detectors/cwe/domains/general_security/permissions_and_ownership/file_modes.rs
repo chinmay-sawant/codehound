@@ -2,9 +2,16 @@ use super::super::super::super::facts::GoUnitFacts;
 use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
+
 pub(crate) fn detect_cwe_250(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
 
+    // Cheap impossibility prefilter: no WriteFile text ⇒ no world-writable write of this shape.
+    if !facts.source_index.has("os.WriteFile(") {
+        return;
+    }
+
+    // Primary signal: call facts — os.WriteFile with world-writable mode 0o777.
     for call in &facts.call_facts {
         if call.callee.as_ref() != "os.WriteFile" || call.arguments.len() < 3 {
             continue;
@@ -29,12 +36,20 @@ pub(crate) fn detect_cwe_250(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 pub(crate) fn detect_cwe_252(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
 
+    // Cheap impossibility prefilter: no WriteFile text ⇒ no unchecked-write sink.
+    if !facts.source_index.has("os.WriteFile(") {
+        return;
+    }
+    // Negative prefilter: error-checked WriteFile assignment form (corpus safe-path).
+    if facts.source_index.has("if err := os.WriteFile(") {
+        return;
+    }
+
+    // Primary signal: call facts — os.WriteFile to corpus audit/journal log paths
+    // without the error-checked assignment form above.
     for call in &facts.call_facts {
         if call.callee.as_ref() != "os.WriteFile" {
             continue;
-        }
-        if facts.source_index.has("if err := os.WriteFile(") {
-            return;
         }
         let writes_audit_log = call
             .arguments
@@ -59,22 +74,33 @@ pub(crate) fn detect_cwe_252(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 
 pub(crate) fn detect_cwe_552(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
 
-    let permissive_upload_mode = (facts
-        .source_index
-        .has_any(&[r#"FormFile("contract")"#, r#"FormFile("contract")"#]))
-        && facts.source_index.has("/srv/contracts")
-        && facts.source_index.has("os.Chmod(dest, 0o777)");
+    // Cheap impossibility prefilter: no world-writable chmod corpus text ⇒ no sink.
+    if !facts.source_index.has("os.Chmod(dest, 0o777)") {
+        return;
+    }
+    // Corpus co-signals still required for oracle (contract form field + store path).
+    // Maturity is fixture-only; call_facts is the primary sink proof only.
+    let permissive_upload_mode = facts.source_index.has(r#"FormFile("contract")"#)
+        && facts.source_index.has("/srv/contracts");
     if !permissive_upload_mode {
         return;
     }
+    // Negative prefilters: basename sanitization / owner-only mode.
     if facts.source_index.has("filepath.Base(") || facts.source_index.has("os.Chmod(dest, 0o600)") {
         return;
     }
 
-    let start_byte = source.find("os.Chmod(dest, 0o777)").unwrap_or(0);
-    let (line, col) = unit.line_col(start_byte);
+    // Primary signal: call facts — stdlib os.Chmod with world-writable mode.
+    let Some(chmod_call) = facts.call_facts.iter().find(|call| {
+        call.callee.as_ref() == "os.Chmod"
+            && call.arguments.len() >= 2
+            && call.arguments[1].as_ref() == "0o777"
+    }) else {
+        return;
+    };
+
+    let (line, col) = unit.line_col(chmod_call.start_byte);
     emit::push_finding(
         &META_CWE_552,
         file,
