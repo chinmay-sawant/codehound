@@ -7,6 +7,8 @@ pub(crate) fn detect_cwe_940(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
+    // Fixture-only: OAuthCallback helper names + exact oauth_tokens INSERT (see maturity).
+    // Keep for --profile all corpus tests; never in recommended/security packs.
     let oauth_callback = (facts
         .source_index
         .has_any(&["OAuthCallback(", "OAuthCallbackPure("]))
@@ -43,12 +45,16 @@ pub(crate) fn detect_cwe_940(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 
 pub(crate) fn detect_cwe_941(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
 
-    let caller_directed_reset = (facts
+    // Cheap impossibility prefilter: no smtp.SendMail text ⇒ no notification sink of this shape.
+    if !facts.source_index.has("smtp.SendMail") {
+        return;
+    }
+    // Corpus co-signals still required for oracle (fixture helper names + email query +
+    // recipient slice). Maturity remains fixture-only; call_facts is the primary sink proof.
+    let caller_directed_reset = facts
         .source_index
-        .has_any(&["SendResetLink(", "SendResetLinkPure("]))
-        && facts.source_index.has("smtp.SendMail")
+        .has_any(&["SendResetLink(", "SendResetLinkPure("])
         && (facts
             .source_index
             .has_any(&[r#"Query("email")"#, r#"Query().Get("email")"#]))
@@ -56,6 +62,7 @@ pub(crate) fn detect_cwe_941(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     if !caller_directed_reset {
         return;
     }
+    // Negative prefilters: destination from session / stored identity.
     if facts
         .source_index
         .has_any(&["user.Email", "lookupEmail(", "sessionUserID"])
@@ -63,11 +70,16 @@ pub(crate) fn detect_cwe_941(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
         return;
     }
 
-    let start_byte = source
-        .find("Query(\"email\")")
-        .or_else(|| source.find("Query().Get(\"email\")"))
-        .unwrap_or_else(|| source.find("[]string{email}").unwrap_or(0));
-    let (line, col) = unit.line_col(start_byte);
+    // Primary signal: call facts — stdlib `smtp.SendMail` callee.
+    let Some(send_call) = facts
+        .call_facts
+        .iter()
+        .find(|call| call.callee.as_ref() == "smtp.SendMail")
+    else {
+        return;
+    };
+
+    let (line, col) = unit.line_col(send_call.start_byte);
     emit::push_finding(
         &META_CWE_941,
         file,

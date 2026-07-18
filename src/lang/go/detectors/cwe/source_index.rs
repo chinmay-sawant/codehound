@@ -2,10 +2,12 @@
 
 /// Frequently scanned literals across the Go CWE bundle (one `contains` per needle).
 ///
-/// Hygiene notes (Phase 1):
+/// Hygiene notes (Phase 1 + Tranche 2 + Tranche 3 §2.4 + Tranche 4 §2.5):
 /// - Prefer structural facts/call classification over needles for primary detection.
-/// - Needles marked `// fixture-only:` encode corpus strings; paired detectors are
-///   quarantined from recommended/security packs via `rules::maturity`.
+/// - `// fixture-only:` / `// fixture-literal:` encode corpus strings; paired detectors
+///   stay out of recommended/security packs via `rules::maturity` when quarantined.
+/// - `// negative-gate:` marks stdlib/API tokens safe as cheap prefilters only — they
+///   must not be the sole structural evidence for a finding emission.
 /// - Production-shaped needles (APIs, stdlib) stay as cheap prefilters / negative gates.
 pub const NEEDLES: &[&str] = &[
     " <= 0",
@@ -66,6 +68,7 @@ pub const NEEDLES: &[&str] = &[
     "0o644",
     "0xC3, 0x28",
     "10.20.30.40:9090",
+    // fixture-literal: fixed 16-byte IV from CWE-1204 corpus (not a general IV detector)
     "1234567890123456",
     "127.0.0.1:9090",
     "<!DOCTYPE",
@@ -104,6 +107,7 @@ pub const NEEDLES: &[&str] = &[
     "ConstantTimeCompare",
     "ConstantTimeCompare(",
     "ConstantTimeCompare(expected, got)",
+    // negative-gate: OAuth state cookie (CWE-940 safe-path prefilter)
     "Cookie(\"oauth_state\")",
     "Cookie(\"profile\")",
     "Cookie(\"session_id\")",
@@ -119,6 +123,7 @@ pub const NEEDLES: &[&str] = &[
     "Decode(&msg)",
     "Decode(&payload)",
     "Decode(&raw)",
+    // fixture-literal: JWT middle-segment decode (CWE-347 / CWE-358 corpus shape)
     "DecodeString(parts[1])",
     "DisallowUnknownFields()",
     "DownloadRedacted(",
@@ -163,6 +168,7 @@ pub const NEEDLES: &[&str] = &[
     "HiddenConfigPanel",
     "Hostname()",
     "INSERT INTO agent_reports",
+    // fixture-literal: OAuth token INSERT shape from CWE-940 corpus
     "INSERT INTO oauth_tokens (user_id, code) VALUES ($1, $2)",
     "INSERT INTO telemetry",
     "INSERT INTO wires",
@@ -170,6 +176,7 @@ pub const NEEDLES: &[&str] = &[
     "InsecureSkipVerify: true",
     // fixture-only: magic PRNG bound from CWE-334 corpus
     "Intn(4096)",
+    // fixture-literal: fixed 6-digit recovery-code range from CWE-331 corpus
     "Intn(900000) + 100000",
     "LIKE",
     "LimitReader",
@@ -190,7 +197,9 @@ pub const NEEDLES: &[&str] = &[
     "MountWideSurface(",
     "MountWideSurfacePure(",
     "Number",
+    // fixture-literal: CWE-940 frameworks OAuth callback helper
     "OAuthCallback(",
+    // fixture-literal: CWE-940 pure-fixture OAuth callback helper
     "OAuthCallbackPure(",
     "PAN",
     "ParseRequestURI(cfg.URL)",
@@ -214,8 +223,10 @@ pub const NEEDLES: &[&str] = &[
     "PublicProfile",
     "PublicSearch",
     "Query(\"debug\") == \"1\"",
+    // negative-gate / co-signal: email query read (CWE-941 corpus co-presence)
     "Query(\"email\")",
     "Query().Get(\"debug\") == \"1\"",
+    // negative-gate / co-signal: stdlib email query read (CWE-941 corpus co-presence)
     "Query().Get(\"email\")",
     "QueryContext(",
     "RLock()",
@@ -249,13 +260,18 @@ pub const NEEDLES: &[&str] = &[
     "SaveHookConfig(",
     "SaveHookConfigPure(",
     "SaveUploadedFile(file, dest)",
+    // negative-gate: AEAD Seal call token (CWE-325 safe-path prefilter; broad)
     "Seal(",
+    // fixture-literal: CWE-1240 corpus helper name
     "SealSessionToken(",
+    // fixture-literal: CWE-1240 pure-fixture helper name
     "SealSessionTokenPure(",
     "Secret",
     "Secret   string",
     "Secret: encoded",
+    // fixture-literal: CWE-941 frameworks reset-notification helper
     "SendResetLink(",
+    // fixture-literal: CWE-941 pure-fixture reset-notification helper
     "SendResetLinkPure(",
     "ServeFile(w, r, f.Name())",
     "SetCookie(\"sid\", sid, 0,",
@@ -297,6 +313,7 @@ pub const NEEDLES: &[&str] = &[
     "Updates(fields)",
     "Username: \"admin\"",
     "VALUES(?, ?)\", login, encoded)",
+    // negative-gate: RSA PKCS#1 v1.5 verify (CWE-347 safe-path prefilter)
     "VerifyPKCS1v15(",
     "WHERE tenant = ?",
     "WHERE username = $1 AND password_hash = $2",
@@ -323,9 +340,12 @@ pub const NEEDLES: &[&str] = &[
     "X-User-ID",
     "X-User-Role",
     "X-WebAuthn-OK",
+    // negative-gate: crypto/cipher stream API (CWE-325 prefilter)
     "XORKeyStream(",
     "[REDACTED CONTENT]",
+    // fixture-literal: recipient slice shape from CWE-941 corpus
     "[]string{email}",
+    // fixture-literal: XOR body shape from CWE-1240 corpus
     "^ key",
     "^([a-zA-Z]+)*$",
     "`json:\"password_hash\"`",
@@ -333,7 +353,9 @@ pub const NEEDLES: &[&str] = &[
     "adminAction",
     "adminAuditStore",
     "adminDB",
+    // negative-gate: AEAD seal API (CWE-323 / integrity prefilters)
     "aead.Seal(",
+    // negative-gate: stdlib AES constructor (CWE-1240 safe-path prefilter)
     "aes.NewCipher(",
     "allowedHosts",
     "allowedHostsPure",
@@ -370,8 +392,11 @@ pub const NEEDLES: &[&str] = &[
     "cfg.Password",
     "cfg.Secret",
     "changed_at",
+    // negative-gate: stdlib CBC API (CWE-1204 prefilter)
     "cipher.NewCBCEncrypter(",
+    // negative-gate: stdlib CTR API (CWE-325 prefilter)
     "cipher.NewCTR(",
+    // negative-gate: stdlib AEAD API (CWE-325 / CWE-1240 safe-path prefilter)
     "cipher.NewGCM(",
     "cmd.Stdin = strings.NewReader(",
     "code",
@@ -427,6 +452,7 @@ pub const NEEDLES: &[&str] = &[
     "filepath.Join(",
     "filepath.Join(root, requested)",
     "fixedJobLock",
+    // fixture-literal: CWE-323 fixed-nonce byte literal
     "fixednonce12",
     "fmt.Sprintf(",
     "fmt.Sprintf(\"%%%s%%\", term)",
@@ -489,12 +515,16 @@ pub const NEEDLES: &[&str] = &[
     "integrity check failed",
     "invalid credentials",
     "invalid jwt structure",
+    // fixture-literal: CWE-940 safe-path error string (not a general OAuth fact)
     "invalid oauth state",
+    // fixture-literal: CWE-347 safe-path error string (not a general verify fact)
     "invalid signature",
     "invoice_id",
     "io.Copy(out, in)",
     "io.ReadAll(",
+    // negative-gate: crypto/rand IV fill (CWE-1204 safe-path prefilter)
     "io.ReadFull(rand.Reader, iv)",
+    // negative-gate: crypto/rand nonce fill (CWE-323 safe-path prefilter)
     "io.ReadFull(rand.Reader, nonce)",
     "jobLockPath",
     "json.Marshal(",
@@ -509,6 +539,7 @@ pub const NEEDLES: &[&str] = &[
     "json.Unmarshal(body, &cfg)",
     "json.Unmarshal(bundle.Profile, &profile)",
     "json.Unmarshal(env.Profile, &profile)",
+    // fixture-literal: JWT claims decode into &claims (CWE-347 / CWE-358 corpus)
     "json.Unmarshal(payload, &claims)",
     "json.Unmarshal(raw, &p)",
     "jwt_sub",
@@ -530,6 +561,7 @@ pub const NEEDLES: &[&str] = &[
     "log.Printf(\"auth failure",
     "log.Println(err)",
     "loginAttempts",
+    // negative-gate: stored-identity lookup (CWE-941 safe-path prefilter)
     "lookupEmail(",
     "mac.Sum(nil)",
     "mail.ParseAddress(payload.Email)",
@@ -540,6 +572,7 @@ pub const NEEDLES: &[&str] = &[
     "map[string]string{}",
     "math/rand",
     "maxPasswordAge",
+    // negative-gate: stdlib weak-hash API (CWE-328 / CWE-916 prefilter)
     "md5.Sum(",
     "method",
     "moduleRoot",
@@ -549,6 +582,7 @@ pub const NEEDLES: &[&str] = &[
     "new_password",
     "no account",
     "notes.body",
+    // negative-gate: OAuth state token presence (CWE-940 safe-path prefilter)
     "oauth_state",
     "operator_id",
     "os.Chmod(dest, 0o600)",
@@ -603,6 +637,7 @@ pub const NEEDLES: &[&str] = &[
     "privilegedMode = true",
     "provided[i] != expected[i]",
     "queue := make(chan",
+    // negative-gate: stdlib OAuth state cookie read (CWE-940 safe-path prefilter)
     "r.Cookie(\"oauth_state\")",
     "r.Cookie(\"role\")",
     "r.Cookie(\"session_id\")",
@@ -611,6 +646,7 @@ pub const NEEDLES: &[&str] = &[
     "r.Group(\"/api\", requireJWT())",
     "r.TLS == nil",
     "r.URL.Query().Get(\"url\")",
+    // fixture-literal: wall-clock PRNG seed shapes (CWE-335 / CWE-331 / CWE-338 family)
     "rand.New(rand.NewSource(seed))",
     "rand.New(rand.NewSource(time.Now().UnixNano()))",
     "rand.NewSource(seed)",
@@ -622,6 +658,7 @@ pub const NEEDLES: &[&str] = &[
     "readOnlyDB",
     "referralCredits += 10",
     "regexp.MustCompile(`^[a-z]+$`)",
+    // fixture-literal: CWE-323 pure-fixture fixed-nonce identifier
     "relaySessionNonce",
     "reportTemplate",
     "reportTemplatePure",
@@ -650,6 +687,7 @@ pub const NEEDLES: &[&str] = &[
     "serviceGID",
     "serviceUID",
     "session",
+    // negative-gate: session identity binding (CWE-941 safe-path prefilter)
     "sessionUserID",
     "session_data",
     "session_token",
@@ -657,14 +695,17 @@ pub const NEEDLES: &[&str] = &[
     "sha256.Sum256(",
     "sharedAuditStore",
     "sharedDB",
+    // fixture-literal: CWE-323 frameworks fixed-nonce identifier
     "sharedNonce",
     "sid",
+    // negative-gate: stdlib SMTP sink (CWE-941 prefilter; call_facts primary after §2.5)
     "smtp.SendMail",
     "spentNonces",
     "spoolDir",
     "sql.Open",
     "sql.Open(\"postgres\", appDSNPure)",
     "stat.Uid",
+    // fixture-literal: CWE-323 pure-fixture fixed-nonce byte literal
     "static-nonce12",
     "strconv.ParseInt(raw, 0, 64)",
     "strconv.ParseInt(raw, 10, 64)",
@@ -681,6 +722,7 @@ pub const NEEDLES: &[&str] = &[
     "strings.ReplaceAll(raw, \"<\", \"\")",
     "strings.ReplaceAll(safe, \">\", \"\")",
     "strings.Split(",
+    // fixture-literal: JWT three-part split on raw (CWE-347 / CWE-358 corpus)
     "strings.Split(raw, \".\")",
     "strings.TrimPrefix(raw, \"Bearer \")",
     "strongPassword(",
@@ -722,6 +764,7 @@ pub const NEEDLES: &[&str] = &[
     "unsupported jwt algorithm",
     "uploadRoot",
     "url.PathUnescape(raw)",
+    // negative-gate: stored user email field (CWE-941 safe-path prefilter)
     "user.Email",
     "username",
     "var quotaCovertFlag int",
@@ -732,7 +775,9 @@ pub const NEEDLES: &[&str] = &[
     "visitMu.Lock()",
     "w.WriteHeader(http.StatusOK)",
     "walletCredits += amount",
+    // fixture-literal: CWE-1204 corpus fixed-IV identifier
     "weakIV",
+    // fixture-literal: CWE-1204 pure-fixture fixed-IV identifier
     "weakIVPure",
     "webauthn_assertion",
     "webauthn_ok",
@@ -743,7 +788,9 @@ pub const NEEDLES: &[&str] = &[
     "writeDBFailure(",
     "xml.NewDecoder(",
     "xml.Unmarshal(",
+    // fixture-literal: CWE-1240 corpus custom-cipher helper
     "xorCipher(",
+    // fixture-literal: CWE-1240 pure-fixture custom-cipher helper
     "xorCipherPure(",
     "{\"balance\":0}",
     "{\"proof\": challenge}",
