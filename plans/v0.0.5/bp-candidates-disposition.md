@@ -154,8 +154,9 @@ None of these samples justify promoting a deferred candidate without a stronger 
 1. **Retire the 9 retire-duplicate IDs** from any future BP implementation queue; if signal is still desired, strengthen the owning CWE/PERF/BP-13/noctx path instead.
 2. Keep the **13 defer-policy** IDs out of the BP pack unless product policy explicitly wants opinionated architecture rules (and then only behind non-recommended profiles).
 3. Keep the **6 defer-needs-proof-boundary** IDs parked until typed facts, multi-file method sets, or driver/config proof exist (Phase 4.3 / typed Go facts).
-4. **BP-71** is the only **defer-needs-canary** candidate: admit only after a real-module canary with a frozen callee allowlist and FP budget.
+4. **BP-71** is the only **defer-needs-canary** candidate: admit only after a real-module canary with a frozen callee allowlist and FP budget. **Follow-up (#46):** dedicated canary recorded in `bp-71-canary.md` → **wontfix** (allowlist hits are idiomatic `_, err` on Copy/Write; no actionable correctness class).
 5. Do **not** implement detectors under issue #39; any future work needs a separate scoped issue after this disposition is accepted.
+6. **Follow-up (#46):** proof-boundary design notes + retire-duplicate confirmation in `bp-proof-boundary-notes.md` (all six IDs wontfix under current seams; nine retire-duplicates confirmed wontfix-as-BP).
 
 ---
 
