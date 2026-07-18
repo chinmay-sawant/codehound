@@ -131,3 +131,27 @@ fn cwe_89_renamed_safe_is_silent() {
         result.findings
     );
 }
+
+#[test]
+fn cwe_89_prepare_same_var_safe_is_silent() {
+    let source_path = helpers::assert_fixture_materializes(
+        "tests/fixtures/go/taint/CWE-89-prepare-same-var-safe.txt",
+    );
+    let analyzer = taint_analyzer();
+    let result = analyzer.analyze_paths(&[&source_path], None).unwrap();
+    assert!(
+        !result.findings.iter().any(|f| f.rule_id == "CWE-89"),
+        "literal Prepare + stmt.Query should not fire CWE-89: {:?}",
+        result.findings
+    );
+}
+
+#[test]
+fn cwe_89_prepare_same_var_string_concat_still_fires() {
+    assert_taint_oracle(
+        "tests/fixtures/go/taint/CWE-89-prepare-same-var-vulnerable.txt",
+        "CWE-89",
+        1,
+        is_sql_sink,
+    );
+}

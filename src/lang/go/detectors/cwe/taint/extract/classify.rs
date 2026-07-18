@@ -172,9 +172,10 @@ pub(crate) fn classify_sanitizer(func_text: &str) -> Option<SanitizerKind> {
         return Some(SanitizerKind::XML);
     }
     // Do NOT treat bare `.Prepare` as a sanitizer: Prepare with a dynamic SQL
-    // string is still injectable. Safe pattern is a *literal* first arg at the
-    // Query/Exec sink (see is_parameterized_query in cwe_89). Same-variable
-    // Prepare→Stmt.Query proof is not implemented yet.
+    // string is still injectable. Safe patterns: (1) literal first arg at the
+    // Query/Exec sink (`is_parameterized_query`); (2) same-function same-var
+    // literal Prepare/PrepareContext → Stmt.Query/Exec (`is_prepared_stmt_parameterized`
+    // in cwe_89). Never register Prepare here as SanitizerKind::SQL.
 
     // Name-based heuristic: only well-known sanitizer prefixes. Intentionally
     // does NOT match bare "clean" (filepath.Clean is not path-safe by itself).
