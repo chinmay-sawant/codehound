@@ -6,6 +6,8 @@ pub(crate) fn detect_cwe_325(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
+    // Needle-primary stdlib API smell (Heuristic). Needles are negative-gate /
+    // prefilter tokens only; do not promote to structural without call facts.
     if !facts.source_index.has("cipher.NewCTR(") || !facts.source_index.has("XORKeyStream(") {
         return;
     }
@@ -29,6 +31,8 @@ pub(crate) fn detect_cwe_1204(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut 
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
+    // Fixture-only: exact IV literal + weakIV identifiers (see rules::maturity).
+    // Keep for --profile all corpus tests; never in recommended/security packs.
     let static_iv = facts.source_index.has("cipher.NewCBCEncrypter(")
         && (facts.source_index.has("weakIV") || facts.source_index.has("weakIVPure"))
         && facts.source_index.has("1234567890123456");
@@ -55,6 +59,8 @@ pub(crate) fn detect_cwe_1240(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut 
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
+    // Fixture-only: corpus helper names + XOR body shape (see rules::maturity).
+    // Keep for --profile all corpus tests; never in recommended/security packs.
     let custom_xor_cipher = (facts.source_index.has("SealSessionToken(")
         || facts.source_index.has("SealSessionTokenPure("))
         && (facts.source_index.has("xorCipher(") || facts.source_index.has("xorCipherPure("))

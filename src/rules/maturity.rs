@@ -83,6 +83,11 @@ fn is_fixture_only(rule_id: &str) -> bool {
             | "CWE-338"
             | "CWE-342"
             | "CWE-343"
+            // Cipher long-tail museum (see domains/cryptography/ciphers.rs)
+            // CWE-325 stays Heuristic: stdlib CTR/XORKeyStream API shape is
+            // production-shaped but still needle-primary (not structural).
+            | "CWE-1204" // fixed IV literal + weakIV identifiers
+            | "CWE-1240" // SealSessionToken / xorCipher corpus helpers
             // Common fixture-shaped long-tail (path/corpus strings)
             | "CWE-798" // hard-coded credentials often fixture-shaped
     )
@@ -102,7 +107,13 @@ mod tests {
     #[test]
     fn fixture_only_quarantined() {
         assert_eq!(maturity_for("CWE-334"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-1204"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-1240"), RuleMaturity::FixtureOnly);
+        // Cipher API smell remains heuristic; not promoted to structural.
+        assert_eq!(maturity_for("CWE-325"), RuleMaturity::Heuristic);
         assert!(is_quarantined_from_default_packs("CWE-334"));
+        assert!(is_quarantined_from_default_packs("CWE-1204"));
+        assert!(!is_quarantined_from_default_packs("CWE-325"));
         assert!(!is_quarantined_from_default_packs("CWE-22"));
         assert!(!is_quarantined_from_default_packs("PERF-101"));
     }

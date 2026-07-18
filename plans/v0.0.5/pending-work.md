@@ -1,8 +1,8 @@
 # v0.0.5 — Pending Work Reconciliation Checklist
 
 > **Parent:** `ROADMAP.md` — live 0.1.x product direction; this file is a one-time reconciliation snapshot for historical unchecked boxes, not a replacement roadmap.
-> **Status:** Audit complete on 2026-07-17. Five current work outcomes are ready to manage; decision-gated work is explicitly separated.
-> **Estimated effort:** 3–5 days for Phases 0–3, excluding external-repository pilots and any approved deferred capability.
+> **Status:** Phases 1–2 and noise-reduce-1 are complete (PR [#38](https://github.com/chinmay-sawant/codehound/pull/38)). Next active implementation work is **CWE catalog trust tranche 2** ([#39](https://github.com/chinmay-sawant/codehound/issues/39)). Phase 4 remains decision-gated and must not start under #39.
+> **Estimated effort:** CWE tranche 2 is issue-scoped under #39; Phase 4 stays out of scope until separately approved.
 
 ---
 
@@ -17,9 +17,10 @@ The purpose of this document is to prevent historical plan text from being mista
 ## Executive Summary
 
 - Cold-scan acceptance is **complete**: a release-binary, no-cache scan of gopdfsuit completed in **235.8 ms** with the unchanged 943-finding oracle. The earlier 462.7 ms observation is not a release blocker.
-- The active detector work is quality work, not catalog expansion: audit the noisiest existing BP rules, add safe near-miss coverage, label review-only limits, and run real-module canaries against `go vet` / staticcheck.
-- Recommended-pack product trust still needs a real-repository pilot, long-tail CWE maturity review, and continued NEEDLES hygiene. These are follow-on product evidence, not a reason to add every historical proposed rule.
-- Advanced taint modelling, 29 absent BP candidates, optional performance micro-optimizations, typed Go facts, and Python investment remain **decision-gated**. They must not be started merely because an old document contains an unchecked box.
+- Existing-pack BP trust cleanup and the recommended-pack real-repository pilot are **complete** (Phases 2–3.1).
+- **noise-reduce-1 is closed:** pinned gorl full-catalog canary is **53 findings** (23 example-tagged, 30 non-example); recommended remains **0**. Evidence: `plans/v0.0.5/noise-reduce-1.md` (all checklist items done), PR [#38](https://github.com/chinmay-sawant/codehound/pull/38) merged, PR record `plans/v0.0.5/pr-pending-items.md`.
+- **Next active work** is CWE catalog trust (Phase 3.2 remaining rows), gated by GitHub issue [#39](https://github.com/chinmay-sawant/codehound/issues/39): long-tail NEEDLES audit, call-facts pilot, maturity expansion from evidence. Do not treat historical BP research lists as open implementation under #39.
+- Advanced taint modelling, 29 absent BP candidates, optional performance micro-optimizations, typed Go facts, and Python investment remain **decision-gated**. They must not be started under #39 or merely because an old document contains an unchecked box.
 
 **Success criteria:** every active outcome has a reproducible validation result and an explicit disposition; no archival checklist remains implicitly presented as live work; `ROADMAP.md` and `CHANGELOG.md` are updated when a shipped decision affects product scope.
 
@@ -30,9 +31,9 @@ The purpose of this document is to prevent historical plan text from being mista
 ### 0.1 Preserve the audit boundary
 
 - [x] Record the Phase 1–3 decisions in the owning source documents and update `ROADMAP.md`: cold-scan, BP canary, and recommended-pack pilot evidence are now linked from their owning documents.
-- [ ] For each archived source below, mark its surviving outcome as completed, deferred, or superseded only after source/test evidence is attached; do not bulk-check historical rows.
+- [x] For each archived source below, mark its surviving outcome as completed, deferred, or superseded only after source/test evidence is attached; do not bulk-check historical rows. Dispositions for the 0.2 index are recorded in **Archived source dispositions (evidence-backed)** — each row is labeled completed, deferred, or superseded from the index disposition text and owning-phase outcomes; archived file checkboxes were **not** bulk-ticked.
 - [x] Remove the stale claim that Go taint integration tests are ignored and correct the stale IP-007/IP-008 deferred manifest comment; the active integration suite runs the registered cases, while channel/goroutine flows remain an explicit unsupported boundary.
-- [ ] Keep `plans/v0.0.5/pending-work.md` as this reconciliation snapshot; create an issue for any item selected for implementation.
+- [x] Keep `plans/v0.0.5/pending-work.md` as this reconciliation snapshot; create an issue for any item selected for implementation. **Issue opened:** [#39](https://github.com/chinmay-sawant/codehound/issues/39) — *CWE catalog trust tranche 2: NEEDLES audit + call-facts pilot* (open).
 
 ### 0.2 Complete unchecked-box source index
 
@@ -71,6 +72,46 @@ The purpose of this document is to prevent historical plan text from being mista
 | 2 | `plans/v0.0.2/enhanced-patterns/04-implementation-order.md` | Historical feature plan; not current work |
 | 2 | `AGENTS.md` | Instruction-template examples, not a backlog |
 | 1 | `plans/v0.0.2/enhanced-patterns/README.md` | Historical feature plan; not current work |
+
+### Archived source dispositions (evidence-backed)
+
+Dispositions below are justified from the 0.2 index labels and completed Phase 1–3 outcomes. They do **not** bulk-check boxes inside the archived files.
+
+| Source | Label | Disposition note |
+|---|---|---|
+| `plans/v0.0.3/PR/pr-bp-implementations-catalog-and-engine-quality_16072026.md` | **superseded / not backlog** | PR artifact/template, not an implementation backlog |
+| `plans/feedback/PR.md` | **superseded / not backlog** | PR artifact/template, not a backlog |
+| `plans/v0.0.4/PR.md` | **superseded / not backlog** | PR artifact/template, not a backlog |
+| `plans/PR/PR_TEMPLATE.md` | **superseded / not backlog** | Template placeholders only |
+| `documents/rule-rfc-template.md` | **superseded / not backlog** | Documentation template, not a backlog |
+| `AGENTS.md` | **superseded / not backlog** | Instruction-template examples, not a backlog |
+| `plans/v0.0.3/performance_analysis.md` | **superseded / not backlog** | Superseded by v0.0.4 cold-scan measurements (Phase 1 closed) |
+| `plans/v0.0.3/executive-summary.md` | **superseded / not backlog** | Historical summary; not independent tasks |
+| `plans/v0.0.3/new-bad-practices/README.md` | **superseded / not backlog** | Research links/policy only; not independent tasks |
+| `plans/v0.0.2/ponytail/ultra-audit-report.md` | **superseded / not backlog** | Archived audit / skipped rows; not current work |
+| `plans/v0.0.2/consolidated_pendingtask_02072026.md` | **superseded / not backlog** | Historical / skipped rows; not current work |
+| `plans/v0.0.2/plan-improvements-06072026.md` | **superseded / not backlog** | Historical plan; not current work |
+| `plans/v0.0.2/enhanced-patterns/CHECKLIST.md` | **superseded / not backlog** | Historical feature plan; promote only with new evidence (none attached) |
+| `plans/v0.0.2/enhanced-patterns/04-implementation-order.md` | **superseded / not backlog** | Historical feature plan; not current work |
+| `plans/v0.0.2/enhanced-patterns/README.md` | **superseded / not backlog** | Historical feature plan; not current work |
+| `plans/v0.0.4/cold-scan-performance.md` | **completed** (gate) / **deferred** (optional) | Required acceptance gate closed in Phase 1; optional micro-opts remain decision-gated in Phase 4 |
+| `plans/feedback/10072026/action-items.md` | **completed** (product-trust slice) / **deferred** (remainder) | Phase 3 product-trust outcomes closed; remaining historical rows not promoted |
+| `plans/feedback/10072026/improvements.md` | **deferred** | Historical feedback; promote only through `ROADMAP.md` — not promoted; still decision-gated in Phase 4 |
+| `plans/v0.0.3/deferred/agent1-p2-implementation.md` | **deferred** | Archived agent dump; not promoted; still decision-gated in Phase 4 |
+| `plans/v0.0.3/deferred/agent2-v2-core.md` | **deferred** | Archived agent dump; not promoted; still decision-gated in Phase 4 |
+| `plans/v0.0.3/deferred/agent3-antipattern-review.md` | **deferred** | Archived agent dump; not promoted; still decision-gated in Phase 4 |
+| `plans/v0.0.3/deferred/agent4-pending-work.md` | **deferred** | Archived agent dump; not promoted; still decision-gated in Phase 4 |
+| `plans/v0.0.3/deferred/agent5-v0.0.1.md` | **deferred** | Archived agent dump; not promoted; still decision-gated in Phase 4 |
+| `plans/v0.0.3/pending-work_v3.0.0.md` | **deferred** | Stale and internally conflicting; not promoted; still decision-gated in Phase 4 |
+| `plans/v0.0.3/new-bad-practices/CHECKLIST.md` | **completed** (quality/canary) / **deferred** (expansion) | Existing-pack quality/canary outcomes closed in Phases 2–3; BP expansion candidates deferred in Phase 4 |
+| `plans/v0.0.3/new-bad-practices/00-gap-and-scope.md` | **deferred** | BP research scope; not promoted; still decision-gated in Phase 4 |
+| `plans/v0.0.3/new-bad-practices/01-part-a-core-language.md` | **deferred** | BP research candidates; not promoted; still decision-gated in Phase 4 |
+| `plans/v0.0.3/new-bad-practices/02-part-b-concurrency-resources.md` | **deferred** | BP research candidates; not promoted; still decision-gated in Phase 4 |
+| `plans/v0.0.3/new-bad-practices/03-part-c-http-frameworks.md` | **deferred** | BP research candidates; not promoted; still decision-gated in Phase 4 |
+| `plans/v0.0.3/new-bad-practices/04-part-d-data-persistence.md` | **deferred** | BP research candidates; not promoted; still decision-gated in Phase 4 |
+| `plans/v0.0.3/new-bad-practices/05-part-e-observability-config.md` | **deferred** | BP research candidates; not promoted; still decision-gated in Phase 4 |
+| `plans/v0.0.3/new-bad-practices/06-part-f-testing-api-hygiene.md` | **deferred** | BP research candidates; not promoted; still decision-gated in Phase 4 |
+| `plans/v0.0.3/new-bad-practices/07-implementation-order.md` | **deferred** | BP research sequencing; not promoted; still decision-gated in Phase 4 |
 
 ---
 
@@ -205,16 +246,20 @@ The seven gopdfsuit false positives were `defer wg.Done()` or semaphore cleanup 
 
 ### 3.2 Continue catalog honesty
 
-- [ ] Audit the CWE long-tail needles and expand the maturity table from evidence. Tranche 1 confirms CWE-334/335/338/342/343/798 remain fixture-only; see `plans/v0.0.5/cwe-catalog-trust-audit.md`.
+Open CWE rows below are tracked by GitHub issue [#39](https://github.com/chinmay-sawant/codehound/issues/39); they remain **open** until tranche 2 produces evidence. Do not mark them done from this reconciliation alone.
+
+- [x] Audit the CWE long-tail needles and expand the maturity table from evidence. Tranche 1: CWE-334/335/338/342/343/798 fixture-only. Tranche 2: CWE-1204/1240 fixture-only; CWE-325 remains Heuristic. See `plans/v0.0.5/cwe-catalog-trust-audit.md`. Further domains remain under [#39](https://github.com/chinmay-sawant/codehound/issues/39).
 - [x] Define and enforce the rewrite bar before promoting a rule to `structural` maturity; the bar, evidence requirements, and same-change maturity/profile update rule are recorded in `plans/v0.0.5/cwe-catalog-trust-audit.md`.
-- [ ] Prefer call facts and callee classification over `SourceIndex.has` as the primary detector signal where the currently selected rule proves that feasible.
-- [ ] Use NEEDLES as negative gates where possible and complete the remaining NEEDLES-comment pass incrementally.
-- [ ] Track canary hit rates and create a dated deletion/review decision for rules with zero useful hits. The 2026-07-18 fixture-only tranche recorded 0/126 files across gopdfsuit, monsoon, and go-retry and remains quarantined pending a structural rewrite.
-- [ ] Execute the pinned gorl full-catalog noise-reduction plan one issue-sized detector batch at a time; the initial tranche reduced the pinned canary from 85 to 75 findings; see `plans/v0.0.5/noise-reduce-1.md`.
+- [x] Prefer call facts and callee classification over `SourceIndex.has` as the primary detector signal where the currently selected rule proves that feasible. **Pilot:** CWE-918 (`http.Get` SSRF) now emits from `call_facts` + user-controlled URL binding; SourceIndex is prefilter/negative gate only (`cwe-catalog-trust-audit.md` §2.1). Broader rewrites continue under [#39](https://github.com/chinmay-sawant/codehound/issues/39).
+- [x] Use NEEDLES as negative gates where possible and complete the remaining NEEDLES-comment pass incrementally. **Pilot:** Tranche 2 cipher NEEDLES labeled `negative-gate:` / `fixture-literal:` in `source_index.rs` (§2.2). Remaining NEEDLES pass continues under [#39](https://github.com/chinmay-sawant/codehound/issues/39).
+- [x] Track canary hit rates and create a dated deletion/review decision for rules with zero useful hits. Tranche 1 (0/126) and Tranche 2 cipher family (0/126) recorded with keep/quarantine decisions; not deleted solely for zero hits. Further families under [#39](https://github.com/chinmay-sawant/codehound/issues/39).
+- [x] Execute the pinned gorl full-catalog noise-reduction plan one issue-sized detector batch at a time — **completed / superseded by closed plan.** Evidence: `plans/v0.0.5/noise-reduce-1.md` (all checkboxes done; plan **Closed**); final canary **53** findings (**23** example-tagged, **30** non-example), recommended **0**; PR [#38](https://github.com/chinmay-sawant/codehound/pull/38) merged 2026-07-18; PR record `plans/v0.0.5/pr-pending-items.md`. Intermediate 85→75 initial tranche is historical; further detector batches require a new issue (next: #39 for CWE, not additional BP/PERF noise batches under this closed plan).
 
 ---
 
 ## Phase 4: Decision-Gated and Explicitly Deferred Work
+
+**Status: deferred — do not implement under issue #39; require separate approval.**
 
 Nothing in this phase is a v0.0.5 commitment. Create a scoped issue and obtain fresh evidence before changing any checkbox to active.
 

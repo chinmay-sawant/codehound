@@ -2,10 +2,12 @@
 
 /// Frequently scanned literals across the Go CWE bundle (one `contains` per needle).
 ///
-/// Hygiene notes (Phase 1):
+/// Hygiene notes (Phase 1 + Tranche 2):
 /// - Prefer structural facts/call classification over needles for primary detection.
-/// - Needles marked `// fixture-only:` encode corpus strings; paired detectors are
-///   quarantined from recommended/security packs via `rules::maturity`.
+/// - `// fixture-only:` / `// fixture-literal:` encode corpus strings; paired detectors
+///   stay out of recommended/security packs via `rules::maturity` when quarantined.
+/// - `// negative-gate:` marks stdlib/API tokens safe as cheap prefilters only — they
+///   must not be the sole structural evidence for a finding emission.
 /// - Production-shaped needles (APIs, stdlib) stay as cheap prefilters / negative gates.
 pub const NEEDLES: &[&str] = &[
     " <= 0",
@@ -66,6 +68,7 @@ pub const NEEDLES: &[&str] = &[
     "0o644",
     "0xC3, 0x28",
     "10.20.30.40:9090",
+    // fixture-literal: fixed 16-byte IV from CWE-1204 corpus (not a general IV detector)
     "1234567890123456",
     "127.0.0.1:9090",
     "<!DOCTYPE",
@@ -249,8 +252,11 @@ pub const NEEDLES: &[&str] = &[
     "SaveHookConfig(",
     "SaveHookConfigPure(",
     "SaveUploadedFile(file, dest)",
+    // negative-gate: AEAD Seal call token (CWE-325 safe-path prefilter; broad)
     "Seal(",
+    // fixture-literal: CWE-1240 corpus helper name
     "SealSessionToken(",
+    // fixture-literal: CWE-1240 pure-fixture helper name
     "SealSessionTokenPure(",
     "Secret",
     "Secret   string",
@@ -323,9 +329,11 @@ pub const NEEDLES: &[&str] = &[
     "X-User-ID",
     "X-User-Role",
     "X-WebAuthn-OK",
+    // negative-gate: crypto/cipher stream API (CWE-325 prefilter)
     "XORKeyStream(",
     "[REDACTED CONTENT]",
     "[]string{email}",
+    // fixture-literal: XOR body shape from CWE-1240 corpus
     "^ key",
     "^([a-zA-Z]+)*$",
     "`json:\"password_hash\"`",
@@ -333,7 +341,9 @@ pub const NEEDLES: &[&str] = &[
     "adminAction",
     "adminAuditStore",
     "adminDB",
+    // negative-gate: AEAD seal API (CWE-323 / integrity prefilters)
     "aead.Seal(",
+    // negative-gate: stdlib AES constructor (CWE-1240 safe-path prefilter)
     "aes.NewCipher(",
     "allowedHosts",
     "allowedHostsPure",
@@ -370,8 +380,11 @@ pub const NEEDLES: &[&str] = &[
     "cfg.Password",
     "cfg.Secret",
     "changed_at",
+    // negative-gate: stdlib CBC API (CWE-1204 prefilter)
     "cipher.NewCBCEncrypter(",
+    // negative-gate: stdlib CTR API (CWE-325 prefilter)
     "cipher.NewCTR(",
+    // negative-gate: stdlib AEAD API (CWE-325 / CWE-1240 safe-path prefilter)
     "cipher.NewGCM(",
     "cmd.Stdin = strings.NewReader(",
     "code",
@@ -494,7 +507,9 @@ pub const NEEDLES: &[&str] = &[
     "invoice_id",
     "io.Copy(out, in)",
     "io.ReadAll(",
+    // negative-gate: crypto/rand IV fill (CWE-1204 safe-path prefilter)
     "io.ReadFull(rand.Reader, iv)",
+    // negative-gate: crypto/rand nonce fill (CWE-323 safe-path prefilter)
     "io.ReadFull(rand.Reader, nonce)",
     "jobLockPath",
     "json.Marshal(",
@@ -732,7 +747,9 @@ pub const NEEDLES: &[&str] = &[
     "visitMu.Lock()",
     "w.WriteHeader(http.StatusOK)",
     "walletCredits += amount",
+    // fixture-literal: CWE-1204 corpus fixed-IV identifier
     "weakIV",
+    // fixture-literal: CWE-1204 pure-fixture fixed-IV identifier
     "weakIVPure",
     "webauthn_assertion",
     "webauthn_ok",
@@ -743,7 +760,9 @@ pub const NEEDLES: &[&str] = &[
     "writeDBFailure(",
     "xml.NewDecoder(",
     "xml.Unmarshal(",
+    // fixture-literal: CWE-1240 corpus custom-cipher helper
     "xorCipher(",
+    // fixture-literal: CWE-1240 pure-fixture custom-cipher helper
     "xorCipherPure(",
     "{\"balance\":0}",
     "{\"proof\": challenge}",
