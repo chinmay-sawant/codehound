@@ -84,10 +84,16 @@ fn is_fixture_only(rule_id: &str) -> bool {
             | "CWE-342"
             | "CWE-343"
             // Cipher long-tail museum (see domains/cryptography/ciphers.rs)
-            // CWE-325 stays Heuristic: stdlib CTR/XORKeyStream API shape is
-            // production-shaped but still needle-primary (not structural).
+            // CWE-325 stays Heuristic: call-facts primary after §2.3 rewrite,
+            // but not structural-promoted (no §1.3 real-module bar yet).
             | "CWE-1204" // fixed IV literal + weakIV identifiers
             | "CWE-1240" // SealSessionToken / xorCipher corpus helpers
+            // Crypto-strength / JWT long-tail museum (Tranche 3 / §2.4)
+            // CWE-328 stays Heuristic: call-facts primary (md5.Sum) after §2.3;
+            // production-shaped and real-module hits, not structural-promoted.
+            | "CWE-323" // fixed nonce identifiers + fixednonce12 literals
+            | "CWE-331" // Intn(900000)+100000 recovery-code fixture bound
+            | "CWE-347" // JWT manual split/decode without verify (exact names)
             // Common fixture-shaped long-tail (path/corpus strings)
             | "CWE-798" // hard-coded credentials often fixture-shaped
     )
@@ -109,11 +115,20 @@ mod tests {
         assert_eq!(maturity_for("CWE-334"), RuleMaturity::FixtureOnly);
         assert_eq!(maturity_for("CWE-1204"), RuleMaturity::FixtureOnly);
         assert_eq!(maturity_for("CWE-1240"), RuleMaturity::FixtureOnly);
-        // Cipher API smell remains heuristic; not promoted to structural.
+        assert_eq!(maturity_for("CWE-323"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-331"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-347"), RuleMaturity::FixtureOnly);
+        // Cipher / weak-hash smells remain heuristic (call-facts primary for
+        // 325/328 after §2.3 rewrite; not structural-promoted).
         assert_eq!(maturity_for("CWE-325"), RuleMaturity::Heuristic);
+        assert_eq!(maturity_for("CWE-328"), RuleMaturity::Heuristic);
         assert!(is_quarantined_from_default_packs("CWE-334"));
         assert!(is_quarantined_from_default_packs("CWE-1204"));
+        assert!(is_quarantined_from_default_packs("CWE-323"));
+        assert!(is_quarantined_from_default_packs("CWE-331"));
+        assert!(is_quarantined_from_default_packs("CWE-347"));
         assert!(!is_quarantined_from_default_packs("CWE-325"));
+        assert!(!is_quarantined_from_default_packs("CWE-328"));
         assert!(!is_quarantined_from_default_packs("CWE-22"));
         assert!(!is_quarantined_from_default_packs("PERF-101"));
     }

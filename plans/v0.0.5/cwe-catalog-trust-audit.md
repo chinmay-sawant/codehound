@@ -1,7 +1,7 @@
 # v0.0.5 — CWE Catalog Trust Audit, Tranche 1
 
 > **Parent:** `plans/v0.0.5/pending-work.md` — Phase 3.2
-> **Status:** Tranche 1 complete (PRNG + CWE-798 quarantined). Tranche 2 complete (cipher misuse: CWE-1204/1240 fixture-only; CWE-325 stays Heuristic). Further long-tail NEEDLES audit and maturity expansion remain under GitHub issue [#39](https://github.com/chinmay-sawant/codehound/issues/39). The remaining CWE catalog is not yet certified.
+> **Status:** Tranche 1 complete (PRNG + CWE-798 quarantined). Tranche 2 complete (cipher misuse: CWE-1204/1240 fixture-only; CWE-325 stays Heuristic). §2.3 call-facts rewrites for CWE-325/328 done. Tranche 3 long-tail NEEDLES/maturity (§2.4): CWE-323/331/347 fixture-only; CWE-328 stays Heuristic. Further long-tail NEEDLES audit and maturity expansion remain under GitHub issue [#39](https://github.com/chinmay-sawant/codehound/issues/39). The remaining CWE catalog is not yet certified.
 > **Estimated effort:** Incremental, rule-family by rule-family; do not bulk-promote or bulk-check the remaining catalog.
 
 ---
@@ -17,6 +17,8 @@ This audit keeps the Go CWE catalog honest. It separates rules that can support 
 The first tranche confirms that CWE-334, CWE-335, CWE-338, CWE-342, CWE-343, and CWE-798 must remain `fixture-only`. Their current implementations depend on exact numeric bounds, identifier names, formulas, or a literal DSN rather than generalized call/type/flow evidence. They are already excluded from recommended and security profiles; this audit records why and adds an explicit promotion bar for future structural rules.
 
 Tranche 2 extends the same bar to the cipher-misuse family: CWE-1204 and CWE-1240 are corpus-literal detectors and are now `fixture-only`; CWE-325 is a production-shaped stdlib API smell kept as **Heuristic** without structural promotion (needle-primary emit). A zero-hit real-module canary (0/126 files) supports keep/quarantine rather than delete.
+
+Tranche 3 covers crypto-strength siblings and JWT manual decode: CWE-323 / CWE-331 / CWE-347 quarantine as `fixture-only` (fixed nonce identifiers, recovery-code bound, exact JWT variable names); CWE-328 (`md5.Sum`) stays **Heuristic** with three reviewed gopdfsuit hits and no structural promotion.
 
 Success means every future `structural` promotion has generalized syntax or facts, negative coverage, and real-module evidence. A CWE rule is not promoted merely because a fixture fires.
 
@@ -84,9 +86,9 @@ A CWE rule may be promoted to `structural` only when all of the following are tr
 
 Remaining open items are in scope for GitHub issue [#39](https://github.com/chinmay-sawant/codehound/issues/39). The CWE-918 call-facts pilot below is already recorded; do not treat the whole tranche as complete.
 
-- [x] Select one long-tail detector whose call facts already provide a complete primary signal, then replace its primary `SourceIndex.has` logic without changing its finding oracle. **Done for CWE-918** (see §2.1); further rewrites stay issue-gated under [#39](https://github.com/chinmay-sawant/codehound/issues/39).
-- [x] Retain only API/stdlib needles that can cheaply prove a detector impossible; label fixture-only corpus literals in the source index as they are audited. **Tranche 2 cipher family labeled** (see §2.2); remaining NEEDLES pass continues incrementally under [#39](https://github.com/chinmay-sawant/codehound/issues/39).
-- [x] Record a canary hit-rate and a dated keep/narrow/quarantine/delete decision for each completed family; Tranche 1 PRNG family (§1.2) and Tranche 2 cipher family (§2.2) are recorded. Further families remain under [#39](https://github.com/chinmay-sawant/codehound/issues/39).
+- [x] Select one long-tail detector whose call facts already provide a complete primary signal, then replace its primary `SourceIndex.has` logic without changing its finding oracle. **Done for CWE-918** (see §2.1); **CWE-325 + CWE-328** follow-on rewrites in §2.3. Further rewrites stay issue-gated under [#39](https://github.com/chinmay-sawant/codehound/issues/39).
+- [x] Retain only API/stdlib needles that can cheaply prove a detector impossible; label fixture-only corpus literals in the source index as they are audited. **Tranche 2 cipher family labeled** (see §2.2); **Tranche 3 crypto-strength/JWT family labeled** (see §2.4); remaining NEEDLES pass continues incrementally under [#39](https://github.com/chinmay-sawant/codehound/issues/39).
+- [x] Record a canary hit-rate and a dated keep/narrow/quarantine/delete decision for each completed family; Tranche 1 PRNG family (§1.2), Tranche 2 cipher family (§2.2), and Tranche 3 crypto-strength/JWT family (§2.4) are recorded. Further families remain under [#39](https://github.com/chinmay-sawant/codehound/issues/39).
 
 ### 2.1 Call-facts pilot — CWE-918 (2026-07-18)
 
@@ -113,7 +115,7 @@ Remaining open items are in scope for GitHub issue [#39](https://github.com/chin
 
 | Rule | Current detector evidence | Disposition |
 |---|---|---|
-| CWE-325 | `cipher.NewCTR(` + `XORKeyStream(` without `cipher.NewGCM(` / `Seal(` | Keep **Heuristic**. Stdlib API tokens are production-shaped negative-gate/prefilter needles, but emission is still needle-primary (no call-fact/AST primary). **Not promoted** to structural. |
+| CWE-325 | `cipher.NewCTR(` + `XORKeyStream(` without `cipher.NewGCM(` / `Seal(` | Keep **Heuristic**. Stdlib API tokens are production-shaped negative-gate/prefilter needles. **Superseded by §2.3** call-facts primary rewrite (still not structural-promoted). |
 | CWE-1204 | Exact IV literal `1234567890123456` plus `weakIV` / `weakIVPure` identifiers | Quarantine **fixture-only**. Corpus-specific fixed IV, not a general static-IV fact. |
 | CWE-1240 | `SealSessionToken(` / `xorCipher(` helper names plus `^ key` body shape | Quarantine **fixture-only**. Project-specific helper identifiers, not a generalized custom-cipher detector. |
 
@@ -161,9 +163,131 @@ target/release/codehound TARGET --profile all \
 
 #### Next long-tail candidates (not in this tranche)
 
-- Crypto-strength siblings: CWE-323 (fixed nonce identifiers), CWE-328 (`md5.Sum` API — likely keep Heuristic), CWE-331 (`Intn(900000)+100000` fixture bound).
-- JWT: CWE-347 (manual split/decode without verify — needle-primary).
+- Crypto-strength siblings + JWT manual decode: audited in **§2.4** (CWE-323/331/347 fixture-only; CWE-328 keep Heuristic after §2.3 rewrite).
+- Transport TLS: CWE-319 (`http.ListenAndServe` / `ListenAndServeTLS` / `tls.Config` — still needle-primary domain scope).
 - Continue NEEDLES-comment pass only within domain-sized families; do not bulk-edit the index.
+
+### 2.3 Call-facts rewrites — CWE-325 + CWE-328 (2026-07-18)
+
+> **Issue:** [#39](https://github.com/chinmay-sawant/codehound/issues/39)
+> **Scope:** Second call-facts primary rewrite tranche after the CWE-918 pilot (§2.1). Prefer production-shaped stdlib APIs already extracted into `call_facts`.
+
+#### CWE-325 — Missing Cryptographic Step (CTR without AEAD)
+
+**Rule:** `detect_cwe_325` in `src/lang/go/detectors/cwe/domains/cryptography/ciphers.rs`.
+
+**Before:** Needle-primary emit on `SourceIndex.has("cipher.NewCTR(")` + `XORKeyStream(` without `cipher.NewGCM(` / `Seal(`; span via `source.find("cipher.NewCTR(")`.
+
+**After:** Primary match requires both callees in `facts.call_facts`:
+- `cipher.NewCTR`
+- any callee ending with `.XORKeyStream` (receiver name varies: `stream`, …)
+
+SourceIndex is retained only as:
+- cheap impossibility prefilter: `cipher.NewCTR(` + `XORKeyStream(`
+- negative prefilters: `cipher.NewGCM(` / `Seal(` (AEAD path)
+
+Finding span uses `ctr_call.start_byte` from call facts.
+
+**Oracle:** Existing CWE-325 vulnerable fixtures still fire; safe fixtures still silence (GCM + Seal negatives). No fixture renames. Maturity remains **Heuristic** (not promoted to structural — no real-module hit evidence yet; §1.3 bar still not met).
+
+**Canary:** Not re-run in this rewrite; fixture regression is the oracle gate. Prior zero-hit canary for the cipher family is in §2.2.
+
+#### CWE-328 — Weak Hash (MD5)
+
+**Rule:** `detect_cwe_328` in `src/lang/go/detectors/cwe/domains/general_security/crypto_and_integrity/crypto_strength.rs`.
+
+**Before:** Needle-primary emit on `SourceIndex.has("md5.Sum(")` with span via `source.find("md5.Sum(")`.
+
+**After:** Primary match iterates `facts.call_facts` for callee `md5.Sum`. SourceIndex is retained only as a cheap impossibility prefilter: `md5.Sum(`. Finding span uses `md5_call.start_byte`.
+
+**Oracle:** Existing CWE-328 vulnerable fixtures still fire; safe fixtures (SHA-256 + salt) still silence. Neighbor CWE-916 (`md5.Sum` + `password` needle-primary for insufficient work factor) is unchanged. No fixture renames. Maturity remains **Heuristic**.
+
+**NEEDLES label:** `md5.Sum(` labeled `negative-gate` (CWE-328 / CWE-916 prefilter) in `source_index.rs`.
+
+**Canary:** Not run in this rewrite; fixture regression is the oracle gate.
+
+#### Disposition summary
+
+| Rule | Primary evidence after rewrite | Disposition |
+|---|---|---|
+| CWE-325 | `call_facts` (`cipher.NewCTR` + `.XORKeyStream`); SI prefilter/negative only | Keep **Heuristic**; not structural-promoted |
+| CWE-328 | `call_facts` (`md5.Sum`); SI prefilter only | Keep **Heuristic**; not structural-promoted |
+
+### 2.4 Tranche 3 — Crypto-strength + JWT long-tail NEEDLES/maturity (CWE-323 / CWE-328 / CWE-331 / CWE-347)
+
+> **Domains:** `src/lang/go/detectors/cwe/domains/general_security/crypto_and_integrity/crypto_strength.rs` (323/328/331); `src/lang/go/detectors/cwe/domains/cryptography/jwt.rs` (347)
+> **Date:** 2026-07-18
+> **Issue:** [#39](https://github.com/chinmay-sawant/codehound/issues/39)
+> **Scope:** Long-tail NEEDLES/maturity audit for the crypto-strength siblings and JWT manual-decode candidates listed after Tranche 2. CWE-328 call-facts rewrite is separately recorded in §2.3; this section records dispositions, needle labels, maturity quarantine, and the real-module canary.
+
+#### Audited dispositions
+
+| Rule | Current detector evidence | Disposition |
+|---|---|---|
+| CWE-323 | Exact identifiers `sharedNonce` / `relaySessionNonce` plus literals `fixednonce12` / `static-nonce12`, with `aead.Seal(` and without `io.ReadFull(rand.Reader, nonce)` | Quarantine **fixture-only**. Corpus-specific fixed-nonce names/literals, not a general static-nonce fact. |
+| CWE-328 | `call_facts` primary for callee `md5.Sum` (after §2.3); SI `md5.Sum(` prefilter only | Keep **Heuristic**. Production-shaped stdlib API + three reviewed gopdfsuit hits. **Not promoted** to structural (§1.3 still wants broader evidence/negative coverage beyond this canary). |
+| CWE-331 | Exact `Intn(900000) + 100000` bound + `rand.NewSource(time.Now().UnixNano())` + co-presence `code` | Quarantine **fixture-only**. Fixture recovery-code range (same museum class as CWE-334 `Intn(4096)`). |
+| CWE-347 | Exact `strings.Split(raw, ".")` + `DecodeString(parts[1])` + `json.Unmarshal(payload, &claims)` without `VerifyPKCS1v15(` / `invalid signature` | Quarantine **fixture-only**. Exact fixture variable names (`raw` / `parts` / `payload` / `claims`); not a generalized JWT-without-verify AST/call-fact detector. |
+
+#### NEEDLES comment pass (this family)
+
+Labeled in `src/lang/go/detectors/cwe/source_index.rs` (no bulk deletes):
+
+| Needle | Label |
+|---|---|
+| `sharedNonce` / `relaySessionNonce` | `fixture-literal` (CWE-323 identifiers) |
+| `fixednonce12` / `static-nonce12` | `fixture-literal` (CWE-323 fixed-nonce byte literals) |
+| `aead.Seal(` / `io.ReadFull(rand.Reader, nonce)` | already `negative-gate` (CWE-323 prefilter / safe-path; left as-is) |
+| `md5.Sum(` | already `negative-gate` from §2.3 rewrite (CWE-328 / CWE-916 prefilter) |
+| `Intn(900000) + 100000` | `fixture-literal` (CWE-331 recovery-code bound) |
+| `rand.NewSource(time.Now().UnixNano())` (+ related wall-clock seed shapes) | `fixture-literal` (CWE-331 / PRNG family seed shapes) |
+| `strings.Split(raw, ".")` / `DecodeString(parts[1])` / `json.Unmarshal(payload, &claims)` | `fixture-literal` (CWE-347 / CWE-358 JWT corpus shape) |
+| `VerifyPKCS1v15(` | `negative-gate` (CWE-347 safe-path prefilter) |
+| `invalid signature` | `fixture-literal` (CWE-347 safe-path error string) |
+
+Note: bare `code` co-presence token for CWE-331 is too generic to label; left unlabeled.
+
+#### Maturity table
+
+- `CWE-323`, `CWE-331`, `CWE-347` added to `is_fixture_only` in `src/rules/maturity.rs`.
+- `CWE-328` remains default **Heuristic** (aligned with §2.3; not on the structural allow-list).
+- Structural promotion bar from §1.3 is **not** met for any rule in this family.
+
+#### Canary decision — 2026-07-18
+
+Source revision near documentation time: `1f68bab0dd418b4a5dadf73a534a2c8a5ef4199a` (release binary used for hit-count measurement; detector oracles needle-/call-fact stable for these rules — maturity quarantine only affects default packs). Target revisions match Tranche 1/2:
+
+| Repository | Path | Revision | Files scanned | Findings |
+|---|---|---|---:|---:|
+| gopdfsuit | `/home/chinmay/ChinmayPersonalProjects/gopdfsuit` | `26d71268937136036c3be1770c0f7bdd89f87dc6` | 78 | 3 (all CWE-328) |
+| monsoon | `real-repos/monsoon` | `e0f1027cb0c256853b835d8e20d8d206a96e44ed` | 43 | 0 |
+| go-retry | `real-repos/go-retry` | `d3eb50afd37a09a9c0606c218d0dbe06e29d1544` | 5 | 0 |
+
+```sh
+target/release/codehound TARGET --profile all \
+  --only CWE-323,CWE-328,CWE-331,CWE-347 \
+  --format json --json-envelope --no-fail --no-cache
+```
+
+**Totals:** 126 scanned files (78+43+5). Per-rule: CWE-323 ×0, CWE-328 ×3, CWE-331 ×0, CWE-347 ×0.
+
+CWE-328 real-module hits (gopdfsuit):
+
+| File | Line |
+|---|---:|
+| `internal/pdf/encryption/encrypt.go` | 79 |
+| `internal/pdf/generator.go` | 1051 |
+| `internal/pdf/redact/encryption_inhouse.go` | 241 |
+
+These are genuine `md5.Sum` call sites (PDF encryption/redact paths already noted in impact notes), so they support keep-Heuristic rather than fixture-only quarantine.
+
+**Decision (2026-07-18):** quarantine CWE-323, CWE-331, and CWE-347 as fixture-only (`--profile all` only). Keep CWE-328 as Heuristic without structural promotion (consistent with §2.3 rewrite). Do not delete needles solely for the zero-hit fixture-only members; retain fixture coverage as regression evidence. Revisit CWE-328 only when §1.3 structural bar is fully met; revisit 323/331/347 only when evidence is generalized beyond corpus identifiers/bounds/variable names.
+
+#### Next long-tail candidates (not in this tranche)
+
+- Continue NEEDLES-comment pass only within domain-sized families; do not bulk-edit the index.
+- Transport TLS: CWE-319 (still needle-primary).
+- Other needle-primary long-tail still defaulting to Heuristic without a dated disposition (JWT neighbors such as CWE-358, further crypto/auth strength rules) remain under [#39](https://github.com/chinmay-sawant/codehound/issues/39).
 
 ---
 

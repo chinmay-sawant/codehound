@@ -39,14 +39,22 @@ pub(crate) fn detect_cwe_323(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 
 pub(crate) fn detect_cwe_328(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
 
+    // Cheap impossibility prefilter: no `md5.Sum` text ⇒ no weak-hash call of this shape.
     if !facts.source_index.has("md5.Sum(") {
         return;
     }
 
-    let start_byte = source.find("md5.Sum(").unwrap_or(0);
-    let (line, col) = unit.line_col(start_byte);
+    // Primary signal: call facts — `md5.Sum` callee (stdlib weak hash API).
+    let Some(md5_call) = facts
+        .call_facts
+        .iter()
+        .find(|call| call.callee.as_ref() == "md5.Sum")
+    else {
+        return;
+    };
+
+    let (line, col) = unit.line_col(md5_call.start_byte);
     emit::push_finding(
         &META_CWE_328,
         file,

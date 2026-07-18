@@ -2,7 +2,7 @@
 
 /// Frequently scanned literals across the Go CWE bundle (one `contains` per needle).
 ///
-/// Hygiene notes (Phase 1 + Tranche 2):
+/// Hygiene notes (Phase 1 + Tranche 2 + Tranche 3 §2.4):
 /// - Prefer structural facts/call classification over needles for primary detection.
 /// - `// fixture-only:` / `// fixture-literal:` encode corpus strings; paired detectors
 ///   stay out of recommended/security packs via `rules::maturity` when quarantined.
@@ -122,6 +122,7 @@ pub const NEEDLES: &[&str] = &[
     "Decode(&msg)",
     "Decode(&payload)",
     "Decode(&raw)",
+    // fixture-literal: JWT middle-segment decode (CWE-347 / CWE-358 corpus shape)
     "DecodeString(parts[1])",
     "DisallowUnknownFields()",
     "DownloadRedacted(",
@@ -173,6 +174,7 @@ pub const NEEDLES: &[&str] = &[
     "InsecureSkipVerify: true",
     // fixture-only: magic PRNG bound from CWE-334 corpus
     "Intn(4096)",
+    // fixture-literal: fixed 6-digit recovery-code range from CWE-331 corpus
     "Intn(900000) + 100000",
     "LIKE",
     "LimitReader",
@@ -303,6 +305,7 @@ pub const NEEDLES: &[&str] = &[
     "Updates(fields)",
     "Username: \"admin\"",
     "VALUES(?, ?)\", login, encoded)",
+    // negative-gate: RSA PKCS#1 v1.5 verify (CWE-347 safe-path prefilter)
     "VerifyPKCS1v15(",
     "WHERE tenant = ?",
     "WHERE username = $1 AND password_hash = $2",
@@ -440,6 +443,7 @@ pub const NEEDLES: &[&str] = &[
     "filepath.Join(",
     "filepath.Join(root, requested)",
     "fixedJobLock",
+    // fixture-literal: CWE-323 fixed-nonce byte literal
     "fixednonce12",
     "fmt.Sprintf(",
     "fmt.Sprintf(\"%%%s%%\", term)",
@@ -503,6 +507,7 @@ pub const NEEDLES: &[&str] = &[
     "invalid credentials",
     "invalid jwt structure",
     "invalid oauth state",
+    // fixture-literal: CWE-347 safe-path error string (not a general verify fact)
     "invalid signature",
     "invoice_id",
     "io.Copy(out, in)",
@@ -524,6 +529,7 @@ pub const NEEDLES: &[&str] = &[
     "json.Unmarshal(body, &cfg)",
     "json.Unmarshal(bundle.Profile, &profile)",
     "json.Unmarshal(env.Profile, &profile)",
+    // fixture-literal: JWT claims decode into &claims (CWE-347 / CWE-358 corpus)
     "json.Unmarshal(payload, &claims)",
     "json.Unmarshal(raw, &p)",
     "jwt_sub",
@@ -555,6 +561,7 @@ pub const NEEDLES: &[&str] = &[
     "map[string]string{}",
     "math/rand",
     "maxPasswordAge",
+    // negative-gate: stdlib weak-hash API (CWE-328 / CWE-916 prefilter)
     "md5.Sum(",
     "method",
     "moduleRoot",
@@ -626,6 +633,7 @@ pub const NEEDLES: &[&str] = &[
     "r.Group(\"/api\", requireJWT())",
     "r.TLS == nil",
     "r.URL.Query().Get(\"url\")",
+    // fixture-literal: wall-clock PRNG seed shapes (CWE-335 / CWE-331 / CWE-338 family)
     "rand.New(rand.NewSource(seed))",
     "rand.New(rand.NewSource(time.Now().UnixNano()))",
     "rand.NewSource(seed)",
@@ -637,6 +645,7 @@ pub const NEEDLES: &[&str] = &[
     "readOnlyDB",
     "referralCredits += 10",
     "regexp.MustCompile(`^[a-z]+$`)",
+    // fixture-literal: CWE-323 pure-fixture fixed-nonce identifier
     "relaySessionNonce",
     "reportTemplate",
     "reportTemplatePure",
@@ -672,6 +681,7 @@ pub const NEEDLES: &[&str] = &[
     "sha256.Sum256(",
     "sharedAuditStore",
     "sharedDB",
+    // fixture-literal: CWE-323 frameworks fixed-nonce identifier
     "sharedNonce",
     "sid",
     "smtp.SendMail",
@@ -680,6 +690,7 @@ pub const NEEDLES: &[&str] = &[
     "sql.Open",
     "sql.Open(\"postgres\", appDSNPure)",
     "stat.Uid",
+    // fixture-literal: CWE-323 pure-fixture fixed-nonce byte literal
     "static-nonce12",
     "strconv.ParseInt(raw, 0, 64)",
     "strconv.ParseInt(raw, 10, 64)",
@@ -696,6 +707,7 @@ pub const NEEDLES: &[&str] = &[
     "strings.ReplaceAll(raw, \"<\", \"\")",
     "strings.ReplaceAll(safe, \">\", \"\")",
     "strings.Split(",
+    // fixture-literal: JWT three-part split on raw (CWE-347 / CWE-358 corpus)
     "strings.Split(raw, \".\")",
     "strings.TrimPrefix(raw, \"Bearer \")",
     "strongPassword(",
