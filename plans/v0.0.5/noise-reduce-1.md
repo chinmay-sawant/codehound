@@ -1,8 +1,8 @@
 # v0.0.5 — Noise Reduction 1: gorl Full-Catalog Canary
 
 > **Parent:** `plans/v0.0.5/pending-work.md` — Phase 3.2 catalog trust and Phase 4 implementation selection
-> **Status:** The initial tranche, BP-37 follow-up, and second parallel noise-reduction batch are implemented and validated. BP-35 is retired; BP-28/BP-30 are opt-in style advice; BP-41 and PERF-121 now require stronger evidence. Structural, coverage, and governance work remains pending.
-> **Estimated effort:** 2–4 focused detector batches, each with fixtures, a preserved finding oracle, and a gorl re-scan.
+> **Status:** The initial tranche, BP-37 follow-up, second parallel batch, and third PERF boundary batch are implemented and validated. BP-35 is retired; BP-28/BP-30 are opt-in style advice; BP-41, PERF-114/121/143, and PERF-38/40/44 now require stronger evidence. Example labeling, PERF-46/145, and governance work remain pending.
+> **Estimated effort:** 1–2 focused detector batches plus Phase 4 reporting, each with fixtures, a preserved finding oracle, and a gorl re-scan.
 
 ---
 
@@ -81,6 +81,25 @@ and BP-41 fell 8→2 after sibling package docs and multi-line package comments
 were recognized correctly. BP-28/BP-30 remain available under `--only`, but
 are excluded from the default style profile as capability-interface advice.
 The corresponding gopdfsuit full-catalog total fell **929→916**. All results
+use the release binary with `--no-cache` and no context/chunk export.
+
+The 2026-07-18 third batch reduced the pinned gorl canary from **60 to 56**
+findings while preserving a zero-finding recommended control:
+
+| Rule | Before | After | Boundary proved |
+|---|---:|---:|---|
+| PERF-114 | 1 | 0 | `[]int64`/`...int64` → `[]interface{}` is element conversion, not `copy()` |
+| PERF-143 | 1 | 0 | `http.Handle` only in comments is not a route registration |
+| PERF-38 | 1 | 0 | unbuffered `chan struct{}` is a done/stop signal, not a pipeline |
+| PERF-44 | 1 | 0 | same local name asserted once per function is not a repeated assert |
+| PERF-40 | 3 | 3 | now scoped per function (removeExpired no longer inherits Incr's count); remaining sites are multi-`Now` in one body (Incr + two examples) |
+
+Survivors on this batch's target list: PERF-40×3 (Incr TTL timestamps + example
+timing demos), PERF-46 (intentional XFF `TrimSpace`), PERF-145 (advisory
+`WithContext` helper). Phase 4.1 example labeling covers the two example
+PERF-40 reports. gopdfsuit full-catalog moved **916→919** because PERF-38 no
+longer file-wide suppresses when any buffered channel exists in the same file
+(correctness fix: each `make(chan…)` is classified independently). All results
 use the release binary with `--no-cache` and no context/chunk export.
 
 ---
@@ -169,10 +188,13 @@ though gorl is a library and that file only loads configuration.
 
 ### 3.2 Require stronger structural evidence for PERF rules
 
-- [ ] PERF-114: do not recommend `copy()` when the range loop performs a required element conversion (for example `[]int64` to `[]interface{}`).
+- [x] PERF-114: do not recommend `copy()` when the destination is an interface box (`[]interface{}` / `[]any`); that loop is element conversion, not memmove. gorl `storage/redis/scripts.go` fell 1→0; canonical safe fixture packs `...int64` into `[]interface{}`.
 - [x] PERF-121: require a real source-to-target conversion relationship, not merely adjacent literals with similar fields. The later literal must read every keyed field from the immediately bound local source value; gorl's independent Prometheus option literals no longer report (1→0).
-- [ ] PERF-143: ignore comment text and require an executable handler-registration call before recommending `http.TimeoutHandler`.
-- [ ] PERF-38, PERF-40, PERF-44, and PERF-46: add gorl-shaped safe fixtures for deliberate channel coordination, distinct timestamps, distinct type assertions, and `TrimSpace` use; narrow only where the AST/facts prove the current report invalid.
+- [x] PERF-143: ignore comment/doc text and require a real non-comment `http.Handle` / `http.HandleFunc` before recommending `http.TimeoutHandler`. gorl middleware docs fell 1→0.
+- [x] PERF-38: suppress unbuffered `make(chan struct{})` done/stop signals; classify each `make(chan…)` independently (no file-wide buffered early-return). gorl inmem done channel fell 1→0.
+- [x] PERF-40: count `time.Now` per enclosing function, not per file. removeExpired no longer inherits Incr's count; multi-`Now` inside one body still reports. gorl-shaped safe fixture has one `Now` per function.
+- [x] PERF-44: require repeated assertions on the same LHS **inside the same function**. Same local name in Get/Incr is silent; gorl fell 1→0.
+- [ ] PERF-46: retain for now — gorl's XFF `TrimSpace` is intentional header parsing; no AST-proven false-positive boundary without weakening the positive fixture. Safe fixture remains off-request-path.
 - [ ] PERF-145: retain as advisory only unless a benchmark proves a practical alternative to the intentionally allocating `WithContext` helper.
 
 ---

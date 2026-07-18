@@ -106,6 +106,9 @@ pub(crate) fn detect_perf_113(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut
 /// PERF-114: a `for i, v := range src { dst[i] = v }` loop is a
 /// hand-rolled `copy(dst, src)`. The builtin compiles to memmove and
 /// handles memory overlap; the manual loop does not.
+///
+/// Suppress when the destination is an interface box (`[]interface{}` /
+/// `[]any`): that assignment is an element conversion, not a memmove copy.
 pub(crate) fn detect_perf_114(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -133,6 +136,15 @@ pub(crate) fn detect_perf_114(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         if !looks_like_loop_copy(body) {
             continue;
         }
+        // `copy()` cannot perform interface boxing or other element conversions.
+        // Scan the full file for the destination's make/decl: enclosing-body
+        // helpers stop early on `[]interface{}` return types (the `{` in
+        // `interface{}` is not a function body).
+        if let Some(dst) = loop_copy_destination(body) {
+            if destination_is_interface_slice(source, dst) {
+                continue;
+            }
+        }
         let (line, col) = unit.line_col(*start);
         emit::push_finding(
             &META_PERF_114,
@@ -143,6 +155,33 @@ pub(crate) fn detect_perf_114(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
             out,
         );
     }
+}
+
+/// Destination identifier of a pure `dst[i] = …` loop-copy body, when present.
+fn loop_copy_destination(body: &str) -> Option<&str> {
+    let trimmed = body.trim().trim_end_matches('}').trim();
+    let (lhs, _) = trimmed.split_once('=')?;
+    let lhs = lhs.trim();
+    let open = lhs.find('[')?;
+    let dst = lhs[..open].trim();
+    is_simple_ident(dst).then_some(dst)
+}
+
+/// True when `dst` is declared/assigned as `[]interface{}` or `[]any` in scope.
+fn destination_is_interface_slice(scope: &str, dst: &str) -> bool {
+    let markers = [
+        format!("{dst} := make([]interface{{}},"),
+        format!("{dst} = make([]interface{{}},"),
+        format!("{dst} := make([]any,"),
+        format!("{dst} = make([]any,"),
+        format!("var {dst} []interface{{}}"),
+        format!("var {dst} []any"),
+        format!("{dst} := []interface{{}}"),
+        format!("{dst} = []interface{{}}"),
+        format!("{dst} := []any{{"),
+        format!("{dst} = []any{{"),
+    ];
+    markers.iter().any(|m| scope.contains(m.as_str()))
 }
 
 /// PERF-121: two consecutive same-shape struct literals where the

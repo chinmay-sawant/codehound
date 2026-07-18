@@ -1,4 +1,4 @@
-# PERF-114 negative: copy() builtin used instead of manual loop
+# PERF-114 negative: intermediate conversion is not a pure memmove copy
 lang: go
 file: PERF-114-safe.go
 variant: stdlib

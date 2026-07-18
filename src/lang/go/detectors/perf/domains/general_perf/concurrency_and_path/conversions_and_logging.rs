@@ -65,6 +65,8 @@ pub(crate) fn detect_perf_41(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 
 /// PERF-44: type assertion on the same value repeated inside a function.
 pub(crate) fn detect_perf_44(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    use crate::lang::go::detectors::perf::common::enclosing_function_name;
+
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
@@ -72,19 +74,24 @@ pub(crate) fn detect_perf_44(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         return;
     }
 
-    let mut assertions: Vec<(usize, String)> = Vec::new();
+    let mut assertions: Vec<(usize, String, Option<&str>)> = Vec::new();
     for &(start_byte, end_byte) in &facts.type_assertions {
         let text = &source[start_byte..end_byte];
         let lhs = text.split_once(".(").map(|(lhs, _)| lhs.trim().to_string());
         if let Some(lhs) = lhs {
-            assertions.push((start_byte, lhs));
+            let fname = enclosing_function_name(source, start_byte);
+            assertions.push((start_byte, lhs, fname));
         }
     }
 
-    // Sort by start byte and look for two assertions on the same LHS in
-    // the same function (the entire file is one function in our fixtures).
+    // Two assertions on the same LHS must share an enclosing function.
+    // Same local name in different methods (e.g. `val` in Get/Incr) is fine.
     for window in assertions.windows(2) {
-        if window[0].1 == window[1].1 && !window[0].1.is_empty() {
+        if window[0].1 == window[1].1
+            && !window[0].1.is_empty()
+            && window[0].2.is_some()
+            && window[0].2 == window[1].2
+        {
             let (line, col) = unit.line_col(window[0].0);
             emit::push_finding(
                 &META_PERF_44,

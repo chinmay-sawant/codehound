@@ -1,8 +1,10 @@
 //! Go PERF detector regression tests.
 //!
 //! Fixture inventory is discovered from `tests/fixtures/go/perf` so the test
-//! suite does not need a second hand-maintained list of PERF ids. We validate
-//! both paths that matter:
+//! suite does not need a second hand-maintained list of PERF cases. Base
+//! cases (`PERF-038`) and named variants (`PERF-038-done`,
+//! `PERF-114-interface`) are both discovered, matching the BP fixture layout.
+//! We validate both paths that matter:
 //! - in-process analyzer scans over materialized sources
 //! - CLI scans over the raw `.txt` heuristic fixtures
 
@@ -44,15 +46,15 @@ fn go_perf_fixtures_fire_vulnerable_and_silence_safe() {
     let mut failures: Vec<String> = Vec::new();
     let analyzer = Analyzer::builder().build();
 
-    for perf_id in &cases {
-        let vulnerable = go_perf_cases::fixture_path(*perf_id, true);
-        let safe = go_perf_cases::fixture_path(*perf_id, false);
-        let rule = format!("PERF-{perf_id}");
+    for case in &cases {
+        let vulnerable = go_perf_cases::fixture_path(case, true);
+        let safe = go_perf_cases::fixture_path(case, false);
+        let rule = go_perf_cases::expected_rule_id(case);
         if let Err(e) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             helpers::assert_fixture_rules(&vulnerable, &[rule.as_str()], &analyzer);
             helpers::assert_fixture_rules(&safe, &[], &analyzer);
         })) {
-            failures.push(format!("PERF-{perf_id}: {e:?}"));
+            failures.push(format!("{case}: {e:?}"));
         }
     }
 
@@ -70,12 +72,12 @@ fn go_perf_text_fixtures_also_work_via_cli_scan_path() {
     // `go_perf_fixtures_fire_vulnerable_and_silence_safe` (in-process).
     // A full CLI matrix was hundreds of process spawns and dominated suite time.
     let cases = go_perf_cases::discover_go_perf_cases();
-    let perf_id = *cases
+    let case = cases
         .first()
         .expect("expected at least one Go PERF fixture");
-    let vulnerable = go_perf_cases::fixture_path(perf_id, true);
-    let safe = go_perf_cases::fixture_path(perf_id, false);
-    let expected_rule = format!("PERF-{perf_id}");
+    let vulnerable = go_perf_cases::fixture_path(case, true);
+    let safe = go_perf_cases::fixture_path(case, false);
+    let expected_rule = go_perf_cases::expected_rule_id(case);
     let exe = env!("CARGO_BIN_EXE_codehound");
 
     let vulnerable_run = Command::new(exe)
@@ -146,13 +148,39 @@ fn perf_1_finding_includes_control_flow_issue_evidence() {
 }
 
 #[test]
-fn go_perf_fixture_inventory_is_sorted_and_contiguous() {
+fn go_perf_fixture_inventory_is_sorted_and_deduplicated() {
     let cases = go_perf_cases::discover_go_perf_cases();
 
     assert!(!cases.is_empty(), "expected at least one Go PERF fixture");
 
     assert!(
-        cases.windows(2).all(|w| w[0] < w[1]),
-        "Go PERF fixture ids must be sorted and deduplicated"
+        go_perf_cases::is_sorted_and_deduplicated(&cases),
+        "Go PERF fixture cases must be sorted and deduplicated: {cases:?}"
     );
+
+    // Named variants must keep a matching base case for the same rule number.
+    for case in &cases {
+        if let Some((_, Some(_))) = parse_case_for_test(case) {
+            let base = base_case_name(case);
+            assert!(
+                cases.iter().any(|c| c == &base),
+                "variant {case} requires base case {base}"
+            );
+        }
+    }
+}
+
+fn parse_case_for_test(case: &str) -> Option<(u32, Option<&str>)> {
+    let rest = case.strip_prefix("PERF-")?;
+    let (number, tail) = rest
+        .split_once('-')
+        .map_or((rest, None), |(number, tail)| (number, Some(tail)));
+    Some((number.parse().ok()?, tail))
+}
+
+fn base_case_name(case: &str) -> String {
+    let rest = case.strip_prefix("PERF-").expect("PERF- prefix");
+    let number = rest.split_once('-').map_or(rest, |(n, _)| n);
+    // Preserve the zero-padding used on disk for the base case.
+    format!("PERF-{number}")
 }

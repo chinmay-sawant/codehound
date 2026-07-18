@@ -11,29 +11,52 @@ pub(crate) fn detect_perf_38(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     if !facts.source_index.has("make(chan") {
         return;
     }
-    // A buffered channel always has a `, N` suffix.
-    if facts.source_index.has("make(chan int, ")
-        || facts.source_index.has("make(chan struct{}, ")
-        || facts.source_index.has("make(chan string, ")
-        || facts.source_index.has("make(chan T, ")
-    {
-        return;
-    }
     // Suppress test / one-shot signals.
     if facts.source_index.has("_test.go") {
         return;
     }
 
-    let start = source.find("make(chan").unwrap_or(0);
-    let (line, col) = unit.line_col(start);
-    emit::push_finding(
-        &META_PERF_38,
-        file,
-        line,
-        col,
-        "unbuffered channel blocks producers; consider a buffered channel or a worker pool",
-        out,
-    );
+    // Report the first unbuffered non-signal channel. Empty `chan struct{}`
+    // is the standard done/stop coordination idiom and is not a pipeline
+    // producer/consumer buffer smell.
+    let mut search = 0usize;
+    while let Some(rel) = source[search..].find("make(chan") {
+        let start = search + rel;
+        let after = &source[start + "make(chan".len()..];
+        let after = after.trim_start();
+        // Buffered: make(chan T, N) — skip this call.
+        if let Some(comma_rel) = after.find(',') {
+            let close_rel = after.find(')');
+            if close_rel.is_some_and(|c| c > comma_rel) {
+                // Confirm the comma is at the top level of the make args
+                // (not inside a nested type). Empty struct{} has no nested
+                // commas before the element-type close.
+                let between = after[..comma_rel].trim();
+                if !between.is_empty() {
+                    search = start + "make(chan".len();
+                    continue;
+                }
+            }
+        }
+        // Unbuffered empty-struct signal channel: make(chan struct{})
+        let trimmed = after.trim_start();
+        if let Some(rest) = trimmed.strip_prefix("struct{}") {
+            if rest.trim_start().starts_with(')') {
+                search = start + "make(chan".len();
+                continue;
+            }
+        }
+        let (line, col) = unit.line_col(start);
+        emit::push_finding(
+            &META_PERF_38,
+            file,
+            line,
+            col,
+            "unbuffered channel blocks producers; consider a buffered channel or a worker pool",
+            out,
+        );
+        return;
+    }
 }
 
 /// PERF-39: `for { select { ...; default: ... } }` busy-wait pattern.
@@ -79,8 +102,10 @@ pub(crate) fn detect_perf_39(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
 
 /// PERF-40: `time.Now()` called multiple times in the same function body.
 pub(crate) fn detect_perf_40(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
+    use crate::lang::go::detectors::perf::common::enclosing_function_name;
+
     let file = unit.display_path.as_str();
-    let _source = unit.source.as_ref();
+    let source = unit.source.as_ref();
 
     let on_hot_path = is_request_path(&facts.source_index);
     let in_loop_present = facts.source_index.has("for ");
@@ -89,20 +114,26 @@ pub(crate) fn detect_perf_40(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         return;
     }
 
-    let now_count = facts
-        .calls
-        .iter()
-        .filter(|c| c.callee.as_ref() == "time.Now")
-        .count();
-    if now_count < 2 {
-        return;
-    }
-
+    // Count per enclosing function — separate helpers each calling Now once
+    // are not the repeated-sample smell this rule targets.
+    let mut by_func: Vec<(Option<&str>, Vec<usize>)> = Vec::new();
     for call in &facts.calls {
         if call.callee.as_ref() != "time.Now" {
             continue;
         }
-        let (line, col) = unit.line_col(call.start_byte);
+        let fname = enclosing_function_name(source, call.start_byte);
+        if let Some(entry) = by_func.iter_mut().find(|(n, _)| *n == fname) {
+            entry.1.push(call.start_byte);
+        } else {
+            by_func.push((fname, vec![call.start_byte]));
+        }
+    }
+
+    for (_fname, sites) in by_func {
+        if sites.len() < 2 {
+            continue;
+        }
+        let (line, col) = unit.line_col(sites[0]);
         emit::push_finding(
             &META_PERF_40,
             file,
