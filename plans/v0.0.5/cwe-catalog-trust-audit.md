@@ -1,8 +1,8 @@
 # v0.0.5 — CWE Catalog Trust Audit, Tranche 1
 
 > **Parent:** `plans/v0.0.5/pending-work.md` — Phase 3.2
-> **Status:** Tranches 1–4 complete (merged [#41](https://github.com/chinmay-sawant/codehound/pull/41); [#39](https://github.com/chinmay-sawant/codehound/issues/39) closed). **Tranche 5 under [#42](https://github.com/chinmay-sawant/codehound/issues/42)** checklist work recorded in §§2.6–2.10 (CWE-434, 1327, 367, 648/708, 319/358): fixture-only quarantines + call-facts rewrites for 367/648/708/319. Remaining CWE catalog is still not fully certified.
-> **Estimated effort:** Incremental, rule-family by rule-family under #42; do not bulk-promote or bulk-check the remaining catalog.
+> **Status:** Tranches 1–5 complete (merged [#41](https://github.com/chinmay-sawant/codehound/pull/41), [#43](https://github.com/chinmay-sawant/codehound/pull/43); [#39](https://github.com/chinmay-sawant/codehound/issues/39) / [#42](https://github.com/chinmay-sawant/codehound/issues/42) closed). **Long-tail under [#45](https://github.com/chinmay-sawant/codehound/issues/45)** — file-mode family recorded in §2.11 (CWE-250 keep Heuristic; CWE-252/552 fixture-only; call-facts rewrite for 552). Remaining undated CWE catalog is still not fully certified (inventory in §2.11).
+> **Estimated effort:** Incremental, rule-family by rule-family under #45; do not bulk-promote or bulk-check the remaining catalog.
 
 ---
 
@@ -735,6 +735,99 @@ target/release/codehound TARGET --profile all \
 
 **Decision (2026-07-18):** quarantine CWE-319 and CWE-358 as fixture-only (`--profile all` only). Keep CWE-319 call-facts primary for `ListenAndServe` without structural promotion. Do not rewrite CWE-358. Do not delete needles solely for this zero-hit canary; retain fixture coverage as regression evidence. Revisit CWE-319 only when sensitive-data classification generalizes beyond `CVV`/`Number`; revisit CWE-358 only when JWT structure/alg checks are modeled without exact variable names / error-string museum gates.
 
+### 2.11 File-mode permissions long-tail — CWE-250 / CWE-252 / CWE-552
+
+> **Domain:** `src/lang/go/detectors/cwe/domains/general_security/permissions_and_ownership/file_modes.rs`
+> **Date:** 2026-07-19
+> **Issue:** [#45](https://github.com/chinmay-sawant/codehound/issues/45)
+> **Scope:** First long-tail domain under #45 after tranche 5. High-signal stdlib file-mode shapes (`os.WriteFile` / `os.Chmod`) not already dispositioned in §§2.1–2.10. Checklist: `plans/v0.0.5/cwe-catalog-trust-45.md`.
+
+#### Inventory note (undated residual)
+
+Non-taint domain detectors without a dated disposition after this section remain large (~140 rules across access_control, credentials, concurrency, configuration, injection neighbors, etc.). This tranche deliberately audits **one domain-sized family only**. Prefer next batches:
+
+- Access-control file permissions siblings: CWE-276 / 277 / 278 / 279 / 281 / 921 (`access_control/file_permissions/file_modes.rs` — many already call-facts primary)
+- Password-storage hashing: CWE-256 / 257 / 261 / 916 (`credentials_and_secrets/password_storage/hashing.rs` — CWE-916 is `md5.Sum` + password co-signal)
+- Transport neighbors: CWE-524 / 538 (token cache / public secret export museum)
+- Deserialization: CWE-502 (`gob.NewDecoder` + adminAction corpus)
+
+Do **not** bulk-label NEEDLES or bulk-quarantine from this inventory alone.
+
+#### Audited dispositions
+
+| Rule | Current detector evidence | Disposition |
+|---|---|---|
+| CWE-250 | After light SI prefilter: `call_facts` primary for callee `os.WriteFile` with third arg exact `0o777`; SI `os.WriteFile(` impossibility prefilter only | Keep **Heuristic**. Production-shaped world-writable WriteFile mode. **Not** structural-promoted (§1.3 still wants broader mode classification / real-module evidence beyond zero-hit canary). |
+| CWE-252 | `call_facts` primary for `os.WriteFile` whose args contain exact `/var/log/audit.log` or `/var/log/journal.log`; SI negative `if err := os.WriteFile(` | Quarantine **fixture-only**. Unchecked-write smell is real, but emit is gated on corpus log path literals (would mass-FP general unchecked writes without them). **Not** structural-promoted. |
+| CWE-552 | After rewrite: `call_facts` primary for callee `os.Chmod` with mode `0o777`; SI still requires `FormFile("contract")` + `/srv/contracts` without `filepath.Base(` / `os.Chmod(dest, 0o600)` | Quarantine **fixture-only**. Stdlib chmod sink is production-shaped and call-facts primary, but emit still depends on contract-upload corpus co-signals. **Not** structural-promoted. |
+
+#### Call-facts rewrite — CWE-552
+
+**Rule:** `detect_cwe_552` in `file_modes.rs`.
+
+**Before:** Needle-primary emit on `FormFile("contract")` + `/srv/contracts` + `os.Chmod(dest, 0o777)` without `filepath.Base(` / `os.Chmod(dest, 0o600)`; span via `source.find("os.Chmod(dest, 0o777)")`.
+
+**After:** Primary match iterates `facts.call_facts` for callee `os.Chmod` with second argument exact `0o777`. SourceIndex is retained as:
+- cheap impossibility prefilter: `os.Chmod(dest, 0o777)`
+- corpus co-signals (oracle): `FormFile("contract")`, `/srv/contracts`
+- negative prefilters: `filepath.Base(`, `os.Chmod(dest, 0o600)`
+
+Finding span uses `chmod_call.start_byte` from call facts.
+
+**Oracle:** Existing CWE-552 vulnerable fixtures still fire (gin + pure stdlib); safe fixtures still silence (Base + 0o600). Neighbor fixtures that use `os.Chmod` without the contract-upload co-shape must not newly fire. No fixture renames. Maturity is **fixture-only** (corpus form field + path dominate).
+
+#### CWE-250 / CWE-252 — no structural change beyond prefilter hygiene
+
+- **CWE-250:** Already call-facts primary for `os.WriteFile` + `0o777`. Added SI `os.WriteFile(` impossibility prefilter only (oracle-neutral). Remains **Heuristic**.
+- **CWE-252:** Already call-facts primary for `os.WriteFile` + audit/journal path args; SI negative for error-checked form. No rewrite needed; maturity quarantine to fixture-only because path co-signals are museum.
+
+#### NEEDLES comment pass (this family)
+
+Labeled in `src/lang/go/detectors/cwe/source_index.rs` (no bulk deletes):
+
+| Needle | Label |
+|---|---|
+| `os.WriteFile(` | `negative-gate` (CWE-250 / CWE-252 prefilter; call_facts primary) |
+| `if err := os.WriteFile(` | `fixture-literal` (CWE-252 safe-path error-checked form) |
+| `FormFile("contract")` | `fixture-literal` (CWE-552 corpus form field) |
+| `/srv/contracts` | `fixture-literal` (CWE-552 corpus store path) |
+| `os.Chmod(dest, 0o777)` | `fixture-literal` (CWE-552 corpus chmod; call_facts primary after §2.11) |
+| `os.Chmod(dest, 0o600)` | `negative-gate` (CWE-552 safe-path owner-only mode) |
+| `filepath.Base(` | `negative-gate` (CWE-552 / path basename sanitization prefilter) |
+
+Note: exact log path strings `/var/log/audit.log` / `/var/log/journal.log` are matched via call-fact argument text, not as top-level NEEDLES entries (left unlabeled in the index).
+
+Neighbor needles **not** relabeled here (other families own them):
+
+- Access-control file-mode modes `0666` / `0777` / `MkdirAll(dir, 0777)` — CWE-276/277/279 siblings (next-candidate inventory)
+- `os.Chown(` — already §2.9
+
+#### Maturity table
+
+- `CWE-252`, `CWE-552` added to `is_fixture_only` in `src/rules/maturity.rs`.
+- `CWE-250` remains default **Heuristic** (not on the structural allow-list).
+- Structural promotion bar from §1.3 is **not** met for any rule in this family.
+
+#### Canary decision — 2026-07-19
+
+Source revision at documentation time: working tree on `chore/cwe-trust-longtail-45`. Release binary used for hit-count measurement — maturity quarantine only affects default packs, not `--profile all --only`. Target revisions match prior tranches:
+
+| Repository | Path | Revision | Files scanned | Findings |
+|---|---|---|---:|---:|
+| gopdfsuit | `/home/chinmay/ChinmayPersonalProjects/gopdfsuit` | `26d71268937136036c3be1770c0f7bdd89f87dc6` | 78 | 0 |
+| monsoon | `/home/chinmay/ChinmayPersonalProjects/codehound/real-repos/monsoon` | `e0f1027cb0c256853b835d8e20d8d206a96e44ed` | 43 | 0 |
+| go-retry | `/home/chinmay/ChinmayPersonalProjects/codehound/real-repos/go-retry` | `d3eb50afd37a09a9c0606c218d0dbe06e29d1544` | 5 | 0 |
+
+```sh
+target/release/codehound TARGET --profile all \
+  --only CWE-250,CWE-252,CWE-552 \
+  --format json --json-envelope --no-fail --no-cache
+```
+
+**Totals:** 126 scanned files (78+43+5). Per-rule: CWE-250 ×0, CWE-252 ×0, CWE-552 ×0.
+
+**Decision (2026-07-19):** keep CWE-250 as **Heuristic** without structural promotion (zero-hit canary is not sufficient for delete or structural promotion). Quarantine CWE-252 and CWE-552 as fixture-only (`--profile all` only). Keep CWE-552 call-facts primary for `os.Chmod` without structural promotion. Do not delete needles solely for this zero-hit canary; retain fixture coverage as regression evidence. Revisit CWE-250 only when real-module hits or broader mode taxonomy meet §1.3; revisit 252/552 only when path/form co-signals generalize beyond corpus literals.
+
 ---
 
 ## Dependencies
@@ -743,3 +836,4 @@ target/release/codehound TARGET --profile all \
 - `src/rules/maturity.rs` and profile-pack tests
 - CWE fixture manifest and real Go canary repositories
 - The preserved scanner finding oracle for any detector rewrite
+

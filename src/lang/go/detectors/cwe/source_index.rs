@@ -2,7 +2,7 @@
 
 /// Frequently scanned literals across the Go CWE bundle (one `contains` per needle).
 ///
-/// Hygiene notes (Phase 1 + Tranche 2–4 + Tranche 5 §2.6–§2.10):
+/// Hygiene notes (Phase 1 + Tranche 2–5 + long-tail §2.11):
 /// - Prefer structural facts/call classification over needles for primary detection.
 /// - `// fixture-only:` / `// fixture-literal:` encode corpus strings; paired detectors
 ///   stay out of recommended/security packs via `rules::maturity` when quarantined.
@@ -51,6 +51,7 @@ pub const NEEDLES: &[&str] = &[
     "/login",
     "/maintenance-portal-9f3c2a",
     "/opt/vendor/activex-bridge",
+    // fixture-literal: CWE-552 corpus contract upload store path
     "/srv/contracts",
     // fixture-literal: CWE-434 corpus static serve path prefix
     "/static/avatars/",
@@ -145,6 +146,7 @@ pub const NEEDLES: &[&str] = &[
     "FetchSharedAsset(",
     "FetchSharedAssetPure(",
     "ForgotPassword",
+    // fixture-literal: CWE-552 corpus contract multipart form field
     "FormFile(\"contract\")",
     // fixture-literal / co-signal: dest form key (CWE-708 corpus co-presence)
     "FormValue(\"dest\")",
@@ -466,6 +468,7 @@ pub const NEEDLES: &[&str] = &[
     // fixture-literal: CWE-434 gin multipart client filename field
     "file.Filename",
     "filepath.Abs(",
+    // negative-gate: basename sanitization (CWE-552 / path safe-path prefilter)
     "filepath.Base(",
     "filepath.Clean(",
     "filepath.Clean(filepath.Join(root, requested))",
@@ -532,6 +535,7 @@ pub const NEEDLES: &[&str] = &[
     "if !acct.MFAPassed",
     "if appDB == nil",
     "if err != nil {",
+    // fixture-literal: CWE-252 safe-path error-checked WriteFile form
     "if err := os.WriteFile(",
     "if err := syscall.Setuid(1000); err != nil",
     "if provided[i] != expected[i] {",
@@ -612,7 +616,9 @@ pub const NEEDLES: &[&str] = &[
     // negative-gate: OAuth state token presence (CWE-940 safe-path prefilter)
     "oauth_state",
     "operator_id",
+    // negative-gate: CWE-552 safe-path owner-only chmod form
     "os.Chmod(dest, 0o600)",
+    // fixture-literal: CWE-552 corpus world-writable chmod (call_facts primary after §2.11)
     "os.Chmod(dest, 0o777)",
     // negative-gate: stdlib chown sink (CWE-648 / CWE-708 prefilter; call_facts primary after §2.9)
     "os.Chown(",
@@ -645,6 +651,7 @@ pub const NEEDLES: &[&str] = &[
     // fixture-literal: exact Stat path arg from CWE-367 corpus (not required for emit)
     "os.Stat(target)",
     "os.TempDir()",
+    // negative-gate: stdlib WriteFile API (CWE-250 / CWE-252 prefilter; call_facts primary)
     "os.WriteFile(",
     "ownerID",
     "owner_id = $2",

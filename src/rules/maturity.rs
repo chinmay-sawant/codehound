@@ -113,6 +113,13 @@ fn is_fixture_only(rule_id: &str) -> bool {
             // but still requires CVV + Number payment-field corpus co-signals.
             | "CWE-319" // card CVV/Number + cleartext ListenAndServe corpus shape
             | "CWE-358" // Bearer trim + JWT middle-segment decode without structure/alg checks
+            // File-mode permissions long-tail (long-tail §2.11 under #45)
+            // CWE-250 stays Heuristic: call-facts primary for os.WriteFile + 0o777;
+            // production-shaped world-writable mode, not structural-promoted.
+            // CWE-552 uses call_facts primary for os.Chmod after §2.11 rewrite,
+            // but still requires FormFile("contract") + /srv/contracts corpus co-signals.
+            | "CWE-252" // unchecked WriteFile gated on exact /var/log audit|journal paths
+            | "CWE-552" // FormFile("contract") + /srv/contracts + os.Chmod 0o777 corpus shape
             // Common fixture-shaped long-tail (path/corpus strings)
             | "CWE-798" // hard-coded credentials often fixture-shaped
     )
@@ -145,10 +152,13 @@ mod tests {
         assert_eq!(maturity_for("CWE-708"), RuleMaturity::FixtureOnly);
         assert_eq!(maturity_for("CWE-319"), RuleMaturity::FixtureOnly);
         assert_eq!(maturity_for("CWE-358"), RuleMaturity::FixtureOnly);
-        // Cipher / weak-hash smells remain heuristic (call-facts primary for
-        // 325/328 after §2.3 rewrite; not structural-promoted).
+        assert_eq!(maturity_for("CWE-252"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-552"), RuleMaturity::FixtureOnly);
+        // Cipher / weak-hash / world-writable WriteFile smells remain heuristic
+        // (call-facts primary for 325/328/250; not structural-promoted).
         assert_eq!(maturity_for("CWE-325"), RuleMaturity::Heuristic);
         assert_eq!(maturity_for("CWE-328"), RuleMaturity::Heuristic);
+        assert_eq!(maturity_for("CWE-250"), RuleMaturity::Heuristic);
         assert!(is_quarantined_from_default_packs("CWE-334"));
         assert!(is_quarantined_from_default_packs("CWE-1204"));
         assert!(is_quarantined_from_default_packs("CWE-323"));
@@ -162,8 +172,11 @@ mod tests {
         assert!(is_quarantined_from_default_packs("CWE-708"));
         assert!(is_quarantined_from_default_packs("CWE-319"));
         assert!(is_quarantined_from_default_packs("CWE-358"));
+        assert!(is_quarantined_from_default_packs("CWE-252"));
+        assert!(is_quarantined_from_default_packs("CWE-552"));
         assert!(!is_quarantined_from_default_packs("CWE-325"));
         assert!(!is_quarantined_from_default_packs("CWE-328"));
+        assert!(!is_quarantined_from_default_packs("CWE-250"));
         assert!(!is_quarantined_from_default_packs("CWE-22"));
         assert!(!is_quarantined_from_default_packs("PERF-101"));
     }
