@@ -1,8 +1,8 @@
 # v0.0.5 — Pending Work Reconciliation Checklist
 
 > **Parent:** `ROADMAP.md` — live 0.1.x product direction; this file is a one-time reconciliation snapshot for historical unchecked boxes, not a replacement roadmap.
-> **Status:** Phases 1–2 and noise-reduce-1 are complete (PR [#38](https://github.com/chinmay-sawant/codehound/pull/38)). Next active implementation work is **CWE catalog trust tranche 2** ([#39](https://github.com/chinmay-sawant/codehound/issues/39)). Phase 4 remains decision-gated and must not start under #39.
-> **Estimated effort:** CWE tranche 2 is issue-scoped under #39; Phase 4 stays out of scope until separately approved.
+> **Status:** Phases 1–3 and noise-reduce-1 complete (PR [#38](https://github.com/chinmay-sawant/codehound/pull/38)). Phase 4 **decision records** complete under [#40](https://github.com/chinmay-sawant/codehound/issues/40) (dispositions only — no BP expansion / typed Go / Python implementation). Active detector trust work continues under CWE [#39](https://github.com/chinmay-sawant/codehound/issues/39).
+> **Estimated effort:** Ledger reconciliation complete for open v0.0.5 checkboxes; further CWE domain audits remain issue-scoped under #39.
 
 ---
 
@@ -259,36 +259,41 @@ Open CWE rows below are tracked by GitHub issue [#39](https://github.com/chinmay
 
 ## Phase 4: Decision-Gated and Explicitly Deferred Work
 
-**Status: deferred — do not implement under issue #39; require separate approval.**
+**Status: decision record complete under issue [#40](https://github.com/chinmay-sawant/codehound/issues/40) (2026-07-18).** Evaluations and dispositions are closed with evidence; **implementation** of BP-66..165 detectors, engine rewrites, typed Go, and Python remains **not scheduled**. CWE trust continues under [#39](https://github.com/chinmay-sawant/codehound/issues/39).
 
-Nothing in this phase is a v0.0.5 commitment. Create a scoped issue and obtain fresh evidence before changing any checkbox to active.
+Evidence files:
+
+- `plans/v0.0.5/bp-candidates-disposition.md`
+- `plans/v0.0.5/perf-eval-decision.md`
+- `plans/v0.0.5/taint-capability-decision.md`
+- `plans/v0.0.5/roadmap-investments-decision.md`
 
 ### 4.1 Deferred BP-66..BP-165 candidates
 
-- [ ] Reassess the 29 absent BP candidates only after real-module canaries provide a concrete, statically provable pattern.
-- [ ] Core/context candidates (BP-69, BP-71, BP-74, BP-77, BP-78): require a sound contract, alias, or interprocedural proof boundary.
-- [ ] HTTP/framework candidates (BP-103, BP-106, BP-108, BP-112..BP-115, BP-118, BP-121, BP-123..BP-125): require framework/lifecycle or policy evidence beyond generic syntax.
-- [ ] Data candidates (BP-127, BP-129, BP-130, BP-137, BP-139, BP-144): require driver, query, configuration, or intent evidence not currently available.
-- [ ] Observability/API candidates (BP-148, BP-150, BP-152, BP-153, BP-157, BP-165): require environment, security-policy, or multi-file ownership evidence.
-- [ ] Retire any candidate that duplicates CWE, PERF, `go vet`, staticcheck, errcheck, bodyclose, or sqlclosecheck without a documented additional value.
+- [x] Reassess the 29 absent BP candidates only after real-module canaries provide a concrete, statically provable pattern. **Done as research disposition (not implementation):** all 29 labeled in `bp-candidates-disposition.md` — 9 retire-duplicate, 1 defer-needs-canary (BP-71), 6 defer-needs-proof-boundary, 13 defer-policy. No candidate promoted to implement without a new scoped issue.
+- [x] Core/context candidates (BP-69, BP-71, BP-74, BP-77, BP-78): require a sound contract, alias, or interprocedural proof boundary. **Disposition recorded** (BP-78 retire-duplicate of noctx; others defer-policy/proof-boundary; BP-71 canary-gated only). See disposition table Core/context group.
+- [x] HTTP/framework candidates (BP-103, BP-106, BP-108, BP-112..BP-115, BP-118, BP-121, BP-123..BP-125): require framework/lifecycle or policy evidence beyond generic syntax. **Disposition recorded** (several retire-duplicate of CWE/PERF/BP-13; remainder defer-policy/framework). See disposition table HTTP group.
+- [x] Data candidates (BP-127, BP-129, BP-130, BP-137, BP-139, BP-144): require driver, query, configuration, or intent evidence not currently available. **Disposition recorded** (129/130/139 retire-duplicate; others defer). See disposition table Data group.
+- [x] Observability/API candidates (BP-148, BP-150, BP-152, BP-153, BP-157, BP-165): require environment, security-policy, or multi-file ownership evidence. **Disposition recorded** (BP-152 retire-duplicate of CWE-798; others defer-policy). See disposition table Observability/API group.
+- [x] Retire any candidate that duplicates CWE, PERF, `go vet`, staticcheck, errcheck, bodyclose, or sqlclosecheck without a documented additional value. **Nine retire-duplicate IDs listed** in `bp-candidates-disposition.md` (BP-78, 103, 108, 118, 124, 129, 130, 139, 152). Retirement is **catalog-decision only** — no detector code was added for these IDs.
 
 ### 4.2 Optional high-risk performance work
 
-- [ ] Profile with `cargo flamegraph` or `perf record` on the release binary only if Phase 1 identifies a reproducible bottleneck.
-- [ ] Evaluate shared parse/fact reuse across PERF, CWE, and BP with cache-invalidation and ownership measurements.
-- [ ] Evaluate small-`--only` fact-builder skipping, package method-set memoization, and dispatch needle batching only against a preserved finding oracle.
-- [ ] Do not pursue on-disk tree retention/incremental tree-sitter reparse unless the CLI memory/speed trade-off is measured and accepted.
+- [x] Profile with `cargo flamegraph` or `perf record` on the release binary only if Phase 1 identifies a reproducible bottleneck. **Decision: defer flamegraph.** Cold release scans already sub-second (gopdfsuit ~0.5–0.7s / 914 findings; gorl ~67ms / 53). Reopen only if wall time exceeds ~1s target. Evidence: `perf-eval-decision.md`.
+- [x] Evaluate shared parse/fact reuse across PERF, CWE, and BP with cache-invalidation and ownership measurements. **Decision: defer.** Parse already once per file; cross-pack fact sharing is high-risk / unclear wall-time win. Evidence: `perf-eval-decision.md`.
+- [x] Evaluate small-`--only` fact-builder skipping, package method-set memoization, and dispatch needle batching only against a preserved finding oracle. **Decision: defer** on the default path (no trivial measured win). Evidence: `perf-eval-decision.md`.
+- [x] Do not pursue on-disk tree retention/incremental tree-sitter reparse unless the CLI memory/speed trade-off is measured and accepted. **Decision: do not pursue.** CLI is drop-per-file + finding cache; memory/complexity unjustified. Evidence: `perf-eval-decision.md`.
 
 ### 4.3 Advanced taint capability boundaries
 
-- [ ] Decide whether prepared-statement same-variable parameterization, decoder output pointers, external-package propagation, and channel/goroutine handoffs justify typed Go facts or stronger data-flow infrastructure.
-- [ ] If approved, design the conservative false-negative/false-positive contract before implementation; do not claim whole-program taint coverage.
-- [ ] Keep the existing explicit false-negative model until the new contract has fixtures, integration tests, and representative-project validation.
+- [x] Decide whether prepared-statement same-variable parameterization, decoder output pointers, external-package propagation, and channel/goroutine handoffs justify typed Go facts or stronger data-flow infrastructure. **Decision recorded** in `taint-capability-decision.md`: Prepare same-var **approve design only** (future narrow issue); Decode pointers, external-package, channel/goroutine **defer**. No whole-program taint; no typed-facts unlock from this phase.
+- [x] If approved, design the conservative false-negative/false-positive contract before implementation; do not claim whole-program taint coverage. **Prepare same-var contract sketched** in the decision doc (same-function AST only; fixtures + integration + canary gate before code). Other enhancements not approved for design implementation.
+- [x] Keep the existing explicit false-negative model until the new contract has fixtures, integration tests, and representative-project validation. **Affirmed** — keep Phase-8 explicit FN ceilings (including channel/goroutine) until any approved contract ships with fixtures/integration/canaries.
 
 ### 4.4 Roadmap-only investments
 
-- [ ] Consider optional `--typed` / `go/packages` support only after the PERF pack is trusted.
-- [ ] Consider Python investment only with explicit funding and a new/reversed ADR, as required by the Go-first multi-language decision.
+- [x] Consider optional `--typed` / `go/packages` support only after the PERF pack is trusted. **Decision: defer** until PERF pack trust is product-accepted (noise-reduce-1 closed + recommended pilot evidence) and a scoped capability/cost issue exists. Evidence: `roadmap-investments-decision.md`.
+- [x] Consider Python investment only with explicit funding and a new/reversed ADR, as required by the Go-first multi-language decision. **Decision: defer** pending funding + new/reversed ADR (ADR 0005 Go-first reaffirmed). Evidence: `roadmap-investments-decision.md`.
 
 ---
 

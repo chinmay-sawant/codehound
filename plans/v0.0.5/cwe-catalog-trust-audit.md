@@ -1,7 +1,7 @@
 # v0.0.5 — CWE Catalog Trust Audit, Tranche 1
 
 > **Parent:** `plans/v0.0.5/pending-work.md` — Phase 3.2
-> **Status:** Tranche 1 complete (PRNG + CWE-798 quarantined). Tranche 2 complete (cipher misuse: CWE-1204/1240 fixture-only; CWE-325 stays Heuristic). §2.3 call-facts rewrites for CWE-325/328 done. Tranche 3 long-tail NEEDLES/maturity (§2.4): CWE-323/331/347 fixture-only; CWE-328 stays Heuristic. Further long-tail NEEDLES audit and maturity expansion remain under GitHub issue [#39](https://github.com/chinmay-sawant/codehound/issues/39). The remaining CWE catalog is not yet certified.
+> **Status:** Tranche 1 complete (PRNG + CWE-798 quarantined). Tranche 2 complete (cipher misuse: CWE-1204/1240 fixture-only; CWE-325 stays Heuristic). §2.3 call-facts rewrites for CWE-325/328 done. Tranche 3 long-tail NEEDLES/maturity (§2.4): CWE-323/331/347 fixture-only; CWE-328 stays Heuristic. Tranche 4 OAuth authorization-bypass (§2.5): CWE-940/941 fixture-only; CWE-941 call-facts primary for `smtp.SendMail`. Further long-tail NEEDLES audit and maturity expansion remain under GitHub issue [#39](https://github.com/chinmay-sawant/codehound/issues/39). The remaining CWE catalog is not yet certified.
 > **Estimated effort:** Incremental, rule-family by rule-family; do not bulk-promote or bulk-check the remaining catalog.
 
 ---
@@ -19,6 +19,8 @@ The first tranche confirms that CWE-334, CWE-335, CWE-338, CWE-342, CWE-343, and
 Tranche 2 extends the same bar to the cipher-misuse family: CWE-1204 and CWE-1240 are corpus-literal detectors and are now `fixture-only`; CWE-325 is a production-shaped stdlib API smell kept as **Heuristic** without structural promotion (needle-primary emit). A zero-hit real-module canary (0/126 files) supports keep/quarantine rather than delete.
 
 Tranche 3 covers crypto-strength siblings and JWT manual decode: CWE-323 / CWE-331 / CWE-347 quarantine as `fixture-only` (fixed nonce identifiers, recovery-code bound, exact JWT variable names); CWE-328 (`md5.Sum`) stays **Heuristic** with three reviewed gopdfsuit hits and no structural promotion.
+
+Tranche 4 covers OAuth authorization-bypass long-tail: CWE-940 / CWE-941 quarantine as `fixture-only` (OAuthCallback / SendResetLink helper names, exact `oauth_tokens` INSERT, `[]string{email}` recipient shape). CWE-941 is rewritten to `call_facts` primary for `smtp.SendMail` without structural promotion.
 
 Success means every future `structural` promotion has generalized syntax or facts, negative coverage, and real-module evidence. A CWE rule is not promoted merely because a fixture fires.
 
@@ -86,9 +88,9 @@ A CWE rule may be promoted to `structural` only when all of the following are tr
 
 Remaining open items are in scope for GitHub issue [#39](https://github.com/chinmay-sawant/codehound/issues/39). The CWE-918 call-facts pilot below is already recorded; do not treat the whole tranche as complete.
 
-- [x] Select one long-tail detector whose call facts already provide a complete primary signal, then replace its primary `SourceIndex.has` logic without changing its finding oracle. **Done for CWE-918** (see §2.1); **CWE-325 + CWE-328** follow-on rewrites in §2.3. Further rewrites stay issue-gated under [#39](https://github.com/chinmay-sawant/codehound/issues/39).
-- [x] Retain only API/stdlib needles that can cheaply prove a detector impossible; label fixture-only corpus literals in the source index as they are audited. **Tranche 2 cipher family labeled** (see §2.2); **Tranche 3 crypto-strength/JWT family labeled** (see §2.4); remaining NEEDLES pass continues incrementally under [#39](https://github.com/chinmay-sawant/codehound/issues/39).
-- [x] Record a canary hit-rate and a dated keep/narrow/quarantine/delete decision for each completed family; Tranche 1 PRNG family (§1.2), Tranche 2 cipher family (§2.2), and Tranche 3 crypto-strength/JWT family (§2.4) are recorded. Further families remain under [#39](https://github.com/chinmay-sawant/codehound/issues/39).
+- [x] Select one long-tail detector whose call facts already provide a complete primary signal, then replace its primary `SourceIndex.has` logic without changing its finding oracle. **Done for CWE-918** (see §2.1); **CWE-325 + CWE-328** follow-on rewrites in §2.3; **CWE-941** (`smtp.SendMail`) in §2.5. Further rewrites stay issue-gated under [#39](https://github.com/chinmay-sawant/codehound/issues/39).
+- [x] Retain only API/stdlib needles that can cheaply prove a detector impossible; label fixture-only corpus literals in the source index as they are audited. **Tranche 2 cipher family labeled** (see §2.2); **Tranche 3 crypto-strength/JWT family labeled** (see §2.4); **Tranche 4 OAuth family labeled** (see §2.5); remaining NEEDLES pass continues incrementally under [#39](https://github.com/chinmay-sawant/codehound/issues/39).
+- [x] Record a canary hit-rate and a dated keep/narrow/quarantine/delete decision for each completed family; Tranche 1 PRNG family (§1.2), Tranche 2 cipher family (§2.2), Tranche 3 crypto-strength/JWT family (§2.4), and Tranche 4 OAuth family (§2.5) are recorded. Further families remain under [#39](https://github.com/chinmay-sawant/codehound/issues/39).
 
 ### 2.1 Call-facts pilot — CWE-918 (2026-07-18)
 
@@ -288,6 +290,89 @@ These are genuine `md5.Sum` call sites (PDF encryption/redact paths already note
 - Continue NEEDLES-comment pass only within domain-sized families; do not bulk-edit the index.
 - Transport TLS: CWE-319 (still needle-primary).
 - Other needle-primary long-tail still defaulting to Heuristic without a dated disposition (JWT neighbors such as CWE-358, further crypto/auth strength rules) remain under [#39](https://github.com/chinmay-sawant/codehound/issues/39).
+- OAuth / authorization-bypass long-tail audited in **§2.5** (CWE-940/941 fixture-only; CWE-941 call-facts primary for `smtp.SendMail`).
+
+### 2.5 Tranche 4 — OAuth authorization-bypass long-tail (CWE-940 / CWE-941)
+
+> **Domain:** `src/lang/go/detectors/cwe/domains/general_security/authorization_bypass/oauth.rs`
+> **Date:** 2026-07-18
+> **Issue:** [#39](https://github.com/chinmay-sawant/codehound/issues/39)
+> **Scope:** OAuth / caller-directed notification long-tail still needle-primary after Tranche 3. Prefer domain is listed under pending issue work (oauth / `smtp.SendMail`). CWE-941 call-facts rewrite is recorded here; both rules are maturity-quarantined as fixture-only.
+
+#### Audited dispositions
+
+| Rule | Current detector evidence | Disposition |
+|---|---|---|
+| CWE-940 | Exact helpers `OAuthCallback(` / `OAuthCallbackPure(` plus `INSERT INTO oauth_tokens (user_id, code) VALUES ($1, $2)` and bare `code`, without OAuth state cookie / `invalid oauth state` | Quarantine **fixture-only**. Project-specific callback helper names and exact SQL shape, not a generalized OAuth-state AST/call-fact detector. |
+| CWE-941 | After rewrite: `call_facts` primary for callee `smtp.SendMail`; SI still requires `SendResetLink(` / `SendResetLinkPure(` + `Query("email")` / `Query().Get("email")` + `[]string{email}` without `user.Email` / `lookupEmail(` / `sessionUserID` | Quarantine **fixture-only**. Stdlib SMTP sink is production-shaped and call-facts primary, but emit still depends on fixture helper names and exact recipient-slice text. **Not** structural-promoted (§1.3 bar not met). |
+
+#### Call-facts rewrite — CWE-941
+
+**Rule:** `detect_cwe_941` in `oauth.rs`.
+
+**Before:** Needle-primary emit on `SendResetLink(` / `SendResetLinkPure(` + `smtp.SendMail` + email query + `[]string{email}`; span via source find on the email query.
+
+**After:** Primary match iterates `facts.call_facts` for callee `smtp.SendMail`. SourceIndex is retained as:
+- cheap impossibility prefilter: `smtp.SendMail`
+- corpus co-signals (oracle): `SendResetLink(` / `SendResetLinkPure(`, `Query("email")` / `Query().Get("email")`, `[]string{email}`
+- negative prefilters: `user.Email` / `lookupEmail(` / `sessionUserID`
+
+Finding span uses `send_call.start_byte` from call facts.
+
+**Oracle:** Existing CWE-941 vulnerable fixtures still fire; safe fixtures still silence (session/stored-email negatives). Neighbor fixtures that use `smtp.SendMail` without the SendResetLink + query-email + `[]string{email}` co-shape must not newly fire. No fixture renames. Maturity is **fixture-only** (not Heuristic — helper names dominate).
+
+#### NEEDLES comment pass (this family)
+
+Labeled in `src/lang/go/detectors/cwe/source_index.rs` (no bulk deletes):
+
+| Needle | Label |
+|---|---|
+| `OAuthCallback(` / `OAuthCallbackPure(` | `fixture-literal` (CWE-940 helpers) |
+| `INSERT INTO oauth_tokens (user_id, code) VALUES ($1, $2)` | `fixture-literal` (CWE-940 SQL shape) |
+| `oauth_state` / `Cookie("oauth_state")` / `r.Cookie("oauth_state")` | `negative-gate` (CWE-940 safe-path prefilter) |
+| `invalid oauth state` | `fixture-literal` (CWE-940 safe-path error string) |
+| `SendResetLink(` / `SendResetLinkPure(` | `fixture-literal` (CWE-941 helpers) |
+| `[]string{email}` | `fixture-literal` (CWE-941 recipient slice) |
+| `smtp.SendMail` | `negative-gate` (CWE-941 prefilter; call_facts primary) |
+| `Query("email")` / `Query().Get("email")` | `negative-gate` / co-signal (CWE-941 corpus co-presence) |
+| `user.Email` / `lookupEmail(` / `sessionUserID` | `negative-gate` (CWE-941 safe-path prefilter) |
+
+Note: bare `code` co-presence token for CWE-940 is too generic to label; left unlabeled (same class as CWE-331 bare `code`).
+
+#### Maturity table
+
+- `CWE-940`, `CWE-941` added to `is_fixture_only` in `src/rules/maturity.rs`.
+- Structural promotion bar from §1.3 is **not** met for either rule (fixture helpers / exact SQL or recipient slice remain required for emit).
+
+#### Canary decision — 2026-07-18
+
+Source revision at documentation time: `4567d725deb21af1f5cda96c0262a657c5ffc885` (working tree on `chore/pending-items-2` with this tranche; release binary used for hit-count measurement). Target revisions match Tranche 1/2/3:
+
+| Repository | Path | Revision | Files scanned | Findings |
+|---|---|---|---:|---:|
+| gopdfsuit | `/home/chinmay/ChinmayPersonalProjects/gopdfsuit` | `26d71268937136036c3be1770c0f7bdd89f87dc6` | 78 | 0 |
+| monsoon | `real-repos/monsoon` | `e0f1027cb0c256853b835d8e20d8d206a96e44ed` | 43 | 0 |
+| go-retry | `real-repos/go-retry` | `d3eb50afd37a09a9c0606c218d0dbe06e29d1544` | 5 | 0 |
+
+```sh
+target/release/codehound TARGET --profile all \
+  --only CWE-940,CWE-941 \
+  --format json --json-envelope --no-fail --no-cache
+```
+
+**Totals:** 126 scanned files (78+43+5). Per-rule: CWE-940 ×0, CWE-941 ×0.
+
+**Decision (2026-07-18):** quarantine CWE-940 and CWE-941 as fixture-only (`--profile all` only). Keep CWE-941 call-facts primary for `smtp.SendMail` without structural promotion. Do not delete needles solely for this zero-hit canary; retain fixture coverage as regression evidence. Revisit only when evidence is generalized beyond corpus helper names / exact SQL / recipient-slice literals (e.g. user-controlled binding into `smtp.SendMail` recipients without `SendResetLink` name gates).
+
+#### Next long-tail candidates (not in this tranche)
+
+- Continue NEEDLES-comment pass only within domain-sized families; do not bulk-edit the index.
+- file_handling / path: CWE-434 (client filename + `/var/www/static/avatars` corpus paths).
+- network_binding: CWE-1327 (`StartPublicAPI` + `:9090` bind museum).
+- concurrency TOCTOU: CWE-367 (`os.Stat(target)` + `os.ReadFile(target)` exact names).
+- permissions chown: CWE-648 / CWE-708 (`os.Chown` + FormValue uid/path / `owner_uid` shapes) — rewrite candidate for call_facts `os.Chown` when oracle-safe.
+- Transport TLS: CWE-319 (still needle-primary).
+- Remaining needle-primary long-tail without dated disposition stays under [#39](https://github.com/chinmay-sawant/codehound/issues/39).
 
 ---
 

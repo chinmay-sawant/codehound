@@ -94,6 +94,11 @@ fn is_fixture_only(rule_id: &str) -> bool {
             | "CWE-323" // fixed nonce identifiers + fixednonce12 literals
             | "CWE-331" // Intn(900000)+100000 recovery-code fixture bound
             | "CWE-347" // JWT manual split/decode without verify (exact names)
+            // OAuth / authorization-bypass long-tail museum (Tranche 4 / §2.5)
+            // CWE-941 uses call_facts primary for smtp.SendMail after §2.5 rewrite,
+            // but still requires SendResetLink helper names + exact recipient slice.
+            | "CWE-940" // OAuthCallback helpers + oauth_tokens INSERT corpus shape
+            | "CWE-941" // SendResetLink helpers + Query("email") + []string{email}
             // Common fixture-shaped long-tail (path/corpus strings)
             | "CWE-798" // hard-coded credentials often fixture-shaped
     )
@@ -118,6 +123,8 @@ mod tests {
         assert_eq!(maturity_for("CWE-323"), RuleMaturity::FixtureOnly);
         assert_eq!(maturity_for("CWE-331"), RuleMaturity::FixtureOnly);
         assert_eq!(maturity_for("CWE-347"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-940"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-941"), RuleMaturity::FixtureOnly);
         // Cipher / weak-hash smells remain heuristic (call-facts primary for
         // 325/328 after §2.3 rewrite; not structural-promoted).
         assert_eq!(maturity_for("CWE-325"), RuleMaturity::Heuristic);
@@ -127,6 +134,8 @@ mod tests {
         assert!(is_quarantined_from_default_packs("CWE-323"));
         assert!(is_quarantined_from_default_packs("CWE-331"));
         assert!(is_quarantined_from_default_packs("CWE-347"));
+        assert!(is_quarantined_from_default_packs("CWE-940"));
+        assert!(is_quarantined_from_default_packs("CWE-941"));
         assert!(!is_quarantined_from_default_packs("CWE-325"));
         assert!(!is_quarantined_from_default_packs("CWE-328"));
         assert!(!is_quarantined_from_default_packs("CWE-22"));
