@@ -240,6 +240,12 @@ fn is_server_entrypoint(text: &str) -> bool {
         return false;
     };
     let src = text.as_bytes();
+    // Import + constructor gates avoid treating unrelated `.Run`/`.Start`/`.Listen`
+    // calls (e.g. `cmd.Run`, `net.Listen`) as HTTP server entrypoints.
+    let gin_app = text.contains("github.com/gin-gonic/gin")
+        && (text.contains("gin.New(") || text.contains("gin.Default("));
+    let echo_app = text.contains("github.com/labstack/echo") && text.contains("echo.New(");
+    let fiber_app = text.contains("github.com/gofiber/fiber") && text.contains("fiber.New(");
     let mut is_main_package = false;
     let mut has_server_start = false;
     crate::ast::walk_nodes(
@@ -261,7 +267,13 @@ fn is_server_entrypoint(text: &str) -> bool {
                 };
                 has_server_start |= matches!(name, "http.ListenAndServe" | "http.Serve")
                     || name.ends_with(".ListenAndServe")
-                    || name.ends_with(".Serve");
+                    || name.ends_with(".Serve")
+                    || (gin_app && (name.ends_with(".Run") || name.ends_with(".RunTLS")))
+                    || (echo_app
+                        && (name.ends_with(".Start")
+                            || name.ends_with(".StartTLS")
+                            || name.ends_with(".StartServer")))
+                    || (fiber_app && (name.ends_with(".Listen") || name.ends_with(".ListenTLS")));
             }
             _ => {}
         },

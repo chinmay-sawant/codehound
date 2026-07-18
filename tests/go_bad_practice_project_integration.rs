@@ -28,6 +28,18 @@ fn discover_project_cases() -> Vec<String> {
     cases
 }
 
+/// `BP-47` and `BP-47-fiber` both expect rule `BP-47` (same layout as text BP variants).
+fn expected_rule_id(case: &str) -> String {
+    let rest = case
+        .strip_prefix("BP-")
+        .unwrap_or_else(|| panic!("invalid project BP case: {case}"));
+    let number = rest
+        .split('-')
+        .next()
+        .unwrap_or_else(|| panic!("invalid project BP case number: {case}"));
+    format!("BP-{number}")
+}
+
 fn analyzer() -> Analyzer {
     Analyzer::builder().build()
 }
@@ -41,7 +53,7 @@ fn go_bad_practice_project_fixtures_fire_vulnerable_and_silence_safe() {
     for case in cases {
         let vulnerable = format!("tests/fixtures/go/bad_practices_projects/{case}-vulnerable");
         let safe = format!("tests/fixtures/go/bad_practices_projects/{case}-safe");
-        let expected_rule = case.clone();
+        let expected_rule = expected_rule_id(&case);
 
         let vulnerable_result = analyzer
             .analyze_paths(&[Path::new(&vulnerable)], None)

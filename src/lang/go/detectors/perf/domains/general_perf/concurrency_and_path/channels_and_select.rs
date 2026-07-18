@@ -100,36 +100,46 @@ pub(crate) fn detect_perf_39(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
     }
 }
 
-/// PERF-40: `time.Now()` called multiple times in the same function body.
+/// PERF-40: `time.Now()` called multiple times in the same request-handler
+/// function body.
+///
+/// Scope is the enclosing function **body range**, not the bare function
+/// name: anonymous `go func() { … }` workers each get their own bucket so
+/// independent per-worker timestamps do not clump under `None`.
+///
+/// The gate is request-handler evidence only. A bare `for` loop is not enough
+/// — demo CLIs, benchmarks, and library CAS retries often sample the clock
+/// more than once for distinct events (elapsed time, wall-clock labels, TTL
+/// expiry). Those are not the "one event, one timestamp" smell this rule
+/// targets on a hot request path.
 pub(crate) fn detect_perf_40(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Vec<Finding>) {
-    use crate::lang::go::detectors::perf::common::enclosing_function_name;
+    use crate::lang::go::detectors::perf::common::enclosing_function_body_range;
 
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
-    let on_hot_path = is_request_path(&facts.source_index);
-    let in_loop_present = facts.source_index.has("for ");
-
-    if !on_hot_path && !in_loop_present {
+    if !is_request_path(&facts.source_index) {
         return;
     }
 
-    // Count per enclosing function — separate helpers each calling Now once
-    // are not the repeated-sample smell this rule targets.
-    let mut by_func: Vec<(Option<&str>, Vec<usize>)> = Vec::new();
+    // Group by body span so nested function literals do not share a bucket.
+    // Key is body start (or usize::MAX when package-level / unresolved).
+    let mut by_body: Vec<(usize, Vec<usize>)> = Vec::new();
     for call in &facts.calls {
         if call.callee.as_ref() != "time.Now" {
             continue;
         }
-        let fname = enclosing_function_name(source, call.start_byte);
-        if let Some(entry) = by_func.iter_mut().find(|(n, _)| *n == fname) {
+        let body_key = enclosing_function_body_range(source, call.start_byte)
+            .map(|(start, _)| start)
+            .unwrap_or(usize::MAX);
+        if let Some(entry) = by_body.iter_mut().find(|(k, _)| *k == body_key) {
             entry.1.push(call.start_byte);
         } else {
-            by_func.push((fname, vec![call.start_byte]));
+            by_body.push((body_key, vec![call.start_byte]));
         }
     }
 
-    for (_fname, sites) in by_func {
+    for (_body_key, sites) in by_body {
         if sites.len() < 2 {
             continue;
         }

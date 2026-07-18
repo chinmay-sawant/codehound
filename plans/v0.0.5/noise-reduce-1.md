@@ -102,6 +102,14 @@ longer file-wide suppresses when any buffered channel exists in the same file
 (correctness fix: each `make(chan…)` is classified independently). All results
 use the release binary with `--no-cache` and no context/chunk export.
 
+The 2026-07-18 PERF-40 hot-path batch reduced the pinned gorl canary from
+**56 to 53** findings (PERF-40 3→0) and gopdfsuit **919→914** (PERF-40 5→0).
+PERF-40 now requires request-handler evidence and groups `time.Now` by
+function-body range; demo/main timing loops and library CAS clock samples are
+out of scope. Recommended control remains zero. The `PERF-040-loop-demo` safe
+fixture locks the non-handler boundary.
+
+
 ---
 
 ## Phase 1: Lock the Canary and Its Evidence
@@ -172,7 +180,7 @@ though gorl is a library and that file only loads configuration.
 
 - [x] Require an executable non-example `package main` entrypoint and a parsed server-start call before emitting server lifecycle/policy findings.
 - [x] Anchor the finding at the verified entrypoint, never an arbitrary project anchor.
-- [ ] Retain positive fixtures for actual `http.ListenAndServe`, Gin, Echo, and Fiber startup where each rule is statically provable.
+- [x] Retain positive fixtures for actual `http.ListenAndServe`, Gin, Echo, and Fiber startup where each rule is statically provable.
 - [x] Add a safe library/configuration canonical text fixture and verify gorl emits none of BP-47/50/54/55.
 
 ---
@@ -192,7 +200,7 @@ though gorl is a library and that file only loads configuration.
 - [x] PERF-121: require a real source-to-target conversion relationship, not merely adjacent literals with similar fields. The later literal must read every keyed field from the immediately bound local source value; gorl's independent Prometheus option literals no longer report (1→0).
 - [x] PERF-143: ignore comment/doc text and require a real non-comment `http.Handle` / `http.HandleFunc` before recommending `http.TimeoutHandler`. gorl middleware docs fell 1→0.
 - [x] PERF-38: suppress unbuffered `make(chan struct{})` done/stop signals; classify each `make(chan…)` independently (no file-wide buffered early-return). gorl inmem done channel fell 1→0.
-- [x] PERF-40: count `time.Now` per enclosing function, not per file. removeExpired no longer inherits Incr's count; multi-`Now` inside one body still reports. gorl-shaped safe fixture has one `Now` per function.
+- [x] PERF-40: count `time.Now` per enclosing **function body range** (anonymous workers do not clump); require request-handler evidence — a bare `for` loop is not enough. Demo CLIs, benchmarks, and library CAS retries that sample the clock for distinct events stay silent; multi-`Now` in a Gin/HTTP handler still fires. Canonical `PERF-040-loop-demo` safe fixture locks the demo boundary.
 - [x] PERF-44: require repeated assertions on the same LHS **inside the same function**. Same local name in Get/Incr is silent; gorl fell 1→0.
 - [ ] PERF-46: retain for now — gorl's XFF `TrimSpace` is intentional header parsing; no AST-proven false-positive boundary without weakening the positive fixture. Safe fixture remains off-request-path.
 - [ ] PERF-145: retain as advisory only unless a benchmark proves a practical alternative to the intentionally allocating `WithContext` helper.

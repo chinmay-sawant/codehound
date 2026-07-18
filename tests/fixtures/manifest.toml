@@ -3947,6 +3947,18 @@ required_rules = []
 
 [[fixture]]
 lang = "go"
+path = "tests/fixtures/go/perf/PERF-040-loop-demo-vulnerable.txt"
+required_rules = ["PERF-40"]
+
+[[fixture]]
+lang = "go"
+path = "tests/fixtures/go/perf/PERF-040-loop-demo-safe.txt"
+required_rules = []
+
+
+
+[[fixture]]
+lang = "go"
 path = "tests/fixtures/go/perf/PERF-041-vulnerable.txt"
 required_rules = ["PERF-41"]
 
