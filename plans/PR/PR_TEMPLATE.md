@@ -15,6 +15,7 @@ Use this document as the base when authoring GitHub pull requests. Copy the sect
 7. **Self-assign** the PR to the author (see [Self-assign](#self-assign)).
 8. Save a filled copy under `plans/PR/pr-<short-slug>.md` (or `plans/v0.0.x/pr-<short-slug>.md` when the work is plan-scoped) **before** opening the PR, then commit it on the branch.
 9. Open the PR with the CLI checklist below so assignee, labels, and body stay in sync.
+10. Post issue/PR progress with `plans/PR/COMMENT_TEMPLATE.md` (no chatty “when you want” closers).
 
 ---
 

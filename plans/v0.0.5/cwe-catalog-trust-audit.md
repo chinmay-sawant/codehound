@@ -1,8 +1,8 @@
 # v0.0.5 — CWE Catalog Trust Audit, Tranche 1
 
 > **Parent:** `plans/v0.0.5/pending-work.md` — Phase 3.2
-> **Status:** Tranche 1 complete (PRNG + CWE-798 quarantined). Tranche 2 complete (cipher misuse: CWE-1204/1240 fixture-only; CWE-325 stays Heuristic). §2.3 call-facts rewrites for CWE-325/328 done. Tranche 3 long-tail NEEDLES/maturity (§2.4): CWE-323/331/347 fixture-only; CWE-328 stays Heuristic. Tranche 4 OAuth authorization-bypass (§2.5): CWE-940/941 fixture-only; CWE-941 call-facts primary for `smtp.SendMail`. Further long-tail NEEDLES audit and maturity expansion remain under GitHub issue [#39](https://github.com/chinmay-sawant/codehound/issues/39). The remaining CWE catalog is not yet certified.
-> **Estimated effort:** Incremental, rule-family by rule-family; do not bulk-promote or bulk-check the remaining catalog.
+> **Status:** Tranches 1–4 complete (merged [#41](https://github.com/chinmay-sawant/codehound/pull/41); [#39](https://github.com/chinmay-sawant/codehound/issues/39) closed). **Tranche 5 under [#42](https://github.com/chinmay-sawant/codehound/issues/42)** checklist work recorded in §§2.6–2.10 (CWE-434, 1327, 367, 648/708, 319/358): fixture-only quarantines + call-facts rewrites for 367/648/708/319. Remaining CWE catalog is still not fully certified.
+> **Estimated effort:** Incremental, rule-family by rule-family under #42; do not bulk-promote or bulk-check the remaining catalog.
 
 ---
 
@@ -364,15 +364,376 @@ target/release/codehound TARGET --profile all \
 
 **Decision (2026-07-18):** quarantine CWE-940 and CWE-941 as fixture-only (`--profile all` only). Keep CWE-941 call-facts primary for `smtp.SendMail` without structural promotion. Do not delete needles solely for this zero-hit canary; retain fixture coverage as regression evidence. Revisit only when evidence is generalized beyond corpus helper names / exact SQL / recipient-slice literals (e.g. user-controlled binding into `smtp.SendMail` recipients without `SendResetLink` name gates).
 
-#### Next long-tail candidates (not in this tranche)
+#### Next long-tail candidates → issue [#42](https://github.com/chinmay-sawant/codehound/issues/42)
+
+Checklist plan: **`plans/v0.0.5/cwe-catalog-trust-next.md`** (branch `chore/cwe-trust-tranche5`).
 
 - Continue NEEDLES-comment pass only within domain-sized families; do not bulk-edit the index.
-- file_handling / path: CWE-434 (client filename + `/var/www/static/avatars` corpus paths).
-- network_binding: CWE-1327 (`StartPublicAPI` + `:9090` bind museum).
-- concurrency TOCTOU: CWE-367 (`os.Stat(target)` + `os.ReadFile(target)` exact names).
-- permissions chown: CWE-648 / CWE-708 (`os.Chown` + FormValue uid/path / `owner_uid` shapes) — rewrite candidate for call_facts `os.Chown` when oracle-safe.
-- Transport TLS: CWE-319 (still needle-primary).
-- Remaining needle-primary long-tail without dated disposition stays under [#39](https://github.com/chinmay-sawant/codehound/issues/39).
+- file_handling / path: CWE-434 — **§2.6** (this tranche).
+- network_binding: CWE-1327 — **§2.7** (this tranche).
+- concurrency TOCTOU: CWE-367 — **§2.8** (this tranche; call-facts primary, keep Heuristic).
+- permissions chown: CWE-648 / CWE-708 — **§2.9** (this tranche; call-facts primary for `os.Chown`, fixture-only).
+- Transport TLS + JWT neighbors: CWE-319 / CWE-358 — **§2.10** (this tranche; both fixture-only; CWE-319 call-facts primary for ListenAndServe).
+- Do **not** track further work under closed [#39](https://github.com/chinmay-sawant/codehound/issues/39).
+
+### 2.6 File/path — CWE-434
+
+> **Domain:** `src/lang/go/detectors/cwe/domains/file_handling.rs`
+> **Date:** 2026-07-18
+> **Issue:** [#42](https://github.com/chinmay-sawant/codehound/issues/42)
+> **Scope:** Phase 1 of `cwe-catalog-trust-next.md` only. CWE-434 (client filename + `/var/www/static/avatars` corpus upload/serve shape). No detector rewrite; NEEDLES labels + maturity quarantine.
+
+#### Audited dispositions
+
+| Rule | Current detector evidence | Disposition |
+|---|---|---|
+| CWE-434 | Exact co-presence of client filename field (`file.Filename` / `hdr.Filename`) + store sink (`SaveUploadedFile(file, dest)` / `os.Create(dest)`) + corpus paths (`/var/www/static/avatars` / `/static/avatars/`) + exact redirect string with client filename; negative gates `unsupported file type` / `filepath.Ext(` / `hex.EncodeToString(` | Quarantine **fixture-only**. Corpus avatar upload/serve paths and exact redirect shapes, not a generalized unrestricted-upload AST/call-fact detector. |
+
+#### Detector shape (no rewrite)
+
+`detect_cwe_434` remains needle-primary:
+
+- Positive store shape: (`file.Filename` ∧ `SaveUploadedFile(file, dest)`) ∨ (`hdr.Filename` ∧ `os.Create(dest)`)
+- Positive serve shape: (`/var/www/static/avatars` ∨ `/static/avatars/`) ∧ exact gin or stdlib redirect using client filename
+- Negative: `unsupported file type` ∨ `filepath.Ext(` ∨ `hex.EncodeToString(` (allow-list + random stored name)
+- Emit span via `source.find("file.Filename")` / `hdr.Filename`
+
+**Why not call-facts / structural now:** `os.Create` is production-shaped, but emit still requires fixture destination name `dest`, exact avatar corpus paths, and full redirect string templates with `file.Filename` / `hdr.Filename`. A generalized unrestricted-upload detector would need user-controlled filename → store → web-serve flow evidence (multipart header binding, destination construction, public serve path) without museum path literals. §1.3 structural bar is **not** met. Call-facts primary alone would not preserve the current oracle without the corpus co-shapes.
+
+#### NEEDLES comment pass (this family)
+
+Labeled in `src/lang/go/detectors/cwe/source_index.rs` (no bulk deletes):
+
+| Needle | Label |
+|---|---|
+| `/var/www/static/avatars` | `fixture-literal` (CWE-434 corpus upload path) |
+| `/static/avatars/` | `fixture-literal` (CWE-434 corpus serve path prefix) |
+| `SaveUploadedFile(file, dest)` | `fixture-literal` (CWE-434 gin dest shape) |
+| `os.Create(dest)` | `fixture-literal` (CWE-434 pure-stdlib dest shape) |
+| `file.Filename` / `hdr.Filename` | `fixture-literal` (CWE-434 client filename co-signal) |
+| `c.Redirect(http.StatusFound, "/static/avatars/"+file.Filename)` | `fixture-literal` (CWE-434 gin redirect) |
+| `http.Redirect(w, r, "/static/avatars/"+hdr.Filename, http.StatusFound)` | `fixture-literal` (CWE-434 pure redirect) |
+| `unsupported file type` | `fixture-literal` (CWE-434 safe-path error string) |
+| `filepath.Ext(` | `negative-gate` (CWE-434 extension allowlist prefilter) |
+| `hex.EncodeToString(` | `negative-gate` (CWE-434 random stored-name prefilter) |
+
+#### Maturity table
+
+- `CWE-434` added to `is_fixture_only` in `src/rules/maturity.rs`.
+- Structural promotion bar from §1.3 is **not** met (corpus paths + exact redirect / dest shapes remain required for emit).
+
+#### Canary decision — 2026-07-18
+
+Source revision at documentation time: `625e153bb60ee69fdfafa92c81375e9f0da2d538` (working tree on `chore/cwe-trust-tranche5` with this phase; release binary used for hit-count measurement — maturity quarantine only affects default packs, not `--profile all --only`). Target revisions match Tranche 1–4:
+
+| Repository | Path | Revision | Files scanned | Findings |
+|---|---|---|---:|---:|
+| gopdfsuit | `/home/chinmay/ChinmayPersonalProjects/gopdfsuit` | `26d71268937136036c3be1770c0f7bdd89f87dc6` | 78 | 0 |
+| monsoon | `real-repos/monsoon` | `e0f1027cb0c256853b835d8e20d8d206a96e44ed` | 43 | 0 |
+| go-retry | `real-repos/go-retry` | `d3eb50afd37a09a9c0606c218d0dbe06e29d1544` | 5 | 0 |
+
+```sh
+target/release/codehound TARGET --profile all \
+  --only CWE-434 \
+  --format json --json-envelope --no-fail --no-cache
+```
+
+**Totals:** 126 scanned files (78+43+5). Per-rule: CWE-434 ×0.
+
+**Decision (2026-07-18):** quarantine CWE-434 as fixture-only (`--profile all` only). Do not rewrite detector or delete needles solely for this zero-hit canary; retain fixture coverage as regression evidence. Revisit only when evidence is generalized beyond corpus avatar paths / exact redirect templates (e.g. multipart client-filename binding into store + web-serve without museum path literals).
+
+### 2.7 Network binding — CWE-1327
+
+> **Domain:** `src/lang/go/detectors/cwe/domains/network_binding.rs`
+> **Date:** 2026-07-18
+> **Issue:** [#42](https://github.com/chinmay-sawant/codehound/issues/42)
+> **Scope:** Phase 2 of `cwe-catalog-trust-next.md` only. CWE-1327 (`StartPublicAPI` + `:9090` unrestricted bind museum). No detector rewrite; NEEDLES labels + maturity quarantine.
+
+#### Audited dispositions
+
+| Rule | Current detector evidence | Disposition |
+|---|---|---|
+| CWE-1327 | Exact helpers `StartPublicAPI(` / `StartPublicAPIPure(` plus `Run(":9090")` / `ListenAndServe(":9090",`; negative gate `127.0.0.1:9090`; span via `source.find(":9090")` | Quarantine **fixture-only**. Project-specific public-API helper names and fixed port `:9090` corpus bind, not a generalized unrestricted-bind AST/call-fact detector. |
+
+#### Detector shape (no rewrite)
+
+`detect_cwe_1327` remains needle-primary:
+
+- Positive: (`StartPublicAPI(` ∨ `StartPublicAPIPure(`) ∧ (`Run(":9090")` ∨ `ListenAndServe(":9090",`)
+- Negative: `127.0.0.1:9090` (safe fixtures use loopback)
+- Emit message: service binds to all interfaces instead of restricted loopback
+
+**Why not call-facts / structural now:** A production-shaped unrestricted-bind rule would need to distinguish intentional public listens (`:80`, `:443`, configured bind addrs) from accidental all-interface exposure of admin/local services. The current oracle only matches museum helpers + port `9090`. Generalizing would either mass-FP real HTTP servers or require policy/config intent evidence outside this domain. §1.3 structural bar is **not** met.
+
+Neighbor needles **not** relabeled here (other families own them):
+
+- `10.20.30.40:9090` — CWE-1051 hard-coded private endpoint
+- `net.Listen("tcp", ":9090")` — CWE-605 lifecycle/runtime
+- bare `ListenAndServe(` / `http.ListenAndServe(` — CWE-319 / transport prefilters
+
+#### NEEDLES comment pass (this family)
+
+Labeled in `src/lang/go/detectors/cwe/source_index.rs` (no bulk deletes):
+
+| Needle | Label |
+|---|---|
+| `StartPublicAPI(` / `StartPublicAPIPure(` | `fixture-literal` (CWE-1327 helpers) |
+| `Run(":9090")` | `fixture-literal` (CWE-1327 gin bind) |
+| `ListenAndServe(":9090",` | `fixture-literal` (CWE-1327 pure bind) |
+| `127.0.0.1:9090` | `negative-gate` (CWE-1327 safe-path prefilter) |
+
+#### Maturity table
+
+- `CWE-1327` added to `is_fixture_only` in `src/rules/maturity.rs`.
+- Structural promotion bar from §1.3 is **not** met (fixture helpers + fixed `:9090` remain required for emit).
+
+#### Canary decision — 2026-07-18
+
+Source revision at documentation time: `625e153bb60ee69fdfafa92c81375e9f0da2d538` (working tree on `chore/cwe-trust-tranche5` with this phase; release binary used for hit-count measurement — maturity quarantine only affects default packs, not `--profile all --only`). Target revisions match Tranche 1–4:
+
+| Repository | Path | Revision | Files scanned | Findings |
+|---|---|---|---:|---:|
+| gopdfsuit | `/home/chinmay/ChinmayPersonalProjects/gopdfsuit` | `26d71268937136036c3be1770c0f7bdd89f87dc6` | 78 | 0 |
+| monsoon | `real-repos/monsoon` | `e0f1027cb0c256853b835d8e20d8d206a96e44ed` | 43 | 0 |
+| go-retry | `real-repos/go-retry` | `d3eb50afd37a09a9c0606c218d0dbe06e29d1544` | 5 | 0 |
+
+```sh
+target/release/codehound TARGET --profile all \
+  --only CWE-1327 \
+  --format json --json-envelope --no-fail --no-cache
+```
+
+**Totals:** 126 scanned files (78+43+5). Per-rule: CWE-1327 ×0.
+
+**Decision (2026-07-18):** quarantine CWE-1327 as fixture-only (`--profile all` only). Do not rewrite detector or delete needles solely for this zero-hit canary; retain fixture coverage as regression evidence. Revisit only when evidence is generalized beyond corpus helper names / fixed `:9090` (e.g. bind-address classification with policy-aware public-vs-loopback distinction that does not mass-FP intentional public servers).
+
+### 2.8 TOCTOU — CWE-367
+
+> **Domain:** `src/lang/go/detectors/cwe/domains/concurrency/toctou.rs`
+> **Date:** 2026-07-18
+> **Issue:** [#42](https://github.com/chinmay-sawant/codehound/issues/42)
+> **Scope:** Phase 3 of `cwe-catalog-trust-next.md` only. Concurrency TOCTOU long-tail previously needle-primary on exact `os.Stat(target)` / `os.ReadFile(target)` corpus text. Call-facts primary rewrite recorded here; maturity remains **Heuristic** (not fixture-only, not structural-promoted).
+
+#### Audited dispositions
+
+| Rule | Current detector evidence | Disposition |
+|---|---|---|
+| CWE-367 | After rewrite: `call_facts` primary for callees `os.Stat` + `os.ReadFile` sharing the same first-arg path text; SI `os.Stat(` / `os.ReadFile` are impossibility prefilters only | Keep **Heuristic**. Production-shaped stdlib APIs + shared-path co-use; one reviewed example-path canary hit. **Not** structural-promoted (§1.3 still wants broader production actionability / negatives beyond this co-presence shape). Exact `(target)` needles are no longer emit evidence. |
+
+#### Call-facts rewrite — CWE-367
+
+**Rule:** `detect_cwe_367` in `concurrency/toctou.rs`.
+
+**Before:** Needle-primary emit on exact SourceIndex substrings `os.Stat(target)` **and** `os.ReadFile(target)`; span via `source.find("os.Stat(target)")`.
+
+**After:** Primary match requires both `os.Stat` and `os.ReadFile` in `facts.call_facts` with equal first-argument text (shared path expression). SourceIndex is retained only as:
+- cheap impossibility prefilter: `os.Stat(`, `os.ReadFile`
+- unused corpus literals left labeled (not required for emit): `os.Stat(target)`, `os.ReadFile(target)`
+
+Finding span uses the matching `os.Stat` call’s `start_byte` from call facts (check site).
+
+**Oracle:** Existing CWE-367 vulnerable fixtures still fire (`target` shared path); safe fixtures still silence (ReadFile without Stat). Neighbor fixtures with only Stat or only ReadFile must not newly fire. No fixture renames. Maturity stays **Heuristic** (stdlib co-use is production-shaped; not fixture-helper-name gated).
+
+#### NEEDLES comment pass (this family)
+
+Labeled in `src/lang/go/detectors/cwe/source_index.rs` (no bulk deletes):
+
+| Needle | Label |
+|---|---|
+| `os.Stat(` | `negative-gate` (CWE-367 prefilter; call_facts primary) — **added** |
+| `os.ReadFile` | `negative-gate` (CWE-367 prefilter; call_facts primary) |
+| `os.Stat(target)` | `fixture-literal` (exact corpus path arg; not required for emit) |
+| `os.ReadFile(target)` | `fixture-literal` (exact corpus path arg; not required for emit) |
+
+Note: `os.ReadFile(lockPath)` remains unlabeled under this family (CWE-412 lock-path shape; out of Phase 3 scope).
+
+#### Maturity table
+
+- No change: `CWE-367` is **not** added to `is_fixture_only` (remains default **Heuristic**).
+- Structural promotion bar from §1.3 is **not** met (shared Stat+ReadFile text is a coarse TOCTOU prefilter without control-flow ordering, symlink policy, or user-controlled-path binding).
+
+#### Canary decision — 2026-07-18
+
+Source revision at documentation time: working tree on `chore/cwe-trust-tranche5` (base `625e153bb60ee69fdfafa92c81375e9f0da2d538` + this Phase 3 rewrite). Release binary used for hit-count measurement. Target revisions match prior tranches:
+
+| Repository | Path | Revision | Files scanned | Findings |
+|---|---|---|---:|---:|
+| gopdfsuit | `/home/chinmay/ChinmayPersonalProjects/gopdfsuit` | `26d71268937136036c3be1770c0f7bdd89f87dc6` | 78 | 1 |
+| monsoon | `real-repos/monsoon` | `e0f1027cb0c256853b835d8e20d8d206a96e44ed` | 43 | 0 |
+| go-retry | `real-repos/go-retry` | `d3eb50afd37a09a9c0606c218d0dbe06e29d1544` | 5 | 0 |
+
+```sh
+target/release/codehound TARGET --profile all \
+  --only CWE-367 \
+  --format json --json-envelope --no-fail --no-cache
+```
+
+**Totals:** 126 scanned files (78+43+5). Per-rule: CWE-367 ×1.
+
+**Reviewed hit:** `gopdfsuit/sampledata/gopdflib/load_from_json/main.go:26` — `os.Stat(jsonPath)` then `os.ReadFile(jsonPath)` in example sampledata (finding tagged `example`). Shape matches the generalized detector; not production-library noise. Would **not** have fired under the prior exact `(target)` needles.
+
+**Decision (2026-07-18):** keep CWE-367 as **Heuristic** without structural promotion. Retain call-facts primary for shared-path `os.Stat` + `os.ReadFile`. Do not quarantine as fixture-only (emit no longer depends on corpus identifier `target`). Do not delete labeled needles solely for this canary. Revisit structural promotion only when evidence adds ordering / path-taint / safer-alternative negatives beyond co-presence of Stat and ReadFile on the same argument text.
+
+### 2.9 Permissions — CWE-648 / CWE-708
+
+> **Domain:** `src/lang/go/detectors/cwe/domains/general_security/permissions_and_ownership/chown.rs`
+> **Date:** 2026-07-18
+> **Issue:** [#42](https://github.com/chinmay-sawant/codehound/issues/42)
+> **Scope:** Phase 4 of `cwe-catalog-trust-next.md` only. Permissions chown / ownership long-tail previously needle-primary on `os.Chown(` + exact FormValue/PostForm form keys / `owner_uid`. Call-facts primary rewrite for `os.Chown` recorded here; both rules maturity-quarantined as fixture-only.
+
+#### Audited dispositions
+
+| Rule | Current detector evidence | Disposition |
+|---|---|---|
+| CWE-648 | After rewrite: `call_facts` primary for callee `os.Chown`; SI still requires `uid` + `FormValue("uid")`/`PostForm("uid")` + `FormValue("path")`/`PostForm("path")` without `uploadRoot` / `spoolDir` / `serviceUID` / `Setuid(` | Quarantine **fixture-only**. Stdlib chown sink is production-shaped and call-facts primary, but emit still depends on exact form-key corpus co-signals. **Not** structural-promoted (§1.3 bar not met). |
+| CWE-708 | After rewrite: `call_facts` primary for callee `os.Chown`; SI still requires `owner_uid` + `FormValue("dest")`/`PostForm("dest")` without `spoolDir` / `serviceUID` / `serviceGID` | Quarantine **fixture-only**. Same chown sink proof, but emit still depends on `owner_uid` identifier + exact dest form key. **Not** structural-promoted (§1.3 bar not met). |
+
+#### Call-facts rewrite — CWE-648 / CWE-708
+
+**Rules:** `detect_cwe_648` and `detect_cwe_708` in `chown.rs`.
+
+**Before:** Needle-primary emit on SourceIndex `os.Chown(` plus form-key / `owner_uid` co-presence; span via `source.find("os.Chown(")` (648) or `source.find("owner_uid")` (708).
+
+**After:** Primary match iterates `facts.call_facts` for callee `os.Chown`. SourceIndex is retained as:
+- cheap impossibility prefilter: `os.Chown(`
+- corpus co-signals (oracle):
+  - CWE-648: `uid` + `FormValue("uid")`/`PostForm("uid")` + `FormValue("path")`/`PostForm("path")`
+  - CWE-708: `owner_uid` + `FormValue("dest")`/`PostForm("dest")`
+- negative prefilters:
+  - CWE-648: `uploadRoot` / `spoolDir` / `serviceUID` / `Setuid(`
+  - CWE-708: `spoolDir` / `serviceUID` / `serviceGID`
+
+Finding span uses `chown_call.start_byte` from call facts for both rules.
+
+**Oracle:** Existing CWE-648 / CWE-708 vulnerable fixtures still fire; safe fixtures still silence (upload-root / service-uid / spool-dir negatives). Neighbor fixtures that use `os.Chown` without the form-key / `owner_uid` co-shape must not newly fire. No fixture renames. Maturity is **fixture-only** (not Heuristic — form keys / `owner_uid` dominate).
+
+#### NEEDLES comment pass (this family)
+
+Labeled in `src/lang/go/detectors/cwe/source_index.rs` (no bulk deletes):
+
+| Needle | Label |
+|---|---|
+| `os.Chown(` | `negative-gate` (CWE-648 / CWE-708 prefilter; call_facts primary) |
+| `FormValue("uid")` / `PostForm("uid")` | `fixture-literal` / co-signal (CWE-648 corpus) |
+| `FormValue("path")` / `PostForm("path")` | `fixture-literal` / co-signal (CWE-648 corpus) |
+| `FormValue("dest")` / `PostForm("dest")` | `fixture-literal` / co-signal (CWE-708 corpus) |
+| `owner_uid` | `fixture-literal` (CWE-708 client-chosen owner identifier) |
+| `uploadRoot` | `negative-gate` (CWE-648 safe-path prefilter) |
+| `spoolDir` | `negative-gate` (CWE-648 / CWE-708 safe-path prefilter) |
+| `serviceUID` / `serviceGID` | `negative-gate` (CWE-648 / CWE-708 safe-path prefilter) |
+| `Setuid(` | `negative-gate` (CWE-648 safe-path prefilter; also CWE-272 shape) |
+
+Note: bare `uid` co-presence token for CWE-648 is too generic to label; left unlabeled (same class as CWE-331 / CWE-940 bare `code`).
+
+#### Maturity table
+
+- `CWE-648`, `CWE-708` added to `is_fixture_only` in `src/rules/maturity.rs`.
+- Structural promotion bar from §1.3 is **not** met for either rule (exact form keys / `owner_uid` remain required for emit).
+
+#### Canary decision — 2026-07-18
+
+Source revision at documentation time: working tree on `chore/cwe-trust-tranche5` (base `625e153bb60ee69fdfafa92c81375e9f0da2d538` + this Phase 4 rewrite). Release binary used for hit-count measurement — maturity quarantine only affects default packs, not `--profile all --only`. Target revisions match prior tranches:
+
+| Repository | Path | Revision | Files scanned | Findings |
+|---|---|---|---:|---:|
+| gopdfsuit | `/home/chinmay/ChinmayPersonalProjects/gopdfsuit` | `26d71268937136036c3be1770c0f7bdd89f87dc6` | 78 | 0 |
+| monsoon | `real-repos/monsoon` | `e0f1027cb0c256853b835d8e20d8d206a96e44ed` | 43 | 0 |
+| go-retry | `real-repos/go-retry` | `d3eb50afd37a09a9c0606c218d0dbe06e29d1544` | 5 | 0 |
+
+```sh
+target/release/codehound TARGET --profile all \
+  --only CWE-648,CWE-708 \
+  --format json --json-envelope --no-fail --no-cache
+```
+
+**Totals:** 126 scanned files (78+43+5). Per-rule: CWE-648 ×0, CWE-708 ×0.
+
+**Decision (2026-07-18):** quarantine CWE-648 and CWE-708 as fixture-only (`--profile all` only). Keep call-facts primary for `os.Chown` without structural promotion. Do not delete needles solely for this zero-hit canary; retain fixture coverage as regression evidence. Revisit only when evidence is generalized beyond exact form keys / `owner_uid` (e.g. user-controlled path + uid bindings into `os.Chown` without museum form-field names).
+
+### 2.10 Transport TLS + JWT — CWE-319 / CWE-358
+
+> **Domains:** `src/lang/go/detectors/cwe/domains/information_exposure/secrets_and_transport/transport.rs` (319); `src/lang/go/detectors/cwe/domains/general_security/identity_and_authentication/jwt.rs` (358)
+> **Date:** 2026-07-18
+> **Issue:** [#42](https://github.com/chinmay-sawant/codehound/issues/42)
+> **Scope:** Phase 5 of `cwe-catalog-trust-next.md` only. CWE-319 (card PAN/CVV over cleartext `ListenAndServe`) and CWE-358 (Bearer JWT decode without structure/algorithm checks). Neighbor CWE-347 (JWT without signature verify) was already quarantined fixture-only in §2.4; no other JWT-neighbor rules remain undated in this family.
+
+#### Audited dispositions
+
+| Rule | Current detector evidence | Disposition |
+|---|---|---|
+| CWE-319 | After rewrite: `call_facts` primary for callee ending in `ListenAndServe` (not `ListenAndServeTLS`); SI still requires `CVV` + `Number` card-field co-signals; SI negatives `ListenAndServeTLS(` / `tls.Config` | Quarantine **fixture-only**. Stdlib cleartext listen is production-shaped and call-facts primary, but emit still depends on corpus payment field names (`CVV` / `Number`). **Not** structural-promoted (§1.3 bar not met). |
+| CWE-358 | Exact `strings.TrimPrefix(raw, "Bearer ")` + `DecodeString(parts[1])` + `json.Unmarshal(payload, &claims)` without `invalid jwt structure` / `unsupported jwt algorithm` | Quarantine **fixture-only**. Same JWT corpus variable shape as CWE-347 (`raw` / `parts` / `payload` / `claims`) plus exact safe-path error strings; not a generalized JWT-structure/alg AST/call-fact detector. |
+
+#### Call-facts rewrite — CWE-319
+
+**Rule:** `detect_cwe_319` in `transport.rs`.
+
+**Before:** Needle-primary emit on `CVV` + `Number` + `ListenAndServe(` / `http.ListenAndServe(` without `ListenAndServeTLS(` / `tls.Config`; span via `source.find("ListenAndServe")`.
+
+**After:** Primary match iterates `facts.call_facts` for a callee ending with `ListenAndServe` and not `ListenAndServeTLS`. SourceIndex is retained as:
+- cheap impossibility prefilter: `ListenAndServe(` / `http.ListenAndServe(` / `http.ListenAndServe`
+- corpus co-signals (oracle): `CVV` + `Number`
+- negative prefilters: `ListenAndServeTLS(` / `tls.Config`
+
+Finding span uses `listen_call.start_byte` from call facts.
+
+**Oracle:** Existing CWE-319 vulnerable fixtures still fire (`http.ListenAndServe` + card payload); safe fixtures still silence (`tls.Config` + `ListenAndServeTLS`). Neighbor plain-HTTP listeners without `CVV`+`Number` must not newly fire. No fixture renames. Maturity is **fixture-only** (payment field names dominate).
+
+**Why not structural / Heuristic keep:** Without the card-field museum gate, every cleartext HTTP server would be a candidate finding. A generalized cleartext-sensitive-transport rule needs sensitive-data classification (or taint of card/PII into the served handler) beyond exact `CVV`/`Number` identifiers. §1.3 bar is **not** met.
+
+#### CWE-358 — no rewrite
+
+`detect_cwe_358` remains needle-primary (same class as CWE-347 §2.4):
+
+- Positive: `strings.TrimPrefix(raw, "Bearer ")` ∧ `DecodeString(parts[1])` ∧ `json.Unmarshal(payload, &claims)`
+- Negative: `invalid jwt structure` ∨ `unsupported jwt algorithm`
+- Emit span via `source.find("DecodeString(parts[1])")`
+
+**Why not call-facts:** There is no single stdlib callee that is both necessary and sufficient. `json.Unmarshal` / `DecodeString` are shared sinks used widely; emit depends on exact fixture variable names and Bearer-trim text. Call-facts primary would not remove corpus coupling and would risk neighbor noise. Defer any rewrite until a generalized JWT parse/verify fact model exists.
+
+**JWT neighbor note:** CWE-347 (manual split/decode without `VerifyPKCS1v15`) already fixture-only under §2.4. No additional JWT-neighbor detector remains undated under Phase 5.
+
+#### NEEDLES comment pass (this family)
+
+Labeled in `src/lang/go/detectors/cwe/source_index.rs` (no bulk deletes):
+
+| Needle | Label |
+|---|---|
+| `CVV` / `Number` | `fixture-literal` (CWE-319 payment field co-signals) |
+| `ListenAndServe(` / `http.ListenAndServe` / `http.ListenAndServe(` | `negative-gate` (CWE-319 prefilter; call_facts primary after §2.10) |
+| `ListenAndServeTLS(` / `tls.Config` | `negative-gate` (CWE-319 safe-path prefilter) |
+| `strings.TrimPrefix(raw, "Bearer ")` | `fixture-literal` (CWE-358 Bearer corpus shape) |
+| `DecodeString(parts[1])` / `json.Unmarshal(payload, &claims)` / `strings.Split(raw, ".")` | already `fixture-literal` from §2.4 (CWE-347 / CWE-358 JWT corpus) |
+| `invalid jwt structure` / `unsupported jwt algorithm` | `fixture-literal` (CWE-358 safe-path error strings) |
+
+Neighbor needle **not** relabeled here (other families own it):
+
+- `ListenAndServe(":9090",` — CWE-1327 pure bind corpus (§2.7)
+
+#### Maturity table
+
+- `CWE-319`, `CWE-358` added to `is_fixture_only` in `src/rules/maturity.rs`.
+- Structural promotion bar from §1.3 is **not** met for either rule (payment field names / JWT variable names + exact error strings remain required for emit).
+
+#### Canary decision — 2026-07-18
+
+Source revision at documentation time: working tree on `chore/cwe-trust-tranche5` (base `625e153bb60ee69fdfafa92c81375e9f0da2d538` + this Phase 5 rewrite/quarantine). Release binary used for hit-count measurement — maturity quarantine only affects default packs, not `--profile all --only`. Target revisions match prior tranches:
+
+| Repository | Path | Revision | Files scanned | Findings |
+|---|---|---|---:|---:|
+| gopdfsuit | `/home/chinmay/ChinmayPersonalProjects/gopdfsuit` | `26d71268937136036c3be1770c0f7bdd89f87dc6` | 78 | 0 |
+| monsoon | `real-repos/monsoon` | `e0f1027cb0c256853b835d8e20d8d206a96e44ed` | 43 | 0 |
+| go-retry | `real-repos/go-retry` | `d3eb50afd37a09a9c0606c218d0dbe06e29d1544` | 5 | 0 |
+
+```sh
+target/release/codehound TARGET --profile all \
+  --only CWE-319,CWE-358 \
+  --format json --json-envelope --no-fail --no-cache
+```
+
+**Totals:** 126 scanned files (78+43+5). Per-rule: CWE-319 ×0, CWE-358 ×0.
+
+**Decision (2026-07-18):** quarantine CWE-319 and CWE-358 as fixture-only (`--profile all` only). Keep CWE-319 call-facts primary for `ListenAndServe` without structural promotion. Do not rewrite CWE-358. Do not delete needles solely for this zero-hit canary; retain fixture coverage as regression evidence. Revisit CWE-319 only when sensitive-data classification generalizes beyond `CVV`/`Number`; revisit CWE-358 only when JWT structure/alg checks are modeled without exact variable names / error-string museum gates.
 
 ---
 

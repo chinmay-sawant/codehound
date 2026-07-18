@@ -99,6 +99,20 @@ fn is_fixture_only(rule_id: &str) -> bool {
             // but still requires SendResetLink helper names + exact recipient slice.
             | "CWE-940" // OAuthCallback helpers + oauth_tokens INSERT corpus shape
             | "CWE-941" // SendResetLink helpers + Query("email") + []string{email}
+            // File/path upload long-tail (Tranche 5 / §2.6)
+            | "CWE-434" // client filename + /var/www/static/avatars corpus paths
+            // Network binding museum (Tranche 5 / §2.7)
+            | "CWE-1327" // StartPublicAPI helpers + :9090 bind corpus shape
+            // Permissions chown museum (Tranche 5 / §2.9)
+            // CWE-648/708 use call_facts primary for os.Chown after §2.9 rewrite,
+            // but still require FormValue uid/path / owner_uid + dest corpus co-signals.
+            | "CWE-648" // FormValue/PostForm("uid")+("path") + os.Chown corpus shape
+            | "CWE-708" // owner_uid + FormValue/PostForm("dest") + os.Chown corpus shape
+            // Transport TLS + JWT neighbor museum (Tranche 5 / §2.10)
+            // CWE-319 uses call_facts primary for ListenAndServe after §2.10 rewrite,
+            // but still requires CVV + Number payment-field corpus co-signals.
+            | "CWE-319" // card CVV/Number + cleartext ListenAndServe corpus shape
+            | "CWE-358" // Bearer trim + JWT middle-segment decode without structure/alg checks
             // Common fixture-shaped long-tail (path/corpus strings)
             | "CWE-798" // hard-coded credentials often fixture-shaped
     )
@@ -125,6 +139,12 @@ mod tests {
         assert_eq!(maturity_for("CWE-347"), RuleMaturity::FixtureOnly);
         assert_eq!(maturity_for("CWE-940"), RuleMaturity::FixtureOnly);
         assert_eq!(maturity_for("CWE-941"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-434"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-1327"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-648"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-708"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-319"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-358"), RuleMaturity::FixtureOnly);
         // Cipher / weak-hash smells remain heuristic (call-facts primary for
         // 325/328 after §2.3 rewrite; not structural-promoted).
         assert_eq!(maturity_for("CWE-325"), RuleMaturity::Heuristic);
@@ -136,6 +156,12 @@ mod tests {
         assert!(is_quarantined_from_default_packs("CWE-347"));
         assert!(is_quarantined_from_default_packs("CWE-940"));
         assert!(is_quarantined_from_default_packs("CWE-941"));
+        assert!(is_quarantined_from_default_packs("CWE-434"));
+        assert!(is_quarantined_from_default_packs("CWE-1327"));
+        assert!(is_quarantined_from_default_packs("CWE-648"));
+        assert!(is_quarantined_from_default_packs("CWE-708"));
+        assert!(is_quarantined_from_default_packs("CWE-319"));
+        assert!(is_quarantined_from_default_packs("CWE-358"));
         assert!(!is_quarantined_from_default_packs("CWE-325"));
         assert!(!is_quarantined_from_default_packs("CWE-328"));
         assert!(!is_quarantined_from_default_packs("CWE-22"));
