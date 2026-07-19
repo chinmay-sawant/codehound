@@ -130,3 +130,39 @@ fn two_package_duplicate_callee_does_not_cross_contaminate() {
         vuln.findings
     );
 }
+
+/// Same package, two receiver types both define `Open`. The safe receiver must
+/// not inherit the sink-bearing summary when the call-site receiver type is
+/// unknown. When the call is on the enclosing method's own receiver, the exact
+/// key still resolves and the sink fires.
+#[test]
+fn same_package_ambiguous_method_receiver_is_conservative() {
+    let analyzer = taint_analyzer();
+
+    let safe_root = Path::new("tests/fixtures/go/taint_projects/method-receiver-ambiguous-safe");
+    let safe = analyzer
+        .analyze_paths(&[safe_root], None)
+        .expect("analyze method-receiver-ambiguous-safe");
+    let safe_cwe22: Vec<_> = safe
+        .findings
+        .iter()
+        .filter(|f| f.rule_id == "CWE-22")
+        .collect();
+    assert!(
+        safe_cwe22.is_empty(),
+        "Safe.Open must not inherit Sink.Open summary when receiver type is \
+         ambiguous; got {safe_cwe22:?}"
+    );
+
+    let vuln_root =
+        Path::new("tests/fixtures/go/taint_projects/method-receiver-ambiguous-vulnerable");
+    let vuln = analyzer
+        .analyze_paths(&[vuln_root], None)
+        .expect("analyze method-receiver-ambiguous-vulnerable");
+    assert!(
+        vuln.findings.iter().any(|f| f.rule_id == "CWE-22"),
+        "inferred *Sink receiver must still select Sink.Open sink summary \
+         despite Safe.Open sharing the bare name; findings={:?}",
+        vuln.findings
+    );
+}

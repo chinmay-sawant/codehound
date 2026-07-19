@@ -97,8 +97,13 @@ accept Path sanitizers.
   propagation, method calls, and recursion within one package (keyed by
   package directory + clause, receiver type, and function name). Unqualified
   callees never resolve into another package; import-path wiring is not
-  implemented. Depth is bounded (not a full fixpoint). Mutual recursion and
-  deep chains may miss flows.
+  implemented. Method calls with an unknown receiver type are resolved only
+  when a single same-package receiver exposes that method name; if multiple
+  receivers share the name, summary resolution is declined (false negative
+  preferred over the wrong summary) until local type inference exists.
+  Receiver type is preserved when the call is on the enclosing method's own
+  receiver parameter. Depth is bounded (not a full fixpoint). Mutual
+  recursion and deep chains may miss flows.
 - **Limited field keys (not full field-sensitive analysis).** Qualified names
   like `user.Path` are tracked as keys; map/slice index writes taint the base
   (`m[k] = t` → `m`). No full field-sensitive / element-precise model.
