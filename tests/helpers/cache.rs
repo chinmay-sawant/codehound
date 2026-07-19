@@ -20,7 +20,7 @@ pub mod dep_helpers {
     use std::sync::Arc;
 
     use codehound::core::LanguagePlugin;
-    use codehound::engine::{extract_dependencies, go_module_prefix};
+    use codehound::engine::extract_dependencies;
     use codehound::lang::go::GoPlugin;
 
     pub fn write_file(path: &Path, body: &str) {
@@ -30,7 +30,7 @@ pub mod dep_helpers {
         std::fs::write(path, body).unwrap();
     }
 
-    pub fn parse_go(project: &Path, rel: &str) -> (codehound::core::ParsedUnit, Option<String>) {
+    pub fn parse_go(project: &Path, rel: &str) -> codehound::core::ParsedUnit {
         let path = project.join(rel);
         let source = std::fs::read_to_string(&path).unwrap();
         let plugin = GoPlugin;
@@ -38,15 +38,15 @@ pub mod dep_helpers {
         plugin
             .configure_parser(&mut parser)
             .expect("configure Go parser");
-        let unit = plugin
+        plugin
             .parse_with(&mut parser, &path, Arc::from(source.as_str()))
-            .unwrap();
-        let module = go_module_prefix(project);
-        (unit, module)
+            .unwrap()
     }
 
     pub fn deps_for(project: &Path, rel: &str) -> Vec<String> {
-        let (unit, module) = parse_go(project, rel);
-        extract_dependencies(&unit, project, module.as_deref())
+        let unit = parse_go(project, rel);
+        // Plugin derives Go module prefix from project root; engine only
+        // passes the language-neutral root.
+        extract_dependencies(&unit, project)
     }
 }

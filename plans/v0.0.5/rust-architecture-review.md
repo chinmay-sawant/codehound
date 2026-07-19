@@ -76,10 +76,10 @@ and extension costs.
 
 ### 2.1 P1 — Scope Go bad-practice project facts to a scan
 
-- [ ] Replace process-global `OnceLock<Mutex<HashMap<...>>>` BP caches with per-scan detector/session state.
-- [ ] Build filesystem snapshots off-lock, then use only a short insertion/read critical section.
-- [ ] Clear all BP facts through the normal scan lifecycle and bound their lifetime to that scan.
-- [ ] Add a same-`Analyzer` integration regression: scan a root, modify `go.mod` and a sibling `.go` file, rescan, and assert changed BP-41/BP-47/50/54/55 and dependency-hygiene output.
+- [x] Replace process-global `OnceLock<Mutex<HashMap<...>>>` BP caches with per-scan detector/session state.
+- [x] Build filesystem snapshots off-lock, then use only a short insertion/read critical section.
+- [x] Clear all BP facts through the normal scan lifecycle and bound their lifetime to that scan.
+- [x] Add a same-`Analyzer` integration regression: scan a root, modify `go.mod` and a sibling `.go` file, rescan, and assert changed BP-41/BP-47/50/54/55 and dependency-hygiene output.
 
 **Evidence:** project snapshots are stored globally in [`src/lang/go/detectors/bad_practices/common.rs:88`](../../src/lang/go/detectors/bad_practices/common.rs:88), package-document snapshots in [`code_organization.rs:545`](../../src/lang/go/detectors/bad_practices/rules/code_organization.rs:545), and Go-module/import snapshots in [`dependency_hygiene.rs:350`](../../src/lang/go/detectors/bad_practices/rules/dependency_hygiene.rs:350) and [`dependency_hygiene.rs:547`](../../src/lang/go/detectors/bad_practices/rules/dependency_hygiene.rs:547). Each retains data for process lifetime; cache misses perform filesystem reads/walks while the mutex remains held. That contradicts the detector contract that retained project state is scoped to one top-level scan ([`src/core/detector.rs:40`](../../src/core/detector.rs:40)).
 
@@ -96,9 +96,9 @@ and extension costs.
 
 ### 2.3 P1 — Remove Go-shaped inputs from the generic language-plugin seam
 
-- [ ] Replace `module_prefix: Option<&str>` in `LanguagePlugin::extract_deps` with a language-neutral project context containing the resolved root.
-- [ ] Let the Go plugin derive its own Go module data and return normalized local dependencies; keep cache-key normalization in the engine.
-- [ ] Add a small non-Go test plugin proving dependency extraction does not require Go semantics.
+- [x] Replace `module_prefix: Option<&str>` in `LanguagePlugin::extract_deps` with a language-neutral project context containing the resolved root.
+- [x] Let the Go plugin derive its own Go module data and return normalized local dependencies; keep cache-key normalization in the engine.
+- [x] Add a small non-Go test plugin proving dependency extraction does not require Go semantics.
 
 **Evidence:** the public plugin macro exposes a Go-specific `module_prefix` argument ([`src/lang/plugin.rs:74`](../../src/lang/plugin.rs:74)); `Analyzer` always discovers `go_module_prefix` and chooses dependency root from it ([`src/engine/analyzer/scan.rs:80`](../../src/engine/analyzer/scan.rs:80)); Go and Python then call engine-private dependency implementations ([`src/lang/go/mod.rs:37`](../../src/lang/go/mod.rs:37), [`src/lang/python/mod.rs:21`](../../src/lang/python/mod.rs:21)).
 

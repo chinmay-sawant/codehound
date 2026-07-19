@@ -10,7 +10,8 @@
 /// [`LanguagePlugin`](crate::core::LanguagePlugin) impl in one call.
 ///
 /// Optional 10th argument: `extract_deps` closure
-/// `|unit, project_root, module_prefix| -> Vec<String>`.
+/// `|unit, project| -> Vec<String>` where `project` is
+/// [`ProjectContext`](crate::core::ProjectContext).
 macro_rules! tree_sitter_lang {
     ($marker:ident, $plugin:ident, $lang_id:expr, $grammar:expr, $error_tag:expr,
      $extensions:expr, $detectors:expr, $fn_kinds:expr, $loop_kinds:expr) => {
@@ -24,7 +25,7 @@ macro_rules! tree_sitter_lang {
             $detectors,
             $fn_kinds,
             $loop_kinds,
-            |_, _, _| Vec::new()
+            |_, _| Vec::new()
         );
     };
     ($marker:ident, $plugin:ident, $lang_id:expr, $grammar:expr, $error_tag:expr,
@@ -74,10 +75,9 @@ macro_rules! tree_sitter_lang {
             fn extract_deps(
                 &self,
                 unit: &crate::core::ParsedUnit,
-                project_root: &std::path::Path,
-                module_prefix: Option<&str>,
+                project: &crate::core::ProjectContext<'_>,
             ) -> Vec<String> {
-                $extract_deps(unit, project_root, module_prefix)
+                $extract_deps(unit, project)
             }
         }
     };

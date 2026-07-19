@@ -4,4 +4,4 @@ mod id;
 mod plugin;
 
 pub use id::LanguageId;
-pub use plugin::LanguagePlugin;
+pub use plugin::{LanguagePlugin, ProjectContext};

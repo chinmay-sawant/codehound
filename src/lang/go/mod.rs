@@ -34,15 +34,17 @@ tree_sitter_lang!(
     detectors::all(),
     FUNCTION_NODE_KINDS,
     LOOP_NODE_KINDS,
-    |unit: &crate::core::ParsedUnit,
-     project_root: &std::path::Path,
-     module_prefix: Option<&str>| {
+    |unit: &crate::core::ParsedUnit, project: &crate::core::ProjectContext<'_>| {
+        // Go-specific: derive module path from go.mod at the project root.
+        // The engine no longer passes module_prefix into the plugin seam.
+        let module_prefix =
+            crate::engine::dependencies::go_module_prefix(project.root).unwrap_or_default();
         let mut out = Vec::new();
         crate::engine::dependencies::go_imports::extract(
             &unit.tree.root_node(),
             &unit.source,
-            project_root,
-            module_prefix.unwrap_or(""),
+            project.root,
+            &module_prefix,
             &mut out,
         );
         out
