@@ -1,7 +1,7 @@
 //! Detector trait — language-scoped analysis rule.
 
 use crate::core::{LanguageId, ParsedUnit, ScanContext};
-use crate::rules::Finding;
+use crate::rules::{Finding, RulePack, TimingGranularity};
 
 /// Walks one parsed unit and appends findings.
 ///
@@ -28,6 +28,37 @@ pub trait Detector: Send + Sync {
     /// rules behind one execution unit.
     fn metadata_for(&self, _rule_id: &str) -> Option<&'static crate::rules::RuleMetadata> {
         None
+    }
+
+    /// Product pack this detector belongs to.
+    ///
+    /// Default: pack of the first rule id (via metadata when present, else id
+    /// classification). Multi-rule bundles should override when the pack is a
+    /// property of the detector object rather than of individual ids.
+    fn pack(&self) -> RulePack {
+        let Some(first) = self.rule_ids().first().copied() else {
+            return RulePack::General;
+        };
+        if let Some(meta) = self.metadata_for(first) {
+            return meta.pack;
+        }
+        RulePack::from_rule_id(first)
+    }
+
+    /// How debug timing should attribute spans for this detector.
+    ///
+    /// Default: single-rule → [`TimingGranularity::SingleRule`]; multi-rule →
+    /// [`TimingGranularity::DetectorSpan`]. Packs that emit their own per-rule
+    /// spans (e.g. bad practices) override with
+    /// [`TimingGranularity::PerRuleSelfTimed`].
+    fn timing_granularity(&self) -> TimingGranularity {
+        TimingGranularity::from_rule_count(self.rule_ids().len())
+    }
+
+    /// Stable timing label when using [`TimingGranularity::DetectorSpan`] or
+    /// as a fallback span name.
+    fn timing_label(&self) -> &'static str {
+        self.rule_ids().first().copied().unwrap_or("detector")
     }
 
     /// Run the detector on one parsed unit, appending findings to `out`.

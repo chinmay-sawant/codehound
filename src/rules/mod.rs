@@ -8,6 +8,7 @@ mod finding;
 pub(crate) mod finding_view;
 pub(crate) mod finding_wire;
 pub(crate) mod maturity;
+pub(crate) mod pack;
 mod severity;
 
 pub use emit::{push_finding, push_finding_with_evidence, push_finding_with_snippet, rule_meta};
@@ -15,32 +16,28 @@ pub use evidence::{ControlFlowKind, DetectorEvidence, TaintHop, TaintSinkInfo, T
 pub use finding::{Finding, FindingInputs, LineCol};
 pub use finding_view::FindingView;
 pub use maturity::{RuleMaturity, is_quarantined_from_default_packs, maturity_for};
+pub use pack::{
+    PERF_TIER_A_RULES, PERF_TIER_S_RULES, RulePack, SECURITY_PACK_RULES, STYLE_PACK_PATTERNS,
+    TAINT_CORE_CWE_RULES, TimingGranularity,
+};
 pub use severity::Severity;
 
 use serde::Serialize;
 
 use crate::cwe::CweRef;
 
-/// Coarse rule category derived from the rule ID prefix.
+/// Coarse rule category derived from pack metadata for `rule_id`.
 pub fn category_for_rule_id(rule_id: &str) -> &'static str {
-    if rule_id.starts_with("BP-") {
-        "bad_practice"
-    } else if rule_id.starts_with("PERF-") {
-        "performance"
-    } else if rule_id.starts_with("CWE-") {
-        "security"
-    } else {
-        "general"
-    }
+    RulePack::from_rule_id(rule_id).category_str()
 }
 
 /// Domain tag appended to the base SARIF tag set for a rule family.
 pub fn sarif_family_tag_for_rule_id(rule_id: &str) -> Option<&'static str> {
-    match category_for_rule_id(rule_id) {
-        "security" => Some("cwe"),
-        "performance" => Some("performance"),
-        "bad_practice" => Some("bad_practice"),
-        _ => None,
+    match RulePack::from_rule_id(rule_id) {
+        RulePack::Security => Some("cwe"),
+        RulePack::Performance => Some("performance"),
+        RulePack::BadPractice => Some("bad_practice"),
+        RulePack::General => None,
     }
 }
 
@@ -65,4 +62,6 @@ pub struct RuleMetadata {
     pub cwe: &'static [CweRef],
     /// Suggested fix or note.
     pub fix: Option<&'static str>,
+    /// Product pack this rule belongs to (BP / PERF / CWE / general).
+    pub pack: RulePack,
 }

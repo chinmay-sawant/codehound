@@ -30,6 +30,10 @@ lint:
 	$(CARGO) clippy --all-targets --all-features -- -D warnings
 	$(CARGO) fmt --check
 
+# Public docs with warnings as errors (intra-doc links, missing docs on public API).
+doc:
+	RUSTDOCFLAGS='-D warnings' $(CARGO) doc --all-features --no-deps --locked
+
 # Apply code formatting
 fmt:
 	$(CARGO) fmt

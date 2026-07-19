@@ -1,7 +1,7 @@
 //! Go bad-practice heuristics (P2.5 MVP).
 
 use crate::core::{Detector, LanguageId, ParsedUnit, ScanContext};
-use crate::rules::{Finding, RuleMetadata};
+use crate::rules::{Finding, RuleMetadata, RulePack, TimingGranularity};
 
 mod common;
 mod dispatch;
@@ -29,6 +29,14 @@ impl Detector for GoBadPracticeScan {
 
     fn metadata_for(&self, rule_id: &str) -> Option<&'static RuleMetadata> {
         metadata::metadata_for(rule_id)
+    }
+
+    fn pack(&self) -> RulePack {
+        RulePack::BadPractice
+    }
+
+    fn timing_granularity(&self) -> TimingGranularity {
+        TimingGranularity::PerRuleSelfTimed
     }
 
     fn run(&self, ctx: &ScanContext, unit: &ParsedUnit, out: &mut Vec<Finding>) {

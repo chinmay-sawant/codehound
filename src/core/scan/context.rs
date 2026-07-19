@@ -2,7 +2,7 @@
 
 use std::collections::HashSet;
 
-use crate::rules::{Finding, Severity};
+use crate::rules::{Finding, RulePack, Severity};
 
 use super::policy::FailPolicy;
 
@@ -92,7 +92,7 @@ impl ScanContext {
 
     /// Whether `rule_id` is enabled under the current only/skip/BP flags.
     pub fn allows(&self, rule_id: &str) -> bool {
-        if rule_id.starts_with("BP-") && !self.bad_practices_enabled {
+        if RulePack::from_rule_id(rule_id).is_bad_practice() && !self.bad_practices_enabled {
             return false;
         }
         if self.skip.iter().any(|pattern| {
@@ -116,7 +116,7 @@ impl ScanContext {
 
     /// Apply global / per-rule severity overrides to a finding in place.
     pub fn apply_finding_overrides(&self, finding: &mut Finding) {
-        if finding.rule_id.starts_with("BP-") {
+        if RulePack::from_rule_id(finding.rule_id).is_bad_practice() {
             if let Some(severity) = self.bad_practice_severity {
                 finding.severity = severity;
             }

@@ -21,6 +21,7 @@ const SLOP101_META: RuleMetadata = RuleMetadata {
     severity: Severity::Medium,
     cwe: CWE_REFS_400_1336,
     fix: Some("Hoist `re.compile(...)` before the loop or use a module-level pattern."),
+    pack: crate::rules::RulePack::General,
 };
 
 pub struct ReCompileInLoop;

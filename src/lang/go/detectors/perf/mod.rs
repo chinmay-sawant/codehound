@@ -18,7 +18,7 @@ pub mod tiers;
 mod metadata;
 
 use crate::core::{Detector, LanguageId, ParsedUnit, ScanContext};
-use crate::rules::{Finding, RuleMetadata};
+use crate::rules::{Finding, RuleMetadata, RulePack, TimingGranularity};
 use domains::*;
 use facts::{GoPerfFacts, build_go_perf_facts};
 
@@ -43,6 +43,18 @@ impl Detector for GoPerfScan {
             .iter()
             .find(|(id, _, _)| *id == rule_id)
             .map(|(_, _, meta)| *meta)
+    }
+
+    fn pack(&self) -> RulePack {
+        RulePack::Performance
+    }
+
+    fn timing_granularity(&self) -> TimingGranularity {
+        TimingGranularity::DetectorSpan
+    }
+
+    fn timing_label(&self) -> &'static str {
+        "GoPerfScan"
     }
 
     fn run(&self, ctx: &ScanContext, unit: &ParsedUnit, out: &mut Vec<Finding>) {

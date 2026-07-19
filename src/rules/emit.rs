@@ -2,7 +2,7 @@
 
 use std::borrow::Cow;
 
-use super::{DetectorEvidence, Finding, FindingInputs, LineCol, RuleMetadata, Severity};
+use super::{DetectorEvidence, Finding, FindingInputs, LineCol, RuleMetadata, RulePack, Severity};
 
 /// Build a partial finding from rule metadata and location — shared by all
 /// `push_finding_*` helpers.
@@ -50,6 +50,7 @@ pub const fn rule_meta(
         severity,
         cwe,
         fix,
+        pack: RulePack::from_rule_id(id),
     }
 }
 

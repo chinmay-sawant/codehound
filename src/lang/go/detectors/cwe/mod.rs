@@ -14,7 +14,8 @@ use std::sync::Mutex;
 
 use crate::core::{Detector, LanguageId, ParsedUnit, ScanContext};
 use crate::rules::{
-    DetectorEvidence, Finding, RuleMetadata, TaintHop, TaintSinkInfo, TaintSourceInfo,
+    DetectorEvidence, Finding, RuleMetadata, RulePack, TaintHop, TaintSinkInfo, TaintSourceInfo,
+    TimingGranularity,
 };
 use domains::*;
 use facts::{FactBuildOpts, GoUnitFacts, build_go_unit_facts_with, build_taint_graph_for_facts};
@@ -97,6 +98,18 @@ impl Detector for GoCweScan {
             .iter()
             .find(|(id, _, _)| *id == rule_id)
             .map(|(_, _, meta)| *meta)
+    }
+
+    fn pack(&self) -> RulePack {
+        RulePack::Security
+    }
+
+    fn timing_granularity(&self) -> TimingGranularity {
+        TimingGranularity::DetectorSpan
+    }
+
+    fn timing_label(&self) -> &'static str {
+        "GoCweScan"
     }
 
     fn accumulate_state(&self, ctx: &ScanContext, unit: &ParsedUnit) {
