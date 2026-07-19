@@ -4,7 +4,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use crate::Error;
-use crate::core::{Detector, ParsedUnit};
+use crate::core::{Detector, ParsedUnit, ScanContext};
 
 use super::id::LanguageId;
 
@@ -57,6 +57,14 @@ pub trait LanguagePlugin: Send + Sync {
         self.configure_parser(&mut parser)?;
         self.parse_with(&mut parser, path, source)
     }
+
+    /// Optional project-level preparation before per-file work.
+    ///
+    /// Called once per top-level scan with the distinct discovered project
+    /// roots for that scan. Language packs use this for pack-local prewarming
+    /// (for example building a shared project snapshot) so the generic engine
+    /// does not hardcode language-specific prep. Default: no-op.
+    fn prepare_project(&self, _ctx: &ScanContext, _project_roots: &[&Path]) {}
 
     /// Project-local dependency paths for cache cascade (relative to `project_root`).
     ///

@@ -46,5 +46,16 @@ tree_sitter_lang!(
             &mut out,
         );
         out
+    },
+    |ctx: &crate::core::ScanContext, project_roots: &[&std::path::Path]| {
+        // Pack-local BP project snapshot prewarm so parallel workers share one
+        // WalkDir + text scan for project-level rules (BP-47/50/54/55).
+        // Skip when BP is disabled (recommended pack often has BP off).
+        if !ctx.bad_practices_enabled {
+            return;
+        }
+        for root in project_roots {
+            detectors::bad_practices::prewarm_project_cache(root);
+        }
     }
 );

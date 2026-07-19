@@ -5,18 +5,25 @@ use crate::rules::Finding;
 
 /// Walks one parsed unit and appends findings.
 ///
-/// # Concurrency model
+/// # Scan lifecycle
 ///
-/// 1. **`run`** — may execute in parallel across files (Rayon). Must not
-///    assume exclusive access to shared process state; write only through
-///    carefully locked or thread-local project state.
-/// 2. **`accumulate_state`** — also may run for cache-hit files (often after
-///    parallel scan). Same constraints as `run`.
-/// 3. **`finalize`** — single-threaded, after all units. Emit cross-file
-///    findings here; merge any per-thread project state first.
+/// One top-level analyzer scan owns a detector session:
+///
+/// 1. **`begin_scan`** — open the session; clears retained project state by default.
+/// 2. **`run` / `accumulate_state`** — may execute in parallel across files (Rayon).
+///    Must not assume exclusive access to shared process state; write only through
+///    carefully locked or thread-local project state. `accumulate_state` also runs
+///    for cache-hit files when [`Self::requires_cache_state`] is true.
+/// 3. **`finalize`** — single-threaded, after all units. Emit cross-file findings
+///    here; merge any per-thread project state first.
+/// 4. **`end_scan`** — close the session (also on panic unwind via the engine
+///    session guard); clears retained state by default.
 ///
 /// Prefer building project units off-lock and pushing under a short critical
 /// section (see Go CWE taint accumulation).
+///
+/// Panic recovery in the walk path calls [`Self::reset_state`] directly so a
+/// single detector failure does not tear down the whole session mid-scan.
 pub trait Detector: Send + Sync {
     /// Language this detector analyzes.
     fn language(&self) -> LanguageId;
@@ -30,6 +37,24 @@ pub trait Detector: Send + Sync {
         None
     }
 
+    /// Open a scan-scoped session for this detector.
+    ///
+    /// The engine calls this once at the start of each top-level scan, before
+    /// any `run` / `accumulate_state` / `finalize` work. The default clears
+    /// retained state via [`Self::reset_state`].
+    fn begin_scan(&self, _ctx: &ScanContext) {
+        self.reset_state();
+    }
+
+    /// Close a scan-scoped session for this detector.
+    ///
+    /// The engine calls this once when the top-level scan completes or aborts
+    /// (including panic cleanup via a session guard). The default clears
+    /// retained state via [`Self::reset_state`].
+    fn end_scan(&self) {
+        self.reset_state();
+    }
+
     /// Run the detector on one parsed unit, appending findings to `out`.
     fn run(&self, ctx: &ScanContext, unit: &ParsedUnit, out: &mut Vec<Finding>);
 
@@ -37,10 +62,9 @@ pub trait Detector: Send + Sync {
     /// emitting per-file findings. Called for cache-hit files so that
     /// [`finalize`](Self::finalize) has the same state regardless of cache.
     ///
-    /// Detector state is scoped to one top-level analyzer scan. The engine
-    /// calls [`Self::reset_state`] before and after the scan, and calls
-    /// [`Self::finalize`] after per-file work has completed. Implementations
-    /// retaining cross-file state must implement the cache-state capability,
+    /// Detector state is scoped to one top-level analyzer scan bounded by
+    /// [`Self::begin_scan`] / [`Self::end_scan`]. Implementations retaining
+    /// cross-file state must implement the cache-state capability,
     /// accumulation, and reset hooks as one lifecycle protocol. The default
     /// implementation does nothing.
     fn accumulate_state(&self, _ctx: &ScanContext, _unit: &ParsedUnit) {}
@@ -58,8 +82,10 @@ pub trait Detector: Send + Sync {
 
     /// Clear state retained for a project-level analysis.
     ///
-    /// The scan engine calls this at both boundaries so a detector cannot
-    /// carry project data across an early return or a panic.
+    /// Called by the default [`Self::begin_scan`] / [`Self::end_scan`]
+    /// implementations and by the engine when recovering from a mid-scan
+    /// detector panic. Prefer overriding `begin_scan` / `end_scan` only when
+    /// session open/close needs more than a clear.
     fn reset_state(&self) {}
 
     /// Optional: called once after all units have been analyzed.
