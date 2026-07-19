@@ -1,5 +1,7 @@
 //! Go bad-practice heuristics (P2.5 MVP).
 
+use std::sync::Arc;
+
 use crate::core::{Detector, LanguageId, ParsedUnit, ScanContext};
 use crate::rules::{Finding, RuleMetadata, RulePack, TimingGranularity};
 
@@ -7,16 +9,38 @@ mod common;
 mod dispatch;
 mod metadata;
 mod rules;
+mod session;
 mod source_index;
 
 pub(crate) use metadata::*;
 
 /// Pre-warm project-level BP caches for `root` before parallel file work.
+///
+/// Targets the analyzer-owned maps installed by [`GoBadPracticeScan::begin_scan`]
+/// on the controlling thread (engine order: begin_scan → prepare_project).
 pub(crate) fn prewarm_project_cache(root: &std::path::Path) {
     common::prewarm_project_snapshot(root);
 }
 
-pub struct GoBadPracticeScan;
+/// Go bad-practice detector. Owns scan-scoped project-fact caches so concurrent
+/// analyzers cannot evict each other's memoized snapshots.
+pub struct GoBadPracticeScan {
+    caches: Arc<session::BpProjectCaches>,
+}
+
+impl GoBadPracticeScan {
+    pub fn new() -> Self {
+        Self {
+            caches: Arc::new(session::BpProjectCaches::new()),
+        }
+    }
+}
+
+impl Default for GoBadPracticeScan {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl Detector for GoBadPracticeScan {
     fn language(&self) -> LanguageId {
@@ -39,19 +63,30 @@ impl Detector for GoBadPracticeScan {
         TimingGranularity::PerRuleSelfTimed
     }
 
+    fn begin_scan(&self, _ctx: &ScanContext) {
+        // Clear prior facts and publish this analyzer's maps so pack-local
+        // prepare_project prewarm and same-thread helpers hit the right owner.
+        self.caches.clear();
+        session::set_active(Arc::clone(&self.caches));
+    }
+
+    fn end_scan(&self) {
+        session::clear_active();
+        self.caches.clear();
+    }
+
     fn reset_state(&self) {
-        // Project facts (package docs, go.mod, imports, server anchors) are
-        // memoized for one top-level scan only. Clear them at both scan
-        // boundaries so a same-Analyzer rescan cannot observe stale snapshots.
-        common::clear_project_snapshots();
-        rules::clear_package_doc_snapshots();
-        rules::clear_dependency_hygiene_caches();
+        // Mid-scan panic recovery: drop memoized facts without tearing down the
+        // active-session install (workers may still be finishing).
+        self.caches.clear();
     }
 
     fn run(&self, ctx: &ScanContext, unit: &ParsedUnit, out: &mut Vec<Finding>) {
         if !self.rule_ids().iter().any(|id| ctx.allows(id)) {
             return;
         }
+        // Rayon workers do not inherit the controlling thread's active session.
+        let _active = session::ActiveCachesGuard::install(&self.caches);
         let index = source_index::SourceIndex::build(source_index::NEEDLES, unit.source.as_ref());
         let time_rules = ctx.debug_timing && crate::engine::active_enabled();
         let has_enabled_project_rule = dispatch::BAD_PRACTICE_RULES.iter().any(|(rule_id, _)| {

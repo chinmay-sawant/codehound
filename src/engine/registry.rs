@@ -63,24 +63,23 @@ impl Registry {
         Ok(Self::from_prepared(prepared))
     }
 
+    /// Production path used by [`Registry::default`].
+    ///
+    /// Built-in plugins from [`crate::lang::enabled_plugins`] are an invariant:
+    /// materialization must succeed. On validation failure this **panics** so
+    /// the process cannot continue with an empty registry and report a
+    /// successful no-detector scan. Embedders that supply custom plugins must
+    /// use [`Registry::with_plugins`], which returns a typed [`RegistryError`].
     pub(crate) fn from_plugins(plugins: Vec<Box<dyn LanguagePlugin>>) -> Self {
-        // Production path: plugins are known-good from `enabled_plugins()`.
         // Materialize once (same path as `with_plugins`) so factories are single-shot.
         match materialize_plugins(plugins) {
             Ok(prepared) => Self::from_prepared(prepared),
             Err(err) => {
-                // Built-in composition is an invariant; typed error is only for
-                // embedder `with_plugins`. Log and return an empty registry so
-                // we never panic on the Default path.
-                tracing::error!(error = %err, "built-in language plugin materialization failed");
-                Self {
-                    plugins: Vec::new(),
-                    by_extension: HashMap::new(),
-                    by_id: HashMap::new(),
-                    detectors: Vec::new(),
-                    by_language: HashMap::new(),
-                    all_indices: Vec::new(),
-                }
+                // Fail closed: never hand out an empty production registry.
+                panic!(
+                    "built-in language plugin materialization failed ({err}); \
+                     refusing to start with an empty registry"
+                );
             }
         }
     }
@@ -249,6 +248,48 @@ mod tests {
             result,
             Err(RegistryError::DuplicateLanguage { .. })
         ));
+    }
+
+    /// Built-in / production composition path must not return an empty registry
+    /// after materialization failure (that would allow a successful empty scan).
+    #[test]
+    #[should_panic(expected = "built-in language plugin materialization failed")]
+    fn from_plugins_fails_closed_on_composition_error() {
+        let _registry = Registry::from_plugins(vec![
+            Box::new(crate::lang::go::GoPlugin),
+            Box::new(crate::lang::go::GoPlugin),
+        ]);
+    }
+
+    #[test]
+    fn default_registry_materializes_built_in_plugins() {
+        let registry = Registry::default();
+        assert!(
+            registry.detector_count() > 0,
+            "default analyzer construction must register detectors"
+        );
+        assert!(
+            registry.enabled_languages().next().is_some(),
+            "default registry must enable at least one language"
+        );
+    }
+
+    /// Documents the hazard fail-closed prevents: an empty registry can scan
+    /// "successfully" with zero findings. Composition errors must not produce one.
+    #[test]
+    fn empty_registry_allows_successful_zero_finding_scan() {
+        let registry = Registry::with_plugins(vec![]).expect("empty plugin list is valid");
+        assert_eq!(registry.detector_count(), 0);
+
+        // Composition failure must not yield this shape via the production path.
+        let err = Registry::with_plugins(vec![
+            Box::new(crate::lang::go::GoPlugin),
+            Box::new(crate::lang::go::GoPlugin),
+        ]);
+        assert!(
+            matches!(err, Err(RegistryError::DuplicateLanguage { .. })),
+            "composition failure returns Err, not Ok(empty registry)"
+        );
     }
 
     /// Counts how many times the detector factory runs.

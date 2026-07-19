@@ -1,8 +1,8 @@
 # v0.0.5 — Senior Rust Architecture Review
 
 > **Parent:** `plans/v0.0.5/pending-work.md` — architecture and reliability follow-up
-> **Status:** Implementation complete on `chore/epic-56-integration` (epic #56). All Phase 2 P1 and Phase 3 P2 workstreams shipped as child PRs #62–#66; integration validates combined tree.
-> **Estimated effort:** 4–7 focused implementation days to reach a defensible 9.5+ architecture score, including regressions and cache/taint oracle tests.
+> **Status:** Phase 5 implementation complete on `chore/epic-75-integration` (epic #75). Residual P1 method-receiver, per-analyzer BP ownership, and fail-closed registry workstreams shipped; target **>= 9.5 / 10** pending post-merge re-rate.
+> **Estimated effort:** Phase 5 residual items implemented (was 1–2 days).
 > **Reviewed:** 2026-07-19
 
 ---
@@ -25,31 +25,35 @@ It has real seams for entry discovery, cache backends, language registration,
 reporting, and tests. Ownership, typed error propagation, source sharing, and
 the normal per-file parallel path are disciplined.
 
-The current senior assessment is **8.9 / 10**, not the earlier 9.5+ target.
-The score is held down by extension locality rather than basic Rust hygiene:
+The re-review senior assessment is **9.3 / 10**, an improvement of **0.4**.
+All original workstreams are real, not checklist-only: strict rustdoc now
+passes; plugin factories are single-shot; source-index identity includes length;
+the generic engine uses language-neutral project context and plugin preparation;
+detectors have an explicit scan lifecycle; BP facts refresh on same-analyzer
+rescans; and duplicate free-function names in separate Go packages no longer
+cross-contaminate taint results.
 
-- Go bad-practice project facts are process-global, stale across repeated
-  embedded scans, unbounded by root count, and built while their mutex is held.
-- Same-package taint summary lookup is keyed only by bare function name, so
-  duplicate symbols in separate packages can contaminate a result.
-- The generic engine still knows Go-specific dependency and BP-prewarm details.
-- Stateful detector lifecycle is a distributed protocol on long-lived registry
-  instances instead of explicit per-scan state.
+The remaining gap is deliberately narrow. Taint keys retain receiver type, but
+method-call resolution still selects the first same-package method sharing a
+bare name when the receiver type is unknown. That can choose the wrong summary.
+The BP caches are behaviorally cleared at scan boundaries, but still live in
+process-global statics, so independent analyzers share cache ownership and
+evict one another. Finally, built-in registry materialization logs and returns
+an empty registry on an invariant failure, which is fail-open for an analyzer.
 
-The smallest path to **9.5+** is to make project facts and detector state
-scan-scoped, qualify taint symbols, then deepen the plugin lifecycle seam.
-Do not pursue broad fact-sharing or an abstraction rewrite before those fixes:
-the application is already fast and the changes below target real correctness
-and extension costs.
+Do not add another broad abstraction layer. The shortest path to **9.5+** is a
+conservative method-resolution rule, then moving the existing BP maps into the
+`GoBadPracticeScan` instance and making built-in registry construction return a
+startup error rather than an empty scanner.
 
 ### Scorecard
 
 | Axis | Score | Basis |
 |---|---:|---|
-| Application architecture | **8.8 / 10** | Strong primary flow and seams; Go-specific policy leaks into engine and detector state is lifecycle-heavy. |
-| Rust quality | **9.1 / 10** | Idiomatic ownership/errors, no production panic or unsafe defect confirmed, strict Clippy and tests pass; global BP state and rustdoc gate remain. |
-| Detector/ruleset architecture | **8.9 / 10** | Generated registries and shared facts are strong; bare-name taint resolution is a correctness risk. |
-| **Overall senior assessment** | **8.9 / 10** | No P0; resolve all P1s plus the P2 gate fixes for a defensible 9.5+. |
+| Application architecture | **9.3 / 10** | Generic preparation and explicit lifecycle now create meaningful seams; BP cache ownership remains process-global. |
+| Rust quality | **9.5 / 10** | Strict format, Clippy, tests, and rustdoc pass; ownership/error discipline remains strong. |
+| Detector/ruleset architecture | **9.1 / 10** | Package-qualified free-function resolution is fixed; same-package method receiver ambiguity remains. |
+| **Overall senior assessment** | **9.3 / 10** | All original items materially improved the code; close the residual P1 and two P2s for 9.5+. |
 
 ---
 
@@ -163,7 +167,33 @@ and extension costs.
 - [x] `cargo clippy --all-targets --all-features --locked -- -D warnings` passes.
 - [x] `cargo test --all-features --locked` passes.
 - [x] `RUSTDOCFLAGS='-D warnings' cargo doc --all-features --no-deps --locked` passes.
-- [ ] Re-rate architecture only after the P1 lifecycle, cache, and taint-symbol work is source-verified; target **>= 9.5 / 10**.
+- [x] Re-rate architecture after source-verifying the P1 lifecycle, cache, and taint-symbol work: **9.3 / 10** (improved from 8.9; 9.5 target not yet met).
+
+---
+
+## Phase 5: Re-review Findings Before 9.5+
+
+### 5.1 P1 — Resolve same-package method summaries conservatively
+
+- [x] Preserve receiver type at the call site when it can be inferred, then use the exact `PackageIdentity + receiver type + method name` summary key.
+- [x] Until type inference exists, decline inter-procedural method summary resolution when more than one receiver type exposes the same method name; a false negative is safer than selecting the wrong taint summary.
+- [x] Add a same-package fixture with two receiver types sharing a method name, one sink-bearing and one safe, and prove the safe receiver does not inherit the sink summary.
+
+**Evidence:** `TaintSymbolKey` correctly includes `receiver` ([`src/lang/go/detectors/cwe/taint/model.rs:326`](../../src/lang/go/detectors/cwe/taint/model.rs:326)), but method resolution deliberately searches package + bare method name and selects the first stable candidate ([`src/lang/go/detectors/cwe/mod.rs:442`](../../src/lang/go/detectors/cwe/mod.rs:442), [`:484`](../../src/lang/go/detectors/cwe/mod.rs:484)). This fixes the original cross-package collision, but two receiver types in one package can still select the wrong summary.
+
+### 5.2 P2 — Give each analyzer ownership of BP project caches
+
+- [x] Move project, package-doc, Go-module, and import maps from process-global `OnceLock` caches into `GoBadPracticeScan` state (or an explicit scan session owned by it).
+- [x] Keep the current off-lock construction and double-checked short lock; add a concurrent two-analyzer regression to prove one scan cannot evict another's cache.
+
+**Evidence:** the maps now clear at each BP detector boundary ([`src/lang/go/detectors/bad_practices/mod.rs:42`](../../src/lang/go/detectors/bad_practices/mod.rs:42)), fixing stale same-analyzer rescans. They still reside in process-global statics ([`common.rs:98`](../../src/lang/go/detectors/bad_practices/common.rs:98), [`code_organization.rs:553`](../../src/lang/go/detectors/bad_practices/rules/code_organization.rs:553)). Separate analyzers are documented as concurrent-capable ([`src/engine/analyzer/scan.rs:107`](../../src/engine/analyzer/scan.rs:107)), so cache locality should match analyzer ownership.
+
+### 5.3 P2 — Fail closed if built-in registry materialization breaks
+
+- [x] Return a startup/configuration error from the production registry path, or make the internal invariant explicit and abort before any scan result is emitted.
+- [x] Add a regression proving the CLI/library cannot report a successful empty analysis after a built-in registry composition failure.
+
+**Evidence:** `Registry::from_plugins` logs a materialization error then returns an empty registry ([`src/engine/registry.rs:66`](../../src/engine/registry.rs:66)). A future built-in duplicate extension/language or detector mismatch would therefore risk a successful no-detector scan rather than a visible initialization failure.
 
 ---
 

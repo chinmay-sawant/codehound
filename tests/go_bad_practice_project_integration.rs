@@ -258,3 +258,167 @@ func main() {
         );
     }
 }
+
+/// Concurrent analyzers must not share or evict each other's BP project caches.
+///
+/// Process-global `OnceLock` maps made one analyzer's `end_scan` clear facts
+/// another analyzer was still memoizing. Each `GoBadPracticeScan` now owns its
+/// maps, so independent analyzers scanning safe vs vulnerable roots in parallel
+/// always observe the correct project facts.
+#[test]
+fn concurrent_analyzers_do_not_evict_each_others_bp_caches() {
+    use std::sync::Arc;
+    use std::thread;
+
+    let safe_root = helpers::unique_temp_root("bp-owned-safe");
+    let vuln_root = helpers::unique_temp_root("bp-owned-vuln");
+    fs::create_dir_all(&safe_root).unwrap_or_else(|e| panic!("create safe: {e}"));
+    fs::create_dir_all(&vuln_root).unwrap_or_else(|e| panic!("create vuln: {e}"));
+
+    write_hardened_server(&safe_root);
+    write_vulnerable_server(&vuln_root);
+
+    let safe_root = Arc::new(safe_root);
+    let vuln_root = Arc::new(vuln_root);
+    let project_rules = [
+        "BP-41", "BP-47", "BP-50", "BP-54", "BP-55", "BP-57", "BP-59",
+    ];
+
+    let mut handles = Vec::new();
+    for i in 0..8 {
+        let safe = Arc::clone(&safe_root);
+        let vuln = Arc::clone(&vuln_root);
+        handles.push(thread::spawn(move || {
+            // Fresh analyzer (and therefore BP detector + cache maps) per thread.
+            let analyzer = Analyzer::builder().build();
+            for round in 0..12 {
+                let use_safe = (i + round) % 2 == 0;
+                let root = if use_safe {
+                    safe.as_path()
+                } else {
+                    vuln.as_path()
+                };
+                let result = analyzer
+                    .analyze_paths(&[root], None)
+                    .unwrap_or_else(|e| panic!("scan {}: {e:#}", root.display()));
+                let ids: Vec<&str> = result.findings.iter().map(|f| f.rule_id).collect();
+                if use_safe {
+                    for rule in project_rules {
+                        assert!(
+                            !ids.contains(&rule),
+                            "safe root must stay clean for {rule} under concurrency; got {ids:?}"
+                        );
+                    }
+                } else {
+                    for rule in project_rules {
+                        assert!(
+                            ids.contains(&rule),
+                            "vulnerable root must fire {rule} under concurrency; got {ids:?}"
+                        );
+                    }
+                }
+            }
+        }));
+    }
+
+    for handle in handles {
+        handle
+            .join()
+            .expect("concurrent BP analyzer thread panicked");
+    }
+
+    let _ = fs::remove_dir_all(safe_root.as_ref());
+    let _ = fs::remove_dir_all(vuln_root.as_ref());
+}
+
+fn write_hardened_server(root: &Path) {
+    fs::write(
+        root.join("go.mod"),
+        "module example.com/bp-owned-safe\n\ngo 1.25.0\n",
+    )
+    .unwrap_or_else(|e| panic!("write go.mod: {e}"));
+    fs::write(
+        root.join("main.go"),
+        r#"// Package main is a hardened HTTP server used by concurrent ownership tests.
+package main
+
+import (
+	"context"
+	"log/slog"
+	"net/http"
+	"os/signal"
+	"time"
+
+	"golang.org/x/time/rate"
+)
+
+func main() {
+	ctx, stop := signal.NotifyContext(context.Background())
+	defer stop()
+
+	limiter := rate.NewLimiter(1, 4)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
+		status := http.StatusOK
+		if !limiter.Allow() {
+			status = http.StatusTooManyRequests
+		}
+		requestID := r.Header.Get("X-Request-ID")
+		if requestID == "" {
+			requestID = "generated-request-id"
+			r.Header.Set("X-Request-ID", requestID)
+		}
+		slog.Info("request", "request_id", requestID, "method", r.Method, "path", r.URL.Path)
+		w.WriteHeader(status)
+	})
+
+	server := &http.Server{
+		Addr:         ":8080",
+		Handler:      mux,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+	}
+	go func() {
+		<-ctx.Done()
+		if err := server.Shutdown(context.Background()); err != nil {
+			panic(err)
+		}
+	}()
+	if err := server.ListenAndServe(); err != nil {
+		return
+	}
+}
+"#,
+    )
+    .unwrap_or_else(|e| panic!("write main.go: {e}"));
+}
+
+fn write_vulnerable_server(root: &Path) {
+    fs::write(
+        root.join("go.mod"),
+        "module example.com/bp-owned-vuln\n\ngo 1.24.0\n\nrequire github.com/pkg/errors v0.9.1\n",
+    )
+    .unwrap_or_else(|e| panic!("write go.mod: {e}"));
+    fs::write(
+        root.join("main.go"),
+        r#"package main
+
+import (
+	"log"
+	"net/http"
+)
+
+func main() {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("request %s %s", r.Method, r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	})
+	if err := http.ListenAndServe(":8080", mux); err != nil {
+		return
+	}
+}
+"#,
+    )
+    .unwrap_or_else(|e| panic!("write main.go: {e}"));
+}

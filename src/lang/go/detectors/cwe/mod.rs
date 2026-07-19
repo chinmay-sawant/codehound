@@ -20,11 +20,11 @@ use crate::rules::{
 use domains::*;
 use facts::{FactBuildOpts, GoUnitFacts, build_go_unit_facts_with, build_taint_graph_for_facts};
 use taint::{
-    CallGraph, PackageIdentity, SharedText, SinkKind, TaintAnnotations, TaintGraph,
+    CallGraph, FunctionDecl, PackageIdentity, SharedText, SinkKind, TaintAnnotations, TaintGraph,
     TaintGraphIndex, TaintNode, TaintNodeId, TaintSymbolKey, build_import_map, build_index,
     detect_cwe_22_taint, detect_cwe_78_taint, detect_cwe_79_taint, detect_cwe_89_taint,
     detect_cwe_90_taint, detect_cwe_91_taint, forward_reaches_any_with_index,
-    unsanitized_reaches_any_with_index,
+    normalize_receiver_type, unsanitized_reaches_any_with_index,
 };
 
 use crate::rules::emit;
@@ -297,6 +297,7 @@ impl Detector for GoCweScan {
                     }
                 }
                 let callee_name = resolve_callee_name(raw_callee, site.is_method_call);
+                let caller_decl = unit.call_graph.declarations.get(site.caller.as_ref());
                 let callee_summary = find_same_package_summary(
                     &per_file,
                     &summary_index,
@@ -306,6 +307,7 @@ impl Detector for GoCweScan {
                     raw_callee,
                     &callee_name,
                     site.is_method_call,
+                    caller_decl,
                 );
                 let Some(callee_summary) = callee_summary else {
                     continue;
@@ -442,8 +444,12 @@ fn make_project_unit(unit: &ParsedUnit, facts: &mut GoUnitFacts) -> ProjectUnit 
 /// Resolve a callee summary strictly within `caller_package`.
 ///
 /// Unqualified function calls match package + bare name with no receiver.
-/// Method calls match package + bare method name; when multiple receivers
-/// share the name, the first stable key (path-sorted index order) wins.
+/// Method calls use the exact `PackageIdentity + receiver type + method name`
+/// key when the call-site receiver type can be inferred (today: method body
+/// calling through its own receiver parameter). When the receiver type is
+/// unknown and more than one same-package receiver exposes the method name,
+/// resolution is **declined** — a false negative is safer than selecting the
+/// wrong taint summary. A unique receiver still resolves without inference.
 /// Cross-package bare-name matches are intentionally refused until import
 /// wiring exists.
 #[allow(clippy::too_many_arguments)]
@@ -461,6 +467,7 @@ fn find_same_package_summary<'a>(
     raw_callee: &str,
     bare_name: &str,
     is_method_call: bool,
+    caller_decl: Option<&FunctionDecl>,
 ) -> Option<&'a taint::TaintSummary> {
     let bare: SharedText = Arc::from(bare_name);
 
@@ -481,24 +488,107 @@ fn find_same_package_summary<'a>(
         return None;
     }
 
-    // Method call: resolve by package + bare method name only (no cross-package).
+    // Method call: same-package only. Prefer exact receiver key when known.
     let candidates = package_name_index.get(&(caller_package.clone(), Arc::clone(&bare)))?;
-    for key in candidates {
-        // Prefer keys that actually have a summary (declaration without summary is useless).
-        if let Some(summary) = summary_for_key(per_file, summary_index, key, bare_name) {
+
+    if let Some(inferred) = infer_call_site_receiver_type(raw_callee, caller_decl) {
+        let exact = TaintSymbolKey::with_receiver(
+            caller_package.clone(),
+            Some(inferred.as_str()),
+            Arc::clone(&bare),
+        );
+        if let Some(summary) = summary_for_key(per_file, summary_index, &exact, bare_name) {
             return Some(summary);
         }
-        // Fall back: declaration file may hold the bare-name summary under a
-        // different receiver key when extract used bare names only.
-        if let Some(&file_idx) = decl_index.get(key) {
-            if let Some((_, _, _, summaries)) = per_file.get(file_idx) {
-                if let Some(summary) = summaries.get(bare_name) {
-                    return Some(summary);
-                }
-            }
+        if let Some(summary) = summary_from_decl(per_file, decl_index, &exact, bare_name) {
+            return Some(summary);
         }
+        // Inferred a concrete receiver but no matching summary — do not fall
+        // back to a different receiver's summary.
+        return None;
     }
-    None
+
+    // No call-site receiver type: only resolve when the method name maps to a
+    // single receiver type in the package. Multiple receivers → decline.
+    let mut with_summary: Vec<&TaintSymbolKey> = candidates
+        .iter()
+        .filter(|key| summary_for_key(per_file, summary_index, key, bare_name).is_some())
+        .collect();
+    if with_summary.is_empty() {
+        // Declarations may exist without a summary entry keyed the same way.
+        with_summary = candidates
+            .iter()
+            .filter(|key| summary_from_decl(per_file, decl_index, key, bare_name).is_some())
+            .collect();
+    }
+    if with_summary.is_empty() {
+        return None;
+    }
+
+    let first_receiver = &with_summary[0].receiver;
+    let unique = with_summary
+        .iter()
+        .all(|key| key.receiver == *first_receiver);
+    if !unique {
+        return None;
+    }
+
+    let key = with_summary[0];
+    if let Some(summary) = summary_for_key(per_file, summary_index, key, bare_name) {
+        return Some(summary);
+    }
+    summary_from_decl(per_file, decl_index, key, bare_name)
+}
+
+/// Infer the method call's receiver type when the callee is invoked on the
+/// enclosing method's own receiver parameter (e.g. `func (h *Handler) F() {
+/// h.Open(...) }` → `*Handler`). Full local-variable type inference is out of
+/// scope; unknown receivers stay ambiguous.
+fn infer_call_site_receiver_type(
+    raw_callee: &str,
+    caller_decl: Option<&FunctionDecl>,
+) -> Option<String> {
+    let recv_expr = raw_callee.rsplit_once('.')?.0.trim();
+    if recv_expr.is_empty()
+        || !recv_expr
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_')
+    {
+        return None;
+    }
+    let raw = caller_decl?.receiver_type.as_deref()?;
+    let normalized = normalize_receiver_type(raw);
+    if normalized.is_empty() {
+        return None;
+    }
+    let s = raw
+        .trim()
+        .trim_start_matches('(')
+        .trim_end_matches(')')
+        .trim();
+    let tokens: Vec<&str> = s.split_whitespace().collect();
+    // "h *Handler" / "h Handler" → first token is the receiver parameter name.
+    match tokens.as_slice() {
+        [name, _, ..] if *name == recv_expr => Some(normalized),
+        _ => None,
+    }
+}
+
+fn summary_from_decl<'a>(
+    per_file: &'a [(
+        &str,
+        TaintGraph,
+        TaintGraphIndex,
+        HashMap<String, taint::TaintSummary>,
+    )],
+    decl_index: &HashMap<TaintSymbolKey, usize>,
+    key: &TaintSymbolKey,
+    bare_name: &str,
+) -> Option<&'a taint::TaintSummary> {
+    let &file_idx = decl_index.get(key)?;
+    per_file
+        .get(file_idx)
+        .and_then(|(_, _, _, summaries)| summaries.get(bare_name))
 }
 
 fn summary_for_key<'a>(
@@ -713,5 +803,122 @@ mod tests {
     fn resolve_callee_name_strips_method_receiver() {
         assert_eq!(resolve_callee_name("h.openFile", true), "openFile");
         assert_eq!(resolve_callee_name("openPath", false), "openPath");
+    }
+
+    #[test]
+    fn infer_receiver_type_from_enclosing_method_param() {
+        let decl = FunctionDecl {
+            param_count: 0,
+            is_method: true,
+            receiver_type: Some(Arc::from("h *Handler")),
+        };
+        assert_eq!(
+            infer_call_site_receiver_type("h.openFile", Some(&decl)).as_deref(),
+            Some("*Handler")
+        );
+        // Different identifier — not the receiver param.
+        assert_eq!(
+            infer_call_site_receiver_type("other.openFile", Some(&decl)),
+            None
+        );
+        // Free function caller has no receiver to propagate.
+        let free = FunctionDecl {
+            param_count: 1,
+            is_method: false,
+            receiver_type: None,
+        };
+        assert_eq!(
+            infer_call_site_receiver_type("h.openFile", Some(&free)),
+            None
+        );
+    }
+
+    #[test]
+    fn method_summary_declines_when_multiple_receivers_without_inference() {
+        let pkg = PackageIdentity::from_unit("app/x.go", "package app\n");
+        let handler_key =
+            TaintSymbolKey::with_receiver(pkg.clone(), Some("h *Handler"), Arc::from("Open"));
+        let store_key =
+            TaintSymbolKey::with_receiver(pkg.clone(), Some("s *Store"), Arc::from("Open"));
+
+        let mut summary_index: HashMap<TaintSymbolKey, usize> = HashMap::new();
+        summary_index.insert(handler_key.clone(), 0);
+        summary_index.insert(store_key.clone(), 1);
+
+        let mut package_name_index: HashMap<(PackageIdentity, SharedText), Vec<TaintSymbolKey>> =
+            HashMap::new();
+        package_name_index.insert(
+            (pkg.clone(), Arc::from("Open")),
+            vec![handler_key, store_key],
+        );
+
+        let sink_summary = taint::TaintSummary {
+            has_direct_sink: true,
+            sink_kinds: vec![SinkKind::FileOpen],
+            param_sources: vec![Some(true)],
+            ..Default::default()
+        };
+        let safe_summary = taint::TaintSummary {
+            param_sources: vec![Some(false)],
+            ..Default::default()
+        };
+        let mut sink_map = HashMap::new();
+        sink_map.insert("Open".to_string(), sink_summary);
+        let mut safe_map = HashMap::new();
+        safe_map.insert("Open".to_string(), safe_summary);
+        let per_file = vec![
+            (
+                "app/handler.go",
+                TaintGraph::default(),
+                build_index(&TaintGraph::default()),
+                sink_map,
+            ),
+            (
+                "app/store.go",
+                TaintGraph::default(),
+                build_index(&TaintGraph::default()),
+                safe_map,
+            ),
+        ];
+        let decl_index: HashMap<TaintSymbolKey, usize> = HashMap::new();
+
+        // Ambiguous free-function-style call site: must not pick first candidate.
+        let ambiguous = find_same_package_summary(
+            &per_file,
+            &summary_index,
+            &package_name_index,
+            &decl_index,
+            &pkg,
+            "s.Open",
+            "Open",
+            true,
+            None,
+        );
+        assert!(
+            ambiguous.is_none(),
+            "multiple receivers without inference must decline"
+        );
+
+        // Same receiver param as enclosing method → exact key (*Handler).
+        let caller = FunctionDecl {
+            param_count: 0,
+            is_method: true,
+            receiver_type: Some(Arc::from("h *Handler")),
+        };
+        let inferred = find_same_package_summary(
+            &per_file,
+            &summary_index,
+            &package_name_index,
+            &decl_index,
+            &pkg,
+            "h.Open",
+            "Open",
+            true,
+            Some(&caller),
+        );
+        assert!(
+            inferred.is_some_and(|s| s.has_direct_sink),
+            "inferred *Handler must select the sink-bearing summary"
+        );
     }
 }

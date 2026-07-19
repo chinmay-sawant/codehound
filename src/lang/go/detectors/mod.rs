@@ -8,6 +8,6 @@ pub fn all() -> Vec<Box<dyn crate::core::Detector>> {
     vec![
         Box::new(cwe::GoCweScan::new()),
         Box::new(perf::GoPerfScan),
-        Box::new(bad_practices::GoBadPracticeScan),
+        Box::new(bad_practices::GoBadPracticeScan::new()),
     ]
 }

@@ -1,14 +1,14 @@
 //! BP-56..BP-65 — dependency-hygiene bad practices.
 
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, OnceLock};
 
 use tree_sitter::Node;
 use walkdir::WalkDir;
 
 use super::super::common::{is_materialized_fixture, is_project_anchor};
+use super::super::session::{self, GoModContext, ProjectImports};
 use super::super::source_index::SourceIndex;
 use super::helpers::push_at;
 use crate::core::ParsedUnit;
@@ -299,23 +299,10 @@ pub(crate) fn detect_bp_65_missing_go_sum_entries(
     }
 }
 
-#[derive(Clone)]
-struct GoModContext {
-    root: PathBuf,
-    text: String,
-}
-
 struct Require {
     module: String,
     version: String,
     indirect: bool,
-}
-
-#[derive(Clone)]
-struct ProjectImports {
-    all: BTreeSet<String>,
-    non_test: BTreeSet<String>,
-    test_only: BTreeSet<String>,
 }
 
 struct ProjectModuleUsage {
@@ -348,62 +335,36 @@ fn collect_import_paths(unit: &ParsedUnit) -> Vec<(usize, String)> {
     imports
 }
 
-/// Drop go.mod and project-import snapshots retained for the current scan.
-pub(crate) fn clear_dependency_hygiene_caches() {
-    {
-        let mut guard = go_mod_cache()
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        guard.clear();
-    }
-    {
-        let mut guard = project_imports_cache()
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        guard.clear();
-    }
-}
-
-type GoModCache = HashMap<PathBuf, Option<GoModContext>>;
-
-fn go_mod_cache() -> &'static Mutex<GoModCache> {
-    static CACHE: OnceLock<Mutex<GoModCache>> = OnceLock::new();
-    CACHE.get_or_init(|| Mutex::new(HashMap::new()))
-}
-
-type ProjectImportsCache = HashMap<PathBuf, ProjectImports>;
-
-fn project_imports_cache() -> &'static Mutex<ProjectImportsCache> {
-    static CACHE: OnceLock<Mutex<ProjectImportsCache>> = OnceLock::new();
-    CACHE.get_or_init(|| Mutex::new(HashMap::new()))
-}
-
 fn read_go_mod(unit: &ParsedUnit) -> Option<GoModContext> {
     let root = discover_project_root(&unit.path);
-    {
-        let guard = go_mod_cache()
+    session::with_active(|caches| {
+        {
+            let guard = caches
+                .go_mods
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            if let Some(cached) = guard.get(&root) {
+                return cached.clone();
+            }
+        }
+
+        // Filesystem read off-lock.
+        let path = root.join("go.mod");
+        let loaded = fs::read_to_string(&path).ok().map(|text| GoModContext {
+            root: root.clone(),
+            text,
+        });
+
+        let mut guard = caches
+            .go_mods
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         if let Some(cached) = guard.get(&root) {
             return cached.clone();
         }
-    }
-
-    // Filesystem read off-lock.
-    let path = root.join("go.mod");
-    let loaded = fs::read_to_string(&path).ok().map(|text| GoModContext {
-        root: root.clone(),
-        text,
-    });
-
-    let mut guard = go_mod_cache()
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
-    if let Some(cached) = guard.get(&root) {
-        return cached.clone();
-    }
-    guard.insert(root, loaded.clone());
-    loaded
+        guard.insert(root, loaded.clone());
+        loaded
+    })
 }
 
 fn parse_requires(go_mod: &str) -> Vec<Require> {
@@ -585,26 +546,30 @@ fn collect_project_module_usage(root: &Path, requires: &[Require]) -> ProjectMod
 }
 
 fn collect_project_imports(root: &Path) -> ProjectImports {
-    {
-        let guard = project_imports_cache()
+    session::with_active(|caches| {
+        {
+            let guard = caches
+                .project_imports
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            if let Some(cached) = guard.get(root) {
+                return cached.clone();
+            }
+        }
+
+        // WalkDir + file reads off-lock.
+        let result = build_project_imports(root);
+
+        let mut guard = caches
+            .project_imports
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         if let Some(cached) = guard.get(root) {
             return cached.clone();
         }
-    }
-
-    // WalkDir + file reads off-lock.
-    let result = build_project_imports(root);
-
-    let mut guard = project_imports_cache()
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
-    if let Some(cached) = guard.get(root) {
-        return cached.clone();
-    }
-    guard.insert(root.to_path_buf(), result.clone());
-    result
+        guard.insert(root.to_path_buf(), result.clone());
+        result
+    })
 }
 
 fn build_project_imports(root: &Path) -> ProjectImports {
