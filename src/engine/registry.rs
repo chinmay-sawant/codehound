@@ -170,6 +170,11 @@ impl Registry {
     pub fn detectors(&self) -> &[Box<dyn Detector>] {
         &self.detectors
     }
+
+    /// All language plugins in the registry, in registration order.
+    pub fn plugins(&self) -> &[Box<dyn LanguagePlugin>] {
+        &self.plugins
+    }
 }
 
 struct PreparedPlugins {

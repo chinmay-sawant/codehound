@@ -393,3 +393,235 @@ fn detector_state_resets_after_finalize_panic_and_filters_findings() {
     assert_eq!(second.findings[0].message, "state-count=1");
     let _ = std::fs::remove_file(path);
 }
+
+/// Plugin that records `prepare_project` roots so tests prove the engine
+/// dispatches project prep through the language-plugin seam (no engine edit
+/// required for another pack's prewarm).
+#[derive(Debug)]
+struct PrepareProjectPlugin {
+    roots: std::sync::Arc<Mutex<Vec<PathBuf>>>,
+    prepared: std::sync::Arc<AtomicBool>,
+}
+
+impl LanguagePlugin for PrepareProjectPlugin {
+    fn id(&self) -> LanguageId {
+        GoPlugin.id()
+    }
+
+    fn extensions(&self) -> &'static [&'static str] {
+        GoPlugin.extensions()
+    }
+
+    fn configure_parser(&self, parser: &mut tree_sitter::Parser) -> Result<(), codehound::Error> {
+        GoPlugin.configure_parser(parser)
+    }
+
+    fn parse_with(
+        &self,
+        parser: &mut tree_sitter::Parser,
+        path: &Path,
+        source: std::sync::Arc<str>,
+    ) -> Result<ParsedUnit, codehound::Error> {
+        GoPlugin.parse_with(parser, path, source)
+    }
+
+    fn detectors(&self) -> Vec<Box<dyn Detector>> {
+        vec![Box::new(PrepareProjectDetector {
+            prepared: self.prepared.clone(),
+        })]
+    }
+
+    fn loop_node_kinds(&self) -> &'static [&'static str] {
+        GoPlugin.loop_node_kinds()
+    }
+
+    fn function_node_kinds(&self) -> &'static [&'static str] {
+        GoPlugin.function_node_kinds()
+    }
+
+    fn prepare_project(&self, _ctx: &ScanContext, project_roots: &[&Path]) {
+        self.prepared.store(true, Ordering::Relaxed);
+        let mut roots = self
+            .roots
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        roots.extend(project_roots.iter().map(|p| p.to_path_buf()));
+    }
+}
+
+#[derive(Debug)]
+struct PrepareProjectDetector {
+    prepared: std::sync::Arc<AtomicBool>,
+}
+
+impl Detector for PrepareProjectDetector {
+    fn language(&self) -> LanguageId {
+        LanguageId::Go
+    }
+
+    fn rule_ids(&self) -> &'static [&'static str] {
+        &["TEST-PREPARE"]
+    }
+
+    fn run(&self, _ctx: &ScanContext, _unit: &ParsedUnit, out: &mut Vec<Finding>) {
+        let prepared = self.prepared.load(Ordering::Relaxed);
+        out.push(Finding::new(FindingInputs::new(
+            "TEST-PREPARE",
+            "test prepare-project detector",
+            "prepare.go",
+            LineCol::try_new(1, 1).expect("valid test location"),
+            format!("prepared={prepared}"),
+            Severity::Info,
+            Cow::Borrowed(&[]),
+        )));
+    }
+}
+
+#[test]
+fn language_plugin_prepare_project_runs_before_detectors() {
+    let path = panic_fixture_path("prepare-project");
+    let roots = std::sync::Arc::new(Mutex::new(Vec::new()));
+    let prepared = std::sync::Arc::new(AtomicBool::new(false));
+    let analyzer = Analyzer::builder()
+        .registry(
+            Registry::with_plugins(vec![Box::new(PrepareProjectPlugin {
+                roots: roots.clone(),
+                prepared: prepared.clone(),
+            })])
+            .expect("valid test registry"),
+        )
+        .build();
+
+    let result = analyzer
+        .analyze_paths(&[&path], None)
+        .expect("scan should succeed");
+
+    assert!(
+        prepared.load(Ordering::Relaxed),
+        "engine must call LanguagePlugin::prepare_project once per top-level scan"
+    );
+    assert!(
+        !roots
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .is_empty(),
+        "prepare_project must receive at least one project root"
+    );
+    assert!(
+        result.findings.iter().any(|f| f.message == "prepared=true"),
+        "detectors must run after prepare_project: {:?}",
+        result.findings
+    );
+    let _ = std::fs::remove_file(path);
+}
+
+#[test]
+fn detector_begin_end_scan_bound_session_state() {
+    let path = panic_fixture_path("begin-end-scan");
+    let sessions = std::sync::Arc::new(Mutex::new(Vec::new()));
+    let analyzer = Analyzer::builder()
+        .registry(
+            Registry::with_plugins(vec![Box::new(SessionLifecyclePlugin {
+                events: sessions.clone(),
+            })])
+            .expect("valid test registry"),
+        )
+        .build();
+
+    let _ = analyzer
+        .analyze_paths(&[&path], None)
+        .expect("scan should succeed");
+
+    let events = sessions
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .clone();
+    assert_eq!(
+        events,
+        vec!["begin", "run", "finalize", "end"],
+        "detector session must be begin → work → end"
+    );
+    let _ = std::fs::remove_file(path);
+}
+
+#[derive(Debug)]
+struct SessionLifecyclePlugin {
+    events: std::sync::Arc<Mutex<Vec<&'static str>>>,
+}
+
+impl LanguagePlugin for SessionLifecyclePlugin {
+    fn id(&self) -> LanguageId {
+        GoPlugin.id()
+    }
+
+    fn extensions(&self) -> &'static [&'static str] {
+        GoPlugin.extensions()
+    }
+
+    fn configure_parser(&self, parser: &mut tree_sitter::Parser) -> Result<(), codehound::Error> {
+        GoPlugin.configure_parser(parser)
+    }
+
+    fn parse_with(
+        &self,
+        parser: &mut tree_sitter::Parser,
+        path: &Path,
+        source: std::sync::Arc<str>,
+    ) -> Result<ParsedUnit, codehound::Error> {
+        GoPlugin.parse_with(parser, path, source)
+    }
+
+    fn detectors(&self) -> Vec<Box<dyn Detector>> {
+        vec![Box::new(SessionLifecycleDetector {
+            events: self.events.clone(),
+        })]
+    }
+
+    fn loop_node_kinds(&self) -> &'static [&'static str] {
+        GoPlugin.loop_node_kinds()
+    }
+
+    fn function_node_kinds(&self) -> &'static [&'static str] {
+        GoPlugin.function_node_kinds()
+    }
+}
+
+#[derive(Debug)]
+struct SessionLifecycleDetector {
+    events: std::sync::Arc<Mutex<Vec<&'static str>>>,
+}
+
+impl SessionLifecycleDetector {
+    fn push(&self, event: &'static str) {
+        self.events
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .push(event);
+    }
+}
+
+impl Detector for SessionLifecycleDetector {
+    fn language(&self) -> LanguageId {
+        LanguageId::Go
+    }
+
+    fn rule_ids(&self) -> &'static [&'static str] {
+        &["TEST-SESSION"]
+    }
+
+    fn begin_scan(&self, _ctx: &ScanContext) {
+        self.push("begin");
+    }
+
+    fn end_scan(&self) {
+        self.push("end");
+    }
+
+    fn run(&self, _ctx: &ScanContext, _unit: &ParsedUnit, _out: &mut Vec<Finding>) {
+        self.push("run");
+    }
+
+    fn finalize(&self, _ctx: &ScanContext, _out: &mut Vec<Finding>) {
+        self.push("finalize");
+    }
+}

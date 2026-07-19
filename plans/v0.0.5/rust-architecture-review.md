@@ -106,9 +106,9 @@ and extension costs.
 
 ### 2.4 P1 — Make project preparation and detector state explicit lifecycle concepts
 
-- [ ] Replace direct engine calls to Go BP prewarming with a generic optional prepare-project lifecycle hook.
-- [ ] Move retained detector data into a per-scan session created by an explicit `begin_scan` operation; finalize that session once.
-- [ ] Preserve cache-hit accumulation and panic cleanup as tested behavior while removing manual, distributed reset protocol knowledge.
+- [x] Replace direct engine calls to Go BP prewarming with a generic optional prepare-project lifecycle hook.
+- [x] Move retained detector data into a per-scan session created by an explicit `begin_scan` operation; finalize that session once.
+- [x] Preserve cache-hit accumulation and panic cleanup as tested behavior while removing manual, distributed reset protocol knowledge.
 
 **Evidence:** `Analyzer::analyze_paths` directly invokes Go BP prewarming ([`src/engine/analyzer/scan.rs:82`](../../src/engine/analyzer/scan.rs:82)). It also serializes top-level scans and manually resets each detector because detector instances retain state ([`:20`](../../src/engine/analyzer/scan.rs:20), [`:59`](../../src/engine/analyzer/scan.rs:59)); the trait spreads `run`, `accumulate_state`, `requires_cache_state`, `reset_state`, and `finalize` across implementers ([`src/core/detector.rs:33`](../../src/core/detector.rs:33)).
 
