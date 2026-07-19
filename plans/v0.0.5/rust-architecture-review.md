@@ -1,7 +1,7 @@
 # v0.0.5 — Senior Rust Architecture Review
 
 > **Parent:** `plans/v0.0.5/pending-work.md` — architecture and reliability follow-up
-> **Status:** Review complete. No P0 findings. Four P1 workstreams and four P2 improvements are recorded below; none are implemented by this review.
+> **Status:** Implementation complete on `chore/epic-56-integration` (epic #56). All Phase 2 P1 and Phase 3 P2 workstreams shipped as child PRs #62–#66; integration validates combined tree.
 > **Estimated effort:** 4–7 focused implementation days to reach a defensible 9.5+ architecture score, including regressions and cache/taint oracle tests.
 > **Reviewed:** 2026-07-19
 
@@ -157,12 +157,12 @@ and extension costs.
 
 ## Phase 4: 9.5+ Exit Gate
 
-- [ ] All Phase 2 P1 checkboxes are complete with focused regressions.
-- [ ] Same-analyzer rescan and two-package taint fixtures pass under `--all-features`.
-- [ ] `cargo fmt --check` passes.
-- [ ] `cargo clippy --all-targets --all-features --locked -- -D warnings` passes.
-- [ ] `cargo test --all-features --locked` passes.
-- [ ] `RUSTDOCFLAGS='-D warnings' cargo doc --all-features --no-deps --locked` passes.
+- [x] All Phase 2 P1 checkboxes are complete with focused regressions.
+- [x] Same-analyzer rescan and two-package taint fixtures pass under `--all-features`.
+- [x] `cargo fmt --check` passes.
+- [x] `cargo clippy --all-targets --all-features --locked -- -D warnings` passes.
+- [x] `cargo test --all-features --locked` passes.
+- [x] `RUSTDOCFLAGS='-D warnings' cargo doc --all-features --no-deps --locked` passes.
 - [ ] Re-rate architecture only after the P1 lifecycle, cache, and taint-symbol work is source-verified; target **>= 9.5 / 10**.
 
 ---
