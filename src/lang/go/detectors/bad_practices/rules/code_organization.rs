@@ -2,12 +2,12 @@
 
 use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::path::{Path, PathBuf};
-use std::sync::{Mutex, OnceLock};
+use std::path::Path;
 
 use tree_sitter::Node;
 
 use super::super::common::{is_flat_materialized_fixture, is_test_file};
+use super::super::session::{self, PackageDocSnapshot};
 use super::super::source_index::SourceIndex;
 use super::helpers::push_at;
 use crate::core::ParsedUnit;
@@ -529,12 +529,6 @@ pub(crate) fn detect_bp_45_inconsistent_receiver_name(
     }
 }
 
-#[derive(Clone, Default)]
-struct PackageDocSnapshot {
-    anchors: HashMap<String, PathBuf>,
-    documented_packages: HashSet<String>,
-}
-
 fn package_doc_snapshot(unit: &ParsedUnit) -> PackageDocSnapshot {
     let Some(dir) = unit.path.parent() else {
         return PackageDocSnapshot::default();
@@ -542,42 +536,31 @@ fn package_doc_snapshot(unit: &ParsedUnit) -> PackageDocSnapshot {
     package_doc_snapshot_for_dir(dir)
 }
 
-/// Drop package-doc snapshots retained for the current scan.
-pub(crate) fn clear_package_doc_snapshots() {
-    let mut guard = package_doc_cache()
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
-    guard.clear();
-}
-
-type PackageDocCache = HashMap<PathBuf, PackageDocSnapshot>;
-
-fn package_doc_cache() -> &'static Mutex<PackageDocCache> {
-    static CACHE: OnceLock<Mutex<PackageDocCache>> = OnceLock::new();
-    CACHE.get_or_init(|| Mutex::new(HashMap::new()))
-}
-
 fn package_doc_snapshot_for_dir(dir: &Path) -> PackageDocSnapshot {
-    {
-        let guard = package_doc_cache()
+    session::with_active(|caches| {
+        {
+            let guard = caches
+                .package_docs
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            if let Some(snapshot) = guard.get(dir) {
+                return snapshot.clone();
+            }
+        }
+
+        // Directory read + file IO off-lock.
+        let snapshot = build_package_doc_snapshot(dir);
+
+        let mut guard = caches
+            .package_docs
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        if let Some(snapshot) = guard.get(dir) {
-            return snapshot.clone();
+        if let Some(cached) = guard.get(dir) {
+            return cached.clone();
         }
-    }
-
-    // Directory read + file IO off-lock.
-    let snapshot = build_package_doc_snapshot(dir);
-
-    let mut guard = package_doc_cache()
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
-    if let Some(cached) = guard.get(dir) {
-        return cached.clone();
-    }
-    guard.insert(dir.to_path_buf(), snapshot.clone());
-    snapshot
+        guard.insert(dir.to_path_buf(), snapshot.clone());
+        snapshot
+    })
 }
 
 fn build_package_doc_snapshot(dir: &Path) -> PackageDocSnapshot {
