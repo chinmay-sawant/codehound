@@ -70,7 +70,6 @@ pub(crate) fn scan_entries_parallel(
     entries: &[ScanEntry],
     mut cache: Option<&mut CacheSession<'_>>,
     project_root: &Path,
-    module_prefix: Option<&str>,
     collect_stats: bool,
 ) -> Result<MergedScan, Error> {
     let total = entries.len();
@@ -83,7 +82,6 @@ pub(crate) fn scan_entries_parallel(
         entries,
         &preflight.to_scan,
         project_root,
-        module_prefix,
         collect_stats,
     );
     let mut merged = merge_parallel_results(
@@ -330,7 +328,6 @@ fn dispatch_parallel_scan(
     entries: &[ScanEntry],
     to_scan: &[(usize, Option<PreloadedSource>)],
     project_root: &Path,
-    module_prefix: Option<&str>,
     collect_stats: bool,
 ) -> Vec<ScanOutcome> {
     to_scan
@@ -346,7 +343,6 @@ fn dispatch_parallel_scan(
                     pool,
                     ScanRequest {
                         project_root,
-                        module_prefix,
                         preloaded,
                         collect_stats,
                     },

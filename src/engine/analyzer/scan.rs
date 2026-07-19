@@ -6,13 +6,8 @@ use std::time::Instant;
 
 use crate::Error;
 use crate::engine::{
-    SCAN_CHUNK_SIZE,
-    cache::CacheSession,
-    dependencies::{discover_project_root, go_module_prefix},
-    result::AnalysisResult,
-    stats::ScanStats,
-    timing,
-    walk::scan_entries_parallel,
+    SCAN_CHUNK_SIZE, cache::CacheSession, dependencies::discover_project_root,
+    result::AnalysisResult, stats::ScanStats, timing, walk::scan_entries_parallel,
 };
 
 use super::types::Analyzer;
@@ -72,13 +67,9 @@ impl Analyzer {
             .first()
             .map(|p| p.as_ref())
             .unwrap_or_else(|| Path::new("."));
-        let scan_root = if start.is_file() {
-            start.parent().unwrap_or(start).to_path_buf()
-        } else {
-            start.to_path_buf()
-        };
+        // Language-neutral project root for dep extraction. Plugins derive
+        // their own module/package data (e.g. Go `go.mod`) from this root.
         let project_root = discover_project_root(start);
-        let module_prefix = go_module_prefix(&project_root);
         // Pre-warm Go BP project snapshot so parallel workers share one
         // WalkDir + text scan for project-level rules (BP-47/50/54/55).
         // Skip when BP is disabled (recommended pack often has BP off).
@@ -97,11 +88,6 @@ impl Analyzer {
                 crate::lang::go::detectors::bad_practices::prewarm_project_cache(&project_root);
             }
         }
-        let dependency_root = if module_prefix.is_some() {
-            project_root
-        } else {
-            scan_root
-        };
 
         let (entries, files_skipped) = timing.measure("file_walk", || {
             let path_refs: Vec<&Path> = paths.iter().map(|p| p.as_ref()).collect();
@@ -130,8 +116,7 @@ impl Analyzer {
                 self.scan_context(),
                 chunk,
                 cache.as_mut(),
-                &dependency_root,
-                module_prefix.as_deref(),
+                &project_root,
                 self.collect_stats,
             ) {
                 Ok(chunk) => chunk,

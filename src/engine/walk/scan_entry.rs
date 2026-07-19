@@ -25,7 +25,6 @@ pub(crate) struct PreloadedSource {
 
 pub(crate) struct ScanRequest<'a> {
     pub project_root: &'a Path,
-    pub module_prefix: Option<&'a str>,
     pub preloaded: Option<PreloadedSource>,
     pub collect_stats: bool,
 }
@@ -201,10 +200,10 @@ fn analyze_parsed_entry(
 ///
 /// `pool` is reused across many files on the same worker thread (see [`scan_entries_parallel`]).
 ///
-/// `project_root` and `module_prefix` (Go `module` directive) are used
-/// to extract project-local dependency files after parsing; the
-/// returned list is what gets written to the cache entry so a future
-/// edit to a dependency can invalidate this file's cached findings.
+/// `project_root` is the language-neutral base for dependency extraction after
+/// parsing; plugins derive their own module data. The returned list is what
+/// gets written to the cache entry so a future edit to a dependency can
+/// invalidate this file's cached findings.
 pub(crate) fn scan_entry(
     registry: &Registry,
     ctx: &ScanContext,
@@ -238,12 +237,7 @@ pub(crate) fn scan_entry(
         &mut stats,
         &mut timing,
     )?;
-    let dependencies = extract_dependencies_with_registry(
-        registry,
-        &unit,
-        request.project_root,
-        request.module_prefix,
-    );
+    let dependencies = extract_dependencies_with_registry(registry, &unit, request.project_root);
 
     let file_ignore = parse_file_ignore(unit.source.as_ref());
     if !ctx.show_ignored && file_ignore.as_ref().is_some_and(IgnoreDirective::is_all) {
