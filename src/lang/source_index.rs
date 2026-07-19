@@ -2,7 +2,9 @@
 //!
 //! Build walks each needle once with `source.contains` (unavoidable). Lookup
 //! via [`SourceIndex::has`] is O(1) average using a process-lifetime map keyed
-//! by the static needle table pointer — not a linear `position` scan.
+//! by the static needle table’s **pointer and length** — not a linear
+//! `position` scan, and not pointer-only (a shared-prefix subslice must not
+//! reuse a longer table’s matcher).
 
 use aho_corasick::AhoCorasick;
 use std::collections::HashMap;
@@ -31,6 +33,25 @@ struct NeedleLookup {
     matcher: Option<AhoCorasick>,
 }
 
+/// Identity of a static needle table: base pointer **and** length.
+///
+/// Pointer alone is insufficient: a subslice sharing a prefix with a longer
+/// static table has the same `as_ptr()` but different contents / length.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+struct NeedleTableKey {
+    ptr: usize,
+    len: usize,
+}
+
+impl NeedleTableKey {
+    fn of(needles: &'static [&'static str]) -> Self {
+        Self {
+            ptr: needles.as_ptr() as usize,
+            len: needles.len(),
+        }
+    }
+}
+
 impl Default for SourceIndex {
     fn default() -> Self {
         static EMPTY: OnceLock<NeedleLookup> = OnceLock::new();
@@ -50,9 +71,9 @@ impl Default for SourceIndex {
 /// Three tables exist in practice (CWE / PERF / BP). Intentional static leak
 /// of a few hundred entries — not on the finding hot path.
 fn lookup_for(needles: &'static [&'static str]) -> &'static NeedleLookup {
-    static CACHE: OnceLock<Mutex<HashMap<usize, &'static NeedleLookup>>> = OnceLock::new();
+    static CACHE: OnceLock<Mutex<HashMap<NeedleTableKey, &'static NeedleLookup>>> = OnceLock::new();
     let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-    let key = needles.as_ptr() as usize;
+    let key = NeedleTableKey::of(needles);
     let mut guard = match cache.lock() {
         Ok(g) => g,
         Err(poisoned) => poisoned.into_inner(),
@@ -146,5 +167,36 @@ mod tests {
         assert!(!a.has("beta"));
         assert!(b.has("beta"));
         assert!(!b.has("alpha"));
+    }
+
+    /// Full table and a same-base-pointer prefix subslice must not share a
+    /// matcher: length is part of the cache key.
+    #[test]
+    fn prefix_subslice_does_not_reuse_longer_table_lookup() {
+        // Static so both slices are 'static; prefix shares SAMPLE's base ptr.
+        static FULL: &[&str] = &["alpha", "beta", "gamma", "delta"];
+        // SAFETY: FULL is a static slice; a prefix of equal element type has
+        // the same as_ptr() and a shorter len — the bug class under test.
+        let prefix: &'static [&'static str] = &FULL[..2];
+        assert_eq!(
+            FULL.as_ptr(),
+            prefix.as_ptr(),
+            "precondition: shared base pointer"
+        );
+        assert_ne!(FULL.len(), prefix.len());
+
+        let full_idx = SourceIndex::build(FULL, "alpha beta gamma delta");
+        let prefix_idx = SourceIndex::build(prefix, "alpha beta gamma delta");
+
+        assert!(
+            !std::ptr::eq(full_idx.lookup, prefix_idx.lookup),
+            "prefix subslice must get its own NeedleLookup (ptr+len identity)"
+        );
+        assert_eq!(full_idx.len(), 4);
+        assert_eq!(prefix_idx.len(), 2);
+        assert!(full_idx.has("gamma"));
+        assert!(!prefix_idx.has("gamma"));
+        assert!(prefix_idx.has("alpha"));
+        assert!(prefix_idx.has("beta"));
     }
 }

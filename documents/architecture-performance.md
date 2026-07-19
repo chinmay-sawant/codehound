@@ -46,7 +46,7 @@ Each file is read, parsed, analyzed, and dropped independently so peak memory st
 | Path identity | `normalize_project_path` for cache keys/deps; see [adr/0002-project-path-identity.md](./adr/0002-project-path-identity.md) |
 | Same-scan cascade | Dirty fixpoint over reverse deps before preflight hits; see [incremental-cache.md](./incremental-cache.md) |
 | Detector lifecycle | Parallel `run` / `accumulate_state` → single-threaded `finalize` (see `Detector` trait docs) |
-| Dep extraction | `LanguagePlugin::extract_deps` — new languages without engine `match` arms |
+| Dep extraction | `LanguagePlugin::extract_deps(unit, ProjectContext)` — language-neutral root; plugins derive module data |
 | Go sinks | Canonical `lang/go/sinks.rs`; `engine::sinks` re-exports for compat |
 | Export | Stream context files and chunk files (no upfront `Vec` of all blocks) |
 | Timing / stats | Collection enabled by `--debug-timing` or `--diagnostics`; zero-cost `TimingCollector` no-ops when disabled; `ScanStats` merged from per-file `TimingSpan` values |

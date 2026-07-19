@@ -1,5 +1,9 @@
 //! PERF rule tiers for product packs and severity policy.
 //!
+//! Numeric membership and `PERF-N` allow-list strings are owned by
+//! [`crate::rules`] pack metadata (`PERF_TIER_S_RULES` / `PERF_TIER_A_RULES`)
+//! so product profiles and severity policy share one source of truth.
+//!
 //! | Tier | Meaning | CI default |
 //! |------|---------|------------|
 //! | **S** | Ship — proven request-path footguns | `recommended` |
@@ -8,33 +12,16 @@
 //! | **C** | Overlaps staticcheck/gocritic/prealloc | documented, low priority |
 
 /// S-tier: ship in the recommended CI pack.
-pub const TIER_S: &[u32] = &[
-    1,   // regex compile in loop
-    7,   // defer in loop
-    50,  // regexp.MatchString in loop
-    58,  // Gin request body not closed
-    71,  // GORM N+1
-    101, // http.Server timeouts
-    103, // response body not closed
-    189, // body not drained before close
-    190, // HTTP client missing timeout
-];
+pub const TIER_S: &[u32] = crate::rules::pack::PERF_TIER_S_IDS;
+
+/// S-tier rule ids (`PERF-N`) for product packs.
+pub const TIER_S_RULE_IDS: &[&str] = crate::rules::pack::PERF_TIER_S_RULES;
 
 /// A-tier: framework + hot-path (perf profile).
-pub const TIER_A: &[u32] = &[
-    11,  // HTTP client reuse
-    12,  // SQL prepare reuse
-    22,  // file read in handler
-    31,  // defer in hot function
-    82,  // sqlx row scan
-    85,  // sqlx named query reuse
-    142, // MaxBytesReader
-    143, // TimeoutHandler
-    164, // missing context in DB calls
-    183, // WithTimeout inside loop
-    210, // redis KEYS
-    213, // cache without eviction
-];
+pub const TIER_A: &[u32] = crate::rules::pack::PERF_TIER_A_IDS;
+
+/// A-tier rule ids (`PERF-N`) for product packs.
+pub const TIER_A_RULE_IDS: &[&str] = crate::rules::pack::PERF_TIER_A_RULES;
 
 /// B-tier micro-opts: keep in catalog under `all`, severity Info (not CI-failing under recommended).
 pub const TIER_B: &[u32] = &[
@@ -117,5 +104,13 @@ mod tests {
         for id in TIER_S {
             assert!(!contains_u32(TIER_B, *id), "S/B overlap PERF-{id}");
         }
+    }
+
+    #[test]
+    fn rule_id_slices_track_numeric_tiers() {
+        assert_eq!(TIER_S_RULE_IDS.len(), TIER_S.len());
+        assert_eq!(TIER_A_RULE_IDS.len(), TIER_A.len());
+        assert_eq!(tier_rule_ids(TIER_S), TIER_S_RULE_IDS);
+        assert_eq!(tier_rule_ids(TIER_A), TIER_A_RULE_IDS);
     }
 }

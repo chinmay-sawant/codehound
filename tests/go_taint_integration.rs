@@ -7,6 +7,7 @@ mod go_taint_cases;
 #[path = "helpers/mod.rs"]
 mod helpers;
 
+use std::path::Path;
 use std::sync::OnceLock;
 
 use codehound::core::ScanContext;
@@ -96,4 +97,36 @@ fn inter_procedural_taint_fixture_inventory_is_sorted_and_contiguous() {
         );
         prev = num;
     }
+}
+
+/// Two packages both define `openPath`. The safe package must not inherit a
+/// sink summary from the other package when both are scanned together.
+#[test]
+fn two_package_duplicate_callee_does_not_cross_contaminate() {
+    let analyzer = taint_analyzer();
+
+    let safe_root = Path::new("tests/fixtures/go/taint_projects/package-dup-callee-safe");
+    let safe = analyzer
+        .analyze_paths(&[safe_root], None)
+        .expect("analyze package-dup-callee-safe");
+    let safe_cwe22: Vec<_> = safe
+        .findings
+        .iter()
+        .filter(|f| f.rule_id == "CWE-22")
+        .collect();
+    assert!(
+        safe_cwe22.is_empty(),
+        "safe package must not inherit sink summary from package bad; got {safe_cwe22:?}"
+    );
+
+    let vuln_root = Path::new("tests/fixtures/go/taint_projects/package-dup-callee-vulnerable");
+    let vuln = analyzer
+        .analyze_paths(&[vuln_root], None)
+        .expect("analyze package-dup-callee-vulnerable");
+    assert!(
+        vuln.findings.iter().any(|f| f.rule_id == "CWE-22"),
+        "same-package sink openPath must still fire when a second package \
+         defines the same bare name without a sink; findings={:?}",
+        vuln.findings
+    );
 }

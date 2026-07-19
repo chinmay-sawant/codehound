@@ -3,7 +3,7 @@
 use crate::core::{ParsedUnit, ScanContext};
 use crate::engine::registry::Registry;
 use crate::engine::timing::TimingCollector;
-use crate::rules::Finding;
+use crate::rules::{Finding, TimingGranularity};
 
 /// Retain findings allowed by the scan context and apply per-rule overrides.
 pub(crate) fn filter_findings(ctx: &ScanContext, findings: &mut Vec<Finding>) {
@@ -57,33 +57,19 @@ fn run_detector(
         return;
     }
 
-    if multi_rule_self_times(det.rule_ids()) {
-        // BP pack records per-rule spans via the thread-local active collector.
-        // No outer pack span — avoids double-counting first-rule labels like "BP-1".
-        crate::engine::with_active_collector(timing, || {
-            det.run(ctx, unit, findings);
-        });
-    } else {
-        // Single-rule or non-self-timing multi-rule packs (PERF/CWE): one span each.
-        let name = pack_timing_name(det.rule_ids());
-        timing.measure(name, || {
-            det.run(ctx, unit, findings);
-        });
-    }
-}
-
-/// Packs that record their own per-rule spans via [`crate::engine::timing::measure_active`].
-fn multi_rule_self_times(rule_ids: &[&'static str]) -> bool {
-    rule_ids.len() > 1 && rule_ids.first().is_some_and(|id| id.starts_with("BP-"))
-}
-
-/// Stable timing label for a detector object (not the first rule alone for packs).
-fn pack_timing_name(rule_ids: &[&'static str]) -> &'static str {
-    match rule_ids.first().copied() {
-        Some(id) if id.starts_with("PERF-") && rule_ids.len() > 1 => "GoPerfScan",
-        Some(id) if id.starts_with("CWE-") && rule_ids.len() > 1 => "GoCweScan",
-        Some(id) => id,
-        None => "detector",
+    match det.timing_granularity() {
+        // Pack records per-rule spans via the thread-local active collector.
+        // No outer pack span — avoids double-counting first-rule labels.
+        TimingGranularity::PerRuleSelfTimed => {
+            crate::engine::with_active_collector(timing, || {
+                det.run(ctx, unit, findings);
+            });
+        }
+        TimingGranularity::DetectorSpan | TimingGranularity::SingleRule => {
+            timing.measure(det.timing_label(), || {
+                det.run(ctx, unit, findings);
+            });
+        }
     }
 }
 

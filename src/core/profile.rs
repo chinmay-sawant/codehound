@@ -2,6 +2,11 @@
 
 use std::collections::HashSet;
 
+use crate::rules::{
+    PERF_TIER_A_RULES, PERF_TIER_S_RULES, SECURITY_PACK_RULES, STYLE_PACK_PATTERNS,
+    TAINT_CORE_CWE_RULES,
+};
+
 use super::scan::FailPolicy;
 
 /// Named product pack. CLI default is [`ScanProfile::Recommended`].
@@ -74,17 +79,30 @@ impl ScanProfile {
         }
     }
 
-    /// Rule allow-list patterns for this profile.
+    /// Rule allow-list pattern groups for this profile.
     ///
-    /// `None` means no `only` filter (full catalog, still subject to skip/BP flags).
-    pub fn only_patterns(self) -> Option<&'static [&'static str]> {
+    /// Each inner slice is unioned into the allow-list. `None` means no `only`
+    /// filter (full catalog, still subject to skip/BP flags).
+    pub fn only_pattern_groups(self) -> Option<&'static [&'static [&'static str]]> {
         match self {
-            Self::Recommended => Some(RECOMMENDED_RULES),
-            Self::Perf => Some(PERF_PACK_RULES),
-            Self::Security => Some(SECURITY_PACK_RULES),
-            Self::Style => Some(&["BP-*"]),
+            Self::Recommended => Some(&[PERF_TIER_S_RULES, TAINT_CORE_CWE_RULES]),
+            Self::Perf => Some(&[PERF_TIER_S_RULES, PERF_TIER_A_RULES]),
+            Self::Security => Some(&[SECURITY_PACK_RULES]),
+            Self::Style => Some(&[STYLE_PACK_PATTERNS]),
             Self::All => None,
         }
+    }
+
+    /// Rule allow-list patterns for this profile (flattened view for tests).
+    ///
+    /// `None` means no `only` filter (full catalog, still subject to skip/BP flags).
+    pub fn only_patterns(self) -> Option<Vec<&'static str>> {
+        self.only_pattern_groups().map(|groups| {
+            groups
+                .iter()
+                .flat_map(|g| g.iter().copied())
+                .collect::<Vec<_>>()
+        })
     }
 
     /// Apply profile defaults onto an existing only/skip/fail/taint/bp setup.
@@ -92,8 +110,11 @@ impl ScanProfile {
     /// CLI `--only` is merged (union) with the pack when both are present.
     /// Explicit fail policy / taint / no-bp flags should be applied by the caller after this.
     pub fn apply_base(self, target: ProfileApplyTarget<'_>) {
-        if let Some(patterns) = self.only_patterns() {
-            let mut pack: HashSet<String> = patterns.iter().map(|s| (*s).to_string()).collect();
+        if let Some(groups) = self.only_pattern_groups() {
+            let mut pack: HashSet<String> = HashSet::new();
+            for group in groups {
+                pack.extend(group.iter().map(|s| (*s).to_string()));
+            }
             if let Some(existing) = target.only.take() {
                 pack.extend(existing);
             }
@@ -129,30 +150,6 @@ pub struct ProfileApplyTarget<'a> {
     pub cli_set_bp: bool,
 }
 
-/// S-tier PERF + taint-core CWEs (≤ ~30 rules). Directional CI default pack.
-/// PERF membership mirrors [`crate::lang::go::detectors::perf::tiers::TIER_S`].
-const RECOMMENDED_RULES: &[&str] = &[
-    // PERF S-tier
-    "PERF-1", "PERF-7", "PERF-50", "PERF-58", "PERF-71", "PERF-101", "PERF-103", "PERF-189",
-    "PERF-190", // Taint-core CWEs
-    "CWE-22", "CWE-78", "CWE-79", "CWE-89", "CWE-90", "CWE-91",
-];
-
-/// S + A PERF tiers (see `perf::tiers`).
-const PERF_PACK_RULES: &[&str] = &[
-    // S
-    "PERF-1", "PERF-7", "PERF-50", "PERF-58", "PERF-71", "PERF-101", "PERF-103", "PERF-189",
-    "PERF-190", // A
-    "PERF-11", "PERF-12", "PERF-22", "PERF-31", "PERF-82", "PERF-85", "PERF-142", "PERF-143",
-    "PERF-164", "PERF-183", "PERF-210", "PERF-213",
-];
-
-/// Security pack: taint core + a few structural path/injection neighbors.
-/// Fixture-only CWEs are intentionally absent (see [`crate::rules::maturity`]).
-const SECURITY_PACK_RULES: &[&str] = &[
-    "CWE-22", "CWE-41", "CWE-59", "CWE-78", "CWE-79", "CWE-89", "CWE-90", "CWE-91", "CWE-93",
-];
-
 /// Default-off under `--profile style` (opt-in noise / opinion).
 /// BP-21: missing `t.Parallel` is policy, not correctness — off in recommended
 /// already; keep out of style defaults too.
@@ -164,13 +161,61 @@ const STYLE_DEFAULT_SKIP: &[&str] = &["BP-21", "BP-28", "BP-30"];
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::rules::RulePack;
 
     #[test]
     fn recommended_is_small() {
-        assert!(RECOMMENDED_RULES.len() <= 30);
-        assert!(RECOMMENDED_RULES.contains(&"PERF-101"));
-        assert!(RECOMMENDED_RULES.contains(&"CWE-22"));
-        assert!(!RECOMMENDED_RULES.iter().any(|r| r.starts_with("BP-")));
+        let patterns = ScanProfile::Recommended
+            .only_patterns()
+            .expect("recommended has only filter");
+        assert!(patterns.len() <= 30);
+        assert!(patterns.contains(&"PERF-101"));
+        assert!(patterns.contains(&"CWE-22"));
+        assert!(
+            !patterns
+                .iter()
+                .any(|r| RulePack::from_rule_id(r).is_bad_practice())
+        );
+    }
+
+    #[test]
+    fn recommended_perf_matches_s_tier_metadata() {
+        let patterns = ScanProfile::Recommended
+            .only_patterns()
+            .expect("recommended has only filter");
+        for id in PERF_TIER_S_RULES {
+            assert!(patterns.contains(id), "missing {id} in recommended");
+        }
+        let perf_count = patterns
+            .iter()
+            .filter(|r| RulePack::from_rule_id(r) == RulePack::Performance)
+            .count();
+        assert_eq!(perf_count, PERF_TIER_S_RULES.len());
+    }
+
+    #[test]
+    fn perf_profile_is_s_plus_a() {
+        let patterns = ScanProfile::Perf
+            .only_patterns()
+            .expect("perf has only filter");
+        assert_eq!(
+            patterns.len(),
+            PERF_TIER_S_RULES.len() + PERF_TIER_A_RULES.len()
+        );
+        for id in PERF_TIER_A_RULES {
+            assert!(patterns.contains(id), "missing {id} in perf pack");
+        }
+    }
+
+    #[test]
+    fn style_uses_bad_practice_pack_glob() {
+        let patterns = ScanProfile::Style
+            .only_patterns()
+            .expect("style has only filter");
+        assert_eq!(
+            patterns,
+            vec![RulePack::BadPractice.only_glob().expect("BP glob")]
+        );
     }
 
     #[test]

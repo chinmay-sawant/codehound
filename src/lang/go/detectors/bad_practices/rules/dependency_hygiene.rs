@@ -1,8 +1,9 @@
 //! BP-56..BP-65 — dependency-hygiene bad practices.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
 
 use tree_sitter::Node;
 use walkdir::WalkDir;
@@ -347,21 +348,60 @@ fn collect_import_paths(unit: &ParsedUnit) -> Vec<(usize, String)> {
     imports
 }
 
-fn read_go_mod(unit: &ParsedUnit) -> Option<GoModContext> {
-    use std::sync::{Mutex, OnceLock};
-    let root = discover_project_root(&unit.path);
-    static CACHE: OnceLock<Mutex<std::collections::HashMap<PathBuf, Option<GoModContext>>>> =
-        OnceLock::new();
-    let cache = CACHE.get_or_init(|| Mutex::new(std::collections::HashMap::new()));
-    let mut guard = cache.lock().unwrap_or_else(|p| p.into_inner());
-    if let Some(cached) = guard.get(&root) {
-        return cached.clone();
+/// Drop go.mod and project-import snapshots retained for the current scan.
+pub(crate) fn clear_dependency_hygiene_caches() {
+    {
+        let mut guard = go_mod_cache()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        guard.clear();
     }
+    {
+        let mut guard = project_imports_cache()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        guard.clear();
+    }
+}
+
+type GoModCache = HashMap<PathBuf, Option<GoModContext>>;
+
+fn go_mod_cache() -> &'static Mutex<GoModCache> {
+    static CACHE: OnceLock<Mutex<GoModCache>> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+type ProjectImportsCache = HashMap<PathBuf, ProjectImports>;
+
+fn project_imports_cache() -> &'static Mutex<ProjectImportsCache> {
+    static CACHE: OnceLock<Mutex<ProjectImportsCache>> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn read_go_mod(unit: &ParsedUnit) -> Option<GoModContext> {
+    let root = discover_project_root(&unit.path);
+    {
+        let guard = go_mod_cache()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some(cached) = guard.get(&root) {
+            return cached.clone();
+        }
+    }
+
+    // Filesystem read off-lock.
     let path = root.join("go.mod");
     let loaded = fs::read_to_string(&path).ok().map(|text| GoModContext {
         root: root.clone(),
         text,
     });
+
+    let mut guard = go_mod_cache()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    if let Some(cached) = guard.get(&root) {
+        return cached.clone();
+    }
     guard.insert(root, loaded.clone());
     loaded
 }
@@ -545,15 +585,29 @@ fn collect_project_module_usage(root: &Path, requires: &[Require]) -> ProjectMod
 }
 
 fn collect_project_imports(root: &Path) -> ProjectImports {
-    use std::sync::{Mutex, OnceLock};
-    static CACHE: OnceLock<Mutex<std::collections::HashMap<PathBuf, ProjectImports>>> =
-        OnceLock::new();
-    let cache = CACHE.get_or_init(|| Mutex::new(std::collections::HashMap::new()));
-    let mut guard = cache.lock().unwrap_or_else(|p| p.into_inner());
+    {
+        let guard = project_imports_cache()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some(cached) = guard.get(root) {
+            return cached.clone();
+        }
+    }
+
+    // WalkDir + file reads off-lock.
+    let result = build_project_imports(root);
+
+    let mut guard = project_imports_cache()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     if let Some(cached) = guard.get(root) {
         return cached.clone();
     }
+    guard.insert(root.to_path_buf(), result.clone());
+    result
+}
 
+fn build_project_imports(root: &Path) -> ProjectImports {
     let mut by_file: BTreeMap<PathBuf, BTreeSet<String>> = BTreeMap::new();
     for entry in WalkDir::new(root).into_iter().filter_map(Result::ok) {
         let path = entry.path();
@@ -584,13 +638,11 @@ fn collect_project_imports(root: &Path) -> ProjectImports {
         }
     }
     test_only.retain(|import| !non_test.contains(import));
-    let result = ProjectImports {
+    ProjectImports {
         all,
         non_test,
         test_only,
-    };
-    guard.insert(root.to_path_buf(), result.clone());
-    result
+    }
 }
 
 fn extract_imports_from_text(source: &str) -> BTreeSet<String> {

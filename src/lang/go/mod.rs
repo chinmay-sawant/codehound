@@ -34,17 +34,30 @@ tree_sitter_lang!(
     detectors::all(),
     FUNCTION_NODE_KINDS,
     LOOP_NODE_KINDS,
-    |unit: &crate::core::ParsedUnit,
-     project_root: &std::path::Path,
-     module_prefix: Option<&str>| {
+    |unit: &crate::core::ParsedUnit, project: &crate::core::ProjectContext<'_>| {
+        // Go-specific: derive module path from go.mod at the project root.
+        // The engine no longer passes module_prefix into the plugin seam.
+        let module_prefix =
+            crate::engine::dependencies::go_module_prefix(project.root).unwrap_or_default();
         let mut out = Vec::new();
         crate::engine::dependencies::go_imports::extract(
             &unit.tree.root_node(),
             &unit.source,
-            project_root,
-            module_prefix.unwrap_or(""),
+            project.root,
+            &module_prefix,
             &mut out,
         );
         out
+    },
+    |ctx: &crate::core::ScanContext, project_roots: &[&std::path::Path]| {
+        // Pack-local BP project snapshot prewarm so parallel workers share one
+        // WalkDir + text scan for project-level rules (BP-47/50/54/55).
+        // Skip when BP is disabled (recommended pack often has BP off).
+        if !ctx.bad_practices_enabled {
+            return;
+        }
+        for root in project_roots {
+            detectors::bad_practices::prewarm_project_cache(root);
+        }
     }
 );

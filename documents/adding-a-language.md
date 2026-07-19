@@ -24,7 +24,12 @@ Reference implementation: `src/lang/go/` (CWE + PERF + BP) and `src/lang/python/
 3. Add feature to `default` array when the language ships to all users.
 4. Implement `LanguagePlugin` under `src/lang/<lang>/` and register via `inventory` / `src/lang/register.rs`.
 5. Wire detectors implementing `core::Detector` (and optional build-time registry like Go PERF/CWE TOML).
-6. **Mandatory tests:**
+6. **Optional:** override `LanguagePlugin::extract_deps(unit, project)` for cache cascade.
+   - `project` is [`ProjectContext`](../src/core/language/plugin.rs) — language-neutral, currently only `root`.
+   - Derive any language-specific module/package data **inside the plugin** (Go reads `go.mod` itself).
+   - Prefer the `tree_sitter_lang!` optional 10th-argument closure `|unit, project| -> Vec<String>`.
+   - Return project-local paths; the engine normalizes and deduplicates for cache keys.
+7. **Mandatory tests:**
    - `tests/fixtures/<lang>/` with at least one `.txt` text fixture
    - Entry in `tests/fixtures/manifest.toml` (paths must end in `.txt`)
    - `tests/<lang>_integration.rs` using `tests/helpers` (materialize → analyze)
@@ -34,6 +39,7 @@ Reference implementation: `src/lang/go/` (CWE + PERF + BP) and `src/lang/python/
 - `ast::walk` / location helpers under `src/ast/`
 - `cwe::CWE_CATALOG` / `CweRef` for rule metadata
 - `engine::ParsePool` reuses one parser per language per Rayon worker
+- `core::ProjectContext` for language-neutral dependency extraction
 
 ## CLI
 

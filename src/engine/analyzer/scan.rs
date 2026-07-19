@@ -1,38 +1,95 @@
 //! `Analyzer::analyze_paths`: top-level scan orchestration with cache,
 //! cascade-invalidation, pruning, and stats aggregation.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use crate::Error;
+use crate::core::ScanContext;
 use crate::engine::{
-    SCAN_CHUNK_SIZE,
-    cache::CacheSession,
-    dependencies::{discover_project_root, go_module_prefix},
-    result::AnalysisResult,
-    stats::ScanStats,
-    timing,
-    walk::scan_entries_parallel,
+    SCAN_CHUNK_SIZE, cache::CacheSession, dependencies::discover_project_root,
+    result::AnalysisResult, stats::ScanStats, timing, walk::scan_entries_parallel,
 };
 
 use super::types::Analyzer;
 
-struct DetectorStateGuard<'a> {
+/// Explicit per-scan detector session: `begin_scan` → work → `end_scan`.
+///
+/// Drop always runs `end_scan` (panic-safe) so retained detector state cannot
+/// leak across an early return or panic. The engine no longer hand-rolls a
+/// distributed reset protocol beyond this session boundary.
+struct DetectorScanSession<'a> {
     registry: &'a crate::engine::registry::Registry,
 }
 
-impl Drop for DetectorStateGuard<'_> {
+impl<'a> DetectorScanSession<'a> {
+    fn begin(
+        registry: &'a crate::engine::registry::Registry,
+        ctx: &ScanContext,
+        project_roots: &[&Path],
+    ) -> Self {
+        for detector in registry.detectors() {
+            begin_detector_scan(detector.as_ref(), ctx);
+        }
+        for plugin in registry.plugins() {
+            prepare_plugin_project(plugin.as_ref(), ctx, project_roots);
+        }
+        Self { registry }
+    }
+}
+
+impl Drop for DetectorScanSession<'_> {
     fn drop(&mut self) {
         for detector in self.registry.detectors() {
-            reset_detector_state(detector.as_ref());
+            end_detector_scan(detector.as_ref());
         }
     }
 }
 
-fn reset_detector_state(detector: &dyn crate::core::Detector) {
-    if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| detector.reset_state())).is_err() {
-        tracing::error!("detector reset_state panicked during scan cleanup");
+fn begin_detector_scan(detector: &dyn crate::core::Detector, ctx: &ScanContext) {
+    if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| detector.begin_scan(ctx))).is_err()
+    {
+        tracing::error!("detector begin_scan panicked during scan setup");
     }
+}
+
+fn end_detector_scan(detector: &dyn crate::core::Detector) {
+    if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| detector.end_scan())).is_err() {
+        tracing::error!("detector end_scan panicked during scan cleanup");
+    }
+}
+
+fn prepare_plugin_project(
+    plugin: &dyn crate::core::LanguagePlugin,
+    ctx: &ScanContext,
+    project_roots: &[&Path],
+) {
+    if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        plugin.prepare_project(ctx, project_roots);
+    }))
+    .is_err()
+    {
+        tracing::error!(
+            language = ?plugin.id(),
+            "plugin prepare_project panicked during scan setup"
+        );
+    }
+}
+
+/// Distinct discovered project roots for a multi-path top-level scan.
+fn distinct_project_roots(paths: &[impl AsRef<Path>], fallback: &Path) -> Vec<PathBuf> {
+    let mut seen = std::collections::HashSet::new();
+    let mut roots = Vec::new();
+    for path in paths {
+        let root = discover_project_root(path.as_ref());
+        if seen.insert(root.clone()) {
+            roots.push(root);
+        }
+    }
+    if roots.is_empty() {
+        roots.push(fallback.to_path_buf());
+    }
+    roots
 }
 
 impl Analyzer {
@@ -60,48 +117,22 @@ impl Analyzer {
             .scan_gate
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        for detector in self.registry.detectors() {
-            reset_detector_state(detector.as_ref());
-        }
-        let _detector_state = DetectorStateGuard {
-            registry: &self.registry,
-        };
         let wall_start = Instant::now();
         let mut timing = timing::TimingCollector::new(self.collect_stats);
         let start = paths
             .first()
             .map(|p| p.as_ref())
             .unwrap_or_else(|| Path::new("."));
-        let scan_root = if start.is_file() {
-            start.parent().unwrap_or(start).to_path_buf()
-        } else {
-            start.to_path_buf()
-        };
+        // Language-neutral project root for dep extraction. Plugins derive
+        // their own module/package data (e.g. Go `go.mod`) from this root.
         let project_root = discover_project_root(start);
-        let module_prefix = go_module_prefix(&project_root);
-        // Pre-warm Go BP project snapshot so parallel workers share one
-        // WalkDir + text scan for project-level rules (BP-47/50/54/55).
-        // Skip when BP is disabled (recommended pack often has BP off).
-        // Prewarm every distinct path root so multi-root scans stay correct.
-        #[cfg(feature = "go")]
-        if self.scan_context().bad_practices_enabled {
-            let mut seen = std::collections::HashSet::new();
-            for path in paths {
-                let p = path.as_ref();
-                let root = discover_project_root(p);
-                if seen.insert(root.clone()) {
-                    crate::lang::go::detectors::bad_practices::prewarm_project_cache(&root);
-                }
-            }
-            if seen.is_empty() {
-                crate::lang::go::detectors::bad_practices::prewarm_project_cache(&project_root);
-            }
-        }
-        let dependency_root = if module_prefix.is_some() {
-            project_root
-        } else {
-            scan_root
-        };
+        // Explicit per-scan detector session + pack-local project prepare.
+        // Distinct roots keep multi-root scans correct without engine
+        // knowledge of any language pack's prewarm details.
+        let project_roots = distinct_project_roots(paths, &project_root);
+        let root_refs: Vec<&Path> = project_roots.iter().map(PathBuf::as_path).collect();
+        let _detector_session =
+            DetectorScanSession::begin(&self.registry, self.scan_context(), &root_refs);
 
         let (entries, files_skipped) = timing.measure("file_walk", || {
             let path_refs: Vec<&Path> = paths.iter().map(|p| p.as_ref()).collect();
@@ -130,8 +161,7 @@ impl Analyzer {
                 self.scan_context(),
                 chunk,
                 cache.as_mut(),
-                &dependency_root,
-                module_prefix.as_deref(),
+                &project_root,
                 self.collect_stats,
             ) {
                 Ok(chunk) => chunk,
