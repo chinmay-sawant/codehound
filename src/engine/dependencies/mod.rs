@@ -39,4 +39,4 @@ mod tests;
 pub use entry::extract_dependencies;
 pub(crate) use entry::extract_dependencies_with_registry;
 pub use go_module::go_module_prefix;
-pub use project_root::discover_project_root;
+pub use project_root::{dependency_base_root, discover_project_root};

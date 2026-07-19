@@ -220,7 +220,12 @@ func Handle() { db.Run() }
 
 #[test]
 fn transitive_invalidation_works_without_go_mod_using_cwd_fallback_paths() {
-    let root = unique_temp_root("transitive-no-go-mod");
+    // Parent `.git` is the environment-sensitive topology that used to steal
+    // the dependency base via discover_project_root (import "pkg/db" resolved
+    // under the VCS parent instead of the scanned tree).
+    let outer = unique_temp_root("transitive-no-go-mod-outer");
+    std::fs::create_dir_all(outer.join(".git")).unwrap();
+    let root = outer.join("project");
     materialize_tree(Path::new("tests/fixtures/go/heuristics/cache")).unwrap();
     let fixture_root = materialized_root().join("go/cache/no_go_mod");
     copy_materialized_tree(&fixture_root, &root);
@@ -247,7 +252,7 @@ fn transitive_invalidation_works_without_go_mod_using_cwd_fallback_paths() {
             .dependencies
             .iter()
             .any(|d| d.ends_with("pkg/db/db.go")),
-        "expected local dependency without go.mod, got {:?}",
+        "expected local dependency without go.mod (even with parent .git), got {:?}",
         handler_meta.dependencies
     );
 

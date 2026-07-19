@@ -1,9 +1,9 @@
 # v0.0.5 — Senior Rust Architecture Review
 
 > **Parent:** `plans/v0.0.5/pending-work.md` — architecture and reliability follow-up
-> **Status:** Phase 5 implementation complete on `chore/epic-75-integration` (epic #75). Residual P1 method-receiver, per-analyzer BP ownership, and fail-closed registry workstreams shipped; target **>= 9.5 / 10** pending post-merge re-rate.
-> **Estimated effort:** Phase 5 residual items implemented (was 1–2 days).
-> **Reviewed:** 2026-07-19
+> **Status:** Re-review complete. Phase 5 and the P1 dependency-root repair are source-verified; strict quality gates and the full feature-enabled suite pass. **9.5 / 10** exit criterion met.
+> **Estimated effort:** Complete.
+> **Reviewed:** 2026-07-20
 
 ---
 
@@ -25,35 +25,23 @@ It has real seams for entry discovery, cache backends, language registration,
 reporting, and tests. Ownership, typed error propagation, source sharing, and
 the normal per-file parallel path are disciplined.
 
-The re-review senior assessment is **9.3 / 10**, an improvement of **0.4**.
-All original workstreams are real, not checklist-only: strict rustdoc now
-passes; plugin factories are single-shot; source-index identity includes length;
-the generic engine uses language-neutral project context and plugin preparation;
-detectors have an explicit scan lifecycle; BP facts refresh on same-analyzer
-rescans; and duplicate free-function names in separate Go packages no longer
-cross-contaminate taint results.
-
-The remaining gap is deliberately narrow. Taint keys retain receiver type, but
-method-call resolution still selects the first same-package method sharing a
-bare name when the receiver type is unknown. That can choose the wrong summary.
-The BP caches are behaviorally cleared at scan boundaries, but still live in
-process-global statics, so independent analyzers share cache ownership and
-evict one another. Finally, built-in registry materialization logs and returns
-an empty registry on an invariant failure, which is fail-open for an analyzer.
-
-Do not add another broad abstraction layer. The shortest path to **9.5+** is a
-conservative method-resolution rule, then moving the existing BP maps into the
-`GoBadPracticeScan` instance and making built-in registry construction return a
-startup error rather than an empty scanner.
+The current senior assessment is **9.5 / 10**, up from **9.3 / 10**. The three
+Phase 5 fixes remain verified: taint method resolution declines ambiguous
+receiver summaries, BP project facts are analyzer-owned, and built-in registry
+materialization fails closed. The final P1 cache-cascade regression is also
+closed: pack preparation retains its discovered project root, while dependency
+extraction uses a module root when present or the requested scan root otherwise.
+The parent-`.git`, go.mod-less topology is now an explicit integration
+regression, so local imports cannot silently resolve outside the scanned tree.
 
 ### Scorecard
 
 | Axis | Score | Basis |
 |---|---:|---|
-| Application architecture | **9.3 / 10** | Generic preparation and explicit lifecycle now create meaningful seams; BP cache ownership remains process-global. |
-| Rust quality | **9.5 / 10** | Strict format, Clippy, tests, and rustdoc pass; ownership/error discipline remains strong. |
-| Detector/ruleset architecture | **9.1 / 10** | Package-qualified free-function resolution is fixed; same-package method receiver ambiguity remains. |
-| **Overall senior assessment** | **9.3 / 10** | All original items materially improved the code; close the residual P1 and two P2s for 9.5+. |
+| Application architecture | **9.5 / 10** | Project preparation and dependency resolution now have distinct, small-purpose seams with correct no-module fallback semantics. |
+| Rust quality | **9.6 / 10** | Format, strict Clippy, strict rustdoc, focused regressions, and the full feature-enabled suite pass. |
+| Detector/ruleset architecture | **9.5 / 10** | Ambiguous taint methods are conservative, BP caches are analyzer-owned, and registry composition fails closed. |
+| **Overall senior assessment** | **9.5 / 10** | The residual P1 is closed with a direct regression, and the full quality gate is green. |
 
 ---
 
@@ -194,6 +182,24 @@ startup error rather than an empty scanner.
 - [x] Add a regression proving the CLI/library cannot report a successful empty analysis after a built-in registry composition failure.
 
 **Evidence:** `Registry::from_plugins` logs a materialization error then returns an empty registry ([`src/engine/registry.rs:66`](../../src/engine/registry.rs:66)). A future built-in duplicate extension/language or detector mismatch would therefore risk a successful no-detector scan rather than a visible initialization failure.
+
+---
+
+## Phase 6: 2026-07-20 Post-merge Re-rate
+
+### 6.1 Verified Phase 5 closures
+
+- [x] Same-package method calls use an exact inferred receiver key; unknown calls with multiple receiver candidates deliberately decline summary resolution ([`src/lang/go/detectors/cwe/mod.rs`](../../src/lang/go/detectors/cwe/mod.rs)).
+- [x] BP project caches are owned by `GoBadPracticeScan`, installed only for the active analyzer/session, and exercised by a concurrent-analyzer regression ([`src/lang/go/detectors/bad_practices/session.rs`](../../src/lang/go/detectors/bad_practices/session.rs), [`tests/go_bad_practice_project_integration.rs`](../../tests/go_bad_practice_project_integration.rs)).
+- [x] Built-in registry composition panics before an empty registry can scan; custom composition retains typed errors ([`src/engine/registry.rs`](../../src/engine/registry.rs)).
+
+### 6.2 P1 — Preserve the requested scan root for go.mod-less dependency resolution
+
+- [x] Keep a language-neutral dependency base that falls back to the requested scan root when no module root exists; do not resolve local Go imports from an unrelated parent `.git` directory.
+- [x] Extend the existing no-`go.mod` cache-cascade regression with a parent `.git` sentinel so the environment-sensitive topology is explicitly covered.
+- [x] Re-run `cargo test --all-features --locked` and restore the 9.5+ exit gate.
+
+**Evidence:** `Analyzer::analyze_paths` retains `discover_project_root` for pack preparation while passing `dependency_base_root` to cache dependency extraction ([`src/engine/analyzer/scan.rs`](../../src/engine/analyzer/scan.rs)). The helper prefers `go.mod` and otherwise returns the requested scan root, deliberately excluding a bare parent `.git` ([`src/engine/dependencies/project_root.rs`](../../src/engine/dependencies/project_root.rs)). `transitive_invalidation_works_without_go_mod_using_cwd_fallback_paths`, both dependency-base unit tests, and `cargo test --all-features --locked` pass.
 
 ---
 
