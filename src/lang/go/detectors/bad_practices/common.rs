@@ -1,12 +1,11 @@
 //! Shared path/fixture helpers for Go bad-practice detectors.
 
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, OnceLock};
 
 use tree_sitter::Parser;
 use walkdir::WalkDir;
 
+use super::session::{self, BpProjectCaches};
 use crate::core::ParsedUnit;
 use crate::engine::discover_project_root;
 
@@ -34,7 +33,7 @@ pub(crate) fn is_flat_materialized_fixture(unit: &ParsedUnit) -> bool {
 }
 
 /// True when `unit` is the lexicographically first non-test `.go` file under the
-/// project root. Uses the shared project snapshot (one WalkDir per root).
+/// project root. Uses the analyzer-owned project snapshot (one WalkDir per root).
 pub(crate) fn is_project_anchor(unit: &ParsedUnit) -> bool {
     let root = discover_project_root(&unit.path);
     let Some(anchor) = project_snapshot_for_root(&root).anchor else {
@@ -80,32 +79,23 @@ pub(crate) fn project_snapshot(unit: &ParsedUnit) -> ProjectSnapshot {
 }
 
 /// Pre-warm project snapshot for a scan root before parallel BP work.
+///
+/// No-op when no analyzer session is active (should not happen on the normal
+/// engine path: `begin_scan` installs maps before `prepare_project`).
 pub(crate) fn prewarm_project_snapshot(start: &Path) {
     let root = discover_project_root(start);
-    let _ = project_snapshot_for_root(&root);
-}
-
-/// Drop all memoized project snapshots. Called from
-/// [`super::GoBadPracticeScan::reset_state`] so facts do not survive a
-/// top-level scan boundary.
-pub(crate) fn clear_project_snapshots() {
-    let mut guard = snapshot_cache()
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
-    guard.clear();
-}
-
-type SnapshotCache = HashMap<PathBuf, ProjectSnapshot>;
-
-fn snapshot_cache() -> &'static Mutex<SnapshotCache> {
-    static CACHE: OnceLock<Mutex<SnapshotCache>> = OnceLock::new();
-    CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+    let _ = session::try_active(|caches| project_snapshot_for_root_in(caches, &root));
 }
 
 fn project_snapshot_for_root(root: &Path) -> ProjectSnapshot {
+    session::with_active(|caches| project_snapshot_for_root_in(caches, root))
+}
+
+fn project_snapshot_for_root_in(caches: &BpProjectCaches, root: &Path) -> ProjectSnapshot {
     // Fast path: short read under the lock.
     {
-        let guard = snapshot_cache()
+        let guard = caches
+            .project_snapshots
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         if let Some(cached) = guard.get(root) {
@@ -118,7 +108,8 @@ fn project_snapshot_for_root(root: &Path) -> ProjectSnapshot {
 
     // Short insert critical section with double-checked lookup so concurrent
     // workers racing the same root share one built snapshot.
-    let mut guard = snapshot_cache()
+    let mut guard = caches
+        .project_snapshots
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     if let Some(cached) = guard.get(root) {
