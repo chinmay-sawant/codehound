@@ -124,3 +124,137 @@ fn library_example_server_does_not_trigger_project_server_rules() {
         "example servers must not make a library a server application: {server_rule_findings:?}"
     );
 }
+
+/// Same-`Analyzer` rescan must not reuse BP project facts from a prior scan.
+///
+/// Starts with a fully-hardened root (safe package doc, go.mod baseline, and
+/// server policy), then mutates both `go.mod` and a sibling `.go` file into the
+/// vulnerable shape and rescans. If project snapshots were process-lifetime
+/// globals, the second scan would still observe the safe facts.
+#[test]
+fn same_analyzer_rescan_refreshes_bp_project_facts() {
+    let root = helpers::unique_temp_root("bp-scan-scoped-rescan");
+    fs::create_dir_all(&root).unwrap_or_else(|e| panic!("create {}: {e}", root.display()));
+
+    // Safe go.mod: supported Go version, no unused direct deps.
+    fs::write(
+        root.join("go.mod"),
+        "module example.com/bp-rescan\n\ngo 1.25.0\n",
+    )
+    .unwrap_or_else(|e| panic!("write go.mod: {e}"));
+
+    // Safe server: package doc, graceful shutdown, signals, rate limit,
+    // request-id on logged public route.
+    fs::write(
+        root.join("main.go"),
+        r#"// Package main is a hardened HTTP server used by rescan regression tests.
+package main
+
+import (
+	"context"
+	"log/slog"
+	"net/http"
+	"os/signal"
+	"time"
+
+	"golang.org/x/time/rate"
+)
+
+func main() {
+	ctx, stop := signal.NotifyContext(context.Background())
+	defer stop()
+
+	limiter := rate.NewLimiter(1, 4)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
+		status := http.StatusOK
+		if !limiter.Allow() {
+			status = http.StatusTooManyRequests
+		}
+		requestID := r.Header.Get("X-Request-ID")
+		if requestID == "" {
+			requestID = "generated-request-id"
+			r.Header.Set("X-Request-ID", requestID)
+		}
+		slog.Info("request", "request_id", requestID, "method", r.Method, "path", r.URL.Path)
+		w.WriteHeader(status)
+	})
+
+	server := &http.Server{
+		Addr:         ":8080",
+		Handler:      mux,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+	}
+	go func() {
+		<-ctx.Done()
+		if err := server.Shutdown(context.Background()); err != nil {
+			panic(err)
+		}
+	}()
+	if err := server.ListenAndServe(); err != nil {
+		return
+	}
+}
+"#,
+    )
+    .unwrap_or_else(|e| panic!("write main.go: {e}"));
+
+    let analyzer = analyzer();
+    let first = analyzer
+        .analyze_paths(&[&root], None)
+        .unwrap_or_else(|e| panic!("first scan {}: {e:#}", root.display()));
+    let first_ids: Vec<&str> = first.findings.iter().map(|f| f.rule_id).collect();
+    for rule in [
+        "BP-41", "BP-47", "BP-50", "BP-54", "BP-55", "BP-57", "BP-59",
+    ] {
+        assert!(
+            !first_ids.contains(&rule),
+            "first scan should be clean for {rule}, got {first_ids:?}"
+        );
+    }
+
+    // Mutate go.mod (dependency hygiene) and main.go (package doc + server policy).
+    fs::write(
+        root.join("go.mod"),
+        "module example.com/bp-rescan\n\ngo 1.24.0\n\nrequire github.com/pkg/errors v0.9.1\n",
+    )
+    .unwrap_or_else(|e| panic!("rewrite go.mod: {e}"));
+    fs::write(
+        root.join("main.go"),
+        r#"package main
+
+import (
+	"log"
+	"net/http"
+)
+
+func main() {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("request %s %s", r.Method, r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	})
+	if err := http.ListenAndServe(":8080", mux); err != nil {
+		return
+	}
+}
+"#,
+    )
+    .unwrap_or_else(|e| panic!("rewrite main.go: {e}"));
+
+    let second = analyzer
+        .analyze_paths(&[&root], None)
+        .unwrap_or_else(|e| panic!("second scan {}: {e:#}", root.display()));
+    let second_ids: Vec<&str> = second.findings.iter().map(|f| f.rule_id).collect();
+    let _ = fs::remove_dir_all(&root);
+
+    for rule in [
+        "BP-41", "BP-47", "BP-50", "BP-54", "BP-55", "BP-57", "BP-59",
+    ] {
+        assert!(
+            second_ids.contains(&rule),
+            "second scan must refresh project facts and fire {rule}; got {second_ids:?}"
+        );
+    }
+}
