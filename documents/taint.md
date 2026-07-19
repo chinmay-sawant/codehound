@@ -92,9 +92,12 @@ accept Path sanitizers.
   and that binding is the latest write before `Stmt.Query`/`Exec` (or `*Context`).
   Dynamic Prepare SQL, rebinding, and cross-function Prepare factories are not
   proven safe. Residual FN: dynamic Prepare with no tainted Query/Exec arg.
-- **Inter-procedural tracking is depth-limited.** Cross-function analysis
-  works for direct chains (A→B→C), return propagation, method calls, and
-  recursion, but does not iterate to a fixed point. Mutual recursion and
+- **Inter-procedural tracking is depth-limited and same-package only.**
+  Cross-function analysis works for direct chains (A→B→C), return
+  propagation, method calls, and recursion within one package (keyed by
+  package directory + clause, receiver type, and function name). Unqualified
+  callees never resolve into another package; import-path wiring is not
+  implemented. Depth is bounded (not a full fixpoint). Mutual recursion and
   deep chains may miss flows.
 - **Limited field keys (not full field-sensitive analysis).** Qualified names
   like `user.Path` are tracked as keys; map/slice index writes taint the base

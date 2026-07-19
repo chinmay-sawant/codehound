@@ -62,7 +62,6 @@ and extension costs.
 - [x] `cargo test --all-features --locked` passes (unit and integration suite).
 - [x] Public API documentation is already guarded with `#![warn(missing_docs)]` at [`src/lib.rs`](../../src/lib.rs); the strict Clippy command promotes warnings to errors.
 - [x] `RUSTDOCFLAGS='-D warnings' cargo doc --all-features --no-deps --locked` passes (fixed under #61 / Phase 3.4).
-
 ### 1.2 Strengths to preserve
 
 - [x] `Registry` validates duplicate language ids, extensions, and detector-language mismatches before the normal scan path.
@@ -88,10 +87,9 @@ and extension costs.
 
 ### 2.2 P1 — Qualify same-package taint symbols
 
-- [ ] Key declarations and summaries by package identity plus receiver type and function name.
-- [ ] Resolve unqualified calls only in the caller's package until deliberate import-path wiring exists.
-- [ ] Add a two-package duplicate-callee fixture where the safe package must not inherit a sink summary from the other package.
-
+- [x] Key declarations and summaries by package identity plus receiver type and function name.
+- [x] Resolve unqualified calls only in the caller's package until deliberate import-path wiring exists.
+- [x] Add a two-package duplicate-callee fixture where the safe package must not inherit a sink summary from the other package.
 **Evidence:** taint advertises bounded **same-package** inter-procedural summaries ([`src/lang/go/detectors/cwe/taint/mod.rs:3`](../../src/lang/go/detectors/cwe/taint/mod.rs:3)), yet `GoCweScan::finalize` indexes functions and summaries only by `String` bare names ([`src/lang/go/detectors/cwe/mod.rs:185`](../../src/lang/go/detectors/cwe/mod.rs:185), [`:226`](../../src/lang/go/detectors/cwe/mod.rs:226)) and falls back from raw callee to bare callee name ([`:249`](../../src/lang/go/detectors/cwe/mod.rs:249)). Import extraction explicitly defers full cross-function wiring ([`taint/extract/imports.rs:10`](../../src/lang/go/detectors/cwe/taint/extract/imports.rs:10)).
 
 **Success condition:** duplicate function names or method names in separate packages cannot create false inter-procedural CWE findings.
@@ -155,7 +153,6 @@ and extension costs.
 **Evidence:** the generated public docs in [`src/lang/plugin.rs:33`](../../src/lang/plugin.rs:33) and [`:42`](../../src/lang/plugin.rs:42) create private intra-doc links. The exact strict-rustdoc command recorded in Phase 1 fails for `GoLang`, `GoPlugin`, `PythonLang`, and `PythonPlugin`.
 
 **Done (#61):** plain-code macro docs; `make doc` target with `-D warnings`.
-
 ---
 
 ## Phase 4: 9.5+ Exit Gate

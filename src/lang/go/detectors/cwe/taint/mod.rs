@@ -13,10 +13,11 @@ pub(crate) use extract::result_variable_at_return_index;
 pub use extract::{build_import_map, extract_call_graph, extract_taint_facts, merge_call_graphs};
 pub use kinds::{ScopeId, SharedText, TaintNodeId};
 pub use model::{
-    AssignmentDetail, CallGraph, CallSite, EdgeKind, FunctionDecl, ProjectCallGraph, SanitizerKind,
-    ScopeInfo, ScopeKind, SinkKind, SourceKind, TaintAnnotations, TaintEdge, TaintGraph, TaintNode,
-    TaintSanitizerAnnotation, TaintSinkAnnotation, TaintSourceAnnotation, TaintSummary,
-    UnsupportedFlow, UnsupportedFlowKind,
+    AssignmentDetail, CallGraph, CallSite, EdgeKind, FunctionDecl, PackageIdentity,
+    ProjectCallGraph, SanitizerKind, ScopeInfo, ScopeKind, SinkKind, SourceKind, TaintAnnotations,
+    TaintEdge, TaintGraph, TaintNode, TaintSanitizerAnnotation, TaintSinkAnnotation,
+    TaintSourceAnnotation, TaintSummary, TaintSymbolKey, UnsupportedFlow, UnsupportedFlowKind,
+    normalize_receiver_type, package_clause_name,
 };
 
 pub use rules::{

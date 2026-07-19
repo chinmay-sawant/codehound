@@ -20,10 +20,11 @@ use crate::rules::{
 use domains::*;
 use facts::{FactBuildOpts, GoUnitFacts, build_go_unit_facts_with, build_taint_graph_for_facts};
 use taint::{
-    CallGraph, SharedText, SinkKind, TaintAnnotations, TaintGraph, TaintGraphIndex, TaintNode,
-    TaintNodeId, build_import_map, build_index, detect_cwe_22_taint, detect_cwe_78_taint,
-    detect_cwe_79_taint, detect_cwe_89_taint, detect_cwe_90_taint, detect_cwe_91_taint,
-    forward_reaches_any_with_index, unsanitized_reaches_any_with_index,
+    CallGraph, PackageIdentity, SharedText, SinkKind, TaintAnnotations, TaintGraph,
+    TaintGraphIndex, TaintNode, TaintNodeId, TaintSymbolKey, build_import_map, build_index,
+    detect_cwe_22_taint, detect_cwe_78_taint, detect_cwe_79_taint, detect_cwe_89_taint,
+    detect_cwe_90_taint, detect_cwe_91_taint, forward_reaches_any_with_index,
+    unsanitized_reaches_any_with_index,
 };
 
 use crate::rules::emit;
@@ -45,6 +46,8 @@ struct ProjectUnit {
     path: String,
     source: Arc<str>,
     line_starts: Arc<[usize]>,
+    /// Directory + package-clause identity for same-package symbol resolution.
+    package: PackageIdentity,
     call_graph: CallGraph,
     annotations: TaintAnnotations,
     taint_graph: TaintGraph,
@@ -195,7 +198,12 @@ impl Detector for GoCweScan {
             TaintGraphIndex,
             HashMap<String, taint::TaintSummary>,
         )> = Vec::with_capacity(units.len());
-        let mut func_to_file: HashMap<String, usize> = HashMap::new();
+        // Declarations keyed by package + receiver + name (not bare name alone).
+        let mut decl_index: HashMap<TaintSymbolKey, usize> = HashMap::new();
+        // Secondary bare-name index within a package for method-call resolution
+        // when the receiver type is not known at the call site.
+        let mut package_name_index: HashMap<(PackageIdentity, SharedText), Vec<TaintSymbolKey>> =
+            HashMap::new();
         let max_depth = ctx.taint_max_depth.clamp(1, 4);
         let graphs: Vec<TaintGraph> = units
             .iter_mut()
@@ -222,60 +230,83 @@ impl Detector for GoCweScan {
                 );
             }
             per_file.push((unit.path.as_str(), graph, graph_index, summaries));
-            for func_name in unit.call_graph.declarations.keys() {
-                // Prefer same-package path + name; avoid cross-file name collisions
-                // by keying with file index when inserting first-wins.
-                func_to_file.entry(func_name.to_string()).or_insert(idx);
+            for (func_name, decl) in &unit.call_graph.declarations {
+                let key = TaintSymbolKey::with_receiver(
+                    unit.package.clone(),
+                    decl.receiver_type.as_deref(),
+                    Arc::clone(func_name),
+                );
+                decl_index.entry(key.clone()).or_insert(idx);
+                package_name_index
+                    .entry((unit.package.clone(), Arc::clone(func_name)))
+                    .or_default()
+                    .push(key);
             }
         }
 
-        // Index project-wide lookups once before walking call sites. These
-        // maps preserve the existing first-file-wins resolution semantics
-        // without repeatedly scanning every file or graph.
+        // Index project-wide lookups once before walking call sites. First
+        // declaration wins within a package (stable after path sort above).
         let variable_indexes: Vec<VariableIndex> = per_file
             .iter()
             .map(|(_, graph, _, _)| build_variable_index(graph))
             .collect();
-        let mut summary_index: HashMap<String, usize> = HashMap::new();
-        for (file_idx, (_, _, _, summaries)) in per_file.iter().enumerate() {
+        let mut summary_index: HashMap<TaintSymbolKey, usize> = HashMap::new();
+        for (file_idx, unit) in units.iter().enumerate() {
+            let summaries = &per_file[file_idx].3;
             for name in summaries.keys() {
-                summary_index.entry(name.clone()).or_insert(file_idx);
+                let recv = unit
+                    .call_graph
+                    .declarations
+                    .get(name.as_str())
+                    .and_then(|d| d.receiver_type.as_deref());
+                let key = TaintSymbolKey::with_receiver(
+                    unit.package.clone(),
+                    recv,
+                    Arc::from(name.as_str()),
+                );
+                summary_index.entry(key).or_insert(file_idx);
             }
         }
-        let imported_prefixes: HashSet<String> = units
-            .iter()
-            .flat_map(|unit| unit.import_map.keys().cloned())
-            .collect();
+        // Per-caller import map only: an import alias is package-local, so a
+        // global prefix set would skip legitimate same-package selectors when
+        // another file happens to import a package with that last segment.
+        // Unqualified / same-package resolution never consults other packages.
 
-        // Phase 2 + 3: Walk each file's call sites in place. Using the merged
-        // project graph + func_to_file lookup was nondeterministic when the
-        // same function name appears in multiple files (parallel scan order
-        // decided which file "won").
+        // Phase 2 + 3: Walk each file's call sites in place. Callee lookup is
+        // restricted to the caller's package until import-path wiring exists.
         for (caller_idx, unit) in units.iter().enumerate() {
             let caller_path = unit.path.as_str();
             let caller_graph = &per_file[caller_idx].1;
             let caller_index = &per_file[caller_idx].2;
             let caller_variables = &variable_indexes[caller_idx];
             let caller_line_starts = &unit.line_starts;
+            let caller_imports: HashSet<&str> =
+                unit.import_map.keys().map(String::as_str).collect();
 
             for site in &unit.call_graph.sites {
                 let raw_callee = site.callee.as_ref();
-                // ponytail: skip external package calls when we can resolve
-                // the import prefix — prevents matching user-defined functions
-                // that share a name with a stdlib function.
+                // Skip package-qualified external calls (import alias prefix).
+                // Same-package calls are bare identifiers; method calls use a
+                // receiver variable, not an import alias.
                 if site.is_method_call {
                     if let Some(dot) = raw_callee.rfind('.') {
                         let prefix = &raw_callee[..dot];
-                        let is_imported = imported_prefixes.contains(prefix);
-                        let is_internal = func_to_file.contains_key(&raw_callee[dot + 1..]);
-                        if is_imported && !is_internal {
+                        if caller_imports.contains(prefix) {
                             continue;
                         }
                     }
                 }
                 let callee_name = resolve_callee_name(raw_callee, site.is_method_call);
-                let callee_summary = find_callee_summary(&per_file, &summary_index, raw_callee)
-                    .or_else(|| find_callee_summary(&per_file, &summary_index, &callee_name));
+                let callee_summary = find_same_package_summary(
+                    &per_file,
+                    &summary_index,
+                    &package_name_index,
+                    &decl_index,
+                    &unit.package,
+                    raw_callee,
+                    &callee_name,
+                    site.is_method_call,
+                );
                 let Some(callee_summary) = callee_summary else {
                     continue;
                 };
@@ -394,10 +425,13 @@ fn build_variable_index(graph: &TaintGraph) -> VariableIndex {
 }
 
 fn make_project_unit(unit: &ParsedUnit, facts: &mut GoUnitFacts) -> ProjectUnit {
+    let path = unit.display_path.clone();
+    let package = PackageIdentity::from_unit(&path, unit.source.as_ref());
     ProjectUnit {
-        path: unit.display_path.clone(),
+        path,
         source: Arc::clone(&unit.source),
         line_starts: Arc::from(unit.line_starts.as_slice()),
+        package,
         call_graph: facts.call_graph.clone().unwrap_or_default(),
         annotations: facts.taint.clone(),
         taint_graph: facts.taint_graph.take().unwrap_or_default(),
@@ -405,21 +439,83 @@ fn make_project_unit(unit: &ParsedUnit, facts: &mut GoUnitFacts) -> ProjectUnit 
     }
 }
 
-/// Find a callee's TaintSummary across all files.
-fn find_callee_summary<'a>(
+/// Resolve a callee summary strictly within `caller_package`.
+///
+/// Unqualified function calls match package + bare name with no receiver.
+/// Method calls match package + bare method name; when multiple receivers
+/// share the name, the first stable key (path-sorted index order) wins.
+/// Cross-package bare-name matches are intentionally refused until import
+/// wiring exists.
+#[allow(clippy::too_many_arguments)]
+fn find_same_package_summary<'a>(
     per_file: &'a [(
         &str,
         TaintGraph,
         TaintGraphIndex,
         HashMap<String, taint::TaintSummary>,
     )],
-    summary_index: &HashMap<String, usize>,
-    callee_name: &str,
+    summary_index: &HashMap<TaintSymbolKey, usize>,
+    package_name_index: &HashMap<(PackageIdentity, SharedText), Vec<TaintSymbolKey>>,
+    decl_index: &HashMap<TaintSymbolKey, usize>,
+    caller_package: &PackageIdentity,
+    raw_callee: &str,
+    bare_name: &str,
+    is_method_call: bool,
 ) -> Option<&'a taint::TaintSummary> {
-    summary_index
-        .get(callee_name)
-        .and_then(|file_idx| per_file.get(*file_idx))
-        .and_then(|(_, _, _, summaries)| summaries.get(callee_name))
+    let bare: SharedText = Arc::from(bare_name);
+
+    // Prefer exact free-function key for non-method (and as first try for bare).
+    if !is_method_call {
+        let fn_key = TaintSymbolKey::function(caller_package.clone(), Arc::clone(&bare));
+        if let Some(summary) = summary_for_key(per_file, summary_index, &fn_key, bare_name) {
+            return Some(summary);
+        }
+        // Also try raw callee text in case it already is the bare name with
+        // a same-package declaration keyed that way (defensive).
+        if raw_callee != bare_name {
+            let raw_key = TaintSymbolKey::function(caller_package.clone(), Arc::from(raw_callee));
+            if let Some(summary) = summary_for_key(per_file, summary_index, &raw_key, raw_callee) {
+                return Some(summary);
+            }
+        }
+        return None;
+    }
+
+    // Method call: resolve by package + bare method name only (no cross-package).
+    let candidates = package_name_index.get(&(caller_package.clone(), Arc::clone(&bare)))?;
+    for key in candidates {
+        // Prefer keys that actually have a summary (declaration without summary is useless).
+        if let Some(summary) = summary_for_key(per_file, summary_index, key, bare_name) {
+            return Some(summary);
+        }
+        // Fall back: declaration file may hold the bare-name summary under a
+        // different receiver key when extract used bare names only.
+        if let Some(&file_idx) = decl_index.get(key) {
+            if let Some((_, _, _, summaries)) = per_file.get(file_idx) {
+                if let Some(summary) = summaries.get(bare_name) {
+                    return Some(summary);
+                }
+            }
+        }
+    }
+    None
+}
+
+fn summary_for_key<'a>(
+    per_file: &'a [(
+        &str,
+        TaintGraph,
+        TaintGraphIndex,
+        HashMap<String, taint::TaintSummary>,
+    )],
+    summary_index: &HashMap<TaintSymbolKey, usize>,
+    key: &TaintSymbolKey,
+    bare_name: &str,
+) -> Option<&'a taint::TaintSummary> {
+    let file_idx = *summary_index.get(key)?;
+    per_file
+        .get(file_idx)
+        .and_then(|(_, _, _, summaries)| summaries.get(bare_name))
 }
 
 /// Check if any identifier text in a TaintGraph has an **unsanitized** taint
@@ -611,5 +707,11 @@ mod tests {
         let index = build_variable_index(&graph);
 
         assert_eq!(index.get("value").map(Vec::len), Some(2));
+    }
+
+    #[test]
+    fn resolve_callee_name_strips_method_receiver() {
+        assert_eq!(resolve_callee_name("h.openFile", true), "openFile");
+        assert_eq!(resolve_callee_name("openPath", false), "openPath");
     }
 }

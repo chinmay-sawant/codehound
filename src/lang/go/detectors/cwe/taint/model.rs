@@ -293,6 +293,110 @@ pub enum UnsupportedFlowKind {
 
 // --- Call Graph ---
 
+/// Package identity for same-package taint symbol resolution.
+///
+/// Go packages are directories; the clause name distinguishes external test
+/// packages (`package foo_test`) that share a directory with `package foo`.
+/// Full import-path identity is deferred until deliberate import wiring exists.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct PackageIdentity {
+    /// Parent directory of the unit path, `/`-normalized (`.` when the file
+    /// has no directory component).
+    pub dir: SharedText,
+    /// `package` clause name from the source unit.
+    pub name: SharedText,
+}
+
+impl PackageIdentity {
+    /// Build package identity from a display path and source text.
+    pub fn from_unit(path: &str, source: &str) -> Self {
+        let normalized = path.replace('\\', "/");
+        let dir = match normalized.rsplit_once('/') {
+            Some((parent, _)) if !parent.is_empty() => parent,
+            _ => ".",
+        };
+        let name = package_clause_name(source).unwrap_or("_");
+        Self {
+            dir: Arc::from(dir),
+            name: Arc::from(name),
+        }
+    }
+}
+
+/// Project-level key for a function or method summary/declaration.
+///
+/// Keys combine package identity, optional receiver type, and bare name so
+/// duplicate bare names in separate packages (or on different receivers)
+/// cannot contaminate inter-procedural lookup.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TaintSymbolKey {
+    pub package: PackageIdentity,
+    /// Normalized receiver type (`*Handler`, `Handler`); `None` for functions.
+    pub receiver: Option<SharedText>,
+    pub name: SharedText,
+}
+
+impl TaintSymbolKey {
+    /// Key for a free function in `package`.
+    pub fn function(package: PackageIdentity, name: impl Into<SharedText>) -> Self {
+        Self {
+            package,
+            receiver: None,
+            name: name.into(),
+        }
+    }
+
+    /// Key for a method or function, using optional raw receiver text.
+    pub fn with_receiver(
+        package: PackageIdentity,
+        receiver_raw: Option<&str>,
+        name: impl Into<SharedText>,
+    ) -> Self {
+        Self {
+            package,
+            receiver: receiver_raw.map(normalize_receiver_type).map(Arc::from),
+            name: name.into(),
+        }
+    }
+}
+
+/// Extract the `package` clause identifier from Go source (first match).
+pub fn package_clause_name(source: &str) -> Option<&str> {
+    for line in source.lines() {
+        let trimmed = line.trim();
+        if let Some(rest) = trimmed.strip_prefix("package ") {
+            let name = rest
+                .split(|c: char| c.is_whitespace() || c == '/')
+                .next()
+                .unwrap_or("")
+                .trim();
+            if !name.is_empty() {
+                return Some(name);
+            }
+        }
+    }
+    None
+}
+
+/// Normalize a method receiver parameter list / type fragment to a type key.
+///
+/// Accepts forms produced by the call-graph extractor such as `h *Handler`,
+/// `*Handler`, or `(h Handler)`.
+pub fn normalize_receiver_type(raw: &str) -> String {
+    let s = raw
+        .trim()
+        .trim_start_matches('(')
+        .trim_end_matches(')')
+        .trim();
+    // parameter_declaration text: "name *Type" or "name Type" or just type.
+    let tokens: Vec<&str> = s.split_whitespace().collect();
+    match tokens.as_slice() {
+        [] => String::new(),
+        [only] => only.to_string(),
+        [_, ty, ..] => ty.to_string(),
+    }
+}
+
 /// A function declaration that can serve as a callee.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunctionDecl {
@@ -383,4 +487,62 @@ pub struct TaintSummary {
 pub struct ProjectCallGraph {
     pub calls: HashMap<String, Vec<CallSite>>,
     pub declarations: HashMap<String, FunctionDecl>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn package_identity_uses_parent_dir_and_clause() {
+        let pkg = PackageIdentity::from_unit("pkg/good/handler.go", "package good\n");
+        assert_eq!(pkg.dir.as_ref(), "pkg/good");
+        assert_eq!(pkg.name.as_ref(), "good");
+    }
+
+    #[test]
+    fn package_identity_root_file_uses_dot_dir() {
+        let pkg = PackageIdentity::from_unit("main.go", "package main\n");
+        assert_eq!(pkg.dir.as_ref(), ".");
+        assert_eq!(pkg.name.as_ref(), "main");
+    }
+
+    #[test]
+    fn package_identity_normalizes_backslashes() {
+        let pkg = PackageIdentity::from_unit("pkg\\bad\\x.go", "package bad\n");
+        assert_eq!(pkg.dir.as_ref(), "pkg/bad");
+    }
+
+    #[test]
+    fn symbol_keys_differ_across_packages_with_same_bare_name() {
+        let a = PackageIdentity::from_unit("a/x.go", "package a\n");
+        let b = PackageIdentity::from_unit("b/x.go", "package b\n");
+        let ka = TaintSymbolKey::function(a, Arc::from("openPath"));
+        let kb = TaintSymbolKey::function(b, Arc::from("openPath"));
+        assert_ne!(ka, kb);
+    }
+
+    #[test]
+    fn symbol_keys_differ_by_receiver_type() {
+        let pkg = PackageIdentity::from_unit("app/x.go", "package app\n");
+        let k1 = TaintSymbolKey::with_receiver(pkg.clone(), Some("h *Handler"), Arc::from("Open"));
+        let k2 = TaintSymbolKey::with_receiver(pkg, Some("s *Store"), Arc::from("Open"));
+        assert_ne!(k1, k2);
+        assert_eq!(k1.receiver.as_deref(), Some("*Handler"));
+        assert_eq!(k2.receiver.as_deref(), Some("*Store"));
+    }
+
+    #[test]
+    fn normalize_receiver_type_variants() {
+        assert_eq!(normalize_receiver_type("h *Handler"), "*Handler");
+        assert_eq!(normalize_receiver_type("*Handler"), "*Handler");
+        assert_eq!(normalize_receiver_type("(h Handler)"), "Handler");
+        assert_eq!(normalize_receiver_type("  "), "");
+    }
+
+    #[test]
+    fn package_clause_skips_comments_and_takes_first() {
+        let src = "// package fake\npackage real\n";
+        assert_eq!(package_clause_name(src), Some("real"));
+    }
 }
