@@ -31,6 +31,15 @@ impl Detector for GoBadPracticeScan {
         metadata::metadata_for(rule_id)
     }
 
+    fn reset_state(&self) {
+        // Project facts (package docs, go.mod, imports, server anchors) are
+        // memoized for one top-level scan only. Clear them at both scan
+        // boundaries so a same-Analyzer rescan cannot observe stale snapshots.
+        common::clear_project_snapshots();
+        rules::clear_package_doc_snapshots();
+        rules::clear_dependency_hygiene_caches();
+    }
+
     fn run(&self, ctx: &ScanContext, unit: &ParsedUnit, out: &mut Vec<Finding>) {
         if !self.rule_ids().iter().any(|id| ctx.allows(id)) {
             return;

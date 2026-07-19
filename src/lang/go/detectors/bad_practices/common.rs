@@ -85,6 +85,16 @@ pub(crate) fn prewarm_project_snapshot(start: &Path) {
     let _ = project_snapshot_for_root(&root);
 }
 
+/// Drop all memoized project snapshots. Called from
+/// [`super::GoBadPracticeScan::reset_state`] so facts do not survive a
+/// top-level scan boundary.
+pub(crate) fn clear_project_snapshots() {
+    let mut guard = snapshot_cache()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    guard.clear();
+}
+
 type SnapshotCache = HashMap<PathBuf, ProjectSnapshot>;
 
 fn snapshot_cache() -> &'static Mutex<SnapshotCache> {
@@ -93,11 +103,27 @@ fn snapshot_cache() -> &'static Mutex<SnapshotCache> {
 }
 
 fn project_snapshot_for_root(root: &Path) -> ProjectSnapshot {
-    let mut guard = snapshot_cache().lock().unwrap_or_else(|p| p.into_inner());
+    // Fast path: short read under the lock.
+    {
+        let guard = snapshot_cache()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some(cached) = guard.get(root) {
+            return cached.clone();
+        }
+    }
+
+    // Build filesystem snapshot off-lock (WalkDir + text reads).
+    let built = build_project_snapshot(root);
+
+    // Short insert critical section with double-checked lookup so concurrent
+    // workers racing the same root share one built snapshot.
+    let mut guard = snapshot_cache()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     if let Some(cached) = guard.get(root) {
         return cached.clone();
     }
-    let built = build_project_snapshot(root);
     guard.insert(root.to_path_buf(), built.clone());
     built
 }
