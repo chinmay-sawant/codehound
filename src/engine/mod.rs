@@ -33,7 +33,9 @@ pub use config::{
     ScanContextParams, build_run_config, build_scan_context, discover_cache_dir, discover_config,
     path_filters_from_config,
 };
-pub use dependencies::{discover_project_root, extract_dependencies, go_module_prefix};
+pub use dependencies::{
+    dependency_base_root, discover_project_root, extract_dependencies, go_module_prefix,
+};
 pub use diagnostics::Diagnostics;
 pub use ignore::{IgnoreDirective, parse_file_ignore, parse_inline_ignores};
 pub use language_filter::{LanguageFilter, resolve_language_filter};

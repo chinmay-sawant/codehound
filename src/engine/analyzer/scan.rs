@@ -7,8 +7,13 @@ use std::time::Instant;
 use crate::Error;
 use crate::core::ScanContext;
 use crate::engine::{
-    SCAN_CHUNK_SIZE, cache::CacheSession, dependencies::discover_project_root,
-    result::AnalysisResult, stats::ScanStats, timing, walk::scan_entries_parallel,
+    SCAN_CHUNK_SIZE,
+    cache::CacheSession,
+    dependencies::{dependency_base_root, discover_project_root},
+    result::AnalysisResult,
+    stats::ScanStats,
+    timing,
+    walk::scan_entries_parallel,
 };
 
 use super::types::Analyzer;
@@ -123,13 +128,15 @@ impl Analyzer {
             .first()
             .map(|p| p.as_ref())
             .unwrap_or_else(|| Path::new("."));
-        // Language-neutral project root for dep extraction. Plugins derive
-        // their own module/package data (e.g. Go `go.mod`) from this root.
-        let project_root = discover_project_root(start);
+        // Pack prep / BP: walk to .git or go.mod (existing project-root semantics).
+        let prep_root = discover_project_root(start);
+        // Dependency extraction / cache cascade: module marker or scan root —
+        // never an unrelated parent `.git` alone (breaks go.mod-less imports).
+        let dependency_root = dependency_base_root(start);
         // Explicit per-scan detector session + pack-local project prepare.
         // Distinct roots keep multi-root scans correct without engine
         // knowledge of any language pack's prewarm details.
-        let project_roots = distinct_project_roots(paths, &project_root);
+        let project_roots = distinct_project_roots(paths, &prep_root);
         let root_refs: Vec<&Path> = project_roots.iter().map(PathBuf::as_path).collect();
         let _detector_session =
             DetectorScanSession::begin(&self.registry, self.scan_context(), &root_refs);
@@ -161,7 +168,7 @@ impl Analyzer {
                 self.scan_context(),
                 chunk,
                 cache.as_mut(),
-                &project_root,
+                &dependency_root,
                 self.collect_stats,
             ) {
                 Ok(chunk) => chunk,
