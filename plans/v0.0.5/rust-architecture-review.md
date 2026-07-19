@@ -1,8 +1,8 @@
 # v0.0.5 — Senior Rust Architecture Review
 
 > **Parent:** `plans/v0.0.5/pending-work.md` — architecture and reliability follow-up
-> **Status:** Re-review complete. The original Phase 2/3 work is source-verified and validated; rating improved from **8.9** to **9.3 / 10**. One P1 and two P2 follow-ups remain before a defensible 9.5+.
-> **Estimated effort:** 1–2 focused implementation days for the remaining taint receiver resolution, per-analyzer BP cache ownership, and fail-closed registry follow-ups.
+> **Status:** Phase 5 implementation complete on `chore/epic-75-integration` (epic #75). Residual P1 method-receiver, per-analyzer BP ownership, and fail-closed registry workstreams shipped; target **>= 9.5 / 10** pending post-merge re-rate.
+> **Estimated effort:** Phase 5 residual items implemented (was 1–2 days).
 > **Reviewed:** 2026-07-19
 
 ---
@@ -183,15 +183,15 @@ startup error rather than an empty scanner.
 
 ### 5.2 P2 — Give each analyzer ownership of BP project caches
 
-- [ ] Move project, package-doc, Go-module, and import maps from process-global `OnceLock` caches into `GoBadPracticeScan` state (or an explicit scan session owned by it).
-- [ ] Keep the current off-lock construction and double-checked short lock; add a concurrent two-analyzer regression to prove one scan cannot evict another's cache.
+- [x] Move project, package-doc, Go-module, and import maps from process-global `OnceLock` caches into `GoBadPracticeScan` state (or an explicit scan session owned by it).
+- [x] Keep the current off-lock construction and double-checked short lock; add a concurrent two-analyzer regression to prove one scan cannot evict another's cache.
 
 **Evidence:** the maps now clear at each BP detector boundary ([`src/lang/go/detectors/bad_practices/mod.rs:42`](../../src/lang/go/detectors/bad_practices/mod.rs:42)), fixing stale same-analyzer rescans. They still reside in process-global statics ([`common.rs:98`](../../src/lang/go/detectors/bad_practices/common.rs:98), [`code_organization.rs:553`](../../src/lang/go/detectors/bad_practices/rules/code_organization.rs:553)). Separate analyzers are documented as concurrent-capable ([`src/engine/analyzer/scan.rs:107`](../../src/engine/analyzer/scan.rs:107)), so cache locality should match analyzer ownership.
 
 ### 5.3 P2 — Fail closed if built-in registry materialization breaks
 
-- [ ] Return a startup/configuration error from the production registry path, or make the internal invariant explicit and abort before any scan result is emitted.
-- [ ] Add a regression proving the CLI/library cannot report a successful empty analysis after a built-in registry composition failure.
+- [x] Return a startup/configuration error from the production registry path, or make the internal invariant explicit and abort before any scan result is emitted.
+- [x] Add a regression proving the CLI/library cannot report a successful empty analysis after a built-in registry composition failure.
 
 **Evidence:** `Registry::from_plugins` logs a materialization error then returns an empty registry ([`src/engine/registry.rs:66`](../../src/engine/registry.rs:66)). A future built-in duplicate extension/language or detector mismatch would therefore risk a successful no-detector scan rather than a visible initialization failure.
 
