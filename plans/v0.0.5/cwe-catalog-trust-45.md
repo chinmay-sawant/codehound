@@ -1,11 +1,16 @@
 # v0.0.5 — CWE Catalog Trust (long-tail under #45)
 
-> **Parent:** `plans/v0.0.5/cwe-catalog-trust-audit.md` (promotion bar §1.3; history §§1–2.10)  
-> **Issue:** [#45](https://github.com/chinmay-sawant/codehound/issues/45)  
-> **Branch:** `chore/cwe-trust-longtail-45`  
-> **Status:** Domain audit executed — file-mode family CWE-250/252/552 (§2.11).  
-
+> **Parent:** `plans/v0.0.5/cwe-catalog-trust-audit.md` (promotion bar §1.3; history §§1–2.11)
+> **Issue:** [#45](https://github.com/chinmay-sawant/codehound/issues/45)
+> **Branch:** `chore/cwe-trust-longtail-45`
+> **Status:** Domain audit executed — file-mode family CWE-250/252/552 (§2.11).
+>
 > **Continues from:** closed [#42](https://github.com/chinmay-sawant/codehound/issues/42); merged [#43](https://github.com/chinmay-sawant/codehound/pull/43)
+>
+> **Follow-on tranche (access-control file-permissions siblings):**
+> Plan [`cwe-file-permissions-trust.md`](./cwe-file-permissions-trust.md) — epic [#85](https://github.com/chinmay-sawant/codehound/issues/85).
+> Phase 4 docs/audit closure: [#89](https://github.com/chinmay-sawant/codehound/issues/89) → audit **§2.12** (proposed dispositions; maturity code + canary owned by Phase 2/3 under #85).
+> **Code changes for CWE-276/277/278/279/281/921 require the scoped epic issues — do not land maturity flips from this #45 checklist alone.**
 
 ---
 
@@ -68,7 +73,7 @@ target/release/codehound TARGET --profile all \
 - BP-66..165 detectors
 - Taint / typed Go / Python
 - Bulk CWE index rewrite or bulk maturity flip
-- Access-control file-mode siblings (276/277/278/…) — inventory only; future issue batch
+- Access-control file-mode siblings (276/277/278/279/281/921) — **tracked under epic #85 / plan `cwe-file-permissions-trust.md`; audit §2.12 proposed dispositions recorded via #89 (Phase 4). Phase 2 code + Phase 3 canary still required before maturity flips land.**
 - Opening a PR (parent will)
 
 ---
