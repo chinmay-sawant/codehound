@@ -1,7 +1,7 @@
 # v0.0.5 — CWE Catalog Trust Audit, Tranche 1
 
 > **Parent:** `plans/v0.0.5/pending-work.md` — Phase 3.2
-> **Status:** Tranches 1–5 complete (merged [#41](https://github.com/chinmay-sawant/codehound/pull/41), [#43](https://github.com/chinmay-sawant/codehound/pull/43); [#39](https://github.com/chinmay-sawant/codehound/issues/39) / [#42](https://github.com/chinmay-sawant/codehound/issues/42) closed). **Long-tail under [#45](https://github.com/chinmay-sawant/codehound/issues/45)** — file-mode family recorded in §2.11 (CWE-250 keep Heuristic; CWE-252/552 fixture-only; call-facts rewrite for 552). Remaining undated CWE catalog is still not fully certified (inventory in §2.11).
+> **Status:** Tranches 1–5 complete (merged [#41](https://github.com/chinmay-sawant/codehound/pull/41), [#43](https://github.com/chinmay-sawant/codehound/pull/43); [#39](https://github.com/chinmay-sawant/codehound/issues/39) / [#42](https://github.com/chinmay-sawant/codehound/issues/42) closed). **Long-tail under [#45](https://github.com/chinmay-sawant/codehound/issues/45)** — file-mode family §2.11; access-control file-permissions siblings **proposed** in §2.12 (Phase 4 docs closure / [#89](https://github.com/chinmay-sawant/codehound/issues/89); Phase 2 maturity code + Phase 3 canary pending integration under epic [#85](https://github.com/chinmay-sawant/codehound/issues/85)). Remaining undated CWE catalog is still not fully certified (inventory in §2.11 / §2.12).
 > **Estimated effort:** Incremental, rule-family by rule-family under #45; do not bulk-promote or bulk-check the remaining catalog.
 
 ---
@@ -827,6 +827,76 @@ target/release/codehound TARGET --profile all \
 **Totals:** 126 scanned files (78+43+5). Per-rule: CWE-250 ×0, CWE-252 ×0, CWE-552 ×0.
 
 **Decision (2026-07-19):** keep CWE-250 as **Heuristic** without structural promotion (zero-hit canary is not sufficient for delete or structural promotion). Quarantine CWE-252 and CWE-552 as fixture-only (`--profile all` only). Keep CWE-552 call-facts primary for `os.Chmod` without structural promotion. Do not delete needles solely for this zero-hit canary; retain fixture coverage as regression evidence. Revisit CWE-250 only when real-module hits or broader mode taxonomy meet §1.3; revisit 252/552 only when path/form co-signals generalize beyond corpus literals.
+
+---
+
+### 2.12 File-permissions sibling disposition
+
+> **Domain:** `src/lang/go/detectors/cwe/domains/access_control/file_permissions/file_modes.rs`
+> **Date:** 2026-07-20
+> **Issue:** [#89](https://github.com/chinmay-sawant/codehound/issues/89) (Phase 4 closure); epic [#85](https://github.com/chinmay-sawant/codehound/issues/85)
+> **Plan:** [`plans/v0.0.5/cwe-file-permissions-trust.md`](./cwe-file-permissions-trust.md)
+> **Scope:** Access-control file-permission siblings CWE-276 / 277 / 278 / 279 / 281 / 921 — inventory candidate from §2.11. **This section records proposed dispositions from source review on `origin/master`.** Phase 2 owns `maturity.rs` / detector code; Phase 3 owns the three-repo canary. Integration will reconcile docs with code when those PRs merge.
+
+#### Integration note (docs-only Phase 4)
+
+As of this write-up, master still defaults all six IDs to **Heuristic** via `maturity_for` (none are on `is_fixture_only`). No Phase 2 maturity quarantine or detector rewrite is present on this branch by design — dual-editing `maturity.rs` would conflict with the Phase 2 owner. Dispositions below are **proposed from source review** of `file_modes.rs` + stdlib/framework fixtures; they are not yet enforced in the release binary.
+
+#### Audited dispositions (proposed)
+
+| Rule | Disposition (proposed) | Evidence summary | Canary note |
+|---|---|---|---|
+| CWE-276 | **fixture-only** | `call_facts` primary for `os.WriteFile` + exact mode `0666`, but emit also requires path text containing `sessions` **or** SI co-signals `session_data` / `X-Session-Data`. Production-shaped WriteFile sink is gated on session corpus co-signals (same class as CWE-552 form/path gates). **Not** structural-promoted. | pending integration canary |
+| CWE-277 | keep **Heuristic** | `call_facts` for `syscall.Umask` arg `0` **and** `os.MkdirAll` mode `0777`. No corpus path/identifier museum; pure stdlib co-presence. Same class as CWE-250 world-writable WriteFile. **Not** structural-promoted (§1.3 wants real-module evidence / broader mode taxonomy). | pending integration canary |
+| CWE-278 | **fixture-only** | `call_facts` primary for `os.OpenFile` whose mode arg contains exact corpus formula `os.FileMode(hdr.Mode)`. Expression text is fixture-shaped (not a generalized archive-metadata / safer-mode fact). Coordinated with Phase 2 PR [#90](https://github.com/chinmay-sawant/codehound/pull/90). **Not** structural-promoted. | pending integration canary |
+| CWE-279 | **fixture-only** | SI prefilter `strconv.ParseUint(` + `call_facts` `os.WriteFile` mode `0777`. The ParseUint co-presence does not prove a user-requested mode was parsed-then-ignored (only coexists in-unit); without it the sink collapses toward CWE-250/277 mode smells. Corpus co-signal dominates. **Not** structural-promoted. | pending integration canary |
+| CWE-281 | **fixture-only** | `call_facts` `os.Create` + SI exact `io.Copy(out, in)` without `info.Mode()`. Exact `out`/`in` argument names are fixture formula; generic backup/copy would mass-FP if generalized without them. **Not** structural-promoted. | pending integration canary |
+| CWE-921 | **fixture-only** | Pure SI museum: exact path `/tmp/integration.key` + `WriteFile(` + `0644`, negatives `APP_SECRET_DIR` / `0600`. No generalized sensitive-key classification. **Not** structural-promoted. | pending integration canary |
+
+#### Detector surface (master — no Phase 2 rewrite on this branch)
+
+| Rule | Primary match (current master) | Museum / co-signal notes |
+|---|---|---|
+| CWE-276 | `call_facts` `os.WriteFile` arg2 `0666` | path `sessions` or SI `session_data` / `X-Session-Data` |
+| CWE-277 | `call_facts` `syscall.Umask(0)` + `os.MkdirAll` `0777` | none beyond exact mode/umask literals |
+| CWE-278 | `call_facts` `os.OpenFile` mode contains `os.FileMode(hdr.Mode)` | exact expression formula |
+| CWE-279 | SI `strconv.ParseUint(` + `call_facts` WriteFile `0777` | ParseUint co-presence |
+| CWE-281 | `call_facts` `os.Create` + SI `io.Copy(out, in)` − `info.Mode()` | exact copy arg names |
+| CWE-921 | SI `/tmp/integration.key` + `WriteFile(` + `0644` − `APP_SECRET_DIR`/`0600` | corpus path + mode |
+
+No call-facts rewrite is proposed solely for consistency when it would not strengthen the proof boundary (plan Phase 2.1). Expected Phase 2 work is maturity quarantine for the four fixture-only candidates plus optional NEEDLES labels for family-owned literals (`0666`, `0777`, `/tmp/integration.key`, `io.Copy(out, in)`, `strconv.ParseUint(`), not bulk detector rewrites.
+
+#### Maturity table (intended; Phase 2 applies code)
+
+- **Proposed add to `is_fixture_only`:** `CWE-276`, `CWE-278`, `CWE-279`, `CWE-281`, `CWE-921` (Phase 2 PR [#90](https://github.com/chinmay-sawant/codehound/pull/90) applies code).
+- **Remain default Heuristic:** `CWE-277` only (not on structural allow-list).
+- Structural promotion bar from §1.3 is **not** met for any rule in this family.
+- **This branch does not edit `src/rules/maturity.rs`** — Phase 2 PR owns the code change; integration reconciles.
+
+#### Canary decision — pending integration
+
+Three-repo release canary (`gopdfsuit` / monsoon / go-retry) with:
+
+```sh
+target/release/codehound TARGET --profile all \
+  --only CWE-276,CWE-277,CWE-278,CWE-279,CWE-281,CWE-921 \
+  --format json --json-envelope --no-fail --no-cache
+```
+
+**Status:** **pending integration canary** (Phase 3 of `cwe-file-permissions-trust.md` / epic #85). Zero-hit alone would not justify delete or structural promotion; fixture-only quarantine decisions rest on source evidence above, not canary hit count.
+
+**Decision (2026-07-20, proposed; aligned with Phase 2 [#90](https://github.com/chinmay-sawant/codehound/pull/90)):** quarantine CWE-276 / 278 / 279 / 281 / 921 as fixture-only (`--profile all` only) when Phase 2 lands. Keep CWE-277 as **Heuristic** without structural promotion. Do not rewrite detectors solely for consistency beyond Phase 2 call-facts span hygiene; do not delete needles solely for a future zero-hit canary; retain fixture coverage as regression evidence. Revisit CWE-277 only when real-module hits or broader mode taxonomy meet §1.3; revisit fixture-only members only when co-signals generalize beyond corpus paths, session headers, exact `os.FileMode(hdr.Mode)`, ParseUint co-presence, or exact `io.Copy(out, in)` names.
+
+#### Residual inventory after §2.12
+
+Still undated after this sibling disposition (non-exhaustive; prefer domain-sized batches):
+
+- Password-storage hashing: CWE-256 / 257 / 261 / 916
+- Transport neighbors: CWE-524 / 538
+- Deserialization: CWE-502
+- Broader access_control / credentials / concurrency / injection residual (~100+ rules)
+
+Do **not** bulk-label NEEDLES or bulk-quarantine from this inventory alone.
 
 ---
 
