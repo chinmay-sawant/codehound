@@ -2,7 +2,7 @@
 
 /// Frequently scanned literals across the Go CWE bundle (one `contains` per needle).
 ///
-/// Hygiene notes (Phase 1 + Tranche 2–5 + long-tail §2.11):
+/// Hygiene notes (Phase 1 + Tranche 2–5 + long-tail §2.11 + file-perm Phase 2):
 /// - Prefer structural facts/call classification over needles for primary detection.
 /// - `// fixture-only:` / `// fixture-literal:` encode corpus strings; paired detectors
 ///   stay out of recommended/security packs via `rules::maturity` when quarantined.
@@ -55,6 +55,7 @@ pub const NEEDLES: &[&str] = &[
     "/srv/contracts",
     // fixture-literal: CWE-434 corpus static serve path prefix
     "/static/avatars/",
+    // fixture-literal: CWE-921 corpus world-readable secret path
     "/tmp/integration.key",
     "/tmp/shared-reports",
     "/tmp/shared-sessions",
@@ -64,8 +65,11 @@ pub const NEEDLES: &[&str] = &[
     "/var/www/html/public/",
     // fixture-literal: CWE-434 corpus upload destination path
     "/var/www/static/avatars",
+    // negative-gate: CWE-921 safe-path owner-only mode (also general mode token)
     "0600",
+    // fixture-literal / co-signal: CWE-921 world-readable mode (call_facts primary after Phase 2)
     "0644",
+    // fixture-literal / mode token: CWE-276 WriteFile mode via call_facts (also temp-dir family)
     "0666",
     "0o600",
     "0o644",
@@ -81,6 +85,7 @@ pub const NEEDLES: &[&str] = &[
     "AND user_id = $2",
     "APIKey",
     "APP_DATABASE_URL",
+    // negative-gate: CWE-921 safe-path private secret directory env
     "APP_SECRET_DIR",
     "AcceptWebhook(",
     "AcceptWebhookPure(",
@@ -341,6 +346,7 @@ pub const NEEDLES: &[&str] = &[
     "WHERE username = ? AND password_hash = ?",
     "Where(\"email = ?\", email).First(&u)",
     "Where(\"email = ?\", email).Update(\"password\", newPass)",
+    // fixture-literal / co-signal: CWE-921 WriteFile text (call_facts primary after Phase 2)
     "WriteFile(",
     "WriteHeader(http.StatusOK)",
     "X-Api-Key",
@@ -354,6 +360,7 @@ pub const NEEDLES: &[&str] = &[
     "X-JWT-Sub",
     "X-Operator-ID",
     "X-Original-Name",
+    // fixture-literal / co-signal: CWE-276 session header corpus co-presence
     "X-Session-Data",
     "X-Signature",
     "X-TOTP-Valid",
@@ -540,6 +547,7 @@ pub const NEEDLES: &[&str] = &[
     "if err := syscall.Setuid(1000); err != nil",
     "if provided[i] != expected[i] {",
     "if widgetDB == nil",
+    // negative-gate: CWE-281 safe-path source-mode preservation
     "info.Mode()",
     "info.Sys().(*syscall.Stat_t)",
     "integrity check failed",
@@ -551,6 +559,7 @@ pub const NEEDLES: &[&str] = &[
     // fixture-literal: CWE-347 safe-path error string (not a general verify fact)
     "invalid signature",
     "invoice_id",
+    // fixture-literal: CWE-281 exact backup copy shape (call_facts preferred after Phase 2)
     "io.Copy(out, in)",
     "io.ReadAll(",
     // negative-gate: crypto/rand IV fill (CWE-1204 safe-path prefilter)
@@ -733,6 +742,7 @@ pub const NEEDLES: &[&str] = &[
     "session",
     // negative-gate: session identity binding (CWE-941 safe-path prefilter)
     "sessionUserID",
+    // fixture-literal / co-signal: CWE-276 session blob corpus co-presence
     "session_data",
     "session_token",
     "sha1.Sum(",
@@ -754,6 +764,7 @@ pub const NEEDLES: &[&str] = &[
     "static-nonce12",
     "strconv.ParseInt(raw, 0, 64)",
     "strconv.ParseInt(raw, 10, 64)",
+    // fixture-literal / co-signal: CWE-279 requested-mode parse (co-presence only, not dataflow)
     "strconv.ParseUint(",
     "string(expected) == sig",
     "strings.Contains(",

@@ -120,6 +120,14 @@ fn is_fixture_only(rule_id: &str) -> bool {
             // but still requires FormFile("contract") + /srv/contracts corpus co-signals.
             | "CWE-252" // unchecked WriteFile gated on exact /var/log audit|journal paths
             | "CWE-552" // FormFile("contract") + /srv/contracts + os.Chmod 0o777 corpus shape
+            // Access-control file-permissions siblings (Phase 2 / #87)
+            // CWE-277 stays Heuristic: generalized call_facts Umask(0)+MkdirAll(0777);
+            // production-shaped, not structural-promoted (no §1.3 real-module bar yet).
+            | "CWE-276" // WriteFile 0666 + sessions/session_data/X-Session-Data co-signals
+            | "CWE-278" // OpenFile mode arg exact os.FileMode(hdr.Mode) corpus formula
+            | "CWE-279" // ParseUint co-presence + WriteFile 0777 (no mode dataflow)
+            | "CWE-281" // os.Create + exact io.Copy(out, in) + !info.Mode() corpus shape
+            | "CWE-921" // /tmp/integration.key + WriteFile 0644 corpus path/mode
             // Common fixture-shaped long-tail (path/corpus strings)
             | "CWE-798" // hard-coded credentials often fixture-shaped
     )
@@ -154,11 +162,17 @@ mod tests {
         assert_eq!(maturity_for("CWE-358"), RuleMaturity::FixtureOnly);
         assert_eq!(maturity_for("CWE-252"), RuleMaturity::FixtureOnly);
         assert_eq!(maturity_for("CWE-552"), RuleMaturity::FixtureOnly);
-        // Cipher / weak-hash / world-writable WriteFile smells remain heuristic
-        // (call-facts primary for 325/328/250; not structural-promoted).
+        assert_eq!(maturity_for("CWE-276"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-278"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-279"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-281"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-921"), RuleMaturity::FixtureOnly);
+        // Cipher / weak-hash / world-writable WriteFile / umask+mkdir smells remain heuristic
+        // (call-facts primary for 325/328/250/277; not structural-promoted).
         assert_eq!(maturity_for("CWE-325"), RuleMaturity::Heuristic);
         assert_eq!(maturity_for("CWE-328"), RuleMaturity::Heuristic);
         assert_eq!(maturity_for("CWE-250"), RuleMaturity::Heuristic);
+        assert_eq!(maturity_for("CWE-277"), RuleMaturity::Heuristic);
         assert!(is_quarantined_from_default_packs("CWE-334"));
         assert!(is_quarantined_from_default_packs("CWE-1204"));
         assert!(is_quarantined_from_default_packs("CWE-323"));
@@ -174,9 +188,15 @@ mod tests {
         assert!(is_quarantined_from_default_packs("CWE-358"));
         assert!(is_quarantined_from_default_packs("CWE-252"));
         assert!(is_quarantined_from_default_packs("CWE-552"));
+        assert!(is_quarantined_from_default_packs("CWE-276"));
+        assert!(is_quarantined_from_default_packs("CWE-278"));
+        assert!(is_quarantined_from_default_packs("CWE-279"));
+        assert!(is_quarantined_from_default_packs("CWE-281"));
+        assert!(is_quarantined_from_default_packs("CWE-921"));
         assert!(!is_quarantined_from_default_packs("CWE-325"));
         assert!(!is_quarantined_from_default_packs("CWE-328"));
         assert!(!is_quarantined_from_default_packs("CWE-250"));
+        assert!(!is_quarantined_from_default_packs("CWE-277"));
         assert!(!is_quarantined_from_default_packs("CWE-22"));
         assert!(!is_quarantined_from_default_packs("PERF-101"));
     }
