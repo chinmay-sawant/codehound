@@ -40,7 +40,7 @@ Plans:
 |------|-------------|-------------------|
 | CWE-276 | fixture-only | session path / `session_data` / `X-Session-Data` co-signals |
 | CWE-277 | keep Heuristic | `Umask(0)` + `MkdirAll` `0777` production-shaped |
-| CWE-278 | keep Heuristic | `OpenFile` + `FileMode(hdr.Mode)` production-shaped |
+| CWE-278 | fixture-only | exact `os.FileMode(hdr.Mode)` formula (aligned with Phase 2 [#90](https://github.com/chinmay-sawant/codehound/pull/90)) |
 | CWE-279 | fixture-only | `ParseUint` co-presence + hard-coded WriteFile `0777` |
 | CWE-281 | fixture-only | exact `io.Copy(out, in)` fixture formula |
 | CWE-921 | fixture-only | `/tmp/integration.key` corpus path |
@@ -49,8 +49,8 @@ Canary: **pending integration canary** (Phase 3).
 
 ### Explicitly not changed
 
-- `src/rules/maturity.rs` / profile packs
-- `file_modes.rs` detectors / `source_index.rs`
+- `src/rules/maturity.rs` / profile packs (owned by Phase 2 [#90](https://github.com/chinmay-sawant/codehound/pull/90))
+- `file_modes.rs` detectors / `source_index.rs` (Phase 2)
 - Fixture files / `tests/fixtures/manifest.toml`
 - `plans/v0.0.5/pending-work.md` (no ownership/roadmap change)
 
@@ -72,10 +72,11 @@ All green on branch `docs/cwe-file-perm-phase4-closure`. No unrelated rule/profi
 
 ## Integration notes / blockers
 
-1. **Phase 2** must apply `is_fixture_only` for CWE-276/279/281/921 (+ tests) and optional family NEEDLES labels. This PR documents intent only.
+1. **Phase 2** ([#90](https://github.com/chinmay-sawant/codehound/pull/90)) applies `is_fixture_only` for CWE-276/278/279/281/921 (+ tests) and family NEEDLES labels. This PR documents the same dispositions; integration reconciles if narrative drift appears.
 2. **Phase 3** must record gopdfsuit / monsoon / go-retry canary totals into §2.12 (replace “pending integration canary”).
 3. Integration merge order: Phase 2 code → Phase 3 canary numbers → this docs section already names proposed dispositions so conflicts are textual only.
 4. No structural promotion for any of the six rules under §1.3.
+5. Initial source-review draft briefly marked CWE-278 Heuristic; amended to **fixture-only** to match Phase 2 code ownership.
 
 ---
 

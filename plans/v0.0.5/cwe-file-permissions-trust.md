@@ -42,13 +42,13 @@ default findings.
 |---|---|---|
 | CWE-276 | **fixture-only** | WriteFile `0666` + session path/`session_data`/`X-Session-Data` co-signals |
 | CWE-277 | keep **Heuristic** | `Umask(0)` + `MkdirAll(..., 0777)` production-shaped; not structural |
-| CWE-278 | keep **Heuristic** | `OpenFile` + `os.FileMode(hdr.Mode)`; brittle expression, not path museum |
+| CWE-278 | **fixture-only** | exact corpus formula `os.FileMode(hdr.Mode)` in OpenFile mode arg (aligned Phase 2 [#90](https://github.com/chinmay-sawant/codehound/pull/90)) |
 | CWE-279 | **fixture-only** | `ParseUint` co-presence + WriteFile `0777` |
 | CWE-281 | **fixture-only** | `os.Create` + exact `io.Copy(out, in)` without `info.Mode()` |
 | CWE-921 | **fixture-only** | `/tmp/integration.key` + `0644` corpus path |
 
 **Canary totals:** pending integration canary (Phase 3).
-**Code ownership:** Phase 2 applies `is_fixture_only` for 276/279/281/921; this Phase 4 branch does not edit `maturity.rs`.
+**Code ownership:** Phase 2 PR [#90](https://github.com/chinmay-sawant/codehound/pull/90) applies `is_fixture_only` for 276/278/279/281/921; this Phase 4 branch does not edit `maturity.rs`.
 
 Full evidence table: audit **§2.12**.
 
@@ -83,7 +83,7 @@ Full evidence table: audit **§2.12**.
 
 - [x] `CWE-276`: distinguish the `os.WriteFile(..., 0666)` sink from the session-specific `sessions` / `session_data` / `X-Session-Data` co-signals. → **fixture-only candidate**
 - [x] `CWE-277`: distinguish a generalized `syscall.Umask(0)` plus `os.MkdirAll(..., 0777)` condition from fixture-shaped ordering or path assumptions. → **keep Heuristic**
-- [x] `CWE-278`: assess whether archive-entry mode propagation can be expressed from `os.OpenFile` call facts and archive metadata without requiring exact `hdr.Mode` text. → **keep Heuristic** (exact formula remains; not path museum)
+- [x] `CWE-278`: assess whether archive-entry mode propagation can be expressed from `os.OpenFile` call facts and archive metadata without requiring exact `hdr.Mode` text. → **fixture-only candidate** (exact `os.FileMode(hdr.Mode)` formula; Phase 2 #90)
 - [x] `CWE-279`: assess whether `strconv.ParseUint` plus a hard-coded `0777` write proves a meaningful security boundary, rather than merely coexisting in the same file. → **fixture-only candidate**
 - [x] `CWE-281`: assess whether `os.Create` plus `io.Copy` without source-mode preservation can be proven from call facts/AST shape without generic backup-tool false positives. → **fixture-only candidate** (`io.Copy(out, in)` names)
 - [x] `CWE-921`: identify every corpus literal (`/tmp/integration.key`, `0644`, `APP_SECRET_DIR`) and determine whether a general sensitive-key classification exists today. → **fixture-only candidate**
@@ -106,9 +106,9 @@ Full evidence table: audit **§2.12**.
 ### 2.2 Per-rule disposition and maturity
 
 - [ ] Promote to `Structural` only when the rule satisfies every requirement in `cwe-catalog-trust-audit.md` §1.3. **None promoted.**
-- [ ] Keep a rule `Heuristic` when it uses a production-shaped API signal but lacks enough real-module evidence or a broad enough negative boundary for structural promotion. **CWE-277, CWE-278.**
-- [ ] Add a rule to `is_fixture_only` when its finding still depends on a corpus path, identifier, magic mode, exact fixture formula, or equivalent museum signal. **Proposed: CWE-276, CWE-279, CWE-281, CWE-921.**
-- [ ] Update `src/rules/maturity.rs` tests to assert every changed maturity and default-pack quarantine result. *(Phase 2 code.)*
+- [ ] Keep a rule `Heuristic` when it uses a production-shaped API signal but lacks enough real-module evidence or a broad enough negative boundary for structural promotion. **CWE-277 only.**
+- [ ] Add a rule to `is_fixture_only` when its finding still depends on a corpus path, identifier, magic mode, exact fixture formula, or equivalent museum signal. **Proposed: CWE-276, CWE-278, CWE-279, CWE-281, CWE-921** (Phase 2 [#90](https://github.com/chinmay-sawant/codehound/pull/90)).
+- [ ] Update `src/rules/maturity.rs` tests to assert every changed maturity and default-pack quarantine result. *(Phase 2 code on #90.)*
 - [ ] Update rule documentation and metadata only when the observed evidence or user-visible profile eligibility changes.
 
 ---

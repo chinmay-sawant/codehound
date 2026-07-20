@@ -848,7 +848,7 @@ As of this write-up, master still defaults all six IDs to **Heuristic** via `mat
 |---|---|---|---|
 | CWE-276 | **fixture-only** | `call_facts` primary for `os.WriteFile` + exact mode `0666`, but emit also requires path text containing `sessions` **or** SI co-signals `session_data` / `X-Session-Data`. Production-shaped WriteFile sink is gated on session corpus co-signals (same class as CWE-552 form/path gates). **Not** structural-promoted. | pending integration canary |
 | CWE-277 | keep **Heuristic** | `call_facts` for `syscall.Umask` arg `0` **and** `os.MkdirAll` mode `0777`. No corpus path/identifier museum; pure stdlib co-presence. Same class as CWE-250 world-writable WriteFile. **Not** structural-promoted (§1.3 wants real-module evidence / broader mode taxonomy). | pending integration canary |
-| CWE-278 | keep **Heuristic** | `call_facts` primary for `os.OpenFile` whose mode arg contains exact `os.FileMode(hdr.Mode)`. Production-shaped archive-entry mode reapplication; expression text is brittle but not a path/helper museum. **Not** structural-promoted (no generalized archive-metadata / safer-mode negatives beyond exact formula). | pending integration canary |
+| CWE-278 | **fixture-only** | `call_facts` primary for `os.OpenFile` whose mode arg contains exact corpus formula `os.FileMode(hdr.Mode)`. Expression text is fixture-shaped (not a generalized archive-metadata / safer-mode fact). Coordinated with Phase 2 PR [#90](https://github.com/chinmay-sawant/codehound/pull/90). **Not** structural-promoted. | pending integration canary |
 | CWE-279 | **fixture-only** | SI prefilter `strconv.ParseUint(` + `call_facts` `os.WriteFile` mode `0777`. The ParseUint co-presence does not prove a user-requested mode was parsed-then-ignored (only coexists in-unit); without it the sink collapses toward CWE-250/277 mode smells. Corpus co-signal dominates. **Not** structural-promoted. | pending integration canary |
 | CWE-281 | **fixture-only** | `call_facts` `os.Create` + SI exact `io.Copy(out, in)` without `info.Mode()`. Exact `out`/`in` argument names are fixture formula; generic backup/copy would mass-FP if generalized without them. **Not** structural-promoted. | pending integration canary |
 | CWE-921 | **fixture-only** | Pure SI museum: exact path `/tmp/integration.key` + `WriteFile(` + `0644`, negatives `APP_SECRET_DIR` / `0600`. No generalized sensitive-key classification. **Not** structural-promoted. | pending integration canary |
@@ -868,8 +868,8 @@ No call-facts rewrite is proposed solely for consistency when it would not stren
 
 #### Maturity table (intended; Phase 2 applies code)
 
-- **Proposed add to `is_fixture_only`:** `CWE-276`, `CWE-279`, `CWE-281`, `CWE-921`.
-- **Remain default Heuristic:** `CWE-277`, `CWE-278` (not on structural allow-list).
+- **Proposed add to `is_fixture_only`:** `CWE-276`, `CWE-278`, `CWE-279`, `CWE-281`, `CWE-921` (Phase 2 PR [#90](https://github.com/chinmay-sawant/codehound/pull/90) applies code).
+- **Remain default Heuristic:** `CWE-277` only (not on structural allow-list).
 - Structural promotion bar from §1.3 is **not** met for any rule in this family.
 - **This branch does not edit `src/rules/maturity.rs`** — Phase 2 PR owns the code change; integration reconciles.
 
@@ -885,7 +885,7 @@ target/release/codehound TARGET --profile all \
 
 **Status:** **pending integration canary** (Phase 3 of `cwe-file-permissions-trust.md` / epic #85). Zero-hit alone would not justify delete or structural promotion; fixture-only quarantine decisions rest on source evidence above, not canary hit count.
 
-**Decision (2026-07-20, proposed):** quarantine CWE-276 / 279 / 281 / 921 as fixture-only (`--profile all` only) when Phase 2 lands. Keep CWE-277 and CWE-278 as **Heuristic** without structural promotion. Do not rewrite detectors solely for consistency; do not delete needles solely for a future zero-hit canary; retain fixture coverage as regression evidence. Revisit Heuristic members only when real-module hits or broader mode/archive classification meet §1.3; revisit fixture-only members only when co-signals generalize beyond corpus paths, form/session headers, ParseUint co-presence, or exact `io.Copy(out, in)` names.
+**Decision (2026-07-20, proposed; aligned with Phase 2 [#90](https://github.com/chinmay-sawant/codehound/pull/90)):** quarantine CWE-276 / 278 / 279 / 281 / 921 as fixture-only (`--profile all` only) when Phase 2 lands. Keep CWE-277 as **Heuristic** without structural promotion. Do not rewrite detectors solely for consistency beyond Phase 2 call-facts span hygiene; do not delete needles solely for a future zero-hit canary; retain fixture coverage as regression evidence. Revisit CWE-277 only when real-module hits or broader mode taxonomy meet §1.3; revisit fixture-only members only when co-signals generalize beyond corpus paths, session headers, exact `os.FileMode(hdr.Mode)`, ParseUint co-presence, or exact `io.Copy(out, in)` names.
 
 #### Residual inventory after §2.12
 
