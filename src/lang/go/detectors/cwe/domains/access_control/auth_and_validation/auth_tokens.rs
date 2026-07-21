@@ -3,10 +3,23 @@ use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
+// Access-control R4 trust freeze (auth_and_validation/auth_tokens.rs).
+// Bounded family: CWE-294, 301, 303, 322, 408 (5 rules; whole file — ~147 lines).
+// Primary evidence is SourceIndex corpus co-presence and one source-order check (408),
+// not call_facts/AST. Handler/form field names and exact response literals are policy
+// evidence unless a stronger local proof exists — none does here.
+// Proposed maturity: fixture-only for all five (integrator applies maturity.rs).
+// See plans/v0.0.6/evidence-r4-auth-tokens.md and pr-r4-auth-tokens.md.
+
 pub(crate) fn detect_cwe_294(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
+    // Primary signal (fixture-literal): exact auth_token form loaders (gin PostForm /
+    // stdlib FormValue) without nonce/replay tracking co-signals.
+    // Negative gate: LoadOrStore(nonce, true) / spentNonces / PostForm|FormValue("nonce").
+    // Call-facts cannot prove replay acceptance without corpus auth_token + nonce shape;
+    // keep SI primary. Not a generalized token-replay detector.
     let loads_auth_token = facts.source_index.has_any(&[
         r#"c.PostForm("auth_token")"#,
         r#"r.FormValue("auth_token")"#,
@@ -46,6 +59,11 @@ pub(crate) fn detect_cwe_301(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
+    // Primary signal (fixture-literal): exact challenge→proof echo shapes (gin H / JSON /
+    // map literal with proof: challenge). Challenge field naming is policy evidence.
+    // Negative gate: hmac.New( / EncodeToString( — server-side MAC proof instead of echo.
+    // Call-facts for json.Encode alone cannot prove reflection without corpus proof literal;
+    // keep SI primary. Not a generalized mutual-auth detector.
     let echoes_challenge = facts.source_index.has_any(&[
         r#"gin.H{"proof": challenge}"#,
         r#"{"proof": challenge}"#,
@@ -77,6 +95,12 @@ pub(crate) fn detect_cwe_303(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
+    // Primary signal (fixture-literal): hmac.New( + mac.Sum(nil) + exact
+    // string(expected) == sig comparison (not hmac.Equal / ConstantTimeCompare).
+    // Negative gate: implicit — safe fixtures use subtle.ConstantTimeCompare instead.
+    // Call-facts for hmac.New alone fire on legitimate HMAC paths; the == sig string
+    // is the museum boundary. Neighbor CWE-208/385 own early-exit byte loops, not == MAC.
+    // keep SI primary. Not a generalized MAC-verification detector.
     if !facts.source_index.has("hmac.New(") || !facts.source_index.has("mac.Sum(nil)") {
         return;
     }
@@ -100,6 +124,11 @@ pub(crate) fn detect_cwe_322(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
+    // Primary signal (fixture-literal): tls.Dial( co-present with exact
+    // InsecureSkipVerify: true literal (relay/key-exchange museum from fixtures).
+    // Negative gate: implicit — safe fixtures use RootCAs / VerifyHostname instead.
+    // Call-facts for tls.Dial alone cannot prove skip-verify without corpus literal;
+    // keep SI primary. Sole InsecureSkipVerify owner in catalog; still fixture-shaped.
     if !facts.source_index.has("tls.Dial(") || !facts.source_index.has("InsecureSkipVerify: true") {
         return;
     }
@@ -120,6 +149,11 @@ pub(crate) fn detect_cwe_408(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
+    // Primary signal (fixture-literal): exact orders SELECT + Authorization header both
+    // present with source-order proof (query byte offset before Authorization).
+    // Negative gate: implicit — safe fixture checks Authorization before Query.
+    // Call-facts/db.Query alone cannot prove auth-order without corpus SQL + header shape;
+    // keep SI + source-order primary. Not a generalized early-amplification detector.
     let query_before_auth = (facts
         .source_index
         .has("SELECT * FROM orders WHERE tenant_id = ?")
