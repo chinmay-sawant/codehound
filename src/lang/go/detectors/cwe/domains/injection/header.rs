@@ -23,7 +23,8 @@ use crate::rules::{Finding, emit};
 /// production-shaped Location-header write + user-controlled binding + CRLF
 /// strip negative. Do not broaden to all header names without a reviewed
 /// FP budget; do not convert to taint-core. Sibling `resource.rs`
-/// (CWE-619 / CWE-917) is deferred — pure SI museums, separate residual.
+/// (CWE-619 / CWE-917) is **fixture-only** under G3 / #139 (pure SI museums;
+/// see `resource.rs` freeze).
 pub(crate) fn detect_cwe_93(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     use crate::engine::scratch_contains;
     let file = unit.display_path.as_str();

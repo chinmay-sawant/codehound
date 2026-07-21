@@ -1008,7 +1008,7 @@ All worker slices reported **0 findings / 126 files** on gopdfsuit/monsoon/go-re
 
 | Stream | Selected | Keep | Fixture-only |
 |--------|----------|------|----------------|
-| C1 injection | header CWE-93 | **Structural** CWE-93 | (deferred 619/917 later) |
+| C1 injection | header CWE-93 | **Structural** CWE-93 | 619/917 FO later under G3 §2.16 |
 | C2 configuration | config_hardcoding | **Heuristic** CWE-15 | 472, 1051, 1067 |
 | C3 concurrency | shared_state | (367 already Heuristic, deferred) | 366, 368, 421, 820, 821 |
 | C4 input_validation | full non-taint residual | — | **76** (demoted from Structural), 140, 1173, 1236 |
@@ -1026,6 +1026,52 @@ All worker slices reported **0 findings / 126 files** on gopdfsuit/monsoon/go-re
 Recorded in `plans/v0.0.5/phase5-gated-work.md` — **do not start** until reopen criteria met.
 
 - [x] Phase 3–5 dispositions and product-trust artifacts integrated under one PR.
+
+---
+
+### 2.16 Phase 5 G3 — injection resource FO residual (2026-07-22)
+
+> **Issue:** [#139](https://github.com/chinmay-sawant/codehound/issues/139) G3 under epic [#136](https://github.com/chinmay-sawant/codehound/issues/136)
+> **Branch:** `chore/phase5-g3-fo-generalization`
+> **Base:** `9e61e807358a1b9a4f5a03cf3b2abecbe30281a2`
+> **PR body:** [`pr-phase5-g3-fo-generalization.md`](./pr-phase5-g3-fo-generalization.md)
+> **Family:** `injection/resource.rs` (CWE-619, CWE-917) — deferred C1 sibling from §2.15
+
+#### Dispositions
+
+| Rule | Disposition | Primary evidence | Notes |
+|------|-------------|------------------|-------|
+| CWE-619 | **fixture-only** | SI `rows, err := db.Query(` ∧ `rows.Next()` ∧ ¬`defer rows.Close()` | Exact `rows` cursor formula; no ownership analysis |
+| CWE-917 | **fixture-only** | SI `template.New("report").Parse(src)` ∧ `{{.Title}} where ` ∧ `+ expr` | Exact template corpus; negatives `reportTemplate*` |
+| CWE-93 | Structural (unchanged) | call_facts Location + UserControlled + CRLF strip | Header sibling; not reopened |
+
+No Structural promotions. No bulk FO catalog relabel. Call-facts primary rewrite deferred: pure museums cannot gain complete primary without over-firing or retaining the same corpus co-signals as emit gates.
+
+#### NEEDLES labels (source_index)
+
+| Needle | Label |
+|--------|-------|
+| `rows, err := db.Query(` | fixture-literal (CWE-619) |
+| `rows.Next()` | fixture-literal / co-signal (CWE-619) |
+| `defer rows.Close()` | negative-gate (CWE-619 safe-path) |
+| `template.New("report").Parse(src)` | fixture-literal (CWE-917) |
+| `{{.Title}} where ` | fixture-literal (CWE-917) |
+| `+ expr` | fixture-literal (CWE-917) |
+| `reportTemplate` / `reportTemplatePure` | negative-gate (CWE-917 safe-path) |
+
+#### Canary (release binary, 2026-07-22)
+
+| Repository | Revision | Files scanned | Findings |
+|---|---|---:|---:|
+| gopdfsuit | `26d71268937136036c3be1770c0f7bdd89f87dc6` | 78 | 0 |
+| monsoon | `e0f1027cb0c256853b835d8e20d8d206a96e44ed` | 43 | 0 |
+| go-retry | `d3eb50afd37a09a9c0606c218d0dbe06e29d1544` | 5 | 0 |
+
+`--only CWE-619,CWE-917` under `--profile all`. **0/126** findings. Quiet canary supports FO quarantine, not Structural promotion.
+
+- [x] Family selected + FO maturity applied in `maturity.rs`
+- [x] Detector freeze + NEEDLES labels + audit ledger entry
+- [x] Canary 0/126 recorded
 
 ---
 

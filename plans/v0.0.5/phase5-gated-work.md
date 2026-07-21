@@ -6,7 +6,8 @@
 > **Historical trackers (closed):** [#120](https://github.com/chinmay-sawant/codehound/issues/120) · [#121](https://github.com/chinmay-sawant/codehound/issues/121)  
 > **Plan source:** [`parallel-catalog-program.md`](./parallel-catalog-program.md) §5.1–5.2  
 > **Kind:** Docs-only reopen criteria (not a feature mandate)  
-> **Date:** 2026-07-21
+> **Date:** 2026-07-21  
+> **Day ledger:** [`22072026.md`](./22072026.md) · **G-* checklist plans:** see [`phase5-implementation-backlog.md`](./phase5-implementation-backlog.md)
 
 ---
 
@@ -54,12 +55,12 @@ Related but separate gate trackers (do not collapse into this file):
 |----|------|-------|-------------|-----------------|--------------------------|
 | G1 | Broad BP-66+ expansion | 5.1 | **Deferred** | [#137](https://github.com/chinmay-sawant/codehound/issues/137) | High-signal real-module pattern + overlap + fixture + canary |
 | G2 | CWE-277 Structural promotion | 5.1 | **Deferred** | [#138](https://github.com/chinmay-sawant/codehound/issues/138) | Actionable real-module hit + mode/scope negatives + §1.3 bar |
-| G3 | Generalization of fixture-only rules | 5.1 | **Deferred** | [#139](https://github.com/chinmay-sawant/codehound/issues/139) | Corpus co-signals replaced by real AST/fact proof + §1.3 bar |
+| G3 | Generalization of fixture-only rules | 5.1 | **Partial** — one FO residual family disposed (CWE-619/917 quarantine); further FO families still deferred | [#139](https://github.com/chinmay-sawant/codehound/issues/139) | Per-family: AST/fact primary **or** honest FO quarantine when pure museums cannot generalize |
 | G4 | Optional typed Go / `go/packages` | 5.2 | **Deferred** | [#140](https://github.com/chinmay-sawant/codehound/issues/140) | All Roadmap Gate #49 criteria (A1–A6) met |
 | G5 | External-package taint, decoder receivers, channel/goroutine flows | 5.2 | **Deferred** | [#141](https://github.com/chinmay-sawant/codehound/issues/141) | Stronger type/concurrent data-flow contracts + taint decision |
 | G6 | Python catalog investment | 5.2 | **Deferred** | [#142](https://github.com/chinmay-sawant/codehound/issues/142) | Funded demand + new/reversed Go-first ADR (#49 B1–B2) |
 
-All rows: **implementation deferred**. Tracking for this program is complete; do not implement until a successor issue is opened after reopen criteria are satisfied.
+G1/G2/G4–G6 remain **implementation deferred**. G3 has a **partial** FO residual disposition (injection resource CWE-619/917); further FO families still require reopen evidence. Tracking for the #105 program is complete; new work uses backlog children #137–#142.
 
 ---
 
@@ -104,16 +105,19 @@ All rows: **implementation deferred**. Tracking for this program is complete; do
 
 | Field | Value |
 |-------|--------|
-| **Disposition** | Deferred per rule until proof replaces corpus co-signals |
-| **Why deferred** | Fixture-only means available under `--profile all`, not production-certified. Promoting or “generalizing” while emit still depends on paths, names, formulas, or SourceIndex co-signals violates the catalog trust bar. |
-| **Evidence** | Program success criteria; audit §1.1–1.3; Phase 1–2 FO quarantines under #95 / #105 |
+| **Disposition** | **Partial** — FO residual quarantine for pure museums is in scope; AST/fact generalization still deferred per rule |
+| **Why deferred (generalization)** | Fixture-only means available under `--profile all`, not production-certified. Promoting or “generalizing” while emit still depends on paths, names, formulas, or SourceIndex co-signals violates the catalog trust bar. |
+| **Landed residual (2026-07-22)** | Injection resource **CWE-619 / CWE-917** → `fixture-only` (C1 deferred sibling). Freeze + NEEDLES labels + maturity quarantine. No Structural promotion. See audit §2.16 and [`pr-phase5-g3-fo-generalization.md`](./pr-phase5-g3-fo-generalization.md). |
+| **Evidence** | Program success criteria; audit §1.1–1.3 / §2.16; Phase 1–2 FO quarantines under #95 / #105 |
 
-**Reopen criteria (all required):**
+**Reopen criteria for AST/fact generalization (all required):**
 
 1. Corpus paths, identifiers, formulas, or co-signals are **replaced** (not merely supplemented) by real AST/fact/taint proof as the primary emit signal.
 2. Renamed/structurally varied negatives exist; needles are negative prefilters only.
 3. Reviewed real-module evidence or documented FP boundary per §1.3.
-4. One rule (or tightly scoped family) per successor issue — no bulk FO → Heuristic/Structural flips.
+4. One rule (or tightly scoped family) per PR — no bulk FO → Heuristic/Structural flips.
+
+**FO residual disposition path (also valid under G3 / #139):** when a deferred Heuristic museum is proven pure-SI with no oracle-safe call_facts primary, apply **fixture-only** maturity + NEEDLES labels + freeze docs (does not require §1.3 Structural bar).
 
 ---
 

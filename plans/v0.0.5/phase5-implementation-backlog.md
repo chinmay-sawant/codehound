@@ -1,10 +1,12 @@
 # v0.0.5 — Phase 5 implementation backlog (G1–G6)
 
-> **Status:** **Gated backlog** — issues open for tracking; **do not implement** a row until its reopen criteria are met.  
+> **Status:** **Gate evaluation complete** under epic #136 (PR stack / integration). G1/G2/G4/G5/G6 remain **deferred** with evidence files; G3 shipped FO quarantine for CWE-619/917.  
 > **GitHub epic:** [#136](https://github.com/chinmay-sawant/codehound/issues/136)  
-> **Gate criteria (source of truth for *why* deferred):** [`phase5-gated-work.md`](./phase5-gated-work.md)  
+> **Gate criteria:** [`phase5-gated-work.md`](./phase5-gated-work.md)  
 > **Parent program (closed):** epic [#105](https://github.com/chinmay-sawant/codehound/issues/105) / PR #135  
-> **Date:** 2026-07-21
+> **Date:** 2026-07-21 / eval 2026-07-22  
+> **Day ledger (process + outcomes):** [`22072026.md`](./22072026.md)  
+> **G-* checklist plans:** G1–G6 evidence/eval files + [`phase5-g3-fo-residual-plan.md`](./phase5-g3-fo-residual-plan.md)
 
 ---
 
@@ -27,21 +29,21 @@ This file is the **implementation backlog** map (issue ↔ gate ↔ docs). It do
 | ID | Issue | Title | Gate summary |
 |----|------:|-------|--------------|
 | — | [#136](https://github.com/chinmay-sawant/codehound/issues/136) | Phase 5 implementation backlog (epic) | Parent only |
-| G1 | [#137](https://github.com/chinmay-sawant/codehound/issues/137) | Broad BP-66+ expansion | Real-module pattern + fixtures + canary + overlap |
-| G2 | [#138](https://github.com/chinmay-sawant/codehound/issues/138) | CWE-277 Structural promotion | Actionable hit + mode/scope negatives + §1.3 |
-| G3 | [#139](https://github.com/chinmay-sawant/codehound/issues/139) | Generalize fixture-only rules | AST/fact primary replaces corpus co-signals |
-| G4 | [#140](https://github.com/chinmay-sawant/codehound/issues/140) | Typed Go / `go/packages` | Roadmap Gate #49 A1–A6 |
-| G5 | [#141](https://github.com/chinmay-sawant/codehound/issues/141) | Advanced taint (ext pkg / decoder / channels) | FP/FN contract + no fake edges |
-| G6 | [#142](https://github.com/chinmay-sawant/codehound/issues/142) | Python catalog investment | Demand + ADR 0005 reverse/amend |
+| G1 | [#137](https://github.com/chinmay-sawant/codehound/issues/137) | Broad BP-66+ expansion | [`phase5-g1-bp-reopen-evidence.md`](./phase5-g1-bp-reopen-evidence.md) |
+| G2 | [#138](https://github.com/chinmay-sawant/codehound/issues/138) | CWE-277 Structural promotion | [`phase5-g2-cwe-277-reopen-evidence.md`](./phase5-g2-cwe-277-reopen-evidence.md) |
+| G3 | [#139](https://github.com/chinmay-sawant/codehound/issues/139) | FO residual / generalization | [`phase5-g3-fo-residual-plan.md`](./phase5-g3-fo-residual-plan.md) |
+| G4 | [#140](https://github.com/chinmay-sawant/codehound/issues/140) | Typed Go / `go/packages` | [`phase5-g4-typed-go-gate-eval.md`](./phase5-g4-typed-go-gate-eval.md) |
+| G5 | [#141](https://github.com/chinmay-sawant/codehound/issues/141) | Advanced taint | [`phase5-g5-taint-ceiling-eval.md`](./phase5-g5-taint-ceiling-eval.md) |
+| G6 | [#142](https://github.com/chinmay-sawant/codehound/issues/142) | Python catalog | [`phase5-g6-python-gate-eval.md`](./phase5-g6-python-gate-eval.md) |
 
 ### Progress checklist (mirror of epic)
 
-- [ ] #137 G1 BP-66+
-- [ ] #138 G2 CWE-277 Structural
-- [ ] #139 G3 FO generalization
-- [ ] #140 G4 typed Go
-- [ ] #141 G5 advanced taint
-- [ ] #142 G6 Python catalog
+- [x] #137 G1 BP-66+ — **evaluated / keep deferred** (`phase5-g1-bp-reopen-evidence.md`)
+- [x] #138 G2 CWE-277 Structural — **evaluated / keep Heuristic** (`phase5-g2-cwe-277-reopen-evidence.md`)
+- [x] #139 G3 FO generalization — **partial ship:** CWE-619/917 FO; further FO families need new issues
+- [x] #140 G4 typed Go — **evaluated / remain deferred** (`phase5-g4-typed-go-gate-eval.md`)
+- [x] #141 G5 advanced taint — **evaluated / remain deferred** (`phase5-g5-taint-ceiling-eval.md`)
+- [x] #142 G6 Python — **evaluated / remain deferred** (`phase5-g6-python-gate-eval.md`)
 
 ---
 
@@ -63,7 +65,7 @@ Not Phase 5 G-rows, but unfinished **domain slices** from trust batches (open a 
 
 | Domain | Done | Deferred sibling |
 |--------|------|------------------|
-| Injection | CWE-93 | CWE-619, CWE-917 |
+| Injection | CWE-93 (Structural); **CWE-619/917 FO** (G3 / #139) | — (resource residual disposed) |
 | Configuration | hardcoding (15 FO siblings) | secrets_in_config 260/455 |
 | Credential lifecycle | credentials-in-source | expiration / reset-recovery |
 | Response leaks | metadata_leaks | sensitive_fields 201/213 |
@@ -92,3 +94,4 @@ Not Phase 5 G-rows, but unfinished **domain slices** from trust batches (open a 
 |------|--------|
 | 2026-07-21 | #105 Phase 5 **tracking** closed with PR #135 |
 | 2026-07-21 | Epic **#136** + children **#137–#142** opened; this backlog file created |
+| 2026-07-22 | G3 partial: injection resource CWE-619/917 fixture-only residual (`chore/phase5-g3-fo-generalization`) |
