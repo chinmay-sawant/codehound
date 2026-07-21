@@ -67,7 +67,8 @@ fn is_structural_cwe(rule_id: &str) -> bool {
     // a rule without satisfying the promotion bar in the CWE catalog trust audit.
     matches!(
         rule_id,
-        "CWE-41" | "CWE-59" | "CWE-76" | "CWE-93" | "CWE-112" | "CWE-22"
+        // CWE-76 demoted Phase 3 C4 (epic #105): dual-ReplaceAll museum → fixture-only.
+        "CWE-41" | "CWE-59" | "CWE-93" | "CWE-112" | "CWE-22"
     )
 }
 
@@ -159,6 +160,21 @@ fn is_fixture_only(rule_id: &str) -> bool {
             | "CWE-273" // privilege transition corpus shape
             | "CWE-274" // privilege transition corpus shape
             | "CWE-1265" // privilege transition corpus shape
+            // Parallel catalog Phase 3 / epic #105 (C1–C4)
+            // CWE-93 stays Structural (call_facts Location + UserControlled + CRLF strip).
+            // CWE-15 stays Heuristic (call_facts configuration sink + UserControlled).
+            | "CWE-472" // role form field assumed-immutable museum
+            | "CWE-1051" // ChargeCard hard-coded host:port museum
+            | "CWE-1067" // leading-wildcard LIKE sprintf museum
+            | "CWE-366" // non-atomic credit += race museum
+            | "CWE-368" // privilege flag + os.Setenv unsync museum
+            | "CWE-421" // SSE alternate channel + transfer token museum
+            | "CWE-820" // map counter write without lock museum
+            | "CWE-821" // map write under RLock only museum
+            | "CWE-76" // dual ReplaceAll < strip + raw/text-html museum (was Structural)
+            | "CWE-140" // strings.Join comma CSV delimiter museum
+            | "CWE-1173" // SignupPayload map-decode validation bypass museum
+            | "CWE-1236" // fmt.Sprintf CSV formula row museum
             // Common fixture-shaped long-tail (path/corpus strings)
             | "CWE-798" // hard-coded credentials often fixture-shaped
     )
@@ -226,8 +242,22 @@ mod tests {
         assert_eq!(maturity_for("CWE-274"), RuleMaturity::FixtureOnly);
         assert_eq!(maturity_for("CWE-1265"), RuleMaturity::FixtureOnly);
         assert_eq!(maturity_for("CWE-798"), RuleMaturity::FixtureOnly);
+        // Parallel catalog Phase 3 (epic #105)
+        assert_eq!(maturity_for("CWE-472"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-1051"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-1067"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-366"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-368"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-421"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-820"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-821"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-76"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-140"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-1173"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-1236"), RuleMaturity::FixtureOnly);
         // Cipher / weak-hash / world-writable WriteFile / umask+mkdir / password MD5 /
-        // secret-log / Setuid+Chown smells remain heuristic (not structural-promoted).
+        // secret-log / Setuid+Chown / config external-control smells remain heuristic
+        // (not structural-promoted). CWE-93 remains Structural.
         assert_eq!(maturity_for("CWE-325"), RuleMaturity::Heuristic);
         assert_eq!(maturity_for("CWE-328"), RuleMaturity::Heuristic);
         assert_eq!(maturity_for("CWE-250"), RuleMaturity::Heuristic);
@@ -235,6 +265,8 @@ mod tests {
         assert_eq!(maturity_for("CWE-916"), RuleMaturity::Heuristic);
         assert_eq!(maturity_for("CWE-215"), RuleMaturity::Heuristic);
         assert_eq!(maturity_for("CWE-272"), RuleMaturity::Heuristic);
+        assert_eq!(maturity_for("CWE-15"), RuleMaturity::Heuristic);
+        assert_eq!(maturity_for("CWE-93"), RuleMaturity::Structural);
         assert!(is_quarantined_from_default_packs("CWE-334"));
         assert!(is_quarantined_from_default_packs("CWE-1204"));
         assert!(is_quarantined_from_default_packs("CWE-323"));
@@ -281,6 +313,18 @@ mod tests {
         assert!(is_quarantined_from_default_packs("CWE-274"));
         assert!(is_quarantined_from_default_packs("CWE-1265"));
         assert!(is_quarantined_from_default_packs("CWE-798"));
+        assert!(is_quarantined_from_default_packs("CWE-472"));
+        assert!(is_quarantined_from_default_packs("CWE-1051"));
+        assert!(is_quarantined_from_default_packs("CWE-1067"));
+        assert!(is_quarantined_from_default_packs("CWE-366"));
+        assert!(is_quarantined_from_default_packs("CWE-368"));
+        assert!(is_quarantined_from_default_packs("CWE-421"));
+        assert!(is_quarantined_from_default_packs("CWE-820"));
+        assert!(is_quarantined_from_default_packs("CWE-821"));
+        assert!(is_quarantined_from_default_packs("CWE-76"));
+        assert!(is_quarantined_from_default_packs("CWE-140"));
+        assert!(is_quarantined_from_default_packs("CWE-1173"));
+        assert!(is_quarantined_from_default_packs("CWE-1236"));
         assert!(!is_quarantined_from_default_packs("CWE-325"));
         assert!(!is_quarantined_from_default_packs("CWE-328"));
         assert!(!is_quarantined_from_default_packs("CWE-250"));
@@ -288,6 +332,8 @@ mod tests {
         assert!(!is_quarantined_from_default_packs("CWE-916"));
         assert!(!is_quarantined_from_default_packs("CWE-215"));
         assert!(!is_quarantined_from_default_packs("CWE-272"));
+        assert!(!is_quarantined_from_default_packs("CWE-15"));
+        assert!(!is_quarantined_from_default_packs("CWE-93"));
         assert!(!is_quarantined_from_default_packs("CWE-22"));
         assert!(!is_quarantined_from_default_packs("PERF-101"));
     }

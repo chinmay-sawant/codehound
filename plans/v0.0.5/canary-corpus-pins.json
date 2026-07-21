@@ -1,0 +1,53 @@
+{
+  "$schema_comment": "Pinned decision-quality Go canary corpus for plans/v0.0.5/canary-corpus.md. real-repos/ is gitignored; use scripts/canary/run_decision_corpus.sh pin.",
+  "version": 1,
+  "updated": "2026-07-21",
+  "corpus_root_env": "CODEHOUND_CORPUS_ROOT",
+  "gopdfsuit_env": "CODEHOUND_GOPDFSUIT",
+  "targets": [
+    {
+      "id": "gopdfsuit",
+      "kind": "external_path",
+      "path_env": "CODEHOUND_GOPDFSUIT",
+      "default_path": "/home/chinmay/ChinmayPersonalProjects/gopdfsuit",
+      "git_url": "https://github.com/chinmay-sawant/gopdfsuit.git",
+      "revision": "26d71268937136036c3be1770c0f7bdd89f87dc6",
+      "role": "HTTP + PDF service; dense PERF surface",
+      "files_scanned_baseline": 78,
+      "notes": "Often a sibling checkout rather than real-repos/gopdfsuit"
+    },
+    {
+      "id": "monsoon",
+      "kind": "real_repos",
+      "git_url": "https://github.com/RedTeamPentesting/monsoon.git",
+      "revision": "e0f1027cb0c256853b835d8e20d8d206a96e44ed",
+      "role": "HTTP enumerator CLI",
+      "files_scanned_baseline": 43
+    },
+    {
+      "id": "go-retry",
+      "kind": "real_repos",
+      "git_url": "https://github.com/sethvargo/go-retry.git",
+      "revision": "d3eb50afd37a09a9c0606c218d0dbe06e29d1544",
+      "role": "Small library; near-clean recommended control",
+      "files_scanned_baseline": 5
+    },
+    {
+      "id": "gorl",
+      "kind": "real_repos",
+      "git_url": "https://github.com/AliRizaAynaci/gorl.git",
+      "revision": "ec54aaf15ce4d0f3f8014eac2548986c91d0f001",
+      "role": "Rate-limiter library; full-catalog noise canary",
+      "files_scanned_baseline": 28,
+      "notes": "noise-reduce-1.md full-catalog baseline; recommended expect 0"
+    },
+    {
+      "id": "no-mistakes",
+      "kind": "real_repos",
+      "git_url": "https://github.com/kunchenguid/no-mistakes.git",
+      "revision": "0a2c82f993b9467c5ab84992313dfd13b66830af",
+      "role": "Larger git/tooling CLI; mid-size diversity",
+      "files_scanned_baseline": 222
+    }
+  ]
+}

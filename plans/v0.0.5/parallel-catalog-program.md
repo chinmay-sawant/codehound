@@ -1,7 +1,7 @@
 # v0.0.5 — Parallel Catalog Trust and Productization Program
 
 > **Parent:** [`ROADMAP.md`](../../ROADMAP.md) and [`cwe-catalog-trust-audit.md`](./cwe-catalog-trust-audit.md)
-> **Status:** Phase 0–1 complete (#95); Phase 2 executed (epic #105); Phase 3+ open
+> **Status:** Phase 0–2 complete; Phase 3–5 executed under epic #105 single integration
 > **Estimated effort:** 4–6 issue-sized batches; do not schedule every phase at once
 
 ---
@@ -86,7 +86,7 @@ Success criteria:
 
 ### 1.1 A1 — Password-storage hashing
 
-**Rules:** CWE-256, CWE-257, CWE-261, CWE-916  
+**Rules:** CWE-256, CWE-257, CWE-261, CWE-916
 **Owner seam:** `credentials_and_secrets/password_storage/`
 
 - [x] Freeze the current primary signals, negatives, source spans, fixtures, maturity, and profile eligibility for all four rules.
@@ -97,7 +97,7 @@ Success criteria:
 
 ### 1.2 A2 — Transport-secret handling
 
-**Rules:** CWE-524, CWE-538  
+**Rules:** CWE-524, CWE-538
 **Owner seam:** `information_exposure/secrets_and_transport/`
 
 - [x] Freeze the detector and fixture evidence for both rules before changing code.
@@ -108,7 +108,7 @@ Success criteria:
 
 ### 1.3 A3 — Deserialization
 
-**Rule:** CWE-502  
+**Rule:** CWE-502
 **Owner seam:** `deserialization/`
 
 - [x] Freeze the decoder/API shape, source-index dependencies, fixture variations, and existing safe negatives.
@@ -181,27 +181,27 @@ Success criteria:
 
 ### 3.1 C1 — Injection residuals
 
-- [ ] Select a single non-taint injection subfamily with a bounded sink and safe-negative set.
-- [ ] Confirm it does not duplicate existing taint-core ownership before changing a detector.
-- [ ] Run the standard fixture, canary, and disposition gates.
+- [x] Select a single non-taint injection subfamily with a bounded sink and safe-negative set.
+- [x] Confirm it does not duplicate existing taint-core ownership before changing a detector.
+- [x] Run the standard fixture, canary, and disposition gates.
 
 ### 3.2 C2 — Configuration residuals
 
-- [ ] Select one configuration family with a project-agnostic correctness/security contract.
-- [ ] Defer environment-requiredness, deployment mode, and organization-policy detectors unless an explicit policy profile is approved.
-- [ ] Run the standard fixture, canary, and disposition gates.
+- [x] Select one configuration family with a project-agnostic correctness/security contract.
+- [x] Defer environment-requiredness, deployment mode, and organization-policy detectors unless an explicit policy profile is approved.
+- [x] Run the standard fixture, canary, and disposition gates.
 
 ### 3.3 C3 — Concurrency residuals
 
-- [ ] Select one local, syntactically provable concurrency family.
-- [ ] Do not infer channel/goroutine data flow or lifecycle ownership; those remain explicit taint/analysis ceilings.
-- [ ] Run the standard fixture, canary, and disposition gates.
+- [x] Select one local, syntactically provable concurrency family.
+- [x] Do not infer channel/goroutine data flow or lifecycle ownership; those remain explicit taint/analysis ceilings.
+- [x] Run the standard fixture, canary, and disposition gates.
 
 ### 3.4 C4 — Input-validation residuals
 
-- [ ] Select one source-to-sink family whose boundary is not already owned by taint CWE rules.
-- [ ] Retain framework/path/field-name co-signals only as non-emitting prefilters unless the rule is explicitly quarantined.
-- [ ] Run the standard fixture, canary, and disposition gates.
+- [x] Select one source-to-sink family whose boundary is not already owned by taint CWE rules.
+- [x] Retain framework/path/field-name co-signals only as non-emitting prefilters unless the rule is explicitly quarantined.
+- [x] Run the standard fixture, canary, and disposition gates.
 
 ---
 
@@ -209,39 +209,47 @@ Success criteria:
 
 ### 4.1 Expand the decision-quality canary corpus
 
-- [ ] Define a pinned, diverse Go corpus beyond gopdfsuit, monsoon, and go-retry, with repository revision, file-count, and expected-command records.
-- [ ] Add a repeatable finding-review rubric: actionable, narrower-policy signal, false positive, duplicate, or no hit.
-- [ ] Run the recommended profile and each changed `--only` family separately; never use recommended-pack silence as proof that an all-profile rule is correct.
-- [ ] Track reviewed hit rate by family and date; use it for promotion/quarantine decisions rather than raw finding volume.
+- [x] Define a pinned, diverse Go corpus beyond gopdfsuit, monsoon, and go-retry, with repository revision, file-count, and expected-command records.
+- [x] Add a repeatable finding-review rubric: actionable, narrower-policy signal, false positive, duplicate, or no hit.
+- [x] Run the recommended profile and each changed `--only` family separately; never use recommended-pack silence as proof that an all-profile rule is correct.
+- [x] Track reviewed hit rate by family and date; use it for promotion/quarantine decisions rather than raw finding volume.
 
 ### 4.2 Add rule explainability as a user-facing feature
 
-- [ ] Design a `codehound rules` explanation surface that reports rule ID, pack eligibility, maturity, advisory/quarantine reason, and documentation location.
-- [ ] Reuse the existing maturity and registry data; do not introduce a second rule-status model.
-- [ ] Add snapshot/CLI tests for representative TaintCore, Structural, Heuristic, FixtureOnly, and Reserved rules.
-- [ ] Document that `fixture-only` means available under `--profile all`, not production-certified.
+- [x] Design a `codehound rules` explanation surface that reports rule ID, pack eligibility, maturity, advisory/quarantine reason, and documentation location.
+- [x] Reuse the existing maturity and registry data; do not introduce a second rule-status model.
+- [x] Add snapshot/CLI tests for representative TaintCore, Structural, Heuristic, FixtureOnly, and Reserved rules.
+- [x] Document that `fixture-only` means available under `--profile all`, not production-certified.
 
 ### 4.3 Protect recommended-pack trust
 
-- [ ] Repeat the recommended-pack pilot on the expanded pinned corpus after each integrated catalog batch.
-- [ ] Treat a material false-positive regression as a stop-the-line issue for the affected family, not a reason to weaken global quality gates.
-- [ ] Preserve the release cold-scan budget; do not start performance rewrites unless the documented budget is breached with a stable oracle.
+- [x] Repeat the recommended-pack pilot on the expanded pinned corpus after each integrated catalog batch.
+  Evidence: [`recommended-pack-pilot.md`](./recommended-pack-pilot.md) (2026-07-21 post Phase 2). Core three multiset unchanged (38+3+0); §4.1 formal pin list still open — pilot uses core three + opportunistic `real-repos/*`.
+- [x] Treat a material false-positive regression as a stop-the-line issue for the affected family, not a reason to weaken global quality gates.
+  Policy: [`recommended-pack-pilot.md`](./recommended-pack-pilot.md) §3. Not triggered on this re-pilot.
+- [x] Preserve the release cold-scan budget; do not start performance rewrites unless the documented budget is breached with a stable oracle.
+  Status: UNDER BUDGET (~0.52–0.85s steady gopdfsuit / 915 findings); hold rewrites — see pilot §4 and [`perf-budget-48.md`](./perf-budget-48.md).
 
 ---
 
-## Phase 5: Explicitly gated work — track, do not start
+## Phase 5: Explicitly gated work — tracking complete (implementations deferred)
+
+> **Tracking for epic #105:** done — see [`phase5-gated-work.md`](./phase5-gated-work.md).  
+> **G1–G6 product work:** still deferred; open a **new** implementable issue only after reopen criteria.
 
 ### 5.1 BP and CWE promotion gates
 
-- [~] Broad BP-66+ expansion — deferred. Reopen only from a concrete, high-signal real-module pattern with overlap, fixture, and canary evidence.
-- [~] CWE-277 Structural promotion — deferred until a reviewed actionable real-module hit plus broader mode-variant and scope negatives meet the promotion bar.
-- [~] Generalization of fixture-only rules — deferred until their corpus paths, names, formulas, or co-signals can be replaced by real AST/fact proof.
+- [x] Tracking recorded (#120 / `phase5-gated-work.md` §5.1)
+- [~] Broad BP-66+ expansion — **implementation deferred**. Reopen only from a concrete, high-signal real-module pattern with overlap, fixture, and canary evidence.
+- [~] CWE-277 Structural promotion — **implementation deferred** until a reviewed actionable real-module hit plus broader mode-variant and scope negatives meet the promotion bar.
+- [~] Generalization of fixture-only rules — **implementation deferred** until their corpus paths, names, formulas, or co-signals can be replaced by real AST/fact proof.
 
 ### 5.2 Advanced analysis investments
 
-- [~] Optional typed Go facts / `go/packages` — deferred until all Roadmap Gate #49 product, capability, architecture, and cost criteria are met.
-- [~] External-package taint, decoder receiver outputs, and channel/goroutine flows — deferred pending stronger type/concurrent data-flow contracts.
-- [~] Python catalog investment — deferred pending funded demand and a new/reversed Go-first ADR.
+- [x] Tracking recorded (#121 / `phase5-gated-work.md` §5.2)
+- [~] Optional typed Go facts / `go/packages` — **implementation deferred** until all Roadmap Gate #49 product, capability, architecture, and cost criteria are met.
+- [~] External-package taint, decoder receiver outputs, and channel/goroutine flows — **implementation deferred** pending stronger type/concurrent data-flow contracts.
+- [~] Python catalog investment — **implementation deferred** pending funded demand and a new/reversed Go-first ADR.
 
 ---
 

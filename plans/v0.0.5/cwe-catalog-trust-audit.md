@@ -1,7 +1,7 @@
 # v0.0.5 — CWE Catalog Trust Audit, Tranche 1
 
 > **Parent:** `plans/v0.0.5/pending-work.md` — Phase 3.2
-> **Status:** Tranches 1–5 complete (merged [#41](https://github.com/chinmay-sawant/codehound/pull/41), [#43](https://github.com/chinmay-sawant/codehound/pull/43); [#39](https://github.com/chinmay-sawant/codehound/issues/39) / [#42](https://github.com/chinmay-sawant/codehound/issues/42) closed). File-permissions siblings **complete** in §2.12 (epic [#85](https://github.com/chinmay-sawant/codehound/issues/85)). **Parallel catalog batch 1** recorded in §2.13; **Phase 2 batch** in §2.14 (epic [#95](https://github.com/chinmay-sawant/codehound/issues/95); plan [`parallel-catalog-program.md`](./parallel-catalog-program.md)). Remaining undated CWE catalog is still not fully certified.
+> **Status:** Tranches 1–5 complete (merged [#41](https://github.com/chinmay-sawant/codehound/pull/41), [#43](https://github.com/chinmay-sawant/codehound/pull/43); [#39](https://github.com/chinmay-sawant/codehound/issues/39) / [#42](https://github.com/chinmay-sawant/codehound/issues/42) closed). File-permissions siblings **complete** in §2.12 (epic [#85](https://github.com/chinmay-sawant/codehound/issues/85)). **Parallel catalog batch 1** recorded in §2.13; **Phase 2 batch** in §2.14; **Phase 3–5** in §2.15 (epic [#95](https://github.com/chinmay-sawant/codehound/issues/95); plan [`parallel-catalog-program.md`](./parallel-catalog-program.md)). Remaining undated CWE catalog is still not fully certified.
 > **Estimated effort:** Incremental, rule-family by rule-family under #45; do not bulk-promote or bulk-check the remaining catalog.
 
 ---
@@ -994,6 +994,38 @@ No Structural promotions.
 All worker slices reported **0 findings / 126 files** on gopdfsuit/monsoon/go-retry for their `--only` sets. Combined Phase 2 canary recorded on integration branch.
 
 - [x] Record Phase 2 dispositions from B1–B4 worker reports + integrated maturity.
+
+---
+
+
+### 2.15 Parallel catalog Phase 3–5 — residuals, product trust, gated track (2026-07-21)
+
+> **Epic:** [#105](https://github.com/chinmay-sawant/codehound/issues/105)
+> **Single integration:** `chore/epic-105-phase345-integration` (not separate Phase 3/4/5 integrations)
+> **Base SHA:** `7d912d5be8528f80df0122259d24130c6f394df9`
+
+#### Phase 3 catalog residuals
+
+| Stream | Selected | Keep | Fixture-only |
+|--------|----------|------|----------------|
+| C1 injection | header CWE-93 | **Structural** CWE-93 | (deferred 619/917 later) |
+| C2 configuration | config_hardcoding | **Heuristic** CWE-15 | 472, 1051, 1067 |
+| C3 concurrency | shared_state | (367 already Heuristic, deferred) | 366, 368, 421, 820, 821 |
+| C4 input_validation | full non-taint residual | — | **76** (demoted from Structural), 140, 1173, 1236 |
+
+#### Phase 4 product trust
+
+| Item | Artifact |
+|------|----------|
+| 4.1 canary corpus | `plans/v0.0.5/canary-corpus.md`, pins JSON, hit-rates, `scripts/canary/run_decision_corpus.sh` |
+| 4.2 rules explain | `codehound rules` / explain surface + CLI tests |
+| 4.3 recommended pilot | `plans/v0.0.5/recommended-pack-pilot.md` |
+
+#### Phase 5 gated track
+
+Recorded in `plans/v0.0.5/phase5-gated-work.md` — **do not start** until reopen criteria met.
+
+- [x] Phase 3–5 dispositions and product-trust artifacts integrated under one PR.
 
 ---
 
