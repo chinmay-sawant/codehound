@@ -1,10 +1,10 @@
 # v0.0.5 — Phase 5 implementation backlog (G1–G6)
 
-> **Status:** **Gated backlog** — issues open for tracking; **do not implement** a row until its reopen criteria are met.  
+> **Status:** **Gate evaluation complete** under epic #136 (PR stack / integration). G1/G2/G4/G5/G6 remain **deferred** with evidence files; G3 shipped FO quarantine for CWE-619/917.  
 > **GitHub epic:** [#136](https://github.com/chinmay-sawant/codehound/issues/136)  
-> **Gate criteria (source of truth for *why* deferred):** [`phase5-gated-work.md`](./phase5-gated-work.md)  
+> **Gate criteria:** [`phase5-gated-work.md`](./phase5-gated-work.md)  
 > **Parent program (closed):** epic [#105](https://github.com/chinmay-sawant/codehound/issues/105) / PR #135  
-> **Date:** 2026-07-21
+> **Date:** 2026-07-21 / eval 2026-07-22
 
 ---
 
@@ -36,12 +36,12 @@ This file is the **implementation backlog** map (issue ↔ gate ↔ docs). It do
 
 ### Progress checklist (mirror of epic)
 
-- [ ] #137 G1 BP-66+
-- [ ] #138 G2 CWE-277 Structural
-- [x] #139 G3 FO generalization — **partial:** injection resource (CWE-619/917) FO residual landed; other FO families remain open under reopen criteria
-- [ ] #140 G4 typed Go
-- [ ] #141 G5 advanced taint
-- [ ] #142 G6 Python catalog
+- [x] #137 G1 BP-66+ — **evaluated / keep deferred** (`phase5-g1-bp-reopen-evidence.md`)
+- [x] #138 G2 CWE-277 Structural — **evaluated / keep Heuristic** (`phase5-g2-cwe-277-reopen-evidence.md`)
+- [x] #139 G3 FO generalization — **partial ship:** CWE-619/917 FO; further FO families need new issues
+- [x] #140 G4 typed Go — **evaluated / remain deferred** (`phase5-g4-typed-go-gate-eval.md`)
+- [x] #141 G5 advanced taint — **evaluated / remain deferred** (`phase5-g5-taint-ceiling-eval.md`)
+- [x] #142 G6 Python — **evaluated / remain deferred** (`phase5-g6-python-gate-eval.md`)
 
 ---
 
