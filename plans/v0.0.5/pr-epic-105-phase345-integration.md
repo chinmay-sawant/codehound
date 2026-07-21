@@ -51,7 +51,7 @@ Single integration for remaining epic #105 work: Phase 3 catalog residuals (C1�
 
 ### Phase 5
 
-- `phase5-gated-work.md` track-only reopen criteria
+- `phase5-gated-work.md` — **tracking complete** for epic #105; G1–G6 **implementations remain deferred** (banner updated; not product work)
 
 ### Shared
 

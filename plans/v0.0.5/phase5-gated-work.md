@@ -1,25 +1,25 @@
-# v0.0.5 — Phase 5 gated work (track, do not start)
+# v0.0.5 — Phase 5 gated work (tracking complete; implementations deferred)
 
-> **Status:** **DEFERRED / TRACKING ONLY**  
-> **Do not start implementation from this document, issues #120 / #121, or residual plan checkboxes.**  
-> **Issues:** [#120](https://github.com/chinmay-sawant/codehound/issues/120) (Phase 5.1) · [#121](https://github.com/chinmay-sawant/codehound/issues/121) (Phase 5.2)  
+> **Program status (epic #105):** **TRACKING COMPLETE** — reopen criteria recorded; this tranche is done.  
+> **Implementation status (G1–G6):** still **DEFERRED** — do **not** ship BP expansion, CWE-277 Structural, typed Go, advanced taint, or Python catalog from this file or from closed #120 / #121.  
+> **Issues:** [#120](https://github.com/chinmay-sawant/codehound/issues/120) (Phase 5.1 tracker) · [#121](https://github.com/chinmay-sawant/codehound/issues/121) (Phase 5.2 tracker)  
 > **Parent epic:** [#105](https://github.com/chinmay-sawant/codehound/issues/105)  
 > **Plan source:** [`parallel-catalog-program.md`](./parallel-catalog-program.md) §5.1–5.2  
 > **Kind:** Docs-only reopen criteria (not a feature mandate)  
-> **Date:** 2026-07-21
+> **Date:** 2026-07-21 (status clarified same day on Phase 3–5 integration)
 
 ---
 
-## Banner — do not start
+## Banner — tracking complete · implementations remain deferred
 
 | | |
 |--|--|
-| **This file** | Tracking record only. No detectors, facts, taint edges, BP rules, maturity flips, or language catalog work ship under Phase 5. |
-| **#120 / #121** | Stay tracking issues until reopen criteria below are met; then open a **new scoped child issue** for implementation. |
-| **#105** | Parent coordination epic. Phase 5 remains gated while Phase 3–4 catalog/product work may proceed independently. |
+| **Epic #105 Phase 5 work** | **Done.** Single plan record, status table, reopen criteria, and non-actions shipped. Trackers may close with the program integration PR. |
+| **This file going forward** | Permanent gate ledger. G1–G6 stay **deferred** until criteria below are met. |
+| **Implementations** | **Do not start** under #120 / #121 or residual plan boxes. Open a **new scoped child issue** only after reopen evidence is recorded. |
 | **Not authorized by** | Closed trust batches, noise-reduce canaries, recommended-pack pilots, or unchecked historical plan boxes. |
 
-**Explicit non-actions under this tracker:**
+**Explicit non-actions until a successor implementable issue exists:**
 
 - No broad BP-66+ rule expansion or research-list bulk implementation
 - No CWE-277 maturity promotion to `structural`
@@ -32,7 +32,7 @@
 
 ## Purpose
 
-Reaffirm the deferred gates already listed in the parallel catalog program ledger so Phase 5 is not mistaken for schedulable implementation work. This is the single plan record for:
+Phase 5 of the parallel catalog program was **track-and-record**, not implement. That tracking is complete. This remains the single plan record for:
 
 1. **Phase 5.1** — BP expansion and CWE promotion gates (#120)
 2. **Phase 5.2** — Advanced analysis investments (#121)
@@ -59,7 +59,7 @@ Related but separate gate trackers (do not collapse into this file):
 | G5 | External-package taint, decoder receivers, channel/goroutine flows | 5.2 | **Deferred** | #121 | Stronger type/concurrent data-flow contracts + taint decision |
 | G6 | Python catalog investment | 5.2 | **Deferred** | #121 | Funded demand + new/reversed Go-first ADR (#49 B1–B2) |
 
-All rows: **do not start** until a successor implementable issue is opened after the reopen criteria are recorded as satisfied.
+All rows: **implementation deferred**. Tracking for this program is complete; do not implement until a successor issue is opened after reopen criteria are satisfied.
 
 ---
 
@@ -178,10 +178,10 @@ Plus a **new scoped implementation issue** (not #121, not #49 as delivery).
 
 ## How to reopen (process)
 
-1. Record evidence that the relevant reopen criteria are met (comment on #120 or #121, or a short plan note).
+1. Record evidence that the relevant reopen criteria are met (comment on a closed tracker, this file, or a short plan note).
 2. Open a **new implementable child issue** with a single owned seam, fixtures, canary command, and out-of-scope list.
-3. Do **not** implement under #120 / #121; those stay trackers until product closes them as obsolete or wontfix for a release series.
-4. Mega-integration / catalog epics (#105 and successors) must **not** schedule Phase 5 items as ordinary parallel catalog slices.
+3. Do **not** re-open #120 / #121 for implementation; those were **tracking** tickets for epic #105 (closed when tracking shipped).
+4. Later catalog epics must **not** schedule G1–G6 as ordinary parallel catalog slices without meeting reopen criteria.
 
 ---
 
@@ -189,15 +189,15 @@ Plus a **new scoped implementation issue** (not #121, not #49 as delivery).
 
 | State | When |
 |-------|------|
-| **Open / deferred (current)** | Gates reaffirmed in this file; #120 and #121 tracking-only |
-| **Still deferred** | Criteria unmet; no successor implementation issue |
+| **Tracking complete (current for #105)** | Gates reaffirmed in this file; #120 / #121 tracking success criteria met; may close with Phase 3–5 integration |
+| **Implementation still deferred** | G1–G6 criteria unmet; no successor implementation issue |
 | **Partially reopened** | One successor issue open for a single G-row; other rows remain deferred |
-| **Tracker close** | (a) successor issues absorb work and trackers are obsolete, or (b) product marks the investments **wontfix** for a release series |
+| **Tracker historical** | Closed after tracking landed; new work uses new issue numbers only |
 
-Success criteria for **this docs tranche**:
+Success criteria for **this docs tranche** (epic #105 Phase 5):
 
 - [x] Single plan record for Phase 5.1 + 5.2 with status table and reopen criteria
-- [x] Explicit do-not-start banner and non-actions
+- [x] Banner distinguishes **tracking complete** vs **implementation deferred**
 - [x] Cross-links to #120, #121, #105, program §5.1–5.2, #49 gates, audit §1.3, taint decision
 - [x] No implementation of BP expansion, CWE-277 promotion, typed Go, or Python catalog
 

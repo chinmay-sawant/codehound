@@ -232,19 +232,24 @@ Success criteria:
 
 ---
 
-## Phase 5: Explicitly gated work — track, do not start
+## Phase 5: Explicitly gated work — tracking complete (implementations deferred)
+
+> **Tracking for epic #105:** done — see [`phase5-gated-work.md`](./phase5-gated-work.md).  
+> **G1–G6 product work:** still deferred; open a **new** implementable issue only after reopen criteria.
 
 ### 5.1 BP and CWE promotion gates
 
-- [~] Broad BP-66+ expansion — deferred. Reopen only from a concrete, high-signal real-module pattern with overlap, fixture, and canary evidence.
-- [~] CWE-277 Structural promotion — deferred until a reviewed actionable real-module hit plus broader mode-variant and scope negatives meet the promotion bar.
-- [~] Generalization of fixture-only rules — deferred until their corpus paths, names, formulas, or co-signals can be replaced by real AST/fact proof.
+- [x] Tracking recorded (#120 / `phase5-gated-work.md` §5.1)
+- [~] Broad BP-66+ expansion — **implementation deferred**. Reopen only from a concrete, high-signal real-module pattern with overlap, fixture, and canary evidence.
+- [~] CWE-277 Structural promotion — **implementation deferred** until a reviewed actionable real-module hit plus broader mode-variant and scope negatives meet the promotion bar.
+- [~] Generalization of fixture-only rules — **implementation deferred** until their corpus paths, names, formulas, or co-signals can be replaced by real AST/fact proof.
 
 ### 5.2 Advanced analysis investments
 
-- [~] Optional typed Go facts / `go/packages` — deferred until all Roadmap Gate #49 product, capability, architecture, and cost criteria are met.
-- [~] External-package taint, decoder receiver outputs, and channel/goroutine flows — deferred pending stronger type/concurrent data-flow contracts.
-- [~] Python catalog investment — deferred pending funded demand and a new/reversed Go-first ADR.
+- [x] Tracking recorded (#121 / `phase5-gated-work.md` §5.2)
+- [~] Optional typed Go facts / `go/packages` — **implementation deferred** until all Roadmap Gate #49 product, capability, architecture, and cost criteria are met.
+- [~] External-package taint, decoder receiver outputs, and channel/goroutine flows — **implementation deferred** pending stronger type/concurrent data-flow contracts.
+- [~] Python catalog investment — **implementation deferred** pending funded demand and a new/reversed Go-first ADR.
 
 ---
 

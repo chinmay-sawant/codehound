@@ -1,10 +1,10 @@
-# docs: record Phase 5 gated trackers (do not start)
+# docs: complete Phase 5 tracking (implementations still deferred)
 
 ## Summary
 
-Docs-only PR that records Phase 5 of the parallel catalog program as **tracking / deferred** work. Adds a single plan record with status table, reopen criteria, and a do-not-start banner. **Closes #120 · Closes #121 · Relates to #105.**
+Docs-only work that **completes Phase 5 tracking** for epic #105: single plan record, status table, reopen criteria, and a banner that separates **tracking complete** from **implementation deferred**. **Closes #120 · Closes #121 · Relates to #105.**
 
-**No product code, detectors, maturity flips, taint edges, BP rules, typed Go facts, or Python catalog changes.**
+**No product code, detectors, maturity flips, taint edges, BP rules, typed Go facts, or Python catalog changes.** G1–G6 remain deferred until successor issues.
 
 ---
 
