@@ -52,8 +52,8 @@ Related but separate gate trackers (do not collapse into this file):
 
 | ID | Item | Phase | Disposition | Implement issue | Gate to reopen (summary) |
 |----|------|-------|-------------|-----------------|--------------------------|
-| G1 | Broad BP-66+ expansion | 5.1 | **Deferred** | [#137](https://github.com/chinmay-sawant/codehound/issues/137) | High-signal real-module pattern + overlap + fixture + canary — **2026-07-22 evidence:** keep deferred ([`phase5-g1-bp-reopen-evidence.md`](./phase5-g1-bp-reopen-evidence.md); BP-71 canary 0 actionable) |
-| G2 | CWE-277 Structural promotion | 5.1 | **Deferred** | [#138](https://github.com/chinmay-sawant/codehound/issues/138) | Actionable real-module hit + mode/scope negatives + §1.3 bar |
+| G1 | Broad BP-66+ expansion | 5.1 | **Deferred** | [#137](https://github.com/chinmay-sawant/codehound/issues/137) | High-signal real-module pattern + overlap + fixture + canary |
+| G2 | CWE-277 Structural promotion | 5.1 | **Deferred** | [#138](https://github.com/chinmay-sawant/codehound/issues/138) | Actionable real-module hit + mode/scope negatives + §1.3 bar — **2026-07-22 evidence:** keep Heuristic ([`phase5-g2-cwe-277-reopen-evidence.md`](./phase5-g2-cwe-277-reopen-evidence.md); CWE-277 canary 0/376) |
 | G3 | Generalization of fixture-only rules | 5.1 | **Deferred** | [#139](https://github.com/chinmay-sawant/codehound/issues/139) | Corpus co-signals replaced by real AST/fact proof + §1.3 bar |
 | G4 | Optional typed Go / `go/packages` | 5.2 | **Deferred** | [#140](https://github.com/chinmay-sawant/codehound/issues/140) | All Roadmap Gate #49 criteria (A1–A6) met |
 | G5 | External-package taint, decoder receivers, channel/goroutine flows | 5.2 | **Deferred** | [#141](https://github.com/chinmay-sawant/codehound/issues/141) | Stronger type/concurrent data-flow contracts + taint decision |
@@ -74,7 +74,7 @@ All rows: **implementation deferred**. Tracking for this program is complete; do
 |-------|--------|
 | **Disposition** | Deferred |
 | **Why deferred** | Historical BP research lists (parts A–F, CHECKLIST deferred ledger) are candidate inventories, not authorized backlog. Shipping bulk rules without proof boundaries creates noise and pack-trust risk. |
-| **Evidence / prior disposition** | [`bp-candidates-disposition.md`](./bp-candidates-disposition.md), [`bp-proof-boundary-notes.md`](./bp-proof-boundary-notes.md), Phase 4 dispositions in [`pending-work.md`](./pending-work.md), G1 reopen canary [`phase5-g1-bp-reopen-evidence.md`](./phase5-g1-bp-reopen-evidence.md) (2026-07-22: **keep deferred**; BP-71 0 actionable on five-module corpus) |
+| **Evidence / prior disposition** | [`bp-candidates-disposition.md`](./bp-candidates-disposition.md), [`bp-proof-boundary-notes.md`](./bp-proof-boundary-notes.md), Phase 4 dispositions in [`pending-work.md`](./pending-work.md) |
 
 **Reopen criteria (all required):**
 
@@ -84,15 +84,13 @@ All rows: **implementation deferred**. Tracking for this program is complete; do
 4. Release-binary canary on the standard corpus with an agreed FP budget.
 5. New scoped implementable issue (not #120, not bulk research checkboxes).
 
-**Latest reopen attempt (#137):** static canary for BP-71 (only `defer-needs-canary` absent candidate) on gopdfsuit / monsoon / go-retry / gorl / no-mistakes found only idiomatic `_, err` on Copy/Write/Fscan — **criteria 1 not met**; no detector shipped.
-
 ### G2 — CWE-277 Structural promotion
 
 | Field | Value |
 |-------|--------|
 | **Disposition** | Deferred (remain Heuristic until bar met) |
 | **Why deferred** | File-permissions tranche generalized call-facts but canary did not supply an actionable hit that justifies structural maturity; mode variants (`0o777`, alternate umask) and broader scope negatives were explicitly held back. |
-| **Evidence** | [`cwe-file-permissions-canary.md`](./cwe-file-permissions-canary.md), [`cwe-file-permissions-trust.md`](./cwe-file-permissions-trust.md), completed family under epic #85 / #94 |
+| **Evidence** | [`cwe-file-permissions-canary.md`](./cwe-file-permissions-canary.md), [`cwe-file-permissions-trust.md`](./cwe-file-permissions-trust.md), completed family under epic #85 / #94, G2 reopen canary [`phase5-g2-cwe-277-reopen-evidence.md`](./phase5-g2-cwe-277-reopen-evidence.md) (2026-07-22: **keep Heuristic**; CWE-277 **0/376** on five-module corpus) |
 
 **Reopen criteria (all required):**
 
@@ -101,6 +99,8 @@ All rows: **implementation deferred**. Tracking for this program is complete; do
 3. Primary emit meets audit §1.3 (AST/call facts/callee classification/taint — not corpus mode literals as sole proof).
 4. Maturity table + profile eligibility updated in the **same** change as promotion.
 5. New scoped implementable issue (do not reopen completed file-permissions family wholesale).
+
+**Latest reopen attempt (#138):** release-binary `--only CWE-277 --profile all` on gopdfsuit / monsoon / go-retry / gorl / no-mistakes → **0 findings / 376 files**; corpus has `MkdirAll(0o755)` and restrictive `Umask(0o077)` only — **criterion 1 not met**; no Structural promotion; no mode-variant widening.
 
 ### G3 — Generalization of fixture-only rules
 
