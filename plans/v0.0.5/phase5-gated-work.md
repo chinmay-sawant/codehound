@@ -1,12 +1,12 @@
 # v0.0.5 — Phase 5 gated work (tracking complete; implementations deferred)
 
 > **Program status (epic #105):** **TRACKING COMPLETE** — reopen criteria recorded; this tranche is done.  
-> **Implementation status (G1–G6):** still **DEFERRED** — do **not** ship BP expansion, CWE-277 Structural, typed Go, advanced taint, or Python catalog from this file or from closed #120 / #121.  
-> **Issues:** [#120](https://github.com/chinmay-sawant/codehound/issues/120) (Phase 5.1 tracker) · [#121](https://github.com/chinmay-sawant/codehound/issues/121) (Phase 5.2 tracker)  
-> **Parent epic:** [#105](https://github.com/chinmay-sawant/codehound/issues/105)  
+> **Implementation status (G1–G6):** still **DEFERRED** until reopen criteria met.  
+> **Implementation backlog:** epic [#136](https://github.com/chinmay-sawant/codehound/issues/136) · children [#137](https://github.com/chinmay-sawant/codehound/issues/137)–[#142](https://github.com/chinmay-sawant/codehound/issues/142) · [`phase5-implementation-backlog.md`](./phase5-implementation-backlog.md)  
+> **Historical trackers (closed):** [#120](https://github.com/chinmay-sawant/codehound/issues/120) · [#121](https://github.com/chinmay-sawant/codehound/issues/121)  
 > **Plan source:** [`parallel-catalog-program.md`](./parallel-catalog-program.md) §5.1–5.2  
 > **Kind:** Docs-only reopen criteria (not a feature mandate)  
-> **Date:** 2026-07-21 (status clarified same day on Phase 3–5 integration)
+> **Date:** 2026-07-21
 
 ---
 
@@ -16,7 +16,7 @@
 |--|--|
 | **Epic #105 Phase 5 work** | **Done.** Single plan record, status table, reopen criteria, and non-actions shipped. Trackers may close with the program integration PR. |
 | **This file going forward** | Permanent gate ledger. G1–G6 stay **deferred** until criteria below are met. |
-| **Implementations** | **Do not start** under #120 / #121 or residual plan boxes. Open a **new scoped child issue** only after reopen evidence is recorded. |
+| **Implementations** | Use backlog children **#137–#142** only after reopen evidence is recorded on that issue. Do not re-use closed #120 / #121. |
 | **Not authorized by** | Closed trust batches, noise-reduce canaries, recommended-pack pilots, or unchecked historical plan boxes. |
 
 **Explicit non-actions until a successor implementable issue exists:**
@@ -50,14 +50,14 @@ Related but separate gate trackers (do not collapse into this file):
 
 ## Status table
 
-| ID | Item | Phase | Disposition | Tracker | Gate to reopen (summary) |
-|----|------|-------|-------------|---------|--------------------------|
-| G1 | Broad BP-66+ expansion | 5.1 | **Deferred** | #120 | High-signal real-module pattern + overlap + fixture + canary |
-| G2 | CWE-277 Structural promotion | 5.1 | **Deferred** | #120 | Actionable real-module hit + mode/scope negatives + §1.3 bar |
-| G3 | Generalization of fixture-only rules | 5.1 | **Deferred** | #120 | Corpus co-signals replaced by real AST/fact proof + §1.3 bar |
-| G4 | Optional typed Go / `go/packages` | 5.2 | **Deferred** | #121 | All Roadmap Gate #49 criteria (A1–A6) met |
-| G5 | External-package taint, decoder receivers, channel/goroutine flows | 5.2 | **Deferred** | #121 | Stronger type/concurrent data-flow contracts + taint decision |
-| G6 | Python catalog investment | 5.2 | **Deferred** | #121 | Funded demand + new/reversed Go-first ADR (#49 B1–B2) |
+| ID | Item | Phase | Disposition | Implement issue | Gate to reopen (summary) |
+|----|------|-------|-------------|-----------------|--------------------------|
+| G1 | Broad BP-66+ expansion | 5.1 | **Deferred** | [#137](https://github.com/chinmay-sawant/codehound/issues/137) | High-signal real-module pattern + overlap + fixture + canary |
+| G2 | CWE-277 Structural promotion | 5.1 | **Deferred** | [#138](https://github.com/chinmay-sawant/codehound/issues/138) | Actionable real-module hit + mode/scope negatives + §1.3 bar |
+| G3 | Generalization of fixture-only rules | 5.1 | **Deferred** | [#139](https://github.com/chinmay-sawant/codehound/issues/139) | Corpus co-signals replaced by real AST/fact proof + §1.3 bar |
+| G4 | Optional typed Go / `go/packages` | 5.2 | **Deferred** | [#140](https://github.com/chinmay-sawant/codehound/issues/140) | All Roadmap Gate #49 criteria (A1–A6) met |
+| G5 | External-package taint, decoder receivers, channel/goroutine flows | 5.2 | **Deferred** | [#141](https://github.com/chinmay-sawant/codehound/issues/141) | Stronger type/concurrent data-flow contracts + taint decision |
+| G6 | Python catalog investment | 5.2 | **Deferred** | [#142](https://github.com/chinmay-sawant/codehound/issues/142) | Funded demand + new/reversed Go-first ADR (#49 B1–B2) |
 
 All rows: **implementation deferred**. Tracking for this program is complete; do not implement until a successor issue is opened after reopen criteria are satisfied.
 
@@ -205,9 +205,10 @@ Success criteria for **this docs tranche** (epic #105 Phase 5):
 
 ## Related
 
+- Implementation backlog: [`phase5-implementation-backlog.md`](./phase5-implementation-backlog.md) · epic [#136](https://github.com/chinmay-sawant/codehound/issues/136)  
 - Ledger: [`parallel-catalog-program.md`](./parallel-catalog-program.md) Phase 5  
-- Issues: [#120](https://github.com/chinmay-sawant/codehound/issues/120), [#121](https://github.com/chinmay-sawant/codehound/issues/121)  
-- Parent epic: [#105](https://github.com/chinmay-sawant/codehound/issues/105)  
+- Historical trackers: [#120](https://github.com/chinmay-sawant/codehound/issues/120), [#121](https://github.com/chinmay-sawant/codehound/issues/121)  
+- Closed program epic: [#105](https://github.com/chinmay-sawant/codehound/issues/105)  
 - Roadmap gates: [#49](https://github.com/chinmay-sawant/codehound/issues/49) · [`roadmap-gates-49.md`](./roadmap-gates-49.md)  
 - Investments decision: [`roadmap-investments-decision.md`](./roadmap-investments-decision.md)  
 - Structural bar: [`cwe-catalog-trust-audit.md`](./cwe-catalog-trust-audit.md) §1.3  

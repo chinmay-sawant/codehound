@@ -235,7 +235,8 @@ Success criteria:
 ## Phase 5: Explicitly gated work — tracking complete (implementations deferred)
 
 > **Tracking for epic #105:** done — see [`phase5-gated-work.md`](./phase5-gated-work.md).  
-> **G1–G6 product work:** still deferred; open a **new** implementable issue only after reopen criteria.
+> **G1–G6 product work:** still deferred.  
+> **Implementation backlog:** epic [#136](https://github.com/chinmay-sawant/codehound/issues/136) · [`phase5-implementation-backlog.md`](./phase5-implementation-backlog.md) · children #137–#142 (start only after reopen criteria).
 
 ### 5.1 BP and CWE promotion gates
 
