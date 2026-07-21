@@ -8,7 +8,31 @@
 > **Branch:** `chore/phase5-g2-cwe-277`  
 > **Date:** 2026-07-22  
 > **CodeHound base:** `9e61e807358a1b9a4f5a03cf3b2abecbe30281a2` (`origin/master`)  
-> **Outcome:** **Keep Heuristic** — **not** Structural-promoted
+> **Outcome:** **Keep Heuristic** — **not** Structural-promoted  
+> **Checklist plan:** this file (execution checklist below)
+
+---
+
+## Execution checklist
+
+### Completed (2026-07-22)
+
+- [x] Read G2 reopen criteria + audit §1.3
+- [x] Confirm detector is call_facts primary (`Umask(0)` + `MkdirAll(..., 0777)`)
+- [x] Build release binary; canary `--only CWE-277 --profile all`
+- [x] Expanded corpus: gopdfsuit, monsoon, go-retry, gorl, no-mistakes (**0/376**)
+- [x] Decision: **keep Heuristic** (no real-module hit)
+- [x] Document remaining gaps (mode variants, scope negatives)
+- [x] Explicit non-action: no Structural allow-list change without hit
+- [x] Cross-link backlog #138 / epic #136
+
+### Remaining to reopen Structural promotion
+
+- [ ] Reviewed actionable real-module hit for CWE-277
+- [ ] Broader mode-variant negatives (`0o777` / non-zero umask) if needed
+- [ ] §1.3 checklist all true in same PR as maturity flip
+- [ ] Maturity + profile + unit tests updated together
+- [ ] Re-canary after promotion
 
 ---
 

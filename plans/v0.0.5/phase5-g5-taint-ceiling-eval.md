@@ -220,12 +220,28 @@ This evaluation does **not**:
 
 ---
 
-## Verification (this tranche)
+## Execution checklist
 
-- [x] Read `taint-capability-decision.md`, `documents/taint.md`, ADR 0003, G5 gate row.
-- [x] Picked **one** ceiling: channel/goroutine handoffs.
-- [x] Documented current ceiling + evidence.
-- [x] Documented FP/FN contract required to reopen.
-- [x] Decision: **remain deferred** with reopen checklist.
-- [x] Optional unit test: send→receive→sink remains silent (no invented edges).
-- [x] No engine dataflow expansion beyond documenting silence.
+### Completed (2026-07-22)
+
+- [x] Read `taint-capability-decision.md`, `documents/taint.md`, ADR 0003, G5 gate row
+- [x] Pick **one** ceiling: channel/goroutine handoffs
+- [x] Document current ceiling + evidence
+- [x] Document FP/FN contract required to reopen
+- [x] Decision: **remain deferred** with reopen checklist
+- [x] Optional unit test: send→receive→sink remains silent (no invented edges)
+- [x] No engine dataflow expansion beyond documenting silence
+- [x] Cross-link #141 / #136
+
+### Remaining to reopen implementation (channel/goroutine)
+
+- [ ] Written FP/FN contract accepted for concurrent handoffs
+- [ ] Design that does not invent naive send/receive edges
+- [ ] Fixtures + integration tests + canary
+- [ ] Dependency clarity vs G4 typed facts if required
+- [ ] New scoped implementable issue (not #141 alone as delivery)
+
+### Deferred siblings (still not this plan)
+
+- [ ] External-package taint summaries
+- [ ] Decoder-receiver output bridges

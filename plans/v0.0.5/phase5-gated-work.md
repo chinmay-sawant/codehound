@@ -6,7 +6,8 @@
 > **Historical trackers (closed):** [#120](https://github.com/chinmay-sawant/codehound/issues/120) · [#121](https://github.com/chinmay-sawant/codehound/issues/121)  
 > **Plan source:** [`parallel-catalog-program.md`](./parallel-catalog-program.md) §5.1–5.2  
 > **Kind:** Docs-only reopen criteria (not a feature mandate)  
-> **Date:** 2026-07-21
+> **Date:** 2026-07-21  
+> **Day ledger:** [`22072026.md`](./22072026.md) · **G-* checklist plans:** see [`phase5-implementation-backlog.md`](./phase5-implementation-backlog.md)
 
 ---
 

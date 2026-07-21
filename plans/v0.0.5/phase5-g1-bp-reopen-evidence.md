@@ -7,7 +7,32 @@
 > **Branch:** `chore/phase5-g1-bp-expansion`  
 > **Date:** 2026-07-22  
 > **CodeHound base:** `9e61e807358a1b9a4f5a03cf3b2abecbe30281a2` (`origin/master`)  
-> **Outcome:** **Keep deferred** — no BP detector shipped
+> **Outcome:** **Keep deferred** — no BP detector shipped  
+> **Checklist plan:** this file (execution checklist below)
+
+---
+
+## Execution checklist
+
+### Completed (2026-07-22)
+
+- [x] Read G1 reopen criteria in `phase5-gated-work.md`
+- [x] Re-read absent BP disposition (`bp-candidates-disposition.md`)
+- [x] Identify only **BP-71** as `defer-needs-canary`
+- [x] Static-sample five-module corpus (gopdfsuit, monsoon, go-retry, gorl, no-mistakes)
+- [x] Classify hits as idiomatic vs actionable correctness bugs
+- [x] Decision: **keep deferred** (0 actionable)
+- [x] Evidence + PR body under `plans/v0.0.5/`
+- [x] Explicit non-action: no bulk BP rules / no pure-fixture detectors
+- [x] Cross-link backlog #137 / epic #136
+
+### Remaining to reopen implementation
+
+- [ ] Find non-Write/non-Copy multi-return discard class with real-module signal
+- [ ] Overlap analysis vs live BP/CWE/tools
+- [ ] Vulnerable + safe fixtures with near-miss negatives
+- [ ] Release canary with agreed FP budget
+- [ ] New scoped implementable issue (or re-open work under #137 with evidence comment)
 
 ---
 

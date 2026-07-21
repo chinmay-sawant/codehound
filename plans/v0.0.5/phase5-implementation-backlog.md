@@ -4,7 +4,9 @@
 > **GitHub epic:** [#136](https://github.com/chinmay-sawant/codehound/issues/136)  
 > **Gate criteria:** [`phase5-gated-work.md`](./phase5-gated-work.md)  
 > **Parent program (closed):** epic [#105](https://github.com/chinmay-sawant/codehound/issues/105) / PR #135  
-> **Date:** 2026-07-21 / eval 2026-07-22
+> **Date:** 2026-07-21 / eval 2026-07-22  
+> **Day ledger (process + outcomes):** [`22072026.md`](./22072026.md)  
+> **G-* checklist plans:** G1–G6 evidence/eval files + [`phase5-g3-fo-residual-plan.md`](./phase5-g3-fo-residual-plan.md)
 
 ---
 
@@ -27,12 +29,12 @@ This file is the **implementation backlog** map (issue ↔ gate ↔ docs). It do
 | ID | Issue | Title | Gate summary |
 |----|------:|-------|--------------|
 | — | [#136](https://github.com/chinmay-sawant/codehound/issues/136) | Phase 5 implementation backlog (epic) | Parent only |
-| G1 | [#137](https://github.com/chinmay-sawant/codehound/issues/137) | Broad BP-66+ expansion | Real-module pattern + fixtures + canary + overlap |
-| G2 | [#138](https://github.com/chinmay-sawant/codehound/issues/138) | CWE-277 Structural promotion | Actionable hit + mode/scope negatives + §1.3 |
-| G3 | [#139](https://github.com/chinmay-sawant/codehound/issues/139) | Generalize fixture-only rules | AST/fact primary replaces corpus co-signals |
-| G4 | [#140](https://github.com/chinmay-sawant/codehound/issues/140) | Typed Go / `go/packages` | Roadmap Gate #49 A1–A6 |
-| G5 | [#141](https://github.com/chinmay-sawant/codehound/issues/141) | Advanced taint (ext pkg / decoder / channels) | FP/FN contract + no fake edges |
-| G6 | [#142](https://github.com/chinmay-sawant/codehound/issues/142) | Python catalog investment | Demand + ADR 0005 reverse/amend |
+| G1 | [#137](https://github.com/chinmay-sawant/codehound/issues/137) | Broad BP-66+ expansion | [`phase5-g1-bp-reopen-evidence.md`](./phase5-g1-bp-reopen-evidence.md) |
+| G2 | [#138](https://github.com/chinmay-sawant/codehound/issues/138) | CWE-277 Structural promotion | [`phase5-g2-cwe-277-reopen-evidence.md`](./phase5-g2-cwe-277-reopen-evidence.md) |
+| G3 | [#139](https://github.com/chinmay-sawant/codehound/issues/139) | FO residual / generalization | [`phase5-g3-fo-residual-plan.md`](./phase5-g3-fo-residual-plan.md) |
+| G4 | [#140](https://github.com/chinmay-sawant/codehound/issues/140) | Typed Go / `go/packages` | [`phase5-g4-typed-go-gate-eval.md`](./phase5-g4-typed-go-gate-eval.md) |
+| G5 | [#141](https://github.com/chinmay-sawant/codehound/issues/141) | Advanced taint | [`phase5-g5-taint-ceiling-eval.md`](./phase5-g5-taint-ceiling-eval.md) |
+| G6 | [#142](https://github.com/chinmay-sawant/codehound/issues/142) | Python catalog | [`phase5-g6-python-gate-eval.md`](./phase5-g6-python-gate-eval.md) |
 
 ### Progress checklist (mirror of epic)
 

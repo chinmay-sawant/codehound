@@ -175,11 +175,22 @@ ADR 0005 remains the authority. Path to unlock G6 implementation:
 
 ---
 
-## Success criteria for this docs tranche
+## Execution checklist
+
+### Completed (2026-07-22)
 
 - [x] Inventory current Python capability (SLOP101 only; honest vs Go)
-- [x] Evaluate B1–B4 with pass/fail and evidence
-- [x] Record demand status and ADR path
+- [x] Evaluate Gate **B1–B4** with pass/fail and evidence
+- [x] Record demand status and ADR path (ADR 0005 still Accepted demote)
 - [x] Decision: **remain deferred**
 - [x] No new Python rules
 - [x] PR body at [`pr-phase5-g6-python.md`](./pr-phase5-g6-python.md)
+- [x] Cross-link #142 / #136
+
+### Remaining to reopen implementation
+
+- [ ] B1 Funded / time-bounded demand with owner + metrics
+- [ ] B2 New or reversing ADR Accepted (amend/supersede 0005)
+- [ ] B3 Honesty bar for README/ROADMAP/frontend after capability matches claim
+- [ ] B4 Engineering floor for real multi-rule second language
+- [ ] New scoped implementable issue (not #142 alone as delivery)

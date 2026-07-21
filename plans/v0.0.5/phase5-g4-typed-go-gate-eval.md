@@ -7,7 +7,32 @@
 > **Prior defer:** [`roadmap-investments-decision.md`](./roadmap-investments-decision.md) (#40)  
 > **Status:** **REMAIN DEFERRED** — docs-only evidence pass; **no** `go/packages` integration, **no** `--typed` flag, **no** Cargo deps  
 > **Evaluation date:** 2026-07-22  
-> **Base SHA:** `9e61e807358a1b9a4f5a03cf3b2abecbe30281a2` (`origin/master`)
+> **Base SHA:** `9e61e807358a1b9a4f5a03cf3b2abecbe30281a2` (`origin/master`)  
+> **Checklist plan:** this file (execution checklist below)
+
+---
+
+## Execution checklist
+
+### Completed (2026-07-22)
+
+- [x] Read Gate A source of truth (`roadmap-gates-49.md`)
+- [x] Walk **A1–A6** with pass/fail + evidence as of today
+- [x] Decision: **remain deferred** (not all A1–A6 pass)
+- [x] List blockers and reopen path
+- [x] Minimal optional typed-layer design sketch (**no code**)
+- [x] Explicit non-actions: no `go/packages`, no Cargo deps, no `--typed`
+- [x] Cross-link #140 / #136 / ROADMAP Later row
+
+### Remaining to reopen implementation
+
+- [ ] A1 PERF pack typed-mode readiness sign-off
+- [ ] A2 Typed-mode honesty ledger
+- [ ] A3 Written FN/FP capability contract
+- [ ] A4 Accepted architecture sketch
+- [ ] A5 Cost measurements accepted
+- [x] A6 Non-blocker policy (already held)
+- [ ] New scoped implementation issue (not #140 alone as delivery)
 
 ---
 
