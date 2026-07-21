@@ -7,7 +7,8 @@
 > **Product docs:** [`documents/taint.md`](../../documents/taint.md), [ADR 0003](../../documents/adr/0003-taint-model.md)  
 > **Status:** **Remain deferred** — no engine edges, no whole-program claim  
 > **Date:** 2026-07-22  
-> **Kind:** Ceiling evaluation + reopen FP/FN contract (docs; optional silence test only)
+> **Kind:** Ceiling evaluation + reopen FP/FN contract (docs; optional silence test only)  
+> **Checklist plan:** this file (execution checklist at end + day ledger [`22072026.md`](./22072026.md))
 
 ---
 
