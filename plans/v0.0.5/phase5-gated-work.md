@@ -50,14 +50,14 @@ Related but separate gate trackers (do not collapse into this file):
 
 ## Status table
 
-| ID | Item | Phase | Disposition | Tracker | Gate to reopen (summary) |
-|----|------|-------|-------------|---------|--------------------------|
-| G1 | Broad BP-66+ expansion | 5.1 | **Deferred** | #120 | High-signal real-module pattern + overlap + fixture + canary |
-| G2 | CWE-277 Structural promotion | 5.1 | **Deferred** | #120 | Actionable real-module hit + mode/scope negatives + §1.3 bar |
-| G3 | Generalization of fixture-only rules | 5.1 | **Deferred** | #120 | Corpus co-signals replaced by real AST/fact proof + §1.3 bar |
-| G4 | Optional typed Go / `go/packages` | 5.2 | **Deferred** | #121 | All Roadmap Gate #49 criteria (A1–A6) met |
-| G5 | External-package taint, decoder receivers, channel/goroutine flows | 5.2 | **Deferred** | #121 | Stronger type/concurrent data-flow contracts + taint decision |
-| G6 | Python catalog investment | 5.2 | **Deferred** | #121 | Funded demand + new/reversed Go-first ADR (#49 B1–B2) |
+| ID | Item | Phase | Disposition | Implement issue | Gate to reopen (summary) |
+|----|------|-------|-------------|-----------------|--------------------------|
+| G1 | Broad BP-66+ expansion | 5.1 | **Deferred** | [#137](https://github.com/chinmay-sawant/codehound/issues/137) | High-signal real-module pattern + overlap + fixture + canary |
+| G2 | CWE-277 Structural promotion | 5.1 | **Deferred** | [#138](https://github.com/chinmay-sawant/codehound/issues/138) | Actionable real-module hit + mode/scope negatives + §1.3 bar |
+| G3 | Generalization of fixture-only rules | 5.1 | **Deferred** | [#139](https://github.com/chinmay-sawant/codehound/issues/139) | Corpus co-signals replaced by real AST/fact proof + §1.3 bar |
+| G4 | Optional typed Go / `go/packages` | 5.2 | **Deferred** | [#140](https://github.com/chinmay-sawant/codehound/issues/140) | All Roadmap Gate #49 criteria (A1–A6) met |
+| G5 | External-package taint, decoder receivers, channel/goroutine flows | 5.2 | **Deferred** | [#141](https://github.com/chinmay-sawant/codehound/issues/141) | Stronger type/concurrent data-flow contracts + taint decision |
+| G6 | Python catalog investment | 5.2 | **Deferred** | [#142](https://github.com/chinmay-sawant/codehound/issues/142) | Funded demand + new/reversed Go-first ADR (#49 B1–B2) |
 
 All rows: **implementation deferred**. Tracking for this program is complete; do not implement until a successor issue is opened after reopen criteria are satisfied.
 
@@ -205,9 +205,10 @@ Success criteria for **this docs tranche** (epic #105 Phase 5):
 
 ## Related
 
+- Implementation backlog: [`phase5-implementation-backlog.md`](./phase5-implementation-backlog.md) · epic [#136](https://github.com/chinmay-sawant/codehound/issues/136)  
 - Ledger: [`parallel-catalog-program.md`](./parallel-catalog-program.md) Phase 5  
-- Issues: [#120](https://github.com/chinmay-sawant/codehound/issues/120), [#121](https://github.com/chinmay-sawant/codehound/issues/121)  
-- Parent epic: [#105](https://github.com/chinmay-sawant/codehound/issues/105)  
+- Historical trackers: [#120](https://github.com/chinmay-sawant/codehound/issues/120), [#121](https://github.com/chinmay-sawant/codehound/issues/121)  
+- Closed program epic: [#105](https://github.com/chinmay-sawant/codehound/issues/105)  
 - Roadmap gates: [#49](https://github.com/chinmay-sawant/codehound/issues/49) · [`roadmap-gates-49.md`](./roadmap-gates-49.md)  
 - Investments decision: [`roadmap-investments-decision.md`](./roadmap-investments-decision.md)  
 - Structural bar: [`cwe-catalog-trust-audit.md`](./cwe-catalog-trust-audit.md) §1.3  
