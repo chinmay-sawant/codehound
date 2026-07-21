@@ -1,12 +1,12 @@
 # v0.0.5 — Phase 5 gated work (tracking complete; implementations deferred)
 
 > **Program status (epic #105):** **TRACKING COMPLETE** — reopen criteria recorded; this tranche is done.  
-> **Implementation status (G1–G6):** still **DEFERRED** — do **not** ship BP expansion, CWE-277 Structural, typed Go, advanced taint, or Python catalog from this file or from closed #120 / #121.  
-> **Issues:** [#120](https://github.com/chinmay-sawant/codehound/issues/120) (Phase 5.1 tracker) · [#121](https://github.com/chinmay-sawant/codehound/issues/121) (Phase 5.2 tracker)  
-> **Parent epic:** [#105](https://github.com/chinmay-sawant/codehound/issues/105)  
+> **Implementation status (G1–G6):** still **DEFERRED** until reopen criteria met.  
+> **Implementation backlog:** epic [#136](https://github.com/chinmay-sawant/codehound/issues/136) · children [#137](https://github.com/chinmay-sawant/codehound/issues/137)–[#142](https://github.com/chinmay-sawant/codehound/issues/142) · [`phase5-implementation-backlog.md`](./phase5-implementation-backlog.md)  
+> **Historical trackers (closed):** [#120](https://github.com/chinmay-sawant/codehound/issues/120) · [#121](https://github.com/chinmay-sawant/codehound/issues/121)  
 > **Plan source:** [`parallel-catalog-program.md`](./parallel-catalog-program.md) §5.1–5.2  
 > **Kind:** Docs-only reopen criteria (not a feature mandate)  
-> **Date:** 2026-07-21 (status clarified same day on Phase 3–5 integration)
+> **Date:** 2026-07-21
 
 ---
 
@@ -16,7 +16,7 @@
 |--|--|
 | **Epic #105 Phase 5 work** | **Done.** Single plan record, status table, reopen criteria, and non-actions shipped. Trackers may close with the program integration PR. |
 | **This file going forward** | Permanent gate ledger. G1–G6 stay **deferred** until criteria below are met. |
-| **Implementations** | **Do not start** under #120 / #121 or residual plan boxes. Open a **new scoped child issue** only after reopen evidence is recorded. |
+| **Implementations** | Use backlog children **#137–#142** only after reopen evidence is recorded on that issue. Do not re-use closed #120 / #121. |
 | **Not authorized by** | Closed trust batches, noise-reduce canaries, recommended-pack pilots, or unchecked historical plan boxes. |
 
 **Explicit non-actions until a successor implementable issue exists:**
