@@ -37,7 +37,7 @@ This file is the **implementation backlog** map (issue ↔ gate ↔ docs). It do
 ### Progress checklist (mirror of epic)
 
 - [ ] #137 G1 BP-66+
-- [ ] #138 G2 CWE-277 Structural
+- [x] #138 G2 CWE-277 Structural — **evidence only** 2026-07-22: keep Heuristic ([`phase5-g2-cwe-277-reopen-evidence.md`](./phase5-g2-cwe-277-reopen-evidence.md)); canary 0/376; no maturity flip
 - [ ] #139 G3 FO generalization
 - [ ] #140 G4 typed Go
 - [ ] #141 G5 advanced taint
@@ -92,3 +92,4 @@ Not Phase 5 G-rows, but unfinished **domain slices** from trust batches (open a 
 |------|--------|
 | 2026-07-21 | #105 Phase 5 **tracking** closed with PR #135 |
 | 2026-07-21 | Epic **#136** + children **#137–#142** opened; this backlog file created |
+| 2026-07-22 | #138 G2: expanded five-module CWE-277 canary → **keep Heuristic** (`phase5-g2-cwe-277-reopen-evidence.md`; 0/376); no Structural promotion |
