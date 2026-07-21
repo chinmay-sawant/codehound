@@ -133,6 +133,47 @@ func f(r *http.Request, ch chan string) {
         );
     }
 
+    /// G5 ceiling documentation: classic channel handoff stays an honest FN.
+    /// Send is not an assignment edge; receive does not inherit send-site taint.
+    /// Do not "fix" this by inventing channel transfer edges — reopen needs a
+    /// concurrent data-flow contract (plans/v0.0.5/phase5-g5-taint-ceiling-eval.md).
+    #[test]
+    fn channel_send_receive_handoff_remains_silent_fn() {
+        let source = r#"package main
+func f(r *http.Request, ch chan string) {
+    x := r.URL.Query().Get("q")
+    ch <- x
+    y := <-ch
+    _ = os.Open(y)
+}
+"#;
+        let unit = parse(source);
+        let facts = extract_taint_facts(&unit);
+        assert!(
+            facts.unsupported_flows.iter().any(|u| matches!(
+                u.kind,
+                crate::lang::go::detectors::cwe::taint::UnsupportedFlowKind::Channel
+            )),
+            "expected channel unsupported flow, got {:?}",
+            facts.unsupported_flows
+        );
+        assert!(
+            !facts.assignments.iter().any(|a| a.is_channel_send),
+            "channel sends must not be graph assignments"
+        );
+        let graph = build_taint_graph(&facts);
+        let paths = find_taint_paths(
+            &graph,
+            SourceKind::UserInput,
+            SinkKind::FileOpen,
+            &[SanitizerKind::Path],
+        );
+        assert!(
+            paths.is_empty(),
+            "channel send→receive must not invent a taint path (honest FN); got {paths:?}"
+        );
+    }
+
     #[test]
     fn field_key_assignment_tracks_qualified_lhs() {
         let source = r#"package main
