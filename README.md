@@ -94,11 +94,13 @@ codehound --include-tests .
 # Limit to specific rules (merged with pack allow-list)
 codehound --only CWE-22,CWE-89 .
 
-# Show every registered rule
+# Show every registered rule (maturity tags in brackets)
 codehound --list-rules
+codehound rules --category security
 
-# Show details for a single rule
+# Explain a rule: maturity, pack eligibility, quarantine reason, docs
 codehound --explain PERF-101
+codehound rules --explain CWE-334   # fixture-only → --profile all, not CI-certified
 
 # Write a starter codehound.toml
 codehound init

@@ -51,9 +51,33 @@ Taint analysis is **off** under `recommended` unless you pass `--taint`. The CWE
 
 ## Fixture-only quarantine
 
-Rules tagged `fixture-only` (CWE-334/335/338/342/343 PRNG corpus patterns and CWE-798's literal-DSN pattern) are **never** in recommended/security. Use `--profile all` for the full corpus. The evidence and structural-promotion bar are recorded in [`plans/v0.0.5/cwe-catalog-trust-audit.md`](../plans/v0.0.5/cwe-catalog-trust-audit.md).
+Rules tagged `fixture-only` are **never** in recommended/security/perf default packs.
+They are **available under `--profile all`** (or an explicit `--only <id>`), but that
+does **not** mean they are production-certified for CI hard-fail gates. Treat
+fixture-only hits as corpus/museum signals until the structural-promotion bar
+is met.
+
+Examples include CWE-334/335/338/342/343 PRNG corpus patterns, CWE-798's
+literal-DSN shape, and other long-tail CWEs audited in
+[`plans/v0.0.5/cwe-catalog-trust-audit.md`](../plans/v0.0.5/cwe-catalog-trust-audit.md).
+
+Reserved rules (today: `BP-63`) follow the same pack quarantine: available under
+`--profile all`, not for production CI packs until completed.
 
 See `src/rules/maturity.rs` and `src/core/profile.rs`.
+
+## Rule explainability
+
+Inspect pack eligibility, maturity, quarantine reason, and docs for any rule:
+
+```bash
+codehound rules --explain CWE-334
+codehound --explain CWE-89          # flag form (same surface)
+codehound rules --category security # list with [maturity] tags
+```
+
+The explain surface reuses the single maturity registry (`RuleMaturity` /
+`maturity_for`); it does not invent a second rule-status model.
 
 ## CI one-liner
 

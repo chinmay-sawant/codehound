@@ -1,0 +1,9 @@
+---
+source: src/rules/explain.rs
+expression: "RuleExplainability::for_rule(\"CWE-41\").format_block()"
+---
+Rule ID:           CWE-41
+Maturity:          structural
+Pack eligibility:  eligible for security pack (structural allow-list); also under --profile all
+Status reason:     AST/facts with generalized patterns that meet the structural promotion bar
+Documentation:     plans/v0.0.5/cwe-catalog-trust-audit.md §1.3; documents/go-recommended-pack.md

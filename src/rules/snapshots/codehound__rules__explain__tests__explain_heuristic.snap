@@ -1,0 +1,9 @@
+---
+source: src/rules/explain.rs
+expression: "RuleExplainability::for_rule(\"CWE-916\").format_block()"
+---
+Rule ID:           CWE-916
+Maturity:          heuristic
+Pack eligibility:  not quarantined from default packs; membership follows profile allow-lists / --only
+Status reason:     Useful smell with higher false-positive risk; review findings before CI hard-fail
+Documentation:     documents/go-recommended-pack.md; src/rules/maturity.rs
