@@ -2,7 +2,7 @@
 
 /// Frequently scanned literals across the Go CWE bundle (one `contains` per needle).
 ///
-/// Hygiene notes (Phase 1 + Tranche 2–5 + long-tail §2.11 + file-perm Phase 2 + batch 1 epic #95 + Phase 2 epic #105):
+/// Hygiene notes (Phase 1 + Tranche 2–5 + long-tail §2.11 + file-perm Phase 2 + batch 1 epic #95 + Phase 2 epic #105 + epic #151 R1–R4):
 /// - Prefer structural facts/call classification over needles for primary detection.
 /// - `// fixture-only:` / `// fixture-literal:` encode corpus strings; paired detectors
 ///   stay out of recommended/security packs via `rules::maturity` when quarantined.
@@ -15,6 +15,7 @@ pub const NEEDLES: &[&str] = &[
     "!= \"reviewer\"",
     "!authenticated || isAdmin && ownerID == docOwner",
     "\",\"",
+    // fixture-literal: CWE-289 realm-strip museum
     "\"@\")[0]",
     "\"admin\"",
     "\"current_password\"",
@@ -90,6 +91,7 @@ pub const NEEDLES: &[&str] = &[
     "= 0",
     "= 1",
     "AND user_id = $2",
+    // fixture-literal / co-signal: CWE-201 sensitive field inventory
     "APIKey",
     "APP_DATABASE_URL",
     // negative-gate: CWE-921 safe-path private secret directory env
@@ -119,6 +121,7 @@ pub const NEEDLES: &[&str] = &[
     "ChargeCardPure(",
     "Chmod(dir, 0700)",
     "Chmod(f.Name(), 0600)",
+    // fixture-literal / co-signal: CWE-213 compensation field inventory
     "Comp",
     "CompareHashAndPassword",
     "ConstantTimeCompare",
@@ -197,6 +200,7 @@ pub const NEEDLES: &[&str] = &[
     "INSERT INTO telemetry",
     "INSERT INTO wires",
     "InsecureSkipVerify",
+    // fixture-literal: CWE-322 tls skip-verify museum
     "InsecureSkipVerify: true",
     // fixture-only: magic PRNG bound from CWE-334 corpus
     "Intn(4096)",
@@ -211,6 +215,7 @@ pub const NEEDLES: &[&str] = &[
     // negative-gate: TLS listen safe-path (CWE-319)
     "ListenAndServeTLS(",
     "LoadOrStore(key, 0)",
+    // negative-gate: CWE-294 nonce replay protection
     "LoadOrStore(nonce, true)",
     "Lock()",
     // fixture-literal: CWE-613 logout handler corpus
@@ -233,6 +238,7 @@ pub const NEEDLES: &[&str] = &[
     "PAN",
     "ParseRequestURI(cfg.URL)",
     "Password",
+    // fixture-literal: CWE-260 frameworks yaml password field
     "Password string",
     "Password: \"admin\"",
     // fixture-literal: CWE-256 GORM plaintext password field corpus
@@ -277,6 +283,7 @@ pub const NEEDLES: &[&str] = &[
     "Role: role",
     // fixture-literal: gin.Run all-interfaces bind from CWE-1327 frameworks corpus
     "Run(\":9090\")",
+    // fixture-literal: CWE-408 orders SQL museum
     "SELECT * FROM orders WHERE tenant_id = ?",
     "SELECT email FROM profiles",
     "SELECT email, ssn FROM customers",
@@ -290,6 +297,7 @@ pub const NEEDLES: &[&str] = &[
     "SSN: c.PostForm(\"ssn\")",
     "SSN: r.FormValue(\"ssn\")",
     "SSNCipher",
+    // fixture-literal / co-signal: CWE-213 compensation field inventory
     "Salary",
     "SaveHookConfig(",
     "SaveHookConfigPure(",
@@ -302,6 +310,7 @@ pub const NEEDLES: &[&str] = &[
     // fixture-literal: CWE-1240 pure-fixture helper name
     "SealSessionTokenPure(",
     "Secret",
+    // fixture-literal: CWE-260 stdlib json secret field
     "Secret   string",
     "Secret: encoded",
     // fixture-literal: CWE-941 frameworks reset-notification helper
@@ -335,6 +344,7 @@ pub const NEEDLES: &[&str] = &[
     "Store(user, encoded)",
     "Store(userID, role)",
     "TRUNCATE ledger",
+    // fixture-literal / co-signal: CWE-201 sensitive field inventory
     "TokenKey",
     "TrackVisit",
     "UPDATE accounts SET password",
@@ -425,6 +435,7 @@ pub const NEEDLES: &[&str] = &[
     "c.Cookie(\"role\")",
     "c.File(f.Name())",
     "c.JSON(200, gin.H{\"rotated\": true})",
+    // fixture-literal: CWE-294 auth_token form loader
     "c.PostForm(\"auth_token\")",
     "c.Query(\"url\")",
     // fixture-literal: CWE-434 gin redirect with client filename
@@ -432,10 +443,13 @@ pub const NEEDLES: &[&str] = &[
     "c.Redirect(http.StatusFound, target)",
     "c.String(http.StatusInternalServerError, err.Error())",
     "cacheMu.Lock()",
+    // negative-gate: CWE-289 principals lookup safe path
     "canonical_name = ?",
     "case \"export\":",
     "case \"read\":",
+    // fixture-literal: CWE-260 loaded password use
     "cfg.Password",
+    // fixture-literal: CWE-260 loaded secret use
     "cfg.Secret",
     "changed_at",
     // negative-gate: stdlib CBC API (CWE-1204 prefilter)
@@ -457,6 +471,7 @@ pub const NEEDLES: &[&str] = &[
     "const shipmentHMACSecret = ",
     "context.WithValue(",
     "context.WithValue(r.Context(), effectiveUserKey, original)",
+    // fixture-literal: CWE-455 continue-after-failure log
     "continuing without mTLS",
     "crypto/tls",
     "csv.NewWriter(",
@@ -476,6 +491,7 @@ pub const NEEDLES: &[&str] = &[
     "defer secret.Close()",
     "defer walletMu.Unlock()",
     "digest",
+    // negative-gate: CWE-213 redaction DTO safe path
     "directoryEntry{",
     "email",
     "encoding/gob",
@@ -528,6 +544,7 @@ pub const NEEDLES: &[&str] = &[
     // negative-gate: CWE-502 gob decoder prefilter (call_facts primary after batch 1)
     "gob.NewDecoder(",
     "gorm.Open(postgres.Open(dsn)",
+    // negative-gate: CWE-213 redaction DTO safe path
     "guestProfile{",
     "hasExport && hasRead",
     "hasRead && hasExport",
@@ -619,6 +636,7 @@ pub const NEEDLES: &[&str] = &[
     "len(tag) > 32",
     "lockedUntil",
     "lockfile",
+    // negative-gate: CWE-455 fail-fast safe path
     "log.Fatalf(",
     "log.Printf(\"auth failure",
     "log.Println(err)",
@@ -656,6 +674,7 @@ pub const NEEDLES: &[&str] = &[
     // fixture-literal: CWE-434 pure-stdlib create dest shape
     "os.Create(dest)",
     "os.Environ()",
+    // negative-gate: CWE-260 env-requiredness safe path
     "os.Getenv(",
     "os.Getenv(\"BILLING_API_URL\")",
     "os.Getenv(\"JWT_SIGNING_KEY\")",
@@ -714,6 +733,7 @@ pub const NEEDLES: &[&str] = &[
     "r.Cookie(\"oauth_state\")",
     "r.Cookie(\"role\")",
     "r.Cookie(\"session_id\")",
+    // fixture-literal: CWE-294 auth_token form loader
     "r.FormValue(\"auth_token\")",
     "r.GET(\"/debug/sqltrace\"",
     "r.Group(\"/api\", requireJWT())",
@@ -781,6 +801,7 @@ pub const NEEDLES: &[&str] = &[
     "sid",
     // negative-gate: stdlib SMTP sink (CWE-941 prefilter; call_facts primary after §2.5)
     "smtp.SendMail",
+    // negative-gate: CWE-294 nonce store identifier
     "spentNonces",
     // negative-gate: controlled spool directory (CWE-648 / CWE-708 safe-path prefilter)
     "spoolDir",
@@ -793,6 +814,7 @@ pub const NEEDLES: &[&str] = &[
     "strconv.ParseInt(raw, 10, 64)",
     // fixture-literal / co-signal: CWE-279 requested-mode parse (co-presence only, not dataflow)
     "strconv.ParseUint(",
+    // fixture-literal: CWE-303 MAC compare museum
     "string(expected) == sig",
     "strings.Contains(",
     "strings.Contains(target, \"//\")",
@@ -829,6 +851,7 @@ pub const NEEDLES: &[&str] = &[
     "time.Sleep(200 * time.Millisecond)",
     // negative-gate: tls.Config presence (CWE-319 safe-path prefilter)
     "tls.Config",
+    // fixture-literal: CWE-322 tls.Dial co-signal museum
     "tls.Dial(",
     "tls.LoadX509KeyPair(",
     "token",
@@ -844,8 +867,10 @@ pub const NEEDLES: &[&str] = &[
     "trustedPluginDir",
     "trustedPluginRoot",
     "type chargeExport struct",
+    // fixture-literal: CWE-201 stdlib record type
     "type memberRecord struct",
     "type paymentExport struct",
+    // fixture-literal: CWE-201 frameworks record type
     "type userRecord struct",
     "uid",
     // fixture-literal: CWE-434 safe-path error string
