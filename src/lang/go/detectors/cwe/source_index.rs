@@ -2,7 +2,7 @@
 
 /// Frequently scanned literals across the Go CWE bundle (one `contains` per needle).
 ///
-/// Hygiene notes (Phase 1 + Tranche 2–5 + long-tail §2.11 + file-perm Phase 2 + batch 1 epic #95):
+/// Hygiene notes (Phase 1 + Tranche 2–5 + long-tail §2.11 + file-perm Phase 2 + batch 1 epic #95 + Phase 2 epic #105):
 /// - Prefer structural facts/call classification over needles for primary detection.
 /// - `// fixture-only:` / `// fixture-literal:` encode corpus strings; paired detectors
 ///   stay out of recommended/security packs via `rules::maturity` when quarantined.
@@ -154,6 +154,7 @@ pub const NEEDLES: &[&str] = &[
     "ExportFeedbackCSVPure(",
     "ExportUsers",
     "FROM invoices WHERE id = $1",
+    // fixture-literal: CWE-756 FetchProfile helper co-signal
     "FetchProfile",
     "FetchSharedAsset(",
     "FetchSharedAssetPure(",
@@ -211,6 +212,7 @@ pub const NEEDLES: &[&str] = &[
     "LoadOrStore(key, 0)",
     "LoadOrStore(nonce, true)",
     "Lock()",
+    // fixture-literal: CWE-613 logout handler corpus
     "LogoutHandler",
     "MFAPassed",
     "MatchString(tag)",
@@ -319,6 +321,7 @@ pub const NEEDLES: &[&str] = &[
     "SignupPayloadPure{}",
     "SignupPayload{}",
     "SplitHostPort(",
+    // fixture-literal: CWE-523 cleartext login helper corpus
     "StartCleartextLogin",
     // fixture-literal: CWE-1327 frameworks public-API helper
     "StartPublicAPI(",
@@ -359,6 +362,7 @@ pub const NEEDLES: &[&str] = &[
     "WriteFile(",
     "WriteHeader(http.StatusOK)",
     "X-Api-Key",
+    // fixture-literal: CWE-603 auth header policy corpus
     "X-Authenticated",
     "X-Body-Mac",
     "X-Card-Token",
@@ -368,6 +372,7 @@ pub const NEEDLES: &[&str] = &[
     "X-Forwarded-For",
     "X-JWT-Sub",
     "X-Operator-ID",
+    // fixture-literal: CWE-1230 original-name header leak corpus
     "X-Original-Name",
     // fixture-literal / co-signal: CWE-276 session header corpus co-presence
     "X-Session-Data",
@@ -444,7 +449,9 @@ pub const NEEDLES: &[&str] = &[
     "code := lastOTP",
     "code := lastSmsCode",
     "const billingHMACSecret = ",
+    // fixture-literal: CWE-547 hard-coded JWT secret const corpus
     "const jwtSecret = ",
+    // fixture-literal: CWE-547 hard-coded session MAC const corpus
     "const sessionMACKey = ",
     "const shipmentHMACSecret = ",
     "context.WithValue(",

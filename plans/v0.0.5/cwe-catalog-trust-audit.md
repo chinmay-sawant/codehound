@@ -1,7 +1,7 @@
 # v0.0.5 — CWE Catalog Trust Audit, Tranche 1
 
 > **Parent:** `plans/v0.0.5/pending-work.md` — Phase 3.2
-> **Status:** Tranches 1–5 complete (merged [#41](https://github.com/chinmay-sawant/codehound/pull/41), [#43](https://github.com/chinmay-sawant/codehound/pull/43); [#39](https://github.com/chinmay-sawant/codehound/issues/39) / [#42](https://github.com/chinmay-sawant/codehound/issues/42) closed). File-permissions siblings **complete** in §2.12 (epic [#85](https://github.com/chinmay-sawant/codehound/issues/85)). **Parallel catalog batch 1** recorded in §2.13 (epic [#95](https://github.com/chinmay-sawant/codehound/issues/95); plan [`parallel-catalog-program.md`](./parallel-catalog-program.md)). Remaining undated CWE catalog is still not fully certified.
+> **Status:** Tranches 1–5 complete (merged [#41](https://github.com/chinmay-sawant/codehound/pull/41), [#43](https://github.com/chinmay-sawant/codehound/pull/43); [#39](https://github.com/chinmay-sawant/codehound/issues/39) / [#42](https://github.com/chinmay-sawant/codehound/issues/42) closed). File-permissions siblings **complete** in §2.12 (epic [#85](https://github.com/chinmay-sawant/codehound/issues/85)). **Parallel catalog batch 1** recorded in §2.13; **Phase 2 batch** in §2.14 (epic [#95](https://github.com/chinmay-sawant/codehound/issues/95); plan [`parallel-catalog-program.md`](./parallel-catalog-program.md)). Remaining undated CWE catalog is still not fully certified.
 > **Estimated effort:** Incremental, rule-family by rule-family under #45; do not bulk-promote or bulk-check the remaining catalog.
 
 ---
@@ -951,6 +951,49 @@ Targets/revisions match prior canaries: gopdfsuit `26d7126…` (78), monsoon `e0
 **Decision:** quarantine museum-shaped rules to `--profile all` / `--only`; keep CWE-916 Heuristic for PDF password MD5 actionability; re-canary combined Phase 1 set on the integration branch before merge to master.
 
 - [x] Record batch-1 dispositions and canary rates from worker reports + integrated maturity/NEEDLES application.
+
+---
+
+
+### 2.14 Parallel catalog Phase 2 — credential / response / cookies / privilege (2026-07-21)
+
+> **Epic:** [#105](https://github.com/chinmay-sawant/codehound/issues/105)
+> **Children:** [#107](https://github.com/chinmay-sawant/codehound/issues/107) B1 · [#108](https://github.com/chinmay-sawant/codehound/issues/108) B2 · [#109](https://github.com/chinmay-sawant/codehound/issues/109) B3 · [#110](https://github.com/chinmay-sawant/codehound/issues/110) B4 · [#111](https://github.com/chinmay-sawant/codehound/issues/111) integration
+> **Plan:** [`parallel-catalog-program.md`](./parallel-catalog-program.md) Phase 2
+> **Integration base SHA:** `9d66183c3b29d8589317328170226bff6d4323d1`
+
+#### Selected slices
+
+| Stream | Selected | Deferred in same domain |
+|--------|----------|-------------------------|
+| B1 | credentials-in-source (523/547/798) | expiration + reset/recovery |
+| B2 | metadata_leaks (209/215/756/1230) | sensitive_fields (201/213) |
+| B3 | cookies (603/613) | auth_flows + auth_tokens |
+| B4 | privilege_escalation (266/267/268/270/272/273/274/1265) | lifecycle_and_integrity |
+
+#### Dispositions
+
+| Rule | Disposition | Notes |
+|------|-------------|-------|
+| CWE-523 | fixture-only | cleartext login topology museum |
+| CWE-547 | fixture-only | hard-coded signing const names |
+| CWE-798 | fixture-only (reaffirm) | Tranche 1 DSN museum |
+| CWE-209 | fixture-only | exact db failure format |
+| CWE-215 | **Heuristic keep** | log.Printf + secret-named binding |
+| CWE-756 | fixture-only | err.Error + FetchProfile/SQL |
+| CWE-1230 | fixture-only | X-Original-Name header corpus |
+| CWE-603 | fixture-only | X-Authenticated policy museum |
+| CWE-613 | fixture-only | non-expiring sid SetCookie museum |
+| CWE-266/267/268/270/273/274/1265 | fixture-only | privilege role/transition museums |
+| CWE-272 | **Heuristic keep** | call_facts Setuid(0)+Chown |
+
+No Structural promotions.
+
+#### Canary (worker pre-integration; re-run on integrated tree)
+
+All worker slices reported **0 findings / 126 files** on gopdfsuit/monsoon/go-retry for their `--only` sets. Combined Phase 2 canary recorded on integration branch.
+
+- [x] Record Phase 2 dispositions from B1–B4 worker reports + integrated maturity.
 
 ---
 
