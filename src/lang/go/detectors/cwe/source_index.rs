@@ -34,6 +34,7 @@ pub const NEEDLES: &[&str] = &[
     "*3 + 1) % 97",
     // fixture-only: deterministic PRNG formula from CWE-343 corpus
     "*5 + 3) % 101",
+    // fixture-literal: CWE-917 template source concat co-signal
     "+ expr",
     ", 900,",
     // fixture-literal: CWE-502 privileged gob Decode target shape
@@ -470,6 +471,7 @@ pub const NEEDLES: &[&str] = &[
     "defer c.Set(\"effective_user\", original)",
     "defer cacheMu.Unlock()",
     "defer func()",
+    // negative-gate: CWE-619 safe-path rows.Close defer
     "defer rows.Close()",
     "defer secret.Close()",
     "defer walletMu.Unlock()",
@@ -731,7 +733,9 @@ pub const NEEDLES: &[&str] = &[
     "regexp.MustCompile(`^[a-z]+$`)",
     // fixture-literal: CWE-323 pure-fixture fixed-nonce identifier
     "relaySessionNonce",
+    // negative-gate: CWE-917 safe-path fixed template const (frameworks)
     "reportTemplate",
+    // negative-gate: CWE-917 safe-path fixed template const (pure stdlib)
     "reportTemplatePure",
     "requested == \"private/keys.pem\"",
     "requester != target",
@@ -747,7 +751,9 @@ pub const NEEDLES: &[&str] = &[
     "role not allowed from trusted channel",
     "role=admin",
     "row.Comment",
+    // fixture-literal: CWE-619 exact rows Query assignment museum
     "rows, err := db.Query(",
+    // fixture-literal / co-signal: CWE-619 rows.Next co-presence
     "rows.Next()",
     "runtime.NumCPU()",
     "safeTagPattern",
@@ -809,6 +815,7 @@ pub const NEEDLES: &[&str] = &[
     "tagPattern",
     "tagPatternPure",
     "template.HTML(",
+    // fixture-literal: CWE-917 template.New("report").Parse museum formula
     "template.New(\"report\").Parse(src)",
     "tenantStore.Delete(",
     "text/csv",
@@ -880,6 +887,7 @@ pub const NEEDLES: &[&str] = &[
     "{\"proof\": challenge}",
     "{\"session\": user}",
     "{\"session\":\"` + user + `\"}",
+    // fixture-literal: CWE-917 template fragment corpus
     "{{.Title}} where ",
 ];
 

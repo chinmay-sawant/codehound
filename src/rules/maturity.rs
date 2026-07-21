@@ -175,6 +175,10 @@ fn is_fixture_only(rule_id: &str) -> bool {
             | "CWE-140" // strings.Join comma CSV delimiter museum
             | "CWE-1173" // SignupPayload map-decode validation bypass museum
             | "CWE-1236" // fmt.Sprintf CSV formula row museum
+            // Phase 5 G3 / #139 — injection resource FO residual (C1 deferred sibling)
+            // CWE-93 stays Structural (header CRLF call_facts primary).
+            | "CWE-619" // exact rows Query/Next/Close dangling-cursor museum
+            | "CWE-917" // template.New("report") + {{.Title}} where + concat museum
             // Common fixture-shaped long-tail (path/corpus strings)
             | "CWE-798" // hard-coded credentials often fixture-shaped
     )
@@ -255,6 +259,9 @@ mod tests {
         assert_eq!(maturity_for("CWE-140"), RuleMaturity::FixtureOnly);
         assert_eq!(maturity_for("CWE-1173"), RuleMaturity::FixtureOnly);
         assert_eq!(maturity_for("CWE-1236"), RuleMaturity::FixtureOnly);
+        // Phase 5 G3 injection resource residual
+        assert_eq!(maturity_for("CWE-619"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-917"), RuleMaturity::FixtureOnly);
         // Cipher / weak-hash / world-writable WriteFile / umask+mkdir / password MD5 /
         // secret-log / Setuid+Chown / config external-control smells remain heuristic
         // (not structural-promoted). CWE-93 remains Structural.
@@ -325,6 +332,8 @@ mod tests {
         assert!(is_quarantined_from_default_packs("CWE-140"));
         assert!(is_quarantined_from_default_packs("CWE-1173"));
         assert!(is_quarantined_from_default_packs("CWE-1236"));
+        assert!(is_quarantined_from_default_packs("CWE-619"));
+        assert!(is_quarantined_from_default_packs("CWE-917"));
         assert!(!is_quarantined_from_default_packs("CWE-325"));
         assert!(!is_quarantined_from_default_packs("CWE-328"));
         assert!(!is_quarantined_from_default_packs("CWE-250"));

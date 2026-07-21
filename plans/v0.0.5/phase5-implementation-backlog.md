@@ -38,7 +38,7 @@ This file is the **implementation backlog** map (issue ↔ gate ↔ docs). It do
 
 - [ ] #137 G1 BP-66+
 - [ ] #138 G2 CWE-277 Structural
-- [ ] #139 G3 FO generalization
+- [x] #139 G3 FO generalization — **partial:** injection resource (CWE-619/917) FO residual landed; other FO families remain open under reopen criteria
 - [ ] #140 G4 typed Go
 - [ ] #141 G5 advanced taint
 - [ ] #142 G6 Python catalog
@@ -63,7 +63,7 @@ Not Phase 5 G-rows, but unfinished **domain slices** from trust batches (open a 
 
 | Domain | Done | Deferred sibling |
 |--------|------|------------------|
-| Injection | CWE-93 | CWE-619, CWE-917 |
+| Injection | CWE-93 (Structural); **CWE-619/917 FO** (G3 / #139) | — (resource residual disposed) |
 | Configuration | hardcoding (15 FO siblings) | secrets_in_config 260/455 |
 | Credential lifecycle | credentials-in-source | expiration / reset-recovery |
 | Response leaks | metadata_leaks | sensitive_fields 201/213 |
@@ -92,3 +92,4 @@ Not Phase 5 G-rows, but unfinished **domain slices** from trust batches (open a 
 |------|--------|
 | 2026-07-21 | #105 Phase 5 **tracking** closed with PR #135 |
 | 2026-07-21 | Epic **#136** + children **#137–#142** opened; this backlog file created |
+| 2026-07-22 | G3 partial: injection resource CWE-619/917 fixture-only residual (`chore/phase5-g3-fo-generalization`) |
