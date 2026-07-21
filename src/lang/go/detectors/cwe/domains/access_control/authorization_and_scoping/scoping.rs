@@ -2,10 +2,20 @@ use super::super::super::super::facts::GoUnitFacts;
 use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
+
+// Access-control A4 trust freeze (authorization_and_scoping/scoping.rs).
+// Primary evidence is SourceIndex corpus co-presence (invoice IDOL + exact SQL).
+// Proposed maturity: fixture-only (integrator applies maturity.rs).
+// See plans/v0.0.5/pr-cwe-trust-access-control.md.
+
 pub(crate) fn detect_cwe_639(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
+    // Primary signal (fixture-literal): invoice_id query key + exact unscoped
+    // SELECT id, user_id, amount FROM invoices WHERE id = $1 (or source shape).
+    // Negative gate: AND user_id = $2 | ownerID | X-User-ID owner-scoping evidence.
+    // No taint/dataflow from query param to SQL; IDOR shape is corpus-encoded.
     let user_controlled_key = facts.source_index.has("invoice_id")
         && (facts
             .source_index
@@ -38,6 +48,10 @@ pub(crate) fn detect_cwe_1220(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut 
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
+    // Primary signal (fixture-literal): GetInvoice(|GetInvoicePure( helper name +
+    // Authorization header presence + FROM invoices WHERE id = $1 unscoped read.
+    // Negative gate: owner_id = $2 | ownerID | X-User-ID granularity evidence.
+    // Auth-present-but-unscoped is a policy shape, not a generalized call fact.
     let unscoped_invoice_read = (facts
         .source_index
         .has_any(&["GetInvoice(", "GetInvoicePure("]))

@@ -1,7 +1,7 @@
 # v0.0.5 — CWE Catalog Trust Audit, Tranche 1
 
 > **Parent:** `plans/v0.0.5/pending-work.md` — Phase 3.2
-> **Status:** Tranches 1–5 complete (merged [#41](https://github.com/chinmay-sawant/codehound/pull/41), [#43](https://github.com/chinmay-sawant/codehound/pull/43); [#39](https://github.com/chinmay-sawant/codehound/issues/39) / [#42](https://github.com/chinmay-sawant/codehound/issues/42) closed). **Long-tail under [#45](https://github.com/chinmay-sawant/codehound/issues/45)** — file-mode family §2.11; access-control file-permissions siblings **complete** in §2.12 (epic [#85](https://github.com/chinmay-sawant/codehound/issues/85); Phase 2 maturity + Phase 3 zero-hit canary integrated). Remaining undated CWE catalog is still not fully certified (inventory in §2.11 / §2.12).
+> **Status:** Tranches 1–5 complete (merged [#41](https://github.com/chinmay-sawant/codehound/pull/41), [#43](https://github.com/chinmay-sawant/codehound/pull/43); [#39](https://github.com/chinmay-sawant/codehound/issues/39) / [#42](https://github.com/chinmay-sawant/codehound/issues/42) closed). File-permissions siblings **complete** in §2.12 (epic [#85](https://github.com/chinmay-sawant/codehound/issues/85)). **Parallel catalog batch 1** recorded in §2.13 (epic [#95](https://github.com/chinmay-sawant/codehound/issues/95); plan [`parallel-catalog-program.md`](./parallel-catalog-program.md)). Remaining undated CWE catalog is still not fully certified.
 > **Estimated effort:** Incremental, rule-family by rule-family under #45; do not bulk-promote or bulk-check the remaining catalog.
 
 ---
@@ -904,6 +904,54 @@ Still undated after this sibling disposition (non-exhaustive; prefer domain-size
 
 Do **not** bulk-label NEEDLES or bulk-quarantine from this inventory alone.
 
+### 2.13 Parallel catalog batch 1 — password / transport / deserialization / authorization (2026-07-21)
+
+> **Domain seams:** `password_storage/`, `secrets_and_transport/`, `deserialization/`, `authorization_and_scoping/`
+> **Date:** 2026-07-21
+> **Epic:** [#95](https://github.com/chinmay-sawant/codehound/issues/95)
+> **Children:** [#96](https://github.com/chinmay-sawant/codehound/issues/96) A1 · [#97](https://github.com/chinmay-sawant/codehound/issues/97) A2 · [#98](https://github.com/chinmay-sawant/codehound/issues/98) A3 · [#99](https://github.com/chinmay-sawant/codehound/issues/99) A4
+> **Plan:** [`parallel-catalog-program.md`](./parallel-catalog-program.md) Phase 0–1
+> **Integration base SHA:** `217c0078d8a585e0e08b3b113e665898f6bf62dd`
+
+#### Audited dispositions
+
+| Rule | Family | Disposition | Primary signal | Notes |
+|---|---|---|---|---|
+| CWE-256 | password storage | **fixture-only** | Exact GORM/SQL plaintext persistence | No complete call-fact password→store without dataflow |
+| CWE-257 | password storage | **fixture-only** | call_facts AES-GCM+base64 + password persistence co-signals | Crypto production-shaped; emit corpus-gated |
+| CWE-261 | password storage | **fixture-only** | call_facts base64 + `Secret:encoded` / `Store(user, encoded)` | Base64 alone ≠ password storage |
+| CWE-916 | password storage | **Heuristic keep** | call_facts `md5.Sum` + `password` co-signal | 2 reviewed gopdfsuit PDF password MD5 hits; **not** Structural |
+| CWE-524 | transport secrets | **fixture-only** | `tokenCache`/`tokenVault` + Authorization map | Identifier museum; no generalized API sink |
+| CWE-538 | transport secrets | **fixture-only** | call_facts `os.WriteFile`+`0o644` + DATABASE_URL + `/var/www` | Real mode sink; still corpus path/env gated |
+| CWE-502 | deserialization | **fixture-only** | call_facts `gob.NewDecoder` + adminAction/Grant + Decode(&action) | Corpus admin-action shape, not generalized gob/JSON boundary |
+| CWE-425 | authorization_and_scoping | **fixture-only** | `/internal/admin/export.csv` + PII SELECT; neg `requireAdmin` | Selected A4 family (smaller than auth_and_validation) |
+| CWE-551 | authorization_and_scoping | **fixture-only** | raw path HasPrefix/ReplaceAll corpus | Deferred sibling: `auth_and_validation/` → Phase 2 B3 |
+| CWE-653 | authorization_and_scoping | **fixture-only** | sharedDB/sharedAuditStore + PublicSearch/AdminPurge | |
+| CWE-639 | authorization_and_scoping | **fixture-only** | invoice_id unscoped invoice SELECT | |
+| CWE-1220 | authorization_and_scoping | **fixture-only** | GetInvoice* + Authorization + unscoped SQL | |
+
+No rule promoted to Structural (§1.3 bar not met for any family; CWE-916 has real hits but still needle/name co-gated).
+
+#### Maturity / NEEDLES
+
+- `maturity.rs`: fixture-only for all rows above except CWE-916 (Heuristic).
+- Family NEEDLES labeled `fixture-literal` / `negative-gate` for batch-1 co-signals and prefilters (no bulk deletes).
+
+#### Canary decision — 2026-07-21 (worker pre-integration; re-run on integrated tree)
+
+| Slice | `--only` | Files | Findings |
+|---|---|---:|---:|
+| A1 password | CWE-256,257,261,916 | 126 | **2** (CWE-916 ×2 on gopdfsuit) |
+| A2 transport | CWE-524,538 | 126 | **0** |
+| A3 deserialization | CWE-502 | 126 | **0** |
+| A4 authorization | CWE-425,551,653,639,1220 | 126 | **0** |
+
+Targets/revisions match prior canaries: gopdfsuit `26d7126…` (78), monsoon `e0f1027…` (43), go-retry `d3eb50a…` (5).
+
+**Decision:** quarantine museum-shaped rules to `--profile all` / `--only`; keep CWE-916 Heuristic for PDF password MD5 actionability; re-canary combined Phase 1 set on the integration branch before merge to master.
+
+- [x] Record batch-1 dispositions and canary rates from worker reports + integrated maturity/NEEDLES application.
+
 ---
 
 ## Dependencies
@@ -912,4 +960,4 @@ Do **not** bulk-label NEEDLES or bulk-quarantine from this inventory alone.
 - `src/rules/maturity.rs` and profile-pack tests
 - CWE fixture manifest and real Go canary repositories
 - The preserved scanner finding oracle for any detector rewrite
-
+- Parallel program ledger: `plans/v0.0.5/parallel-catalog-program.md`

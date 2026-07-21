@@ -128,6 +128,20 @@ fn is_fixture_only(rule_id: &str) -> bool {
             | "CWE-279" // ParseUint co-presence + WriteFile 0777 (no mode dataflow)
             | "CWE-281" // os.Create + exact io.Copy(out, in) + !info.Mode() corpus shape
             | "CWE-921" // /tmp/integration.key + WriteFile 0644 corpus path/mode
+            // Parallel catalog batch 1 / epic #95 (A1–A4)
+            // CWE-916 stays Heuristic: call_facts md5.Sum + password co-signal;
+            // real-module gopdfsuit PDF password MD5 hits; not structural-promoted.
+            | "CWE-256" // exact GORM/SQL plaintext password persistence corpus
+            | "CWE-257" // AES-GCM+base64 chain gated on password:encoded persistence
+            | "CWE-261" // base64 encode gated on Secret:encoded / Store(user, encoded)
+            | "CWE-524" // tokenCache/tokenVault + Authorization process-wide map
+            | "CWE-538" // DATABASE_URL WriteFile 0o644 + /var/www public path corpus
+            | "CWE-502" // gob.NewDecoder + adminAction/Grant + Decode(&action) corpus
+            | "CWE-425" // /internal/admin/export.csv + PII SELECT without requireAdmin
+            | "CWE-551" // raw path HasPrefix/ReplaceAll client-side filter corpus
+            | "CWE-653" // sharedDB/sharedAuditStore + PublicSearch/AdminPurge
+            | "CWE-639" // invoice_id unscoped invoice SELECT corpus
+            | "CWE-1220" // GetInvoice* + Authorization + unscoped SQL corpus
             // Common fixture-shaped long-tail (path/corpus strings)
             | "CWE-798" // hard-coded credentials often fixture-shaped
     )
@@ -167,12 +181,25 @@ mod tests {
         assert_eq!(maturity_for("CWE-279"), RuleMaturity::FixtureOnly);
         assert_eq!(maturity_for("CWE-281"), RuleMaturity::FixtureOnly);
         assert_eq!(maturity_for("CWE-921"), RuleMaturity::FixtureOnly);
-        // Cipher / weak-hash / world-writable WriteFile / umask+mkdir smells remain heuristic
-        // (call-facts primary for 325/328/250/277; not structural-promoted).
+        // Parallel catalog batch 1 (epic #95)
+        assert_eq!(maturity_for("CWE-256"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-257"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-261"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-524"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-538"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-502"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-425"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-551"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-653"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-639"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-1220"), RuleMaturity::FixtureOnly);
+        // Cipher / weak-hash / world-writable WriteFile / umask+mkdir / password MD5 smells remain heuristic
+        // (call-facts primary for 325/328/250/277/916; not structural-promoted).
         assert_eq!(maturity_for("CWE-325"), RuleMaturity::Heuristic);
         assert_eq!(maturity_for("CWE-328"), RuleMaturity::Heuristic);
         assert_eq!(maturity_for("CWE-250"), RuleMaturity::Heuristic);
         assert_eq!(maturity_for("CWE-277"), RuleMaturity::Heuristic);
+        assert_eq!(maturity_for("CWE-916"), RuleMaturity::Heuristic);
         assert!(is_quarantined_from_default_packs("CWE-334"));
         assert!(is_quarantined_from_default_packs("CWE-1204"));
         assert!(is_quarantined_from_default_packs("CWE-323"));
@@ -193,10 +220,22 @@ mod tests {
         assert!(is_quarantined_from_default_packs("CWE-279"));
         assert!(is_quarantined_from_default_packs("CWE-281"));
         assert!(is_quarantined_from_default_packs("CWE-921"));
+        assert!(is_quarantined_from_default_packs("CWE-256"));
+        assert!(is_quarantined_from_default_packs("CWE-257"));
+        assert!(is_quarantined_from_default_packs("CWE-261"));
+        assert!(is_quarantined_from_default_packs("CWE-524"));
+        assert!(is_quarantined_from_default_packs("CWE-538"));
+        assert!(is_quarantined_from_default_packs("CWE-502"));
+        assert!(is_quarantined_from_default_packs("CWE-425"));
+        assert!(is_quarantined_from_default_packs("CWE-551"));
+        assert!(is_quarantined_from_default_packs("CWE-653"));
+        assert!(is_quarantined_from_default_packs("CWE-639"));
+        assert!(is_quarantined_from_default_packs("CWE-1220"));
         assert!(!is_quarantined_from_default_packs("CWE-325"));
         assert!(!is_quarantined_from_default_packs("CWE-328"));
         assert!(!is_quarantined_from_default_packs("CWE-250"));
         assert!(!is_quarantined_from_default_packs("CWE-277"));
+        assert!(!is_quarantined_from_default_packs("CWE-916"));
         assert!(!is_quarantined_from_default_packs("CWE-22"));
         assert!(!is_quarantined_from_default_packs("PERF-101"));
     }

@@ -2,7 +2,7 @@
 
 /// Frequently scanned literals across the Go CWE bundle (one `contains` per needle).
 ///
-/// Hygiene notes (Phase 1 + Tranche 2–5 + long-tail §2.11 + file-perm Phase 2):
+/// Hygiene notes (Phase 1 + Tranche 2–5 + long-tail §2.11 + file-perm Phase 2 + batch 1 epic #95):
 /// - Prefer structural facts/call classification over needles for primary detection.
 /// - `// fixture-only:` / `// fixture-literal:` encode corpus strings; paired detectors
 ///   stay out of recommended/security packs via `rules::maturity` when quarantined.
@@ -23,6 +23,7 @@ pub const NEEDLES: &[&str] = &[
     "\"next\"",
     "\"over\"",
     "\"over_limit\"",
+    // fixture-literal: CWE-257 password persistence co-signal
     "\"password\": encoded",
     "\"password\": pass",
     "\"status\": \"ok\"",
@@ -35,6 +36,7 @@ pub const NEEDLES: &[&str] = &[
     "*5 + 3) % 101",
     "+ expr",
     ", 900,",
+    // fixture-literal: CWE-502 privileged gob Decode target shape
     ".Decode(&action)",
     ".FormValue(",
     ".Get(\"X-Role\") != \"reviewer\"",
@@ -46,6 +48,7 @@ pub const NEEDLES: &[&str] = &[
     "/admin/config",
     "/admin/sql",
     "/debug/pprof",
+    // fixture-literal: CWE-425 admin export path corpus
     "/internal/admin/export.csv",
     "/internal/reload",
     "/login",
@@ -61,7 +64,9 @@ pub const NEEDLES: &[&str] = &[
     "/tmp/shared-sessions",
     "/tmp/worker.bin",
     "/var/lib/codehound/private",
+    // fixture-literal: CWE-538 public web root path corpus
     "/var/www/",
+    // fixture-literal: CWE-538 public export path corpus
     "/var/www/html/public/",
     // fixture-literal: CWE-434 corpus upload destination path
     "/var/www/static/avatars",
@@ -72,6 +77,7 @@ pub const NEEDLES: &[&str] = &[
     // fixture-literal / mode token: CWE-276 WriteFile mode via call_facts (also temp-dir family)
     "0666",
     "0o600",
+    // fixture-literal / mode token: CWE-538 WriteFile mode (call_facts primary after batch 1)
     "0o644",
     "0xC3, 0x28",
     "10.20.30.40:9090",
@@ -122,6 +128,7 @@ pub const NEEDLES: &[&str] = &[
     "Cookie(\"profile\")",
     "Cookie(\"session_id\")",
     "CreateTemp(",
+    // fixture-literal / co-signal: CWE-538 secret env name corpus
     "DATABASE_URL",
     "DB_PASSWORD",
     "DELETE FROM tenants",
@@ -163,6 +170,7 @@ pub const NEEDLES: &[&str] = &[
     // fixture-literal / co-signal: uid form key (CWE-648 corpus co-presence)
     "FormValue(\"uid\")",
     "FormValue(\"username\")",
+    // negative-gate: CWE-256 safe-path bcrypt helper prefilter
     "GenerateFromPassword(",
     "Get(\"role\")",
     "GetHeader(\"X-Forwarded-For\")",
@@ -224,6 +232,7 @@ pub const NEEDLES: &[&str] = &[
     "Password",
     "Password string",
     "Password: \"admin\"",
+    // fixture-literal: CWE-256 GORM plaintext password field corpus
     "Password: c.PostForm(\"password\")",
     "PasswordHash string",
     "PersonRecord",
@@ -378,6 +387,7 @@ pub const NEEDLES: &[&str] = &[
     "^([a-zA-Z]+)*$",
     "`json:\"password_hash\"`",
     "actingAsRoot = true",
+    // fixture-literal: CWE-502 admin action type corpus co-signal
     "adminAction",
     "adminAuditStore",
     "adminDB",
@@ -402,6 +412,7 @@ pub const NEEDLES: &[&str] = &[
     "bad secret",
     "base64.StdEncoding.DecodeString",
     "base64.StdEncoding.EncodeToString(",
+    // negative-gate: CWE-916 safe-path bcrypt prefilter
     "bcrypt.GenerateFromPassword",
     "blockedIPs",
     "body.Password",
@@ -505,6 +516,7 @@ pub const NEEDLES: &[&str] = &[
     "gin.H{\"session\": c.GetString(\"subject\")}",
     "gin.H{\"session\": user}",
     "go func()",
+    // negative-gate: CWE-502 gob decoder prefilter (call_facts primary after batch 1)
     "gob.NewDecoder(",
     "gorm.Open(postgres.Open(dsn)",
     "guestProfile{",
@@ -558,6 +570,7 @@ pub const NEEDLES: &[&str] = &[
     "invalid oauth state",
     // fixture-literal: CWE-347 safe-path error string (not a general verify fact)
     "invalid signature",
+    // fixture-literal: CWE-639 unscoped invoice query co-signal
     "invoice_id",
     // fixture-literal: CWE-281 exact backup copy shape (call_facts preferred after Phase 2)
     "io.Copy(out, in)",
@@ -748,6 +761,7 @@ pub const NEEDLES: &[&str] = &[
     "sha1.Sum(",
     "sha256.Sum256(",
     "sharedAuditStore",
+    // fixture-literal: CWE-653 shared store identifier corpus
     "sharedDB",
     // fixture-literal: CWE-323 frameworks fixed-nonce identifier
     "sharedNonce",
@@ -804,8 +818,10 @@ pub const NEEDLES: &[&str] = &[
     "tls.Dial(",
     "tls.LoadX509KeyPair(",
     "token",
+    // fixture-literal: CWE-524 process-wide token cache identifier
     "tokenCache",
     "tokenCache[key] = value",
+    // fixture-literal: CWE-524 process-wide token vault identifier
     "tokenVault",
     "totp_valid",
     "transferMu",
