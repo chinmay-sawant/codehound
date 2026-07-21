@@ -19,7 +19,7 @@
 
 | Phase | Theme | Notes |
 |-------|-------|-------|
-| Later | Typed Go facts | Optional `--typed` / go/packages only if PERF pack trusted — gate tracker [#49](https://github.com/chinmay-sawant/codehound/issues/49); criteria in [`plans/v0.0.5/roadmap-gates-49.md`](./plans/v0.0.5/roadmap-gates-49.md); prior defer [`roadmap-investments-decision.md`](./plans/v0.0.5/roadmap-investments-decision.md) |
+| Later | Typed Go facts | Optional `--typed` / go/packages only if PERF pack trusted — gate tracker [#49](https://github.com/chinmay-sawant/codehound/issues/49); criteria in [`plans/v0.0.5/roadmap-gates-49.md`](./plans/v0.0.5/roadmap-gates-49.md); prior defer [`roadmap-investments-decision.md`](./plans/v0.0.5/roadmap-investments-decision.md); G4 eval (remain deferred) [`phase5-g4-typed-go-gate-eval.md`](./plans/v0.0.5/phase5-g4-typed-go-gate-eval.md) · [#140](https://github.com/chinmay-sawant/codehound/issues/140) |
 | Later | Python invest | Only if funded — reverse [ADR 0005](./documents/adr/0005-multi-lang-honesty.md) demote with a new ADR — same gate tracker [#49](https://github.com/chinmay-sawant/codehound/issues/49); Go-first retained |
 
 ## Multi-lang decision (Phase 9)
