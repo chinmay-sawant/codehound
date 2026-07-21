@@ -223,9 +223,12 @@ Success criteria:
 
 ### 4.3 Protect recommended-pack trust
 
-- [ ] Repeat the recommended-pack pilot on the expanded pinned corpus after each integrated catalog batch.
-- [ ] Treat a material false-positive regression as a stop-the-line issue for the affected family, not a reason to weaken global quality gates.
-- [ ] Preserve the release cold-scan budget; do not start performance rewrites unless the documented budget is breached with a stable oracle.
+- [x] Repeat the recommended-pack pilot on the expanded pinned corpus after each integrated catalog batch.
+  Evidence: [`recommended-pack-pilot.md`](./recommended-pack-pilot.md) (2026-07-21 post Phase 2). Core three multiset unchanged (38+3+0); §4.1 formal pin list still open — pilot uses core three + opportunistic `real-repos/*`.
+- [x] Treat a material false-positive regression as a stop-the-line issue for the affected family, not a reason to weaken global quality gates.
+  Policy: [`recommended-pack-pilot.md`](./recommended-pack-pilot.md) §3. Not triggered on this re-pilot.
+- [x] Preserve the release cold-scan budget; do not start performance rewrites unless the documented budget is breached with a stable oracle.
+  Status: UNDER BUDGET (~0.52–0.85s steady gopdfsuit / 915 findings); hold rewrites — see pilot §4 and [`perf-budget-48.md`](./perf-budget-48.md).
 
 ---
 
