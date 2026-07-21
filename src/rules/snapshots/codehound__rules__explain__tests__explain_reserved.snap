@@ -1,0 +1,9 @@
+---
+source: src/rules/explain.rs
+expression: "RuleExplainability::for_rule(\"BP-63\").format_block()"
+---
+Rule ID:           BP-63
+Maturity:          reserved
+Pack eligibility:  quarantined from recommended/security/perf; available under --profile all or --only (advisory / incomplete)
+Status reason:     Placeholder / incomplete detector; not for production CI packs until completed
+Documentation:     documents/go-recommended-pack.md; src/rules/maturity.rs (reserved policy)

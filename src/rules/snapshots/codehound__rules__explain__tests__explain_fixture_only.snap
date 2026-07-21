@@ -1,0 +1,9 @@
+---
+source: src/rules/explain.rs
+expression: "RuleExplainability::for_rule(\"CWE-334\").format_block()"
+---
+Rule ID:           CWE-334
+Maturity:          fixture-only
+Pack eligibility:  quarantined from recommended/security/perf; available under --profile all or --only (not production-certified)
+Status reason:     Fixture-corpus evidence only — available under --profile all, not production-certified
+Documentation:     documents/go-recommended-pack.md (fixture-only quarantine); plans/v0.0.5/cwe-catalog-trust-audit.md

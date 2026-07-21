@@ -1,0 +1,9 @@
+---
+source: src/rules/explain.rs
+expression: "RuleExplainability::for_rule(\"CWE-89\").format_block()"
+---
+Rule ID:           CWE-89
+Maturity:          taint-core
+Pack eligibility:  eligible for recommended (with --taint) and security packs; also under --profile all
+Status reason:     Graph-based taint/injection family; production CI candidate when taint is enabled
+Documentation:     documents/taint.md; documents/go-recommended-pack.md

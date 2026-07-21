@@ -4,6 +4,7 @@
 
 pub(crate) mod emit;
 mod evidence;
+pub(crate) mod explain;
 mod finding;
 pub(crate) mod finding_view;
 pub(crate) mod finding_wire;
@@ -13,6 +14,7 @@ mod severity;
 
 pub use emit::{push_finding, push_finding_with_evidence, push_finding_with_snippet, rule_meta};
 pub use evidence::{ControlFlowKind, DetectorEvidence, TaintHop, TaintSinkInfo, TaintSourceInfo};
+pub use explain::RuleExplainability;
 pub use finding::{Finding, FindingInputs, LineCol};
 pub use finding_view::FindingView;
 pub use maturity::{RuleMaturity, is_quarantined_from_default_packs, maturity_for};

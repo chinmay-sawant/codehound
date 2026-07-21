@@ -24,7 +24,8 @@ use clap::Parser;
         codehound --taint-show-paths         # emit taint-path evidence\n  \
         codehound --diagnostics-summary      # compact scan stats\n  \
         codehound --list-rules               # show every registered rule\n  \
-        codehound --explain CWE-89           # details for a specific rule\n  \
+        codehound rules --explain CWE-89     # maturity, packs, quarantine, docs\n  \
+        codehound --explain CWE-334          # fixture-only: --profile all only\n  \
         codehound init                       # write a starter codehound.toml"
 )]
 /// Top-level command-line interface for the `codehound` binary.

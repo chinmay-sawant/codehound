@@ -4,7 +4,7 @@ use std::sync::OnceLock;
 use codehound::cli::RuleCategory;
 use codehound::cwe::{RuleDescription, default_ruleset_path, load_rule_descriptions};
 use codehound::engine::Registry;
-use codehound::rules::category_for_rule_id;
+use codehound::rules::{RuleExplainability, category_for_rule_id};
 
 pub(crate) fn print_rules(category: Option<RuleCategory>) {
     let registry = Registry::default();
@@ -33,7 +33,8 @@ pub(crate) fn print_rules(category: Option<RuleCategory>) {
                 .map(|d| d.name.as_str())
                 .or_else(|| det.metadata_for(id).map(|m| m.title))
                 .unwrap_or("<missing metadata>");
-            println!("  {id:<12} {title}");
+            let maturity = RuleExplainability::for_rule(id).maturity;
+            println!("  {id:<12} [{maturity}] {title}");
         }
     }
     if descriptions.is_empty() {
@@ -54,6 +55,10 @@ pub(crate) fn print_rule_explanation(rule_id: &str) {
             println!("{} — {}", m.id, m.title);
             println!();
             println!("{}", m.description);
+            println!();
+            // Maturity-backed explainability surface (plan §4.2 / #118).
+            // Reuses rules::maturity — no second status model.
+            println!("{}", RuleExplainability::for_rule(rule_id).format_block());
             println!();
             println!("Analysis mode: {}", analysis_mode_for(rule_id));
             println!("Confidence: {}", confidence_for(rule_id));
