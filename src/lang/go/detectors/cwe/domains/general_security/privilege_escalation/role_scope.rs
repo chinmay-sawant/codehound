@@ -3,9 +3,21 @@ use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
+// Privilege-escalation B4 trust freeze (privilege_escalation/role_scope.rs).
+// Rules: CWE-266, CWE-267, CWE-268.
+// Primary evidence is mixed assignment/input/call_facts + SourceIndex corpus
+// co-presence. Proposed maturity: fixture-only for all three (integrator applies
+// maturity.rs). See plans/v0.0.5/pr-cwe-trust-privilege-lifecycle.md.
+
 pub(crate) fn detect_cwe_266(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
 
+    // Primary signal (mixed): assignment name == "role" + UserControlled input
+    // binding for "role" + SI membership co-presence ("Role: role" | "Store(userID, role)").
+    // Negative: safe fixtures assign a server-side fixed role (no user-controlled
+    // binding named "role"), so the input_bindings gate is the real silence path.
+    // Call-facts alone cannot prove privilege assignment without the SI membership
+    // needles; keep assignment+input+SI conjunction. Proposed: fixture-only.
     let Some(role_assignment) = facts
         .assignments
         .iter()
@@ -42,6 +54,10 @@ pub(crate) fn detect_cwe_266(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 pub(crate) fn detect_cwe_267(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
 
+    // Primary signal (fixture-literal role + call_facts sink): SI reviewer-role
+    // guard text + call_facts callee exact os.Remove.
+    // No generalized role-policy graph; role string "reviewer" is corpus-shaped.
+    // Proposed: fixture-only.
     let reviewer_guard = facts
         .source_index
         .has_any(&[r#"!= "reviewer""#, r#".Get("X-Role") != "reviewer""#]);
@@ -71,6 +87,10 @@ pub(crate) fn detect_cwe_267(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 pub(crate) fn detect_cwe_268(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
 
+    // Primary signal (fixture-literal scopes + call_facts sensitive sink):
+    // SI read/export scope co-presence + (db.Queryx arg contains password_hash
+    // OR json.NewEncoder + SI Encode(userRecords)+"hash").
+    // Scope names and combination predicate are corpus-shaped. Proposed: fixture-only.
     let has_chained_scopes = (facts
         .source_index
         .has_any(&[r#"p == "read""#, r#"case "read":"#]))
