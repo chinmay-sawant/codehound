@@ -2,10 +2,19 @@ use super::super::super::super::facts::GoUnitFacts;
 use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
+
+// Access-control A4 trust freeze (authorization_and_scoping/guards.rs).
+// Primary evidence for all three rules is SourceIndex corpus co-presence, not
+// call_facts/AST. Proposed maturity: fixture-only (integrator applies maturity.rs).
+// See plans/v0.0.5/pr-cwe-trust-access-control.md.
+
 pub(crate) fn detect_cwe_425(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
+    // Primary signal (fixture-literal): exact admin export path + PII SELECT co-presence.
+    // Negative gate: requireAdmin() / requireAdmin( — middleware wrap evidence.
+    // No generalized route/authz graph; call_facts cannot prove missing guard.
     let admin_export = facts.source_index.has("/internal/admin/export.csv")
         && facts.source_index.has("SELECT email, ssn FROM customers");
     if !admin_export {
@@ -34,6 +43,11 @@ pub(crate) fn detect_cwe_551(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
+    // Primary signal (fixture-literal): raw path assignment + URL.Path + exact
+    // strings.HasPrefix(raw, "/admin") + percent-decode ReplaceAll before auth.
+    // Negative gate: url.PathUnescape(raw) — unescape-before-check safe shape.
+    // Call-facts for HasPrefix alone cannot establish auth-before-canonicalization
+    // without the corpus co-signals; keep SI primary.
     let raw_path_gate = facts.source_index.has("raw := ")
         && facts.source_index.has("URL.Path")
         && facts
@@ -67,6 +81,10 @@ pub(crate) fn detect_cwe_653(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
+    // Primary signal (fixture-literal): sharedDB|sharedAuditStore identifier +
+    // PublicSearch + AdminPurge helper co-presence.
+    // Negative gate: readOnly*/admin* store identifiers (compartment split).
+    // No structural store-isolation analysis; identifiers are the entire contract.
     let shared_privileged_store = (facts
         .source_index
         .has_any(&["sharedDB", "sharedAuditStore"]))
