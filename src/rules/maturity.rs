@@ -142,6 +142,23 @@ fn is_fixture_only(rule_id: &str) -> bool {
             | "CWE-653" // sharedDB/sharedAuditStore + PublicSearch/AdminPurge
             | "CWE-639" // invoice_id unscoped invoice SELECT corpus
             | "CWE-1220" // GetInvoice* + Authorization + unscoped SQL corpus
+            // Parallel catalog Phase 2 / epic #105 (B1–B4)
+            // CWE-215 stays Heuristic: call_facts log.Printf + secret-named binding.
+            // CWE-272 stays Heuristic: call_facts Setuid(0)+Chown production-shaped pair.
+            | "CWE-523" // cleartext login path + password + :8080 / StartCleartextLogin
+            | "CWE-547" // const jwtSecret / sessionMACKey hard-coded signing constants
+            | "CWE-209" // fmt.Sprintf + exact "db failure: %v" error body corpus
+            | "CWE-756" // http.Error/c.String err.Error + FetchProfile/SQL co-signals
+            | "CWE-1230" // c.Header/Header.Set X-Original-Name corpus header leak
+            | "CWE-603" // X-Authenticated:true + UPDATE billing SET plan policy museum
+            | "CWE-613" // non-expiring sid SetCookie + LogoutHandler corpus shape
+            | "CWE-266" // privilege role_scope corpus identifiers
+            | "CWE-267" // privilege role_scope corpus identifiers
+            | "CWE-268" // privilege role_scope corpus identifiers
+            | "CWE-270" // privilege transition corpus shape
+            | "CWE-273" // privilege transition corpus shape
+            | "CWE-274" // privilege transition corpus shape
+            | "CWE-1265" // privilege transition corpus shape
             // Common fixture-shaped long-tail (path/corpus strings)
             | "CWE-798" // hard-coded credentials often fixture-shaped
     )
@@ -193,13 +210,31 @@ mod tests {
         assert_eq!(maturity_for("CWE-653"), RuleMaturity::FixtureOnly);
         assert_eq!(maturity_for("CWE-639"), RuleMaturity::FixtureOnly);
         assert_eq!(maturity_for("CWE-1220"), RuleMaturity::FixtureOnly);
-        // Cipher / weak-hash / world-writable WriteFile / umask+mkdir / password MD5 smells remain heuristic
-        // (call-facts primary for 325/328/250/277/916; not structural-promoted).
+        // Parallel catalog Phase 2 (epic #105)
+        assert_eq!(maturity_for("CWE-523"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-547"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-209"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-756"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-1230"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-603"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-613"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-266"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-267"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-268"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-270"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-273"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-274"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-1265"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-798"), RuleMaturity::FixtureOnly);
+        // Cipher / weak-hash / world-writable WriteFile / umask+mkdir / password MD5 /
+        // secret-log / Setuid+Chown smells remain heuristic (not structural-promoted).
         assert_eq!(maturity_for("CWE-325"), RuleMaturity::Heuristic);
         assert_eq!(maturity_for("CWE-328"), RuleMaturity::Heuristic);
         assert_eq!(maturity_for("CWE-250"), RuleMaturity::Heuristic);
         assert_eq!(maturity_for("CWE-277"), RuleMaturity::Heuristic);
         assert_eq!(maturity_for("CWE-916"), RuleMaturity::Heuristic);
+        assert_eq!(maturity_for("CWE-215"), RuleMaturity::Heuristic);
+        assert_eq!(maturity_for("CWE-272"), RuleMaturity::Heuristic);
         assert!(is_quarantined_from_default_packs("CWE-334"));
         assert!(is_quarantined_from_default_packs("CWE-1204"));
         assert!(is_quarantined_from_default_packs("CWE-323"));
@@ -231,11 +266,28 @@ mod tests {
         assert!(is_quarantined_from_default_packs("CWE-653"));
         assert!(is_quarantined_from_default_packs("CWE-639"));
         assert!(is_quarantined_from_default_packs("CWE-1220"));
+        assert!(is_quarantined_from_default_packs("CWE-523"));
+        assert!(is_quarantined_from_default_packs("CWE-547"));
+        assert!(is_quarantined_from_default_packs("CWE-209"));
+        assert!(is_quarantined_from_default_packs("CWE-756"));
+        assert!(is_quarantined_from_default_packs("CWE-1230"));
+        assert!(is_quarantined_from_default_packs("CWE-603"));
+        assert!(is_quarantined_from_default_packs("CWE-613"));
+        assert!(is_quarantined_from_default_packs("CWE-266"));
+        assert!(is_quarantined_from_default_packs("CWE-267"));
+        assert!(is_quarantined_from_default_packs("CWE-268"));
+        assert!(is_quarantined_from_default_packs("CWE-270"));
+        assert!(is_quarantined_from_default_packs("CWE-273"));
+        assert!(is_quarantined_from_default_packs("CWE-274"));
+        assert!(is_quarantined_from_default_packs("CWE-1265"));
+        assert!(is_quarantined_from_default_packs("CWE-798"));
         assert!(!is_quarantined_from_default_packs("CWE-325"));
         assert!(!is_quarantined_from_default_packs("CWE-328"));
         assert!(!is_quarantined_from_default_packs("CWE-250"));
         assert!(!is_quarantined_from_default_packs("CWE-277"));
         assert!(!is_quarantined_from_default_packs("CWE-916"));
+        assert!(!is_quarantined_from_default_packs("CWE-215"));
+        assert!(!is_quarantined_from_default_packs("CWE-272"));
         assert!(!is_quarantined_from_default_packs("CWE-22"));
         assert!(!is_quarantined_from_default_packs("PERF-101"));
     }

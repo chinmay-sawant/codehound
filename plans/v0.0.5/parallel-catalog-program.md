@@ -1,7 +1,7 @@
 # v0.0.5 — Parallel Catalog Trust and Productization Program
 
 > **Parent:** [`ROADMAP.md`](../../ROADMAP.md) and [`cwe-catalog-trust-audit.md`](./cwe-catalog-trust-audit.md)
-> **Status:** Phase 0–1 batch 1 executed (epic #95); Phase 2+ not started
+> **Status:** Phase 0–1 complete (#95); Phase 2 executed (epic #105); Phase 3+ open
 > **Estimated effort:** 4–6 issue-sized batches; do not schedule every phase at once
 
 ---
@@ -141,39 +141,39 @@ Success criteria:
 
 **Owner seam:** `credentials_and_secrets/credential_lifecycle/`
 
-- [ ] Select one cohesive lifecycle family (expiration, reset/recovery, or credentials-in-source); do not combine all three.
-- [ ] Audit source identifiers, runtime/deployment assumptions, and existing CWE/BP/PERF ownership before proposing changes.
-- [ ] Run fixture, real-module-canary, and disposition gates.
+- [x] Select one cohesive lifecycle family (expiration, reset/recovery, or credentials-in-source); do not combine all three.
+- [x] Audit source identifiers, runtime/deployment assumptions, and existing CWE/BP/PERF ownership before proposing changes.
+- [x] Run fixture, real-module-canary, and disposition gates.
 
 ### 2.2 B2 — Information exposure response leaks
 
 **Owner seam:** `information_exposure/response_leaks/`
 
-- [ ] Audit one response-leak subfamily for generalized response sinks versus exact response-body/error literals.
-- [ ] Preserve safe redaction/error-handling negatives; do not convert generic log or response strings into default-pack findings.
-- [ ] Run fixture, real-module-canary, and disposition gates.
+- [x] Audit one response-leak subfamily for generalized response sinks versus exact response-body/error literals.
+- [x] Preserve safe redaction/error-handling negatives; do not convert generic log or response strings into default-pack findings.
+- [x] Run fixture, real-module-canary, and disposition gates.
 
 ### 2.3 B3 — Access-control sibling
 
 **Owner seam:** whichever of `auth_and_validation/` and `authorization_and_scoping/` was not selected in Phase 1.
 
-- [ ] Audit one bounded rule family only.
-- [ ] Treat route names, role names, and middleware naming as policy evidence unless a stronger local proof exists.
-- [ ] Run fixture, real-module-canary, and disposition gates.
+- [x] Audit one bounded rule family only.
+- [x] Treat route names, role names, and middleware naming as policy evidence unless a stronger local proof exists.
+- [x] Run fixture, real-module-canary, and disposition gates.
 
 ### 2.4 B4 — General-security privilege/lifecycle follow-on
 
 **Owner seam:** one of `general_security/privilege_escalation/` or `general_security/lifecycle_and_integrity/`.
 
-- [ ] Select only the family with a clear sink/API boundary and existing safe fixtures.
-- [ ] Defer rules dependent on deployment topology, service ownership, or whole-program lifecycle proof.
-- [ ] Run fixture, real-module-canary, and disposition gates.
+- [x] Select only the family with a clear sink/API boundary and existing safe fixtures.
+- [x] Defer rules dependent on deployment topology, service ownership, or whole-program lifecycle proof.
+- [x] Run fixture, real-module-canary, and disposition gates.
 
 ### 2.5 Phase 2 integration
 
-- [ ] Repeat the Phase 1 integration ordering and complete-batch validation gate.
-- [ ] Add only evidence-backed maturity changes; no bulk SourceIndex relabeling.
-- [ ] Review the expanded canary corpus before promoting any rule to Structural.
+- [x] Repeat the Phase 1 integration ordering and complete-batch validation gate.
+- [x] Add only evidence-backed maturity changes; no bulk SourceIndex relabeling.
+- [x] Review the expanded canary corpus before promoting any rule to Structural.
 
 ---
 
