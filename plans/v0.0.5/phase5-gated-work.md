@@ -52,7 +52,7 @@ Related but separate gate trackers (do not collapse into this file):
 
 | ID | Item | Phase | Disposition | Implement issue | Gate to reopen (summary) |
 |----|------|-------|-------------|-----------------|--------------------------|
-| G1 | Broad BP-66+ expansion | 5.1 | **Deferred** | [#137](https://github.com/chinmay-sawant/codehound/issues/137) | High-signal real-module pattern + overlap + fixture + canary |
+| G1 | Broad BP-66+ expansion | 5.1 | **Deferred** | [#137](https://github.com/chinmay-sawant/codehound/issues/137) | High-signal real-module pattern + overlap + fixture + canary — **2026-07-22 evidence:** keep deferred ([`phase5-g1-bp-reopen-evidence.md`](./phase5-g1-bp-reopen-evidence.md); BP-71 canary 0 actionable) |
 | G2 | CWE-277 Structural promotion | 5.1 | **Deferred** | [#138](https://github.com/chinmay-sawant/codehound/issues/138) | Actionable real-module hit + mode/scope negatives + §1.3 bar |
 | G3 | Generalization of fixture-only rules | 5.1 | **Deferred** | [#139](https://github.com/chinmay-sawant/codehound/issues/139) | Corpus co-signals replaced by real AST/fact proof + §1.3 bar |
 | G4 | Optional typed Go / `go/packages` | 5.2 | **Deferred** | [#140](https://github.com/chinmay-sawant/codehound/issues/140) | All Roadmap Gate #49 criteria (A1–A6) met |
@@ -74,7 +74,7 @@ All rows: **implementation deferred**. Tracking for this program is complete; do
 |-------|--------|
 | **Disposition** | Deferred |
 | **Why deferred** | Historical BP research lists (parts A–F, CHECKLIST deferred ledger) are candidate inventories, not authorized backlog. Shipping bulk rules without proof boundaries creates noise and pack-trust risk. |
-| **Evidence / prior disposition** | [`bp-candidates-disposition.md`](./bp-candidates-disposition.md), [`bp-proof-boundary-notes.md`](./bp-proof-boundary-notes.md), Phase 4 dispositions in [`pending-work.md`](./pending-work.md) |
+| **Evidence / prior disposition** | [`bp-candidates-disposition.md`](./bp-candidates-disposition.md), [`bp-proof-boundary-notes.md`](./bp-proof-boundary-notes.md), Phase 4 dispositions in [`pending-work.md`](./pending-work.md), G1 reopen canary [`phase5-g1-bp-reopen-evidence.md`](./phase5-g1-bp-reopen-evidence.md) (2026-07-22: **keep deferred**; BP-71 0 actionable on five-module corpus) |
 
 **Reopen criteria (all required):**
 
@@ -83,6 +83,8 @@ All rows: **implementation deferred**. Tracking for this program is complete; do
 3. Vulnerable + safe fixtures with renamed near-miss negatives.
 4. Release-binary canary on the standard corpus with an agreed FP budget.
 5. New scoped implementable issue (not #120, not bulk research checkboxes).
+
+**Latest reopen attempt (#137):** static canary for BP-71 (only `defer-needs-canary` absent candidate) on gopdfsuit / monsoon / go-retry / gorl / no-mistakes found only idiomatic `_, err` on Copy/Write/Fscan — **criteria 1 not met**; no detector shipped.
 
 ### G2 — CWE-277 Structural promotion
 
