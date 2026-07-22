@@ -22,6 +22,14 @@ use crate::rules::{Finding, emit};
 // Disposition: **fixture-only** for CWE-619 and CWE-917.
 // See plans/v0.0.5/pr-phase5-g3-fo-generalization.md and C1 deferred notes
 // in plans/v0.0.5/pr-cwe-trust-injection-residual.md.
+//
+// R8 / #165 (epic #151) re-evaluated true generalization (design proof
+// without exact `rows` / `"report"` / `{{.Title}} where ` emit gates;
+// renamed negatives; real-module evidence). §1.3 bar still not met —
+// CallFact has no Query→Close ownership/defer edge; template Parse+concat
+// without corpus literals mass-FPs builders and lacks user→Parse-arg
+// dataflow. Canary still 0/126. **Keep FO**; do not fake Heuristic/
+// Structural uplift. Evidence: plans/v0.0.6/evidence-r8-injection-resource.md.
 
 /// CWE-619 — Dangling Database Cursor / Improper Cleanup.
 ///
@@ -37,8 +45,13 @@ use crate::rules::{Finding, emit};
 /// named receivers) and is out of G3 FO residual scope. Emit span remains
 /// the Query assignment site via `source.find`.
 ///
-/// Disposition: **fixture-only**. Do not promote without §1.3 ownership
-/// analysis + renamed negatives + real-module evidence.
+/// R8 / #165 design proof: AssignmentFact+callee softening still couples to
+/// the LHS identifier; unit-local “Query without Close” mass-FPs returned /
+/// helper-closed cursors. Renamed `orderRows` vulnerable shape would FN
+/// today. Upgrade path = ownership / defer-Close CFG (not present).
+///
+/// Disposition: **fixture-only** (kept after R8). Do not promote without
+/// §1.3 ownership analysis + renamed negatives + real-module evidence.
 pub(crate) fn detect_cwe_619(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
@@ -81,8 +94,14 @@ pub(crate) fn detect_cwe_619(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 /// emit gates; broadening to any `Parse`+concat would FP on legitimate
 /// template builders.
 ///
-/// Disposition: **fixture-only**. Orthogonal to taint-core (CWE-22/78/79/
-/// 89/90/91); do not fold into taint without a written FP/FN contract.
+/// R8 / #165 design proof: dropping `"report"` / fragment / `+ expr` gates
+/// without user→Parse-arg dataflow either mass-FPs or still needs corpus
+/// co-signals. Orthogonal to taint-core; fold only with a written FP/FN
+/// contract. Renamed template/fragment museum would FN today.
+///
+/// Disposition: **fixture-only** (kept after R8). Do not promote without
+/// §1.3 template-source taint primary + renamed negatives + real-module
+/// evidence.
 pub(crate) fn detect_cwe_917(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
