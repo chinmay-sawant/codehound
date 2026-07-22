@@ -1,6 +1,6 @@
 # v0.0.6 — Pending work backlog
 
-> **Status:** R5–R8 residual trust batch landed pending merge (integration PR #176); Class A G* + P1 still open  
+> **Status:** Class B residuals R1–R8 complete (PRs #171 + #176); Class A G* + P1 still open  
 
 > **Parent (closed):** v0.0.5 parallel catalog program ([#105](https://github.com/chinmay-sawant/codehound/issues/105)) and Phase 5 gate eval ([#136](https://github.com/chinmay-sawant/codehound/issues/136) / PR #150)  
 > **Day context:** [`../v0.0.5/22072026.md`](../v0.0.5/22072026.md)  
