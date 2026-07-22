@@ -1,6 +1,6 @@
 # v0.0.6 — Pending work backlog
 
-> **Status:** Class B residuals R1–R8 complete (PRs #171 + #176); Class A G* + P1 still open  
+> **Status:** Class B R1–R8 + P1 complete (PRs #171, #176, P1); Class A G* still open  
 
 > **Parent (closed):** v0.0.5 parallel catalog program ([#105](https://github.com/chinmay-sawant/codehound/issues/105)) and Phase 5 gate eval ([#136](https://github.com/chinmay-sawant/codehound/issues/136) / PR #150)  
 > **Day context:** [`../v0.0.5/22072026.md`](../v0.0.5/22072026.md)  
@@ -66,7 +66,7 @@ Optional process items (canary re-runs) are Class C — light chore streams.
 - [x] #165 R8 injection resource true generalization (619/917 beyond FO) — keep FO
 
 #### Class C — Process
-- [ ] #166 P1 Canary corpus re-run + recommended-pack pilot after catalog batches
+- [x] #166 P1 Canary corpus re-run + recommended-pack pilot after catalog batches
 
 ---
 
@@ -75,8 +75,9 @@ Optional process items (canary re-runs) are Class C — light chore streams.
 1. ~~**R1–R4**~~ — **done** (PR #171 / issues #158–#161)  
 2. ~~**R5–R7**~~ — **done** (R5–R8 integration / issues #162–#165)  
 3. ~~**R8 / G3**~~ — **done** (keep FO; no uplift in #165)  
-4. **G2 / G1** — only after real-module hits  
+4. **G2 / G1** — only after real-module hits (next if reopen evidence exists)  
 5. **G4 / G5 / G6** — strategic; external demand + architecture gates  
+6. ~~**P1**~~ — **done** (canary + recommended-pack pilot post R1–R8)  
 
 Do **not** schedule all Class A at once. Prefer ≤4 worktrees per residual batch + one integration.
 

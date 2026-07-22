@@ -108,6 +108,55 @@ is not part of the finding-level rate denominator.
 
 ---
 
+## 2026-07-23 — P1 post R1–R8 catalog residuals (#166 / epic #151)
+
+- **Binary / commit:** `target/release/codehound` @ `f3eaaf8` (`origin/master` after R5–R8 integration #176 + ledger #177)
+- **Profiles:** (1) `--profile recommended` (2) `--profile all --only` FO quarantine set from R1–R8 (3) `--only CWE-201,CWE-213` Heuristic keep
+- **Pin set:** gopdfsuit, monsoon, go-retry, gorl, no-mistakes @ SHAs in `canary-corpus-pins.json`
+
+### Recommended pack — per-repo counts
+
+| Repository | Files | Findings | By rule |
+|------------|------:|---------:|---------|
+| gopdfsuit | 78 | **38** | PERF-1 ×38 |
+| monsoon | 43 | **3** | PERF-1 ×1, PERF-7 ×1, PERF-190 ×1 |
+| go-retry | 5 | **0** | — |
+| gorl | 28 | **0** | — |
+| no-mistakes | 222 | **2** | PERF-189 ×1, PERF-7 ×1 |
+
+**Core three total:** 41 — **identical multiset** to 2026-07-21 recommended-pack pilot (§5 in [`recommended-pack-pilot.md`](./recommended-pack-pilot.md)).
+
+### FO quarantine family `--only` (R1–R8 maturity batch)
+
+Rules: CWE-260,455,289,290,294,301,303,322,408,324,262,263,549,640,618,829,1125,619,917
+
+| Repository | Files | Findings |
+|------------|------:|---------:|
+| gopdfsuit | 78 | 0 |
+| monsoon | 43 | 0 |
+| go-retry | 5 | 0 |
+| gorl | 28 | 0 |
+| no-mistakes | 222 | 0 |
+| **Total** | **376** | **0** |
+
+### Heuristic keep (R2) — `--only CWE-201,CWE-213`
+
+| Repository | Files | Findings |
+|------------|------:|---------:|
+| all five pins | 376 | **0** |
+
+### Reviewed rows / rates
+
+| Slice | Result | Decision |
+|-------|--------|----------|
+| Recommended core sample | Unchanged vs 2026-07-21 (95% senior sample still valid) | **no pack change**; stop-the-line **not** triggered |
+| R1–R8 FO `--only` | 0/376 (all no-hit) | Quarantine holds; no real-module promotion evidence |
+| CWE-201/213 Heuristic | 0/376 | Keep Heuristic; no pack membership change this PR |
+
+- **Links:** issue #166; epic #151; integrations #171 / #176; [`process-canary-and-pack-pilot.md`](../v0.0.6/process-canary-and-pack-pilot.md)
+
+---
+
 ## Prior related ledgers (pointers)
 
 These predate the unified rubric location; do not duplicate full tables here.
