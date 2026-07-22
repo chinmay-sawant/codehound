@@ -6,6 +6,10 @@
 > **Deferred from:** Phase 2 B4 (privilege_escalation only)
 
 ## Checklist
-- [ ] Select family with clear sink + safe fixtures (lifecycle / plugins / runtime_state)
-- [ ] Defer topology / whole-program ownership rules
-- [ ] Freeze + disposition + canary
+- [x] Select family with clear sink + safe fixtures (lifecycle / plugins / runtime_state)
+- [x] Defer topology / whole-program ownership rules
+- [x] Freeze + disposition + canary
+
+**Selected leaf:** `plugins.rs` (CWE-618, 829, 1125).
+**Deferred leaves:** `lifecycle.rs` (lock/lifetime/worker topology), `runtime_state.rs` (cross-request covert channel + inconsistent failure topology).
+**Evidence:** [`evidence-r7-lifecycle-integrity.md`](./evidence-r7-lifecycle-integrity.md) · **PR body:** [`pr-r7-lifecycle-integrity.md`](./pr-r7-lifecycle-integrity.md)
