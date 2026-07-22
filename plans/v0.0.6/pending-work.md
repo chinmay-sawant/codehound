@@ -1,6 +1,7 @@
 # v0.0.6 — Pending work backlog
 
-> **Status:** Proposed execution ledger — local plans + GitHub epic  
+> **Status:** R1–R4 residual trust batch landed (integration PR #171); Class A G* + R5–R8 + P1 still open  
+
 > **Parent (closed):** v0.0.5 parallel catalog program ([#105](https://github.com/chinmay-sawant/codehound/issues/105)) and Phase 5 gate eval ([#136](https://github.com/chinmay-sawant/codehound/issues/136) / PR #150)  
 > **Day context:** [`../v0.0.5/22072026.md`](../v0.0.5/22072026.md)  
 > **Process:** [`../skills/worktree-deleation/SKILL.md`](../skills/worktree-deleation/SKILL.md) when executing batches  
@@ -71,7 +72,7 @@ Optional process items (canary re-runs) are Class C — light chore streams.
 
 ## Recommended execution order
 
-1. **R1–R4** (or a 2–4 parallel residual batch) — highest product leverage, same process as v0.0.5 Phases 1–3  
+1. ~~**R1–R4**~~ — **done** (PR #171 / issues #158–#161)  
 2. **R5–R7** — next residual wave  
 3. **R8 / G3** — only with proof design  
 4. **G2 / G1** — only after real-module hits  
