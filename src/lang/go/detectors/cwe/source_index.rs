@@ -2,7 +2,7 @@
 
 /// Frequently scanned literals across the Go CWE bundle (one `contains` per needle).
 ///
-/// Hygiene notes (Phase 1 + Tranche 2–5 + long-tail §2.11 + file-perm Phase 2 + batch 1 epic #95 + Phase 2 epic #105 + epic #151 R1–R4):
+/// Hygiene notes (Phase 1 + Tranche 2–5 + long-tail §2.11 + file-perm Phase 2 + batch 1 epic #95 + Phase 2 epic #105 + epic #151 R1–R8):
 /// - Prefer structural facts/call classification over needles for primary detection.
 /// - `// fixture-only:` / `// fixture-literal:` encode corpus strings; paired detectors
 ///   stay out of recommended/security packs via `rules::maturity` when quarantined.
@@ -26,6 +26,7 @@ pub const NEEDLES: &[&str] = &[
     "\"over_limit\"",
     // fixture-literal: CWE-257 password persistence co-signal
     "\"password\": encoded",
+    // fixture-literal: CWE-549 password response-echo museum
     "\"password\": pass",
     "\"status\": \"ok\"",
     "\"token\"",
@@ -47,14 +48,17 @@ pub const NEEDLES: &[&str] = &[
     ".Param(",
     ".Query(",
     // fixture-only: hard-coded test paths (not general production)
+    // fixture-literal: CWE-1125 debug/admin route museum
     "/admin/config",
     "/admin/sql",
     "/debug/pprof",
     // fixture-literal: CWE-425 admin export path corpus
     "/internal/admin/export.csv",
+    // fixture-literal: CWE-1125 internal reload route museum
     "/internal/reload",
     "/login",
     "/maintenance-portal-9f3c2a",
+    // fixture-literal: CWE-618 vendor native-bridge museum
     "/opt/vendor/activex-bridge",
     // fixture-literal: CWE-552 corpus contract upload store path
     "/srv/contracts",
@@ -101,10 +105,12 @@ pub const NEEDLES: &[&str] = &[
     "AcceptWebhookVerified(",
     "AcceptWebhookVerifiedPure(",
     "Access-Control-Allow-Origin\", origin",
+    // fixture-literal: CWE-324 expired-key museum
     "Add(-48 * time.Hour)",
     "Addr: \":8080\"",
     "AdminPurge",
     "Amount",
+    // fixture-literal: CWE-324 key-row museum
     "ApiKeyRow",
     "Approved bool",
     "Authorization",
@@ -149,9 +155,11 @@ pub const NEEDLES: &[&str] = &[
     "DisallowUnknownFields()",
     "DownloadRedacted(",
     "DownloadRedactedPure(",
+    // negative-gate: CWE-549 email-only encode safe path
     "Encode(map[string]string{\"email\": email})",
     "Encode(userRecords)",
     "EncodeToString(",
+    // fixture-literal: CWE-324 ExpiresAt co-signal museum
     "ExpiresAt",
     "ExpiresAt time.Time",
     "ExportFeedbackCSV(",
@@ -162,6 +170,7 @@ pub const NEEDLES: &[&str] = &[
     "FetchProfile",
     "FetchSharedAsset(",
     "FetchSharedAssetPure(",
+    // fixture-literal: CWE-640 recovery helper museum
     "ForgotPassword",
     // fixture-literal: CWE-552 corpus contract multipart form field
     "FormFile(\"contract\")",
@@ -223,10 +232,12 @@ pub const NEEDLES: &[&str] = &[
     "MFAPassed",
     "MatchString(tag)",
     "MaxAge: 900",
+    // fixture-literal: CWE-263 excess max-age museum
     "MaxAgeDays: 3650",
     "Memo",
     "MkdirAll(dir, 0777)",
     "MkdirTemp(",
+    // fixture-literal: CWE-1125 oversize mount helper museum
     "MountWideSurface(",
     "MountWideSurfacePure(",
     // fixture-literal: payment Number/PAN field from CWE-319 corpus
@@ -327,6 +338,7 @@ pub const NEEDLES: &[&str] = &[
     "ShouldBindJSON(&raw)",
     "ShouldBindJSON(&req)",
     "SignIn",
+    // fixture-literal: CWE-324 signing-key museum
     "SigningKey",
     "SignupPayloadPure{}",
     "SignupPayload{}",
@@ -350,6 +362,7 @@ pub const NEEDLES: &[&str] = &[
     "UPDATE accounts SET password",
     "UPDATE billing SET plan",
     "UPDATE invoices SET paid = true",
+    // fixture-literal: CWE-640 email-only password UPDATE museum
     "UPDATE users SET password",
     "URL.Path",
     "Unauthorized",
@@ -368,6 +381,7 @@ pub const NEEDLES: &[&str] = &[
     "WHERE username = $1 AND password_hash = $2",
     "WHERE username = ? AND password_hash = ?",
     "Where(\"email = ?\", email).First(&u)",
+    // fixture-literal: CWE-640 GORM email-only password UPDATE museum
     "Where(\"email = ?\", email).Update(\"password\", newPass)",
     // fixture-literal / co-signal: CWE-921 WriteFile text (call_facts primary after Phase 2)
     "WriteFile(",
@@ -413,8 +427,10 @@ pub const NEEDLES: &[&str] = &[
     "aes.NewCipher(",
     "allowedHosts",
     "allowedHostsPure",
+    // negative-gate: CWE-829 module allowlist safe path
     "allowedModules",
     "allowedOrigins",
+    // negative-gate: CWE-618 method allowlist safe path
     "allowedPluginMethods",
     "appDB.Find(",
     "application/json; charset=utf-8",
@@ -422,6 +438,7 @@ pub const NEEDLES: &[&str] = &[
     "applyBalanceDeltaPure(",
     "args",
     "atomic.AddInt64(",
+    // negative-gate: CWE-1125 auth wrapper safe path
     "authRequired()",
     "authRequiredPure(",
     "bad password",
@@ -451,6 +468,7 @@ pub const NEEDLES: &[&str] = &[
     "cfg.Password",
     // fixture-literal: CWE-260 loaded secret use
     "cfg.Secret",
+    // fixture-literal: CWE-262 password-aging museum
     "changed_at",
     // negative-gate: stdlib CBC API (CWE-1204 prefilter)
     "cipher.NewCBCEncrypter(",
@@ -625,6 +643,7 @@ pub const NEEDLES: &[&str] = &[
     // fixture-only: exact identifier from CWE-342 corpus
     "lastOTP++",
     "lastSmsCode++",
+    // fixture-literal: CWE-262 password-aging museum
     "last_seen",
     "ledgerMu.Lock()",
     "ledgerMuPure.Lock()",
@@ -651,11 +670,14 @@ pub const NEEDLES: &[&str] = &[
     "map[string]string{\"proof\": challenge}",
     "map[string]string{}",
     "math/rand",
+    // negative-gate: CWE-262 aging reject safe path
     "maxPasswordAge",
     // negative-gate: stdlib weak-hash API (CWE-328 / CWE-916 prefilter)
     "md5.Sum(",
     "method",
+    // negative-gate: CWE-829 module root safe path
     "moduleRoot",
+    // fixture-literal: CWE-829 caller path marker museum
     "module_path",
     "msg.Approved = true",
     "net.Listen(\"tcp\", \":9090\")",
@@ -762,6 +784,7 @@ pub const NEEDLES: &[&str] = &[
     "requireAdmin(",
     "requireAdmin()",
     "requireTLS(",
+    // negative-gate: CWE-640 reset-token co-signal safe path
     "reset_tokens",
     "return false",
     "revokedSessions[c.Value]",
@@ -843,6 +866,7 @@ pub const NEEDLES: &[&str] = &[
     "text/csv",
     "text/html",
     "time.AfterFunc(",
+    // negative-gate: CWE-324 expiry check safe path
     "time.Now().After(key.ExpiresAt)",
     "time.Now().After(row.ExpiresAt)",
     "time.Now().Unix()",

@@ -1,6 +1,6 @@
 # v0.0.6 — Pending work backlog
 
-> **Status:** R1–R4 residual trust batch landed (integration PR #171); Class A G* + R5–R8 + P1 still open  
+> **Status:** R5–R8 residual trust batch landed pending merge (integration PR #176); Class A G* + P1 still open  
 
 > **Parent (closed):** v0.0.5 parallel catalog program ([#105](https://github.com/chinmay-sawant/codehound/issues/105)) and Phase 5 gate eval ([#136](https://github.com/chinmay-sawant/codehound/issues/136) / PR #150)  
 > **Day context:** [`../v0.0.5/22072026.md`](../v0.0.5/22072026.md)  
@@ -60,10 +60,10 @@ Optional process items (canary re-runs) are Class C — light chore streams.
 - [x] #159 R2 sensitive_fields (CWE-201 / 213)
 - [x] #160 R3 auth_flows (bounded subfamily)
 - [x] #161 R4 auth_tokens (bounded subfamily)
-- [ ] #162 R5 credential expiration / aging
-- [ ] #163 R6 credential reset / recovery
-- [ ] #164 R7 lifecycle_and_integrity
-- [ ] #165 R8 injection resource true generalization (619/917 beyond FO)
+- [x] #162 R5 credential expiration / aging
+- [x] #163 R6 credential reset / recovery
+- [x] #164 R7 lifecycle_and_integrity
+- [x] #165 R8 injection resource true generalization (619/917 beyond FO) — keep FO
 
 #### Class C — Process
 - [ ] #166 P1 Canary corpus re-run + recommended-pack pilot after catalog batches
@@ -73,8 +73,8 @@ Optional process items (canary re-runs) are Class C — light chore streams.
 ## Recommended execution order
 
 1. ~~**R1–R4**~~ — **done** (PR #171 / issues #158–#161)  
-2. **R5–R7** — next residual wave  
-3. **R8 / G3** — only with proof design  
+2. ~~**R5–R7**~~ — **done** (R5–R8 integration / issues #162–#165)  
+3. ~~**R8 / G3**~~ — **done** (keep FO; no uplift in #165)  
 4. **G2 / G1** — only after real-module hits  
 5. **G4 / G5 / G6** — strategic; external demand + architecture gates  
 

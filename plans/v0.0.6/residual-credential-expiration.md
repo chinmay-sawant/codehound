@@ -6,6 +6,6 @@
 > **Deferred from:** Phase 2 B1 (credentials-in-source only)
 
 ## Checklist
-- [ ] Select expiration **or** aging (not both if large)
-- [ ] Audit runtime/deployment assumptions
-- [ ] Freeze + disposition + fixtures + canary
+- [x] Select expiration **or** aging (not both if large) — **selected both** (~94 lines; full fixtures)
+- [x] Audit runtime/deployment assumptions
+- [x] Freeze + disposition + fixtures + canary
