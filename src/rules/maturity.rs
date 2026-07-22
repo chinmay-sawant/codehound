@@ -179,6 +179,17 @@ fn is_fixture_only(rule_id: &str) -> bool {
             // CWE-93 stays Structural (header CRLF call_facts primary).
             | "CWE-619" // exact rows Query/Next/Close dangling-cursor museum
             | "CWE-917" // template.New("report") + {{.Title}} where + concat museum
+            // Epic #151 R1–R4 residual trust (secrets_in_config / auth_flows / auth_tokens)
+            // CWE-201 / CWE-213 stay Heuristic: call_facts JSON response sinks + field inventory.
+            | "CWE-260" // secrets-from-config env-requiredness museum (Password/Secret struct)
+            | "CWE-455" // continuing without mTLS fail-fast policy museum
+            | "CWE-289" // realm strip "@")[0] + principals SQL museum
+            | "CWE-290" // X-Remote-User header trust museum
+            | "CWE-294" // auth_token form replay + nonce co-signal museum
+            | "CWE-301" // challenge→proof echo response museum
+            | "CWE-303" // string(expected) == sig MAC compare museum
+            | "CWE-322" // tls.Dial + InsecureSkipVerify: true museum
+            | "CWE-408" // orders SELECT before Authorization source-order museum
             // Common fixture-shaped long-tail (path/corpus strings)
             | "CWE-798" // hard-coded credentials often fixture-shaped
     )
@@ -262,9 +273,19 @@ mod tests {
         // Phase 5 G3 injection resource residual
         assert_eq!(maturity_for("CWE-619"), RuleMaturity::FixtureOnly);
         assert_eq!(maturity_for("CWE-917"), RuleMaturity::FixtureOnly);
+        // Epic #151 R1–R4 residual trust
+        assert_eq!(maturity_for("CWE-260"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-455"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-289"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-290"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-294"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-301"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-303"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-322"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-408"), RuleMaturity::FixtureOnly);
         // Cipher / weak-hash / world-writable WriteFile / umask+mkdir / password MD5 /
-        // secret-log / Setuid+Chown / config external-control smells remain heuristic
-        // (not structural-promoted). CWE-93 remains Structural.
+        // secret-log / Setuid+Chown / config external-control / sensitive JSON field
+        // smells remain heuristic (not structural-promoted). CWE-93 remains Structural.
         assert_eq!(maturity_for("CWE-325"), RuleMaturity::Heuristic);
         assert_eq!(maturity_for("CWE-328"), RuleMaturity::Heuristic);
         assert_eq!(maturity_for("CWE-250"), RuleMaturity::Heuristic);
@@ -273,6 +294,8 @@ mod tests {
         assert_eq!(maturity_for("CWE-215"), RuleMaturity::Heuristic);
         assert_eq!(maturity_for("CWE-272"), RuleMaturity::Heuristic);
         assert_eq!(maturity_for("CWE-15"), RuleMaturity::Heuristic);
+        assert_eq!(maturity_for("CWE-201"), RuleMaturity::Heuristic);
+        assert_eq!(maturity_for("CWE-213"), RuleMaturity::Heuristic);
         assert_eq!(maturity_for("CWE-93"), RuleMaturity::Structural);
         assert!(is_quarantined_from_default_packs("CWE-334"));
         assert!(is_quarantined_from_default_packs("CWE-1204"));

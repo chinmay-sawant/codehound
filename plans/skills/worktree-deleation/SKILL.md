@@ -1,17 +1,22 @@
 ---
 name: worktree-deleation
 description: >
-  Execute a phased markdown checklist plan via parallel git worktree subagents:
-  one branch/PR per workstream, filled PR bodies from plans/PR/PR_TEMPLATE.md,
-  self-assign + labels, optional epic integration PR, merge integration only,
-  close child PRs, delete all non-master local/remote branches, pull master.
-  Use when the user points at a plans/*.md checklist and wants parallel
-  worktrees, multi-PR ship, or "same as last architecture batch". Triggers:
-  worktree, parallel agents, phase checklist, integrate then delete branches,
-  /worktree-deleation.
+  Execute a phased markdown checklist plan via parallel git worktree subagents
+  on Grok 4.5 (cursor-grok-4.5-high-fast): one branch/PR per workstream, filled
+  PR bodies from plans/PR/PR_TEMPLATE.md, self-assign + labels, optional epic
+  integration PR, merge integration only, close child PRs, delete all
+  non-master local/remote branches, pull master. Use when the user points at a
+  plans/*.md checklist and wants parallel worktrees, multi-PR ship, or "same
+  as last architecture batch". Triggers: worktree, parallel agents, phase
+  checklist, integrate then delete branches, /worktree-deleation.
 ---
 
 # Worktree multi-stream plan execution
+
+> **Subagent model (required):** launch every workstream / integration subagent
+> with **Grok 4.5** in high + fast mode — Cursor model slug
+> `cursor-grok-4.5-high-fast`. Do not use another model unless the user
+> explicitly overrides.
 
 Run a **markdown checklist plan** end-to-end the same way as the architecture
 review batches: parallel worktrees → tested child PRs → one integration PR →
@@ -81,6 +86,7 @@ gh issue create --title "…" --assignee "@me" --label enhancement --body-file �
 
 Launch **one subagent per workstream** with:
 
+- `model: cursor-grok-4.5-high-fast` (Grok 4.5 high + fast — required)
 - `isolation: worktree`
 - `subagent_type: general-purpose`
 - `background: true`

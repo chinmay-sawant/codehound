@@ -3,10 +3,22 @@ use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
+// Access-control R3 trust freeze (auth_and_validation/auth_flows.rs).
+// Bounded subfamily: CWE-289 + CWE-290 only (login identity trust; 2 rules).
+// Siblings CWE-305–309, 620, 836 deferred to later bounded slices.
+// Route/header/principal naming is policy evidence unless stronger local proof exists.
+// Proposed maturity: fixture-only for both (integrator applies maturity.rs).
+// See plans/v0.0.6/evidence-r3-auth-flows.md and pr-r3-auth-flows.md.
+
 pub(crate) fn detect_cwe_289(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
+    // Primary signal (fixture-literal): strings.Split(…, "@")[0] co-presence without
+    // canonical_name = ? negative. Exact split subscript text is a corpus marker.
+    // Negative gate: canonical_name = ? — realm-aware principal lookup.
+    // Call-facts cannot prove realm-stripping without the exact "@")[0] museum shape;
+    // keep SI primary. Not a generalized principal-alias detector.
     if facts.source_index.has("canonical_name = ?") {
         return;
     }
@@ -29,6 +41,11 @@ pub(crate) fn detect_cwe_289(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
 pub(crate) fn detect_cwe_290(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
 
+    // Primary signal: call_facts c.GetHeader / r.Header.Get with X-Remote-User arg.
+    // Header name is policy evidence — not verified server-side identity proof.
+    // Safe fixtures omit the header read entirely (session cookie path); no explicit
+    // negative gate in emit path. Call-facts partial but still corpus-specific header.
+    // Not a generalized spoofable-header detector.
     let Some(header_call) = facts.call_facts.iter().find(|call| {
         (call.callee.as_ref() == "c.GetHeader" || call.callee.as_ref() == "r.Header.Get")
             && call
