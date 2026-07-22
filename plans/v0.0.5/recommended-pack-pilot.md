@@ -226,7 +226,52 @@ gorl recommended **0** remains the full-catalog noise canary control.
 
 ---
 
-## 6. Checklist for future batches
+## 6. Pilot results — 2026-07-23 (post epic #151 R1–R8 / P1)
+
+### 6.1 Environment
+
+| Item | Value |
+|---|---|
+| CodeHound tree | `f3eaaf8a28a79fc53d4ca78acbd448294e0aeab8` (`origin/master` after #176 + #177) |
+| Binary | `target/release/codehound` 0.1.0 (release, built at that SHA) |
+| Host | Linux WSL-class |
+| Profile | `recommended` |
+
+### 6.2 Counts
+
+| Repository | Revision | Files scanned | Findings | By rule |
+|---|---|---:|---:|---|
+| gopdfsuit | `26d71268937136036c3be1770c0f7bdd89f87dc6` | 78 | **38** | PERF-1 ×38 |
+| monsoon | `e0f1027cb0c256853b835d8e20d8d206a96e44ed` | 43 | **3** | PERF-1 ×1, PERF-7 ×1, PERF-190 ×1 |
+| go-retry | `d3eb50afd37a09a9c0606c218d0dbe06e29d1544` | 5 | **0** | — |
+| gorl (extra) | `ec54aaf1…` | 28 | **0** | — |
+| no-mistakes (extra) | `0a2c82f9…` | 222 | **2** | PERF-189 ×1, PERF-7 ×1 |
+
+**Core three total:** 41 — **identical multiset** to §5 (2026-07-21). No new/changed recommended findings after R1–R8 FO quarantine.
+
+### 6.3 Disposition / stop-the-line
+
+Prior senior 20-row sample remains valid (counts/locations unchanged).  
+**Sample actionability:** 19/20 = **95.0%** (≥70% bar).  
+**Stop-the-line:** **not triggered** — no material FP regression on recommended pack.
+
+Extended no-mistakes PERF-189 / PERF-7 rows unchanged (pre-existing; not catalog-batch regressions).
+
+### 6.4 Cold-scan budget (gopdfsuit `--profile all --no-cache`)
+
+| Run | Scan summary wall | `/usr/bin/time` wall | Findings |
+|---:|---:|---:|---:|
+| 1 | 859.3ms | 0.87s | **915** |
+| 2 | 482.1ms | 0.50s | **915** |
+| 3 | 545.1ms | 0.56s | **915** |
+
+- **Steady wall:** ~0.50–0.87s (under 1.0s reopen trigger).
+- **Findings:** 915 (stable vs §4.1).
+- **Verdict: UNDER BUDGET — hold performance rewrites.**
+
+---
+
+## 7. Checklist for future batches
 
 - [ ] Release binary rebuilt from integration SHA
 - [ ] Core three recommended scans recorded (counts + rule multiset)
@@ -238,7 +283,7 @@ gorl recommended **0** remains the full-catalog noise canary control.
 
 ---
 
-## 7. References
+## 8. References
 
 - Pack definition: [`documents/go-recommended-pack.md`](../../documents/go-recommended-pack.md)
 - Prior Phase 3 pilot: [`pending-work.md`](./pending-work.md) §3.1
