@@ -6,6 +6,6 @@
 > **Deferred from:** Phase 2 B1
 
 ## Checklist
-- [ ] Freeze CWE-549 / CWE-640 signals
-- [ ] Overlap vs existing OAuth/reset CWE families
-- [ ] Disposition + fixtures + canary
+- [x] Freeze CWE-549 / CWE-640 signals
+- [x] Overlap vs existing OAuth/reset CWE families
+- [x] Disposition + fixtures + canary
