@@ -190,6 +190,16 @@ fn is_fixture_only(rule_id: &str) -> bool {
             | "CWE-303" // string(expected) == sig MAC compare museum
             | "CWE-322" // tls.Dial + InsecureSkipVerify: true museum
             | "CWE-408" // orders SELECT before Authorization source-order museum
+            // Epic #151 R5–R8 residual trust (credential lifecycle / plugins / injection FO keep)
+            // CWE-619 / CWE-917 already FO from Phase 5 G3 — no maturity change in R8.
+            | "CWE-324" // ExpiresAt + key-row + hmac museum; out-of-unit expiry possible
+            | "CWE-262" // last_seen/changed_at without aging — org policy museum
+            | "CWE-263" // exact MaxAgeDays: 3650 threshold museum
+            | "CWE-549" // "password": pass response-echo museum
+            | "CWE-640" // ForgotPassword + email-only UPDATE museum
+            | "CWE-618" // vendor activex-bridge + exec method/args museum
+            | "CWE-829" // plugin.Open + caller path markers without allowlist museum
+            | "CWE-1125" // MountWideSurface + debug/admin/internal route museum
             // Common fixture-shaped long-tail (path/corpus strings)
             | "CWE-798" // hard-coded credentials often fixture-shaped
     )
@@ -283,6 +293,18 @@ mod tests {
         assert_eq!(maturity_for("CWE-303"), RuleMaturity::FixtureOnly);
         assert_eq!(maturity_for("CWE-322"), RuleMaturity::FixtureOnly);
         assert_eq!(maturity_for("CWE-408"), RuleMaturity::FixtureOnly);
+        // Epic #151 R5–R8 residual trust
+        assert_eq!(maturity_for("CWE-324"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-262"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-263"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-549"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-640"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-618"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-829"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-1125"), RuleMaturity::FixtureOnly);
+        // CWE-619 / CWE-917 remain FO (G3); R8 kept FO — assert unchanged
+        assert_eq!(maturity_for("CWE-619"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-917"), RuleMaturity::FixtureOnly);
         // Cipher / weak-hash / world-writable WriteFile / umask+mkdir / password MD5 /
         // secret-log / Setuid+Chown / config external-control / sensitive JSON field
         // smells remain heuristic (not structural-promoted). CWE-93 remains Structural.
@@ -357,6 +379,14 @@ mod tests {
         assert!(is_quarantined_from_default_packs("CWE-1236"));
         assert!(is_quarantined_from_default_packs("CWE-619"));
         assert!(is_quarantined_from_default_packs("CWE-917"));
+        assert!(is_quarantined_from_default_packs("CWE-324"));
+        assert!(is_quarantined_from_default_packs("CWE-262"));
+        assert!(is_quarantined_from_default_packs("CWE-263"));
+        assert!(is_quarantined_from_default_packs("CWE-549"));
+        assert!(is_quarantined_from_default_packs("CWE-640"));
+        assert!(is_quarantined_from_default_packs("CWE-618"));
+        assert!(is_quarantined_from_default_packs("CWE-829"));
+        assert!(is_quarantined_from_default_packs("CWE-1125"));
         assert!(!is_quarantined_from_default_packs("CWE-325"));
         assert!(!is_quarantined_from_default_packs("CWE-328"));
         assert!(!is_quarantined_from_default_packs("CWE-250"));
