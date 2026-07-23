@@ -1,10 +1,12 @@
 //! `CacheStore::flush` and the size-based `evict_to_size` helper.
 
 use std::fs;
-use std::io::ErrorKind;
+use std::io::{ErrorKind, Read, Write};
 use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::Duration;
+
+use fs2::FileExt;
 
 use crate::Error;
 
@@ -15,36 +17,81 @@ use crate::engine::io::write_atomic;
 
 const MANIFEST_LOCK_NAME: &str = ".manifest.lock";
 const MANIFEST_LOCK_ATTEMPTS: usize = 50;
+const ADVISORY_LOCK_MARKER: &[u8] = b"codehound-manifest-advisory-lock-v1\n";
 
-struct ManifestLock(PathBuf);
+struct ManifestLock {
+    path: PathBuf,
+    file: Option<fs::File>,
+}
 
 impl ManifestLock {
     fn acquire(cache_dir: &Path) -> Result<Option<Self>, Error> {
         let path = cache_dir.join(MANIFEST_LOCK_NAME);
         for _ in 0..MANIFEST_LOCK_ATTEMPTS {
             match fs::OpenOptions::new()
+                .read(true)
                 .write(true)
                 .create_new(true)
                 .open(&path)
             {
-                Ok(_) => return Ok(Some(Self(path))),
+                Ok(mut file) => {
+                    file.try_lock_exclusive()?;
+                    if let Err(error) = file
+                        .write_all(ADVISORY_LOCK_MARKER)
+                        .and_then(|()| file.sync_all())
+                    {
+                        let _ = FileExt::unlock(&file);
+                        drop(file);
+                        let _ = fs::remove_file(&path);
+                        return Err(error.into());
+                    }
+                    return Ok(Some(Self {
+                        path,
+                        file: Some(file),
+                    }));
+                }
                 Err(error) if error.kind() == ErrorKind::AlreadyExists => {
+                    if let Some(lock) = Self::recover_advisory_lock(&path)? {
+                        return Ok(Some(lock));
+                    }
                     thread::sleep(Duration::from_millis(10));
                 }
                 Err(error) => return Err(error.into()),
             }
         }
-        // ponytail: orphaned locks (crashed owner) are intentionally not stolen.
-        // Scan stays correct with a cold/in-memory flush skip; upgrade path is
-        // lock ownership tokens + stale reclaim after a bounded age.
-        tracing::warn!(path = %path.display(), "cache manifest remains locked; skipping persistence without taking ownership of the lock");
+        tracing::warn!(path = %path.display(), "cache manifest is actively or legacy-locked; skipping this persistence attempt");
         Ok(None)
+    }
+
+    fn recover_advisory_lock(path: &Path) -> Result<Option<Self>, Error> {
+        let mut file = fs::OpenOptions::new().read(true).write(true).open(path)?;
+        let mut marker = Vec::new();
+        file.read_to_end(&mut marker)?;
+        if marker != ADVISORY_LOCK_MARKER {
+            // ponytail: a pre-advisory CodeHound binary used this pathname as
+            // a create_new sentinel. Its contents do not prove the owner is
+            // dead, so preserve its lock rather than racing a mixed-version
+            // flush. New marked locks are recovered by the kernel lock.
+            return Ok(None);
+        }
+        match file.try_lock_exclusive() {
+            Ok(()) => Ok(Some(Self {
+                path: path.to_path_buf(),
+                file: Some(file),
+            })),
+            Err(error) if error.kind() == ErrorKind::WouldBlock => Ok(None),
+            Err(error) => Err(error.into()),
+        }
     }
 }
 
 impl Drop for ManifestLock {
     fn drop(&mut self) {
-        let _ = fs::remove_file(&self.0);
+        if let Some(file) = self.file.take() {
+            let _ = FileExt::unlock(&file);
+            drop(file);
+            let _ = fs::remove_file(&self.path);
+        }
     }
 }
 
@@ -177,5 +224,60 @@ impl Drop for CacheStore {
                 tracing::warn!(error = %e, "cache flush on drop failed");
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn unique_cache_dir(label: &str) -> PathBuf {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time after Unix epoch")
+            .as_nanos();
+        std::env::temp_dir().join(format!("codehound-{label}-{unique}"))
+    }
+
+    #[test]
+    fn stale_advisory_lock_file_does_not_block_manifest_persistence() {
+        let cache_dir = unique_cache_dir("orphaned-manifest-lock");
+        let mut store =
+            CacheStore::open_with_capacity(cache_dir.clone(), 1).expect("open disk-backed cache");
+        fs::write(cache_dir.join(MANIFEST_LOCK_NAME), ADVISORY_LOCK_MARKER)
+            .expect("seed orphaned advisory lock path");
+        store.dirty = true;
+
+        store
+            .flush()
+            .expect("orphaned advisory lock must not block flush");
+
+        assert!(cache_dir.join(MANIFEST_NAME).is_file());
+        fs::remove_dir_all(cache_dir).expect("remove test cache");
+    }
+
+    #[test]
+    fn active_manifest_lock_is_not_stolen() {
+        let cache_dir = unique_cache_dir("active-manifest-lock");
+        fs::create_dir_all(&cache_dir).expect("create cache dir");
+        let path = cache_dir.join(MANIFEST_LOCK_NAME);
+        let held = ManifestLock::acquire(&cache_dir)
+            .expect("acquire manifest lock")
+            .expect("manifest lock should be available");
+
+        assert!(
+            ManifestLock::acquire(&cache_dir)
+                .expect("lock contention is not an error")
+                .is_none(),
+            "an active owner must retain the lock"
+        );
+        assert!(
+            path.is_file(),
+            "the lock path remains available for its owner"
+        );
+
+        drop(held);
+        fs::remove_dir_all(cache_dir).expect("remove test cache");
     }
 }

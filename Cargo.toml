@@ -69,6 +69,7 @@ phf = { version = "0.14", features = ["macros"] }
 # Path / file walking
 walkdir = "2.5"
 ignore = "0.4"
+fs2 = "0.4"
 
 # Content hashing (incremental analysis cache)
 sha2 = "0.11"

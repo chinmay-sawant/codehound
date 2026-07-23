@@ -330,4 +330,51 @@ mod tests {
 
         fs::remove_dir_all(root).expect("remove test directory");
     }
+
+    #[cfg(unix)]
+    #[test]
+    fn post_rename_sync_failure_keeps_manifest_and_export_files_consistent() {
+        struct ResetParentSyncFailure;
+
+        impl Drop for ResetParentSyncFailure {
+            fn drop(&mut self) {
+                crate::engine::set_parent_dir_sync_failure_for_test(None);
+            }
+        }
+
+        let root = unique_root("owned-post-rename-sync");
+        let output_dir = root.join("output");
+        fs::create_dir_all(&output_dir).expect("create output directory");
+        let ownership = Ownership {
+            files: vec!["report.txt".to_string()],
+        };
+        fs::write(
+            output_dir.join(OWNERSHIP_FILE),
+            serde_json::to_vec(&ownership).expect("serialize ownership"),
+        )
+        .expect("write ownership manifest");
+        fs::write(output_dir.join("report.txt"), "old report").expect("write old report");
+
+        let stage =
+            OutputStage::create(&output_dir, ["report.txt".to_string()]).expect("create stage");
+        fs::write(stage.path().join("report.txt"), "new report").expect("write staged report");
+        crate::engine::set_parent_dir_sync_failure_for_test(Some(&output_dir.join(OWNERSHIP_FILE)));
+        let _reset = ResetParentSyncFailure;
+
+        stage
+            .commit()
+            .expect("post-rename sync degradation is committed");
+
+        assert_eq!(
+            fs::read_to_string(output_dir.join("report.txt")).expect("read new report"),
+            "new report"
+        );
+        let committed: Ownership = serde_json::from_slice(
+            &fs::read(output_dir.join(OWNERSHIP_FILE)).expect("read ownership manifest"),
+        )
+        .expect("parse ownership manifest");
+        assert_eq!(committed.files, vec!["report.txt"]);
+
+        fs::remove_dir_all(root).expect("remove test directory");
+    }
 }

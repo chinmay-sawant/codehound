@@ -38,6 +38,8 @@ pub use dependencies::{
 };
 pub use diagnostics::Diagnostics;
 pub use ignore::{IgnoreDirective, parse_file_ignore, parse_inline_ignores};
+#[cfg(test)]
+pub(crate) use io::set_parent_dir_sync_failure_for_test;
 pub(crate) use io::write_atomic;
 pub use language_filter::{LanguageFilter, resolve_language_filter};
 pub use path_identity::{

@@ -3,13 +3,36 @@
 use std::fs;
 use std::io::Write;
 use std::path::Path;
+#[cfg(test)]
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
+#[cfg(test)]
+use std::sync::{Mutex, OnceLock};
 
 use serde::Serialize;
 
 use crate::error::{Error, IoOp};
 
 static TEMP_FILE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+
+#[cfg(test)]
+static PARENT_DIR_SYNC_FAILURE: OnceLock<Mutex<Option<PathBuf>>> = OnceLock::new();
+
+#[cfg(test)]
+pub(crate) fn set_parent_dir_sync_failure_for_test(path: Option<&Path>) {
+    let failure_path = PARENT_DIR_SYNC_FAILURE.get_or_init(|| Mutex::new(None));
+    if let Ok(mut failure_path) = failure_path.lock() {
+        *failure_path = path.map(Path::to_path_buf);
+    }
+}
+
+#[cfg(test)]
+fn parent_dir_sync_failure_is_injected(path: &Path) -> bool {
+    PARENT_DIR_SYNC_FAILURE
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .is_ok_and(|failure_path| failure_path.as_deref() == Some(path))
+}
 
 /// Atomically replace `path` with serialized JSON.
 pub(crate) fn write_atomic<T: Serialize>(path: &Path, value: &T) -> Result<(), Error> {
@@ -67,6 +90,12 @@ pub(crate) fn write_atomic_bytes(path: &Path, bytes: &[u8]) -> Result<(), Error>
 
 #[cfg(unix)]
 fn sync_parent_dir(path: &Path) -> Result<(), Error> {
+    #[cfg(test)]
+    if parent_dir_sync_failure_is_injected(path) {
+        return Err(Error::Config(
+            "injected parent directory sync failure".to_string(),
+        ));
+    }
     let Some(parent) = path
         .parent()
         .filter(|parent| !parent.as_os_str().is_empty())

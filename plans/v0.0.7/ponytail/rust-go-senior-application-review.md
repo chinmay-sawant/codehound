@@ -1,7 +1,7 @@
 # v0.0.7 — Ponytail Senior Rust and Go Application Review
 
 > **Parent:** `plans/v0.0.7/ponytail/` — independent whole-application review ledger
-> **Status:** Remediation complete for every P1 item and the material P2 contract fixes. Two durability limits and three benchmark/adversarial-test proofs remain explicitly partial; no P1 security or delivery defect remains.
+> **Status:** Remediation is complete for every P1 item and the actionable P2 contract fixes. One caller-owned-directory crash-durability limit, one safe legacy-lock migration boundary, and benchmark measurement evidence remain explicitly partial; no P1 security or delivery defect remains.
 > **Estimated effort:** 1–2 follow-up days for the remaining proof and crash-atomic export design work.
 > **Review date:** 2026-07-23
 > **Scope:** Rust implementation, Go static-analysis semantics, test/fixture architecture, CLI/reporting/export contracts, cache/dependency behavior, and CI/release delivery paths.
@@ -12,38 +12,37 @@
 
 CodeHound is a Rust static analyzer whose primary production target is Go. This ledger began as a source-led whole-application review and is now the implementation closure record. Parallel remediation covered scan orchestration, Go detector and taint semantics, persistent cache/dependency/path handling, public interfaces/reporting/export, and CI/release delivery. A final independent security pass found no material remaining P1 defect; a persistence pass identified the bounded limitations recorded below.
 
-The application retains its mature Rust foundation—explicit detector lifecycle contracts, deterministic merge/order behavior, generated detector registration, tight linting, and focused fixtures—and now closes the original trust-boundary failures with small, tested changes. The remaining limits are non-P1: multi-file context exports cannot be crash-atomically replaced without changing the public directory layout; a permanently orphaned cache lock safely produces a cold cache rather than risking ownership theft; and a few performance/failure-injection proofs have not yet been benchmarked.
+The application retains its mature Rust foundation—explicit detector lifecycle contracts, deterministic merge/order behavior, generated detector registration, tight linting, and focused fixtures—and now closes the original trust-boundary failures with small, tested changes. The remaining limits are non-P1: multi-file context exports cannot be crash-atomically replaced without changing the public directory layout; an orphaned pre-advisory lock is deliberately not stolen during mixed-version migration; and a few performance proofs have not yet been measured in release mode.
 
 ---
 
 ## Executive Summary
 
-**Overall application rating: 9.6 / 10.**
+**Overall application rating: 9.3 / 10.**
 
-This is now a high-quality Rust application with security and delivery contracts that have focused regression coverage. The 9.6 rating is evidence-based, not aspirational: all original P1 items are closed, strict linting and the serialized all-feature suite pass, and final independent review found no material P1 defect. It is not a 10 because whole-set export crash atomicity and stale-lock recovery need an interface/design decision, while several performance/failure-mode requirements still lack their requested benchmark or adversarial proof.
+This is now a high-quality Rust application with security and delivery contracts that have focused regression coverage. The 9.3 rating is evidence-based, not aspirational: all original P1 items are closed, strict linting and the serialized all-feature suite pass, and final independent review found no material P1 defect. It is not a 10 because whole-set export crash atomicity needs an interface/design decision, legacy lock migration intentionally favors safety over forced recovery, and performance baselines still need controlled release measurements.
 
 | Dimension | Score | Why |
 |---|---:|---|
 | Rust module design and concurrency | 9.5 | Explicit lifecycle/seams, worker-local parsers, deterministic aggregation, structured errors, and closure-state restoration. |
 | Detector registration and rule delivery | 9.3 | Generated wiring plus narrow-rule fact gating and regression fixtures reduce catalog and cost drift. |
 | Go taint correctness | 9.6 | Unsound sanitizer/guard suppression removed; receiver-qualified summaries and adversarial fixtures protect identity correctness. |
-| Cache and filesystem resilience | 9.1 | Project-relative identity, merge-on-flush, unique durable temp writes, and safe lock degradation; orphaned locks remain cold-cache only. |
-| CLI, reports, and export contracts | 9.2 | Output conflicts are rejected, SARIF evidence is fallible, ranges are UTF-8-safe, and owned export rollback is tested; whole-set crash atomicity remains open. |
+| Cache and filesystem resilience | 9.3 | Project-relative identity, merge-on-flush, unique durable temp writes, and crash-released advisory locks for current binaries; unknown legacy sentinels are safely preserved. |
+| CLI, reports, and export contracts | 9.3 | Output conflicts are rejected, SARIF evidence is fallible, ranges are UTF-8-safe, and ownership-manifest commit state is injection-tested; whole-set crash atomicity remains open. |
 | CI, release, and supply-chain assurance | 9.6 | Strict status propagation, release validation dependency, pinned release inputs, MSRV full-feature gate, and disclosure policy. |
 | Tests and maintainability | 9.4 | Broad unit/integration coverage, targeted regressions, and corrected project-relative test contracts; repeat/stress proof remains limited. |
 
-**Closure status:** P1 5/5 complete; P2 8/12 complete and 4/12 partial only for the stated durability/benchmark proof; P3 3/4 complete and 1/4 partial. The partial rows are intentionally marked `[ ]` below.
+**Closure status:** P1 5/5 complete; actionable P2 persistence/correctness work is complete. The remaining partial rows are intentionally marked `[~]` below because they require release measurements or a public export-layout decision.
 
 ---
 
 ## Validation Evidence
 
-- [ ] `cargo fmt --all -- --check` passed.
-- [ ] `cargo clippy --all-targets --all-features --locked -- -D warnings` passed.
-- [ ] `GOCACHE=/tmp/codehound-go-build-cache cargo test --all-features --locked -- --test-threads=1` is being rerun after the final project-relative test-contract corrections; focused suites for baseline atomic writes, cache-hit merge, source-cache identity, taint, export, and ignore parsing passed.
-- [ ] Final independent security audit found no material P1 defect in taint guards, lexical ignore parsing, receiver summaries, cache identity, or safe lock behavior.
-- [ ] Final persistence audit verified single-file atomic writes and normal export rollback; its two remaining crash-durability limits are preserved as `[ ]` items rather than hidden.
-- [ ] `--no-terminal` now rejects incompatible machine output formats, covered by `tests/cli_output_contract.rs`.
+- [x] `make fmt`, `make lint`, and Rust 1.88 strict Clippy passed.
+- [x] `make test` passed after the final project-relative, export-commit, and cache-lock regressions.
+- [x] Final independent security audit found no material P1 defect in taint guards, lexical ignore parsing, receiver summaries, cache identity, or safe lock behavior.
+- [x] Final persistence audit verified single-file atomic writes, normal export rollback, post-rename commit consistency, and crash-released manifest locks.
+- [x] `--no-terminal` rejects incompatible machine output formats, covered by `tests/cli_output_contract.rs`.
 
 The next phase is limited to the explicitly partial rows; it does not block the 9.6 rating or the complete P1 remediation.
 
@@ -53,11 +52,9 @@ The next phase is limited to the explicitly partial rows; it does not block the 
 
 ### 1.1 Taint false-negative: HTML unescaping is treated as sanitization
 
-- [ ] **P1 / Critical — model `html.UnescapeString` as taint-preserving while making template sinks package/type aware.**
-  - **Evidence:** `src/lang/go/detectors/cwe/taint/extract/classify.rs:145-150` classifies it as `SanitizerKind::HTML`; `:300-304` also suppresses it as a known sanitizer.
-  - **Risk:** treating unescaping as a universal sanitizer loses taint for unsafe sinks, while treating every `Execute` as unsafe reports false positives for `html/template` with ordinary strings.
-  - **Smallest correct change:** preserve taint through `html.UnescapeString`, then distinguish `html/template` auto-escaped string execution from `text/template` and explicit trusted-content conversions such as `template.HTML`.
-  - **Required proof:** plain `string` through `html/template.Execute` is silent; `text/template.Execute` and `html/template.Execute(..., template.HTML(raw))` produce CWE-79.
+- [x] **P1 / Critical — model `html.UnescapeString` as taint-preserving while making template sinks package/type aware.**
+  - **Implemented:** taint is preserved through unescaping; plain values executed by `html/template` are excluded, while `text/template` and explicit trusted-content conversions remain sinks.
+  - **Proof:** CWE-79 regression coverage exercises all three cases and passed under `make test`.
 
 ### 1.2 Strict GitHub action never gates a build
 
@@ -239,23 +236,24 @@ The next phase is limited to the explicitly partial rows; it does not block the 
 | 1.2, 1.3, 4.1, 4.2, 4.3 | Strict scanner status is propagated after SARIF upload; tag release `validate` gates every build; actions/tools are pinned, MSRV runs all features, and `SECURITY.md` documents disclosure. | [x] |
 | 2.1, 2.5, 2.6, 2.7, 3.5, 4.4 | Ignore lexer tracks Go raw/block and Python triple strings; invalid output combinations fail at argument validation; UTF-8-safe context fallback, atomic diagnostics, fallible SARIF evidence, and isolated diagnostics fixtures are covered. | [x] |
 | 2.3 | `project_relative_path` is used for cache/dependency/source identities. Absolute-root and narrow-scan regressions prove invalidation and sibling preservation; source-cache/cache-hit tests now assert the public project-relative contract. | [x] |
-| 2.4 | Lock-protected merge/flush, unique `create_new` temporary files, file fsync, rename, and parent-directory sync are in place. A lock that survives a crashed owner is intentionally not stolen: scans remain correct but future flushes stay cold until the lock is removed. | [~] |
+| 2.4 | New manifest updates use a cross-platform OS advisory lock rather than a `create_new` sentinel. A process exit releases a marked current-version lock automatically; an unknown legacy sentinel is never stolen during a mixed-version rollout. | [~] |
 | 2.2 | Manifest filenames are validated as single normal names; staged writes, pre-existing-output backup, rollback, and malicious-path regressions protect normal failure paths. A crash between individual file renames cannot atomically restore an entire caller-owned directory. | [~] |
-| 3.2, 3.3, 3.4 | Narrow rule selections skip unneeded fact bundles; cached parser failures become `ScanError`s; context uses shared source instead of a whole-source clone. Release benchmarks and direct parser-failure injection tests are still required before asserting the requested performance/failure proofs. | [~] |
+| 3.3 | Cached parser/tree failures are explicit `ScanError`s; parser-setup and missing-tree regressions cover the failure contract. | [x] |
+| 3.2, 3.4 | Narrow rule selections skip unneeded fact bundles and context borrows cached source. Criterion coverage exists, but the requested release baseline measurements have not yet been recorded. | [~] |
 
 ---
 
 ## Verified Strengths
 
-- [ ] `src/core/detector.rs:8-125` makes detector lifecycle, cache-state rebuilding, parallel accumulation, and reset responsibilities explicit; this is a deep, useful module interface.
-- [ ] `src/engine/analyzer/scan.rs:21-82` and `src/engine/walk/parallel.rs:333-367` contain detector lifecycle/panic failures as structured scan errors while cleanup still runs.
-- [ ] `src/engine/parse_pool.rs:11-31` reuses parsers locally within Rayon workers, avoiding global parser locking and repeated parser creation.
-- [ ] `src/engine/registry.rs:50-123` validates plugin uniqueness and detector-language affinity before scanning.
-- [ ] Cache corruption is defensive: malformed entry JSON degrades to a miss (`src/engine/cache/disk.rs:31-64`), and rule/version context invalidates stale manifests (`src/engine/cache/store_open.rs:57-69,208-229`).
-- [ ] The no-`go.mod`/parent-`.git` root-selection seam is correctly isolated and tested in `src/engine/dependencies/project_root.rs:40-53,72-91`.
-- [ ] Generated rule registries, fixture inventories, deterministic source-index identity, and focused safe/vulnerable tests give the detector platform strong maintainability foundations.
-- [ ] `#![deny(clippy::unwrap_used)]`, crate documentation warnings, structured `Error`/`IoOp`, and deterministic SARIF rule/fingerprint ordering demonstrate disciplined Rust engineering.
-- [ ] Product documentation honestly calls taint experimental rather than security-grade (`README.md:153-159`), which is the correct posture until Phase 1 is complete.
+- [x] `src/core/detector.rs:8-125` makes detector lifecycle, cache-state rebuilding, parallel accumulation, and reset responsibilities explicit; this is a deep, useful module interface.
+- [x] `src/engine/analyzer/scan.rs:21-82` and `src/engine/walk/parallel.rs:333-367` contain detector lifecycle/panic failures as structured scan errors while cleanup still runs.
+- [x] `src/engine/parse_pool.rs:11-31` reuses parsers locally within Rayon workers, avoiding global parser locking and repeated parser creation.
+- [x] `src/engine/registry.rs:50-123` validates plugin uniqueness and detector-language affinity before scanning.
+- [x] Cache corruption is defensive: malformed entry JSON degrades to a miss (`src/engine/cache/disk.rs:31-64`), and rule/version context invalidates stale manifests (`src/engine/cache/store_open.rs:57-69,208-229`).
+- [x] The no-`go.mod`/parent-`.git` root-selection seam is correctly isolated and tested in `src/engine/dependencies/project_root.rs:40-53,72-91`.
+- [x] Generated rule registries, fixture inventories, deterministic source-index identity, and focused safe/vulnerable tests give the detector platform strong maintainability foundations.
+- [x] `#![deny(clippy::unwrap_used)]`, crate documentation warnings, structured `Error`/`IoOp`, and deterministic SARIF rule/fingerprint ordering demonstrate disciplined Rust engineering.
+- [x] Product documentation honestly calls taint experimental rather than security-grade (`README.md:153-159`), which is the correct posture until Phase 1 is complete.
 
 ---
 
@@ -326,19 +324,20 @@ The codebase remains architecturally strong and the targeted fixture-manifest, G
 
 #### 6.1 Export rollback can diverge from a post-rename manifest
 
-- [~] **P2 / High — make the ownership manifest commit-state-aware.**
+- [x] **P2 / High — make the ownership manifest commit-state-aware.**
   - **Evidence:** `src/engine/io.rs:48-56` renames the manifest before parent-directory sync; `src/export/owned.rs:143-147` treats every `write_atomic` error as pre-commit and rolls output files back.
   - **Risk:** if directory sync fails after rename, the new manifest remains visible while old files are restored, producing an internally inconsistent export set.
   - **Implemented:** a directory-sync failure after `rename` is now a warning because the logical commit has already happened; callers no longer roll back output files against a visible new manifest.
-  - **Remaining proof:** inject a post-rename directory-sync failure and assert manifest/files remain mutually consistent.
+  - **Proof:** the Unix regression `post_rename_sync_failure_keeps_manifest_and_export_files_consistent` injects that failure and asserts both the new export file and the committed ownership manifest survive together.
 
 #### 6.2 Orphaned cache lock causes permanent cold-cache persistence
 
-- [ ] **P2 / Medium — reclaim verified-stale manifest locks safely.**
+- [~] **P2 / Medium — eliminate stale lock ownership for current-version writers with an OS advisory lock.**
   - **Evidence:** `src/engine/cache/store_flush.rs:22-41` retries for 500ms and never removes/reclaims an existing lock; `:68-79` returns success without persistence.
   - **Risk:** a process crash leaves every later scan unable to persist cache updates until manual cleanup.
-  - **Smallest correct change:** record ownership token and age, then reclaim only a demonstrably stale lock; never steal an active owner's lock.
-  - **Required proof:** simulated crash/orphan lock recovers persistence, while a held active lock is not removed.
+  - **Implemented:** `fs2` advisory locking protects marked current-version lock files. The kernel releases that lock on process exit, so a crashed current binary cannot permanently block a future flush.
+  - **Migration boundary:** an unmarked lock can belong to an older binary that used `create_new` without advisory locking; it is preserved rather than raced or stolen. A legacy crash sentinel still requires manual cleanup after all writers are upgraded.
+  - **Proof:** `stale_advisory_lock_file_does_not_block_manifest_persistence` proves current-version recovery; `active_manifest_lock_is_not_stolen` proves a live owner is respected; the cache-store integration test proves a legacy sentinel remains non-racy.
 
 ### Re-Review Validation Evidence
 
@@ -350,18 +349,19 @@ The codebase remains architecturally strong and the targeted fixture-manifest, G
 
 ## Corrective Implementation Re-Rate — 2026-07-24
 
-> **Status:** All P1 correctness/release-gate regressions found in this re-review are fixed and validated. Two P2 persistence boundaries remain explicitly tracked.
-> **Current application rating:** **9.1 / 10**
+> **Status:** All P1 correctness/release-gate regressions and actionable P2 persistence bugs are fixed and validated. The caller-owned multi-file crash-atomicity limitation, safe legacy-lock migration boundary, and release benchmark measurements remain explicitly tracked.
+> **Current application rating:** **9.3 / 10**
 
 ### What changed
 
 - [x] CWE-79 now preserves taint through `html.UnescapeString` without falsely reporting ordinary strings executed by `html/template`; `text/template` and unsafe `template.HTML` conversion remain reportable sinks.
 - [x] CWE-22 no longer mistakes a textual `strings.HasPrefix` guard for filesystem confinement.
-- [x] Atomic writes accept normal bare relative filenames; a post-rename directory-sync failure no longer produces a false failed-write result that triggers export rollback.
+- [x] Atomic writes accept normal bare relative filenames; a post-rename directory-sync failure is injection-tested and cannot produce export/manifest divergence.
+- [x] Current-version cache manifest locking uses an OS advisory lock, so a process crash releases ownership automatically while a live lock holder remains protected.
 - [x] Stable and Rust 1.88 strict Clippy gates are green, and the documented `make lint` command uses the lockfile.
 
 ### Remaining deductions
 
 - [ ] **P2 — export is not crash-atomic across a caller-owned multi-file directory.** The code rolls back normal failures, but a hard crash between file renames can still leave a partial export. Resolving this requires a layout/API change such as an owned swappable subdirectory.
-- [ ] **P2 — an orphaned cache manifest lock is not reclaimed automatically.** Correctness degrades to a cold/non-persisted cache until manual cleanup; reclaim must prove staleness without stealing active locks.
-- [~] **P2 — post-rename sync behavior needs an injected failure regression.** The commit-state bug is fixed, but the platform-specific directory-sync failure path is not directly injectable in the current test harness.
+- [~] **P2 — pre-advisory cache-lock migration is intentionally conservative.** An unmarked `.manifest.lock` can be held by an older binary, so it remains non-persistent until normal release or manual cleanup; forcing recovery would reintroduce a mixed-version write race.
+- [~] **P2 — release benchmark baselines are not recorded.** Criterion coverage exists for full/default/narrow scans, warm cache scans, and partial scans, but publishable release-mode allocation/throughput comparisons still need a controlled baseline run.

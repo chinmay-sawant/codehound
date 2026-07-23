@@ -285,7 +285,7 @@ fn flush_reports_manifest_write_failure() {
 }
 
 #[test]
-fn stale_manifest_lock_skips_persistence_without_failing_the_cache_session() {
+fn legacy_manifest_lock_skips_persistence_without_racing_an_older_cache_writer() {
     let root = unique_temp_root("stale-manifest-lock");
     let mut store = CacheStore::open_with_capacity(root.clone(), 500).expect("open");
     store
@@ -302,10 +302,10 @@ fn stale_manifest_lock_skips_persistence_without_failing_the_cache_session() {
 
     store
         .flush()
-        .expect("a stale lock must skip cache persistence, not fail the scan");
+        .expect("a legacy lock must skip cache persistence, not fail the scan");
     assert!(
         !root.join("manifest.json").exists(),
-        "skipped flush must not steal the existing lock"
+        "new code must not race a pre-advisory cache writer"
     );
 
     std::fs::remove_file(lock).expect("remove stale lock");
