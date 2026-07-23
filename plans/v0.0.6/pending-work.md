@@ -1,6 +1,6 @@
 # v0.0.6 — Pending work backlog
 
-> **Status:** Class B + P1 done; G1 future/deferred; G2 deferred; G3 residual FO (auth_flows) in flight; G4–G6 gated  
+> **Status:** Class B + P1 + G3 FO residual done; G1 future; G2 deferred; G4 Gate A PASS (impl open); G5–G6 gated  
 
 > **Parent (closed):** v0.0.5 parallel catalog program ([#105](https://github.com/chinmay-sawant/codehound/issues/105)) and Phase 5 gate eval ([#136](https://github.com/chinmay-sawant/codehound/issues/136) / PR #150)  
 > **Day context:** [`../v0.0.5/22072026.md`](../v0.0.5/22072026.md)  
@@ -51,7 +51,7 @@ Optional process items (canary re-runs) are Class C — light chore streams.
 - [ ] #152 G1 Broad BP-66+ / BP-71 — **reopen fail 2026-07-23** ([evidence](./evidence-g1-bp-reopen.md))
 - [ ] #153 G2 CWE-277 Structural — **reopen fail 2026-07-23** ([evidence](./evidence-g2-cwe-277-reopen.md))
 - [x] #154 G3 Further FO residual (auth_flows 305–309/620/836 FO) — true-gen still deferred
-- [ ] #155 G4 Typed Go / `go/packages`
+- [ ] #155 G4 Typed Go / `go/packages` — **Gate A PASS** 2026-07-23 ([evidence](./evidence-g4-gate-a.md)); impl open
 - [ ] #156 G5 Advanced taint ceilings
 - [ ] #157 G6 Python multi-rule catalog
 
@@ -76,7 +76,7 @@ Optional process items (canary re-runs) are Class C — light chore streams.
 2. ~~**R5–R7**~~ — **done** (R5–R8 integration / issues #162–#165)  
 3. ~~**R8 / G3**~~ — **done** (keep FO; no uplift in #165)  
 4. **G2 / G1** — only after real-module hits (next if reopen evidence exists)  
-5. **G4 / G5 / G6** — strategic; external demand + architecture gates  
+5. **G4 impl** — Gate A passed; optional typed layer behind flag (then G5/G6)  
 6. ~~**P1**~~ — **done** (canary + recommended-pack pilot post R1–R8)  
 
 Do **not** schedule all Class A at once. Prefer ≤4 worktrees per residual batch + one integration.

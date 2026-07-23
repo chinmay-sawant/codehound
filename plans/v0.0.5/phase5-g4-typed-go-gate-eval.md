@@ -5,8 +5,9 @@
 > **Gate source of truth:** [`roadmap-gates-49.md`](./roadmap-gates-49.md) Gate A (A1–A6)  
 > **Tracker row:** [`phase5-gated-work.md`](./phase5-gated-work.md) G4  
 > **Prior defer:** [`roadmap-investments-decision.md`](./roadmap-investments-decision.md) (#40)  
-> **Status:** **REMAIN DEFERRED** — docs-only evidence pass; **no** `go/packages` integration, **no** `--typed` flag, **no** Cargo deps  
-> **Evaluation date:** 2026-07-22  
+> **Status:** **SUPERSEDED for Gate A** — 2026-07-22 remain-deferred eval kept for history; **Gate A PASS** recorded in [`../v0.0.6/evidence-g4-gate-a.md`](../v0.0.6/evidence-g4-gate-a.md) (2026-07-23). Still **no** product `go/packages` / `--typed` until impl tranche.  
+> **Evaluation date:** 2026-07-22 (initial); Gate A package 2026-07-23  
+
 > **Base SHA:** `9e61e807358a1b9a4f5a03cf3b2abecbe30281a2` (`origin/master`)  
 > **Checklist plan:** this file (execution checklist below)
 
