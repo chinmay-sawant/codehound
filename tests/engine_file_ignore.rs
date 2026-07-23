@@ -36,3 +36,9 @@ fn parse_file_ignore_ignores_directives_after_line_twenty() {
 
     assert_eq!(parse_file_ignore(&source), None);
 }
+
+#[test]
+fn parse_file_ignore_ignores_directive_inside_go_raw_string() {
+    let ignore = parse_file_ignore("s := `\n// codehound-ignore-file: all\n`\npackage sample\n");
+    assert_eq!(ignore, None);
+}
