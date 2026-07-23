@@ -5,6 +5,7 @@ mod context;
 mod entry;
 mod finding_block;
 mod options;
+mod owned;
 
 pub use entry::export_findings;
 pub use options::{ExportOptions, ExportSummary};

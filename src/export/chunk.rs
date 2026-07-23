@@ -59,6 +59,17 @@ pub(super) fn write_chunk_files_streaming(
     Ok(chunk_count)
 }
 
+pub(super) fn chunk_file_names(findings_len: usize, chunk_size: usize) -> Vec<String> {
+    (0..findings_len)
+        .step_by(chunk_size.max(1))
+        .map(|start| {
+            let start_index = start + 1;
+            let end_index = (start + chunk_size.max(1)).min(findings_len);
+            format!("Chunk_{start_index}_{end_index}.txt")
+        })
+        .collect()
+}
+
 pub(super) fn clean_matching_txt_files(
     output_dir: &Path,
     should_remove: impl Fn(&str) -> bool,

@@ -65,6 +65,23 @@ pub enum Error {
     #[error(transparent)]
     Json(#[from] serde_json::Error),
 
+    /// A finding's evidence could not be represented in the SARIF report.
+    #[error("serializing SARIF evidence for {rule_id}: {source}")]
+    SarifEvidence {
+        /// Rule that produced the evidence.
+        rule_id: String,
+        /// Serialization failure.
+        #[source]
+        source: serde_json::Error,
+    },
+
+    /// A SARIF result did not have a matching rule definition.
+    #[error("building SARIF: missing rule definition for {rule_id}")]
+    SarifRule {
+        /// Rule identifier that was missing from the SARIF driver.
+        rule_id: String,
+    },
+
     /// Source parse failure for a specific file.
     #[error("failed to parse {path}: {detail}")]
     Parse {

@@ -118,7 +118,7 @@ impl LangMode {
 }
 
 /// Reporter output format.
-#[derive(Debug, Clone, Copy, ValueEnum, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum, Default)]
 pub enum OutputFormat {
     /// Human-readable text (default).
     #[default]

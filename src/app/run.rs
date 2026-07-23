@@ -176,7 +176,27 @@ impl ScanRun {
 }
 
 fn run_scan(cli: Cli) -> Result<ExitCode> {
+    validate_output_options(&cli)?;
     ScanRun::new(cli).execute()
+}
+
+/// Reject output combinations that would otherwise silently change a requested
+/// machine-readable payload into the text-only `--no-terminal` summary.
+fn validate_output_options(cli: &Cli) -> Result<()> {
+    if cli.no_terminal
+        && (cli.format != OutputFormat::Text || cli.sarif_compact || cli.json_envelope)
+    {
+        anyhow::bail!(
+            "--no-terminal only supports text output; remove it when requesting JSON or SARIF"
+        );
+    }
+    if cli.sarif_compact && cli.format != OutputFormat::Sarif {
+        anyhow::bail!("--sarif-compact requires --format sarif");
+    }
+    if cli.json_envelope && cli.format != OutputFormat::Json {
+        anyhow::bail!("--json-envelope requires --format json");
+    }
+    Ok(())
 }
 
 pub(crate) fn scan_context_params_for_run(
@@ -493,9 +513,8 @@ fn write_diagnostics(cli: &Cli, result: &AnalysisResult) -> Result<()> {
         return Ok(());
     };
     let diagnostics = Diagnostics::from_stats(stats);
-    let file = std::fs::File::create(diagnostics_path)
-        .with_context(|| format!("creating diagnostics file {}", diagnostics_path.display()))?;
-    serde_json::to_writer_pretty(file, &diagnostics)
+    diagnostics
+        .write_to_path(diagnostics_path)
         .with_context(|| format!("writing diagnostics file {}", diagnostics_path.display()))?;
     Ok(())
 }

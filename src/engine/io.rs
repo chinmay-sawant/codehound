@@ -3,26 +3,91 @@
 use std::fs;
 use std::io::Write;
 use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde::Serialize;
 
 use crate::error::{Error, IoOp};
 
+static TEMP_FILE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+
+/// Atomically replace `path` with serialized JSON.
 pub(crate) fn write_atomic<T: Serialize>(path: &Path, value: &T) -> Result<(), Error> {
+    let mut bytes = serde_json::to_vec_pretty(value).map_err(Error::from)?;
+    bytes.push(b'\n');
+    write_atomic_bytes(path, &bytes)
+}
+
+/// Atomically replace `path` with bytes using a unique sibling temp file.
+pub(crate) fn write_atomic_bytes(path: &Path, bytes: &[u8]) -> Result<(), Error> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)
             .map_err(|e| Error::path_io(parent.display().to_string(), IoOp::CreateDir, e))?;
     }
-    let tmp = path.with_extension("json.tmp");
+    let sequence = TEMP_FILE_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+    let file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("output");
+    let tmp = path.with_file_name(format!(
+        ".{file_name}.{}.{}.tmp",
+        std::process::id(),
+        sequence
+    ));
     {
-        let mut f = fs::File::create(&tmp)
+        let mut f = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&tmp)
             .map_err(|e| Error::path_io(tmp.display().to_string(), IoOp::CreateFile, e))?;
-        serde_json::to_writer_pretty(&mut f, value).map_err(Error::from)?;
-        f.write_all(b"\n")?;
+        f.write_all(bytes)
+            .map_err(|e| Error::path_io(tmp.display().to_string(), IoOp::Write, e))?;
         f.sync_all()
             .map_err(|e| Error::path_io(tmp.display().to_string(), IoOp::Write, e))?;
     }
-    fs::rename(&tmp, path)
-        .map_err(|e| Error::path_io(path.display().to_string(), IoOp::Rename, e))?;
+    if let Err(error) = fs::rename(&tmp, path) {
+        let _ = fs::remove_file(&tmp);
+        return Err(Error::path_io(
+            path.display().to_string(),
+            IoOp::Rename,
+            error,
+        ));
+    }
     Ok(())
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::*;
+    use std::os::unix::fs::PermissionsExt;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn write_atomic_keeps_prior_file_when_directory_becomes_unwritable() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!("codehound-atomic-{unique}"));
+        fs::create_dir_all(&root).expect("mkdir");
+        let path = root.join("diag.json");
+        fs::write(&path, "{\"prior\":true}\n").expect("seed prior");
+
+        let mut perms = fs::metadata(&root).expect("meta").permissions();
+        perms.set_mode(0o555);
+        fs::set_permissions(&root, perms).expect("readonly dir");
+
+        let err = write_atomic(&path, &serde_json::json!({"next": true}));
+        let mut restore = fs::metadata(&root).expect("meta").permissions();
+        restore.set_mode(0o755);
+        fs::set_permissions(&root, restore).expect("restore perms");
+
+        assert!(err.is_err(), "unwritable directory must fail the replace");
+        assert_eq!(
+            fs::read_to_string(&path).expect("prior intact"),
+            "{\"prior\":true}\n"
+        );
+
+        let _ = fs::remove_dir_all(root);
+    }
 }
