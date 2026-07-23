@@ -55,6 +55,9 @@ impl CodehoundConfig {
         if let Some(show_paths) = self.codehound.taint.show_paths {
             ctx.taint_show_paths = show_paths;
         }
+        if let Some(enabled) = self.codehound.typed.enabled {
+            ctx.typed_enabled = enabled;
+        }
         ctx.bad_practices_enabled = self.codehound.bad_practices.enabled;
         ctx.bad_practice_severity = self.codehound.bad_practices.severity;
         ctx.severity_overrides

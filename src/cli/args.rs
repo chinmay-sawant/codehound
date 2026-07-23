@@ -21,6 +21,7 @@ use clap::Parser;
         codehound --profile all              # full catalog\n  \
         codehound --export-context --export-chunks  # opt-in filesystem export\n  \
         codehound --taint                    # enable experimental taint tracking\n  \
+        codehound --typed                    # optional Go package facts (needs go toolchain)\n  \
         codehound --taint-show-paths         # emit taint-path evidence\n  \
         codehound --diagnostics-summary      # compact scan stats\n  \
         codehound --list-rules               # show every registered rule\n  \
@@ -77,6 +78,16 @@ pub struct Cli {
     /// Disable taint tracking even if config enables it.
     #[arg(long)]
     pub no_taint: bool,
+
+    /// Enable optional Go package-graph facts via `go list` (G4). Requires a Go
+    /// toolchain; degrades to tree-sitter-only if unavailable. Never required
+    /// for recommended/default scans.
+    #[arg(long)]
+    pub typed: bool,
+
+    /// Disable typed package facts even if config enables them.
+    #[arg(long)]
+    pub no_typed: bool,
 
     /// Emit taint-path evidence in finding output (JSON/SARIF/text).
     #[arg(long)]

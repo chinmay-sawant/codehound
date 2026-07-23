@@ -34,6 +34,10 @@ pub struct ScanContextParams {
     pub taint: bool,
     /// Explicitly disable taint tracking.
     pub no_taint: bool,
+    /// Enable optional Go typed/package facts (G4).
+    pub typed: bool,
+    /// Explicitly disable typed facts.
+    pub no_typed: bool,
     /// Attach taint-path evidence when taint is enabled.
     pub taint_show_paths: bool,
     /// Inter-procedural hops (clamped 1..=4 when applied).
@@ -62,6 +66,7 @@ pub fn build_scan_context(params: ScanContextParams) -> ScanContext {
         diagnostics_summary: params.diagnostics_summary,
         verbose: params.verbose,
         taint_enabled: false,
+        typed_enabled: false,
         taint_show_paths: false,
         taint_max_depth: 1,
         bad_practices_enabled: true,
@@ -99,6 +104,12 @@ pub fn build_scan_context(params: ScanContextParams) -> ScanContext {
     }
     if params.no_taint {
         ctx.taint_enabled = false;
+    }
+    if params.typed {
+        ctx.typed_enabled = true;
+    }
+    if params.no_typed {
+        ctx.typed_enabled = false;
     }
     if params.taint_show_paths {
         ctx.taint_show_paths = true;
