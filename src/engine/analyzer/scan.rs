@@ -97,6 +97,24 @@ fn distinct_project_roots(paths: &[impl AsRef<Path>], fallback: &Path) -> Vec<Pa
     roots
 }
 
+/// Cache pruning is only safe when this invocation covers exactly the
+/// dependency root. A file or nested-directory scan must not delete cache
+/// entries for sibling paths that it intentionally did not visit.
+fn covers_dependency_root(paths: &[impl AsRef<Path>], dependency_root: &Path) -> bool {
+    let [path] = paths else {
+        return false;
+    };
+    let path = path.as_ref();
+    if path.is_file() {
+        return false;
+    }
+    let path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+    let root = dependency_root
+        .canonicalize()
+        .unwrap_or_else(|_| dependency_root.to_path_buf());
+    path == root
+}
+
 impl Analyzer {
     /// Run the scan. When `cache` is `Some`, the scan consults the
     /// cache for files whose content hash has not changed, and writes
@@ -133,6 +151,7 @@ impl Analyzer {
         // Dependency extraction / cache cascade: module marker or scan root —
         // never an unrelated parent `.git` alone (breaks go.mod-less imports).
         let dependency_root = dependency_base_root(start);
+        let may_prune_cache = covers_dependency_root(paths, &dependency_root);
         // Explicit per-scan detector session + pack-local project prepare.
         // Distinct roots keep multi-root scans correct without engine
         // knowledge of any language pack's prewarm details.
@@ -154,7 +173,10 @@ impl Analyzer {
         let mut acc = crate::engine::PipelineAccumulator::new(files_skipped);
         if cache.is_some() {
             for entry in &entries {
-                acc.record_scanned(entry.path.display().to_string());
+                acc.record_scanned(crate::engine::path_identity::project_relative_path(
+                    entry.path.as_ref(),
+                    &dependency_root,
+                ));
             }
         }
 
@@ -174,6 +196,7 @@ impl Analyzer {
                 Ok(chunk) => chunk,
                 Err(e) => return Err(Error::Walk(e.to_string())),
             };
+            let completed_cache_files = chunk.completed_cache_files.clone();
             let rescan_files = acc.merge_chunk(chunk, &mut timing);
 
             // Transitive invalidation: every file whose content
@@ -188,7 +211,8 @@ impl Analyzer {
                     if !hash_changed {
                         continue;
                     }
-                    let removed = cache.invalidate_dependent(&rescanned_file);
+                    let removed =
+                        cache.invalidate_dependent_except(&rescanned_file, &completed_cache_files);
                     if removed > 0 {
                         tracing::info!(
                             file = %rescanned_file,
@@ -203,14 +227,16 @@ impl Analyzer {
         // Prune orphan cache entries (files that were deleted since
         // the last scan). Done at the analyzer level so it still runs
         // when `entries` is empty.
-        if let Some(cache) = cache.as_mut() {
-            match cache.prune(acc.scanned_files()) {
-                Ok(removed) if removed > 0 => {
-                    tracing::debug!(removed, "pruned stale cache entries");
-                }
-                Ok(_) => {}
-                Err(error) => {
-                    tracing::warn!(error = %error, "failed to prune stale cache entries");
+        if may_prune_cache {
+            if let Some(cache) = cache.as_mut() {
+                match cache.prune(acc.scanned_files()) {
+                    Ok(removed) if removed > 0 => {
+                        tracing::debug!(removed, "pruned stale cache entries");
+                    }
+                    Ok(_) => {}
+                    Err(error) => {
+                        tracing::warn!(error = %error, "failed to prune stale cache entries");
+                    }
                 }
             }
         }

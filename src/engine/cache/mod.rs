@@ -17,6 +17,7 @@ mod store_open;
 mod tests;
 mod types;
 
+use std::collections::HashSet;
 use std::path::PathBuf;
 
 pub use backend::CacheBackend;
@@ -36,6 +37,10 @@ pub struct CacheStore {
     pub(super) files_dir: PathBuf,
     pub(super) manifest: CacheManifest,
     pub(super) dirty: bool,
+    /// Keys deliberately removed by this store since it was opened. Kept so
+    /// a concurrent flush can merge new entries without resurrecting pruned
+    /// or invalidated entries.
+    pub(super) removed_files: HashSet<String>,
     /// Maximum total size of `files/` in bytes. `0` disables the limit.
     pub(super) max_size_bytes: u64,
     /// Fraction of `max_size_bytes` to retain after eviction.

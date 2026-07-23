@@ -111,6 +111,7 @@ impl CacheStore {
             files_dir,
             manifest,
             dirty: tool_version_mismatch,
+            removed_files: std::collections::HashSet::new(),
             max_size_bytes: max_size_mb.saturating_mul(1024 * 1024),
             evict_target_ratio,
             max_file_size_bytes: max_file_size_mb.saturating_mul(1024 * 1024),
@@ -127,6 +128,7 @@ impl CacheStore {
             files_dir: PathBuf::new(),
             manifest: Self::empty_manifest(),
             dirty: false,
+            removed_files: std::collections::HashSet::new(),
             max_size_bytes: 0,
             evict_target_ratio: 0.9,
             max_file_size_bytes: 0,
@@ -159,6 +161,7 @@ impl CacheStore {
             files_dir: PathBuf::new(),
             manifest: Self::empty_manifest(),
             dirty: false,
+            removed_files: std::collections::HashSet::new(),
             max_size_bytes: max_size_mb.saturating_mul(1024 * 1024),
             evict_target_ratio,
             max_file_size_bytes: max_file_size_mb.saturating_mul(1024 * 1024),
@@ -253,14 +256,25 @@ impl CacheStore {
     /// - `Stale` when the file is tracked but the hash is different.
     /// - `Miss` when the file is not in the manifest.
     pub fn lookup(&self, file: &str, content_hash: &str) -> CacheLookup {
-        let Some(meta) = self.manifest.files.get(file) else {
+        let file = crate::engine::path_identity::normalize_project_path(file);
+        let Some(meta) = self.manifest.files.get(&file) else {
             return CacheLookup::Miss;
         };
         if meta.content_hash != content_hash {
             return CacheLookup::Stale;
         }
-        match self.backend.load_entry(&cache_key_for_path(file)) {
-            Some(entry) => CacheLookup::Hit(entry),
+        match self.backend.load_entry(&cache_key_for_path(&file)) {
+            Some(entry) if crate::engine::path_identity::project_paths_eq(&entry.file, &file) => {
+                CacheLookup::Hit(entry)
+            }
+            Some(entry) => {
+                tracing::warn!(
+                    requested_file = %file,
+                    entry_file = %entry.file,
+                    "cache entry identity does not match manifest key; treating as stale"
+                );
+                CacheLookup::Stale
+            }
             None => CacheLookup::Stale,
         }
     }
@@ -277,10 +291,11 @@ impl CacheStore {
     /// manifest or the entry file is missing/corrupt.
     #[cfg(test)]
     pub fn get(&self, file: &str) -> Option<CacheEntry> {
-        if !self.manifest.files.contains_key(file) {
+        let file = crate::engine::path_identity::normalize_project_path(file);
+        if !self.manifest.files.contains_key(&file) {
             return None;
         }
-        self.backend.load_entry(&cache_key_for_path(file))
+        self.backend.load_entry(&cache_key_for_path(&file))
     }
 
     /// Read-only access to the manifest, primarily for tests and

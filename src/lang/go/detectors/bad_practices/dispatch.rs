@@ -2,7 +2,7 @@
 
 use std::sync::OnceLock;
 
-use crate::core::ParsedUnit;
+use crate::core::{ParsedUnit, ScanContext};
 use crate::rules::Finding;
 
 use super::rules::*;
@@ -191,9 +191,22 @@ pub(crate) fn requires_server_anchor(rule_id: &str) -> bool {
     matches!(rule_id, "BP-47" | "BP-50" | "BP-54" | "BP-55")
 }
 
+/// Whether any enabled rule needs the shared source index.
+///
+/// The default is intentionally `true`: a new rule cannot accidentally lose
+/// its fast-path guards. BP-2 is source/AST-only and is kept explicit so a
+/// narrow `--only BP-2` scan does not construct the whole BP needle index.
+pub(crate) fn enabled_rules_need_source_index(ctx: &ScanContext) -> bool {
+    BAD_PRACTICE_RULES
+        .iter()
+        .any(|(rule_id, _)| ctx.allows(rule_id) && *rule_id != "BP-2")
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{requires_project_anchor, requires_server_anchor};
+    use super::{enabled_rules_need_source_index, requires_project_anchor, requires_server_anchor};
+    use crate::core::ScanContext;
+    use std::collections::HashSet;
 
     #[test]
     fn requires_project_anchor_only_for_go_module_hygiene_rules() {
@@ -209,5 +222,20 @@ mod tests {
         assert!(requires_server_anchor("BP-55"));
         assert!(!requires_server_anchor("BP-46"));
         assert!(!requires_server_anchor("BP-57"));
+    }
+
+    #[test]
+    fn bp_2_only_does_not_need_the_broad_source_index() {
+        let ctx = ScanContext {
+            only: Some(HashSet::from(["BP-2".to_string()])),
+            ..Default::default()
+        };
+        assert!(!enabled_rules_need_source_index(&ctx));
+
+        let ctx = ScanContext {
+            only: Some(HashSet::from(["BP-3".to_string()])),
+            ..Default::default()
+        };
+        assert!(enabled_rules_need_source_index(&ctx));
     }
 }

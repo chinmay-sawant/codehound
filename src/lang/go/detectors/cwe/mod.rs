@@ -117,10 +117,10 @@ impl Detector for GoCweScan {
 
     fn accumulate_state(&self, ctx: &ScanContext, unit: &ParsedUnit) {
         // Project state is only consumed by taint finalize.
-        if !ctx.taint_enabled || !self.rule_ids().iter().any(|id| ctx.allows(id)) {
+        if !taint_is_enabled(ctx) {
             return;
         }
-        let mut facts = build_go_unit_facts_with(unit, FactBuildOpts::TAINT);
+        let mut facts = build_go_unit_facts_with(unit, fact_build_opts(ctx));
         build_taint_graph_for_facts(&mut facts);
         let project_unit = make_project_unit(unit, &mut facts);
         let mut state = self
@@ -131,7 +131,7 @@ impl Detector for GoCweScan {
     }
 
     fn requires_cache_state(&self, ctx: &ScanContext) -> bool {
-        ctx.taint_enabled && self.rule_ids().iter().any(|id| ctx.allows(id))
+        taint_is_enabled(ctx)
     }
 
     fn reset_state(&self) {
@@ -146,9 +146,9 @@ impl Detector for GoCweScan {
         if !self.rule_ids().iter().any(|id| ctx.allows(id)) {
             return;
         }
-        let opts = FactBuildOpts::for_scan(ctx.taint_enabled);
+        let opts = fact_build_opts(ctx);
         let mut facts = build_go_unit_facts_with(unit, opts);
-        if ctx.taint_enabled {
+        if taint_is_enabled(ctx) {
             build_taint_graph_for_facts(&mut facts);
         }
 
@@ -161,7 +161,7 @@ impl Detector for GoCweScan {
         // Publish project state only after every per-file rule succeeds. If a
         // rule panics, the worker result is discarded and this file cannot
         // leak a partially analyzed unit into project finalization.
-        if ctx.taint_enabled {
+        if taint_is_enabled(ctx) {
             let project_unit = make_project_unit(unit, &mut facts);
             let mut state = self
                 .state
@@ -172,7 +172,7 @@ impl Detector for GoCweScan {
     }
 
     fn finalize(&self, ctx: &ScanContext, out: &mut Vec<Finding>) {
-        if !ctx.taint_enabled {
+        if !taint_is_enabled(ctx) {
             return;
         }
 
@@ -407,6 +407,30 @@ impl Detector for GoCweScan {
             }
         }
     }
+}
+
+/// Taint-only rules do not read the broad structural fact/index bundle.
+/// Keep the structural default for every other rule; this small allowlist is
+/// deliberately tied to the taint detectors' data requirements, not metadata.
+fn is_taint_rule(rule_id: &str) -> bool {
+    matches!(
+        rule_id,
+        "CWE-22" | "CWE-78" | "CWE-79" | "CWE-89" | "CWE-90" | "CWE-91"
+    )
+}
+
+fn taint_is_enabled(ctx: &ScanContext) -> bool {
+    ctx.taint_enabled
+        && self::metadata::GO_CWE_RULE_IDS
+            .iter()
+            .any(|id| ctx.allows(id) && is_taint_rule(id))
+}
+
+fn fact_build_opts(ctx: &ScanContext) -> FactBuildOpts {
+    let needs_structural = GO_RULES
+        .iter()
+        .any(|(rule_id, _, _)| ctx.allows(rule_id) && !is_taint_rule(rule_id));
+    FactBuildOpts::for_scan(taint_is_enabled(ctx), needs_structural)
 }
 
 // --- Inter-procedural analysis helpers ---
@@ -777,6 +801,26 @@ fn emit_inter_procedural_finding(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
+
+    #[test]
+    fn selected_taint_rules_skip_structural_facts() {
+        let mut ctx = ScanContext {
+            taint_enabled: true,
+            ..Default::default()
+        };
+        ctx.only = Some(HashSet::from(["CWE-90".to_string()]));
+
+        let opts = fact_build_opts(&ctx);
+        assert!(opts.extract_taint);
+        assert!(opts.extract_call_graph);
+        assert!(!opts.extract_structural);
+
+        ctx.only = Some(HashSet::from(["CWE-367".to_string()]));
+        let opts = fact_build_opts(&ctx);
+        assert!(opts.extract_structural);
+        assert!(!opts.extract_taint);
+    }
 
     #[test]
     fn variable_index_groups_scoped_nodes_by_name() {

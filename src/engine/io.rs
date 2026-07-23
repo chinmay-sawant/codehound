@@ -53,6 +53,24 @@ pub(crate) fn write_atomic_bytes(path: &Path, bytes: &[u8]) -> Result<(), Error>
             error,
         ));
     }
+    sync_parent_dir(path)?;
+    Ok(())
+}
+
+#[cfg(unix)]
+fn sync_parent_dir(path: &Path) -> Result<(), Error> {
+    let Some(parent) = path.parent() else {
+        return Ok(());
+    };
+    fs::File::open(parent)
+        .and_then(|directory| directory.sync_all())
+        .map_err(|error| Error::path_io(parent.display().to_string(), IoOp::Write, error))
+}
+
+#[cfg(not(unix))]
+fn sync_parent_dir(_path: &Path) -> Result<(), Error> {
+    // ponytail: directory fsync is unavailable on this platform; the renamed
+    // file itself was synced before replacement and remains the durable unit.
     Ok(())
 }
 
