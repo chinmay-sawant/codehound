@@ -145,7 +145,6 @@ pub(crate) fn classify_sanitizer(func_text: &str) -> Option<SanitizerKind> {
     if call == "html.EscapeString"
         || call.contains("template.HTMLEscaper")
         || call.contains("template.JSEscaper")
-        || call == "html.UnescapeString"
     {
         return Some(SanitizerKind::HTML);
     }
@@ -301,7 +300,6 @@ const KNOWN_SANITIZER_CALLS: &[(&str, &str)] = &[
     // filepath.Clean / path.Clean intentionally omitted — not path-safe alone.
     ("filepath.Base(", "path"),
     ("html.EscapeString(", "html"),
-    ("html.UnescapeString(", "html"),
     ("ldap.EscapeFilter(", "ldap"),
     ("xml.EscapeText(", "xml"),
     ("xml.Marshal(", "xml"),

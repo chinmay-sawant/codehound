@@ -549,7 +549,6 @@ fn is_source_or_sanitizer_assignment(rhs: &str) -> bool {
     // Align with classify_sanitizer: Clean/Prepare are not path/SQL safe alone.
     let is_sanitizer = call_name == "filepath.Base"
         || call_name == "html.EscapeString"
-        || call_name == "html.UnescapeString"
         || call_name == "url.QueryEscape"
         || call_name == "url.PathEscape"
         || call_name == "ldap.EscapeFilter"
