@@ -7,6 +7,17 @@ use crate::rules::Finding;
 
 use super::types::{CacheEntry, CacheError};
 
+/// Immutable identity metadata for a borrowed cache entry write.
+#[derive(Debug, Clone, Copy)]
+pub struct CacheEntryIdentity<'a> {
+    /// Project-relative source path.
+    pub file: &'a str,
+    /// Source hash used to produce the findings.
+    pub content_hash: &'a str,
+    /// Finding-affecting rule configuration fingerprint.
+    pub rule_config_hash: &'a str,
+}
+
 /// Storage backend for cache entries. [`CacheStore`](super::CacheStore)
 /// delegates entry persistence to this trait so that different storage
 /// strategies (disk, in-memory, remote) can be swapped without changing
@@ -34,7 +45,7 @@ pub trait CacheBackend: Send + Sync + std::fmt::Debug {
         &mut self,
         cache_key: &str,
         schema_version: u32,
-        file: &str,
+        identity: CacheEntryIdentity<'_>,
         findings: &[Finding],
         suppressed_count: usize,
         cached_at: &str,
@@ -43,7 +54,9 @@ pub trait CacheBackend: Send + Sync + std::fmt::Debug {
             cache_key,
             &CacheEntry {
                 schema_version,
-                file: file.to_string(),
+                file: identity.file.to_string(),
+                content_hash: identity.content_hash.to_string(),
+                rule_config_hash: identity.rule_config_hash.to_string(),
                 findings: findings.to_vec(),
                 suppressed_count,
                 cached_at: cached_at.to_string(),

@@ -87,6 +87,27 @@ func run(r *http.Request) {
     }
 
     #[test]
+    fn filepath_clean_preserves_path_taint() {
+        let source = r#"package main
+func serve(r *http.Request) {
+    raw := r.URL.Query().Get("path")
+    cleaned := filepath.Clean(raw)
+    _ = os.Open(cleaned)
+}"#;
+        let unit = parse(source);
+        let facts = extract_taint_facts(&unit);
+        let graph = build_taint_graph(&facts);
+        let paths = find_taint_paths(
+            &graph,
+            SourceKind::UserInput,
+            SinkKind::FileOpen,
+            &[SanitizerKind::Path],
+        );
+        assert_eq!(paths.len(), 1);
+        assert!(!paths[0].sanitized);
+    }
+
+    #[test]
     fn validation_sanitizer_flags_command_injection_path_as_sanitized() {
         let source = r#"package main
 func run(r *http.Request) {

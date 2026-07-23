@@ -85,9 +85,11 @@ pub(super) fn classify_sink(
 
     // HTTP response XSS sinks. Avoid bare `.Write` alone — that matches
     // csv.Writer.Write([]string) and other non-HTTP writers.
-    if call_name == "fmt.Fprintf"
-        || call_name.ends_with(".WriteString")
-        || call_name.ends_with(".WriteHeader")
+    if call_name == "fmt.Fprintf" && http_argument_looks_like_response_writer(call, src, 0) {
+        return Some((SinkKind::HTTPWrite, 0));
+    }
+    if (call_name.ends_with(".WriteString") || call_name.ends_with(".WriteHeader"))
+        && http_write_looks_like_response_writer(call, src)
     {
         return Some((SinkKind::HTTPWrite, 0));
     }
@@ -205,21 +207,37 @@ pub(super) fn receiver_of_method_call<'a>(
 }
 
 pub(super) fn is_template_html_call(call: tree_sitter::Node, src: &[u8]) -> bool {
+    let Ok(source) = std::str::from_utf8(src) else {
+        return false;
+    };
+    let Some(alias) = import_alias(source, "html/template", "template") else {
+        return false;
+    };
+    let is_trusted_constructor = call
+        .child_by_field_name("function")
+        .and_then(|function| function.utf8_text(src).ok())
+        .is_some_and(|function| {
+            ["HTML", "HTMLAttr", "JS", "JSStr", "URL", "Srcset", "CSS"]
+                .iter()
+                .any(|kind| function.trim() == format!("{alias}.{kind}"))
+        });
+    if is_trusted_constructor {
+        return true;
+    }
     let Some(args) = call.child_by_field_name("arguments") else {
         return false;
     };
     let mut cursor = args.walk();
-    let first = args
-        .named_children(&mut cursor)
+    args.named_children(&mut cursor)
         .next()
-        .and_then(|n| n.utf8_text(src).ok());
-    matches!(first, Some(t) if t.starts_with("template.HTML("))
+        .and_then(|argument| argument.utf8_text(src).ok())
+        .is_some_and(|argument| argument.trim_start().starts_with(&format!("{alias}.HTML(")))
 }
 
 /// `html/template` escapes ordinary string values at execution time. Keep the
-/// generic template sink for `text/template` and unknown receivers, but avoid
-/// reporting a known `html/template.Template` execution unless trusted-content
-/// conversion is explicitly passed as the data argument.
+/// generic template sink for `text/template` and unknown receivers. Explicit
+/// trusted-content construction is modeled as its own sink, avoiding a second
+/// finding at the later `html/template` execution.
 fn is_plain_html_template_execute(call: tree_sitter::Node, src: &[u8]) -> bool {
     let Ok(source) = std::str::from_utf8(src) else {
         return false;
@@ -231,7 +249,7 @@ fn is_plain_html_template_execute(call: tree_sitter::Node, src: &[u8]) -> bool {
         return false;
     };
     if execute_uses_trusted_template_content(call, src, &alias) {
-        return false;
+        return true;
     }
 
     // ponytail: local declaration matching covers the common Go template
@@ -290,8 +308,8 @@ fn execute_uses_trusted_template_content(
         })
 }
 
-/// Heuristic: only treat `.Write` as an HTTP XSS sink for common
-/// `http.ResponseWriter` receivers. Avoid hmac.Write, csv.Writer, bufio, etc.
+/// Heuristic: only treat `.Write` as an HTTP XSS sink when the receiver is
+/// declared as an `http.ResponseWriter` in this source file.
 fn http_write_looks_like_response_writer(call: tree_sitter::Node, src: &[u8]) -> bool {
     if let Some(args) = call.child_by_field_name("arguments") {
         let mut cursor = args.walk();
@@ -305,12 +323,37 @@ fn http_write_looks_like_response_writer(call: tree_sitter::Node, src: &[u8]) ->
             }
         }
     }
-    match receiver_of_method_call(call, src) {
-        Some("w") | Some("rw") | Some("resp") => true,
-        Some(recv) if recv.contains("ResponseWriter") => true,
-        // Do not treat unknown receivers (hmac, hash, csv, bufio, …) as HTTPWrite.
-        _ => false,
-    }
+    receiver_of_method_call(call, src)
+        .is_some_and(|receiver| declared_response_writer(receiver, src))
+}
+
+fn http_argument_looks_like_response_writer(
+    call: tree_sitter::Node,
+    src: &[u8],
+    argument_index: usize,
+) -> bool {
+    let Some(args) = call.child_by_field_name("arguments") else {
+        return false;
+    };
+    let mut cursor = args.walk();
+    let Some(argument) = args.named_children(&mut cursor).nth(argument_index) else {
+        return false;
+    };
+    argument
+        .utf8_text(src)
+        .ok()
+        .is_some_and(|argument| declared_response_writer(argument.trim(), src))
+}
+
+fn declared_response_writer(name: &str, src: &[u8]) -> bool {
+    let Ok(source) = std::str::from_utf8(src) else {
+        return false;
+    };
+    source.lines().any(|line| {
+        let line = line.trim();
+        line.contains(&format!("{name} http.ResponseWriter"))
+            || line.contains(&format!("{name} *http.ResponseWriter"))
+    })
 }
 
 pub(super) fn is_source_or_sanitizer_call(rhs: &str) -> bool {

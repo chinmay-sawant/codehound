@@ -1,4 +1,4 @@
-# CWE-22 negative: taint-tracked path traversal with filepath.Clean
+# CWE-22 negative: filename-only policy with filepath.Base
 lang: go
 file: CWE-22-taint-safe.go
 variant: taint
@@ -13,6 +13,6 @@ import (
 
 func ServeFile(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Query().Get("path")
-	safe := filepath.Clean(path)
+	safe := filepath.Base(path)
 	_ = os.Open(safe)
 }

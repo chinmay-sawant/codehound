@@ -1,4 +1,4 @@
-# IP-002: Sanitized call chain — safe (sanitizer before cross-function call)
+# IP-002: Filename-only call chain — safe before cross-function call
 lang: go
 file: IP-002-safe.go
 variant: taint
@@ -13,7 +13,7 @@ import (
 
 func caller() {
     x := r.URL.Query().Get("input")
-    safe := filepath.Clean(x)
+    safe := filepath.Base(x)
     callee(safe)
 }
 

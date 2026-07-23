@@ -197,3 +197,28 @@ fn export_preserves_foreign_files_and_replaces_owned_on_rerun() {
 
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn export_rejects_shared_context_and_chunk_directory() {
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("system time after Unix epoch")
+        .as_nanos();
+    let root = std::env::temp_dir().join(format!("codehound-export-shared-{unique}"));
+    let output_dir = root.join("output");
+    let error = export_findings(
+        &[],
+        &ExportOptions {
+            export_context: true,
+            export_chunks: true,
+            chunk_size: 25,
+            context_output_dir: output_dir,
+            chunks_output_dir: root.join("nested").join("..").join("output"),
+        },
+        &std::collections::HashMap::new(),
+    )
+    .expect_err("shared export directory must be rejected");
+
+    assert!(error.to_string().contains("different output directories"));
+    std::fs::remove_dir_all(root).expect("remove export root");
+}

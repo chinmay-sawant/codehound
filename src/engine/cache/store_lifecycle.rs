@@ -5,9 +5,9 @@ use crate::Error;
 use crate::engine::path_identity::{normalize_project_path, project_paths_eq};
 use crate::rules::Finding;
 
-use super::CacheStore;
 use super::hash::cache_key_for_path;
 use super::types::{CACHE_VERSION, FileCacheMeta};
+use super::{CacheEntryIdentity, CacheStore};
 
 impl CacheStore {
     /// Insert or replace a cache entry. Updates the manifest and marks
@@ -80,7 +80,11 @@ impl CacheStore {
             .store_entry_borrowed(
                 &cache_key,
                 CACHE_VERSION,
-                &file,
+                CacheEntryIdentity {
+                    file: &file,
+                    content_hash,
+                    rule_config_hash: &self.manifest.rule_config_hash,
+                },
                 findings,
                 suppressed_count,
                 cached_at,

@@ -20,7 +20,7 @@ mod types;
 use std::collections::HashSet;
 use std::path::PathBuf;
 
-pub use backend::CacheBackend;
+pub use backend::{CacheBackend, CacheEntryIdentity};
 pub(crate) use disk::DiskBackend;
 pub(crate) use hash::hex_lower;
 pub use hash::{cache_key_for_path, content_hash};

@@ -132,4 +132,50 @@ func RenderPage(w http.ResponseWriter, r *http.Request) {
 }"#;
         assert_eq!(cwe_79_findings(source), 1);
     }
+
+    #[test]
+    fn aliased_html_template_trusted_content_conversion_remains_an_xss_flow() {
+        let source = r#"package main
+import (
+    tmpl "html/template"
+    "net/http"
+)
+func RenderPage(w http.ResponseWriter, r *http.Request) {
+    raw := r.URL.Query().Get("name")
+    body := tmpl.HTML(raw)
+    t := tmpl.Must(tmpl.New("x").Parse("<html>{{.}}</html>"))
+    _ = t.Execute(w, body)
+}"#;
+        assert_eq!(cwe_79_findings(source), 1);
+    }
+
+    #[test]
+    fn fmt_fprintf_to_a_buffer_named_w_is_not_an_http_xss_sink() {
+        let source = r#"package main
+import (
+    "bytes"
+    "fmt"
+    "net/http"
+)
+func RenderPage(r *http.Request) {
+    name := r.URL.Query().Get("name")
+    var w bytes.Buffer
+    _, _ = fmt.Fprintf(&w, "%s", name)
+}"#;
+        assert_eq!(cwe_79_findings(source), 0);
+    }
+
+    #[test]
+    fn fmt_fprintf_to_a_declared_response_writer_remains_an_xss_sink() {
+        let source = r#"package main
+import (
+    "fmt"
+    "net/http"
+)
+func RenderPage(response http.ResponseWriter, r *http.Request) {
+    name := r.URL.Query().Get("name")
+    _, _ = fmt.Fprintf(response, "%s", name)
+}"#;
+        assert_eq!(cwe_79_findings(source), 1);
+    }
 }

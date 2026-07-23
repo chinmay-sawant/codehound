@@ -260,6 +260,74 @@ fn corrupt_entry_file_is_treated_as_cache_miss() {
 }
 
 #[test]
+fn entry_metadata_mismatch_is_treated_as_cache_miss() {
+    let root = unique_temp_root("entry-metadata-mismatch");
+    let mut store = CacheStore::open_with_capacity(root.clone(), 500).expect("open");
+    let hash = content_hash("body");
+    store
+        .put("x.go", &hash, &[], vec![], "2026-07-24T00:00:00Z")
+        .expect("put");
+    store.flush().expect("flush");
+
+    let cache_key = cache_key_for_path("x.go");
+    let entry_path = root.join("files").join(format!("{cache_key}.json"));
+    let mut entry: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&entry_path).expect("read entry")).expect("json");
+    entry["content_hash"] = serde_json::Value::String(content_hash("other"));
+    std::fs::write(
+        &entry_path,
+        serde_json::to_vec(&entry).expect("serialize entry"),
+    )
+    .expect("replace entry");
+
+    assert!(matches!(store.lookup("x.go", &hash), CacheLookup::Stale));
+    std::fs::remove_dir_all(root).expect("remove cache");
+}
+
+#[test]
+fn concurrent_profiles_do_not_merge_each_others_manifest_entries() {
+    let root = unique_temp_root("separate-profile-manifests");
+    let mut first = CacheStore::open_with_capacity(root.clone(), 500).expect("open first");
+    let mut second = CacheStore::open_with_capacity(root.clone(), 500).expect("open second");
+    first.ensure_rule_config_hash("profile-a");
+    second.ensure_rule_config_hash("profile-b");
+    first
+        .put(
+            "a.go",
+            &content_hash("a"),
+            &[],
+            vec![],
+            "2026-07-24T00:00:00Z",
+        )
+        .expect("put first");
+    second
+        .put(
+            "b.go",
+            &content_hash("b"),
+            &[],
+            vec![],
+            "2026-07-24T00:00:00Z",
+        )
+        .expect("put second");
+
+    second.flush().expect("flush second");
+    first.flush().expect("flush first");
+
+    let reopened = CacheStore::open_with_capacity(root.clone(), 500).expect("reopen");
+    assert!(reopened.manifest().files.contains_key("a.go"));
+    assert!(!reopened.manifest().files.contains_key("b.go"));
+    assert!(matches!(
+        reopened.lookup("a.go", &content_hash("a")),
+        CacheLookup::Hit(_)
+    ));
+    assert!(matches!(
+        reopened.lookup("b.go", &content_hash("b")),
+        CacheLookup::Miss
+    ));
+    std::fs::remove_dir_all(root).expect("remove cache");
+}
+
+#[test]
 fn flush_reports_manifest_write_failure() {
     let root = unique_temp_root("flush-failure");
     let mut store = CacheStore::open_with_capacity(root.clone(), 500).expect("open");

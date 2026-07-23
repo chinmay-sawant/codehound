@@ -264,14 +264,18 @@ impl CacheStore {
             return CacheLookup::Stale;
         }
         match self.backend.load_entry(&cache_key_for_path(&file)) {
-            Some(entry) if crate::engine::path_identity::project_paths_eq(&entry.file, &file) => {
+            Some(entry)
+                if crate::engine::path_identity::project_paths_eq(&entry.file, &file)
+                    && entry.content_hash == meta.content_hash
+                    && entry.rule_config_hash == self.manifest.rule_config_hash =>
+            {
                 CacheLookup::Hit(entry)
             }
             Some(entry) => {
                 tracing::warn!(
                     requested_file = %file,
                     entry_file = %entry.file,
-                    "cache entry identity does not match manifest key; treating as stale"
+                    "cache entry identity does not match the requested source or rule configuration; treating as stale"
                 );
                 CacheLookup::Stale
             }

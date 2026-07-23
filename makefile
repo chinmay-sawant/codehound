@@ -7,6 +7,7 @@ RUN_PROFILE ?= perf-run
 SKIP_BUILD ?= 0
 
 RUN_BIN := ./target/$(RUN_PROFILE)/codehound
+RELEASE_BIN := ./target/release/codehound
 
 # Build the project
 build:

@@ -2,7 +2,9 @@
 
 use std::fs;
 use std::io::{ErrorKind, Read, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
+#[cfg(test)]
+use std::path::PathBuf;
 use std::thread;
 use std::time::Duration;
 
@@ -20,7 +22,6 @@ const MANIFEST_LOCK_ATTEMPTS: usize = 50;
 const ADVISORY_LOCK_MARKER: &[u8] = b"codehound-manifest-advisory-lock-v1\n";
 
 struct ManifestLock {
-    path: PathBuf,
     file: Option<fs::File>,
 }
 
@@ -45,10 +46,7 @@ impl ManifestLock {
                         let _ = fs::remove_file(&path);
                         return Err(error.into());
                     }
-                    return Ok(Some(Self {
-                        path,
-                        file: Some(file),
-                    }));
+                    return Ok(Some(Self { file: Some(file) }));
                 }
                 Err(error) if error.kind() == ErrorKind::AlreadyExists => {
                     if let Some(lock) = Self::recover_advisory_lock(&path)? {
@@ -75,10 +73,7 @@ impl ManifestLock {
             return Ok(None);
         }
         match file.try_lock_exclusive() {
-            Ok(()) => Ok(Some(Self {
-                path: path.to_path_buf(),
-                file: Some(file),
-            })),
+            Ok(()) => Ok(Some(Self { file: Some(file) })),
             Err(error) if error.kind() == ErrorKind::WouldBlock => Ok(None),
             Err(error) => Err(error.into()),
         }
@@ -89,8 +84,12 @@ impl Drop for ManifestLock {
     fn drop(&mut self) {
         if let Some(file) = self.file.take() {
             let _ = FileExt::unlock(&file);
+            // Keep the marked pathname after unlock. Removing it creates an
+            // unlink window where another process can lock the old inode while
+            // a third process creates and locks a new pathname. The advisory
+            // lock itself is released on close/process exit; the small marker
+            // file is the stable cross-process rendezvous point.
             drop(file);
-            let _ = fs::remove_file(&self.path);
         }
     }
 }
@@ -140,6 +139,7 @@ impl CacheStore {
         };
         if on_disk.schema_version != self.manifest.schema_version
             || on_disk.tool_version != self.manifest.tool_version
+            || on_disk.rule_config_hash != self.manifest.rule_config_hash
         {
             return Ok(());
         }

@@ -72,10 +72,18 @@ jobs:
       CARGO_TERM_COLOR: always
       RUSTFLAGS: -D warnings
     steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@1.88
+      # pin: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      # pin: dtolnay/rust-toolchain@master (2026-07-23); toolchain is exact
+      - uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c
+        with:
+          toolchain: "1.88"
       - name: Test all supported features on MSRV
         run: cargo test --all-targets --all-features --locked
+      - name: Test documentation on MSRV
+        run: cargo test --doc --all-features --locked
+      - name: Build public documentation without warnings on MSRV
+        run: RUSTDOCFLAGS='-D warnings' cargo doc --all-features --no-deps --locked
       - name: Build documented minimal CLI feature set on MSRV
         run: cargo build --all-targets --no-default-features --features go,cli --locked
 
@@ -83,8 +91,12 @@ jobs:
     name: cargo audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
+      # pin: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      # pin: dtolnay/rust-toolchain@master (2026-07-23); stable is intentional
+      - uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c
+        with:
+          toolchain: stable
       - name: Install cargo-audit
         run: cargo install cargo-audit --locked
       - name: Audit dependencies

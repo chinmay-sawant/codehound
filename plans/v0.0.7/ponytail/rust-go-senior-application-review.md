@@ -365,3 +365,88 @@ The codebase remains architecturally strong and the targeted fixture-manifest, G
 - [ ] **P2 — export is not crash-atomic across a caller-owned multi-file directory.** The code rolls back normal failures, but a hard crash between file renames can still leave a partial export. Resolving this requires a layout/API change such as an owned swappable subdirectory.
 - [~] **P2 — pre-advisory cache-lock migration is intentionally conservative.** An unmarked `.manifest.lock` can be held by an older binary, so it remains non-persistent until normal release or manual cleanup; forcing recovery would reintroduce a mixed-version write race.
 - [~] **P2 — release benchmark baselines are not recorded.** Criterion coverage exists for full/default/narrow scans, warm cache scans, and partial scans, but publishable release-mode allocation/throughput comparisons still need a controlled baseline run.
+
+---
+
+## Independent Current-State Re-Review — 2026-07-24
+
+> **Status:** The reopened P1 detector/cache-result correctness and P2/P3 product rows below are fixed and validated. A separate P2 cache crash-durability ceiling, plus the older caller-owned multi-file crash-atomicity, legacy-lock migration, and release-baseline limitations, remain explicitly tracked.
+> **Current application rating:** **9.3 / 10**
+> **Review basis:** Current working tree on `3e7916e`, with regression coverage and project-level validation through `make fmt`, `make lint`, and `make test`.
+
+### Executive Summary
+
+CodeHound retains a strong Rust architecture: structured errors, atomic single-file replacement, deterministic scanner lifecycle, careful export ownership checks, and a strict Clippy gate are all in place. The reopened detector, cache, export, Makefile, and hosted-validation gaps have been closed without widening the public product surface:
+
+- `filepath.Clean` and `path.Clean` now preserve taint while remaining non-sanitizers; unsafe clean-then-sink flows are vulnerable fixtures.
+- Cache entries carry source and rule-configuration identity, profile-mismatched manifests never merge, and advisory lock markers remain as a stable rendezvous file after unlock; a crash between an entry write and manifest write can still leave an orphan/stale entry but never a foreign cache hit.
+- Export directory aliasing is rejected up front; release-oriented Make targets resolve the release binary; CI and release now run doctests and warning-free public documentation.
+
+`make test` now passes 529/529 tests plus doctests. The score returns to 9.3 rather than 9.5+ because the separate cache crash-durability, older crash-atomicity, legacy migration, and release benchmark rows remain intentionally partial.
+
+### Phase 7: Reopened Detector Correctness
+
+#### 7.1 Taint is dropped through normalization helpers
+
+- [x] **P1 / Critical — preserve taint through `filepath.Clean` and `path.Clean`; do not call either a sanitizer.**
+  - **Evidence:** `src/lang/go/detectors/cwe/taint/graph_query/build.rs:238-253` intentionally drops opaque call results. The known-propagator list at `:590-609` includes `filepath.Join` and `html.UnescapeString`, but excludes both `filepath.Clean` and `path.Clean`.
+  - **Impact:** `filepath.Clean` normalizes a path; it does not confine it to a root. It also cannot neutralize shell metacharacters. The current `tests/fixtures/go/taint/CWE-22-safe.txt:15-17` and `CWE-78-safe.txt:15-17` encode unsafe flows as safe because taint disappears at the call.
+  - **Implemented:** both functions are known propagators, not sanitizers; clean-then-file-open and clean-then-shell fixtures are vulnerable, while safe fixtures use a filename-only `filepath.Base` policy. `filepath_clean_preserves_path_taint` covers the graph contract.
+
+#### 7.2 Confinement regression has made the project gate red
+
+- [x] **P1 / High — model a real root-confinement idiom or revise the fixtures and documented contract.**
+  - **Observed validation:** `make test` completed 522 tests with **520 passed / 2 failed**. `fixture_manifest_integration_manifest` and `go_cwe_detector_fixtures` both report CWE-22 against `tests/fixtures/go/frameworks/CWE-22-safe.txt` and `tests/fixtures/go/stdlib/CWE-22-safe.txt`.
+  - **Evidence:** those fixtures construct a path under a fixed root and reject it unless it has the root-plus-separator prefix (`:18-25` and `:17-24`). The new detector deliberately reports every unsanitized path flow in `src/lang/go/detectors/cwe/taint/rules/cwe_22.rs:19-35` and has no canonical confinement fact.
+  - **Implemented:** the prior prefix-only fixtures were revised to the stronger filename-only policy instead of reintroducing an unsound lexical suppression. The full fixture gate is green.
+
+#### 7.3 CWE-79 package/type heuristics remain intentionally narrow
+
+- [x] **P2 / Medium — complete package-alias and receiver-aware XSS sink classification.**
+  - **Evidence:** `src/lang/go/detectors/cwe/taint/extract/classify.rs:207-217` recognizes only literal `template.HTML(...)`, while the `html/template` execution exemption at `:219-247` is lexical. An aliased conversion stored in a variable (`tmpl.HTML(input)`) can be lost as an opaque call and then be hidden by the safe-template exemption. Conversely, `fmt.Fprintf`, `.WriteString`, and `.WriteHeader` are classified as HTTP sinks at `:86-95` without a receiver-type check.
+  - **Implemented:** trusted-content constructors recognize the imported `html/template` alias and are modeled as the sink, avoiding a duplicate later `Execute` finding. `fmt.Fprintf`, `WriteString`, and `WriteHeader` now require a local `http.ResponseWriter` declaration rather than a variable name. Alias, misleading-buffer-name, and named-response-writer regressions pass.
+
+### Phase 8: Reopened Persistence and Export Correctness
+
+#### 8.1 Concurrent cache writers can cross-contaminate findings
+
+- [x] **P1 / High — prevent concurrent writers from returning foreign cache findings.**
+  - **Evidence:** `src/engine/cache/store_lifecycle.rs:77-95` writes `files/<cache-key>.json` before the manifest lock acquired by `store_flush.rs:112-123`; `src/engine/cache/disk.rs:68-90` replaces that entry file independently. `CacheEntry` contains neither content hash nor rule-config hash (`types.rs:51-67`), and lookup trusts the manifest hash plus only the entry's filename (`store_open.rs:258-279`).
+  - **Failure mode:** two scans of the same file can write different entry payloads before either flushes. The later manifest can claim source hash A while the shared entry file contains findings for source hash B, producing a false cache hit. For disjoint files, `merge_concurrent_manifest` compares only schema/tool version (`store_flush.rs:141-151`) and can merge profile-B entries under profile A despite the isolation contract at `store_open.rs:211-232`.
+  - **Implemented:** entries persist their content and rule-config fingerprints; lookup treats a mismatched entry as stale, and manifest merge requires the same rule-config fingerprint. Marked advisory lock files are retained after unlock, eliminating the unlink/recreate race found by the concurrent-flush regression. Metadata-mismatch, profile-isolation, and concurrent-flush coverage pass.
+
+- [~] **P2 / Medium — make entry and manifest persistence crash-atomic as one transaction.**
+  - **Boundary:** `put_with_suppressed_count_borrowed` still persists an entry before the manifest flush lock. A crash can leave an unreferenced or stale entry, which is safe because entry metadata is verified before a hit, but it can cause an avoidable miss/rescan until cleanup.
+  - **Upgrade path:** defer entry publication to the locked flush phase or use content-addressed immutable entries with a manifest commit and later orphan collection.
+
+#### 8.2 Context and chunk exports may silently replace one another
+
+- [x] **P2 / Medium — reject equal or canonical-equivalent context/chunk output directories.**
+  - **Evidence:** `ExportOptions` accepts unconstrained paths (`src/export/options.rs:7-17`). `export_findings` commits context output first and chunk output second (`entry.rs:34-60`); the second `OutputStage` then regards the first files as owned previous output and replaces them (`owned.rs:89-152`). The returned summary can claim both outputs even though the context files no longer exist.
+  - **Implemented:** canonicalized paths are compared before staging; the equal-directory regression fails safely before any export commit.
+
+### Phase 9: Delivery and Evidence Gaps
+
+#### 9.1 Documented release-oriented Make targets do not invoke the binary
+
+- [x] **P2 / Medium — define and use `RELEASE_BIN` (or reuse `RUN_BIN`) for enhanced-PERF and SARIF targets.**
+  - **Evidence:** `makefile:61-67` calls `$(RELEASE_BIN)` but no definition exists. `make -n run-perf-enhanced` and `make -n run-sarif` expand it to `/home/chinmay/ChinmayPersonalProjects/gopdfsuit ...`, which is the `SCAN_PATH`, not CodeHound.
+  - **Implemented:** `RELEASE_BIN := ./target/release/codehound`; both target dry-runs now invoke that path.
+
+#### 9.2 Hosted validation does not run documentation tests
+
+- [x] **P3 / Low — include doctests and warning-free public docs in CI and tag validation.**
+  - **Evidence:** local `make test` explicitly runs `cargo test --doc` (`makefile:16-21`), but CI and tag release use only `cargo test --all-targets` (`.github/workflows/ci.yml:37-43,77-80`; `.github/workflows/release.yml:31-32`). `make doc` is not a hosted gate.
+  - **Implemented:** MSRV CI and tag release run `cargo test --doc --all-features --locked` and a warning-free public-doc build.
+
+#### 9.3 Supply-chain pinning is inconsistent outside tag release
+
+- [x] **P3 / Low — pin CI composite-action and MSRV/audit action references to immutable revisions.**
+  - **Implemented:** composite cache setup, MSRV/audit CI jobs, and the user-facing workflow now use the same immutable action revisions as tag release.
+
+### Re-Review Validation Evidence
+
+- [x] `make fmt` completed successfully and left no formatting diff.
+- [x] `make lint` passed: locked all-target/all-feature Clippy with warnings denied, then format check.
+- [x] `make test` passed: 529/529 Nextest tests plus doctests. No individual test command was run.
+- [x] `make -n run-perf-enhanced` and `make -n run-sarif` now resolve `./target/release/codehound` without running a scan.

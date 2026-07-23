@@ -591,6 +591,7 @@ fn is_known_propagator(func_name: &str) -> bool {
     matches!(
         func_name,
         "filepath.Join"
+            | "filepath.Clean"
             | "strings.Join"
             | "strings.Replace"
             | "strings.Repeat"
@@ -599,6 +600,7 @@ fn is_known_propagator(func_name: &str) -> bool {
             | "fmt.Sprintf"
             | "fmt.Errorf"
             | "path.Join"
+            | "path.Clean"
             | "append"
             | "json.Marshal"
             | "strconv.Itoa"

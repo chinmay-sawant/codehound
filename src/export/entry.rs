@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 use std::fs;
+use std::path::Path;
 use std::sync::Arc;
 
 use crate::Error;
@@ -25,6 +26,14 @@ pub fn export_findings(
 ) -> Result<ExportSummary, Error> {
     if !options.export_context && !options.export_chunks {
         return Ok(ExportSummary::default());
+    }
+    if options.export_context
+        && options.export_chunks
+        && output_dirs_match(&options.context_output_dir, &options.chunks_output_dir)?
+    {
+        return Err(Error::Config(
+            "context and chunk exports must use different output directories".to_string(),
+        ));
     }
 
     let total = findings.len();
@@ -60,4 +69,10 @@ pub fn export_findings(
     }
 
     Ok(summary)
+}
+
+fn output_dirs_match(left: &Path, right: &Path) -> Result<bool, Error> {
+    fs::create_dir_all(left)?;
+    fs::create_dir_all(right)?;
+    Ok(fs::canonicalize(left)? == fs::canonicalize(right)?)
 }
