@@ -252,6 +252,7 @@ mod tests {
             suppressed_count: 0,
             stats: ScanStats::default(),
             rescan_files: vec![("f0.go".into(), true)],
+            completed_cache_files: std::collections::HashSet::from(["f0.go".into()]),
             timing: crate::engine::timing::TimingCollector::new(false),
         }
     }

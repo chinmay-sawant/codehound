@@ -1,13 +1,52 @@
 //! `CacheStore::flush` and the size-based `evict_to_size` helper.
 
 use std::fs;
+use std::io::ErrorKind;
+use std::path::{Path, PathBuf};
+use std::thread;
+use std::time::Duration;
 
 use crate::Error;
 
 use super::CacheStore;
 use super::hash::cache_key_for_path;
-use super::types::MANIFEST_NAME;
+use super::types::{CacheManifest, MANIFEST_NAME};
 use crate::engine::io::write_atomic;
+
+const MANIFEST_LOCK_NAME: &str = ".manifest.lock";
+const MANIFEST_LOCK_ATTEMPTS: usize = 50;
+
+struct ManifestLock(PathBuf);
+
+impl ManifestLock {
+    fn acquire(cache_dir: &Path) -> Result<Option<Self>, Error> {
+        let path = cache_dir.join(MANIFEST_LOCK_NAME);
+        for _ in 0..MANIFEST_LOCK_ATTEMPTS {
+            match fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&path)
+            {
+                Ok(_) => return Ok(Some(Self(path))),
+                Err(error) if error.kind() == ErrorKind::AlreadyExists => {
+                    thread::sleep(Duration::from_millis(10));
+                }
+                Err(error) => return Err(error.into()),
+            }
+        }
+        // ponytail: orphaned locks (crashed owner) are intentionally not stolen.
+        // Scan stays correct with a cold/in-memory flush skip; upgrade path is
+        // lock ownership tokens + stale reclaim after a bounded age.
+        tracing::warn!(path = %path.display(), "cache manifest remains locked; skipping persistence without taking ownership of the lock");
+        Ok(None)
+    }
+}
+
+impl Drop for ManifestLock {
+    fn drop(&mut self) {
+        let _ = fs::remove_file(&self.0);
+    }
+}
 
 impl CacheStore {
     /// Write the manifest to disk. No-op when no mutations have happened
@@ -26,12 +65,42 @@ impl CacheStore {
             self.dirty = false;
             return Ok(());
         }
+        let Some(_lock) = ManifestLock::acquire(&self.cache_dir)? else {
+            return Ok(());
+        };
+        self.merge_concurrent_manifest()?;
         if self.max_size_bytes > 0 {
             self.evict_to_size()?;
         }
         let manifest_path = self.cache_dir.join(MANIFEST_NAME);
         write_atomic(&manifest_path, &self.manifest)?;
         self.dirty = false;
+        self.removed_files.clear();
+        Ok(())
+    }
+
+    fn merge_concurrent_manifest(&mut self) -> Result<(), Error> {
+        let manifest_path = self.cache_dir.join(MANIFEST_NAME);
+        if !manifest_path.is_file() {
+            return Ok(());
+        }
+        let on_disk: CacheManifest = match serde_json::from_slice(&fs::read(&manifest_path)?) {
+            Ok(manifest) => manifest,
+            Err(error) => {
+                tracing::warn!(path = %manifest_path.display(), error = %error, "manifest changed concurrently but is unreadable; retaining local manifest");
+                return Ok(());
+            }
+        };
+        if on_disk.schema_version != self.manifest.schema_version
+            || on_disk.tool_version != self.manifest.tool_version
+        {
+            return Ok(());
+        }
+        for (file, meta) in on_disk.files {
+            if !self.manifest.files.contains_key(&file) && !self.removed_files.contains(&file) {
+                self.manifest.files.insert(file, meta);
+            }
+        }
         Ok(())
     }
 

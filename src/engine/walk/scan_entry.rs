@@ -237,6 +237,13 @@ pub(crate) fn scan_entry(
         &mut stats,
         &mut timing,
     )?;
+    // The parser needs the absolute path for language-specific project work,
+    // but all externally persisted cache and dependency identities are rooted
+    // at the same project boundary.
+    unit.display_path = crate::engine::path_identity::project_relative_path(
+        entry.path.as_ref(),
+        request.project_root,
+    );
     let dependencies = extract_dependencies_with_registry(registry, &unit, request.project_root);
 
     let file_ignore = parse_file_ignore(unit.source.as_ref());

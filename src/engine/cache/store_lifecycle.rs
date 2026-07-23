@@ -75,6 +75,7 @@ impl CacheStore {
             .map(|d| normalize_project_path(d))
             .collect();
         let cache_key = cache_key_for_path(&file);
+        self.removed_files.remove(&file);
         self.backend
             .store_entry_borrowed(
                 &cache_key,
@@ -102,9 +103,11 @@ impl CacheStore {
     ///
     /// Returns [`Error`] when deleting the backend entry fails.
     pub fn remove(&mut self, file: &str) -> Result<(), Error> {
-        if self.manifest.files.remove(file).is_some() {
-            let cache_key = cache_key_for_path(file);
+        let file = normalize_project_path(file);
+        if self.manifest.files.remove(&file).is_some() {
+            let cache_key = cache_key_for_path(&file);
             self.backend.delete_entry(&cache_key).map_err(Error::from)?;
+            self.removed_files.insert(file);
             self.dirty = true;
         }
         Ok(())
@@ -121,11 +124,15 @@ impl CacheStore {
         &mut self,
         scanned_files: &std::collections::HashSet<String>,
     ) -> Result<usize, Error> {
+        let scanned_files: std::collections::HashSet<String> = scanned_files
+            .iter()
+            .map(|file| normalize_project_path(file))
+            .collect();
         let to_remove: Vec<String> = self
             .manifest
             .files
             .keys()
-            .filter(|k| !scanned_files.contains(*k))
+            .filter(|k| !scanned_files.contains(&normalize_project_path(k)))
             .cloned()
             .collect();
         let count = to_remove.len();
@@ -173,6 +180,7 @@ impl CacheStore {
                 );
             }
             self.dirty = true;
+            self.removed_files.insert(file);
         }
     }
 
@@ -182,6 +190,16 @@ impl CacheStore {
     /// Matching uses [`project_paths_eq`] so `\` vs `/` and `./` do not
     /// miss cascade edges.
     pub fn invalidate_dependent(&mut self, changed_file: &str) -> usize {
+        self.invalidate_dependent_except(changed_file, &std::collections::HashSet::new())
+    }
+
+    /// Cascade-invalidate dependents of `changed_file`, except entries that
+    /// were successfully rebuilt in the current scan chunk.
+    pub fn invalidate_dependent_except(
+        &mut self,
+        changed_file: &str,
+        rebuilt_files: &std::collections::HashSet<String>,
+    ) -> usize {
         let changed_norm = normalize_project_path(changed_file);
         let dependents: Vec<String> = self
             .manifest
@@ -192,7 +210,8 @@ impl CacheStore {
                     .iter()
                     .any(|d| project_paths_eq(d, &changed_norm))
             })
-            .map(|(k, _)| k.clone())
+            .map(|(k, _)| normalize_project_path(k))
+            .filter(|file| !rebuilt_files.contains(file))
             .collect();
         let count = dependents.len();
         for d in dependents {

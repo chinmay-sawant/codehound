@@ -138,6 +138,17 @@ impl<'a> CacheSession<'a> {
         self.store.invalidate_dependent(changed_file)
     }
 
+    /// Cascade-invalidate stale dependents while preserving entries rebuilt in
+    /// the current scan chunk.
+    pub fn invalidate_dependent_except(
+        &mut self,
+        changed_file: &str,
+        rebuilt_files: &HashSet<String>,
+    ) -> usize {
+        self.store
+            .invalidate_dependent_except(changed_file, rebuilt_files)
+    }
+
     /// Remove entries for files not seen in this scan.
     ///
     /// # Errors

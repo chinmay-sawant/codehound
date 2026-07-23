@@ -19,6 +19,8 @@ pub const EXAMPLE_EXCLUDE_GLOBS: &[&str] = &[
     "**/samples/**",
 ];
 
+use std::path::Path;
+
 /// Normalize a project-relative path for cache and dependency identity.
 ///
 /// Rules:
@@ -38,6 +40,29 @@ pub fn normalize_project_path(path: &str) -> String {
         s = s[2..].to_string();
     }
     s
+}
+
+/// Return a stable project-relative identity for `path`.
+///
+/// Cache keys, dependency lists, and finding paths must share this identity;
+/// otherwise an absolute path used during cache preflight cannot match a
+/// project-relative dependency edge. Paths outside `project_root` retain their
+/// normalized spelling so callers never silently alias two unrelated files.
+#[must_use]
+pub fn project_relative_path(path: &Path, project_root: &Path) -> String {
+    if let Ok(identity) = path.strip_prefix(project_root) {
+        return normalize_project_path(&identity.to_string_lossy());
+    }
+
+    // Most scan paths already share a lexical root, so keep the normal path
+    // allocation-free. Canonicalize only when callers mixed absolute and
+    // relative spellings (or traversed a symlinked root).
+    let root = project_root
+        .canonicalize()
+        .unwrap_or_else(|_| project_root.to_path_buf());
+    let path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+    let identity = path.strip_prefix(&root).unwrap_or(&path);
+    normalize_project_path(&identity.to_string_lossy())
 }
 
 /// True if two project paths refer to the same identity after normalization.
@@ -73,6 +98,29 @@ mod tests {
         assert!(project_paths_eq(r"pkg\db.go", "pkg/db.go"));
         assert!(project_paths_eq("./pkg/db.go", "pkg/db.go"));
         assert!(!project_paths_eq("pkg/a.go", "pkg/b.go"));
+    }
+
+    #[test]
+    fn project_relative_path_unifies_absolute_and_relative_input() {
+        let root = std::env::temp_dir().join(format!(
+            "codehound-path-identity-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("system clock")
+                .as_nanos()
+        ));
+        let source = root.join("pkg/handler.go");
+        std::fs::create_dir_all(source.parent().expect("source parent")).expect("create root");
+        std::fs::write(&source, "package pkg\n").expect("write source");
+
+        assert_eq!(project_relative_path(&source, &root), "pkg/handler.go");
+        assert_eq!(
+            normalize_project_path("./pkg/handler.go"),
+            project_relative_path(&root.join("pkg/handler.go"), &root)
+        );
+
+        std::fs::remove_dir_all(root).expect("remove root");
     }
 
     #[test]

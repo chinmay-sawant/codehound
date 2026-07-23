@@ -41,7 +41,7 @@ pub use ignore::{IgnoreDirective, parse_file_ignore, parse_inline_ignores};
 pub use language_filter::{LanguageFilter, resolve_language_filter};
 pub use path_identity::{
     EXAMPLE_EXCLUDE_GLOBS, EXAMPLE_FINDING_TAG, EXAMPLE_PATH_COMPONENTS, is_example_demo_path,
-    normalize_project_path, project_paths_eq,
+    normalize_project_path, project_paths_eq, project_relative_path,
 };
 pub use registry::{Registry, RegistryError};
 pub(crate) use result::PipelineAccumulator;

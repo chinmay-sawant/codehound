@@ -285,6 +285,111 @@ fn flush_reports_manifest_write_failure() {
 }
 
 #[test]
+fn stale_manifest_lock_skips_persistence_without_failing_the_cache_session() {
+    let root = unique_temp_root("stale-manifest-lock");
+    let mut store = CacheStore::open_with_capacity(root.clone(), 500).expect("open");
+    store
+        .put(
+            "x.go",
+            &content_hash("body"),
+            &[],
+            vec![],
+            "2026-06-10T00:00:00Z",
+        )
+        .expect("put");
+    let lock = root.join(".manifest.lock");
+    std::fs::write(&lock, "stale owner").expect("create stale lock");
+
+    store
+        .flush()
+        .expect("a stale lock must skip cache persistence, not fail the scan");
+    assert!(
+        !root.join("manifest.json").exists(),
+        "skipped flush must not steal the existing lock"
+    );
+
+    std::fs::remove_file(lock).expect("remove stale lock");
+    store.flush().expect("flush after lock removal");
+    assert!(root.join("manifest.json").is_file());
+
+    drop(store);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[cfg(unix)]
+#[test]
+fn failed_temp_create_preserves_existing_manifest() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let root = unique_temp_root("flush-temp-interrupt");
+    let mut store = CacheStore::open_with_capacity(root.clone(), 500).expect("open");
+    store
+        .put(
+            "one.go",
+            &content_hash("one"),
+            &[],
+            vec![],
+            "2026-07-23T00:00:00Z",
+        )
+        .expect("put");
+    store.flush().expect("initial flush");
+    let manifest = root.join("manifest.json");
+    let before = std::fs::read_to_string(&manifest).expect("read prior manifest");
+
+    store
+        .put(
+            "two.go",
+            &content_hash("two"),
+            &[],
+            vec![],
+            "2026-07-23T00:00:01Z",
+        )
+        .expect("put two");
+
+    let mut perms = std::fs::metadata(&root).expect("meta").permissions();
+    perms.set_mode(0o555);
+    std::fs::set_permissions(&root, perms).expect("freeze dir");
+
+    assert!(
+        store.flush().is_err(),
+        "temp create in a read-only cache dir must fail"
+    );
+
+    let mut perms = std::fs::metadata(&root).expect("meta").permissions();
+    perms.set_mode(0o755);
+    std::fs::set_permissions(&root, perms).expect("thaw dir");
+
+    assert_eq!(
+        std::fs::read_to_string(&manifest).expect("reread"),
+        before,
+        "failed temp write must leave the previous manifest intact"
+    );
+
+    drop(store);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn put_normalizes_dot_slash_manifest_identity() {
+    let mut store = CacheStore::in_memory();
+    store
+        .put(
+            "./pkg/x.go",
+            &content_hash("body"),
+            &["./pkg/y.go".into()],
+            vec![],
+            "2026-07-23T00:00:00Z",
+        )
+        .expect("put");
+    assert!(store.manifest().files.contains_key("pkg/x.go"));
+    assert_eq!(
+        store.manifest().files["pkg/x.go"].dependencies,
+        vec!["pkg/y.go".to_string()]
+    );
+    assert_eq!(store.invalidate_dependent("pkg/y.go"), 1);
+}
+
+#[test]
 fn clean_orphans_removes_untracked_entry_files() {
     let root = unique_temp_root("clean-orphans");
     let mut store = CacheStore::open_with_capacity(root.clone(), 500).unwrap();
