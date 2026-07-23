@@ -61,6 +61,83 @@ var packageInput = os.Getenv("CONFIG")
     }
 
     #[test]
+    fn receiver_qualified_method_identities_do_not_overwrite_same_file_facts() {
+        let source = r#"package main
+type Safe struct{}
+type Sink struct{}
+func (s *Safe) Open(value string) { _ = value }
+func (s *Sink) Open(value string) { os.Open(value) }
+"#;
+        let facts = extract_taint_facts(&parse(source));
+
+        assert_eq!(
+            facts.function_params.get("*Safe.Open"),
+            Some(&vec!["value".into()])
+        );
+        assert_eq!(
+            facts.function_params.get("*Sink.Open"),
+            Some(&vec!["value".into()])
+        );
+        assert!(facts.function_ranges.contains_key("*Safe.Open"));
+        assert!(facts.function_ranges.contains_key("*Sink.Open"));
+    }
+
+    #[test]
+    fn exiting_closure_restores_outer_function_context() {
+        let source = r#"package main
+func outer() {
+    callback := func() { local := "inner"; _ = local }
+    _ = callback
+    after := "outer"
+    _ = after
+}
+"#;
+        let facts = extract_taint_facts(&parse(source));
+        let assignment = facts
+            .assignments
+            .iter()
+            .find(|assignment| assignment.lhs.as_ref() == "after")
+            .expect("outer assignment");
+        let scope = facts
+            .scopes
+            .iter()
+            .find(|scope| scope.id == assignment.scope)
+            .expect("outer assignment scope");
+
+        assert_eq!(scope.function.as_deref(), Some("outer"));
+    }
+
+    #[test]
+    fn opposite_order_receiver_methods_keep_distinct_ranges() {
+        let safe_first = r#"package main
+type Safe struct{}
+type Sink struct{}
+func (s *Safe) Open(value string) { _ = value }
+func (s *Sink) Open(value string) { os.Open(value) }
+"#;
+        let sink_first = r#"package main
+type Safe struct{}
+type Sink struct{}
+func (s *Sink) Open(value string) { os.Open(value) }
+func (s *Safe) Open(value string) { _ = value }
+"#;
+        for source in [safe_first, sink_first] {
+            let facts = extract_taint_facts(&parse(source));
+            let safe = facts
+                .function_ranges
+                .get("*Safe.Open")
+                .expect("*Safe.Open range");
+            let sink = facts
+                .function_ranges
+                .get("*Sink.Open")
+                .expect("*Sink.Open range");
+            assert_ne!(safe, sink, "receiver methods must not share one range");
+            assert!(facts.function_params.contains_key("*Safe.Open"));
+            assert!(facts.function_params.contains_key("*Sink.Open"));
+        }
+    }
+
+    #[test]
     fn taint_extraction_overhead_is_small() {
         use std::time::Instant;
 

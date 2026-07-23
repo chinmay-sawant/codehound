@@ -230,15 +230,15 @@ impl Detector for GoCweScan {
                 );
             }
             per_file.push((unit.path.as_str(), graph, graph_index, summaries));
-            for (func_name, decl) in &unit.call_graph.declarations {
+            for decl in unit.call_graph.declarations.values() {
                 let key = TaintSymbolKey::with_receiver(
                     unit.package.clone(),
                     decl.receiver_type.as_deref(),
-                    Arc::clone(func_name),
+                    Arc::clone(&decl.name),
                 );
                 decl_index.entry(key.clone()).or_insert(idx);
                 package_name_index
-                    .entry((unit.package.clone(), Arc::clone(func_name)))
+                    .entry((unit.package.clone(), Arc::clone(&decl.name)))
                     .or_default()
                     .push(key);
             }
@@ -254,15 +254,13 @@ impl Detector for GoCweScan {
         for (file_idx, unit) in units.iter().enumerate() {
             let summaries = &per_file[file_idx].3;
             for name in summaries.keys() {
-                let recv = unit
-                    .call_graph
-                    .declarations
-                    .get(name.as_str())
-                    .and_then(|d| d.receiver_type.as_deref());
+                let Some(decl) = unit.call_graph.declarations.get(name.as_str()) else {
+                    continue;
+                };
                 let key = TaintSymbolKey::with_receiver(
                     unit.package.clone(),
-                    recv,
-                    Arc::from(name.as_str()),
+                    decl.receiver_type.as_deref(),
+                    Arc::clone(&decl.name),
                 );
                 summary_index.entry(key).or_insert(file_idx);
             }
@@ -607,12 +605,12 @@ fn summary_from_decl<'a>(
     )],
     decl_index: &HashMap<TaintSymbolKey, usize>,
     key: &TaintSymbolKey,
-    bare_name: &str,
+    _bare_name: &str,
 ) -> Option<&'a taint::TaintSummary> {
     let &file_idx = decl_index.get(key)?;
     per_file
         .get(file_idx)
-        .and_then(|(_, _, _, summaries)| summaries.get(bare_name))
+        .and_then(|(_, _, _, summaries)| summaries.get(&summary_name_for_key(key)))
 }
 
 fn summary_for_key<'a>(
@@ -624,12 +622,20 @@ fn summary_for_key<'a>(
     )],
     summary_index: &HashMap<TaintSymbolKey, usize>,
     key: &TaintSymbolKey,
-    bare_name: &str,
+    _bare_name: &str,
 ) -> Option<&'a taint::TaintSummary> {
     let file_idx = *summary_index.get(key)?;
     per_file
         .get(file_idx)
-        .and_then(|(_, _, _, summaries)| summaries.get(bare_name))
+        .and_then(|(_, _, _, summaries)| summaries.get(&summary_name_for_key(key)))
+}
+
+/// Match the per-file extraction identity used for function summaries.
+fn summary_name_for_key(key: &TaintSymbolKey) -> String {
+    match key.receiver.as_deref() {
+        Some(receiver) => format!("{receiver}.{}", key.name),
+        None => key.name.to_string(),
+    }
 }
 
 /// Check if any identifier text in a TaintGraph has an **unsanitized** taint
@@ -852,6 +858,7 @@ mod tests {
     #[test]
     fn infer_receiver_type_from_enclosing_method_param() {
         let decl = FunctionDecl {
+            name: Arc::from("openFile"),
             param_count: 0,
             is_method: true,
             receiver_type: Some(Arc::from("h *Handler")),
@@ -867,6 +874,7 @@ mod tests {
         );
         // Free function caller has no receiver to propagate.
         let free = FunctionDecl {
+            name: Arc::from("openFile"),
             param_count: 1,
             is_method: false,
             receiver_type: None,
@@ -945,6 +953,7 @@ mod tests {
 
         // Same receiver param as enclosing method → exact key (*Handler).
         let caller = FunctionDecl {
+            name: Arc::from("Open"),
             param_count: 0,
             is_method: true,
             receiver_type: Some(Arc::from("h *Handler")),

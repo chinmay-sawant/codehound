@@ -66,3 +66,38 @@ pub fn detect_cwe_79_taint(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::lang::go::detectors::cwe::facts::{
+        FactBuildOpts, build_go_unit_facts_with, build_taint_graph_for_facts,
+    };
+
+    use super::*;
+
+    fn cwe_79_findings(source: &str) -> usize {
+        let unit = crate::lang::parser::parse_go(source).expect("valid Go");
+        let mut facts = build_go_unit_facts_with(&unit, FactBuildOpts::TAINT);
+        build_taint_graph_for_facts(&mut facts);
+        let mut findings = Vec::new();
+        detect_cwe_79_taint(&unit, &facts, &mut findings);
+        findings.len()
+    }
+
+    #[test]
+    fn unescape_string_does_not_sanitize_xss_taint() {
+        let source = r#"package main
+import (
+    "html"
+    "html/template"
+    "net/http"
+)
+func RenderPage(w http.ResponseWriter, r *http.Request) {
+    name := r.URL.Query().Get("name")
+    raw := html.UnescapeString(name)
+    t := template.Must(template.New("x").Parse("<html>{{.}}</html>"))
+    _ = t.Execute(w, raw)
+}"#;
+        assert_eq!(cwe_79_findings(source), 1);
+    }
+}

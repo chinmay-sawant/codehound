@@ -446,6 +446,8 @@ pub fn normalize_receiver_type(raw: &str) -> String {
 /// A function declaration that can serve as a callee.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunctionDecl {
+    /// Bare Go declaration name (without a receiver type).
+    pub name: SharedText,
     pub param_count: usize,
     pub is_method: bool,
     pub receiver_type: Option<SharedText>,
@@ -496,8 +498,8 @@ impl CallGraph {
         &self.declarations
     }
 
-    pub(crate) fn add_declaration(&mut self, name: SharedText, declaration: FunctionDecl) {
-        self.declarations.insert(name, declaration);
+    pub(crate) fn add_declaration(&mut self, identity: SharedText, declaration: FunctionDecl) {
+        self.declarations.insert(identity, declaration);
     }
 
     pub fn add_site(&mut self, site: CallSite) {
