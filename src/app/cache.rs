@@ -11,10 +11,10 @@ pub(crate) fn open_cache_store(cli: &Cli, config: Option<&CodehoundConfig>) -> O
     if cli.no_cache {
         return None;
     }
-    if let Some(cfg) = config {
-        if !cfg.codehound.cache.enabled {
-            return None;
-        }
+    if let Some(cfg) = config
+        && !cfg.codehound.cache.enabled
+    {
+        return None;
     }
     let dir = cache_directory(cli, config);
     let cache_cfg = config.map(|c| &c.codehound.cache);
@@ -38,10 +38,10 @@ pub(crate) fn cache_directory(cli: &Cli, config: Option<&CodehoundConfig>) -> Pa
     if let Some(dir) = &cli.cache_dir {
         return dir.clone();
     }
-    if let Some(cfg) = config {
-        if let Some(p) = &cfg.codehound.cache.path {
-            return p.clone();
-        }
+    if let Some(cfg) = config
+        && let Some(p) = &cfg.codehound.cache.path
+    {
+        return p.clone();
     }
     if let Some(found) = discover_cache_dir(Path::new(".")) {
         return found;

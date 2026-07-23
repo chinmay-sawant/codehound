@@ -286,12 +286,12 @@ impl Detector for GoCweScan {
                 // Skip package-qualified external calls (import alias prefix).
                 // Same-package calls are bare identifiers; method calls use a
                 // receiver variable, not an import alias.
-                if site.is_method_call {
-                    if let Some(dot) = raw_callee.rfind('.') {
-                        let prefix = &raw_callee[..dot];
-                        if caller_imports.contains(prefix) {
-                            continue;
-                        }
+                if site.is_method_call
+                    && let Some(dot) = raw_callee.rfind('.')
+                {
+                    let prefix = &raw_callee[..dot];
+                    if caller_imports.contains(prefix) {
+                        continue;
                     }
                 }
                 let callee_name = resolve_callee_name(raw_callee, site.is_method_call);
@@ -670,10 +670,10 @@ fn is_identifier_tainted(
     if !call_func.is_empty() {
         for source_ids in graph.by_source.values() {
             for source_id in source_ids {
-                if let Some(TaintNode::Source { function, .. }) = graph.nodes.get(*source_id) {
-                    if function.as_ref() == call_func {
-                        return true;
-                    }
+                if let Some(TaintNode::Source { function, .. }) = graph.nodes.get(*source_id)
+                    && function.as_ref() == call_func
+                {
+                    return true;
                 }
             }
         }
@@ -697,10 +697,8 @@ fn sink_kind_meta(kind: SinkKind) -> Option<&'static RuleMetadata> {
 /// Resolve a callee name for lookup.  For method calls like `h.openFile`,
 /// extract just the method name `openFile`.
 fn resolve_callee_name(callee: &str, is_method_call: bool) -> String {
-    if is_method_call {
-        if let Some(dot) = callee.rfind('.') {
-            return callee[dot + 1..].to_string();
-        }
+    if is_method_call && let Some(dot) = callee.rfind('.') {
+        return callee[dot + 1..].to_string();
     }
     callee.to_string()
 }
@@ -732,10 +730,10 @@ fn sink_kinds_reached_by_var(
     ]
     .iter()
     {
-        if let Some(sink_ids) = graph.by_sink.get(&sk) {
-            if forward_reaches_any_with_index(graph, graph_index.adjacency(), var_ids, sink_ids) {
-                reached.push(sk);
-            }
+        if let Some(sink_ids) = graph.by_sink.get(&sk)
+            && forward_reaches_any_with_index(graph, graph_index.adjacency(), var_ids, sink_ids)
+        {
+            reached.push(sk);
         }
     }
     reached

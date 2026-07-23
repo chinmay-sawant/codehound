@@ -227,16 +227,14 @@ impl Analyzer {
         // Prune orphan cache entries (files that were deleted since
         // the last scan). Done at the analyzer level so it still runs
         // when `entries` is empty.
-        if may_prune_cache {
-            if let Some(cache) = cache.as_mut() {
-                match cache.prune(acc.scanned_files()) {
-                    Ok(removed) if removed > 0 => {
-                        tracing::debug!(removed, "pruned stale cache entries");
-                    }
-                    Ok(_) => {}
-                    Err(error) => {
-                        tracing::warn!(error = %error, "failed to prune stale cache entries");
-                    }
+        if may_prune_cache && let Some(cache) = cache.as_mut() {
+            match cache.prune(acc.scanned_files()) {
+                Ok(removed) if removed > 0 => {
+                    tracing::debug!(removed, "pruned stale cache entries");
+                }
+                Ok(_) => {}
+                Err(error) => {
+                    tracing::warn!(error = %error, "failed to prune stale cache entries");
                 }
             }
         }
@@ -309,10 +307,10 @@ impl Analyzer {
         scan_stats.timing = Some(summary);
         result.stats = Some(scan_stats);
 
-        if let Some(mut cache) = cache {
-            if let Err(e) = cache.flush() {
-                tracing::warn!(error = %e, "failed to flush incremental cache");
-            }
+        if let Some(mut cache) = cache
+            && let Err(e) = cache.flush()
+        {
+            tracing::warn!(error = %e, "failed to flush incremental cache");
         }
 
         Ok(result)

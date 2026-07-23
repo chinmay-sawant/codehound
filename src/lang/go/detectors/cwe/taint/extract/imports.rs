@@ -60,10 +60,10 @@ fn collect_imports(node: tree_sitter::Node, src: &[u8], map: &mut HashMap<String
                 if inner.goto_first_child() {
                     loop {
                         let ic = inner.node();
-                        if ic.kind() == "import_spec" {
-                            if let Some((alias, path)) = import_spec_entry(ic, src) {
-                                map.insert(alias, path);
-                            }
+                        if ic.kind() == "import_spec"
+                            && let Some((alias, path)) = import_spec_entry(ic, src)
+                        {
+                            map.insert(alias, path);
                         }
                         if !inner.goto_next_sibling() {
                             break;

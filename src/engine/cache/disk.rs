@@ -105,10 +105,10 @@ impl CacheBackend for DiskBackend {
         let mut total = 0u64;
         if let Ok(entries) = fs::read_dir(&self.files_dir) {
             for entry in entries.flatten() {
-                if entry.file_type().is_ok_and(|t| t.is_file()) {
-                    if let Ok(meta) = entry.metadata() {
-                        total += meta.len();
-                    }
+                if entry.file_type().is_ok_and(|t| t.is_file())
+                    && let Ok(meta) = entry.metadata()
+                {
+                    total += meta.len();
                 }
             }
         }

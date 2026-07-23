@@ -112,12 +112,10 @@ fn has_percentage_context(node: Node, source: &[u8]) -> bool {
         if matches!(
             parent.kind(),
             "assignment_statement" | "short_var_declaration" | "return_statement"
-        ) {
-            if let Ok(text) = parent.utf8_text(source) {
-                if percentage_lhs(text) {
-                    return true;
-                }
-            }
+        ) && let Ok(text) = parent.utf8_text(source)
+            && percentage_lhs(text)
+        {
+            return true;
         }
 
         if matches!(parent.kind(), "function_declaration" | "method_declaration") {

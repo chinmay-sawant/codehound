@@ -282,34 +282,34 @@ pub(crate) fn detect_perf_191(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut
             continue;
         }
         let pattern = format!("type {type_name} struct");
-        if let Some(struct_start) = source.find(&pattern) {
-            if let Some(open) = source[struct_start..].find('{') {
-                let body_start = struct_start + open + 1;
-                if let Some(close_rel) = source[body_start..].find('}') {
-                    let body = &source[body_start..body_start + close_rel];
-                    let field_count = body
-                        .lines()
-                        .map(|l| l.trim())
-                        .filter(|l| {
-                            !l.is_empty()
-                                && !l.starts_with("//")
-                                && !l.starts_with('{')
-                                && !l.starts_with('}')
-                                && !l.starts_with('`')
-                        })
-                        .count();
-                    if field_count > 0 && field_count <= 2 {
-                        let (line, col) = unit.line_col(pos);
-                        emit::push_finding(
-                            &META_PERF_191,
-                            file,
-                            line,
-                            col,
-                            "slice of pointers to a small struct; use []T (value type) to avoid per-element heap allocations",
-                            out,
-                        );
-                        return;
-                    }
+        if let Some(struct_start) = source.find(&pattern)
+            && let Some(open) = source[struct_start..].find('{')
+        {
+            let body_start = struct_start + open + 1;
+            if let Some(close_rel) = source[body_start..].find('}') {
+                let body = &source[body_start..body_start + close_rel];
+                let field_count = body
+                    .lines()
+                    .map(|l| l.trim())
+                    .filter(|l| {
+                        !l.is_empty()
+                            && !l.starts_with("//")
+                            && !l.starts_with('{')
+                            && !l.starts_with('}')
+                            && !l.starts_with('`')
+                    })
+                    .count();
+                if field_count > 0 && field_count <= 2 {
+                    let (line, col) = unit.line_col(pos);
+                    emit::push_finding(
+                        &META_PERF_191,
+                        file,
+                        line,
+                        col,
+                        "slice of pointers to a small struct; use []T (value type) to avoid per-element heap allocations",
+                        out,
+                    );
+                    return;
                 }
             }
         }

@@ -175,10 +175,11 @@ fn parse_go_list_stream(bytes: &[u8]) -> Vec<GoListPackage> {
         }
     }
     // Fallback: if stream parse got nothing, try whole-buffer single object.
-    if out.is_empty() && !bytes.is_empty() {
-        if let Ok(pkg) = serde_json::from_slice::<GoListPackage>(bytes) {
-            out.push(pkg);
-        }
+    if out.is_empty()
+        && !bytes.is_empty()
+        && let Ok(pkg) = serde_json::from_slice::<GoListPackage>(bytes)
+    {
+        out.push(pkg);
     }
     out
 }

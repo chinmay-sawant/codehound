@@ -260,10 +260,10 @@ impl FindingWire {
             }
             _ => return Err(FindingWireError::IncompleteFunctionRange),
         };
-        if let Some(confidence) = confidence {
-            if !confidence.is_finite() || !(0.0..=1.0).contains(&confidence) {
-                return Err(FindingWireError::InvalidConfidence);
-            }
+        if let Some(confidence) = confidence
+            && (!confidence.is_finite() || !(0.0..=1.0).contains(&confidence))
+        {
+            return Err(FindingWireError::InvalidConfidence);
         }
         let rule_id_static = intern_str(rule_id).ok_or(FindingWireError::InterningLimit)?;
         let rule_title_static = intern_str(rule_title).ok_or(FindingWireError::InterningLimit)?;

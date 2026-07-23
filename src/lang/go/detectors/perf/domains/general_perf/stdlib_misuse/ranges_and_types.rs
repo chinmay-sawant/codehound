@@ -140,10 +140,10 @@ pub(crate) fn detect_perf_114(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         // Scan the full file for the destination's make/decl: enclosing-body
         // helpers stop early on `[]interface{}` return types (the `{` in
         // `interface{}` is not a function body).
-        if let Some(dst) = loop_copy_destination(body) {
-            if destination_is_interface_slice(source, dst) {
-                continue;
-            }
+        if let Some(dst) = loop_copy_destination(body)
+            && destination_is_interface_slice(source, dst)
+        {
+            continue;
         }
         let (line, col) = unit.line_col(*start);
         emit::push_finding(

@@ -277,33 +277,33 @@ pub(crate) fn detect_perf_199(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         "redis.Get(",
     ];
     for trigger in &triggers {
-        if let Some(pos) = source.find(trigger) {
-            if is_handler_shaped(source, pos) {
-                // Suppress when the enclosing function is a
-                // middleware. We approximate by looking for
-                // `c.Next()` or a return type of `gin.HandlerFunc`
-                // in the function signature.
-                let func_start = source[..pos].rfind("func ").unwrap_or(0);
-                let func_window_end = (pos + 1024).min(source.len());
-                let func_window = &source[func_start..func_window_end];
-                if func_window.contains("c.Next()")
-                    || func_window.contains("gin.HandlerFunc")
-                    || func_window.contains("Middleware")
-                    || func_window.contains("AuthMiddleware")
-                {
-                    continue;
-                }
-                let (line, col) = unit.line_col(pos);
-                emit::push_finding(
-                    &META_PERF_199,
-                    file,
-                    line,
-                    col,
-                    "session lookup in a route handler; move the lookup to a middleware that sets the request context",
-                    out,
-                );
-                return;
+        if let Some(pos) = source.find(trigger)
+            && is_handler_shaped(source, pos)
+        {
+            // Suppress when the enclosing function is a
+            // middleware. We approximate by looking for
+            // `c.Next()` or a return type of `gin.HandlerFunc`
+            // in the function signature.
+            let func_start = source[..pos].rfind("func ").unwrap_or(0);
+            let func_window_end = (pos + 1024).min(source.len());
+            let func_window = &source[func_start..func_window_end];
+            if func_window.contains("c.Next()")
+                || func_window.contains("gin.HandlerFunc")
+                || func_window.contains("Middleware")
+                || func_window.contains("AuthMiddleware")
+            {
+                continue;
             }
+            let (line, col) = unit.line_col(pos);
+            emit::push_finding(
+                &META_PERF_199,
+                file,
+                line,
+                col,
+                "session lookup in a route handler; move the lookup to a middleware that sets the request context",
+                out,
+            );
+            return;
         }
     }
 }
@@ -328,18 +328,18 @@ pub(crate) fn detect_perf_200(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut
         .find("CORS")
         .or_else(|| source.find("cors."))
         .or_else(|| source.find("Cache"));
-    if let (Some(auth), Some(cors)) = (auth_pos, cors_pos) {
-        if auth < cors {
-            let (line, col) = unit.line_col(cors);
-            emit::push_finding(
-                &META_PERF_200,
-                file,
-                line,
-                col,
-                "expensive middleware (Auth) registered before cheap preflight (CORS); move CORS first to short-circuit preflight requests",
-                out,
-            );
-        }
+    if let (Some(auth), Some(cors)) = (auth_pos, cors_pos)
+        && auth < cors
+    {
+        let (line, col) = unit.line_col(cors);
+        emit::push_finding(
+            &META_PERF_200,
+            file,
+            line,
+            col,
+            "expensive middleware (Auth) registered before cheap preflight (CORS); move CORS first to short-circuit preflight requests",
+            out,
+        );
     }
 }
 

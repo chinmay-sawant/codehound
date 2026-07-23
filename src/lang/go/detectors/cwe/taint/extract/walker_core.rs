@@ -102,14 +102,13 @@ impl<'a> ExtractionState<'a> {
     }
 
     pub(super) fn pop_scope(&mut self) {
-        if let Some(id) = self.scope_stack.pop() {
-            if self
+        if let Some(id) = self.scope_stack.pop()
+            && self
                 .scopes
                 .get(id)
                 .is_some_and(|s| s.kind == ScopeKind::Function)
-            {
-                self.function_scope_stack.pop();
-            }
+        {
+            self.function_scope_stack.pop();
         }
     }
 

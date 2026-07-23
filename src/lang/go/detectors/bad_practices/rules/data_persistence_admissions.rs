@@ -420,15 +420,14 @@ fn bind_declaration(
             .split('{')
             .next()
             .map(str::trim);
-        if let Some(type_name) = type_name.filter(|name| structs.contains_key(*name)) {
-            if let Some(name) = left
+        if let Some(type_name) = type_name.filter(|name| structs.contains_key(*name))
+            && let Some(name) = left
                 .split(',')
                 .next()
                 .map(str::trim)
                 .filter(|name| is_identifier(name))
-            {
-                out.insert(name.to_owned(), type_name.to_owned());
-            }
+        {
+            out.insert(name.to_owned(), type_name.to_owned());
         }
         return;
     }

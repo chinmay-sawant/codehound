@@ -236,17 +236,17 @@ fn preflight_cache_hits(
     // Phase 3: emit hits only when not dirty; otherwise force re-scan.
     let mut cached_files = Vec::new();
     for p in provisional {
-        if let Some(cached) = p.hit {
-            if !dirty.contains(&p.rel) {
-                cache_hit_count += 1;
-                cached_outcomes.push(process_cache_hit(ctx, cached, p.source.clone()));
-                cached_files.push(CachedFileInfo {
-                    source: p.source,
-                    display_path: p.rel,
-                    language: p.language,
-                });
-                continue;
-            }
+        if let Some(cached) = p.hit
+            && !dirty.contains(&p.rel)
+        {
+            cache_hit_count += 1;
+            cached_outcomes.push(process_cache_hit(ctx, cached, p.source.clone()));
+            cached_files.push(CachedFileInfo {
+                source: p.source,
+                display_path: p.rel,
+                language: p.language,
+            });
+            continue;
         }
         to_scan.push((
             p.index,

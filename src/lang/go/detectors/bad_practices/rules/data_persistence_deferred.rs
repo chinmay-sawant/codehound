@@ -146,10 +146,9 @@ fn database_handle_names(function: Node, source: &[u8], aliases: &[String]) -> V
         let text = node.utf8_text(source).unwrap_or_default();
         if aliases.iter().any(|alias| {
             text.contains(&format!("*{alias}.DB")) || text.contains(&format!("{alias}.DB"))
-        }) {
-            if let Some(name) = declaration_name(text) {
-                names.push(name);
-            }
+        }) && let Some(name) = declaration_name(text)
+        {
+            names.push(name);
         }
     });
 

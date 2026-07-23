@@ -40,13 +40,13 @@ impl CodehoundConfig {
             only.extend(self.codehound.only);
             ctx.only = Some(only);
         }
-        if let Some(fail_on) = self.codehound.fail_on.as_deref() {
-            if !cli_set_fail_policy {
-                // Unknown values fall through to MediumAsErrors at load time via
-                // parse_fail_on; prefer the Result form when validating configs.
-                if let Some(policy) = try_fail_on_to_policy(fail_on) {
-                    ctx.fail_policy = policy;
-                }
+        if let Some(fail_on) = self.codehound.fail_on.as_deref()
+            && !cli_set_fail_policy
+        {
+            // Unknown values fall through to MediumAsErrors at load time via
+            // parse_fail_on; prefer the Result form when validating configs.
+            if let Some(policy) = try_fail_on_to_policy(fail_on) {
+                ctx.fail_policy = policy;
             }
         }
         if let Some(enabled) = self.codehound.taint.enabled {

@@ -40,11 +40,11 @@ pub(crate) fn detect_perf_38(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
         }
         // Unbuffered empty-struct signal channel: make(chan struct{})
         let trimmed = after.trim_start();
-        if let Some(rest) = trimmed.strip_prefix("struct{}") {
-            if rest.trim_start().starts_with(')') {
-                search = start + "make(chan".len();
-                continue;
-            }
+        if let Some(rest) = trimmed.strip_prefix("struct{}")
+            && rest.trim_start().starts_with(')')
+        {
+            search = start + "make(chan".len();
+            continue;
         }
         let (line, col) = unit.line_col(start);
         emit::push_finding(

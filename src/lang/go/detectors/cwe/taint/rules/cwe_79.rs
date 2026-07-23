@@ -85,7 +85,7 @@ mod tests {
     }
 
     #[test]
-    fn unescape_string_does_not_sanitize_xss_taint() {
+    fn html_template_escapes_plain_unescaped_strings() {
         let source = r#"package main
 import (
     "html"
@@ -97,6 +97,38 @@ func RenderPage(w http.ResponseWriter, r *http.Request) {
     raw := html.UnescapeString(name)
     t := template.Must(template.New("x").Parse("<html>{{.}}</html>"))
     _ = t.Execute(w, raw)
+}"#;
+        assert_eq!(cwe_79_findings(source), 0);
+    }
+
+    #[test]
+    fn text_template_unescape_string_remains_an_xss_flow() {
+        let source = r#"package main
+import (
+    "html"
+    "net/http"
+    "text/template"
+)
+func RenderPage(w http.ResponseWriter, r *http.Request) {
+    raw := html.UnescapeString(r.URL.Query().Get("name"))
+    t := template.Must(template.New("x").Parse("<html>{{.}}</html>"))
+    _ = t.Execute(w, raw)
+}"#;
+        assert_eq!(cwe_79_findings(source), 1);
+    }
+
+    #[test]
+    fn html_template_trusted_content_conversion_remains_an_xss_flow() {
+        let source = r#"package main
+import (
+    "html"
+    "html/template"
+    "net/http"
+)
+func RenderPage(w http.ResponseWriter, r *http.Request) {
+    raw := html.UnescapeString(r.URL.Query().Get("name"))
+    t := template.Must(template.New("x").Parse("<html>{{.}}</html>"))
+    _ = t.Execute(w, template.HTML(raw))
 }"#;
         assert_eq!(cwe_79_findings(source), 1);
     }

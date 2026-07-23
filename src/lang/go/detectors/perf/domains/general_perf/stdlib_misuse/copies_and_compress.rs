@@ -169,34 +169,34 @@ pub(crate) fn detect_perf_228(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
             continue;
         }
         // Inline composite: `for _, x := range []T{a}` / `[]T{a, b}`
-        if let Some(n) = composite_elem_count_after_range(loop_text) {
-            if (1..=2).contains(&n) {
-                let (line, col) = unit.line_col(loop_start);
-                emit::push_finding(
-                    &META_PERF_228,
-                    file,
-                    line,
-                    col,
-                    "parallel fan-out over a 1–2 element workset; prefer a serial path for tiny N",
-                    out,
-                );
-                return;
-            }
+        if let Some(n) = composite_elem_count_after_range(loop_text)
+            && (1..=2).contains(&n)
+        {
+            let (line, col) = unit.line_col(loop_start);
+            emit::push_finding(
+                &META_PERF_228,
+                file,
+                line,
+                col,
+                "parallel fan-out over a 1–2 element workset; prefer a serial path for tiny N",
+                out,
+            );
+            return;
         }
         // Named target from a tiny composite in the same function/file.
-        if let Some(target) = range_target_name(loop_text) {
-            if tiny_names.iter().any(|n| n == target) {
-                let (line, col) = unit.line_col(loop_start);
-                emit::push_finding(
-                    &META_PERF_228,
-                    file,
-                    line,
-                    col,
-                    "parallel fan-out over a 1–2 element workset; prefer a serial path for tiny N",
-                    out,
-                );
-                return;
-            }
+        if let Some(target) = range_target_name(loop_text)
+            && tiny_names.iter().any(|n| n == target)
+        {
+            let (line, col) = unit.line_col(loop_start);
+            emit::push_finding(
+                &META_PERF_228,
+                file,
+                line,
+                col,
+                "parallel fan-out over a 1–2 element workset; prefer a serial path for tiny N",
+                out,
+            );
+            return;
         }
     }
 }
@@ -852,10 +852,10 @@ fn tiny_composite_slice_names(source: &str) -> Vec<String> {
         if !is_simple_ident(lhs) {
             continue;
         }
-        if let Some(n) = composite_literal_elem_count(rhs) {
-            if (1..=2).contains(&n) {
-                names.push(lhs.to_string());
-            }
+        if let Some(n) = composite_literal_elem_count(rhs)
+            && (1..=2).contains(&n)
+        {
+            names.push(lhs.to_string());
         }
     }
     names

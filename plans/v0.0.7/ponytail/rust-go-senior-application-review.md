@@ -53,11 +53,11 @@ The next phase is limited to the explicitly partial rows; it does not block the 
 
 ### 1.1 Taint false-negative: HTML unescaping is treated as sanitization
 
-- [x] **P1 / Critical — remove `html.UnescapeString` from HTML sanitizer classification.**
+- [ ] **P1 / Critical — model `html.UnescapeString` as taint-preserving while making template sinks package/type aware.**
   - **Evidence:** `src/lang/go/detectors/cwe/taint/extract/classify.rs:145-150` classifies it as `SanitizerKind::HTML`; `:300-304` also suppresses it as a known sanitizer.
-  - **Risk:** unescaping can restore markup-significant characters. Tainted data can reach an HTTP/template sink and be reported as safe, a direct CWE-79 false negative.
-  - **Smallest correct change:** remove the function from both sanitizer paths; preserve real encoding/sanitization functions.
-  - **Required proof:** a CWE-79 fixture where tainted data passes through `html.UnescapeString` and must produce a finding.
+  - **Risk:** treating unescaping as a universal sanitizer loses taint for unsafe sinks, while treating every `Execute` as unsafe reports false positives for `html/template` with ordinary strings.
+  - **Smallest correct change:** preserve taint through `html.UnescapeString`, then distinguish `html/template` auto-escaped string execution from `text/template` and explicit trusted-content conversions such as `template.HTML`.
+  - **Required proof:** plain `string` through `html/template.Execute` is silent; `text/template.Execute` and `html/template.Execute(..., template.HTML(raw))` produce CWE-79.
 
 ### 1.2 Strict GitHub action never gates a build
 
@@ -239,9 +239,9 @@ The next phase is limited to the explicitly partial rows; it does not block the 
 | 1.2, 1.3, 4.1, 4.2, 4.3 | Strict scanner status is propagated after SARIF upload; tag release `validate` gates every build; actions/tools are pinned, MSRV runs all features, and `SECURITY.md` documents disclosure. | [x] |
 | 2.1, 2.5, 2.6, 2.7, 3.5, 4.4 | Ignore lexer tracks Go raw/block and Python triple strings; invalid output combinations fail at argument validation; UTF-8-safe context fallback, atomic diagnostics, fallible SARIF evidence, and isolated diagnostics fixtures are covered. | [x] |
 | 2.3 | `project_relative_path` is used for cache/dependency/source identities. Absolute-root and narrow-scan regressions prove invalidation and sibling preservation; source-cache/cache-hit tests now assert the public project-relative contract. | [x] |
-| 2.4 | Lock-protected merge/flush, unique `create_new` temporary files, file fsync, rename, and parent-directory sync are in place. A lock that survives a crashed owner is intentionally not stolen: scans remain correct but future flushes stay cold until the lock is removed. | [x] |
-| 2.2 | Manifest filenames are validated as single normal names; staged writes, pre-existing-output backup, rollback, and malicious-path regressions protect normal failure paths. A crash between individual file renames cannot atomically restore an entire caller-owned directory. | [x] |
-| 3.2, 3.3, 3.4 | Narrow rule selections skip unneeded fact bundles; cached parser failures become `ScanError`s; context uses shared source instead of a whole-source clone. Release benchmarks and direct parser-failure injection tests are still required before asserting the requested performance/failure proofs. | [x] |
+| 2.4 | Lock-protected merge/flush, unique `create_new` temporary files, file fsync, rename, and parent-directory sync are in place. A lock that survives a crashed owner is intentionally not stolen: scans remain correct but future flushes stay cold until the lock is removed. | [~] |
+| 2.2 | Manifest filenames are validated as single normal names; staged writes, pre-existing-output backup, rollback, and malicious-path regressions protect normal failure paths. A crash between individual file renames cannot atomically restore an entire caller-owned directory. | [~] |
+| 3.2, 3.3, 3.4 | Narrow rule selections skip unneeded fact bundles; cached parser failures become `ScanError`s; context uses shared source instead of a whole-source clone. Release benchmarks and direct parser-failure injection tests are still required before asserting the requested performance/failure proofs. | [~] |
 
 ---
 
@@ -273,3 +273,95 @@ The next phase is limited to the explicitly partial rows; it does not block the 
 - Go toolchain for typed-facts integration; CI must provide a writable `GOCACHE` when invoking `go list`.
 - GitHub Actions/release environment permissions for strict action and tag-protection changes.
 - Existing fixture manifest conventions for new taint, CLI, cache, and export regression cases.
+
+---
+
+## Post-Implementation Re-Review — 2026-07-24
+
+> **Status:** New regressions found after the v0.0.7 closure. The prior 9.6 rating is not supported by the current committed tree.
+> **Current application rating:** **7.6 / 10**
+> **Review basis:** Current source, the documented Rust 1.88 MSRV, current stable Clippy, and targeted integration tests. No implementation was performed during this re-review.
+
+### Executive Summary
+
+The codebase remains architecturally strong and the targeted fixture-manifest, Go taint-integration, and CLI output-contract suites pass. However, the current branch has a security false negative, a broken default baseline write path, and a red strict lint gate on both MSRV and stable. These are release blockers for a static-analysis product, so the score must be reduced until the gates and security semantics are restored.
+
+### CWE-79 Correction — 2026-07-24
+
+- [x] **P1 / High — remove the false-positive expectation for `html/template.Execute` with a plain string.**
+  - **Correction:** the prior review incorrectly described `html.UnescapeString` followed by `html/template.Execute(w, raw)` as runtime XSS. `html/template` contextually escapes ordinary string values; `raw` is not `template.HTML`, `template.HTMLAttr`, `template.JS`, or another trusted-content type.
+  - **Implemented:** `tests/fixtures/go/taint/CWE-79-vulnerable.txt` now exercises `text/template`; the unit coverage separately proves a plain `html/template` value is safe and `template.HTML(raw)` remains a finding.
+  - **Correct detector policy:** retain taint through `html.UnescapeString`, but classify the sink using import/type information: safe for `html/template` plus plain string; unsafe for `text/template`, raw HTTP writes, or explicit unsafe trusted-content conversions.
+  - **Required proof:** replace the fixture with the safe `html/template` case and add separate vulnerable `text/template` and `template.HTML` fixtures.
+
+### Phase 5: Restore Current-Branch Correctness Gates
+
+#### 5.1 CWE-22 prefix guard is not a confinement proof
+
+- [x] **P1 / Critical — remove or replace the `strings.HasPrefix` suppression unless canonical confinement is proven.**
+  - **Evidence:** `src/lang/go/detectors/cwe/taint/rules/cwe_22.rs:33-35` suppresses a taint path after a lexical prefix guard; `:310-317` codifies `if !strings.HasPrefix(path, "/safe/") { return }` as safe.
+  - **Risk:** `/safe/../../etc/passwd` passes that prefix check and escapes the intended directory when opened. The detector therefore suppresses a real path-traversal flow.
+  - **Implemented:** deleted the lexical `HasPrefix` suppression and its control-flow heuristic. The detector now reports the tainted file-open flow conservatively until a real canonical-path/symlink-aware sanitizer contract exists.
+  - **Proof:** the renamed `prefix_guard_does_not_prove_path_confinement` regression expects one finding; the full `make test` gate passed.
+
+#### 5.2 Atomic write rejects normal relative output paths
+
+- [x] **P1 / High — treat an empty relative parent as the current directory in atomic writes and directory sync.**
+  - **Evidence:** `src/engine/io.rs:23-25` calls `create_dir_all` on `Path::new(".codehound-baseline.json").parent()`, which is an empty path; `:61-67` repeats the issue during parent-directory sync.
+  - **Observed failure:** `cargo test --all-features --locked --test app_baseline_corrupt -- --test-threads=1` fails `older_tool_version_warns_but_still_filters` and `unsupported_baseline_version_warns_and_skips_filtering` with `error: writing : No such file or directory`.
+  - **Risk:** default `--baseline` and any other atomic relative-file output fail despite a valid current working directory.
+  - **Implemented:** empty `Path::parent()` values are ignored for directory creation and sync, preserving normal handling for actual parents.
+  - **Proof:** the previously failing baseline contract is covered by the successful full `make test` run.
+
+#### 5.3 Strict Clippy contract is currently red
+
+- [x] **P1 / High — make every documented strict lint command pass on its selected toolchain.**
+  - **Evidence:** CI lint uses stable at `.github/workflows/ci.yml:52-65`; release validation uses Rust 1.88 and the same strict command at `.github/workflows/release.yml:22-30`.
+  - **Observed failure:** `cargo +1.88.0 clippy --all-targets --all-features --locked -- -D warnings` fails on two `uninlined_format_args` findings in `tests/perf_regression.rs`; stable Clippy fails on 70 `collapsible_if` findings under `clippy::all = deny`.
+  - **Risk:** both the normal lint workflow and release validation are red, invalidating earlier green-gate evidence.
+  - **Implemented:** `make lint` is locked; Clippy's 70 mechanical `collapsible_if` rewrites and the Rust 1.88 format-argument suggestions are applied.
+  - **Proof:** `make lint` passes on stable and `cargo +1.88.0 clippy --all-targets --all-features --locked -- -D warnings` passes.
+
+### Phase 6: Close Remaining Persistence Semantics
+
+#### 6.1 Export rollback can diverge from a post-rename manifest
+
+- [~] **P2 / High — make the ownership manifest commit-state-aware.**
+  - **Evidence:** `src/engine/io.rs:48-56` renames the manifest before parent-directory sync; `src/export/owned.rs:143-147` treats every `write_atomic` error as pre-commit and rolls output files back.
+  - **Risk:** if directory sync fails after rename, the new manifest remains visible while old files are restored, producing an internally inconsistent export set.
+  - **Implemented:** a directory-sync failure after `rename` is now a warning because the logical commit has already happened; callers no longer roll back output files against a visible new manifest.
+  - **Remaining proof:** inject a post-rename directory-sync failure and assert manifest/files remain mutually consistent.
+
+#### 6.2 Orphaned cache lock causes permanent cold-cache persistence
+
+- [ ] **P2 / Medium — reclaim verified-stale manifest locks safely.**
+  - **Evidence:** `src/engine/cache/store_flush.rs:22-41` retries for 500ms and never removes/reclaims an existing lock; `:68-79` returns success without persistence.
+  - **Risk:** a process crash leaves every later scan unable to persist cache updates until manual cleanup.
+  - **Smallest correct change:** record ownership token and age, then reclaim only a demonstrably stale lock; never steal an active owner's lock.
+  - **Required proof:** simulated crash/orphan lock recovers persistence, while a held active lock is not removed.
+
+### Re-Review Validation Evidence
+
+- [x] `make fmt` and `make lint` passed.
+- [x] `cargo +1.88.0 clippy --all-targets --all-features --locked -- -D warnings` passed.
+- [x] `make test` passed (project nextest suite plus doctests).
+
+---
+
+## Corrective Implementation Re-Rate — 2026-07-24
+
+> **Status:** All P1 correctness/release-gate regressions found in this re-review are fixed and validated. Two P2 persistence boundaries remain explicitly tracked.
+> **Current application rating:** **9.1 / 10**
+
+### What changed
+
+- [x] CWE-79 now preserves taint through `html.UnescapeString` without falsely reporting ordinary strings executed by `html/template`; `text/template` and unsafe `template.HTML` conversion remain reportable sinks.
+- [x] CWE-22 no longer mistakes a textual `strings.HasPrefix` guard for filesystem confinement.
+- [x] Atomic writes accept normal bare relative filenames; a post-rename directory-sync failure no longer produces a false failed-write result that triggers export rollback.
+- [x] Stable and Rust 1.88 strict Clippy gates are green, and the documented `make lint` command uses the lockfile.
+
+### Remaining deductions
+
+- [ ] **P2 — export is not crash-atomic across a caller-owned multi-file directory.** The code rolls back normal failures, but a hard crash between file renames can still leave a partial export. Resolving this requires a layout/API change such as an owned swappable subdirectory.
+- [ ] **P2 — an orphaned cache manifest lock is not reclaimed automatically.** Correctness degrades to a cold/non-persisted cache until manual cleanup; reclaim must prove staleness without stealing active locks.
+- [~] **P2 — post-rename sync behavior needs an injected failure regression.** The commit-state bug is fixed, but the platform-specific directory-sync failure path is not directly injectable in the current test harness.

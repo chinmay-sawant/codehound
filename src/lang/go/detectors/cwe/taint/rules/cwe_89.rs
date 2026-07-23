@@ -118,10 +118,10 @@ fn is_prepared_stmt_parameterized(
         if assign.byte_range.start >= sink_range.start {
             continue;
         }
-        if let Some(ref fr) = fn_range {
-            if assign.byte_range.start < fr.start || assign.byte_range.start >= fr.end {
-                continue;
-            }
+        if let Some(ref fr) = fn_range
+            && (assign.byte_range.start < fr.start || assign.byte_range.start >= fr.end)
+        {
+            continue;
         }
         if latest.is_none_or(|prev| assign.byte_range.start > prev.byte_range.start) {
             latest = Some(assign);

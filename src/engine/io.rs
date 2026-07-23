@@ -20,7 +20,10 @@ pub(crate) fn write_atomic<T: Serialize>(path: &Path, value: &T) -> Result<(), E
 
 /// Atomically replace `path` with bytes using a unique sibling temp file.
 pub(crate) fn write_atomic_bytes(path: &Path, bytes: &[u8]) -> Result<(), Error> {
-    if let Some(parent) = path.parent() {
+    if let Some(parent) = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+    {
         fs::create_dir_all(parent)
             .map_err(|e| Error::path_io(parent.display().to_string(), IoOp::CreateDir, e))?;
     }
@@ -53,13 +56,21 @@ pub(crate) fn write_atomic_bytes(path: &Path, bytes: &[u8]) -> Result<(), Error>
             error,
         ));
     }
-    sync_parent_dir(path)?;
+    // The rename is already the logical commit. Reporting a later directory
+    // sync error as a failed write makes callers roll back files while the
+    // manifest has already been replaced.
+    if let Err(error) = sync_parent_dir(path) {
+        tracing::warn!(path = %path.display(), error = %error, "atomic replacement committed but parent directory sync failed");
+    }
     Ok(())
 }
 
 #[cfg(unix)]
 fn sync_parent_dir(path: &Path) -> Result<(), Error> {
-    let Some(parent) = path.parent() else {
+    let Some(parent) = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+    else {
         return Ok(());
     };
     fs::File::open(parent)
