@@ -151,7 +151,7 @@ pub(super) fn walk_node(
             state.function_params.insert(func_name.clone(), params);
             state
                 .function_ranges
-                .insert(func_name.clone(), node.start_byte()..node.end_byte());
+                .insert(func_name, node.start_byte()..node.end_byte());
             entered_scope = Some((ScopeKind::Function, node.start_byte()..node.end_byte()));
         }
         "block" => {

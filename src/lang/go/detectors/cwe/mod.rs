@@ -230,7 +230,7 @@ impl Detector for GoCweScan {
                 );
             }
             per_file.push((unit.path.as_str(), graph, graph_index, summaries));
-            for (_func_name, decl) in &unit.call_graph.declarations {
+            for decl in unit.call_graph.declarations.values() {
                 let key = TaintSymbolKey::with_receiver(
                     unit.package.clone(),
                     decl.receiver_type.as_deref(),
