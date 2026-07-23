@@ -575,7 +575,8 @@ mod cached_rebuild_tests {
 
     #[test]
     fn parser_setup_failures_use_parse_scan_error_kind() {
-        let err = cached_rebuild_parse_error("pkg/y.go", "configuring parser for cached file: boom");
+        let err =
+            cached_rebuild_parse_error("pkg/y.go", "configuring parser for cached file: boom");
         assert_eq!(err.kind, ScanErrorKind::Parse);
         assert!(err.message.contains("configuring parser for cached file"));
     }

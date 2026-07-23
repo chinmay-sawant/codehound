@@ -149,7 +149,11 @@ fn narrow_directory_scan_preserves_cache_entries_outside_that_directory() {
 fn absolute_and_relative_roots_invalidate_the_same_project_relative_dependents() {
     let root = unique_temp_root("abs-rel-cascade");
     fs::create_dir_all(root.join("pkg/db")).unwrap();
-    fs::write(root.join("go.mod"), "module example.test/cache\n\ngo 1.22\n").unwrap();
+    fs::write(
+        root.join("go.mod"),
+        "module example.test/cache\n\ngo 1.22\n",
+    )
+    .unwrap();
     fs::write(root.join("pkg/db/db.go"), "package db\n\nfunc Open() {}\n").unwrap();
     fs::write(
         root.join("pkg/handler.go"),
