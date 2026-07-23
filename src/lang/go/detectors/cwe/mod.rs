@@ -915,9 +915,9 @@ mod tests {
             ..Default::default()
         };
         let mut sink_map = HashMap::new();
-        sink_map.insert("Open".to_string(), sink_summary);
+        sink_map.insert("*Handler.Open".to_string(), sink_summary);
         let mut safe_map = HashMap::new();
-        safe_map.insert("Open".to_string(), safe_summary);
+        safe_map.insert("*Store.Open".to_string(), safe_summary);
         let per_file = vec![
             (
                 "app/handler.go",

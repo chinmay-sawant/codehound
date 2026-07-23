@@ -20,9 +20,11 @@ pub(crate) fn is_materialized_fixture(unit: &ParsedUnit) -> bool {
 }
 
 pub(crate) fn is_flat_materialized_fixture(unit: &ParsedUnit) -> bool {
-    let display = unit.display_path.as_str();
-    let materialized = display.contains("target/codehound-fixtures/")
-        || display.contains("target\\codehound-fixtures\\");
+    // `display_path` is the project-relative public identity and no longer
+    // contains `target/codehound-fixtures/`; the absolute filesystem path does.
+    let path = unit.path.to_string_lossy();
+    let materialized = path.contains("target/codehound-fixtures/")
+        || path.contains("target\\codehound-fixtures\\");
     let parent_is_language_root = unit
         .path
         .parent()

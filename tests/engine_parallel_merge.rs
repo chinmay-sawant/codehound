@@ -69,7 +69,7 @@ fn cache_miss_produces_findings_and_tracks_stats() {
 fn cache_hit_reuses_stored_findings() {
     let root = unique_temp_root("parallel-hit");
     let entry = perf_fixture_entry(&root);
-    let rel = entry.path.display().to_string();
+    let rel = codehound::engine::project_relative_path(entry.path.as_ref(), &root);
     let source = std::fs::read_to_string(entry.path.as_ref()).unwrap();
     let hash = content_hash(&source);
 
