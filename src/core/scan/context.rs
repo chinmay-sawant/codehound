@@ -27,6 +27,10 @@ pub struct ScanContext {
     /// When true, use the experimental taint-tracking engine for the
     /// supported CWE rules (CWE-22/78/89/79).
     pub taint_enabled: bool,
+    /// When true, load optional Go package-graph facts via `go list` (G4).
+    /// Default off; never required for recommended pack. Missing toolchain
+    /// degrades to tree-sitter-only.
+    pub typed_enabled: bool,
     /// When true, emit taint paths in finding evidence.
     pub taint_show_paths: bool,
     /// Max inter-procedural summary hops (1 = direct caller→callee only).
@@ -59,6 +63,8 @@ impl Default for ScanContext {
             diagnostics_summary: false,
             // Off by default; enable via --taint or [codehound.taint] enabled = true.
             taint_enabled: false,
+            // Off by default; enable via --typed or [codehound.typed] enabled = true.
+            typed_enabled: false,
             taint_show_paths: false,
             taint_max_depth: 1,
             bad_practices_enabled: true,
@@ -153,8 +159,9 @@ impl ScanContext {
             .collect();
         // Hash via a portable string so disk caches are stable across processes.
         let payload = format!(
-            "only={only:?}|skip={skip:?}|taint={}|taint_paths={}|bp={}|bp_severity={:?}|depth={}|show_ignored={}|severity_overrides={severity_overrides:?}",
+            "only={only:?}|skip={skip:?}|taint={}|typed={}|taint_paths={}|bp={}|bp_severity={:?}|depth={}|show_ignored={}|severity_overrides={severity_overrides:?}",
             self.taint_enabled,
+            self.typed_enabled,
             self.taint_show_paths,
             self.bad_practices_enabled,
             self.bad_practice_severity,

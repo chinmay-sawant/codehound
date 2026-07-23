@@ -5,6 +5,8 @@ pub mod detectors;
 mod register;
 /// Perfect-hash sink tables used by Go CWE detectors and tests.
 pub mod sinks;
+/// Optional typed / package-graph facts (G4, `--typed`).
+pub mod typed;
 
 const FUNCTION_NODE_KINDS: &[&str] = &["function_declaration", "method_declaration"];
 const LOOP_NODE_KINDS: &[&str] = &["for_statement"];
@@ -50,6 +52,8 @@ tree_sitter_lang!(
         out
     },
     |ctx: &crate::core::ScanContext, project_roots: &[&std::path::Path]| {
+        // G4: optional package facts when --typed (session installed in begin_scan).
+        typed::prepare_typed_facts(ctx, project_roots);
         // Pack-local BP project snapshot prewarm so parallel workers share one
         // WalkDir + text scan for project-level rules (BP-47/50/54/55).
         // Skip when BP is disabled (recommended pack often has BP off).

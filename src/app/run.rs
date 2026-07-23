@@ -197,6 +197,8 @@ pub(crate) fn scan_context_params_for_run(
         no_bp: cli.no_bp,
         taint: cli.taint,
         no_taint: cli.no_taint,
+        typed: cli.typed,
+        no_typed: cli.no_typed,
         taint_show_paths: cli.taint_show_paths,
         taint_depth: cli.taint_depth,
         show_ignored: cli.show_ignored,

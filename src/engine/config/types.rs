@@ -49,6 +49,9 @@ pub struct CodehoundSection {
     /// Experimental taint-tracking settings.
     #[serde(default)]
     pub taint: TaintConfig,
+    /// Optional Go typed / package-graph facts (G4).
+    #[serde(default)]
+    pub typed: TypedConfig,
     /// Go bad-practice pack settings.
     #[serde(default)]
     pub bad_practices: BadPracticesConfig,
@@ -132,6 +135,15 @@ pub struct TaintConfig {
     pub enabled: Option<bool>,
     /// When true, attach taint-path evidence to findings.
     pub show_paths: Option<bool>,
+}
+
+/// Optional Go typed / package-graph facts (G4). Default off.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+#[derive(Default)]
+pub struct TypedConfig {
+    /// Explicit enable/disable; `None` leaves CLI default (off).
+    pub enabled: Option<bool>,
 }
 
 /// Go bad-practice rule configuration.
