@@ -73,8 +73,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@1.85
-      - name: Test on MSRV
-        run: cargo test --all-targets --locked
+      - name: Test all supported features on MSRV
+        run: cargo test --all-targets --all-features --locked
+      - name: Build documented minimal CLI feature set on MSRV
+        run: cargo build --all-targets --no-default-features --features go,cli --locked
 
   audit:
     name: cargo audit
@@ -98,7 +100,7 @@ jobs:
         with:
           features: default
       - name: Build release binary
-        run: cargo build --release --bin codehound
+        run: cargo build --release --bin codehound --locked
       - name: Run canary finding-count budgets
         env:
           CODEHOUND_BIN: ${{ github.workspace }}/target/release/codehound

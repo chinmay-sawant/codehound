@@ -30,10 +30,14 @@ runs:
   using: composite
   steps:
     - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@stable
+      # pin: dtolnay/rust-toolchain@master (2026-07-23); toolchain is exact below
+      uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c
+      with:
+        toolchain: "1.85"
 
     - name: Cache cargo
-      uses: actions/cache@v4
+      # pin: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
       with:
         path: |
           ~/.cargo/registry
@@ -43,30 +47,44 @@ runs:
 
     - name: Build codehound
       shell: bash
-      run: cargo build --release --bin codehound
+      run: cargo build --release --bin codehound --locked
 
+    # Capture status, always continue so SARIF can upload, then fail below when strict.
+    # Proof: scripts/check_codehound_scan_action_contract.sh
     - name: Scan
+      id: scan
       shell: bash
       run: |
-        set -euo pipefail
+        set -uo pipefail
         STRICT_FLAG=""
         if [ "${{ inputs.strict }}" = "true" ]; then
           STRICT_FLAG="--strict"
         fi
+        set +e
         ./target/release/codehound \
           --profile "${{ inputs.profile }}" \
           --format sarif \
           $STRICT_FLAG \
           ${{ inputs.args }} \
           ${{ inputs.paths }} \
-          > "${{ inputs.sarif-file }}" || status=$?
-        # codehound exits non-zero on findings under --strict; still upload SARIF
-        echo "scan_exit=${status:-0}" >> "$GITHUB_OUTPUT"
-        exit 0
+          > "${{ inputs.sarif-file }}"
+        status=$?
+        set -e
+        echo "scan_exit=${status}" >> "$GITHUB_OUTPUT"
 
     - name: Upload SARIF
-      if: inputs.upload-sarif == 'true'
+      # Strict findings intentionally exit non-zero after writing SARIF; upload first.
+      if: ${{ always() && inputs.upload-sarif == 'true' }}
       continue-on-error: true
-      uses: github/codeql-action/upload-sarif@v3
+      # pin: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-sarif@4187e74d05793876e9989daffde9c3e66b4acd07
       with:
         sarif_file: ${{ inputs.sarif-file }}
+
+    - name: Propagate scanner status
+      # After SARIF upload: return captured non-zero (strict findings or operational failure).
+      if: ${{ always() && steps.scan.outputs.scan_exit != '0' }}
+      shell: bash
+      run: |
+        echo "codehound exited ${{ steps.scan.outputs.scan_exit }} (after SARIF upload; strict=${{ inputs.strict }})"
+        exit "${{ steps.scan.outputs.scan_exit }}"
