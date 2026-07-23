@@ -7,9 +7,10 @@ use std::sync::Arc;
 use crate::Error;
 use crate::rules::Finding;
 
-use super::chunk::{clean_matching_txt_files, write_chunk_files_streaming};
+use super::chunk::{chunk_file_names, write_chunk_files_streaming};
 use super::finding_block::format_finding_block;
 use super::options::{ExportOptions, ExportSummary};
+use super::owned::OutputStage;
 
 /// Write per-finding context `.txt` files and/or chunked export files.
 ///
@@ -31,27 +32,31 @@ pub fn export_findings(
     let mut summary = ExportSummary::default();
 
     if options.export_context {
-        fs::create_dir_all(&options.context_output_dir)?;
-        clean_matching_txt_files(&options.context_output_dir, |name| name.ends_with(".txt"))?;
+        let context_names = (1..=total).map(|index| format!("{index}.txt"));
+        let stage = OutputStage::create(&options.context_output_dir, context_names)?;
         for (index, finding) in findings.iter().enumerate() {
             let text =
                 format_finding_block(finding, index + 1, total, &mut file_cache, source_cache);
-            let output_path = options
-                .context_output_dir
-                .join(format!("{}.txt", index + 1));
+            let output_path = stage.path().join(format!("{}.txt", index + 1));
             fs::write(output_path, text)?;
             summary.context_files_written += 1;
         }
+        stage.commit()?;
     }
 
     if options.export_chunks {
+        let stage = OutputStage::create(
+            &options.chunks_output_dir,
+            chunk_file_names(findings.len(), options.chunk_size),
+        )?;
         summary.chunk_files_written = write_chunk_files_streaming(
             findings,
-            &options.chunks_output_dir,
+            stage.path(),
             options.chunk_size.max(1),
             &mut file_cache,
             source_cache,
         )?;
+        stage.commit()?;
     }
 
     Ok(summary)

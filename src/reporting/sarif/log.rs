@@ -3,6 +3,7 @@
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 
+use crate::Error;
 use crate::engine::AnalysisResult;
 use crate::rules::{FindingView, Severity};
 
@@ -13,7 +14,7 @@ use super::schema::{
 };
 use crate::engine::time::iso8601_utc_now;
 
-pub(super) fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
+pub(super) fn build_log(result: &AnalysisResult) -> Result<SarifLog<'_>, Error> {
     // rule_id → (title, optional help URI from first CWE link on a finding)
     let mut seen: BTreeMap<&str, (&str, Option<&str>)> = BTreeMap::new();
     for f in &result.findings {
@@ -41,18 +42,26 @@ pub(super) fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
     let results: Vec<SarifResult> = result
         .findings
         .iter()
-        .filter_map(|f| {
+        .map(|f| {
             let view = FindingView::new(f);
-            let rule_index = *rule_index_of.get(view.rule_id())?;
+            let rule_index =
+                *rule_index_of
+                    .get(view.rule_id())
+                    .ok_or_else(|| Error::SarifRule {
+                        rule_id: view.rule_id().to_owned(),
+                    })?;
             let category = view.category();
             let (level, severity_score) = sarif_severity_fields(view.severity(), category);
             let tags = view.sarif_tags();
             let mut partial_fingerprints: BTreeMap<&'static str, String> = BTreeMap::new();
             partial_fingerprints.insert("codehound/v1", view.fingerprint());
 
-            let codehound_evidence = view.evidence().and_then(|ev| serde_json::to_value(ev).ok());
+            let codehound_evidence = view
+                .evidence()
+                .map(|evidence| serialize_evidence(view.rule_id(), evidence))
+                .transpose()?;
 
-            Some(SarifResult {
+            Ok(SarifResult {
                 rule_id: view.rule_id(),
                 rule_index,
                 level,
@@ -87,7 +96,7 @@ pub(super) fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
                 },
             })
         })
-        .collect();
+        .collect::<Result<_, Error>>()?;
 
     let invocation = SarifInvocation {
         execution_successful: result.errors.is_empty(),
@@ -105,7 +114,7 @@ pub(super) fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
         timing: stats.timing.as_ref(),
     });
 
-    SarifLog {
+    Ok(SarifLog {
         schema: super::schema::SCHEMA_URL,
         version: super::schema::SARIF_VERSION,
         runs: vec![SarifRun {
@@ -122,7 +131,17 @@ pub(super) fn build_log(result: &AnalysisResult) -> SarifLog<'_> {
             results,
             properties: run_properties,
         }],
-    }
+    })
+}
+
+fn serialize_evidence<T: serde::Serialize>(
+    rule_id: &str,
+    evidence: &T,
+) -> Result<serde_json::Value, Error> {
+    serde_json::to_value(evidence).map_err(|source| Error::SarifEvidence {
+        rule_id: rule_id.to_owned(),
+        source,
+    })
 }
 
 /// Process CWD as a stable URI for SARIF `workingDirectory` (not always `"."`).
@@ -155,4 +174,30 @@ fn sarif_severity_fields(severity: Severity, category: &str) -> (&'static str, &
         }
     };
     (level, security_severity)
+}
+
+#[cfg(test)]
+mod tests {
+    use serde::Serialize;
+    use serde::ser::Error as _;
+
+    use super::serialize_evidence;
+
+    struct SerializationFails;
+
+    impl Serialize for SerializationFails {
+        fn serialize<S>(&self, _serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: serde::Serializer,
+        {
+            Err(S::Error::custom("deliberate test failure"))
+        }
+    }
+
+    #[test]
+    fn evidence_serialization_failure_retains_rule_context() {
+        let error = serialize_evidence("CWE-79", &SerializationFails).unwrap_err();
+        assert!(error.to_string().contains("CWE-79"), "error: {error}");
+        assert!(error.to_string().contains("deliberate test failure"));
+    }
 }

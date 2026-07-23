@@ -1,8 +1,12 @@
 //! Top-level `Diagnostics` document and its `from_stats` constructor.
 
+use std::path::Path;
+
 use serde::Serialize;
 
+use crate::Error;
 use crate::engine::ScanStats;
+use crate::engine::io::write_atomic;
 use crate::rules::Severity;
 
 use crate::engine::time::iso8601_utc_now;
@@ -88,5 +92,15 @@ impl Diagnostics {
                     .unwrap_or_default(),
             },
         }
+    }
+
+    /// Persist this diagnostics document atomically at `path`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the parent directory cannot be created or the
+    /// replacement file cannot be written and renamed.
+    pub fn write_to_path(&self, path: &Path) -> Result<(), Error> {
+        write_atomic(path, self)
     }
 }

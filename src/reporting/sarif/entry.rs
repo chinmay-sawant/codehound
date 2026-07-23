@@ -14,7 +14,7 @@ use super::log::build_log;
 /// Returns [`Error`] when SARIF serialization or stdout write fails.
 #[must_use = "I/O errors from writing SARIF output must be handled"]
 pub(crate) fn write_log(result: &AnalysisResult, compact: bool) -> Result<(), Error> {
-    let log = build_log(result);
+    let log = build_log(result)?;
     let stdout = io::stdout();
     let mut out = stdout.lock();
     if compact {
@@ -43,6 +43,6 @@ pub(crate) fn print_compact(result: &AnalysisResult) -> Result<(), Error> {
 ///
 /// Returns [`Error`] when the analysis result cannot be serialized as SARIF.
 pub fn render_to_string(result: &AnalysisResult) -> Result<String, Error> {
-    let log = build_log(result);
+    let log = build_log(result)?;
     serde_json::to_string_pretty(&log).map_err(Error::from)
 }
