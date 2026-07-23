@@ -4,7 +4,7 @@
 > **Ceiling chosen:** Channel / goroutine concurrent handoffs  
 > **Adopts:** [`../v0.0.5/phase5-g5-taint-ceiling-eval.md`](../v0.0.5/phase5-g5-taint-ceiling-eval.md) FP/FN section  
 > **Date:** 2026-07-23  
-> **Status:** Contract locked for reopen; **product channel edges not shipped**
+> **Status:** Contract locked; **v0 same-function ChannelTransfer shipped** (select/buffer/MHP still FN)
 
 ---
 

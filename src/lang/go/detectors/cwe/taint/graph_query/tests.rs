@@ -128,17 +128,18 @@ func f(r *http.Request, ch chan string) {
             facts.unsupported_flows
         );
         assert!(
+            facts.channel_transfers.is_empty(),
+            "send-only must not invent a transfer"
+        );
+        assert!(
             !facts.assignments.iter().any(|a| a.is_channel_send),
             "channel sends must not be graph assignments"
         );
     }
 
-    /// G5 ceiling documentation: classic channel handoff stays an honest FN.
-    /// Send is not an assignment edge; receive does not inherit send-site taint.
-    /// Do not "fix" this by inventing channel transfer edges — reopen needs a
-    /// concurrent data-flow contract (plans/v0.0.5/phase5-g5-taint-ceiling-eval.md).
+    /// G5 v0: same-function single send+recv on one channel → ChannelTransfer path.
     #[test]
-    fn channel_send_receive_handoff_remains_silent_fn() {
+    fn channel_send_receive_handoff_finds_path() {
         let source = r#"package main
 func f(r *http.Request, ch chan string) {
     x := r.URL.Query().Get("q")
@@ -149,12 +150,11 @@ func f(r *http.Request, ch chan string) {
 "#;
         let unit = parse(source);
         let facts = extract_taint_facts(&unit);
-        assert!(
-            facts.unsupported_flows.iter().any(|u| matches!(
-                u.kind,
-                crate::lang::go::detectors::cwe::taint::UnsupportedFlowKind::Channel
-            )),
-            "expected channel unsupported flow, got {:?}",
+        assert_eq!(
+            facts.channel_transfers.len(),
+            1,
+            "expected one ChannelTransfer, got {:?} unsupported={:?}",
+            facts.channel_transfers,
             facts.unsupported_flows
         );
         assert!(
@@ -168,9 +168,198 @@ func f(r *http.Request, ch chan string) {
             SinkKind::FileOpen,
             &[SanitizerKind::Path],
         );
+        assert_eq!(
+            paths.len(),
+            1,
+            "same-function channel handoff must find a path; got {paths:?}"
+        );
+        assert!(!paths[0].sanitized);
+    }
+
+    #[test]
+    fn channel_send_receive_safe_constant_is_silent() {
+        let source = r#"package main
+func f(ch chan string) {
+    ch <- "/safe/path"
+    y := <-ch
+    _ = os.Open(y)
+}
+"#;
+        let unit = parse(source);
+        let facts = extract_taint_facts(&unit);
+        assert_eq!(facts.channel_transfers.len(), 1);
+        let graph = build_taint_graph(&facts);
+        let paths = find_taint_paths(
+            &graph,
+            SourceKind::UserInput,
+            SinkKind::FileOpen,
+            &[SanitizerKind::Path],
+        );
         assert!(
             paths.is_empty(),
-            "channel send→receive must not invent a taint path (honest FN); got {paths:?}"
+            "constant send must not invent a source→sink path; got {paths:?}"
+        );
+    }
+
+    #[test]
+    fn channel_send_receive_sanitized_is_silent_or_sanitized() {
+        let source = r#"package main
+func f(r *http.Request, ch chan string) {
+    raw := r.URL.Query().Get("q")
+    x := filepath.Base(raw)
+    ch <- x
+    y := <-ch
+    _ = os.Open(y)
+}
+"#;
+        let unit = parse(source);
+        let facts = extract_taint_facts(&unit);
+        assert_eq!(facts.channel_transfers.len(), 1);
+        let graph = build_taint_graph(&facts);
+        let paths = find_taint_paths(
+            &graph,
+            SourceKind::UserInput,
+            SinkKind::FileOpen,
+            &[SanitizerKind::Path],
+        );
+        assert!(
+            paths.is_empty() || paths.iter().all(|p| p.sanitized),
+            "sanitized channel handoff must not report unsanitized; got {paths:?}"
+        );
+    }
+
+    #[test]
+    fn channel_ch1_taint_does_not_poison_ch2() {
+        let source = r#"package main
+func f(r *http.Request) {
+    ch1 := make(chan string)
+    ch2 := make(chan string)
+    x := r.URL.Query().Get("q")
+    ch1 <- x
+    a := <-ch1
+    _ = a
+    ch2 <- "/safe"
+    y := <-ch2
+    _ = os.Open(y)
+}
+"#;
+        let unit = parse(source);
+        let facts = extract_taint_facts(&unit);
+        assert_eq!(facts.channel_transfers.len(), 2);
+        let graph = build_taint_graph(&facts);
+        let paths = find_taint_paths(
+            &graph,
+            SourceKind::UserInput,
+            SinkKind::FileOpen,
+            &[SanitizerKind::Path],
+        );
+        assert!(
+            paths.is_empty(),
+            "ch1 taint must not poison ch2→sink; got {paths:?}"
+        );
+    }
+
+    #[test]
+    fn channel_multi_send_stays_unsupported() {
+        let source = r#"package main
+func f(r *http.Request, ch chan string) {
+    x := r.URL.Query().Get("q")
+    ch <- x
+    ch <- "other"
+    y := <-ch
+    _ = os.Open(y)
+}
+"#;
+        let unit = parse(source);
+        let facts = extract_taint_facts(&unit);
+        assert!(
+            facts.channel_transfers.is_empty(),
+            "multi-send must decline pairing"
+        );
+        assert!(
+            facts.unsupported_flows.iter().any(|u| matches!(
+                u.kind,
+                crate::lang::go::detectors::cwe::taint::UnsupportedFlowKind::Channel
+            )),
+            "expected UnsupportedFlow::Channel, got {:?}",
+            facts.unsupported_flows
+        );
+        let graph = build_taint_graph(&facts);
+        let paths = find_taint_paths(
+            &graph,
+            SourceKind::UserInput,
+            SinkKind::FileOpen,
+            &[SanitizerKind::Path],
+        );
+        assert!(
+            paths.is_empty(),
+            "declined multi-send must stay honest FN; got {paths:?}"
+        );
+    }
+
+    #[test]
+    fn channel_select_receive_stays_unsupported() {
+        let source = r#"package main
+func f(r *http.Request, ch chan string) {
+    x := r.URL.Query().Get("q")
+    ch <- x
+    select {
+    case y := <-ch:
+        _ = os.Open(y)
+    }
+}
+"#;
+        let unit = parse(source);
+        let facts = extract_taint_facts(&unit);
+        assert!(
+            facts.channel_transfers.is_empty(),
+            "select must decline pairing"
+        );
+        assert!(
+            facts.unsupported_flows.iter().any(|u| matches!(
+                u.kind,
+                crate::lang::go::detectors::cwe::taint::UnsupportedFlowKind::Channel
+            )),
+            "expected UnsupportedFlow::Channel, got {:?}",
+            facts.unsupported_flows
+        );
+    }
+
+    #[test]
+    fn channel_cross_goroutine_ip010_shape_is_quarantined_fn() {
+        // IP-010 residual: source-as-send-value must not attribute the channel
+        // identifier, and cross-goroutine handoff is out of G5 v0 scope.
+        let source = r#"package main
+func caller(r *http.Request) {
+    ch := make(chan string)
+    go func() {
+        s := <-ch
+        _ = os.Open(s)
+    }()
+    ch <- r.URL.Query().Get("input")
+}
+"#;
+        let unit = parse(source);
+        let facts = extract_taint_facts(&unit);
+        assert!(
+            facts.channel_transfers.is_empty(),
+            "cross-goroutine must not pair; got {:?}",
+            facts.channel_transfers
+        );
+        assert!(
+            facts.sources.iter().all(|s| s.result_variable.is_none()),
+            "IP-010 quarantine: send-value source must not bind channel as result"
+        );
+        let graph = build_taint_graph(&facts);
+        let paths = find_taint_paths(
+            &graph,
+            SourceKind::UserInput,
+            SinkKind::FileOpen,
+            &[SanitizerKind::Path],
+        );
+        assert!(
+            paths.is_empty(),
+            "cross-goroutine channel handoff remains honest FN; got {paths:?}"
         );
     }
 

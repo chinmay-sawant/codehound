@@ -1,4 +1,5 @@
 # IP-010: Goroutine with taint — safe (constant sent via channel)
+# Quarantined with vulnerable twin: cross-goroutine channel still unsupported.
 lang: go
 file: IP-010-safe.go
 variant: taint

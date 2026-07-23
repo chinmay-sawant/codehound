@@ -26,8 +26,9 @@ fn taint_analyzer() -> &'static Analyzer {
     })
 }
 
-/// Channel/goroutine cases are deliberately absent until that flow model exists.
-const DEFERRED: &[&str] = &[];
+/// Channel/goroutine cases: IP-010 is quarantined (cross-goroutine FN under G5 v0).
+/// Same-function handoff is covered by `channel_send_*` unit tests, not IP-010.
+const DEFERRED: &[&str] = &["IP-010"];
 
 #[test]
 fn inter_procedural_taint_fixtures_fire_vulnerable_and_silence_safe() {

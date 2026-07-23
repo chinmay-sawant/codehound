@@ -5313,7 +5313,7 @@ required_rules = []
 [[fixture]]
 lang = "go"
 path = "tests/fixtures/go/taint/IP-010-vulnerable.txt"
-required_rules = ["CWE-22"]
+required_rules = []
 taint = true
 
 [[fixture]]

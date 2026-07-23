@@ -217,6 +217,11 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
         if assignment.is_channel_send {
             continue;
         }
+        // Channel receive RHS (`y := <-ch`) is not an ordinary identifier read.
+        // G5 wires send-value → recv-lhs via ChannelTransfer only.
+        if is_channel_receive_expr(assignment.rhs_text.as_ref()) {
+            continue;
+        }
         let Some(target) = resolve_decl_at(
             &decl_nodes,
             assignment.scope,
@@ -261,10 +266,49 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
         }
     }
 
+    // G5 v0: paired same-function channel handoff (send value → recv LHS).
+    for transfer in &annotations.channel_transfers {
+        let Some(target) = resolve_decl_at(
+            &decl_nodes,
+            transfer.recv_scope,
+            transfer.recv_lhs.as_ref(),
+            transfer.recv_byte_range.start,
+        ) else {
+            continue;
+        };
+        if is_source_or_sanitizer_assignment(transfer.send_value_text.as_ref()) {
+            // Direct source/sanitizer call as send value (`ch <- r.URL.Query().Get(...)`).
+            // IP-010 quarantine: no result_variable on the channel; wire the
+            // source/sanitizer node inside the send to the recv LHS.
+            if let Some(src_id) = find_source_or_sanitizer_at(
+                &graph,
+                transfer.send_byte_range.start,
+                transfer.send_byte_range.end,
+            ) {
+                graph.add_edge(src_id, target, EdgeKind::ChannelTransfer);
+            }
+        } else {
+            for name in referenced_names(&transfer.send_value_text) {
+                if let Some(source_id) = resolve_variable(
+                    &decl_nodes,
+                    &scope_by_id,
+                    &scope_order,
+                    transfer.send_byte_range.start,
+                    name,
+                ) {
+                    graph.add_edge(source_id, target, EdgeKind::ChannelTransfer);
+                }
+            }
+        }
+    }
+
     // Map/slice index: conservative whole-base taint (`m[k] = t` taints `m`).
     // Per-key precision is intentionally low-confidence / not modeled.
     for assignment in &annotations.assignments {
         if assignment.is_channel_send {
+            continue;
+        }
+        if is_channel_receive_expr(assignment.rhs_text.as_ref()) {
             continue;
         }
         if let Some(bracket) = assignment.lhs.find('[') {
@@ -450,6 +494,31 @@ fn referenced_identifiers(expr: &str) -> Vec<&str> {
 
     push_token(expr, &mut token_start, expr.len(), &mut out);
     out
+}
+
+/// `y := <-ch` — not an ordinary RHS identifier read.
+fn is_channel_receive_expr(rhs: &str) -> bool {
+    rhs.trim_start().starts_with("<-")
+}
+
+/// Find a Source/Sanitizer node whose byte range overlaps `[start, end)`.
+fn find_source_or_sanitizer_at(
+    graph: &TaintGraph,
+    start: usize,
+    end: usize,
+) -> Option<TaintNodeId> {
+    graph
+        .nodes
+        .iter()
+        .enumerate()
+        .find_map(|(id, node)| match node {
+            TaintNode::Source { byte_range, .. } | TaintNode::Sanitizer { byte_range, .. }
+                if byte_range.start >= start && byte_range.end <= end =>
+            {
+                Some(id)
+            }
+            _ => None,
+        })
 }
 
 /// Check if the RHS text represents a call to a known source or sanitizer.

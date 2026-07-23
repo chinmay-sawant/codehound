@@ -115,6 +115,8 @@ impl TaintNode {
 pub enum EdgeKind {
     /// `lhs = rhs` or `lhs := rhs`.
     Assignment,
+    /// Same-function channel handoff (`ch <- x` paired with `y := <-ch`).
+    ChannelTransfer,
     /// Argument passed to a sink, sanitizer, or helper.
     Argument(usize),
     /// Data returned from a call.
@@ -228,6 +230,8 @@ pub struct TaintAnnotations {
     pub function_ranges: HashMap<SharedText, Range<usize>>,
     /// Sites where taint flow is intentionally not modeled (channels, goroutines).
     pub unsupported_flows: Vec<UnsupportedFlow>,
+    /// Paired same-function channel handoffs (G5 v0 pilot).
+    pub channel_transfers: Vec<ChannelTransfer>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -271,7 +275,49 @@ pub struct AssignmentDetail {
     pub from_source_or_sanitizer: bool,
     /// True when this is a channel send (`ch <- v`). Treated as **unsupported**
     /// for taint flow (explicit FN) — not modeled as a normal assignment.
+    /// G5 transfers use [`ChannelTransfer`], never this flag as a graph edge.
     pub is_channel_send: bool,
+}
+
+/// Directed send→recv handoff when G5 v0 pairing rules hold.
+///
+/// Not an [`AssignmentDetail`]: path finder follows these as
+/// [`EdgeKind::ChannelTransfer`] edges from send-value refs to recv LHS.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ChannelTransfer {
+    /// Channel binding name within the enclosing lexical function.
+    pub channel: SharedText,
+    /// RHS text of the send (`ch <- VALUE`).
+    pub send_value_text: SharedText,
+    /// LHS binding of the receive (`LHS := <-ch`).
+    pub recv_lhs: SharedText,
+    /// Scope of the receive assignment (for variable resolution).
+    pub recv_scope: ScopeId,
+    pub send_byte_range: Range<usize>,
+    pub recv_byte_range: Range<usize>,
+}
+
+/// Staging record for a channel send site (before pairing).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ChannelSendSite {
+    pub channel: SharedText,
+    pub value_text: SharedText,
+    /// Innermost function scope containing this send.
+    pub function_scope: ScopeId,
+    pub byte_range: Range<usize>,
+    /// True when inside `select` (v0 declines).
+    pub in_select: bool,
+}
+
+/// Staging record for a channel receive site (before pairing).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ChannelRecvSite {
+    pub channel: SharedText,
+    pub lhs: Option<SharedText>,
+    pub function_scope: ScopeId,
+    pub recv_scope: ScopeId,
+    pub byte_range: Range<usize>,
+    pub in_select: bool,
 }
 
 /// Record of an unsupported taint flow site (channels, goroutine handoff).
@@ -285,7 +331,7 @@ pub struct UnsupportedFlow {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum UnsupportedFlowKind {
-    /// `ch <- value` or receive forms — taint does not cross channels.
+    /// Channel send/receive that G5 v0 pairing declined (or unpaired).
     Channel,
     /// `go f(...)` — taint does not track into spawned goroutines.
     Goroutine,
