@@ -10,3 +10,4 @@
 - [x] Treat route/role/middleware names as policy unless stronger proof
 - [x] Freeze + disposition + fixtures + canary
 - [x] Do not reopen file_permissions / authorization_and_scoping
+- [x] G3 residual FO (#154): deferred siblings 305–309, 620, 836 → fixture-only

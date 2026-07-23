@@ -3,12 +3,11 @@ use super::super::super::super::metadata::*;
 use crate::core::ParsedUnit;
 use crate::rules::{Finding, emit};
 
-// Access-control R3 trust freeze (auth_and_validation/auth_flows.rs).
-// Bounded subfamily: CWE-289 + CWE-290 only (login identity trust; 2 rules).
-// Siblings CWE-305–309, 620, 836 deferred to later bounded slices.
-// Route/header/principal naming is policy evidence unless stronger local proof exists.
-// Proposed maturity: fixture-only for both (integrator applies maturity.rs).
-// See plans/v0.0.6/evidence-r3-auth-flows.md and pr-r3-auth-flows.md.
+// Access-control auth_flows trust freeze (auth_and_validation/auth_flows.rs).
+// R3: CWE-289 + CWE-290 (login identity) → fixture-only.
+// G3 residual FO (#154): CWE-305–309, 620, 836 (bruteforce/MFA + password credential
+// museums) → fixture-only. Route/handler/form naming is policy evidence.
+// See plans/v0.0.6/evidence-r3-auth-flows.md, evidence-g3-auth-flows-fo.md.
 
 pub(crate) fn detect_cwe_289(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec<Finding>) {
     let file = unit.display_path.as_str();
@@ -71,6 +70,10 @@ pub(crate) fn detect_cwe_305(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
+    // Primary (fixture-literal): Query("debug")=="1" / Query().Get("debug")=="1"
+    // co-presence with jwt_sub / X-JWT-Sub subject markers. Exact debug query
+    // museum; not a generalized auth-bypass-by-config detector. Call-facts cannot
+    // prove control-flow order of debug vs subject check. Disposition: fixture-only.
     let debug_bypass = facts
         .source_index
         .has_any(&[r#"Query("debug") == "1""#, r#"Query().Get("debug") == "1""#]);
@@ -103,6 +106,9 @@ pub(crate) fn detect_cwe_306(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
+    // Primary (fixture-literal): TRUNCATE ledger without operator_id / X-Operator-ID.
+    // Exact destructive SQL museum + absence of corpus auth gate markers. Not a
+    // generalized missing-auth detector. Disposition: fixture-only.
     let destructive_purge = facts.source_index.has("TRUNCATE ledger");
     if !destructive_purge {
         return;
@@ -130,6 +136,9 @@ pub(crate) fn detect_cwe_307(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
+    // Primary (fixture-literal): login email lookup SQL/GORM without loginAttempts /
+    // LoadOrStore / fixed Sleep backoff. Unit-local throttle museum; cannot prove
+    // distributed lockout. Disposition: fixture-only.
     let login_lookup = facts.source_index.has_any(&[
         "SELECT hash FROM users WHERE email = ?",
         r#"Where("email = ?", email).First(&u)"#,
@@ -167,6 +176,8 @@ pub(crate) fn detect_cwe_308(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
+    // Primary (fixture-literal): password form + INSERT INTO wires without totp /
+    // X-TOTP-Valid. High-value wire museum + MFA marker absence. Disposition: fixture-only.
     let has_password_gate = facts
         .source_index
         .has_any(&[r#"PostForm("password")"#, r#"FormValue("password")"#]);
@@ -203,6 +214,9 @@ pub(crate) fn detect_cwe_309(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
+    // Primary (fixture-literal): func EnterpriseLogin + session JSON/gin.H shape +
+    // username/password forms without webauthn markers. Org-policy museum (password
+    // vs WebAuthn). Disposition: fixture-only.
     let enterprise_login_shape = facts.source_index.has("func EnterpriseLogin(")
         && (facts.source_index.has_any(&[
             r#"{"session":"` + user + `"}"#,
@@ -246,6 +260,9 @@ pub(crate) fn detect_cwe_620(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
+    // Primary (fixture-literal): ChangePassword + "new_password" + password UPDATE
+    // without current_password / CompareHashAndPassword / ForgotPassword.
+    // Partitions from CWE-640 (ForgotPassword negative). Disposition: fixture-only.
     let blind_password_update = facts.source_index.has("ChangePassword")
         && facts.source_index.has(r#""new_password""#)
         && (facts
@@ -279,6 +296,9 @@ pub(crate) fn detect_cwe_836(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut V
     let file = unit.display_path.as_str();
     let source = unit.source.as_ref();
 
+    // Primary (fixture-literal): PasswordHash field / json:"password_hash" + SQL
+    // equality on password_hash without CompareHashAndPassword. Client-supplied
+    // hash museum. Disposition: fixture-only.
     let client_submits_hash = facts
         .source_index
         .has_any(&["PasswordHash string", r#"`json:"password_hash"`"#]);

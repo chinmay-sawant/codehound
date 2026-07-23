@@ -185,6 +185,14 @@ fn is_fixture_only(rule_id: &str) -> bool {
             | "CWE-455" // continuing without mTLS fail-fast policy museum
             | "CWE-289" // realm strip "@")[0] + principals SQL museum
             | "CWE-290" // X-Remote-User header trust museum
+            // G3 residual FO (#154): R3-deferred auth_flows siblings
+            | "CWE-305" // debug query == "1" before jwt_sub subject museum
+            | "CWE-306" // TRUNCATE ledger without operator_id gate museum
+            | "CWE-307" // login email lookup without attempt-tracking museum
+            | "CWE-308" // password + INSERT INTO wires without TOTP museum
+            | "CWE-309" // EnterpriseLogin password form without WebAuthn museum
+            | "CWE-620" // ChangePassword + new_password UPDATE without current museum
+            | "CWE-836" // client password_hash field accepted as credential museum
             | "CWE-294" // auth_token form replay + nonce co-signal museum
             | "CWE-301" // challenge→proof echo response museum
             | "CWE-303" // string(expected) == sig MAC compare museum
@@ -288,6 +296,14 @@ mod tests {
         assert_eq!(maturity_for("CWE-455"), RuleMaturity::FixtureOnly);
         assert_eq!(maturity_for("CWE-289"), RuleMaturity::FixtureOnly);
         assert_eq!(maturity_for("CWE-290"), RuleMaturity::FixtureOnly);
+        // G3 residual FO auth_flows deferred siblings
+        assert_eq!(maturity_for("CWE-305"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-306"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-307"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-308"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-309"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-620"), RuleMaturity::FixtureOnly);
+        assert_eq!(maturity_for("CWE-836"), RuleMaturity::FixtureOnly);
         assert_eq!(maturity_for("CWE-294"), RuleMaturity::FixtureOnly);
         assert_eq!(maturity_for("CWE-301"), RuleMaturity::FixtureOnly);
         assert_eq!(maturity_for("CWE-303"), RuleMaturity::FixtureOnly);
