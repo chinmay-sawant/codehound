@@ -2,7 +2,7 @@
 
 /// Frequently scanned literals across the Go CWE bundle (one `contains` per needle).
 ///
-/// Hygiene notes (Phase 1 + Tranche 2–5 + long-tail §2.11 + file-perm Phase 2 + batch 1 epic #95 + Phase 2 epic #105 + epic #151 R1–R8):
+/// Hygiene notes (Phase 1 + Tranche 2–5 + long-tail §2.11 + file-perm Phase 2 + batch 1 epic #95 + Phase 2 epic #105 + epic #151 R1–R8 + G3 auth_flows FO):
 /// - Prefer structural facts/call classification over needles for primary detection.
 /// - `// fixture-only:` / `// fixture-literal:` encode corpus strings; paired detectors
 ///   stay out of recommended/security packs via `rules::maturity` when quarantined.
@@ -122,6 +122,7 @@ pub const NEEDLES: &[&str] = &[
     "CVV",
     "Cache-Control",
     "Card",
+    // fixture-literal: CWE-620 ChangePassword helper museum
     "ChangePassword",
     "ChargeCard(",
     "ChargeCardPure(",
@@ -207,6 +208,7 @@ pub const NEEDLES: &[&str] = &[
     // fixture-literal: OAuth token INSERT shape from CWE-940 corpus
     "INSERT INTO oauth_tokens (user_id, code) VALUES ($1, $2)",
     "INSERT INTO telemetry",
+    // fixture-literal: CWE-308 high-value wire sink museum
     "INSERT INTO wires",
     "InsecureSkipVerify",
     // fixture-literal: CWE-322 tls skip-verify museum
@@ -272,9 +274,11 @@ pub const NEEDLES: &[&str] = &[
     "PublicPersonView",
     "PublicProfile",
     "PublicSearch",
+    // fixture-literal: CWE-305 debug bypass query museum
     "Query(\"debug\") == \"1\"",
     // negative-gate / co-signal: email query read (CWE-941 corpus co-presence)
     "Query(\"email\")",
+    // fixture-literal: CWE-305 debug bypass query museum
     "Query().Get(\"debug\") == \"1\"",
     // negative-gate / co-signal: stdlib email query read (CWE-941 corpus co-presence)
     "Query().Get(\"email\")",
@@ -355,10 +359,12 @@ pub const NEEDLES: &[&str] = &[
     "StatusUnauthorized",
     "Store(user, encoded)",
     "Store(userID, role)",
+    // fixture-literal: CWE-306 destructive purge SQL museum
     "TRUNCATE ledger",
     // fixture-literal / co-signal: CWE-201 sensitive field inventory
     "TokenKey",
     "TrackVisit",
+    // fixture-literal: CWE-620 password UPDATE museum
     "UPDATE accounts SET password",
     "UPDATE billing SET plan",
     "UPDATE invoices SET paid = true",
@@ -369,6 +375,7 @@ pub const NEEDLES: &[&str] = &[
     "Unlock()",
     "Unmarshal(body, &evt)",
     "Update(\"name\"",
+    // fixture-literal / co-signal: CWE-620 GORM password UPDATE museum
     "Update(\"password\",",
     "UpdateBalance(",
     "UpdateBalancePure(",
@@ -378,7 +385,9 @@ pub const NEEDLES: &[&str] = &[
     // negative-gate: RSA PKCS#1 v1.5 verify (CWE-347 safe-path prefilter)
     "VerifyPKCS1v15(",
     "WHERE tenant = ?",
+    // fixture-literal: CWE-836 hash-as-password SQL museum
     "WHERE username = $1 AND password_hash = $2",
+    // fixture-literal: CWE-836 hash-as-password SQL museum
     "WHERE username = ? AND password_hash = ?",
     "Where(\"email = ?\", email).First(&u)",
     // fixture-literal: CWE-640 GORM email-only password UPDATE museum
@@ -415,6 +424,7 @@ pub const NEEDLES: &[&str] = &[
     // fixture-literal: XOR body shape from CWE-1240 corpus
     "^ key",
     "^([a-zA-Z]+)*$",
+    // fixture-literal: CWE-836 client password_hash field museum
     "`json:\"password_hash\"`",
     "actingAsRoot = true",
     // fixture-literal: CWE-502 admin action type corpus co-signal
@@ -551,6 +561,7 @@ pub const NEEDLES: &[&str] = &[
     "for payload := range queue",
     "forbidden origin",
     "func DeleteWorkspaceRecords(",
+    // fixture-literal: CWE-309 enterprise login helper museum
     "func EnterpriseLogin(",
     "func PurgeTenant(",
     "gcm.Seal(",
@@ -639,6 +650,7 @@ pub const NEEDLES: &[&str] = &[
     // fixture-literal: JWT claims decode into &claims (CWE-347 / CWE-358 corpus)
     "json.Unmarshal(payload, &claims)",
     "json.Unmarshal(raw, &p)",
+    // fixture-literal / co-signal: CWE-305 subject marker museum
     "jwt_sub",
     // fixture-only: exact identifier from CWE-342 corpus
     "lastOTP++",
@@ -659,6 +671,7 @@ pub const NEEDLES: &[&str] = &[
     "log.Fatalf(",
     "log.Printf(\"auth failure",
     "log.Println(err)",
+    // negative-gate: CWE-307 attempt-tracking safe path
     "loginAttempts",
     // negative-gate: stored-identity lookup (CWE-941 safe-path prefilter)
     "lookupEmail(",
@@ -686,6 +699,7 @@ pub const NEEDLES: &[&str] = &[
     "notes.body",
     // negative-gate: OAuth state token presence (CWE-940 safe-path prefilter)
     "oauth_state",
+    // negative-gate: CWE-306 operator auth gate
     "operator_id",
     // negative-gate: CWE-552 safe-path owner-only chmod form
     "os.Chmod(dest, 0o600)",
@@ -735,7 +749,9 @@ pub const NEEDLES: &[&str] = &[
     "panic(err)",
     "password",
     "password=SuperSecret99",
+    // fixture-literal: CWE-836 password_hash token museum
     "password_hash",
+    // fixture-literal: CWE-836 password_hash equality museum
     "password_hash = ?",
     "path := ",
     "pattern := fmt.Sprintf(\"%%%s%%\", term)",
@@ -919,7 +935,9 @@ pub const NEEDLES: &[&str] = &[
     "weakIV",
     // fixture-literal: CWE-1204 pure-fixture fixed-IV identifier
     "weakIVPure",
+    // negative-gate: CWE-309 WebAuthn safe path
     "webauthn_assertion",
+    // negative-gate: CWE-309 WebAuthn safe path
     "webauthn_ok",
     "widgetDB.Query(",
     "wireMu",
