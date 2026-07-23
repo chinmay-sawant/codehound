@@ -604,6 +604,9 @@ fn is_known_propagator(func_name: &str) -> bool {
             | "json.Marshal"
             | "strconv.Itoa"
             | "strconv.FormatInt"
+            // Unescaping restores markup-significant characters; propagate taint,
+            // never treat as an HTML sanitizer (see classify_sanitizer).
+            | "html.UnescapeString"
     )
 }
 

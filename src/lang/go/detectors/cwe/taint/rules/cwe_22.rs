@@ -279,8 +279,19 @@ mod tests {
     }
 
     #[test]
-    fn unescape_string_does_not_sanitize_html_taint() {
+    fn unescape_string_is_not_an_html_sanitizer() {
         assert!(classify_sanitizer("html.UnescapeString").is_none());
+    }
+
+    #[test]
+    fn post_closure_tainted_sink_still_fires() {
+        let source = r#"package main
+func serve(r *http.Request) {
+    _ = func() { local := "inner"; _ = local }
+    path := r.URL.Query().Get("path")
+    os.Open(path)
+}"#;
+        assert_eq!(cwe_22_findings(source), 1);
     }
 
     #[test]

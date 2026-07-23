@@ -108,6 +108,36 @@ func outer() {
     }
 
     #[test]
+    fn opposite_order_receiver_methods_keep_distinct_ranges() {
+        let safe_first = r#"package main
+type Safe struct{}
+type Sink struct{}
+func (s *Safe) Open(value string) { _ = value }
+func (s *Sink) Open(value string) { os.Open(value) }
+"#;
+        let sink_first = r#"package main
+type Safe struct{}
+type Sink struct{}
+func (s *Sink) Open(value string) { os.Open(value) }
+func (s *Safe) Open(value string) { _ = value }
+"#;
+        for source in [safe_first, sink_first] {
+            let facts = extract_taint_facts(&parse(source));
+            let safe = facts
+                .function_ranges
+                .get("*Safe.Open")
+                .expect("*Safe.Open range");
+            let sink = facts
+                .function_ranges
+                .get("*Sink.Open")
+                .expect("*Sink.Open range");
+            assert_ne!(safe, sink, "receiver methods must not share one range");
+            assert!(facts.function_params.contains_key("*Safe.Open"));
+            assert!(facts.function_params.contains_key("*Sink.Open"));
+        }
+    }
+
+    #[test]
     fn taint_extraction_overhead_is_small() {
         use std::time::Instant;
 
