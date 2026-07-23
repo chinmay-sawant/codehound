@@ -1,4 +1,8 @@
-# IP-010: Goroutine with taint — vulnerable
+# IP-010: Goroutine with taint — vulnerable (QUARANTINED / honest FN)
+
+# G5 v0 does not model cross-goroutine channel handoff. The prior residual
+# source-on-send attribution quirk is removed; this fixture must stay silent
+# until a concurrent (MHP) contract ships. See documents/taint.md Limitations.
 lang: go
 file: IP-010-vulnerable.go
 variant: taint

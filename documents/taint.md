@@ -114,11 +114,16 @@ accept Path sanitizers.
 - **Interface dispatch.** Methods called on interface types are treated as
   opaque — taint flows through arguments but the return value is not tracked
   because the concrete implementation is unknown.
-- **Channel/goroutine.** Channel sends and receives are **explicitly
-  unsupported**. Extractor records `UnsupportedFlow::{Channel,Goroutine}` sites
-  and does **not** create fake assignment edges through channels or `go`
-  statements (honest FN). Taint that flows through a `chan` is lost at the
-  goroutine boundary.
+- **Channel/goroutine.** G5 v0 pilot models **same-function** unbuffered
+  handoff when pairing rules hold: exactly one send and one receive on the
+  same channel binding in one lexical function/method body → a dedicated
+  `ChannelTransfer` edge (not assignment sugar). Path finder follows that
+  edge so classic `source → send → recv → sink` can fire.
+  Declined shapes (`select`, multi-send/recv, buffered `make(chan T, N)`,
+  cross-goroutine / `go` MHP) stay `UnsupportedFlow::{Channel,Goroutine}`
+  — honest FN. The old IP-010 source-on-send attribution quirk is
+  quarantined (send-value sources no longer bind the channel identifier).
+  Do **not** treat residual IP-010 fixtures as channel-support success.
 - **Pointer dereference.** `*p = tainted` and `json.Unmarshal(data, &target)`
   are handled for a small set of known functions (`json.Unmarshal`,
   `xml.Unmarshal`). General pointer tracking requires type inference.

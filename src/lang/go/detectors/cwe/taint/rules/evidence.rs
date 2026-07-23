@@ -9,11 +9,14 @@ pub(super) fn variable_name_at(graph: &TaintGraph, node_id: usize) -> Option<Str
     match graph.nodes.get(node_id)? {
         TaintNode::Variable { name, .. } => Some(name.to_string()),
         TaintNode::Source { .. } => {
-            // Find an outgoing assignment edge to a variable.
+            // Find an outgoing assignment / channel-transfer edge to a variable.
             graph
                 .edges
                 .iter()
-                .find(|e| e.from == node_id && matches!(e.kind, EdgeKind::Assignment))
+                .find(|e| {
+                    e.from == node_id
+                        && matches!(e.kind, EdgeKind::Assignment | EdgeKind::ChannelTransfer)
+                })
                 .and_then(|e| variable_name_at(graph, e.to))
         }
         _ => None,

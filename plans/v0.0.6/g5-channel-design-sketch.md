@@ -3,7 +3,7 @@
 > **Parent contract:** [`g5-channel-capability-contract.md`](./g5-channel-capability-contract.md)  
 > **Issue:** [#156](https://github.com/chinmay-sawant/codehound/issues/156)  
 > **Date:** 2026-07-23  
-> **Status:** Design-only — **not implemented**
+> **Status:** Design sketch — **v0 pilot implemented** (`ChannelTransfer` same-function pairing)
 
 ---
 
