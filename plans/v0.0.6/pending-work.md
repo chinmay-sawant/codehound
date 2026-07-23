@@ -1,6 +1,6 @@
 # v0.0.6 — Pending work backlog
 
-> **Status:** Class B R1–R8 + P1 complete (PRs #171, #176, P1); Class A G* still open  
+> **Status:** Class B + P1 done; G1/G2 reopen refreshed 2026-07-23 (still deferred); G3–G6 gated  
 
 > **Parent (closed):** v0.0.5 parallel catalog program ([#105](https://github.com/chinmay-sawant/codehound/issues/105)) and Phase 5 gate eval ([#136](https://github.com/chinmay-sawant/codehound/issues/136) / PR #150)  
 > **Day context:** [`../v0.0.5/22072026.md`](../v0.0.5/22072026.md)  
@@ -48,8 +48,8 @@ Optional process items (canary re-runs) are Class C — light chore streams.
 ### Epic progress checklist
 
 #### Class A — Gated (defer until reopen)
-- [ ] #152 G1 Broad BP-66+ / BP-71
-- [ ] #153 G2 CWE-277 Structural
+- [ ] #152 G1 Broad BP-66+ / BP-71 — **reopen fail 2026-07-23** ([evidence](./evidence-g1-bp-reopen.md))
+- [ ] #153 G2 CWE-277 Structural — **reopen fail 2026-07-23** ([evidence](./evidence-g2-cwe-277-reopen.md))
 - [ ] #154 G3 Further FO / true generalization
 - [ ] #155 G4 Typed Go / `go/packages`
 - [ ] #156 G5 Advanced taint ceilings
