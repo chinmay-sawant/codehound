@@ -41,9 +41,10 @@ Plan checklist items for Phases 1–4 are marked complete on this branch; Valida
 ## Test plan
 
 - [x] Child focused tests + `make lint` on each stream before merge
-- [ ] `make lint` on integration tree
-- [ ] `make test` on integration tree
+- [x] `make lint` on integration tree
+- [x] `make test` on integration tree — **517 passed**, 0 failed (nextest) + doctests
 - [x] `io.rs` merge conflict resolved
+- [x] Integration follow-up: fixture skip via absolute path, cache-hit project-relative seed, IP-012/013 manifest, receiver-qualified summary test keys
 
 ### Commands
 
