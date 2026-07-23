@@ -53,14 +53,14 @@ Reopen **only** with a **new scoped GitHub issue** (not under #38/#41/#43/#40/#4
 
 | # | Criterion | Met? |
 |---|-----------|------|
-| A1 | **PERF pack trust (product):** Documented acceptance that S-tier / recommended PERF (and any broader PERF profile under consideration) meets an agreed external FP rate on pinned real modules—beyond the 20-finding pilot (95% actionable) and canary hygiene alone. | **No** — pilot + noise-reduce-1 closed; no product “typed-mode-ready” sign-off |
-| A2 | **Catalog honesty boundary:** Relevant CWE long-tail / NEEDLES gaps are either closed or explicitly kept/quarantined so typed facts are not asked to paper over detector trust holes ([#45](https://github.com/chinmay-sawant/codehound/issues/45) may proceed independently without unlocking typed mode). | **Partial** — tranches merged; residual long-tail remains optional backlog |
-| A3 | **Capability contract:** Written FN/FP contract for what typed facts improve (e.g. receiver types, build tags, same-package signatures) vs. what remains unsupported (channel/goroutine handoffs, whole-program taint — see ROADMAP non-goals and [`taint-capability-decision.md`](./taint-capability-decision.md)). | **No** |
-| A4 | **Architecture sketch:** Detector APIs stay tree-sitter-primary; typed facts are an **optional** layer feeding the same rules; offline / no-toolchain default preserved. | **No** (not started) |
-| A5 | **Cost acceptance:** Measured impact of requiring a Go toolchain for `--typed`, scan latency/memory vs. tree-sitter-only, and CI matrix implications. | **No** |
-| A6 | **Non-blocker policy:** Typed mode must not become a release or recommended-pack dependency. | Policy retained; not an implementation gate flip |
+| A1 | **PERF pack trust (product):** Documented acceptance that S-tier / recommended PERF (and any broader PERF profile under consideration) meets an agreed external FP rate on pinned real modules—beyond the 20-finding pilot (95% actionable) and canary hygiene alone. | **Yes** — 2026-07-23 Gate A package ([`../v0.0.6/evidence-g4-gate-a.md`](../v0.0.6/evidence-g4-gate-a.md) §A1); P1 pilot stable |
+| A2 | **Catalog honesty boundary:** Relevant CWE long-tail / NEEDLES gaps are either closed or explicitly kept/quarantined so typed facts are not asked to paper over detector trust holes ([#45](https://github.com/chinmay-sawant/codehound/issues/45) may proceed independently without unlocking typed mode). | **Yes** — R1–R8 + G3 FO ledger in Gate A §A2 |
+| A3 | **Capability contract:** Written FN/FP contract for what typed facts improve (e.g. receiver types, build tags, same-package signatures) vs. what remains unsupported (channel/goroutine handoffs, whole-program taint — see ROADMAP non-goals and [`taint-capability-decision.md`](./taint-capability-decision.md)). | **Yes** — [`../v0.0.6/g4-typed-capability-contract.md`](../v0.0.6/g4-typed-capability-contract.md) |
+| A4 | **Architecture sketch:** Detector APIs stay tree-sitter-primary; typed facts are an **optional** layer feeding the same rules; offline / no-toolchain default preserved. | **Yes** — [`../v0.0.6/g4-typed-architecture.md`](../v0.0.6/g4-typed-architecture.md) |
+| A5 | **Cost acceptance:** Measured impact of requiring a Go toolchain for `--typed`, scan latency/memory vs. tree-sitter-only, and CI matrix implications. | **Yes** — external `packages.Load` probe §A5; opt-in cost only |
+| A6 | **Non-blocker policy:** Typed mode must not become a release or recommended-pack dependency. | **Yes** — held |
 
-Until A1–A6 are satisfied and recorded on a successor issue, leave ROADMAP “Typed Go facts” in **Later**.
+Gate A **PASS** 2026-07-23 on #155. Product `go/packages` integration still requires a **scoped implementation tranche** (not this tracker alone). ROADMAP “Typed Go facts” may move from pure Later to **gated-ready / impl open** when the impl issue is filed.
 
 ### Explicit non-actions (Gate A)
 
