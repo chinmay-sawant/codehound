@@ -65,14 +65,15 @@ jobs:
         run: cargo clippy --all-targets --all-features --locked -- -D warnings
 
   msrv:
-    name: MSRV (1.85)
+    # 1.88: let-chains (`if cond && let Some(_) = …`) used across Go detectors.
+    name: MSRV (1.88)
     runs-on: ubuntu-latest
     env:
       CARGO_TERM_COLOR: always
       RUSTFLAGS: -D warnings
     steps:
       - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@1.85
+      - uses: dtolnay/rust-toolchain@1.88
       - name: Test all supported features on MSRV
         run: cargo test --all-targets --all-features --locked
       - name: Build documented minimal CLI feature set on MSRV

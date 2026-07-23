@@ -4,7 +4,7 @@ Thanks for helping. This doc is the short path to a good PR.
 
 ## Prerequisites
 
-- Rust **1.85+** (`rustup default stable`)
+- Rust **1.88+** (`rustup default stable`)
 - Optional: Go (for local fixture realism)
 - `cargo-nextest` for the default parallel test target:
   `cargo install cargo-nextest --locked`

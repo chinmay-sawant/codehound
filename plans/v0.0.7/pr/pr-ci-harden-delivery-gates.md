@@ -4,7 +4,7 @@
 
 - Restore delivery credibility: the `codehound-scan` composite action now uploads SARIF in an `always()` step, then returns the scanner's non-zero status (strict findings or operational failure).
 - Tag releases cannot publish without a required `validate` job (fmt, Clippy, all-feature tests, audit, canaries); actions/tools are SHA/version-pinned with `--locked` product builds.
-- MSRV (1.85) exercises `--all-features` plus the documented `go,cli` minimal build; `SECURITY.md` documents disclosure contact, support, embargo, and response targets.
+- MSRV (1.88) exercises `--all-features` plus the documented `go,cli` minimal build; `SECURITY.md` documents disclosure contact, support, embargo, and response targets.
 
 ## Motivation / context
 
@@ -26,11 +26,11 @@
 
 - Add `validate` job: `fmt`, Clippy `-D warnings` (all features), all-feature tests, pinned `cargo-audit`, release canaries.
 - `build` / `sbom` `needs: validate`; `publish` `needs: [validate, build, sbom]` so publish cannot run when validation fails.
-- Pin checkout/upload/download/gh-release/rust-toolchain to SHAs; pin Rust `1.85`, `cross` `0.2.5`, `cargo-cyclonedx` `0.5.9`, `cargo-audit` `0.22.2`; use `--locked` for product builds.
+- Pin checkout/upload/download/gh-release/rust-toolchain to SHAs; pin Rust `1.88`, `cross` `0.2.5`, `cargo-cyclonedx` `0.5.9`, `cargo-audit` `0.22.2`; use `--locked` for product builds.
 
 ### CI MSRV
 
-- `cargo test --all-targets --all-features --locked` on Rust 1.85.
+- `cargo test --all-targets --all-features --locked` on Rust 1.88.
 - `cargo build --all-targets --no-default-features --features go,cli --locked`.
 - Canary release binary build uses `--locked`.
 

@@ -205,14 +205,14 @@ The next phase is limited to the explicitly partial rows; it does not block the 
 - [x] **P2 / Medium — make release builds reproducible and reviewable.**
   - **Evidence:** `.github/workflows/release.yml:37-45,97-101,122` uses mutable action/toolchain references; `cross` and `cargo-cyclonedx` installs are unversioned.
   - **Risk:** the same source tag can receive different build inputs; mutable actions extend CI compromise exposure.
-  - **Smallest correct change:** pin actions to reviewed SHAs, pin Rust 1.85 and tool versions, and use `--locked` for product builds.
+  - **Smallest correct change:** pin actions to reviewed SHAs, pin Rust to the declared MSRV (1.88) and tool versions, and use `--locked` for product builds.
 
 ### 4.2 Exercise the stated MSRV across the full supported feature surface
 
-- [x] **P2 / Medium — run all features on Rust 1.85.**
-  - **Evidence:** `Cargo.toml:5` declares `rust-version = "1.85"`; `.github/workflows/ci.yml:67-77` runs MSRV tests without `--all-features`, leaving opt-in Python/full feature combinations to stable only.
+- [x] **P2 / Medium — run all features on the declared MSRV.**
+  - **Evidence:** Go detectors use let-chains (stable since 1.88), so `Cargo.toml`/`CI` MSRV is **1.88**; `.github/workflows/ci.yml` runs `cargo test --all-targets --all-features --locked` plus a `go,cli` minimal build on that toolchain.
   - **Risk:** advertised MSRV can drift for supported features.
-  - **Smallest correct change:** add `cargo test --all-targets --all-features --locked` to MSRV and test documented `go,cli` minimal build explicitly.
+  - **Smallest correct change:** keep MSRV equal to the real language floor; exercise all-features + documented `go,cli` minimal build on it.
 
 ### 4.3 Publish a vulnerability disclosure policy
 
@@ -269,7 +269,7 @@ The next phase is limited to the explicitly partial rows; it does not block the 
 
 ## Dependencies
 
-- Rust 1.85 MSRV and all currently supported Cargo features (`go`, `python`, `cli`, `terminal-output`, `bench`).
+- Rust 1.88 MSRV and all currently supported Cargo features (`go`, `python`, `cli`, `terminal-output`, `bench`).
 - Go toolchain for typed-facts integration; CI must provide a writable `GOCACHE` when invoking `go list`.
 - GitHub Actions/release environment permissions for strict action and tag-protection changes.
 - Existing fixture manifest conventions for new taint, CLI, cache, and export regression cases.

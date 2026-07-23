@@ -22,7 +22,7 @@ jobs:
       # pin: dtolnay/rust-toolchain@master (2026-07-23); toolchain is exact
       - uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c
         with:
-          toolchain: "1.85"
+          toolchain: "1.88"
           components: clippy,rustfmt
       - name: Check formatting
         run: cargo fmt --all -- --check
@@ -72,7 +72,7 @@ jobs:
       # pin: dtolnay/rust-toolchain@master (2026-07-23); toolchain is exact
       - uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c
         with:
-          toolchain: "1.85"
+          toolchain: "1.88"
           targets: ${{ matrix.target }}
 
       - name: Install cross (linux aarch64)
@@ -135,7 +135,7 @@ jobs:
       # pin: dtolnay/rust-toolchain@master (2026-07-23); toolchain is exact
       - uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c
         with:
-          toolchain: "1.85"
+          toolchain: "1.88"
       - name: Install cargo-cyclonedx
         run: cargo install cargo-cyclonedx --version 0.5.9 --locked
       - name: Generate SBOM

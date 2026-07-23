@@ -14,8 +14,8 @@ Harden CI delivery credibility and supply-chain gates from the ponytail review: 
 
 1. **1.2** Strict `codehound-scan` action must return scanner failure status after SARIF upload (`always()` upload, then non-zero when strict).
 2. **1.3** Tag release workflow must depend on a validation job (fmt, clippy, all-feature tests, audit, canaries) before publish.
-3. **4.1** Pin release actions to SHAs, pin Rust 1.85 and tool versions, use `--locked` for product builds.
-4. **4.2** MSRV job runs `cargo test --all-targets --all-features --locked`; document/test minimal `go,cli` build.
+3. **4.1** Pin release actions to SHAs, pin Rust 1.88 and tool versions, use `--locked` for product builds.
+4. **4.2** MSRV job runs `cargo test --all-targets --all-features --locked` on 1.88; document/test minimal `go,cli` build.
 5. **4.3** Add `SECURITY.md` (contact, supported versions, embargo, response target).
 
 ## Out of scope
