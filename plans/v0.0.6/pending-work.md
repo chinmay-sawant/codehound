@@ -1,6 +1,6 @@
 # v0.0.6 — Pending work backlog
 
-> **Status:** Class B + P1 + G3 FO residual done; G1 future; G2 deferred; G4 Gate A PASS (impl open); G5–G6 gated  
+> **Status:** G4 typed impl on master; G5 channel contract locked (edges deferred); G6 gated; G1/G2 deferred  
 
 > **Parent (closed):** v0.0.5 parallel catalog program ([#105](https://github.com/chinmay-sawant/codehound/issues/105)) and Phase 5 gate eval ([#136](https://github.com/chinmay-sawant/codehound/issues/136) / PR #150)  
 > **Day context:** [`../v0.0.5/22072026.md`](../v0.0.5/22072026.md)  
@@ -51,8 +51,8 @@ Optional process items (canary re-runs) are Class C — light chore streams.
 - [ ] #152 G1 Broad BP-66+ / BP-71 — **reopen fail 2026-07-23** ([evidence](./evidence-g1-bp-reopen.md))
 - [ ] #153 G2 CWE-277 Structural — **reopen fail 2026-07-23** ([evidence](./evidence-g2-cwe-277-reopen.md))
 - [x] #154 G3 Further FO residual (auth_flows 305–309/620/836 FO) — true-gen still deferred
-- [ ] #155 G4 Typed Go / `go/packages` — **Gate A PASS** 2026-07-23 ([evidence](./evidence-g4-gate-a.md)); impl open
-- [ ] #156 G5 Advanced taint ceilings
+- [x] #155 G4 Typed Go / `go/packages` — Gate A + optional `--typed` impl on master
+- [ ] #156 G5 Advanced taint — **channel contract locked** 2026-07-23 ([evidence](./evidence-g5-taint-ceiling.md)); edges deferred
 - [ ] #157 G6 Python multi-rule catalog
 
 #### Class B — Catalog residual trust slices
@@ -76,8 +76,10 @@ Optional process items (canary re-runs) are Class C — light chore streams.
 2. ~~**R5–R7**~~ — **done** (R5–R8 integration / issues #162–#165)  
 3. ~~**R8 / G3**~~ — **done** (keep FO; no uplift in #165)  
 4. **G2 / G1** — only after real-module hits (next if reopen evidence exists)  
-5. **G4 impl** — Gate A passed; optional typed layer behind flag (then G5/G6)  
-6. ~~**P1**~~ — **done** (canary + recommended-pack pilot post R1–R8)  
+5. ~~**G4 impl**~~ — **done** (optional `--typed` / `go list` on master)  
+6. **G5 channel edges** — contract locked; scoped impl tranche when ready (no fake edges)  
+7. **G6** — funding + ADR gates  
+8. ~~**P1**~~ — **done** (canary + recommended-pack pilot post R1–R8)  
 
 Do **not** schedule all Class A at once. Prefer ≤4 worktrees per residual batch + one integration.
 
