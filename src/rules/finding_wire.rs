@@ -17,6 +17,7 @@ use super::finding::{Finding, FindingInputs, LineCol};
 use super::finding_view::FindingView;
 
 const MAX_INTERNED_STRINGS: usize = 4096;
+const MAX_INTERNED_BYTES: usize = 1024 * 1024;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum FindingWireError {
@@ -54,20 +55,31 @@ impl std::error::Error for FindingWireError {}
 /// Returns `None` when untrusted cache data exceeds the process cap.
 fn intern_str(s: String) -> Option<&'static str> {
     use std::collections::HashSet;
-    static TABLE: OnceLock<Mutex<HashSet<&'static str>>> = OnceLock::new();
-    let table = TABLE.get_or_init(|| Mutex::new(HashSet::new()));
+    struct InternTable {
+        values: HashSet<&'static str>,
+        bytes: usize,
+    }
+    static TABLE: OnceLock<Mutex<InternTable>> = OnceLock::new();
+    let table = TABLE.get_or_init(|| {
+        Mutex::new(InternTable {
+            values: HashSet::new(),
+            bytes: 0,
+        })
+    });
     let mut guard = match table.lock() {
         Ok(g) => g,
         Err(poisoned) => poisoned.into_inner(),
     };
-    if let Some(&existing) = guard.get(s.as_str()) {
+    if let Some(&existing) = guard.values.get(s.as_str()) {
         return Some(existing);
     }
-    if guard.len() >= MAX_INTERNED_STRINGS {
+    let next_bytes = guard.bytes.checked_add(s.len())?;
+    if guard.values.len() >= MAX_INTERNED_STRINGS || next_bytes > MAX_INTERNED_BYTES {
         return None;
     }
     let leaked: &'static str = Box::leak(s.into_boxed_str());
-    guard.insert(leaked);
+    guard.values.insert(leaked);
+    guard.bytes = next_bytes;
     Some(leaked)
 }
 
@@ -359,6 +371,16 @@ mod tests {
         }
 
         assert!(rejected, "unique cache strings must eventually be rejected");
+    }
+
+    #[test]
+    fn cache_string_interning_rejects_oversized_values() {
+        let mut wire = valid_wire();
+        wire.rule_id = "x".repeat(MAX_INTERNED_BYTES + 1);
+        assert!(matches!(
+            wire.into_finding(),
+            Err(FindingWireError::InterningLimit)
+        ));
     }
 
     fn valid_wire() -> FindingWire {

@@ -9,10 +9,9 @@
 //! Detectors may also record nested spans against a **thread-local active
 //! collector** installed by the scan worker (see [`with_active_collector`]).
 
-use std::cell::Cell;
-use std::ptr::NonNull;
-#[cfg(test)]
-use std::sync::Mutex;
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 #[cfg(test)]
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
@@ -21,18 +20,18 @@ use super::summary::TimingSummary;
 
 thread_local! {
     /// Active per-file collector for nested detector/rule spans on this worker.
-    static ACTIVE_COLLECTOR: Cell<Option<NonNull<TimingCollector>>> = const { Cell::new(None) };
+    static ACTIVE_COLLECTOR: RefCell<Option<TimingCollector>> = const { RefCell::new(None) };
 }
 
 /// Install `collector` as the thread-local active collector for the duration of `f`.
 ///
 /// Used so multi-rule detectors can record per-rule spans without threading the
 /// collector through the [`crate::core::Detector`] trait.
-pub fn with_active_collector<R>(collector: &mut TimingCollector, f: impl FnOnce() -> R) -> R {
-    ACTIVE_COLLECTOR.with(|cell| {
-        let prev = cell.replace(Some(NonNull::from(collector)));
+pub fn with_active_collector<R>(collector: &TimingCollector, f: impl FnOnce() -> R) -> R {
+    ACTIVE_COLLECTOR.with(|slot| {
+        let prev = slot.replace(Some(collector.clone()));
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f));
-        cell.set(prev);
+        slot.replace(prev);
         match result {
             Ok(value) => value,
             Err(payload) => std::panic::resume_unwind(payload),
@@ -43,24 +42,17 @@ pub fn with_active_collector<R>(collector: &mut TimingCollector, f: impl FnOnce(
 /// Time `f` under `name` on the active thread-local collector when present and
 /// enabled; otherwise run `f` with no timing overhead.
 pub fn measure_active<R>(name: &'static str, f: impl FnOnce() -> R) -> R {
-    ACTIVE_COLLECTOR.with(|cell| {
-        let Some(ptr) = cell.get() else {
+    ACTIVE_COLLECTOR.with(|slot| {
+        let Some(collector) = slot.borrow().as_ref().cloned() else {
             return f();
         };
-        // SAFETY: pointer is set only for the duration of `with_active_collector`
-        // on this thread, and the collector outlives that scope.
-        let collector = unsafe { &mut *ptr.as_ptr() };
         collector.measure(name, f)
     })
 }
 
 /// Whether the active thread-local collector is present and enabled.
 pub fn active_enabled() -> bool {
-    ACTIVE_COLLECTOR.with(|cell| {
-        cell.get()
-            .map(|ptr| unsafe { ptr.as_ref().is_enabled() })
-            .unwrap_or(false)
-    })
+    ACTIVE_COLLECTOR.with(|slot| slot.borrow().as_ref().is_some_and(TimingCollector::is_enabled))
 }
 
 #[cfg(test)]
@@ -180,26 +172,34 @@ pub fn with_timing<R>(f: impl FnOnce() -> R) -> (R, Option<TimingSummary>) {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct TimingSpan {
     pub name: &'static str,
     pub start: Instant,
-    pub duration: Option<Duration>,
 }
 
 /// Collects named phase timings for a scan (or remains a no-op when disabled).
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
+struct TimingState {
+    active: HashMap<usize, TimingSpan>,
+    aggregates: HashMap<&'static str, (Duration, usize)>,
+    next_span_id: usize,
+}
+
+/// Collects named phase timings with bounded memory: completed spans are
+/// aggregated by phase name immediately instead of retained per scanned file.
+#[derive(Debug, Clone)]
 pub struct TimingCollector {
-    spans: Vec<TimingSpan>,
     enabled: bool,
+    state: Arc<Mutex<TimingState>>,
 }
 
 impl TimingCollector {
     /// Create a collector; when `enabled` is false, all timing calls are cheap no-ops.
     pub fn new(enabled: bool) -> Self {
         Self {
-            spans: Vec::new(),
             enabled,
+            state: Arc::new(Mutex::new(TimingState::default())),
         }
     }
 
@@ -208,31 +208,36 @@ impl TimingCollector {
     }
 
     /// Start a span and return its index. If disabled, returns 0 and does nothing.
-    pub fn start(&mut self, name: &'static str) -> usize {
+    pub fn start(&self, name: &'static str) -> usize {
         if !self.enabled {
             return 0;
         }
-        let idx = self.spans.len();
-        self.spans.push(TimingSpan {
+        let mut state = self.state.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let id = state.next_span_id;
+        state.next_span_id = state.next_span_id.wrapping_add(1);
+        state.active.insert(id, TimingSpan {
             name,
             start: Instant::now(),
-            duration: None,
         });
-        idx
+        id
     }
 
     /// Stop a span started with [`Self::start`]. If disabled, does nothing.
-    pub fn stop(&mut self, index: usize) {
+    pub fn stop(&self, index: usize) {
         if !self.enabled {
             return;
         }
-        if let Some(span) = self.spans.get_mut(index) {
-            span.duration = Some(span.start.elapsed());
+        let mut state = self.state.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some(span) = state.active.remove(&index) {
+            let duration = span.start.elapsed();
+            let entry = state.aggregates.entry(span.name).or_insert((Duration::ZERO, 0));
+            entry.0 += duration;
+            entry.1 += 1;
         }
     }
 
     /// Time a closure and record its duration under the given name.
-    pub fn measure<T>(&mut self, name: &'static str, f: impl FnOnce() -> T) -> T {
+    pub fn measure<T>(&self, name: &'static str, f: impl FnOnce() -> T) -> T {
         if !self.enabled {
             return f();
         }
@@ -242,44 +247,69 @@ impl TimingCollector {
         result
     }
 
-    /// Merge another collector into this one. Spans remain in chronological
-    /// order within each phase name; aggregation happens in [`Self::to_summary`].
-    pub fn merge(&mut self, other: &Self) {
+    /// Merge another collector's completed timing aggregates into this one.
+    pub fn merge(&self, other: &Self) {
         if !self.enabled || !other.enabled {
             return;
         }
-        self.spans.extend(other.spans.iter().cloned());
+        if Arc::ptr_eq(&self.state, &other.state) {
+            return;
+        }
+        let other_state = other.state.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut state = self.state.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        for (&name, &(duration, count)) in &other_state.aggregates {
+            let entry = state.aggregates.entry(name).or_insert((Duration::ZERO, 0));
+            entry.0 += duration;
+            entry.1 += count;
+        }
     }
 
     /// Merge an owned collector without cloning its recorded spans.
-    pub fn merge_owned(&mut self, mut other: Self) {
+    pub fn merge_owned(&self, other: Self) {
         if !self.enabled || !other.enabled {
             return;
         }
-        self.spans.append(&mut other.spans);
+        self.merge(&other);
     }
 
     /// Aggregate spans by name and compute total wall time.
     pub fn to_summary(&self) -> TimingSummary {
-        let mut by_name: std::collections::HashMap<&'static str, (Duration, usize)> =
-            std::collections::HashMap::new();
-        let mut total = Duration::ZERO;
-
-        for span in &self.spans {
-            let Some(duration) = span.duration else {
-                continue;
-            };
-            let entry = by_name.entry(span.name).or_insert((Duration::ZERO, 0));
-            entry.0 += duration;
-            entry.1 += 1;
-            total += duration;
-        }
-
-        let (_, phases) = super::aggregate::aggregate_phases(by_name);
+        let state = self.state.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let (total, phases) = super::aggregate::aggregate_phases(state.aggregates.clone());
 
         TimingSummary {
             total_wall_time: total,
             phases,
         }
+    }
+}
+
+#[cfg(test)]
+mod safety_tests {
+    use super::*;
+
+    #[test]
+    fn nested_active_timing_is_safe_and_aggregated() {
+        let collector = TimingCollector::new(true);
+        with_active_collector(&collector, || {
+            measure_active("outer", || {
+                measure_active("inner", || {});
+            });
+        });
+
+        let summary = collector.to_summary();
+        assert_eq!(summary.phases.iter().map(|phase| phase.count).sum::<usize>(), 2);
+        assert!(summary.phases.iter().any(|phase| phase.name == "outer"));
+        assert!(summary.phases.iter().any(|phase| phase.name == "inner"));
+    }
+
+    #[test]
+    fn active_collector_is_restored_after_panic() {
+        let collector = TimingCollector::new(true);
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            with_active_collector(&collector, || panic!("expected"));
+        }));
+        assert!(result.is_err());
+        assert!(!active_enabled());
     }
 }

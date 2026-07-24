@@ -9,6 +9,8 @@ use crate::engine::path_walk::{WalkUpAction, walk_up_dirs};
 
 use super::types::CodehoundConfig;
 
+const MAX_CONFIG_BYTES: u64 = 1024 * 1024;
+
 impl CodehoundConfig {
     /// Load and parse a `codehound.toml` file from `path`.
     ///
@@ -18,6 +20,15 @@ impl CodehoundConfig {
     /// when the TOML is invalid or contains unknown fields (serde `deny_unknown_fields`).
     #[must_use = "config load failures must be handled"]
     pub fn load(path: &std::path::Path) -> Result<Self, Error> {
+        let size = std::fs::metadata(path).map_err(Error::from)?.len();
+        if size > MAX_CONFIG_BYTES {
+            return Err(Error::Config(format!(
+                "config {} is {} bytes; maximum supported size is {} bytes",
+                path.display(),
+                size,
+                MAX_CONFIG_BYTES
+            )));
+        }
         let text = std::fs::read_to_string(path).map_err(Error::from)?;
         let cfg: Self = toml::from_str(&text)
             .map_err(|e| Error::Config(format!("parsing {}: {e}", path.display())))?;
@@ -123,4 +134,19 @@ pub fn discover_config(start: &Path) -> Option<std::path::PathBuf> {
             WalkUpAction::Continue
         }
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn config_load_rejects_oversized_input() {
+        let path = std::env::temp_dir().join(format!("codehound-large-config-{}.toml", std::process::id()));
+        std::fs::write(&path, vec![b' '; MAX_CONFIG_BYTES as usize + 1])
+            .expect("write oversized config");
+        let error = CodehoundConfig::load(&path).expect_err("oversized config must fail");
+        assert!(error.to_string().contains("maximum supported size"));
+        let _ = std::fs::remove_file(path);
+    }
 }
