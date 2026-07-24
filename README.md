@@ -157,6 +157,7 @@ CWE-22, CWE-78, CWE-79, and CWE-89. **Disabled by default** — pass `--taint` o
 set `[codehound.taint] enabled = true`. **Not security-grade** — name-string sink
 matching, no types; `filepath.Clean` alone is **not** treated as a path sanitizer.
 Use for triage, not hard gating. See [`documents/taint.md`](./documents/taint.md).
+Vulnerability reports: see [`SECURITY.md`](./SECURITY.md).
 
 ### Canonical CI one-liner
 

@@ -102,12 +102,11 @@ pub(crate) fn detect_perf_32(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut V
                     .unwrap_or("");
                 let is_simple_ident =
                     !inner.is_empty() && inner.chars().all(|c| c.is_alphanumeric() || c == '_');
-                if is_simple_ident {
-                    if let Some(&kind) = facts.var_kinds.get(inner) {
-                        if kind == VarKind::Bytes {
-                            return;
-                        }
-                    }
+                if is_simple_ident
+                    && let Some(&kind) = facts.var_kinds.get(inner)
+                    && kind == VarKind::Bytes
+                {
+                    return;
                 }
             }
             let in_loop = nearest_loop(node, LOOP_NODE_KINDS).is_some();

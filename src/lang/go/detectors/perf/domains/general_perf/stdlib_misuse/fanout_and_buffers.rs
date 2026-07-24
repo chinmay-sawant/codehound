@@ -56,21 +56,20 @@ pub(crate) fn detect_perf_234(unit: &ParsedUnit, _facts: &GoPerfFacts, out: &mut
             .chars()
             .take_while(|c| c.is_ascii_digit())
             .collect::<String>();
-        if !digits.is_empty() {
-            if let Ok(n) = digits.parse::<u64>() {
-                if n >= BULK_GROW_MIN {
-                    let (line, col) = unit.line_col(start);
-                    emit::push_finding(
-                        &META_PERF_234,
-                        file,
-                        line,
-                        col,
-                        "bulk buffer uses a fixed Grow size; derive capacity from the input workload when it is known",
-                        out,
-                    );
-                    return;
-                }
-            }
+        if !digits.is_empty()
+            && let Ok(n) = digits.parse::<u64>()
+            && n >= BULK_GROW_MIN
+        {
+            let (line, col) = unit.line_col(start);
+            emit::push_finding(
+                &META_PERF_234,
+                file,
+                line,
+                col,
+                "bulk buffer uses a fixed Grow size; derive capacity from the input workload when it is known",
+                out,
+            );
+            return;
         }
         search = start + 4;
     }
@@ -287,12 +286,11 @@ fn is_string_bridged_into_sink(source: &str, string_dot: usize) -> bool {
             return true;
         }
         // append(dst, sb.String()...) → between == "dst, sb"
-        if needle.starts_with("append") {
-            if let Some(last) = between.rsplit(',').next() {
-                if is_simple_ident(last.trim()) {
-                    return true;
-                }
-            }
+        if needle.starts_with("append")
+            && let Some(last) = between.rsplit(',').next()
+            && is_simple_ident(last.trim())
+        {
+            return true;
         }
     }
     false

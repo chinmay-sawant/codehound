@@ -30,23 +30,21 @@ pub(crate) fn detect_bp_1_discarded_error(
         root,
         &["assignment_statement", "short_var_declaration"],
         &mut |node| {
-            if let Ok(text) = node.utf8_text(src) {
-                if let Some((lhs, rhs)) = split_assign(text) {
-                    if rhs.contains('(')
-                        && !is_non_error_builtin_rhs(rhs)
-                        && lhs_discards_possible_error(lhs)
-                    {
-                        let (line, col) = unit.line_col(node.start_byte());
-                        emit::push_finding(
-                            &crate::lang::go::detectors::bad_practices::BP_1_META,
-                            file,
-                            line,
-                            col,
-                            "discarded error return; handle or explicitly ignore with a comment",
-                            out,
-                        );
-                    }
-                }
+            if let Ok(text) = node.utf8_text(src)
+                && let Some((lhs, rhs)) = split_assign(text)
+                && rhs.contains('(')
+                && !is_non_error_builtin_rhs(rhs)
+                && lhs_discards_possible_error(lhs)
+            {
+                let (line, col) = unit.line_col(node.start_byte());
+                emit::push_finding(
+                    &crate::lang::go::detectors::bad_practices::BP_1_META,
+                    file,
+                    line,
+                    col,
+                    "discarded error return; handle or explicitly ignore with a comment",
+                    out,
+                );
             }
         },
     );

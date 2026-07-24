@@ -117,10 +117,10 @@ impl Detector for GoCweScan {
 
     fn accumulate_state(&self, ctx: &ScanContext, unit: &ParsedUnit) {
         // Project state is only consumed by taint finalize.
-        if !ctx.taint_enabled || !self.rule_ids().iter().any(|id| ctx.allows(id)) {
+        if !taint_is_enabled(ctx) {
             return;
         }
-        let mut facts = build_go_unit_facts_with(unit, FactBuildOpts::TAINT);
+        let mut facts = build_go_unit_facts_with(unit, fact_build_opts(ctx));
         build_taint_graph_for_facts(&mut facts);
         let project_unit = make_project_unit(unit, &mut facts);
         let mut state = self
@@ -131,7 +131,7 @@ impl Detector for GoCweScan {
     }
 
     fn requires_cache_state(&self, ctx: &ScanContext) -> bool {
-        ctx.taint_enabled && self.rule_ids().iter().any(|id| ctx.allows(id))
+        taint_is_enabled(ctx)
     }
 
     fn reset_state(&self) {
@@ -146,9 +146,9 @@ impl Detector for GoCweScan {
         if !self.rule_ids().iter().any(|id| ctx.allows(id)) {
             return;
         }
-        let opts = FactBuildOpts::for_scan(ctx.taint_enabled);
+        let opts = fact_build_opts(ctx);
         let mut facts = build_go_unit_facts_with(unit, opts);
-        if ctx.taint_enabled {
+        if taint_is_enabled(ctx) {
             build_taint_graph_for_facts(&mut facts);
         }
 
@@ -161,7 +161,7 @@ impl Detector for GoCweScan {
         // Publish project state only after every per-file rule succeeds. If a
         // rule panics, the worker result is discarded and this file cannot
         // leak a partially analyzed unit into project finalization.
-        if ctx.taint_enabled {
+        if taint_is_enabled(ctx) {
             let project_unit = make_project_unit(unit, &mut facts);
             let mut state = self
                 .state
@@ -172,7 +172,7 @@ impl Detector for GoCweScan {
     }
 
     fn finalize(&self, ctx: &ScanContext, out: &mut Vec<Finding>) {
-        if !ctx.taint_enabled {
+        if !taint_is_enabled(ctx) {
             return;
         }
 
@@ -230,15 +230,15 @@ impl Detector for GoCweScan {
                 );
             }
             per_file.push((unit.path.as_str(), graph, graph_index, summaries));
-            for (func_name, decl) in &unit.call_graph.declarations {
+            for decl in unit.call_graph.declarations.values() {
                 let key = TaintSymbolKey::with_receiver(
                     unit.package.clone(),
                     decl.receiver_type.as_deref(),
-                    Arc::clone(func_name),
+                    Arc::clone(&decl.name),
                 );
                 decl_index.entry(key.clone()).or_insert(idx);
                 package_name_index
-                    .entry((unit.package.clone(), Arc::clone(func_name)))
+                    .entry((unit.package.clone(), Arc::clone(&decl.name)))
                     .or_default()
                     .push(key);
             }
@@ -254,15 +254,13 @@ impl Detector for GoCweScan {
         for (file_idx, unit) in units.iter().enumerate() {
             let summaries = &per_file[file_idx].3;
             for name in summaries.keys() {
-                let recv = unit
-                    .call_graph
-                    .declarations
-                    .get(name.as_str())
-                    .and_then(|d| d.receiver_type.as_deref());
+                let Some(decl) = unit.call_graph.declarations.get(name.as_str()) else {
+                    continue;
+                };
                 let key = TaintSymbolKey::with_receiver(
                     unit.package.clone(),
-                    recv,
-                    Arc::from(name.as_str()),
+                    decl.receiver_type.as_deref(),
+                    Arc::clone(&decl.name),
                 );
                 summary_index.entry(key).or_insert(file_idx);
             }
@@ -288,12 +286,12 @@ impl Detector for GoCweScan {
                 // Skip package-qualified external calls (import alias prefix).
                 // Same-package calls are bare identifiers; method calls use a
                 // receiver variable, not an import alias.
-                if site.is_method_call {
-                    if let Some(dot) = raw_callee.rfind('.') {
-                        let prefix = &raw_callee[..dot];
-                        if caller_imports.contains(prefix) {
-                            continue;
-                        }
+                if site.is_method_call
+                    && let Some(dot) = raw_callee.rfind('.')
+                {
+                    let prefix = &raw_callee[..dot];
+                    if caller_imports.contains(prefix) {
+                        continue;
                     }
                 }
                 let callee_name = resolve_callee_name(raw_callee, site.is_method_call);
@@ -407,6 +405,30 @@ impl Detector for GoCweScan {
             }
         }
     }
+}
+
+/// Taint-only rules do not read the broad structural fact/index bundle.
+/// Keep the structural default for every other rule; this small allowlist is
+/// deliberately tied to the taint detectors' data requirements, not metadata.
+fn is_taint_rule(rule_id: &str) -> bool {
+    matches!(
+        rule_id,
+        "CWE-22" | "CWE-78" | "CWE-79" | "CWE-89" | "CWE-90" | "CWE-91"
+    )
+}
+
+fn taint_is_enabled(ctx: &ScanContext) -> bool {
+    ctx.taint_enabled
+        && self::metadata::GO_CWE_RULE_IDS
+            .iter()
+            .any(|id| ctx.allows(id) && is_taint_rule(id))
+}
+
+fn fact_build_opts(ctx: &ScanContext) -> FactBuildOpts {
+    let needs_structural = GO_RULES
+        .iter()
+        .any(|(rule_id, _, _)| ctx.allows(rule_id) && !is_taint_rule(rule_id));
+    FactBuildOpts::for_scan(taint_is_enabled(ctx), needs_structural)
 }
 
 // --- Inter-procedural analysis helpers ---
@@ -583,12 +605,12 @@ fn summary_from_decl<'a>(
     )],
     decl_index: &HashMap<TaintSymbolKey, usize>,
     key: &TaintSymbolKey,
-    bare_name: &str,
+    _bare_name: &str,
 ) -> Option<&'a taint::TaintSummary> {
     let &file_idx = decl_index.get(key)?;
     per_file
         .get(file_idx)
-        .and_then(|(_, _, _, summaries)| summaries.get(bare_name))
+        .and_then(|(_, _, _, summaries)| summaries.get(&summary_name_for_key(key)))
 }
 
 fn summary_for_key<'a>(
@@ -600,12 +622,20 @@ fn summary_for_key<'a>(
     )],
     summary_index: &HashMap<TaintSymbolKey, usize>,
     key: &TaintSymbolKey,
-    bare_name: &str,
+    _bare_name: &str,
 ) -> Option<&'a taint::TaintSummary> {
     let file_idx = *summary_index.get(key)?;
     per_file
         .get(file_idx)
-        .and_then(|(_, _, _, summaries)| summaries.get(bare_name))
+        .and_then(|(_, _, _, summaries)| summaries.get(&summary_name_for_key(key)))
+}
+
+/// Match the per-file extraction identity used for function summaries.
+fn summary_name_for_key(key: &TaintSymbolKey) -> String {
+    match key.receiver.as_deref() {
+        Some(receiver) => format!("{receiver}.{}", key.name),
+        None => key.name.to_string(),
+    }
 }
 
 /// Check if any identifier text in a TaintGraph has an **unsanitized** taint
@@ -640,10 +670,10 @@ fn is_identifier_tainted(
     if !call_func.is_empty() {
         for source_ids in graph.by_source.values() {
             for source_id in source_ids {
-                if let Some(TaintNode::Source { function, .. }) = graph.nodes.get(*source_id) {
-                    if function.as_ref() == call_func {
-                        return true;
-                    }
+                if let Some(TaintNode::Source { function, .. }) = graph.nodes.get(*source_id)
+                    && function.as_ref() == call_func
+                {
+                    return true;
                 }
             }
         }
@@ -667,10 +697,8 @@ fn sink_kind_meta(kind: SinkKind) -> Option<&'static RuleMetadata> {
 /// Resolve a callee name for lookup.  For method calls like `h.openFile`,
 /// extract just the method name `openFile`.
 fn resolve_callee_name(callee: &str, is_method_call: bool) -> String {
-    if is_method_call {
-        if let Some(dot) = callee.rfind('.') {
-            return callee[dot + 1..].to_string();
-        }
+    if is_method_call && let Some(dot) = callee.rfind('.') {
+        return callee[dot + 1..].to_string();
     }
     callee.to_string()
 }
@@ -702,10 +730,10 @@ fn sink_kinds_reached_by_var(
     ]
     .iter()
     {
-        if let Some(sink_ids) = graph.by_sink.get(&sk) {
-            if forward_reaches_any_with_index(graph, graph_index.adjacency(), var_ids, sink_ids) {
-                reached.push(sk);
-            }
+        if let Some(sink_ids) = graph.by_sink.get(&sk)
+            && forward_reaches_any_with_index(graph, graph_index.adjacency(), var_ids, sink_ids)
+        {
+            reached.push(sk);
         }
     }
     reached
@@ -777,6 +805,26 @@ fn emit_inter_procedural_finding(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
+
+    #[test]
+    fn selected_taint_rules_skip_structural_facts() {
+        let mut ctx = ScanContext {
+            taint_enabled: true,
+            ..Default::default()
+        };
+        ctx.only = Some(HashSet::from(["CWE-90".to_string()]));
+
+        let opts = fact_build_opts(&ctx);
+        assert!(opts.extract_taint);
+        assert!(opts.extract_call_graph);
+        assert!(!opts.extract_structural);
+
+        ctx.only = Some(HashSet::from(["CWE-367".to_string()]));
+        let opts = fact_build_opts(&ctx);
+        assert!(opts.extract_structural);
+        assert!(!opts.extract_taint);
+    }
 
     #[test]
     fn variable_index_groups_scoped_nodes_by_name() {
@@ -808,6 +856,7 @@ mod tests {
     #[test]
     fn infer_receiver_type_from_enclosing_method_param() {
         let decl = FunctionDecl {
+            name: Arc::from("openFile"),
             param_count: 0,
             is_method: true,
             receiver_type: Some(Arc::from("h *Handler")),
@@ -823,6 +872,7 @@ mod tests {
         );
         // Free function caller has no receiver to propagate.
         let free = FunctionDecl {
+            name: Arc::from("openFile"),
             param_count: 1,
             is_method: false,
             receiver_type: None,
@@ -863,9 +913,9 @@ mod tests {
             ..Default::default()
         };
         let mut sink_map = HashMap::new();
-        sink_map.insert("Open".to_string(), sink_summary);
+        sink_map.insert("*Handler.Open".to_string(), sink_summary);
         let mut safe_map = HashMap::new();
-        safe_map.insert("Open".to_string(), safe_summary);
+        safe_map.insert("*Store.Open".to_string(), safe_summary);
         let per_file = vec![
             (
                 "app/handler.go",
@@ -901,6 +951,7 @@ mod tests {
 
         // Same receiver param as enclosing method → exact key (*Handler).
         let caller = FunctionDecl {
+            name: Arc::from("Open"),
             param_count: 0,
             is_method: true,
             receiver_type: Some(Arc::from("h *Handler")),

@@ -2,6 +2,7 @@
 
 mod call_graph;
 mod classify;
+mod http;
 mod imports;
 mod walker_core;
 mod walker_records;

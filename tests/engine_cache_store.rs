@@ -260,6 +260,74 @@ fn corrupt_entry_file_is_treated_as_cache_miss() {
 }
 
 #[test]
+fn entry_metadata_mismatch_is_treated_as_cache_miss() {
+    let root = unique_temp_root("entry-metadata-mismatch");
+    let mut store = CacheStore::open_with_capacity(root.clone(), 500).expect("open");
+    let hash = content_hash("body");
+    store
+        .put("x.go", &hash, &[], vec![], "2026-07-24T00:00:00Z")
+        .expect("put");
+    store.flush().expect("flush");
+
+    let cache_key = cache_key_for_path("x.go");
+    let entry_path = root.join("files").join(format!("{cache_key}.json"));
+    let mut entry: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&entry_path).expect("read entry")).expect("json");
+    entry["content_hash"] = serde_json::Value::String(content_hash("other"));
+    std::fs::write(
+        &entry_path,
+        serde_json::to_vec(&entry).expect("serialize entry"),
+    )
+    .expect("replace entry");
+
+    assert!(matches!(store.lookup("x.go", &hash), CacheLookup::Stale));
+    std::fs::remove_dir_all(root).expect("remove cache");
+}
+
+#[test]
+fn concurrent_profiles_do_not_merge_each_others_manifest_entries() {
+    let root = unique_temp_root("separate-profile-manifests");
+    let mut first = CacheStore::open_with_capacity(root.clone(), 500).expect("open first");
+    let mut second = CacheStore::open_with_capacity(root.clone(), 500).expect("open second");
+    first.ensure_rule_config_hash("profile-a");
+    second.ensure_rule_config_hash("profile-b");
+    first
+        .put(
+            "a.go",
+            &content_hash("a"),
+            &[],
+            vec![],
+            "2026-07-24T00:00:00Z",
+        )
+        .expect("put first");
+    second
+        .put(
+            "b.go",
+            &content_hash("b"),
+            &[],
+            vec![],
+            "2026-07-24T00:00:00Z",
+        )
+        .expect("put second");
+
+    second.flush().expect("flush second");
+    first.flush().expect("flush first");
+
+    let reopened = CacheStore::open_with_capacity(root.clone(), 500).expect("reopen");
+    assert!(reopened.manifest().files.contains_key("a.go"));
+    assert!(!reopened.manifest().files.contains_key("b.go"));
+    assert!(matches!(
+        reopened.lookup("a.go", &content_hash("a")),
+        CacheLookup::Hit(_)
+    ));
+    assert!(matches!(
+        reopened.lookup("b.go", &content_hash("b")),
+        CacheLookup::Miss
+    ));
+    std::fs::remove_dir_all(root).expect("remove cache");
+}
+
+#[test]
 fn flush_reports_manifest_write_failure() {
     let root = unique_temp_root("flush-failure");
     let mut store = CacheStore::open_with_capacity(root.clone(), 500).expect("open");
@@ -282,6 +350,111 @@ fn flush_reports_manifest_write_failure() {
 
     drop(store);
     std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn legacy_manifest_lock_skips_persistence_without_racing_an_older_cache_writer() {
+    let root = unique_temp_root("stale-manifest-lock");
+    let mut store = CacheStore::open_with_capacity(root.clone(), 500).expect("open");
+    store
+        .put(
+            "x.go",
+            &content_hash("body"),
+            &[],
+            vec![],
+            "2026-06-10T00:00:00Z",
+        )
+        .expect("put");
+    let lock = root.join(".manifest.lock");
+    std::fs::write(&lock, "stale owner").expect("create stale lock");
+
+    store
+        .flush()
+        .expect("a legacy lock must skip cache persistence, not fail the scan");
+    assert!(
+        !root.join("manifest.json").exists(),
+        "new code must not race a pre-advisory cache writer"
+    );
+
+    std::fs::remove_file(lock).expect("remove stale lock");
+    store.flush().expect("flush after lock removal");
+    assert!(root.join("manifest.json").is_file());
+
+    drop(store);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[cfg(unix)]
+#[test]
+fn failed_temp_create_preserves_existing_manifest() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let root = unique_temp_root("flush-temp-interrupt");
+    let mut store = CacheStore::open_with_capacity(root.clone(), 500).expect("open");
+    store
+        .put(
+            "one.go",
+            &content_hash("one"),
+            &[],
+            vec![],
+            "2026-07-23T00:00:00Z",
+        )
+        .expect("put");
+    store.flush().expect("initial flush");
+    let manifest = root.join("manifest.json");
+    let before = std::fs::read_to_string(&manifest).expect("read prior manifest");
+
+    store
+        .put(
+            "two.go",
+            &content_hash("two"),
+            &[],
+            vec![],
+            "2026-07-23T00:00:01Z",
+        )
+        .expect("put two");
+
+    let mut perms = std::fs::metadata(&root).expect("meta").permissions();
+    perms.set_mode(0o555);
+    std::fs::set_permissions(&root, perms).expect("freeze dir");
+
+    assert!(
+        store.flush().is_err(),
+        "temp create in a read-only cache dir must fail"
+    );
+
+    let mut perms = std::fs::metadata(&root).expect("meta").permissions();
+    perms.set_mode(0o755);
+    std::fs::set_permissions(&root, perms).expect("thaw dir");
+
+    assert_eq!(
+        std::fs::read_to_string(&manifest).expect("reread"),
+        before,
+        "failed temp write must leave the previous manifest intact"
+    );
+
+    drop(store);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn put_normalizes_dot_slash_manifest_identity() {
+    let mut store = CacheStore::in_memory();
+    store
+        .put(
+            "./pkg/x.go",
+            &content_hash("body"),
+            &["./pkg/y.go".into()],
+            vec![],
+            "2026-07-23T00:00:00Z",
+        )
+        .expect("put");
+    assert!(store.manifest().files.contains_key("pkg/x.go"));
+    assert_eq!(
+        store.manifest().files["pkg/x.go"].dependencies,
+        vec!["pkg/y.go".to_string()]
+    );
+    assert_eq!(store.invalidate_dependent("pkg/y.go"), 1);
 }
 
 #[test]

@@ -2,7 +2,7 @@
 name = "codehound"
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.88"
 description = "A static code analyzer for detecting performance bottlenecks and security weaknesses"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/chinmay/codehound"
@@ -69,6 +69,7 @@ phf = { version = "0.14", features = ["macros"] }
 # Path / file walking
 walkdir = "2.5"
 ignore = "0.4"
+fs2 = "0.4"
 
 # Content hashing (incremental analysis cache)
 sha2 = "0.11"

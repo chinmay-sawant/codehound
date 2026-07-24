@@ -1,4 +1,7 @@
 use super::super::{SanitizerKind, SinkKind, SourceKind};
+use super::http::{
+    http_argument_looks_like_response_writer, http_write_looks_like_response_writer,
+};
 
 pub(super) fn classify_source(func_text: &str) -> Option<SourceKind> {
     let call = func_text;
@@ -77,15 +80,19 @@ pub(super) fn classify_sink(
         return Some((SinkKind::FileOpen, 0));
     }
 
-    if call_name.ends_with(".Execute") || call_name.ends_with(".ExecuteTemplate") {
+    if (call_name.ends_with(".Execute") || call_name.ends_with(".ExecuteTemplate"))
+        && !is_plain_html_template_execute(call, src)
+    {
         return Some((SinkKind::Template, 1));
     }
 
     // HTTP response XSS sinks. Avoid bare `.Write` alone — that matches
     // csv.Writer.Write([]string) and other non-HTTP writers.
-    if call_name == "fmt.Fprintf"
-        || call_name.ends_with(".WriteString")
-        || call_name.ends_with(".WriteHeader")
+    if call_name == "fmt.Fprintf" && http_argument_looks_like_response_writer(call, src, 0) {
+        return Some((SinkKind::HTTPWrite, 0));
+    }
+    if (call_name.ends_with(".WriteString") || call_name.ends_with(".WriteHeader"))
+        && http_write_looks_like_response_writer(call, src)
     {
         return Some((SinkKind::HTTPWrite, 0));
     }
@@ -106,15 +113,13 @@ pub(super) fn classify_sink(
     }
 
     // Method-call form detection for command methods.
-    if call_name.ends_with(".Run")
+    if (call_name.ends_with(".Run")
         || call_name.ends_with(".Start")
-        || call_name.ends_with(".Output")
+        || call_name.ends_with(".Output"))
+        && let Some(receiver) = receiver_of_method_call(call, src)
+        && (receiver.contains("exec.Command") || receiver.starts_with("exec."))
     {
-        if let Some(receiver) = receiver_of_method_call(call, src) {
-            if receiver.contains("exec.Command") || receiver.starts_with("exec.") {
-                return Some((SinkKind::CommandExec, 0));
-            }
-        }
+        return Some((SinkKind::CommandExec, 0));
     }
 
     if call_name == "ldap.Dial"
@@ -145,7 +150,6 @@ pub(crate) fn classify_sanitizer(func_text: &str) -> Option<SanitizerKind> {
     if call == "html.EscapeString"
         || call.contains("template.HTMLEscaper")
         || call.contains("template.JSEscaper")
-        || call == "html.UnescapeString"
     {
         return Some(SanitizerKind::HTML);
     }
@@ -206,38 +210,105 @@ pub(super) fn receiver_of_method_call<'a>(
 }
 
 pub(super) fn is_template_html_call(call: tree_sitter::Node, src: &[u8]) -> bool {
+    let Ok(source) = std::str::from_utf8(src) else {
+        return false;
+    };
+    let Some(alias) = import_alias(source, "html/template", "template") else {
+        return false;
+    };
+    let is_trusted_constructor = call
+        .child_by_field_name("function")
+        .and_then(|function| function.utf8_text(src).ok())
+        .is_some_and(|function| {
+            ["HTML", "HTMLAttr", "JS", "JSStr", "URL", "Srcset", "CSS"]
+                .iter()
+                .any(|kind| function.trim() == format!("{alias}.{kind}"))
+        });
+    if is_trusted_constructor {
+        return true;
+    }
     let Some(args) = call.child_by_field_name("arguments") else {
         return false;
     };
     let mut cursor = args.walk();
-    let first = args
-        .named_children(&mut cursor)
+    args.named_children(&mut cursor)
         .next()
-        .and_then(|n| n.utf8_text(src).ok());
-    matches!(first, Some(t) if t.starts_with("template.HTML("))
+        .and_then(|argument| argument.utf8_text(src).ok())
+        .is_some_and(|argument| argument.trim_start().starts_with(&format!("{alias}.HTML(")))
 }
 
-/// Heuristic: only treat `.Write` as an HTTP XSS sink for common
-/// `http.ResponseWriter` receivers. Avoid hmac.Write, csv.Writer, bufio, etc.
-fn http_write_looks_like_response_writer(call: tree_sitter::Node, src: &[u8]) -> bool {
-    if let Some(args) = call.child_by_field_name("arguments") {
-        let mut cursor = args.walk();
-        if let Some(first) = args.named_children(&mut cursor).next() {
-            if let Ok(text) = first.utf8_text(src) {
-                let t = text.trim();
-                // csv.Writer.Write([]string{...}) — not XSS.
-                if t.starts_with("[]string") {
-                    return false;
+/// `html/template` escapes ordinary string values at execution time. Keep the
+/// generic template sink for `text/template` and unknown receivers. Explicit
+/// trusted-content construction is modeled as its own sink, avoiding a second
+/// finding at the later `html/template` execution.
+fn is_plain_html_template_execute(call: tree_sitter::Node, src: &[u8]) -> bool {
+    let Ok(source) = std::str::from_utf8(src) else {
+        return false;
+    };
+    let Some(receiver) = receiver_of_method_call(call, src) else {
+        return false;
+    };
+    let Some(alias) = import_alias(source, "html/template", "template") else {
+        return false;
+    };
+    if execute_uses_trusted_template_content(call, src, &alias) {
+        return true;
+    }
+
+    // ponytail: local declaration matching covers the common Go template
+    // construction shapes. Upgrade to typed facts if receiver aliases escape
+    // their declaration scope or are passed through helper functions.
+    let qualified_alias = format!("{alias}.");
+    source.lines().any(|line| {
+        let line = line.trim_start();
+        (line.starts_with(&format!("{receiver} :="))
+            || line.starts_with(&format!("{receiver} ="))
+            || line.starts_with(&format!("var {receiver}")))
+            && line.contains(&qualified_alias)
+    })
+}
+
+fn import_alias<'a>(source: &'a str, import_path: &str, default_alias: &'a str) -> Option<String> {
+    for line in source.lines() {
+        let line = line.trim();
+        for quote in ['"', '`'] {
+            let marker = format!("{quote}{import_path}{quote}");
+            if let Some(prefix) = line.strip_suffix(&marker) {
+                let prefix = prefix.trim();
+                if prefix.is_empty() || prefix == "import" {
+                    return Some(default_alias.to_string());
+                }
+                if let Some(alias) = prefix.split_whitespace().last() {
+                    return Some(alias.to_string());
                 }
             }
         }
     }
-    match receiver_of_method_call(call, src) {
-        Some("w") | Some("rw") | Some("resp") => true,
-        Some(recv) if recv.contains("ResponseWriter") => true,
-        // Do not treat unknown receivers (hmac, hash, csv, bufio, …) as HTTPWrite.
-        _ => false,
-    }
+    None
+}
+
+fn execute_uses_trusted_template_content(
+    call: tree_sitter::Node,
+    src: &[u8],
+    template_alias: &str,
+) -> bool {
+    let Some(arguments) = call.child_by_field_name("arguments") else {
+        return false;
+    };
+    let mut cursor = arguments.walk();
+    arguments
+        .named_children(&mut cursor)
+        .nth(1)
+        .and_then(|argument| argument.utf8_text(src).ok())
+        .is_some_and(|argument| {
+            ["HTML", "HTMLAttr", "JS", "JSStr", "URL", "Srcset", "CSS"]
+                .iter()
+                .any(|kind| {
+                    argument
+                        .trim_start()
+                        .starts_with(&format!("{template_alias}.{kind}("))
+                })
+        })
 }
 
 pub(super) fn is_source_or_sanitizer_call(rhs: &str) -> bool {
@@ -301,7 +372,6 @@ const KNOWN_SANITIZER_CALLS: &[(&str, &str)] = &[
     // filepath.Clean / path.Clean intentionally omitted — not path-safe alone.
     ("filepath.Base(", "path"),
     ("html.EscapeString(", "html"),
-    ("html.UnescapeString(", "html"),
     ("ldap.EscapeFilter(", "ldap"),
     ("xml.EscapeText(", "xml"),
     ("xml.Marshal(", "xml"),

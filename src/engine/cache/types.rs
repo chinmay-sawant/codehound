@@ -56,6 +56,13 @@ pub struct CacheEntry {
     pub schema_version: u32,
     /// Project-relative file path this entry belongs to.
     pub file: String,
+    /// Source hash this entry was produced from. Kept in the entry as well as
+    /// the manifest so a concurrent replacement cannot become a false hit.
+    #[serde(default)]
+    pub content_hash: String,
+    /// Finding-affecting rule configuration used to produce this entry.
+    #[serde(default)]
+    pub rule_config_hash: String,
     /// Findings captured for this file at scan time.
     pub findings: Vec<Finding>,
     /// Number of findings removed or marked suppressed by source ignores.

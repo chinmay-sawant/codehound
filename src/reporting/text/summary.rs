@@ -150,20 +150,13 @@ pub(crate) fn write_summary(
         writeln!(out, "  example findings: {example_count} (of {n} total)")?;
     }
 
-    if options.verbose {
-        if let Some(stats) = result.stats.as_ref() {
-            if let Some(timing) = stats.timing.as_ref() {
-                writeln!(out, "timing:")?;
-                for phase in &timing.phases {
-                    write_phase_timing_line(
-                        out,
-                        "  ",
-                        phase.name,
-                        phase.duration,
-                        phase.percentage,
-                    )?;
-                }
-            }
+    if options.verbose
+        && let Some(stats) = result.stats.as_ref()
+        && let Some(timing) = stats.timing.as_ref()
+    {
+        writeln!(out, "timing:")?;
+        for phase in &timing.phases {
+            write_phase_timing_line(out, "  ", phase.name, phase.duration, phase.percentage)?;
         }
     }
 

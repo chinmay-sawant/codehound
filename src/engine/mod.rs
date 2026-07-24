@@ -25,8 +25,8 @@ pub use analyzer::{Analyzer, AnalyzerBuilder};
 pub use baseline::{BASELINE_FILE_NAME, BASELINE_VERSION, Baseline, discover_baseline};
 pub(crate) use cache::hex_lower;
 pub use cache::{
-    CacheBackend, CacheEntry, CacheError, CacheLookup, CacheManifest, CacheSession, CacheStore,
-    DEFAULT_CACHE_DIR, InMemoryBackend, cache_key_for_path, content_hash,
+    CacheBackend, CacheEntry, CacheEntryIdentity, CacheError, CacheLookup, CacheManifest,
+    CacheSession, CacheStore, DEFAULT_CACHE_DIR, InMemoryBackend, cache_key_for_path, content_hash,
 };
 pub use config::{
     CacheConfig, CodehoundConfig, CodehoundSection, PathFilters, RunConfig, RunConfigParams,
@@ -38,10 +38,13 @@ pub use dependencies::{
 };
 pub use diagnostics::Diagnostics;
 pub use ignore::{IgnoreDirective, parse_file_ignore, parse_inline_ignores};
+#[cfg(test)]
+pub(crate) use io::set_parent_dir_sync_failure_for_test;
+pub(crate) use io::write_atomic;
 pub use language_filter::{LanguageFilter, resolve_language_filter};
 pub use path_identity::{
     EXAMPLE_EXCLUDE_GLOBS, EXAMPLE_FINDING_TAG, EXAMPLE_PATH_COMPONENTS, is_example_demo_path,
-    normalize_project_path, project_paths_eq,
+    normalize_project_path, project_paths_eq, project_relative_path,
 };
 pub use registry::{Registry, RegistryError};
 pub(crate) use result::PipelineAccumulator;

@@ -487,13 +487,11 @@ pub(crate) fn looks_like_loop_copy(body: &str) -> bool {
     if is_simple_ident(rhs) {
         return true;
     }
-    if let Some(open) = rhs.find('[') {
-        if let Some(close) = rhs[open..].find(']') {
-            let inner = &rhs[open + 1..open + close];
-            return close > 0
-                && is_simple_ident(rhs[..open].trim())
-                && is_simple_ident(inner.trim());
-        }
+    if let Some(open) = rhs.find('[')
+        && let Some(close) = rhs[open..].find(']')
+    {
+        let inner = &rhs[open + 1..open + close];
+        return close > 0 && is_simple_ident(rhs[..open].trim()) && is_simple_ident(inner.trim());
     }
     false
 }

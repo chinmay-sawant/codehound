@@ -87,28 +87,28 @@ fn collect_if_statements(
     out: &mut Vec<Finding>,
     writers: &[&str],
 ) {
-    if node.kind() == "if_statement" && matches_error_guard(node, source) {
-        if let (Some(error_name), Some(function)) =
+    if node.kind() == "if_statement"
+        && matches_error_guard(node, source)
+        && let (Some(error_name), Some(function)) =
             (error_guard_name(node, source), enclosing_function(node))
-        {
-            let consequence = node.child_by_field_name("consequence");
-            let has_bare_return = consequence
-                .is_some_and(|consequence| has_direct_bare_return(consequence, source))
-                || (consequence.is_none()
-                    && node
-                        .utf8_text(source)
-                        .is_ok_and(|text| text.contains("return")));
-            let has_response = consequence
-                .is_some_and(|consequence| has_response_action(consequence, source, writers));
-            if has_error_binding(function, source, error_name) && has_bare_return && !has_response {
-                push_at(
-                    unit,
-                    out,
-                    &crate::lang::go::detectors::bad_practices::BP_102_META,
-                    node.start_byte(),
-                    "HTTP error path returns without writing an error response or status",
-                );
-            }
+    {
+        let consequence = node.child_by_field_name("consequence");
+        let has_bare_return = consequence
+            .is_some_and(|consequence| has_direct_bare_return(consequence, source))
+            || (consequence.is_none()
+                && node
+                    .utf8_text(source)
+                    .is_ok_and(|text| text.contains("return")));
+        let has_response = consequence
+            .is_some_and(|consequence| has_response_action(consequence, source, writers));
+        if has_error_binding(function, source, error_name) && has_bare_return && !has_response {
+            push_at(
+                unit,
+                out,
+                &crate::lang::go::detectors::bad_practices::BP_102_META,
+                node.start_byte(),
+                "HTTP error path returns without writing an error response or status",
+            );
         }
     }
 
@@ -135,10 +135,10 @@ fn matches_error_guard(node: Node, source: &[u8]) -> bool {
 
 fn error_guard_name<'a>(node: Node<'a>, source: &'a [u8]) -> Option<&'a str> {
     if let Some(condition) = node.child_by_field_name("condition") {
-        if let Some(left) = condition.child_by_field_name("left") {
-            if let Ok(name) = left.utf8_text(source) {
-                return Some(name);
-            }
+        if let Some(left) = condition.child_by_field_name("left")
+            && let Ok(name) = left.utf8_text(source)
+        {
+            return Some(name);
         }
         if let Some(name) = condition
             .utf8_text(source)
@@ -251,10 +251,10 @@ fn handler_parameters<'a>(node: Node<'a>, source: &'a [u8]) -> Option<(Vec<&'a s
     let mut fallback_writers = Vec::new();
     let mut fallback_request = false;
     for parameter in params.split(',').map(str::trim) {
-        if parameter.contains("http.ResponseWriter") {
-            if let Some(name) = parameter.split_whitespace().next() {
-                fallback_writers.push(name);
-            }
+        if parameter.contains("http.ResponseWriter")
+            && let Some(name) = parameter.split_whitespace().next()
+        {
+            fallback_writers.push(name);
         }
         if parameter.contains("*http.Request") {
             fallback_request = true;

@@ -122,10 +122,10 @@ impl ScanContext {
 
     /// Apply global / per-rule severity overrides to a finding in place.
     pub fn apply_finding_overrides(&self, finding: &mut Finding) {
-        if RulePack::from_rule_id(finding.rule_id).is_bad_practice() {
-            if let Some(severity) = self.bad_practice_severity {
-                finding.severity = severity;
-            }
+        if RulePack::from_rule_id(finding.rule_id).is_bad_practice()
+            && let Some(severity) = self.bad_practice_severity
+        {
+            finding.severity = severity;
         }
         if let Some(severity) = self.severity_overrides.get(finding.rule_id) {
             finding.severity = *severity;

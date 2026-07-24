@@ -4,6 +4,7 @@ use clap::Parser;
 use codehound::cli::Cli;
 use codehound::core::ScanContext;
 use codehound::engine::{Analyzer, Diagnostics, ScanStats, TimingCollector};
+use codehound::fixture::parse_fixture;
 use codehound::rules::{Finding, FindingInputs, LineCol, Severity};
 
 #[path = "helpers/mod.rs"]
@@ -114,30 +115,29 @@ fn diagnostics_from_stats_serializes_expected_keys() {
 
 #[test]
 fn diagnostics_flag_writes_valid_json_file() {
-    let temp_dir =
-        std::env::temp_dir().join(format!("codehound-diagnostics-test-{}", std::process::id()));
+    let temp_dir = helpers::unique_temp_root("diagnostics");
     let diagnostics_path = temp_dir.join("diag.json");
     std::fs::create_dir_all(&temp_dir).unwrap();
 
-    let source_path =
-        helpers::assert_fixture_materializes("tests/fixtures/go/baseline/suppressed_inline.txt");
+    let fixture_path = "tests/fixtures/go/baseline/suppressed_inline.txt";
+    let fixture_text = std::fs::read_to_string(fixture_path).expect("read diagnostics fixture");
+    let fixture = parse_fixture(&fixture_text, std::path::Path::new(fixture_path))
+        .expect("parse diagnostics fixture");
+    let source_path = temp_dir.join(&fixture.filename);
+    std::fs::write(&source_path, fixture.source).expect("write owned diagnostics source");
 
-    let output = std::process::Command::new("cargo")
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_codehound"))
         .args([
-            "run",
-            "--quiet",
-            "--",
             "--diagnostics",
             diagnostics_path.to_str().unwrap(),
             source_path.to_str().unwrap(),
         ])
-        .current_dir(env!("CARGO_MANIFEST_DIR"))
         .output()
-        .expect("cargo run failed; ensure the binary builds");
+        .expect("run codehound diagnostics command");
 
     assert!(
         output.status.success(),
-        "cargo run exited with {:?}\nstderr: {}",
+        "codehound exited with {:?}\nstderr: {}",
         output.status.code(),
         String::from_utf8_lossy(&output.stderr)
     );
@@ -195,7 +195,7 @@ fn analyzer_omits_phase_spans_when_stats_disabled() {
 
 #[test]
 fn timing_collector_disabled_is_noop() {
-    let mut collector = TimingCollector::new(false);
+    let collector = TimingCollector::new(false);
     let value = collector.measure("work", || 42);
     assert_eq!(value, 42);
     assert!(collector.to_summary().phases.is_empty());
@@ -203,11 +203,11 @@ fn timing_collector_disabled_is_noop() {
 
 #[test]
 fn timing_summary_merges_correctly() {
-    let mut a = TimingCollector::new(true);
+    let a = TimingCollector::new(true);
     a.measure("phase", || {
         std::thread::sleep(std::time::Duration::from_millis(1))
     });
-    let mut b = TimingCollector::new(true);
+    let b = TimingCollector::new(true);
     b.measure("phase", || {
         std::thread::sleep(std::time::Duration::from_millis(1))
     });

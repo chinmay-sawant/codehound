@@ -87,7 +87,12 @@ impl Detector for GoBadPracticeScan {
         }
         // Rayon workers do not inherit the controlling thread's active session.
         let _active = session::ActiveCachesGuard::install(&self.caches);
-        let index = source_index::SourceIndex::build(source_index::NEEDLES, unit.source.as_ref());
+        let needs_index = dispatch::enabled_rules_need_source_index(ctx);
+        let index = if needs_index {
+            source_index::SourceIndex::build(source_index::NEEDLES, unit.source.as_ref())
+        } else {
+            Default::default()
+        };
         let time_rules = ctx.debug_timing && crate::engine::active_enabled();
         let has_enabled_project_rule = dispatch::BAD_PRACTICE_RULES.iter().any(|(rule_id, _)| {
             ctx.allows(rule_id)

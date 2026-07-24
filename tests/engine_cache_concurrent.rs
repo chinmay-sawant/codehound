@@ -11,6 +11,7 @@ use std::thread;
 use helpers::{assert_fixture_materializes, unique_temp_root};
 
 use codehound::core::ScanContext;
+use codehound::engine::content_hash;
 use codehound::engine::{Analyzer, CacheSession, CacheStore, DEFAULT_CACHE_DIR};
 
 fn copy_fixture_into_root(fixture: &str, root: &Path, output_name: &str) {
@@ -56,5 +57,36 @@ fn concurrent_scans_can_share_a_cache_directory_without_panicking() {
     let reopened = CacheStore::open_with_capacity((*cache_dir).clone(), 500).unwrap();
     assert!(reopened.cache_dir().is_dir());
 
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn concurrent_flushes_preserve_distinct_manifest_entries() {
+    let root = unique_temp_root("cache-concurrent-manifest");
+    let cache_dir = Arc::new(root.join(DEFAULT_CACHE_DIR));
+    let mut handles = Vec::new();
+    for file in ["one.go", "two.go"] {
+        let cache_dir = Arc::clone(&cache_dir);
+        handles.push(thread::spawn(move || {
+            let mut cache = CacheStore::open_with_capacity((*cache_dir).clone(), 500).unwrap();
+            cache
+                .put(
+                    file,
+                    &content_hash(file),
+                    &[],
+                    Vec::new(),
+                    "2026-07-23T00:00:00Z",
+                )
+                .unwrap();
+            cache.flush().unwrap();
+        }));
+    }
+    for handle in handles {
+        handle.join().unwrap();
+    }
+
+    let cache = CacheStore::open_with_capacity((*cache_dir).clone(), 500).unwrap();
+    assert!(cache.manifest().files.contains_key("one.go"));
+    assert!(cache.manifest().files.contains_key("two.go"));
     fs::remove_dir_all(root).unwrap();
 }

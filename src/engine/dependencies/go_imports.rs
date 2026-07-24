@@ -66,10 +66,10 @@ fn collect_from_import_declaration(
                     if inner.goto_first_child() {
                         loop {
                             let ic = inner.node();
-                            if ic.kind() == "import_spec" {
-                                if let Some(path) = import_spec_path(&ic, source) {
-                                    resolve_and_add(&path, module_prefix, project_root, out);
-                                }
+                            if ic.kind() == "import_spec"
+                                && let Some(path) = import_spec_path(&ic, source)
+                            {
+                                resolve_and_add(&path, module_prefix, project_root, out);
                             }
                             if !inner.goto_next_sibling() {
                                 break;

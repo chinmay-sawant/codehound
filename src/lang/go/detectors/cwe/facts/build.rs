@@ -15,6 +15,7 @@ use super::types::GoUnitFacts;
 /// and call graphs are only required when inter-procedural taint is on.
 #[derive(Debug, Clone, Copy)]
 pub struct FactBuildOpts {
+    pub extract_structural: bool,
     pub extract_taint: bool,
     pub extract_call_graph: bool,
 }
@@ -22,6 +23,7 @@ pub struct FactBuildOpts {
 impl Default for FactBuildOpts {
     fn default() -> Self {
         Self {
+            extract_structural: true,
             extract_taint: true,
             extract_call_graph: true,
         }
@@ -31,19 +33,45 @@ impl Default for FactBuildOpts {
 impl FactBuildOpts {
     /// Cheap structural facts only (no taint annotations / call graph).
     pub const STRUCTURAL: Self = Self {
+        extract_structural: true,
         extract_taint: false,
         extract_call_graph: false,
     };
 
     /// Full facts for taint-enabled scans.
     pub const TAINT: Self = Self {
+        extract_structural: true,
         extract_taint: true,
         extract_call_graph: true,
     };
 
-    pub fn for_scan(taint_enabled: bool) -> Self {
-        if taint_enabled {
+    /// Taint graph and call graph only. Used by narrow taint-only scans whose
+    /// selected rules do not inspect structural calls, assignments, or needles.
+    pub const TAINT_ONLY: Self = Self {
+        extract_structural: false,
+        extract_taint: true,
+        extract_call_graph: true,
+    };
+
+    /// No selected rule needs facts. Keeps disabled taint-only `--only` scans
+    /// from paying for the structural bundle merely to produce no findings.
+    pub const NONE: Self = Self {
+        extract_structural: false,
+        extract_taint: false,
+        extract_call_graph: false,
+    };
+
+    // ponytail: unit/integration proofs cover unused-bundle skip; full
+    // release-bench compare of default vs `--only` alloc/throughput is still
+    // the upgrade path when measuring cache locality of matcher tables.
+
+    pub fn for_scan(taint_enabled: bool, extract_structural: bool) -> Self {
+        if taint_enabled && !extract_structural {
+            Self::TAINT_ONLY
+        } else if taint_enabled {
             Self::TAINT
+        } else if !extract_structural {
+            Self::NONE
         } else {
             Self::STRUCTURAL
         }
@@ -60,21 +88,23 @@ pub fn build_go_unit_facts_with(unit: &ParsedUnit, opts: FactBuildOpts) -> GoUni
     let mut facts = GoUnitFacts::default();
     let mut interner = SharedTextInterner::default();
 
-    walk_nodes(
-        root,
-        CALL_ASSIGN_NODE_KINDS,
-        &mut |node| match node.kind() {
-            "call_expression" | "call" => {
-                record_call_fact(node, &mut facts, src, &mut interner);
-            }
-            "assignment_statement" | "short_var_declaration" => {
-                record_assignment_fact(node, &mut facts, src, &mut interner);
-            }
-            _ => {}
-        },
-    );
+    if opts.extract_structural {
+        walk_nodes(
+            root,
+            CALL_ASSIGN_NODE_KINDS,
+            &mut |node| match node.kind() {
+                "call_expression" | "call" => {
+                    record_call_fact(node, &mut facts, src, &mut interner);
+                }
+                "assignment_statement" | "short_var_declaration" => {
+                    record_assignment_fact(node, &mut facts, src, &mut interner);
+                }
+                _ => {}
+            },
+        );
 
-    facts.source_index = SourceIndex::build(NEEDLES, unit.source.as_ref());
+        facts.source_index = SourceIndex::build(NEEDLES, unit.source.as_ref());
+    }
     if opts.extract_taint {
         facts.taint = extract_taint_facts(unit);
     }

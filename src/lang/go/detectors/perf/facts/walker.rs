@@ -104,10 +104,11 @@ pub(crate) fn record_assignment_fact<'a>(
             start_byte: node.start_byte(),
             enclosing_loop: enclosing_loop_start(node),
         });
-        if is_short && !facts.var_kinds.contains_key(name) {
-            if let Some(kind) = classify_init_only(rhs) {
-                facts.var_kinds.insert(interner.intern(name), kind);
-            }
+        if is_short
+            && !facts.var_kinds.contains_key(name)
+            && let Some(kind) = classify_init_only(rhs)
+        {
+            facts.var_kinds.insert(interner.intern(name), kind);
         }
     }
 }

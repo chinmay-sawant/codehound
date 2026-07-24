@@ -3,7 +3,9 @@ use std::sync::Arc;
 
 use crate::core::ParsedUnit;
 
-use super::super::{CallGraph, CallSite, FunctionDecl, ProjectCallGraph, SharedText};
+use super::super::{
+    CallGraph, CallSite, FunctionDecl, ProjectCallGraph, SharedText, normalize_receiver_type,
+};
 use super::walker_records::result_variable_of_call;
 
 pub fn extract_call_graph(unit: &ParsedUnit) -> CallGraph {
@@ -36,6 +38,7 @@ fn walk_call_graph(
             cg.add_declaration(
                 Arc::from(name),
                 FunctionDecl {
+                    name: Arc::from(name),
                     param_count,
                     is_method: false,
                     receiver_type: None,
@@ -53,15 +56,19 @@ fn walk_call_graph(
             let param_count = params.map_or(0, |p| p.named_child_count());
             let receiver = node
                 .child_by_field_name("receiver")
-                .and_then(|r| {
-                    r.named_children(&mut r.walk())
-                        .find_map(|c| c.utf8_text(src).ok())
-                })
+                .and_then(|r| r.utf8_text(src).ok())
                 .map(Arc::from);
+            let identity = receiver
+                .as_deref()
+                .map(normalize_receiver_type)
+                .filter(|receiver| !receiver.is_empty())
+                .map(|receiver| format!("{receiver}.{name}"))
+                .unwrap_or_else(|| name.to_string());
 
             cg.add_declaration(
-                Arc::from(name),
+                Arc::from(identity),
                 FunctionDecl {
+                    name: Arc::from(name),
                     param_count,
                     is_method: true,
                     receiver_type: receiver,
@@ -173,7 +180,15 @@ fn enclosing_function(node: tree_sitter::Node, src: &[u8]) -> SharedText {
                     .child_by_field_name("name")
                     .and_then(|n| n.utf8_text(src).ok())
                 {
-                    return Arc::from(name);
+                    let receiver = p
+                        .child_by_field_name("receiver")
+                        .and_then(|r| r.utf8_text(src).ok())
+                        .map(normalize_receiver_type)
+                        .filter(|receiver| !receiver.is_empty());
+                    return match receiver {
+                        Some(receiver) => Arc::from(format!("{receiver}.{name}")),
+                        None => Arc::from(name),
+                    };
                 }
             }
             "func_literal" => {
@@ -220,4 +235,25 @@ fn argument_texts(call: tree_sitter::Node, src: &[u8]) -> Box<[SharedText]> {
         .filter_map(|n| n.utf8_text(src).ok())
         .map(Arc::from)
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn same_file_method_declarations_have_distinct_receiver_qualified_keys() {
+        let source = r#"package main
+type Safe struct{}
+type Sink struct{}
+func (s *Safe) Open(value string) { _ = value }
+func (s *Sink) Open(value string) { os.Open(value) }
+"#;
+        let unit = crate::lang::parser::parse_go(source).expect("valid Go");
+        let graph = extract_call_graph(&unit);
+
+        assert!(graph.declarations.contains_key("*Safe.Open"));
+        assert!(graph.declarations.contains_key("*Sink.Open"));
+        assert_eq!(graph.declarations.len(), 2);
+    }
 }

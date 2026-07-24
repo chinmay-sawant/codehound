@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use serde::Serialize;
 
-use super::backend::CacheBackend;
+use super::backend::{CacheBackend, CacheEntryIdentity};
 use super::types::{CACHE_VERSION, CacheEntry, CacheError};
 use crate::engine::io::write_atomic;
 use crate::rules::Finding;
@@ -15,6 +15,8 @@ use crate::rules::Finding;
 struct BorrowedCacheEntry<'a> {
     schema_version: u32,
     file: &'a str,
+    content_hash: &'a str,
+    rule_config_hash: &'a str,
     findings: &'a [Finding],
     suppressed_count: usize,
     cached_at: &'a str,
@@ -74,7 +76,7 @@ impl CacheBackend for DiskBackend {
         &mut self,
         cache_key: &str,
         schema_version: u32,
-        file: &str,
+        identity: CacheEntryIdentity<'_>,
         findings: &[Finding],
         suppressed_count: usize,
         cached_at: &str,
@@ -82,7 +84,9 @@ impl CacheBackend for DiskBackend {
         let path = self.files_dir.join(format!("{cache_key}.json"));
         let entry = BorrowedCacheEntry {
             schema_version,
-            file,
+            file: identity.file,
+            content_hash: identity.content_hash,
+            rule_config_hash: identity.rule_config_hash,
             findings,
             suppressed_count,
             cached_at,
@@ -105,10 +109,10 @@ impl CacheBackend for DiskBackend {
         let mut total = 0u64;
         if let Ok(entries) = fs::read_dir(&self.files_dir) {
             for entry in entries.flatten() {
-                if entry.file_type().is_ok_and(|t| t.is_file()) {
-                    if let Ok(meta) = entry.metadata() {
-                        total += meta.len();
-                    }
+                if entry.file_type().is_ok_and(|t| t.is_file())
+                    && let Ok(meta) = entry.metadata()
+                {
+                    total += meta.len();
                 }
             }
         }

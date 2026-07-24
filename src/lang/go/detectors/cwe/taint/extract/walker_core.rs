@@ -7,7 +7,7 @@ use crate::core::ParsedUnit;
 use super::super::{
     AssignmentDetail, ChannelRecvSite, ChannelSendSite, ChannelTransfer, ScopeId, ScopeInfo,
     ScopeKind, SharedText, TaintAnnotations, TaintSanitizerAnnotation, TaintSinkAnnotation,
-    TaintSourceAnnotation, UnsupportedFlow, UnsupportedFlowKind,
+    TaintSourceAnnotation, UnsupportedFlow, UnsupportedFlowKind, normalize_receiver_type,
 };
 use super::walker_records::{
     record_assignment, record_call, record_go_stmt, record_select_receive, record_send,
@@ -102,14 +102,13 @@ impl<'a> ExtractionState<'a> {
     }
 
     pub(super) fn pop_scope(&mut self) {
-        if let Some(id) = self.scope_stack.pop() {
-            if self
+        if let Some(id) = self.scope_stack.pop()
+            && self
                 .scopes
                 .get(id)
                 .is_some_and(|s| s.kind == ScopeKind::Function)
-            {
-                self.function_scope_stack.pop();
-            }
+        {
+            self.function_scope_stack.pop();
         }
     }
 
@@ -136,61 +135,38 @@ pub(super) fn walk_node(
     state: &mut ExtractionState<'_>,
 ) {
     let mut entered_scope = None;
+    // A closure temporarily becomes the current function while its body is
+    // traversed. Keep the enclosing identity so sibling statements after the
+    // closure remain attributed to the outer function.
+    let mut restore_function = None;
 
     match node.kind() {
         "function_declaration" | "func_literal" | "method_declaration" => {
-            let func_name = node
-                .child_by_field_name("name")
-                .and_then(|n| n.utf8_text(src).ok())
-                .unwrap_or("<anonymous>");
-            let func_name: SharedText = Arc::from(func_name);
-            state.current_function = Some(func_name.clone());
+            let func_name = function_identity(node, src);
+            let previous_function = state.current_function.replace(func_name.clone());
+            restore_function = Some(previous_function);
             // Extract parameter names for TaintSummary computation.
             let params = extract_param_names(node, src);
             state.function_params.insert(func_name.clone(), params);
             state
                 .function_ranges
-                .insert(func_name.clone(), node.start_byte()..node.end_byte());
-            entered_scope = Some((
-                ScopeKind::Function,
-                node.start_byte()..node.end_byte(),
-                Some(func_name),
-            ));
+                .insert(func_name, node.start_byte()..node.end_byte());
+            entered_scope = Some((ScopeKind::Function, node.start_byte()..node.end_byte()));
         }
         "block" => {
-            entered_scope = Some((
-                ScopeKind::Block,
-                node.start_byte()..node.end_byte(),
-                state.current_function.clone(),
-            ));
+            entered_scope = Some((ScopeKind::Block, node.start_byte()..node.end_byte()));
         }
         "if_statement" => {
-            entered_scope = Some((
-                ScopeKind::If,
-                node.start_byte()..node.end_byte(),
-                state.current_function.clone(),
-            ));
+            entered_scope = Some((ScopeKind::If, node.start_byte()..node.end_byte()));
         }
         "for_statement" | "range_clause" => {
-            entered_scope = Some((
-                ScopeKind::For,
-                node.start_byte()..node.end_byte(),
-                state.current_function.clone(),
-            ));
+            entered_scope = Some((ScopeKind::For, node.start_byte()..node.end_byte()));
         }
         "switch_statement" | "expression_switch_statement" => {
-            entered_scope = Some((
-                ScopeKind::Switch,
-                node.start_byte()..node.end_byte(),
-                state.current_function.clone(),
-            ));
+            entered_scope = Some((ScopeKind::Switch, node.start_byte()..node.end_byte()));
         }
         "case_clause" | "default_case" => {
-            entered_scope = Some((
-                ScopeKind::Case,
-                node.start_byte()..node.end_byte(),
-                state.current_function.clone(),
-            ));
+            entered_scope = Some((ScopeKind::Case, node.start_byte()..node.end_byte()));
         }
         "call_expression" => {
             record_call(node, state);
@@ -210,7 +186,7 @@ pub(super) fn walk_node(
         _ => {}
     }
 
-    if let Some((kind, ref range, _)) = entered_scope {
+    if let Some((kind, ref range)) = entered_scope {
         state.push_scope(kind, range.clone());
     }
 
@@ -227,9 +203,31 @@ pub(super) fn walk_node(
 
     if entered_scope.is_some() {
         state.pop_scope();
-        if matches!(entered_scope, Some((ScopeKind::Function, _, _))) {
-            state.current_function = None;
-        }
+    }
+    if let Some(previous_function) = restore_function {
+        state.current_function = previous_function;
+    }
+}
+
+/// Stable identity for per-file function facts. Go permits same-named methods
+/// on different receiver types, so a bare method name would overwrite a prior
+/// method's parameter/range summary in a single source file.
+fn function_identity(node: tree_sitter::Node, src: &[u8]) -> SharedText {
+    let name = node
+        .child_by_field_name("name")
+        .and_then(|n| n.utf8_text(src).ok())
+        .unwrap_or("<anonymous>");
+    if node.kind() != "method_declaration" {
+        return Arc::from(name);
+    }
+    let receiver = node
+        .child_by_field_name("receiver")
+        .and_then(|n| n.utf8_text(src).ok())
+        .map(normalize_receiver_type)
+        .filter(|receiver| !receiver.is_empty());
+    match receiver {
+        Some(receiver) => Arc::from(format!("{receiver}.{name}")),
+        None => Arc::from(name),
     }
 }
 

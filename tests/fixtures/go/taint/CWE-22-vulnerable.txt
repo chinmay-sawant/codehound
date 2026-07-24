@@ -8,9 +8,10 @@ package sample
 import (
 	"net/http"
 	"os"
+	"path/filepath"
 )
 
 func ServeFile(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Query().Get("path")
-	_ = os.Open(path)
+	_ = os.Open(filepath.Clean(path))
 }

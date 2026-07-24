@@ -6,7 +6,7 @@ mod t {
 
     #[test]
     fn disabled_collector_is_noop() {
-        let mut collector = TimingCollector::new(false);
+        let collector = TimingCollector::new(false);
         let value = collector.measure("noop", || 42);
         assert_eq!(value, 42);
         assert!(collector.to_summary().phases.is_empty());
@@ -14,7 +14,7 @@ mod t {
 
     #[test]
     fn measure_records_span() {
-        let mut collector = TimingCollector::new(true);
+        let collector = TimingCollector::new(true);
         collector.measure("work", || std::thread::sleep(Duration::from_millis(1)));
         let summary = collector.to_summary();
         assert_eq!(summary.phases.len(), 1);
@@ -24,8 +24,8 @@ mod t {
 
     #[test]
     fn merge_combines_spans() {
-        let mut a = TimingCollector::new(true);
-        let mut b = TimingCollector::new(true);
+        let a = TimingCollector::new(true);
+        let b = TimingCollector::new(true);
         a.measure("phase", || ());
         b.measure("phase", || ());
         a.merge(&b);
@@ -35,8 +35,8 @@ mod t {
 
     #[test]
     fn owned_merge_combines_spans_without_borrowing_source() {
-        let mut target = TimingCollector::new(true);
-        let mut source = TimingCollector::new(true);
+        let target = TimingCollector::new(true);
+        let source = TimingCollector::new(true);
         target.measure("phase", || ());
         source.measure("phase", || ());
         target.merge_owned(source);

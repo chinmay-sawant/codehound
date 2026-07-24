@@ -58,9 +58,7 @@ fn materialized_fixture_scan_within_smoke_budget() {
     );
     assert!(
         elapsed < MAX_FULL_SCAN,
-        "parse+scan regression: took {:?} (limit {:?})",
-        elapsed,
-        MAX_FULL_SCAN
+        "parse+scan regression: took {elapsed:?} (limit {MAX_FULL_SCAN:?})"
     );
 }
 
@@ -85,8 +83,6 @@ fn materialized_fixture_scan_repeat_within_budget() {
 
     assert!(
         worst < MAX_COLLECT_AND_SCAN,
-        "repeat scan regression: worst of 3 took {:?} (limit {:?})",
-        worst,
-        MAX_COLLECT_AND_SCAN
+        "repeat scan regression: worst of 3 took {worst:?} (limit {MAX_COLLECT_AND_SCAN:?})"
     );
 }

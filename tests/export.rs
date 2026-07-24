@@ -98,3 +98,127 @@ fn exports_context_and_chunk_files() {
 
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn export_refuses_to_overwrite_unowned_output_files() {
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let root = std::env::temp_dir().join(format!("codehound-export-owned-test-{unique}"));
+    let output_dir = root.join("contexts");
+    let source_path = root.join("sample.go");
+    std::fs::create_dir_all(&output_dir).unwrap();
+    std::fs::write(&source_path, "package main\n").unwrap();
+    std::fs::write(output_dir.join("1.txt"), "do not replace").unwrap();
+    let findings = vec![Finding::new(FindingInputs::new(
+        "CWE-89",
+        "title",
+        source_path.to_string_lossy().to_string(),
+        LineCol { line: 1, column: 1 },
+        "message",
+        Severity::Medium,
+        std::borrow::Cow::Borrowed(&[]),
+    ))];
+
+    let error = export_findings(
+        &findings,
+        &ExportOptions {
+            export_context: true,
+            export_chunks: false,
+            chunk_size: 25,
+            context_output_dir: output_dir.clone(),
+            chunks_output_dir: root.join("chunks"),
+        },
+        &std::collections::HashMap::new(),
+    )
+    .expect_err("user-owned output must not be overwritten");
+
+    assert!(error.to_string().contains("refusing to overwrite"));
+    assert_eq!(
+        std::fs::read_to_string(output_dir.join("1.txt")).unwrap(),
+        "do not replace"
+    );
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn export_preserves_foreign_files_and_replaces_owned_on_rerun() {
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let root = std::env::temp_dir().join(format!("codehound-export-rerun-{unique}"));
+    let output_dir = root.join("contexts");
+    let source_path = root.join("sample.go");
+    std::fs::create_dir_all(&output_dir).unwrap();
+    std::fs::write(&source_path, "package main\nfunc main() {}\n").unwrap();
+    std::fs::write(output_dir.join("notes.txt"), "foreign").unwrap();
+
+    let findings = vec![Finding::new(FindingInputs::new(
+        "CWE-89",
+        "title",
+        source_path.to_string_lossy().to_string(),
+        LineCol { line: 1, column: 1 },
+        "first",
+        Severity::Medium,
+        std::borrow::Cow::Borrowed(&[]),
+    ))];
+    let options = ExportOptions {
+        export_context: true,
+        export_chunks: false,
+        chunk_size: 25,
+        context_output_dir: output_dir.clone(),
+        chunks_output_dir: root.join("chunks"),
+    };
+
+    export_findings(&findings, &options, &std::collections::HashMap::new()).unwrap();
+    let first = std::fs::read_to_string(output_dir.join("1.txt")).unwrap();
+    assert!(first.contains("first"));
+
+    let findings = vec![Finding::new(FindingInputs::new(
+        "CWE-89",
+        "title",
+        source_path.to_string_lossy().to_string(),
+        LineCol { line: 1, column: 1 },
+        "second",
+        Severity::Medium,
+        std::borrow::Cow::Borrowed(&[]),
+    ))];
+    export_findings(&findings, &options, &std::collections::HashMap::new()).unwrap();
+    let second = std::fs::read_to_string(output_dir.join("1.txt")).unwrap();
+    assert!(second.contains("second"));
+    assert!(!second.contains("first"));
+    assert_eq!(
+        std::fs::read_to_string(output_dir.join("notes.txt")).unwrap(),
+        "foreign"
+    );
+    assert!(output_dir.join(".codehound-export.json").is_file());
+
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn export_rejects_shared_context_and_chunk_directory() {
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("system time after Unix epoch")
+        .as_nanos();
+    let root = std::env::temp_dir().join(format!("codehound-export-shared-{unique}"));
+    let output_dir = root.join("output");
+    let error = export_findings(
+        &[],
+        &ExportOptions {
+            export_context: true,
+            export_chunks: true,
+            chunk_size: 25,
+            context_output_dir: output_dir,
+            chunks_output_dir: root.join("nested").join("..").join("output"),
+        },
+        &std::collections::HashMap::new(),
+    )
+    .expect_err("shared export directory must be rejected");
+
+    assert!(error.to_string().contains("different output directories"));
+    std::fs::remove_dir_all(root).expect("remove export root");
+}

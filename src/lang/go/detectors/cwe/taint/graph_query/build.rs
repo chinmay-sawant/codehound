@@ -96,16 +96,16 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
             kind: source.kind,
             byte_range: source.byte_range.clone(),
         });
-        if let Some(var) = &source.result_variable {
-            if let Some(target) = resolve_variable(
+        if let Some(var) = &source.result_variable
+            && let Some(target) = resolve_variable(
                 &decl_nodes,
                 &scope_by_id,
                 &scope_order,
                 source.byte_range.start,
                 var,
-            ) {
-                graph.add_edge(id, target, EdgeKind::Assignment);
-            }
+            )
+        {
+            graph.add_edge(id, target, EdgeKind::Assignment);
         }
         wire_arguments(
             &mut graph,
@@ -124,16 +124,16 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
             kind: sanitizer.kind,
             byte_range: sanitizer.byte_range.clone(),
         });
-        if let Some(var) = &sanitizer.result_variable {
-            if let Some(target) = resolve_variable(
+        if let Some(var) = &sanitizer.result_variable
+            && let Some(target) = resolve_variable(
                 &decl_nodes,
                 &scope_by_id,
                 &scope_order,
                 sanitizer.byte_range.start,
                 var,
-            ) {
-                graph.add_edge(id, target, EdgeKind::Assignment);
-            }
+            )
+        {
+            graph.add_edge(id, target, EdgeKind::Assignment);
         }
         wire_arguments(
             &mut graph,
@@ -318,18 +318,17 @@ pub fn build_taint_graph(annotations: &TaintAnnotations) -> TaintGraph {
                 assignment.scope,
                 base,
                 assignment.byte_range.start,
-            ) {
-                if !assignment.from_source_or_sanitizer {
-                    for name in referenced_names(&assignment.rhs_text) {
-                        if let Some(source_id) = resolve_variable(
-                            &decl_nodes,
-                            &scope_by_id,
-                            &scope_order,
-                            assignment.byte_range.start,
-                            name,
-                        ) {
-                            graph.add_edge(source_id, base_id, EdgeKind::Assignment);
-                        }
+            ) && !assignment.from_source_or_sanitizer
+            {
+                for name in referenced_names(&assignment.rhs_text) {
+                    if let Some(source_id) = resolve_variable(
+                        &decl_nodes,
+                        &scope_by_id,
+                        &scope_order,
+                        assignment.byte_range.start,
+                        name,
+                    ) {
+                        graph.add_edge(source_id, base_id, EdgeKind::Assignment);
                     }
                 }
             }
@@ -397,10 +396,10 @@ fn resolve_variable(
             return Some(id);
         }
         // If name is `base.field`, also try base alone (conservative).
-        if let Some((base, _)) = name.split_once('.') {
-            if let Some(id) = resolve_decl_at(decl_nodes, current.id, base, byte_offset) {
-                return Some(id);
-            }
+        if let Some((base, _)) = name.split_once('.')
+            && let Some(id) = resolve_decl_at(decl_nodes, current.id, base, byte_offset)
+        {
+            return Some(id);
         }
         current = scope_by_id.get(&current.parent?)?;
     }
@@ -549,7 +548,6 @@ fn is_source_or_sanitizer_assignment(rhs: &str) -> bool {
     // Align with classify_sanitizer: Clean/Prepare are not path/SQL safe alone.
     let is_sanitizer = call_name == "filepath.Base"
         || call_name == "html.EscapeString"
-        || call_name == "html.UnescapeString"
         || call_name == "url.QueryEscape"
         || call_name == "url.PathEscape"
         || call_name == "ldap.EscapeFilter"
@@ -593,6 +591,7 @@ fn is_known_propagator(func_name: &str) -> bool {
     matches!(
         func_name,
         "filepath.Join"
+            | "filepath.Clean"
             | "strings.Join"
             | "strings.Replace"
             | "strings.Repeat"
@@ -601,10 +600,14 @@ fn is_known_propagator(func_name: &str) -> bool {
             | "fmt.Sprintf"
             | "fmt.Errorf"
             | "path.Join"
+            | "path.Clean"
             | "append"
             | "json.Marshal"
             | "strconv.Itoa"
             | "strconv.FormatInt"
+            // Unescaping restores markup-significant characters; propagate taint,
+            // never treat as an HTML sanitizer (see classify_sanitizer).
+            | "html.UnescapeString"
     )
 }
 

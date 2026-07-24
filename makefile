@@ -7,6 +7,7 @@ RUN_PROFILE ?= perf-run
 SKIP_BUILD ?= 0
 
 RUN_BIN := ./target/$(RUN_PROFILE)/codehound
+RELEASE_BIN := ./target/release/codehound
 
 # Build the project
 build:
@@ -27,7 +28,7 @@ clean-fixtures:
 
 # Check code for linting issues using clippy
 lint:
-	$(CARGO) clippy --all-targets --all-features -- -D warnings
+	$(CARGO) clippy --all-targets --all-features --locked -- -D warnings
 	$(CARGO) fmt --check
 
 # Public docs with warnings as errors (intra-doc links, missing docs on public API).

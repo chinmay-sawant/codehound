@@ -340,3 +340,73 @@ re.compile(x)
         Some(&IgnoreDirective::rules(vec!["SLOP101".to_string()]))
     );
 }
+
+#[test]
+fn parse_ignore_ignores_directive_inside_go_raw_string() {
+    let ignores = parse_inline_ignores(
+        r#"
+s := `
+// codehound-ignore: CWE-22
+`
+value := input
+"#,
+    );
+    assert!(
+        ignores.is_empty(),
+        "directive-like text inside a Go raw string must not suppress: {ignores:?}"
+    );
+}
+
+#[test]
+fn parse_ignore_ignores_directive_inside_go_block_comment() {
+    let ignores = parse_inline_ignores(
+        r#"
+/*
+// codehound-ignore: CWE-22
+*/
+value := input
+"#,
+    );
+    assert!(
+        ignores.is_empty(),
+        "directive-looking // text inside /* */ must not suppress: {ignores:?}"
+    );
+}
+
+#[test]
+fn parse_ignore_ignores_directive_inside_python_triple_string() {
+    let ignores = parse_inline_ignores(
+        r#"
+s = """
+# codehound-ignore: SLOP101
+"""
+re.compile(x)
+"#,
+    );
+    assert!(
+        ignores.is_empty(),
+        "directive-like text inside a Python triple string must not suppress: {ignores:?}"
+    );
+}
+
+#[test]
+fn parse_ignore_still_honors_real_comment_after_go_raw_string() {
+    let ignores = parse_inline_ignores(
+        "s := `// codehound-ignore: CWE-22`\n// codehound-ignore: CWE-22\nvalue := input\n",
+    );
+    assert_eq!(
+        ignores.get(&3),
+        Some(&IgnoreDirective::rules(vec!["CWE-22".to_string()]))
+    );
+}
+
+#[test]
+fn parse_ignore_still_honors_real_python_comment_after_triple_string() {
+    let ignores = parse_inline_ignores(
+        "s = \"\"\"# codehound-ignore: SLOP101\"\"\"\n# codehound-ignore: SLOP101\nre.compile(x)\n",
+    );
+    assert_eq!(
+        ignores.get(&3),
+        Some(&IgnoreDirective::rules(vec!["SLOP101".to_string()]))
+    );
+}

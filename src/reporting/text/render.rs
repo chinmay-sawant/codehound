@@ -57,20 +57,20 @@ pub fn write_with_options(
         if f.suppressed {
             writeln!(out, "  status: suppressed")?;
         }
-        if options.verbose {
-            if let Some(evidence) = &f.evidence {
-                writeln!(out, "  evidence: {}", evidence_summary(evidence))?;
-            }
+        if options.verbose
+            && let Some(evidence) = &f.evidence
+        {
+            writeln!(out, "  evidence: {}", evidence_summary(evidence))?;
         }
-        if !options.suppress_snippet {
-            if let Some(snip) = &f.snippet {
-                for line in snip.lines() {
-                    writeln!(
-                        out,
-                        "    {}",
-                        with_color(options.color, line, || style::dimmed(line).to_string())
-                    )?;
-                }
+        if !options.suppress_snippet
+            && let Some(snip) = &f.snippet
+        {
+            for line in snip.lines() {
+                writeln!(
+                    out,
+                    "    {}",
+                    with_color(options.color, line, || style::dimmed(line).to_string())
+                )?;
             }
         }
         if let Some(cwes) = view.non_empty_cwe() {
@@ -93,12 +93,11 @@ pub fn write_with_options(
 
     write_summary(out, result, options)?;
 
-    if options.debug_timing {
-        if let Some(stats) = result.stats.as_ref() {
-            if let Some(timing) = stats.timing.as_ref() {
-                super::summary::write_detector_timing(out, timing)?;
-            }
-        }
+    if options.debug_timing
+        && let Some(stats) = result.stats.as_ref()
+        && let Some(timing) = stats.timing.as_ref()
+    {
+        super::summary::write_detector_timing(out, timing)?;
     }
 
     Ok(())

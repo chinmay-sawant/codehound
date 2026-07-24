@@ -14,8 +14,12 @@ pub fn exit_code_for_error(err: &codehound::Error) -> u8 {
     match err {
         Error::Config(_) => EXIT_CONFIG,
         Error::Parse { .. } | Error::Grammar(_) => EXIT_CONFIG,
-        Error::Io(_) | Error::PathIo { .. } | Error::Cache(_) | Error::Json(_) | Error::Walk(_) => {
-            EXIT_INTERNAL
-        }
+        Error::Io(_)
+        | Error::PathIo { .. }
+        | Error::Cache(_)
+        | Error::Json(_)
+        | Error::SarifEvidence { .. }
+        | Error::SarifRule { .. }
+        | Error::Walk(_) => EXIT_INTERNAL,
     }
 }

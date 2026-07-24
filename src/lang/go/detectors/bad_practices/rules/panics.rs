@@ -103,22 +103,20 @@ pub(crate) fn detect_bp_13_background_context_in_library(
             false
         };
 
-        if node.kind() == "call_expression" {
-            if let Some(func) = node.child_by_field_name("function") {
-                if func.utf8_text(src).ok() == Some("context.Background")
-                    && function_stack
-                        .last()
-                        .is_some_and(|name| name != "main" && name != "init")
-                {
-                    push_at(
-                        unit,
-                        out,
-                        &crate::lang::go::detectors::bad_practices::BP_13_META,
-                        node.start_byte(),
-                        "context.Background used in library code; accept and propagate a caller context",
-                    );
-                }
-            }
+        if node.kind() == "call_expression"
+            && let Some(func) = node.child_by_field_name("function")
+            && func.utf8_text(src).ok() == Some("context.Background")
+            && function_stack
+                .last()
+                .is_some_and(|name| name != "main" && name != "init")
+        {
+            push_at(
+                unit,
+                out,
+                &crate::lang::go::detectors::bad_practices::BP_13_META,
+                node.start_byte(),
+                "context.Background used in library code; accept and propagate a caller context",
+            );
         }
 
         let mut cursor = node.walk();

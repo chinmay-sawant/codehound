@@ -52,10 +52,10 @@ pub(super) fn visit_dir(dir: &Path, extensions: &[&str], out: &mut Vec<PathBuf>)
                 out.push(init);
             }
             visit_dir(&path, extensions, out);
-        } else if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
-            if extensions.contains(&ext) {
-                out.push(path);
-            }
+        } else if let Some(ext) = path.extension().and_then(|e| e.to_str())
+            && extensions.contains(&ext)
+        {
+            out.push(path);
         }
     }
 }

@@ -60,6 +60,9 @@ pub(crate) struct MergedScan {
     pub suppressed_count: usize,
     pub stats: ScanStats,
     pub rescan_files: Vec<(String, bool)>,
+    /// Cache identities successfully processed in this chunk. Used to avoid
+    /// deleting a dependent that same-scan cascade already rebuilt.
+    pub completed_cache_files: std::collections::HashSet<String>,
     pub timing: TimingCollector,
 }
 
@@ -74,8 +77,12 @@ pub(crate) fn scan_entries_parallel(
 ) -> Result<MergedScan, Error> {
     let total = entries.len();
 
-    let preflight =
-        preflight_cache_hits(ctx, entries, cache.as_deref().map(CacheSession::as_store));
+    let preflight = preflight_cache_hits(
+        ctx,
+        entries,
+        cache.as_deref().map(CacheSession::as_store),
+        project_root,
+    );
     let scan_outcomes = dispatch_parallel_scan(
         registry,
         ctx,
@@ -143,6 +150,7 @@ fn preflight_cache_hits(
     ctx: &ScanContext,
     entries: &[ScanEntry],
     cache: Option<&CacheStore>,
+    project_root: &Path,
 ) -> PreflightResult {
     let total = entries.len();
     let mut to_scan = Vec::with_capacity(total);
@@ -183,11 +191,12 @@ fn preflight_cache_hits(
             if !cache.should_cache_path(entry.path.as_ref()) {
                 return Phase1Item::SkipScan(i);
             }
-            let (source, rel) = match read_entry_utf8(entry) {
+            let (source, _) = match read_entry_utf8(entry) {
                 Ok(v) => v,
                 Err(e) => return Phase1Item::Err(e),
             };
-            let rel = crate::engine::path_identity::normalize_project_path(&rel);
+            let rel =
+                crate::engine::path_identity::project_relative_path(&entry.path, project_root);
             let hash = content_hash(&source);
             let hit = match cache.lookup(&rel, &hash) {
                 CacheLookup::Hit(cached) => Some(cached),
@@ -227,17 +236,17 @@ fn preflight_cache_hits(
     // Phase 3: emit hits only when not dirty; otherwise force re-scan.
     let mut cached_files = Vec::new();
     for p in provisional {
-        if let Some(cached) = p.hit {
-            if !dirty.contains(&p.rel) {
-                cache_hit_count += 1;
-                cached_outcomes.push(process_cache_hit(ctx, cached, p.source.clone()));
-                cached_files.push(CachedFileInfo {
-                    source: p.source,
-                    display_path: p.rel,
-                    language: p.language,
-                });
-                continue;
-            }
+        if let Some(cached) = p.hit
+            && !dirty.contains(&p.rel)
+        {
+            cache_hit_count += 1;
+            cached_outcomes.push(process_cache_hit(ctx, cached, p.source.clone()));
+            cached_files.push(CachedFileInfo {
+                source: p.source,
+                display_path: p.rel,
+                language: p.language,
+            });
+            continue;
         }
         to_scan.push((
             p.index,
@@ -260,6 +269,9 @@ fn preflight_cache_hits(
 /// detector state (e.g. call graphs for taint analysis) that `finalize()`
 /// needs. The generated per-file findings are discarded — cached findings
 /// are used instead.
+///
+/// ponytail: rebuild stays serial; ordered parallel preparation is a
+/// follow-up once fresh-vs-cached taint throughput is measured.
 fn accumulate_state_for_cached(
     registry: &Registry,
     ctx: &ScanContext,
@@ -272,12 +284,21 @@ fn accumulate_state_for_cached(
             continue;
         };
         let parser = match pool.parser_for(plugin) {
-            Ok(p) => p,
-            Err(_) => continue,
+            Ok(parser) => parser,
+            Err(error) => {
+                errors.push(cached_rebuild_parse_error(
+                    &info.display_path,
+                    format!("configuring parser for cached file: {error}"),
+                ));
+                continue;
+            }
         };
-        let tree = match parser.parse(info.source.as_bytes(), None) {
-            Some(t) => t,
-            None => continue,
+        let tree = match parse_cached_tree(parser, info.source.as_bytes(), &info.display_path) {
+            Ok(tree) => tree,
+            Err(error) => {
+                errors.push(error);
+                continue;
+            }
         };
         let unit = ParsedUnit {
             language: info.language,
@@ -319,6 +340,28 @@ fn accumulate_state_for_cached(
 fn reset_detector_after_panic(detector: &dyn crate::core::Detector) {
     if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| detector.reset_state())).is_err() {
         tracing::error!("detector reset_state panicked while recovering from a detector panic");
+    }
+}
+
+fn cached_rebuild_parse_error(display_path: &str, message: impl Into<String>) -> ScanError {
+    ScanError {
+        path: std::path::PathBuf::from(display_path),
+        kind: ScanErrorKind::Parse,
+        message: message.into(),
+    }
+}
+
+fn parse_cached_tree(
+    parser: &mut tree_sitter::Parser,
+    source: &[u8],
+    display_path: &str,
+) -> Result<tree_sitter::Tree, ScanError> {
+    match parser.parse(source, None) {
+        Some(tree) => Ok(tree),
+        None => Err(cached_rebuild_parse_error(
+            display_path,
+            "tree-sitter returned no tree for cached file",
+        )),
     }
 }
 
@@ -387,6 +430,7 @@ fn merge_parallel_results(
         suppressed_count: 0,
         stats: ScanStats::default(),
         rescan_files: Vec::new(),
+        completed_cache_files: std::collections::HashSet::new(),
         timing: TimingCollector::new(collect_stats),
     };
 
@@ -454,6 +498,7 @@ fn append_file_contribution(
     suppressed_count: usize,
     retain_sources: bool,
 ) {
+    merged.completed_cache_files.insert(cache_key.clone());
     merged.findings.append(findings);
     if retain_sources {
         merged.source_cache.insert(cache_key, source);
@@ -508,5 +553,31 @@ fn panic_message(payload: &Box<dyn std::any::Any + Send>) -> String {
         s.clone()
     } else {
         "<non-string panic payload>".to_string()
+    }
+}
+
+#[cfg(test)]
+mod cached_rebuild_tests {
+    use super::{cached_rebuild_parse_error, parse_cached_tree};
+    use crate::engine::result::ScanErrorKind;
+
+    #[test]
+    fn missing_tree_for_cached_file_is_a_parse_scan_error() {
+        // An unconfigured parser returns None from parse — the same failure
+        // mode accumulate_state_for_cached must surface instead of skipping.
+        let mut parser = tree_sitter::Parser::new();
+        let err = parse_cached_tree(&mut parser, b"package main\n", "pkg/x.go")
+            .expect_err("unconfigured parser must yield no tree");
+        assert_eq!(err.kind, ScanErrorKind::Parse);
+        assert_eq!(err.path.as_os_str(), "pkg/x.go");
+        assert!(err.message.contains("no tree for cached file"));
+    }
+
+    #[test]
+    fn parser_setup_failures_use_parse_scan_error_kind() {
+        let err =
+            cached_rebuild_parse_error("pkg/y.go", "configuring parser for cached file: boom");
+        assert_eq!(err.kind, ScanErrorKind::Parse);
+        assert!(err.message.contains("configuring parser for cached file"));
     }
 }

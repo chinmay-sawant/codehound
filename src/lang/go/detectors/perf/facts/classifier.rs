@@ -27,10 +27,10 @@ pub(crate) fn collect_var_spec_kinds<'a>(
         if name_node.kind() != "identifier" {
             continue;
         }
-        if let Ok(name) = name_node.utf8_text(src) {
-            if !name.is_empty() {
-                names.push(name);
-            }
+        if let Ok(name) = name_node.utf8_text(src)
+            && !name.is_empty()
+        {
+            names.push(name);
         }
     }
 
@@ -100,10 +100,10 @@ fn classify_single_expr(expr: &str) -> Option<VarKind> {
     if is_numeric_literal_text(body) {
         return Some(VarKind::Numeric);
     }
-    if let Some(rest) = body.strip_suffix('i') {
-        if is_numeric_literal_text(rest) {
-            return Some(VarKind::Numeric);
-        }
+    if let Some(rest) = body.strip_suffix('i')
+        && is_numeric_literal_text(rest)
+    {
+        return Some(VarKind::Numeric);
     }
     None
 }

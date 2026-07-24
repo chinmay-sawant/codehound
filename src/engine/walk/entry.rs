@@ -184,22 +184,21 @@ impl RootPathMatcher {
     }
 
     fn allows(&self, path: &Path) -> bool {
-        if self.exclude_tests {
-            if let Some(file_name) = path.file_name().and_then(|n| n.to_str()) {
-                if file_name.contains("_test") {
-                    return false;
-                }
-            }
+        if self.exclude_tests
+            && let Some(file_name) = path.file_name().and_then(|n| n.to_str())
+            && file_name.contains("_test")
+        {
+            return false;
         }
-        if let Some(include) = &self.include {
-            if !include.matched(path, false).is_ignore() {
-                return false;
-            }
+        if let Some(include) = &self.include
+            && !include.matched(path, false).is_ignore()
+        {
+            return false;
         }
-        if let Some(exclude) = &self.exclude {
-            if exclude.matched(path, false).is_ignore() {
-                return false;
-            }
+        if let Some(exclude) = &self.exclude
+            && exclude.matched(path, false).is_ignore()
+        {
+            return false;
         }
         true
     }

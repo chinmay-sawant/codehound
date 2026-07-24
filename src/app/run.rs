@@ -176,7 +176,27 @@ impl ScanRun {
 }
 
 fn run_scan(cli: Cli) -> Result<ExitCode> {
+    validate_output_options(&cli)?;
     ScanRun::new(cli).execute()
+}
+
+/// Reject output combinations that would otherwise silently change a requested
+/// machine-readable payload into the text-only `--no-terminal` summary.
+fn validate_output_options(cli: &Cli) -> Result<()> {
+    if cli.no_terminal
+        && (cli.format != OutputFormat::Text || cli.sarif_compact || cli.json_envelope)
+    {
+        anyhow::bail!(
+            "--no-terminal only supports text output; remove it when requesting JSON or SARIF"
+        );
+    }
+    if cli.sarif_compact && cli.format != OutputFormat::Sarif {
+        anyhow::bail!("--sarif-compact requires --format sarif");
+    }
+    if cli.json_envelope && cli.format != OutputFormat::Json {
+        anyhow::bail!("--json-envelope requires --format json");
+    }
+    Ok(())
 }
 
 pub(crate) fn scan_context_params_for_run(
@@ -203,8 +223,9 @@ pub(crate) fn scan_context_params_for_run(
         taint_depth: cli.taint_depth,
         show_ignored: cli.show_ignored,
         profile: cli.profile.to_profile(),
-        // Only pay the monorepo source_cache cost when export needs it.
-        retain_sources: cli.export_context || cli.export_chunks,
+        // Export lazily reads only files that produced findings. Embedders can
+        // still opt into `retain_sources` directly when they need a snapshot.
+        retain_sources: false,
     }
 }
 
@@ -236,19 +257,12 @@ fn rebuild_cache_if_requested(
     *cache_store = open_cache_store(cli, config);
 }
 
-/// Refuse to `remove_dir_all` paths that look like project roots or the FS root.
+/// Refuse to `remove_dir_all` unless this is a non-symlink CodeHound cache root.
 fn validate_cache_purge_path(dir: &Path) -> Result<(), String> {
-    let name = dir.file_name().and_then(|s| s.to_str()).unwrap_or("");
-    // Prefer directories that look like a cache (default name or explicit cache_dir).
-    let looks_like_cache = name == DEFAULT_CACHE_DIR.trim_start_matches("./")
-        || name == ".codehound-cache"
-        || name.contains("codehound-cache")
-        || name.contains("cache");
-    if !looks_like_cache {
-        return Err(
-            "path does not look like a codehound cache directory (name must contain 'cache')"
-                .into(),
-        );
+    let metadata =
+        std::fs::symlink_metadata(dir).map_err(|e| format!("could not inspect cache path: {e}"))?;
+    if metadata.file_type().is_symlink() {
+        return Err("refusing to purge a symlinked cache path".into());
     }
     let canon = dir
         .canonicalize()
@@ -263,6 +277,12 @@ fn validate_cache_purge_path(dir: &Path) -> Result<(), String> {
         if canon_str == f {
             return Err(format!("refusing to delete system path {f}"));
         }
+    }
+    let conventional = canon.file_name().and_then(|name| name.to_str()) == Some(DEFAULT_CACHE_DIR);
+    let manifest = canon.join("manifest.json");
+    let files = canon.join("files");
+    if !(conventional || manifest.is_file() && files.is_dir()) {
+        return Err("path is not a CodeHound cache directory with a manifest".into());
     }
     Ok(())
 }
@@ -493,9 +513,8 @@ fn write_diagnostics(cli: &Cli, result: &AnalysisResult) -> Result<()> {
         return Ok(());
     };
     let diagnostics = Diagnostics::from_stats(stats);
-    let file = std::fs::File::create(diagnostics_path)
-        .with_context(|| format!("creating diagnostics file {}", diagnostics_path.display()))?;
-    serde_json::to_writer_pretty(file, &diagnostics)
+    diagnostics
+        .write_to_path(diagnostics_path)
         .with_context(|| format!("writing diagnostics file {}", diagnostics_path.display()))?;
     Ok(())
 }
@@ -541,7 +560,7 @@ fn scan_exit_code(result: &AnalysisResult, fail_policy: codehound::core::FailPol
 
 #[cfg(test)]
 mod tests {
-    use super::{resolve_scan_path, resolve_scan_paths};
+    use super::{resolve_scan_path, resolve_scan_paths, validate_cache_purge_path};
     use std::fs;
     use std::path::PathBuf;
 
@@ -609,5 +628,35 @@ mod tests {
             Some("go")
         );
         assert_eq!(resolved[1], PathBuf::from("src/app/run.rs"));
+    }
+
+    #[test]
+    fn cache_purge_requires_owned_cache_layout() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("target")
+            .join(format!("cache-purge-{}", std::process::id()));
+        fs::create_dir_all(&root).expect("create user cache-like directory");
+        assert!(validate_cache_purge_path(&root).is_err());
+        fs::create_dir_all(root.join("files")).expect("create owned cache files directory");
+        fs::write(root.join("manifest.json"), "{}").expect("create cache manifest");
+        assert!(validate_cache_purge_path(&root).is_ok());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn cache_purge_refuses_symlinked_paths() {
+        use std::os::unix::fs::symlink;
+
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("target")
+            .join(format!("cache-purge-link-{}", std::process::id()));
+        let target = root.join("owned");
+        let link = root.join("linked-cache");
+        fs::create_dir_all(target.join("files")).expect("create owned cache");
+        fs::write(target.join("manifest.json"), "{}").expect("create manifest");
+        symlink(&target, &link).expect("create cache symlink");
+        assert!(validate_cache_purge_path(&link).is_err());
+        let _ = fs::remove_dir_all(root);
     }
 }

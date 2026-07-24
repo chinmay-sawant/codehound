@@ -20,18 +20,18 @@ pub(crate) fn detect_bp_10_time_after_in_loop(
     let src = unit.source.as_bytes();
     let root = unit.tree.root_node();
     walk_with_loop_context(root, |node, inside_loop| {
-        if inside_loop && node.kind() == "call_expression" {
-            if let Some(func) = node.child_by_field_name("function") {
-                if func.utf8_text(src).ok() == Some("time.After") {
-                    push_at(
-                        unit,
-                        out,
-                        &crate::lang::go::detectors::bad_practices::BP_10_META,
-                        node.start_byte(),
-                        "time.After inside a loop allocates a new timer per iteration",
-                    );
-                }
-            }
+        if inside_loop
+            && node.kind() == "call_expression"
+            && let Some(func) = node.child_by_field_name("function")
+            && func.utf8_text(src).ok() == Some("time.After")
+        {
+            push_at(
+                unit,
+                out,
+                &crate::lang::go::detectors::bad_practices::BP_10_META,
+                node.start_byte(),
+                "time.After inside a loop allocates a new timer per iteration",
+            );
         }
     });
 }
@@ -92,10 +92,10 @@ fn walk_with_loop_context(root: Node<'_>, mut visit: impl FnMut(Node<'_>, bool))
 
         // Backtrack until we can move to a next sibling.
         loop {
-            if let Some(was_loop) = is_loop_stack.pop() {
-                if was_loop {
-                    loop_depth = loop_depth.saturating_sub(1);
-                }
+            if let Some(was_loop) = is_loop_stack.pop()
+                && was_loop
+            {
+                loop_depth = loop_depth.saturating_sub(1);
             }
             if cursor.goto_next_sibling() {
                 break;

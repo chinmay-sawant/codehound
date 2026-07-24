@@ -135,14 +135,14 @@ fn classify_call(node: Node, source: &[u8], writers: &[&str]) -> Option<CallKind
     let function = node.child_by_field_name("function")?;
     let callee = function.utf8_text(source).ok()?.trim();
 
-    if let Some((receiver, method)) = callee.rsplit_once('.') {
-        if writers.contains(&receiver) {
-            return match method {
-                "Write" => Some(CallKind::BodyWrite),
-                "WriteHeader" => Some(CallKind::WriteHeader),
-                _ => None,
-            };
-        }
+    if let Some((receiver, method)) = callee.rsplit_once('.')
+        && writers.contains(&receiver)
+    {
+        return match method {
+            "Write" => Some(CallKind::BodyWrite),
+            "WriteHeader" => Some(CallKind::WriteHeader),
+            _ => None,
+        };
     }
 
     let writes_through_helper = matches!(

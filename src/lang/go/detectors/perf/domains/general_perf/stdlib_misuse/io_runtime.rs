@@ -93,17 +93,17 @@ pub(crate) fn detect_perf_141(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut 
         count += 1;
         search_from = start + ".URL.Query()".len();
     }
-    if count >= 2 {
-        if let Some((line, col)) = first_location {
-            emit::push_finding(
-                &META_PERF_141,
-                file,
-                line,
-                col,
-                "r.URL.Query() called repeatedly; cache the result in a local variable at the top of the handler",
-                out,
-            );
-        }
+    if count >= 2
+        && let Some((line, col)) = first_location
+    {
+        emit::push_finding(
+            &META_PERF_141,
+            file,
+            line,
+            col,
+            "r.URL.Query() called repeatedly; cache the result in a local variable at the top of the handler",
+            out,
+        );
     }
 }
 

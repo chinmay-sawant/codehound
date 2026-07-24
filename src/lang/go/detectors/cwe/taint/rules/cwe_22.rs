@@ -1,7 +1,6 @@
 //! Detect CWE-22 (Path Traversal) via taint flow.
 
 use crate::core::ParsedUnit;
-use crate::engine::scratch_contains;
 use crate::lang::go::detectors::cwe::facts::GoUnitFacts;
 use crate::lang::go::detectors::cwe::metadata::META_CWE_22;
 use crate::rules::emit;
@@ -18,7 +17,6 @@ pub fn detect_cwe_22_taint(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec
         return;
     };
     let file = unit.display_path.as_str();
-    let source = unit.source.as_ref();
 
     let paths = find_taint_paths(
         graph,
@@ -29,14 +27,6 @@ pub fn detect_cwe_22_taint(unit: &ParsedUnit, facts: &GoUnitFacts, out: &mut Vec
 
     for path in paths {
         if path.sanitized {
-            continue;
-        }
-
-        // ponytail: substring-level confinement check (filepath.Abs + strings.HasPrefix)
-        // matches the old substring detector's is_path_confined. Taint graph doesn't
-        // model control-flow guards, so we fall back to scanning source. Upgrade: when a
-        // proper control-flow-aware propagation model exists, remove this scan.
-        if is_path_confined(source, &path, graph) {
             continue;
         }
 
@@ -93,20 +83,60 @@ fn is_first_arg_tainted(graph: &TaintGraph, path: &TaintPath) -> bool {
     false
 }
 
-/// Confinement: `strings.HasPrefix` on a variable that appears on the taint
-/// path (same binding). Does **not** treat `filepath.Clean` alone as safe.
-/// Abs/EvalSymlinks are optional stronger evidence but Join+root+HasPrefix
-/// is the common production pattern (and matches our safe fixtures).
-fn is_path_confined(source: &str, path: &TaintPath, graph: &TaintGraph) -> bool {
-    if !source.contains("strings.HasPrefix(") {
-        return false;
+#[cfg(test)]
+mod tests {
+    use crate::lang::go::detectors::cwe::facts::{
+        FactBuildOpts, build_go_unit_facts_with, build_taint_graph_for_facts,
+    };
+    use crate::lang::go::detectors::cwe::taint::extract::classify_sanitizer;
+
+    use super::*;
+
+    fn cwe_22_findings(source: &str) -> usize {
+        let unit = crate::lang::parser::parse_go(source).expect("valid Go");
+        let mut facts = build_go_unit_facts_with(&unit, FactBuildOpts::TAINT);
+        build_taint_graph_for_facts(&mut facts);
+        let mut findings = Vec::new();
+        detect_cwe_22_taint(&unit, &facts, &mut findings);
+        findings.len()
     }
-    for node_id in &path.node_ids {
-        if let TaintNode::Variable { name, .. } = &graph.nodes[*node_id] {
-            if scratch_contains(source, "strings.HasPrefix(", name.as_ref(), ",") {
-                return true;
-            }
-        }
+
+    #[test]
+    fn unescape_string_is_not_an_html_sanitizer() {
+        assert!(classify_sanitizer("html.UnescapeString").is_none());
     }
-    false
+
+    #[test]
+    fn post_closure_tainted_sink_still_fires() {
+        let source = r#"package main
+func serve(r *http.Request) {
+    _ = func() { local := "inner"; _ = local }
+    path := r.URL.Query().Get("path")
+    os.Open(path)
+}"#;
+        assert_eq!(cwe_22_findings(source), 1);
+    }
+
+    #[test]
+    fn unrelated_prefix_check_does_not_suppress_path_taint() {
+        let source = r#"package main
+func serve(r *http.Request) {
+    path := r.URL.Query().Get("path")
+    other := "/safe"
+    if !strings.HasPrefix(other, "/safe") { return }
+    os.Open(path)
+}"#;
+        assert_eq!(cwe_22_findings(source), 1);
+    }
+
+    #[test]
+    fn prefix_guard_does_not_prove_path_confinement() {
+        let source = r#"package main
+func serve(r *http.Request) {
+    path := r.URL.Query().Get("path")
+    if !strings.HasPrefix(path, "/safe/") { return }
+    os.Open(path)
+}"#;
+        assert_eq!(cwe_22_findings(source), 1);
+    }
 }

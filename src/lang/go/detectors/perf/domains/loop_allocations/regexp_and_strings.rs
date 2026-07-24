@@ -58,10 +58,10 @@ pub(crate) fn detect_perf_2(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Ve
         // Suppress when the LHS is known to be a numeric accumulator
         // (e.g. `totalDur := 0.0` + `totalDur += d`). The +=-on-numeric
         // pattern is idiomatic and not a string-concatenation smell.
-        if let Some(&kind) = facts.var_kinds.get(assignment.name.as_ref()) {
-            if kind == VarKind::Numeric {
-                continue;
-            }
+        if let Some(&kind) = facts.var_kinds.get(assignment.name.as_ref())
+            && kind == VarKind::Numeric
+        {
+            continue;
         }
         // Suppress when the LHS type is unknown and no string literal
         // appears on the RHS — likely a numeric or time.Duration accumulator
@@ -129,10 +129,10 @@ pub(crate) fn detect_perf_4(unit: &ParsedUnit, facts: &GoPerfFacts, out: &mut Ve
             continue;
         }
         // `make(map[K]V, hint)` — pre-sized allocation is fine.
-        if let Some(close) = expr.find(']') {
-            if expr[close..].contains(',') {
-                continue;
-            }
+        if let Some(close) = expr.find(']')
+            && expr[close..].contains(',')
+        {
+            continue;
         }
 
         let (line, col) = unit.line_col(assignment.start_byte);
