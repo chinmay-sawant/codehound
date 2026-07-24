@@ -142,7 +142,10 @@ mod tests {
 
     #[test]
     fn config_load_rejects_oversized_input() {
-        let path = std::env::temp_dir().join(format!("codehound-large-config-{}.toml", std::process::id()));
+        let path = std::env::temp_dir().join(format!(
+            "codehound-large-config-{}.toml",
+            std::process::id()
+        ));
         std::fs::write(&path, vec![b' '; MAX_CONFIG_BYTES as usize + 1])
             .expect("write oversized config");
         let error = CodehoundConfig::load(&path).expect_err("oversized config must fail");

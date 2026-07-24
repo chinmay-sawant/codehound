@@ -195,7 +195,7 @@ fn analyzer_omits_phase_spans_when_stats_disabled() {
 
 #[test]
 fn timing_collector_disabled_is_noop() {
-    let mut collector = TimingCollector::new(false);
+    let collector = TimingCollector::new(false);
     let value = collector.measure("work", || 42);
     assert_eq!(value, 42);
     assert!(collector.to_summary().phases.is_empty());
@@ -203,11 +203,11 @@ fn timing_collector_disabled_is_noop() {
 
 #[test]
 fn timing_summary_merges_correctly() {
-    let mut a = TimingCollector::new(true);
+    let a = TimingCollector::new(true);
     a.measure("phase", || {
         std::thread::sleep(std::time::Duration::from_millis(1))
     });
-    let mut b = TimingCollector::new(true);
+    let b = TimingCollector::new(true);
     b.measure("phase", || {
         std::thread::sleep(std::time::Duration::from_millis(1))
     });

@@ -1,5 +1,7 @@
 use super::super::{SanitizerKind, SinkKind, SourceKind};
-use super::http::{http_argument_looks_like_response_writer, http_write_looks_like_response_writer};
+use super::http::{
+    http_argument_looks_like_response_writer, http_write_looks_like_response_writer,
+};
 
 pub(super) fn classify_source(func_text: &str) -> Option<SourceKind> {
     let call = func_text;

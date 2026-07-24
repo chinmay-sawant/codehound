@@ -259,8 +259,8 @@ fn rebuild_cache_if_requested(
 
 /// Refuse to `remove_dir_all` unless this is a non-symlink CodeHound cache root.
 fn validate_cache_purge_path(dir: &Path) -> Result<(), String> {
-    let metadata = std::fs::symlink_metadata(dir)
-        .map_err(|e| format!("could not inspect cache path: {e}"))?;
+    let metadata =
+        std::fs::symlink_metadata(dir).map_err(|e| format!("could not inspect cache path: {e}"))?;
     if metadata.file_type().is_symlink() {
         return Err("refusing to purge a symlinked cache path".into());
     }
@@ -281,7 +281,7 @@ fn validate_cache_purge_path(dir: &Path) -> Result<(), String> {
     let conventional = canon.file_name().and_then(|name| name.to_str()) == Some(DEFAULT_CACHE_DIR);
     let manifest = canon.join("manifest.json");
     let files = canon.join("files");
-    if !conventional && !(manifest.is_file() && files.is_dir()) {
+    if !(conventional || manifest.is_file() && files.is_dir()) {
         return Err("path is not a CodeHound cache directory with a manifest".into());
     }
     Ok(())

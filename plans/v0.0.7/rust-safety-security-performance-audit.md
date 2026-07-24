@@ -124,9 +124,9 @@ The P1 dependency and `unsafe` aliasing issues are now remediated, and `make tes
 - [x] Baseline strict lint: `cargo clippy --all-targets --all-features --locked -- -D warnings` passed on 2026-07-24.
 - [x] Baseline full feature suite: `cargo test --all-targets --all-features --locked` passed on 2026-07-24.
 - [x] Baseline source audit: production scan input is capped at 32 MiB; there is no production `mem::forget`, and intentional static leaks were located and classified.
-- [~] Post-change `cargo fmt --all -- --check` and strict Clippy were not run by the requested test-only gate.
+- [x] Post-change `cargo fmt --all -- --check` and strict Clippy passed through `make lint` on 2026-07-24.
 - [x] Post-change: `make test` passed on 2026-07-24.
-- [~] Post-change clean `cargo audit` was not run by the requested test-only gate; the lockfile resolves the advised fixed version.
+- [x] Post-change `cargo audit` passed on 2026-07-24; the lockfile resolves `crossbeam-epoch` 0.9.20.
 - [~] Release benchmark evidence remains deferred; `git diff --check` is performed before commit.
 
 ## Dependencies
@@ -135,3 +135,34 @@ The P1 dependency and `unsafe` aliasing issues are now remediated, and `make tes
 - Existing CI audit job in `.github/workflows/ci.yml`; retain it as the delivery gate.
 - `src/engine/timing`, `src/rules/finding_wire`, `src/app/run`, `src/engine/config`, and export/walk code owners.
 - The v0.0.7 Ponytail ledger remains the parent review history; this file is the canonical checklist for these newly verified Rust closure items.
+
+---
+
+## Review Addendum — 2026-07-24 (Post-Closure Rescan)
+
+> **Status:** Both rescan findings are fixed. `cargo audit`, strict Clippy, formatting, and the full test gate are clean; release benchmark evidence remains partial.
+
+### Current Rating: 9.3 / 10 (provisional)
+
+This supersedes the provisional 8.8/10 rating above. The dependency advisory is closed, timing span cleanup is panic-safe, and the required lint/test gates pass. The remaining ceiling is evidence rather than correctness: release memory/throughput benchmarks have not yet quantified the export and debug-timing changes.
+
+### New findings
+
+- [x] **P2 / Memory correctness — close timing spans during unwinding.**
+  - **Evidence:** `TimingCollector::measure` in `src/engine/timing/collector.rs` calls `f()` before `stop(idx)`. If a detector panics, the upper scan layer catches the panic and continues, but this collector's `active: HashMap<usize, TimingSpan>` retains the unfinished span.
+  - **Impact:** memory grows with detector panic count during a long scan; the failed span is omitted from the summary, making diagnostics incomplete.
+  - **Implemented:** `measure` now uses `catch_unwind`/resume, always calls `stop`, and does not hold the mutex while invoking user code.
+  - **Proof:** `panicking_measurement_cleans_up_the_active_span` verifies cleanup, follow-on timing, and panic propagation.
+
+- [x] **P2 / Delivery gate — restore strict Clippy compliance.**
+  - **Evidence:** `cargo clippy --all-targets --all-features --locked -- -D warnings` fails on six `unused_mut` occurrences in `src/engine/timing/tests.rs:9,17,27,28,38,39` and `clippy::nonminimal_bool` in `src/app/run.rs:284`.
+  - **Impact:** CI's required lint job fails even though `make test` passes.
+  - **Implemented:** removed all stale timing-collector `mut` bindings and simplified the cache-ownership condition.
+  - **Proof:** `make lint` passed on 2026-07-24.
+
+### Fresh positive evidence
+
+- [x] `cargo audit` passed on 2026-07-24 after resolving `crossbeam-epoch` to 0.9.20.
+- [x] A focused production-source scan found no Rust `unsafe` blocks, `mem::forget`, or `static mut`; remaining `Box::leak` sites are the bounded cache interner and static needle-table initialization.
+- [x] `make lint` passed on 2026-07-24.
+- [x] `make test` completed after the fixes on 2026-07-24; the full nextest suite and doctests emitted no failures.

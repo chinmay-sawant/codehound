@@ -11,9 +11,9 @@
 
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
 #[cfg(test)]
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use super::summary::TimingSummary;
@@ -52,7 +52,11 @@ pub fn measure_active<R>(name: &'static str, f: impl FnOnce() -> R) -> R {
 
 /// Whether the active thread-local collector is present and enabled.
 pub fn active_enabled() -> bool {
-    ACTIVE_COLLECTOR.with(|slot| slot.borrow().as_ref().is_some_and(TimingCollector::is_enabled))
+    ACTIVE_COLLECTOR.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .is_some_and(TimingCollector::is_enabled)
+    })
 }
 
 #[cfg(test)]
@@ -212,13 +216,19 @@ impl TimingCollector {
         if !self.enabled {
             return 0;
         }
-        let mut state = self.state.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut state = self
+            .state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let id = state.next_span_id;
         state.next_span_id = state.next_span_id.wrapping_add(1);
-        state.active.insert(id, TimingSpan {
-            name,
-            start: Instant::now(),
-        });
+        state.active.insert(
+            id,
+            TimingSpan {
+                name,
+                start: Instant::now(),
+            },
+        );
         id
     }
 
@@ -227,10 +237,16 @@ impl TimingCollector {
         if !self.enabled {
             return;
         }
-        let mut state = self.state.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut state = self
+            .state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         if let Some(span) = state.active.remove(&index) {
             let duration = span.start.elapsed();
-            let entry = state.aggregates.entry(span.name).or_insert((Duration::ZERO, 0));
+            let entry = state
+                .aggregates
+                .entry(span.name)
+                .or_insert((Duration::ZERO, 0));
             entry.0 += duration;
             entry.1 += 1;
         }
@@ -242,9 +258,12 @@ impl TimingCollector {
             return f();
         }
         let idx = self.start(name);
-        let result = f();
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f));
         self.stop(idx);
-        result
+        match result {
+            Ok(value) => value,
+            Err(payload) => std::panic::resume_unwind(payload),
+        }
     }
 
     /// Merge another collector's completed timing aggregates into this one.
@@ -255,8 +274,14 @@ impl TimingCollector {
         if Arc::ptr_eq(&self.state, &other.state) {
             return;
         }
-        let other_state = other.state.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-        let mut state = self.state.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let other_state = other
+            .state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut state = self
+            .state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         for (&name, &(duration, count)) in &other_state.aggregates {
             let entry = state.aggregates.entry(name).or_insert((Duration::ZERO, 0));
             entry.0 += duration;
@@ -274,7 +299,10 @@ impl TimingCollector {
 
     /// Aggregate spans by name and compute total wall time.
     pub fn to_summary(&self) -> TimingSummary {
-        let state = self.state.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let state = self
+            .state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let (total, phases) = super::aggregate::aggregate_phases(state.aggregates.clone());
 
         TimingSummary {
@@ -298,7 +326,14 @@ mod safety_tests {
         });
 
         let summary = collector.to_summary();
-        assert_eq!(summary.phases.iter().map(|phase| phase.count).sum::<usize>(), 2);
+        assert_eq!(
+            summary
+                .phases
+                .iter()
+                .map(|phase| phase.count)
+                .sum::<usize>(),
+            2
+        );
         assert!(summary.phases.iter().any(|phase| phase.name == "outer"));
         assert!(summary.phases.iter().any(|phase| phase.name == "inner"));
     }
@@ -311,5 +346,31 @@ mod safety_tests {
         }));
         assert!(result.is_err());
         assert!(!active_enabled());
+    }
+
+    #[test]
+    fn panicking_measurement_cleans_up_the_active_span() {
+        let collector = TimingCollector::new(true);
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            collector.measure("panic", || panic!("expected"));
+        }));
+        assert!(result.is_err());
+        assert!(
+            collector
+                .state
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .active
+                .is_empty()
+        );
+
+        collector.measure("after_panic", || {});
+        assert!(
+            collector
+                .to_summary()
+                .phases
+                .iter()
+                .any(|phase| phase.name == "after_panic")
+        );
     }
 }
