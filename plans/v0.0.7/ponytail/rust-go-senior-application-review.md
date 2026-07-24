@@ -372,11 +372,11 @@ The codebase remains architecturally strong and the targeted fixture-manifest, G
 
 > **Status:** The reopened P1 detector/cache-result correctness and P2/P3 product rows below are fixed and validated. A separate P2 cache crash-durability ceiling, plus the older caller-owned multi-file crash-atomicity, legacy-lock migration, and release-baseline limitations, remain explicitly tracked.
 > **Current application rating:** **9.3 / 10**
-> **Review basis:** Current working tree on `3e7916e`, with regression coverage and project-level validation through `make fmt`, `make lint`, and `make test`.
+> **Review basis:** Remediation commit `b7fe510` (parent `3e7916e`), with regression coverage and project-level validation through `make fmt`, `make lint`, and `make test`.
 
 ### Executive Summary
 
-CodeHound retains a strong Rust architecture: structured errors, atomic single-file replacement, deterministic scanner lifecycle, careful export ownership checks, and a strict Clippy gate are all in place. The reopened detector, cache, export, Makefile, and hosted-validation gaps have been closed without widening the public product surface:
+CodeHound retains a strong Rust architecture: structured errors, atomic single-file replacement, deterministic scanner lifecycle, careful export ownership checks, and a strict Clippy gate are all in place. The reopened detector, cache, export, Makefile, and hosted-validation gaps have been closed without changing the CLI or configuration surface. The cache integration trait evolved to carry entry identity, so embedders with custom backends need a compatibility update:
 
 - `filepath.Clean` and `path.Clean` now preserve taint while remaining non-sanitizers; unsafe clean-then-sink flows are vulnerable fixtures.
 - Cache entries carry source and rule-configuration identity, profile-mismatched manifests never merge, and advisory lock markers remain as a stable rendezvous file after unlock; a crash between an entry write and manifest write can still leave an orphan/stale entry but never a foreign cache hit.
@@ -404,7 +404,7 @@ CodeHound retains a strong Rust architecture: structured errors, atomic single-f
 
 - [x] **P2 / Medium — complete package-alias and receiver-aware XSS sink classification.**
   - **Evidence:** `src/lang/go/detectors/cwe/taint/extract/classify.rs:207-217` recognizes only literal `template.HTML(...)`, while the `html/template` execution exemption at `:219-247` is lexical. An aliased conversion stored in a variable (`tmpl.HTML(input)`) can be lost as an opaque call and then be hidden by the safe-template exemption. Conversely, `fmt.Fprintf`, `.WriteString`, and `.WriteHeader` are classified as HTTP sinks at `:86-95` without a receiver-type check.
-  - **Implemented:** trusted-content constructors recognize the imported `html/template` alias and are modeled as the sink, avoiding a duplicate later `Execute` finding. `fmt.Fprintf`, `WriteString`, and `WriteHeader` now require a local `http.ResponseWriter` declaration rather than a variable name. Alias, misleading-buffer-name, and named-response-writer regressions pass.
+  - **Implemented:** trusted-content constructors recognize the imported `html/template` alias and are modeled as the sink, avoiding a duplicate later `Execute` finding. `fmt.Fprintf`, `WriteString`, and `WriteHeader` now require an enclosing-function `http.ResponseWriter` declaration rather than a variable name. Alias, misleading-buffer-name, sibling-function collision, and named-response-writer regressions pass.
 
 ### Phase 8: Reopened Persistence and Export Correctness
 

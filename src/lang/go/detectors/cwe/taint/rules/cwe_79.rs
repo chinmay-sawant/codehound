@@ -166,6 +166,22 @@ func RenderPage(r *http.Request) {
     }
 
     #[test]
+    fn same_named_writer_in_a_sibling_function_does_not_make_a_buffer_an_xss_sink() {
+        let source = r#"package main
+import (
+    "net/http"
+    "strings"
+)
+func Serve(w http.ResponseWriter, r *http.Request) {}
+func Log(r *http.Request) {
+    name := r.URL.Query().Get("name")
+    var w strings.Builder
+    w.WriteString(name)
+}"#;
+        assert_eq!(cwe_79_findings(source), 0);
+    }
+
+    #[test]
     fn fmt_fprintf_to_a_declared_response_writer_remains_an_xss_sink() {
         let source = r#"package main
 import (

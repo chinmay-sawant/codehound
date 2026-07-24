@@ -1,4 +1,5 @@
 use super::super::{SanitizerKind, SinkKind, SourceKind};
+use super::http::{http_argument_looks_like_response_writer, http_write_looks_like_response_writer};
 
 pub(super) fn classify_source(func_text: &str) -> Option<SourceKind> {
     let call = func_text;
@@ -306,54 +307,6 @@ fn execute_uses_trusted_template_content(
                         .starts_with(&format!("{template_alias}.{kind}("))
                 })
         })
-}
-
-/// Heuristic: only treat `.Write` as an HTTP XSS sink when the receiver is
-/// declared as an `http.ResponseWriter` in this source file.
-fn http_write_looks_like_response_writer(call: tree_sitter::Node, src: &[u8]) -> bool {
-    if let Some(args) = call.child_by_field_name("arguments") {
-        let mut cursor = args.walk();
-        if let Some(first) = args.named_children(&mut cursor).next()
-            && let Ok(text) = first.utf8_text(src)
-        {
-            let t = text.trim();
-            // csv.Writer.Write([]string{...}) — not XSS.
-            if t.starts_with("[]string") {
-                return false;
-            }
-        }
-    }
-    receiver_of_method_call(call, src)
-        .is_some_and(|receiver| declared_response_writer(receiver, src))
-}
-
-fn http_argument_looks_like_response_writer(
-    call: tree_sitter::Node,
-    src: &[u8],
-    argument_index: usize,
-) -> bool {
-    let Some(args) = call.child_by_field_name("arguments") else {
-        return false;
-    };
-    let mut cursor = args.walk();
-    let Some(argument) = args.named_children(&mut cursor).nth(argument_index) else {
-        return false;
-    };
-    argument
-        .utf8_text(src)
-        .ok()
-        .is_some_and(|argument| declared_response_writer(argument.trim(), src))
-}
-
-fn declared_response_writer(name: &str, src: &[u8]) -> bool {
-    let Ok(source) = std::str::from_utf8(src) else {
-        return false;
-    };
-    source.lines().any(|line| {
-        let line = line.trim();
-        line.contains(&format!("{name} http.ResponseWriter"))
-            || line.contains(&format!("{name} *http.ResponseWriter"))
-    })
 }
 
 pub(super) fn is_source_or_sanitizer_call(rhs: &str) -> bool {
