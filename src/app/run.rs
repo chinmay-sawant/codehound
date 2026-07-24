@@ -223,9 +223,10 @@ pub(crate) fn scan_context_params_for_run(
         taint_depth: cli.taint_depth,
         show_ignored: cli.show_ignored,
         profile: cli.profile.to_profile(),
-        // Export lazily reads only files that produced findings. Embedders can
-        // still opt into `retain_sources` directly when they need a snapshot.
-        retain_sources: false,
+        // Findings store project-relative paths; export resolves snippets from
+        // `source_cache` (not cwd). Only pay the monorepo RAM cost when the
+        // user opts into --export-context / --export-chunks.
+        retain_sources: cli.export_context || cli.export_chunks,
     }
 }
 
@@ -560,9 +561,38 @@ fn scan_exit_code(result: &AnalysisResult, fail_policy: codehound::core::FailPol
 
 #[cfg(test)]
 mod tests {
-    use super::{resolve_scan_path, resolve_scan_paths, validate_cache_purge_path};
+    use super::{
+        resolve_scan_path, resolve_scan_paths, scan_context_params_for_run,
+        validate_cache_purge_path,
+    };
+    use clap::Parser;
+    use codehound::cli::Cli;
+    use codehound::engine::build_scan_context;
     use std::fs;
     use std::path::PathBuf;
+
+    #[test]
+    fn export_flags_enable_source_retention() {
+        let with_export = Cli::try_parse_from([
+            "codehound",
+            "--export-context",
+            "--export-chunks",
+            ".",
+        ])
+        .expect("parse export flags");
+        let ctx = build_scan_context(scan_context_params_for_run(&with_export, None));
+        assert!(
+            ctx.retain_sources,
+            "export must retain sources so relative finding paths resolve"
+        );
+
+        let default_cli = Cli::try_parse_from(["codehound", "."]).expect("parse default");
+        let default_ctx = build_scan_context(scan_context_params_for_run(&default_cli, None));
+        assert!(
+            !default_ctx.retain_sources,
+            "default CI path must not retain source_cache"
+        );
+    }
 
     #[test]
     fn resolve_scan_path_materializes_text_fixture_inputs() {
