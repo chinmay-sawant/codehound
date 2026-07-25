@@ -15,7 +15,6 @@ import {
   Terminal,
 } from 'lucide-react'
 import { formatStarCount, useGithubStars } from './hooks/useGithubStars'
-import { HowItWorksDiagram } from './components/HowItWorksDiagram'
 import { useReveal } from './hooks/useReveal'
 import { useTheme } from './hooks/useTheme'
 import './styles/global.css'
@@ -188,9 +187,6 @@ export default function App() {
             <li><span className="step-number">02</span><div><FileSearch size={21} /><h3>Read a useful queue</h3><p>Findings arrive with stable rule IDs, a file, a line, and the code that needs attention.</p></div><code>PERF-007</code></li>
             <li><span className="step-number">03</span><div><Sparkles size={21} /><h3>Fix or delegate</h3><p>Work through the list yourself or hand its bounded context to the agent you already use.</p></div><code>scripts/chunks/</code></li>
           </ol>
-          <div className="workflow-diagram">
-            <HowItWorksDiagram />
-          </div>
         </section>
 
         <section className="install-section" id="install" aria-labelledby="install-title">

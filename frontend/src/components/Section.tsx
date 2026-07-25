@@ -1,7 +1,6 @@
 import type { Section } from '../data/sections'
 import { renderInlineMarkup } from '../lib/render-inline'
 import { ExtendDiagram } from './ExtendDiagram'
-import { HowItWorksDiagram } from './HowItWorksDiagram'
 import { WhyExistsDiagram } from './WhyExistsDiagram'
 import { SkillsDiagram } from './SkillsDiagram'
 import { useReveal } from '../hooks/useReveal'
@@ -97,7 +96,6 @@ export function SectionView({
               </div>
             )}
 
-            {s.id === 'how-it-works' && <HowItWorksDiagram />}
             {s.id === 'why' && <WhyExistsDiagram />}
             {s.id === 'skills' && <SkillsDiagram />}
             {s.id === 'extend' && <ExtendDiagram />}
