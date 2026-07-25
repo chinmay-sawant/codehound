@@ -10,9 +10,11 @@ import {
   Moon,
   ScanSearch,
   Sparkles,
+  Star,
   Sun,
   Terminal,
 } from 'lucide-react'
+import { formatStarCount, useGithubStars } from './hooks/useGithubStars'
 import { useTheme } from './hooks/useTheme'
 import './styles/global.css'
 
@@ -25,6 +27,7 @@ function Mark() {
 
 export default function App() {
   const { theme, toggle } = useTheme()
+  const { stars } = useGithubStars()
 
   return (
     <div className="site-shell">
@@ -49,9 +52,16 @@ export default function App() {
           >
             {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
           </button>
-          <a className="nav-github" href={githubUrl} target="_blank" rel="noreferrer">
-            <GitBranch size={15} />
+          <a
+            className="nav-github"
+            href={githubUrl}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={stars !== null ? `View CodeHound on GitHub (${stars.toLocaleString()} stars)` : 'View CodeHound on GitHub'}
+          >
+            <Star size={15} aria-hidden="true" />
             <span>GitHub</span>
+            {stars !== null && <strong className="nav-stars">{formatStarCount(stars)}</strong>}
           </a>
         </div>
       </header>
@@ -59,7 +69,6 @@ export default function App() {
       <main id="top">
         <section className="hero-section" aria-labelledby="hero-title">
           <div className="hero-copy">
-            <p className="eyebrow"><span /> A calmer way to ship Go</p>
             <h1 id="hero-title">Know what matters<br /><em>before</em> your code ships.</h1>
             <p className="hero-intro">
               CodeHound is a fast, offline static analyzer for the performance
@@ -107,7 +116,6 @@ export default function App() {
         </section>
 
         <section className="story-section" id="why" aria-labelledby="why-title">
-          <div className="section-label"><span>01</span> Why CodeHound</div>
           <div className="story-grid">
             <h2 id="why-title">Your linter catches syntax.<br />Your agent reads everything.<br /><em>There is a better middle.</em></h2>
             <div className="story-body">
@@ -138,7 +146,6 @@ export default function App() {
 
         <section className="proof-section" aria-label="Measured CodeHound impact">
           <div className="proof-copy">
-            <p className="eyebrow"><span /> Real work, measured</p>
             <h2>A small signal can move<br />a whole system.</h2>
             <p>On gopdfsuit, a focused CodeHound pass helped take throughput from about 2,000 to 2,700 operations per second on the same hardware.</p>
             <a className="text-link" href={githubUrl} target="_blank" rel="noreferrer">Explore the repository <ArrowUpRight size={15} /></a>
@@ -151,7 +158,6 @@ export default function App() {
         </section>
 
         <section className="workflow-section" id="workflow" aria-labelledby="workflow-title">
-          <div className="section-label"><span>02</span> The workflow</div>
           <div className="workflow-heading">
             <h2 id="workflow-title">Three steps. <em>One clear queue.</em></h2>
             <p>CodeHound does the repetitive sorting, so your review time goes to decisions—not rediscovering the codebase.</p>
@@ -165,7 +171,6 @@ export default function App() {
 
         <section className="install-section" id="install" aria-labelledby="install-title">
           <div>
-            <p className="eyebrow"><span /> Start in under a minute</p>
             <h2 id="install-title">Give your next PR<br />a second pair of eyes.</h2>
           </div>
           <div className="install-card">
@@ -177,7 +182,6 @@ export default function App() {
         </section>
 
         <section className="docs-section" id="docs" aria-labelledby="docs-title">
-          <div className="section-label"><span>03</span> Documentation</div>
           <div className="docs-head"><h2 id="docs-title">The details, without<br />the documentation maze.</h2><p>Start with the guide that meets you where you are.</p></div>
           <div className="docs-grid">
             <a href={`${docsUrl}/go-recommended-pack.md`} target="_blank" rel="noreferrer"><span>01</span><h3>Recommended pack</h3><p>The high-signal starting point for everyday Go projects.</p><ArrowUpRight size={18} /></a>
