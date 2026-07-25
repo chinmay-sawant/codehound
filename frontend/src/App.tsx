@@ -15,11 +15,27 @@ import {
   Terminal,
 } from 'lucide-react'
 import { formatStarCount, useGithubStars } from './hooks/useGithubStars'
+import { HowItWorksDiagram } from './components/HowItWorksDiagram'
+import { useReveal } from './hooks/useReveal'
 import { useTheme } from './hooks/useTheme'
 import './styles/global.css'
 
 const githubUrl = 'https://github.com/chinmay-sawant/codehound'
 const docsUrl = `${githubUrl}/blob/master/documents`
+const documentation = [
+  ['Recommended pack', 'The high-signal starting point for everyday Go projects.', 'go-recommended-pack.md'],
+  ['How it compares', 'Where CodeHound fits beside golangci-lint and staticcheck.', 'go-vs-staticcheck.md'],
+  ['Rule catalogue', 'Every performance rule, maturity level, and rationale.', 'perf-rules.md'],
+  ['Configuration', 'Profiles, baselines, ignores, and codehound.toml.', 'configuration.md'],
+  ['Output formats', 'Text, JSON, and SARIF output for people and CI.', 'output-formats.md'],
+  ['Taint tracking', 'The experimental Go data-flow model and its boundaries.', 'taint.md'],
+  ['Bad practices', 'The advisory Go BP catalogue and its profile policy.', 'bad-practices.md'],
+  ['Incremental cache', 'How repeat scans stay quick without changing findings.', 'incremental-cache.md'],
+  ['Add a language', 'The plugin path for adding a real language implementation.', 'adding-a-language.md'],
+  ['Architecture & performance', 'The engine choices that preserve fast, predictable scans.', 'architecture-performance.md'],
+  ['Performance tiers', 'How performance rules are scoped and prioritized.', 'perf-tiers.md'],
+  ['Build a detector', 'A practical guide to extending the performance catalogue.', 'perf-detector-development.md'],
+] as const
 
 function Mark() {
   return <span className="mark" aria-hidden="true">C.</span>
@@ -28,6 +44,7 @@ function Mark() {
 export default function App() {
   const { theme, toggle } = useTheme()
   const { stars } = useGithubStars()
+  const { ref: proofRef, visible: proofVisible } = useReveal<HTMLElement>()
 
   return (
     <div className="site-shell">
@@ -144,7 +161,11 @@ export default function App() {
           </div>
         </section>
 
-        <section className="proof-section" aria-label="Measured CodeHound impact">
+        <section
+          className={`proof-section${proofVisible ? ' is-visible' : ''}`}
+          ref={proofRef}
+          aria-label="Measured CodeHound impact"
+        >
           <div className="proof-copy">
             <h2>A small signal can move<br />a whole system.</h2>
             <p>On gopdfsuit, a focused CodeHound pass helped take throughput from about 2,000 to 2,700 operations per second on the same hardware.</p>
@@ -167,6 +188,9 @@ export default function App() {
             <li><span className="step-number">02</span><div><FileSearch size={21} /><h3>Read a useful queue</h3><p>Findings arrive with stable rule IDs, a file, a line, and the code that needs attention.</p></div><code>PERF-007</code></li>
             <li><span className="step-number">03</span><div><Sparkles size={21} /><h3>Fix or delegate</h3><p>Work through the list yourself or hand its bounded context to the agent you already use.</p></div><code>scripts/chunks/</code></li>
           </ol>
+          <div className="workflow-diagram">
+            <HowItWorksDiagram />
+          </div>
         </section>
 
         <section className="install-section" id="install" aria-labelledby="install-title">
@@ -182,11 +206,16 @@ export default function App() {
         </section>
 
         <section className="docs-section" id="docs" aria-labelledby="docs-title">
-          <div className="docs-head"><h2 id="docs-title">The details, without<br />the documentation maze.</h2><p>Start with the guide that meets you where you are.</p></div>
+          <div className="docs-head"><h2 id="docs-title">The details, without<br />the documentation maze.</h2><div className="docs-intro"><p>Start with the guide that meets you where you are.</p><a className="underlined-link" href={`${githubUrl}/tree/master/documents`} target="_blank" rel="noreferrer">View all documentation <ArrowUpRight size={15} /></a></div></div>
           <div className="docs-grid">
-            <a href={`${docsUrl}/go-recommended-pack.md`} target="_blank" rel="noreferrer"><span>01</span><h3>Recommended pack</h3><p>The high-signal starting point for everyday Go projects.</p><ArrowUpRight size={18} /></a>
-            <a href={`${docsUrl}/go-vs-staticcheck.md`} target="_blank" rel="noreferrer"><span>02</span><h3>How it compares</h3><p>Where CodeHound fits beside golangci-lint and staticcheck.</p><ArrowUpRight size={18} /></a>
-            <a href={`${docsUrl}/perf-rules.md`} target="_blank" rel="noreferrer"><span>03</span><h3>Rule catalogue</h3><p>Every rule, maturity level, and the reasoning behind it.</p><ArrowUpRight size={18} /></a>
+            {documentation.map(([title, description, path], index) => (
+              <a key={path} href={`${docsUrl}/${path}`} target="_blank" rel="noreferrer">
+                <span>{String(index + 1).padStart(2, '0')}</span>
+                <h3>{title}</h3>
+                <p>{description}</p>
+                <ArrowUpRight size={18} />
+              </a>
+            ))}
           </div>
         </section>
       </main>

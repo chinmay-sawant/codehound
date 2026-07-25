@@ -4,7 +4,7 @@
  */
 export function HowItWorksDiagram() {
   return (
-    <figure className="how-diagram" aria-label="How CodeHound works end to end">
+    <figure className="how-diagram" aria-label="How CodeHound works end to end" tabIndex={0}>
       <figcaption className="how-diagram-caption">
         sequence · setup → scan → artifacts → agent → baseline → loop
       </figcaption>
@@ -137,12 +137,18 @@ export function HowItWorksDiagram() {
           </text>
 
           <g className="how-node" transform="translate(310, 22)">
-            <rect className="how-node-box" width="120" height="52" />
+            <rect className="how-node-box" width="120" height="72" />
             <text className="how-node-label" x="12" y="22">
               binary
             </text>
             <text className="how-node-cmd" x="12" y="40">
               codehound .
+            </text>
+            <text className="how-node-cmd" x="12" y="54">
+              --export-context
+            </text>
+            <text className="how-node-cmd" x="12" y="68">
+              --export-chunks
             </text>
           </g>
 
@@ -166,6 +172,7 @@ export function HowItWorksDiagram() {
             </text>
             <g className="how-scan-ring" transform="translate(96, 12)">
               <circle
+                className="how-scan-ring-circle"
                 cx="10"
                 cy="10"
                 r="7"
@@ -173,16 +180,7 @@ export function HowItWorksDiagram() {
                 stroke="currentColor"
                 strokeWidth="1.2"
                 strokeDasharray="8 6"
-              >
-                <animateTransform
-                  attributeName="transform"
-                  type="rotate"
-                  from="0 10 10"
-                  to="360 10 10"
-                  dur="3s"
-                  repeatCount="indefinite"
-                />
-              </circle>
+              />
             </g>
           </g>
 
@@ -305,10 +303,10 @@ export function HowItWorksDiagram() {
           <g className="how-node how-node-accent" transform="translate(540, 320)">
             <rect className="how-node-box" width="120" height="52" />
             <text className="how-node-label" x="12" y="22">
-              makefile
+              local CI
             </text>
             <text className="how-node-cmd" x="12" y="40">
-              make codehound
+              make run
             </text>
           </g>
 
