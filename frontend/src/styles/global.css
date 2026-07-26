@@ -93,6 +93,7 @@ em { color: var(--accent); font-weight: 400; }
 
 .signal-strip { display: flex; align-items: center; justify-content: space-between; gap: 30px; padding: 20px max(22px, calc((100vw - 1184px) / 2)); background: var(--pine); color: #edf1eb; }
 .signal-strip p { margin: 0; font-family: var(--serif); font-size: 17px; font-style: italic; }.signal-strip div { display: flex; gap: clamp(12px, 2.8vw, 38px); }.signal-strip span { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; }
+.dark .signal-strip { background: #1c3d35; color: #f3ede1; border-top: 1px solid #31574c; border-bottom: 1px solid #31574c; }.dark .signal-strip p { color: #f7f0e5; }.dark .signal-strip span { color: #c4d8cd; }
 
 .story-section, .workflow-section, .docs-section { max-width: 1184px; margin: auto; padding: clamp(90px, 12vw, 162px) 22px; }
 .story-grid { display: grid; grid-template-columns: 1.35fr .65fr; gap: clamp(36px, 8vw, 115px); }.story-grid h2, .workflow-heading h2, .docs-head h2 { font-size: clamp(42px, 5.1vw, 72px); }.story-body { align-self: end; padding-bottom: 4px; }.story-body p, .proof-copy > p, .workflow-heading p, .docs-head p { margin: 0; color: var(--ink-soft); font-size: 15px; line-height: 1.72; letter-spacing: -.016em; }.underlined-link { margin-top: 28px; padding-bottom: 5px; border-bottom: 1px solid var(--ink); }
