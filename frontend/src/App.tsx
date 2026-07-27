@@ -14,7 +14,7 @@ import {
   Sun,
   Terminal,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { formatStarCount, useGithubStars } from './hooks/useGithubStars'
 import { useTheme } from './hooks/useTheme'
 import './styles/global.css'
@@ -50,49 +50,41 @@ function Mark() {
 function StoryView() {
   return (
     <main id="top" className="story-view">
-      <section className="story-section story-detail story-page" aria-labelledby="story-title">
-        <header className="story-header">
-          <div>
-            <span className="story-kicker">Our story</span>
-            <h1 id="story-title">Turn a long performance<br />loop into a better<br /><em>starting point.</em></h1>
-          </div>
-          <p>CodeHound came from building GoPDFSuit, then asking how much of that painful optimization loop could become a repeatable check for the next Go project.</p>
+      <article className="project-story" aria-labelledby="story-title">
+        <header className="project-story-header">
+          <span className="story-kicker">A project story</span>
+          <h1 id="story-title">From a long feedback loop<br />to a better <em>starting point.</em></h1>
+          <p>CodeHound is the performance linter and static-analysis tool I wanted while building a Go PDF engine: a repeatable way to catch known costs before the profiling loop starts again.</p>
         </header>
-        <ol className="story-points">
-          <li><span>01</span><div><h2>Vision</h2><p>Help Go projects find predictable performance issues early, so the first serious performance pass starts from a stronger baseline.</p></div></li>
-          <li><span>02</span><div><h2>Origin</h2><p>Six months on GoPDFSuit and another one to two months of optimization exposed the same costly loop: review, validate, profile, repeat.</p></div></li>
-          <li><span>03</span><div><h2>Approach</h2><p>Translate proven performance lessons and checklist items into deterministic rules with file, line, and context—not an open-ended agent prompt.</p></div></li>
-          <li><span>04</span><div><h2>Guardrail</h2><p>This is not a case for premature optimization. Add or confirm functionality and unit tests first, then validate every remediation and benchmark.</p></div></li>
-          <li><span>05</span><div><h2>Why Rust</h2><p>Rust gives the analyzer a strong Cargo-based development loop and predictable runtime model, while Go remains the language it serves.</p></div></li>
-          <li><span>06</span><div><h2>Proof and next</h2><p>The comparison engine moved from 1,140.59 to 2,349.29 ops/s. Next: lower roughly 5% domain-specific false positives, validate high-value Go framework coverage, and carefully expand toward Python.</p></div></li>
-        </ol>
-        <a className="underlined-link" href={gopdfSuitUrl} target="_blank" rel="noreferrer">Read the GoPDFSuit project <ArrowUpRight size={16} /></a>
-      </section>
 
-      <section className="proof-section is-visible" aria-label="Measured gocorepdfengine impact">
-        <div className="proof-copy">
-          <h2>The results are<br /><em>measurable.</em></h2>
-          <p>On a PDF/A-4 and PDF/UA-2 capable Go PDF engine built from scratch, standard Go linters moved throughput from 1,140.59 to 1,171.68 ops/s. The CodeHound remediation pass reached 2,349.29 ops/s.</p>
-          <a className="text-link" href={gocorePdfEngineUrl} target="_blank" rel="noreferrer">Explore gocorepdfengine <ArrowUpRight size={15} /></a>
+        <div className="story-chapters">
+          <section className="story-chapter"><span>01</span><div><p className="chapter-label">The problem</p><h2>Performance work kept starting too late.</h2><p>After six months building and working on GoPDFSuit, a native template-based PDF engine, I spent another one to two months reviewing, validating, profiling, and iterating. Existing linters helped, but they did not turn the recurring performance issues into an actionable queue.</p></div></section>
+          <section className="story-chapter"><span>02</span><div><p className="chapter-label">The idea</p><h2>Make the repeatable parts deterministic.</h2><p>The goal is not premature optimization. Start with functionality and unit tests, then use rules to surface predictable traps before pprof, caching, and workload-specific tuning. An agent can remediate a bounded finding list; the developer still reviews every change and owns the architecture.</p></div></section>
+          <section className="story-chapter"><span>03</span><div><p className="chapter-label">Why rules still matter</p><h2>Subagents are powerful. Known checks should not require an open-ended review.</h2><p>I used an agent-driven feedback loop on GoPDFSuit to reach nearly 5,000 ops/s, and that kind of review can uncover system-level approaches beyond straightforward code changes. But repeatedly asking an agent to rediscover the same repository costs time and model budget. When we already know what to detect and how to frame a safe fix, a deterministic rule can find it locally; a lower-cost model such as DeepSeek V4 Flash can then triage the bounded findings instead of re-reading the whole codebase.</p></div></section>
+          <section className="story-chapter"><span>04</span><div><p className="chapter-label">The build</p><h2>Use real lessons, not generic AI guesses.</h2><p>An earlier static-analysis attempt taught me to begin with real problems. I converted GoPDFSuit optimization checklists—complete with code examples and rationale—into rules with Codex and Grok, instead of targeting arbitrary AI-generated code patterns.</p></div></section>
+          <section className="story-chapter"><span>05</span><div><p className="chapter-label">The toolchain</p><h2>Rust for the analyzer, Go for the target.</h2><p>I chose Rust primarily for Cargo, compiler feedback, and the development experience. AI made a one-person build faster, but it also made strong guardrails essential: architecture, linting, benchmarks, and review. The scanner itself benefited from the same discipline through cheaper walks and earlier short-circuits.</p></div></section>
+          <section className="story-chapter"><span>06</span><div><p className="chapter-label">The proof</p><h2>The benchmark moved, not just the conversation.</h2><p>On a PDF/A-4 and PDF/UA-2 capable Go engine built from scratch, standard Go linters moved throughput from 1,140.59 to 1,171.68 ops/s. After the CodeHound remediation pass, it reached 2,349.29 ops/s.</p></div></section>
+          <section className="story-chapter"><span>07</span><div><p className="chapter-label">What is next</p><h2>Make the signal sharper, then broaden carefully.</h2><p>Next up: lower the roughly 5% domain-specific false-positive rate, validate high-value Go framework coverage, and carefully expand the approach toward Python.</p></div></section>
+          <section className="story-chapter"><span>08</span><div><p className="chapter-label">Use with judgment</p><h2>Findings are a starting point, not a performance guarantee.</h2><p>CodeHound can surface application-level performance opportunities, bad practices, and CWE heuristics. You still need to understand the findings, test each remediation, and profile the system bottlenecks that remain. Some workloads need caching, architectural changes, or a different approach entirely.</p></div></section>
         </div>
-        <div className="metric-panel">
-          <div className="metric-main"><strong>+106%</strong><span>throughput lift from base</span></div>
-          <div className="metric-chart" aria-hidden="true"><i /><i /><i /><i /><i /><i /><i /></div>
-          <div className="metric-footer"><span>1,140.59 ops/s</span><span>2,349.29 ops/s</span><span>same project benchmark</span></div>
-        </div>
-      </section>
 
-      <section className="workflow-section story-references" aria-labelledby="references-title">
-        <div className="workflow-heading">
-          <h2 id="references-title">Reproduce the<br /><em>comparison.</em></h2>
-          <p>The project, source engine, and benchmark pull requests are public. The numbers above are a benchmark result, not a promise for every workload.</p>
-        </div>
-        <ol className="steps">
-          <li><span className="step-number">01</span><div><Braces size={21} /><h3>CodeHound</h3><p>The performance linter and static-analysis tool.</p></div><a className="text-link" href={githubUrl} target="_blank" rel="noreferrer">Repository <ArrowUpRight size={15} /></a></li>
-          <li><span className="step-number">02</span><div><FileSearch size={21} /><h3>gocorepdfengine</h3><p>The PDF/A-4 and PDF/UA-2 engine used for the comparison.</p></div><a className="text-link" href={gocorePdfEngineUrl} target="_blank" rel="noreferrer">Repository <ArrowUpRight size={15} /></a></li>
-          <li><span className="step-number">03</span><div><GitBranch size={21} /><h3>Benchmark pull requests</h3><p>{benchmarkPulls.map(([label, url], index) => <a key={url} href={url} target="_blank" rel="noreferrer">{label}{index < benchmarkPulls.length - 1 ? ' · ' : ''}</a>)}</p></div><a className="text-link" href={gopdfSuitUrl} target="_blank" rel="noreferrer">GoPDFSuit <ArrowUpRight size={15} /></a></li>
-        </ol>
-      </section>
+        <section className="story-evidence" aria-label="Benchmark comparison">
+          <div><span className="story-kicker">Measured result</span><h2>No vibes. A reproducible comparison.</h2><p>The numbers are a project benchmark, not a promise for every workload. The public repositories and pull requests below provide the evidence trail.</p></div>
+          <dl>
+            <div><dt>Base</dt><dd>1,140.59 ops/s</dd></div>
+            <div><dt>Go linters</dt><dd>1,171.68 ops/s <small>+2.7%</small></dd></div>
+            <div><dt>CodeHound</dt><dd>2,349.29 ops/s <small>+106.0%</small></dd></div>
+          </dl>
+        </section>
+
+        <footer className="story-sources">
+          <span>Sources</span>
+          <a href={githubUrl} target="_blank" rel="noreferrer">CodeHound <ArrowUpRight size={14} /></a>
+          <a href={gopdfSuitUrl} target="_blank" rel="noreferrer">GoPDFSuit <ArrowUpRight size={14} /></a>
+          <a href={gocorePdfEngineUrl} target="_blank" rel="noreferrer">gocorepdfengine <ArrowUpRight size={14} /></a>
+          {benchmarkPulls.map(([label, url]) => <a key={url} href={url} target="_blank" rel="noreferrer">{label} <ArrowUpRight size={14} /></a>)}
+        </footer>
+      </article>
     </main>
   )
 }
@@ -102,12 +94,15 @@ export default function App() {
   const { stars } = useGithubStars()
   const [showStory, setShowStory] = useState(() => window.location.hash === '#story')
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const syncView = () => {
       const story = window.location.hash === '#story'
       setShowStory(story)
       if (!story && window.location.hash) {
-        window.requestAnimationFrame(() => document.querySelector(window.location.hash)?.scrollIntoView())
+        window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+          const target = document.querySelector(window.location.hash)
+          if (target) window.scrollTo(0, target.getBoundingClientRect().top + window.scrollY)
+        }))
       }
     }
 
@@ -178,7 +173,7 @@ export default function App() {
                 <span className="live-status"><b /> ANALYSIS COMPLETE</span>
               </div>
               <div className="scan-content">
-                <div className="scan-command"><span>$</span> ./codehound .  --profile all --export-chunks --no-cache</div>
+                <div className="scan-command"><span>$</span><code>./codehound . --profile all --export-chunks --no-cache</code></div>
                 <div className="scan-rule" />
                 <div className="finding-line"><CircleAlert size={15} /><b>PERF-007</b><span>defer in a hot path</span></div>
                 <div className="finding-path">internal/pdf/writer.go:184</div>
@@ -256,6 +251,13 @@ export default function App() {
 
         <section className="docs-section" id="docs" aria-labelledby="docs-title">
           <div className="docs-head"><h2 id="docs-title">The details, without<br />the documentation maze.</h2><div className="docs-intro"><p>The original documentation remains available in full. Start with the guide that meets you where you are.</p><a className="underlined-link" href={`${githubUrl}/tree/master/documents`} target="_blank" rel="noreferrer">View all documentation <ArrowUpRight size={15} /></a></div></div>
+          <section className="docs-quickstart" aria-labelledby="quickstart-title">
+            <div><span className="story-kicker">Quick start</span><h3 id="quickstart-title">Install once. Scan once.<br /><em>Start delegating.</em></h3></div>
+            <ol>
+              <li><span>01</span><div><h4>Get CodeHound</h4><p>Download a release from GitHub, or install from a source checkout with Cargo.</p><div className="quickstart-options"><a href={`${githubUrl}/releases`} target="_blank" rel="noreferrer">Download from GitHub <ArrowUpRight size={14} /></a><code>cargo install --path .</code></div></div></li>
+              <li><span>02</span><div><h4>Scan and delegate</h4><p>Export the full finding set, then hand the generated chunks to the agent you already use.</p><code className="quickstart-command">./codehound . --profile all --export-chunks --no-cache</code></div></li>
+            </ol>
+          </section>
           <div className="docs-grid">
             {documentation.map(([title, description, path], index) => (
               <a key={path} href={`${docsUrl}/${path}`} target="_blank" rel="noreferrer">
