@@ -87,9 +87,7 @@ em { color: var(--accent); font-weight: 400; }
 .floating-tag { position: absolute; z-index: 2; display: flex; gap: 7px; align-items: center; padding: 10px 12px; background: var(--card); border: 1px solid var(--line); box-shadow: 0 8px 20px #37312613; color: var(--ink); font-family: var(--mono); font-size: 9px; letter-spacing: .04em; text-transform: uppercase; }
 .floating-tag svg { color: var(--accent); }.tag-one { top: 18%; right: -11%; }.tag-two { bottom: 4%; left: -11%; }
 .hero-visual::after { position: absolute; z-index: 0; top: 50%; left: 50%; width: 8px; height: 8px; margin: -4px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 16%, transparent); content: ""; animation: orbit-satellite 9s linear infinite; }
-.scan-window { animation: scan-float 5.5s ease-in-out infinite; }
 @keyframes orbit-satellite { from { transform: rotate(0) translateY(-230px) rotate(0); } to { transform: rotate(1turn) translateY(-230px) rotate(-1turn); } }
-@keyframes scan-float { 50% { transform: translateY(-8px); } }
 
 .signal-strip { display: flex; align-items: center; justify-content: space-between; gap: 30px; padding: 20px max(22px, calc((100vw - 1184px) / 2)); background: var(--pine); color: #edf1eb; }
 .signal-strip p { margin: 0; font-family: var(--serif); font-size: 17px; font-style: italic; }.signal-strip div { display: flex; gap: clamp(12px, 2.8vw, 38px); }.signal-strip span { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; }

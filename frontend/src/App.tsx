@@ -108,7 +108,7 @@ export default function App() {
                 <span className="live-status"><b /> ANALYSIS COMPLETE</span>
               </div>
               <div className="scan-content">
-                <div className="scan-command"><span>$</span> codehound ./internal/pdf</div>
+                <div className="scan-command"><span>$</span> ./codehound .  --profile all --export-chunks --no-cache</div>
                 <div className="scan-rule" />
                 <div className="finding-line"><CircleAlert size={15} /><b>PERF-007</b><span>defer in a hot path</span></div>
                 <div className="finding-path">internal/pdf/writer.go:184</div>
