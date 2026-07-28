@@ -1,0 +1,40 @@
+# Recover / retry crates.io publish without re-cutting a GitHub Release.
+# Use when a version tag's release workflow published binaries but cargo publish failed.
+#
+#   gh workflow run crates-io-publish.yml --ref master
+#
+# Requires repository secret CARGO_REGISTRY_TOKEN. package.version must not
+# already exist on crates.io.
+name: crates.io publish
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  crates-io:
+    name: crates.io publish
+    runs-on: ubuntu-latest
+    steps:
+      # pin: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      # pin: dtolnay/rust-toolchain@master (2026-07-23); toolchain is exact
+      - uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c
+        with:
+          toolchain: "1.88"
+      - name: Publish to crates.io
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CARGO_REGISTRY_TOKEN:-}" ]; then
+            echo "Missing CARGO_REGISTRY_TOKEN repository secret (crates.io API token)."
+            echo "Create one at https://crates.io/settings/tokens and add it under"
+            echo "GitHub → Settings → Secrets and variables → Actions → CARGO_REGISTRY_TOKEN"
+            exit 1
+          fi
+          VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)"
+          echo "Publishing codehound ${VERSION} from ${GITHUB_REF_NAME} (${GITHUB_SHA})"
+          cargo publish --locked
