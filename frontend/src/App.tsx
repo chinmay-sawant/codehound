@@ -15,6 +15,7 @@ import {
   Terminal,
 } from 'lucide-react'
 import { useLayoutEffect, useState } from 'react'
+import { HeroTitle } from './components/HeroTitle'
 import { formatStarCount, useGithubStars } from './hooks/useGithubStars'
 import { useTheme } from './hooks/useTheme'
 import './styles/global.css'
@@ -52,24 +53,23 @@ function StoryView() {
     <main id="top" className="story-view">
       <article className="project-story" aria-labelledby="story-title">
         <header className="project-story-header">
-          <span className="story-kicker">A project story</span>
           <h1 id="story-title">From a long feedback loop<br />to a better <em>starting point.</em></h1>
           <p>CodeHound is the performance linter and static-analysis tool I wanted while building a Go PDF engine: a repeatable way to catch known costs before the profiling loop starts again.</p>
         </header>
 
         <div className="story-chapters">
-          <section className="story-chapter"><span>01</span><div><p className="chapter-label">The problem</p><h2>Performance work kept starting too late.</h2><p>After six months building and working on GoPDFSuit, a native template-based PDF engine, I spent another one to two months reviewing, validating, profiling, and iterating. Existing linters helped, but they did not turn the recurring performance issues into an actionable queue.</p></div></section>
-          <section className="story-chapter"><span>02</span><div><p className="chapter-label">The idea</p><h2>Make the repeatable parts deterministic.</h2><p>The goal is not premature optimization. Start with functionality and unit tests, then use rules to surface predictable traps before pprof, caching, and workload-specific tuning. An agent can remediate a bounded finding list; the developer still reviews every change and owns the architecture.</p></div></section>
-          <section className="story-chapter"><span>03</span><div><p className="chapter-label">Why rules still matter</p><h2>Subagents are powerful. Known checks should not require an open-ended review.</h2><p>I used an agent-driven feedback loop on GoPDFSuit to reach nearly 5,000 ops/s, and that kind of review can uncover system-level approaches beyond straightforward code changes. But repeatedly asking an agent to rediscover the same repository costs time and model budget. When we already know what to detect and how to frame a safe fix, a deterministic rule can find it locally; a lower-cost model such as DeepSeek V4 Flash can then triage the bounded findings instead of re-reading the whole codebase.</p></div></section>
-          <section className="story-chapter"><span>04</span><div><p className="chapter-label">The build</p><h2>Use real lessons, not generic AI guesses.</h2><p>An earlier static-analysis attempt taught me to begin with real problems. I converted GoPDFSuit optimization checklists—complete with code examples and rationale—into rules with Codex and Grok, instead of targeting arbitrary AI-generated code patterns.</p></div></section>
-          <section className="story-chapter"><span>05</span><div><p className="chapter-label">The toolchain</p><h2>Rust for the analyzer, Go for the target.</h2><p>I chose Rust primarily for Cargo, compiler feedback, and the development experience. AI made a one-person build faster, but it also made strong guardrails essential: architecture, linting, benchmarks, and review. The scanner itself benefited from the same discipline through cheaper walks and earlier short-circuits.</p></div></section>
-          <section className="story-chapter"><span>06</span><div><p className="chapter-label">The proof</p><h2>The benchmark moved, not just the conversation.</h2><p>On a PDF/A-4 and PDF/UA-2 capable Go engine built from scratch, standard Go linters moved throughput from 1,140.59 to 1,171.68 ops/s. After the CodeHound remediation pass, it reached 2,349.29 ops/s.</p></div></section>
-          <section className="story-chapter"><span>07</span><div><p className="chapter-label">What is next</p><h2>Make the signal sharper, then broaden carefully.</h2><p>Next up: lower the roughly 5% domain-specific false-positive rate, validate high-value Go framework coverage, and carefully expand the approach toward Python.</p></div></section>
-          <section className="story-chapter"><span>08</span><div><p className="chapter-label">Use with judgment</p><h2>Findings are a starting point, not a performance guarantee.</h2><p>CodeHound can surface application-level performance opportunities, bad practices, and CWE heuristics. You still need to understand the findings, test each remediation, and profile the system bottlenecks that remain. Some workloads need caching, architectural changes, or a different approach entirely.</p></div></section>
+          <section className="story-chapter"><h2>Performance work kept starting too late.</h2><p>After six months building and working on GoPDFSuit, a native template-based PDF engine, I spent another one to two months reviewing, validating, profiling, and iterating. Existing linters helped, but they did not turn the recurring performance issues into an actionable queue.</p></section>
+          <section className="story-chapter"><h2>Make the repeatable parts deterministic.</h2><p>The goal is not premature optimization. Start with functionality and unit tests, then use rules to surface predictable traps before pprof, caching, and workload-specific tuning. An agent can remediate a bounded finding list; the developer still reviews every change and owns the architecture.</p></section>
+          <section className="story-chapter"><h2>Subagents are powerful. Known checks should not require an open-ended review.</h2><p>I used an agent-driven feedback loop on GoPDFSuit to reach nearly 5,000 ops/s, and that kind of review can uncover system-level approaches beyond straightforward code changes. But repeatedly asking an agent to rediscover the same repository costs time and model budget. When we already know what to detect and how to frame a safe fix, a deterministic rule can find it locally; a lower-cost model such as DeepSeek V4 Flash can then triage the bounded findings instead of re-reading the whole codebase.</p></section>
+          <section className="story-chapter"><h2>Use real lessons, not generic AI guesses.</h2><p>An earlier static-analysis attempt taught me to begin with real problems. I converted GoPDFSuit optimization checklists—complete with code examples and rationale—into rules with Codex and Grok, instead of targeting arbitrary AI-generated code patterns.</p></section>
+          <section className="story-chapter"><h2>Rust for the analyzer, Go for the target.</h2><p>I chose Rust primarily for Cargo, compiler feedback, and the development experience. AI made a one-person build faster, but it also made strong guardrails essential: architecture, linting, benchmarks, and review. The scanner itself benefited from the same discipline through cheaper walks and earlier short-circuits.</p></section>
+          <section className="story-chapter"><h2>The benchmark moved, not just the conversation.</h2><p>On a PDF/A-4 and PDF/UA-2 capable Go engine built from scratch, standard Go linters moved throughput from 1,140.59 to 1,171.68 ops/s. After the CodeHound remediation pass, it reached 2,349.29 ops/s.</p></section>
+          <section className="story-chapter"><h2>Make the signal sharper, then broaden carefully.</h2><p>Next up: lower the roughly 5% domain-specific false-positive rate, validate high-value Go framework coverage, and carefully expand the approach toward Python.</p></section>
+          <section className="story-chapter"><h2>Findings are a starting point, not a performance guarantee.</h2><p>CodeHound can surface application-level performance opportunities, bad practices, and CWE heuristics. You still need to understand the findings, test each remediation, and profile the system bottlenecks that remain. Some workloads need caching, architectural changes, or a different approach entirely.</p></section>
         </div>
 
         <section className="story-evidence" aria-label="Benchmark comparison">
-          <div><span className="story-kicker">Measured result</span><h2>No vibes. A reproducible comparison.</h2><p>The numbers are a project benchmark, not a promise for every workload. The public repositories and pull requests below provide the evidence trail.</p></div>
+          <div><h2>Measured on the same workload.</h2><p>The numbers are a project benchmark, not a promise for every workload. The public repositories and pull requests below provide the evidence trail.</p></div>
           <dl>
             <div><dt>Base</dt><dd>1,140.59 ops/s</dd></div>
             <div><dt>Go linters</dt><dd>1,171.68 ops/s <small>+2.7%</small></dd></div>
@@ -151,7 +151,7 @@ export default function App() {
       {showStory ? <StoryView /> : <main id="top">
         <section className="hero-section" aria-labelledby="hero-title">
           <div className="hero-copy">
-            <h1 id="hero-title">Push Go performance<br /><em>earlier.</em></h1>
+            <HeroTitle />
             <p className="hero-intro">
               CodeHound is a performance linter and static-analysis tool that complements golangci-lint. It turns repeat profiling lessons into deterministic findings before the expensive optimization loop begins.
             </p>
