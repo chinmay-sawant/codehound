@@ -83,7 +83,7 @@ expression: s
       ],
       "tool": {
         "driver": {
-          "informationUri": "https://github.com/chinmay/codehound",
+          "informationUri": "https://github.com/chinmay-sawant/codehound",
           "name": "codehound",
           "rules": [
             {
