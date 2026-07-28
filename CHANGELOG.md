@@ -2,6 +2,14 @@
 
 All notable changes to CodeHound are documented here.
 
+## [1.0.0] — 2026-07-28
+
+### Packaging
+
+- Tag releases (`v*`) publish multi-arch binaries (Linux, macOS, Windows) to GitHub Releases with SHA-256 checksums and a CycloneDX SBOM
+- Tag releases publish the crate to crates.io (`cargo install codehound --locked`)
+- Maintainer guide: [`documents/releasing.md`](documents/releasing.md)
+
 ## [0.1.0] — 2026-07-11
 
 First **0.1.0** product bar after the feedback-driven phases 0–8.
