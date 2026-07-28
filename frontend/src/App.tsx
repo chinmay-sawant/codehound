@@ -259,9 +259,8 @@ export default function App() {
             </ol>
           </section>
           <div className="docs-grid">
-            {documentation.map(([title, description, path], index) => (
+            {documentation.map(([title, description, path]) => (
               <a key={path} href={`${docsUrl}/${path}`} target="_blank" rel="noreferrer">
-                <span>{String(index + 1).padStart(2, '0')}</span>
                 <h3>{title}</h3>
                 <p>{description}</p>
                 <ArrowUpRight size={18} />
