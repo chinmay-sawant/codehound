@@ -73,4 +73,4 @@ CODEHOUND_BIN=./target/release/codehound bash scripts/canary/run_canaries.sh
 
 ## License
 
-Contributions are dual-licensed under MIT OR Apache-2.0, same as the project.
+Contributions are licensed under MIT, same as the project.
