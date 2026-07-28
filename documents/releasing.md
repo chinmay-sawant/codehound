@@ -186,8 +186,10 @@ cargo package --locked
 |---------|--------------|-----|
 | validate: tag does not match Cargo.toml | Tag `vX.Y.Z` ≠ `version` in Cargo.toml | Retag the correct version or bump Cargo.toml and retag |
 | crates-io: missing token | No `CARGO_REGISTRY_TOKEN` secret | Add the secret (see [One-time setup](#one-time-setup-cratesio)) |
+| crates-io: category slugs not supported | Invalid `categories` entry in `Cargo.toml` (e.g. `development-tools::static-analysis` is not a slug) | Use only slugs from https://crates.io/category_slugs (deslop used `command-line-utilities`; parent `development-tools` is fine). Fix on the branch you will publish from, then re-run crates.io only: `gh workflow run crates-io-publish.yml --ref master` |
 | crates-io: version already uploaded | Same version published before | Bump version, update changelog, new tag |
 | crates-io: package too large | Unintended files in the crate | Extend `exclude` in `Cargo.toml`; re-run `cargo package` |
+| crates-io failed after GitHub Release succeeded | Jobs run in parallel after validate | Fix metadata, merge, then **retry crates.io only** via [`.github/workflows/crates-io-publish.yml`](../.github/workflows/crates-io-publish.yml) (`workflow_dispatch`) — do not retag unless you intend a full re-release |
 | build fails on one matrix target | Toolchain / cross / Windows packaging | Inspect that job log; fix then delete bad tag if needed and re-push |
 | GitHub Release exists without assets | Manual release created, or publish job failed | Prefer tag-only flow; re-run failed jobs or attach assets from a re-run |
 

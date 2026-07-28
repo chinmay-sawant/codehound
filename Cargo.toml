@@ -9,7 +9,9 @@ repository = "https://github.com/chinmay-sawant/codehound"
 homepage = "https://github.com/chinmay-sawant/codehound"
 readme = "README.md"
 keywords = ["static-analysis", "linter", "performance", "go", "security"]
-categories = ["command-line-utilities", "development-tools::static-analysis"]
+# crates.io slugs only (see https://crates.io/category_slugs).
+# deslop used command-line-utilities; development-tools::static-analysis is not a valid slug.
+categories = ["command-line-utilities", "development-tools"]
 # Keep the crates.io tarball lean (build/test sources stay included).
 exclude = [
   "plans/**",
