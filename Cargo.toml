@@ -5,10 +5,30 @@ edition = "2024"
 rust-version = "1.88"
 description = "A static code analyzer for detecting performance bottlenecks and security weaknesses"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/chinmay/codehound"
+repository = "https://github.com/chinmay-sawant/codehound"
+homepage = "https://github.com/chinmay-sawant/codehound"
 readme = "README.md"
 keywords = ["static-analysis", "linter", "performance", "go", "security"]
 categories = ["command-line-utilities", "development-tools::static-analysis"]
+# Keep the crates.io tarball lean (build/test sources stay included).
+exclude = [
+  "plans/**",
+  "frontend/**",
+  "docs/**",
+  "documents/**",
+  ".github/**",
+  ".codebase-memory/**",
+  "real-repos/**",
+  "makefile",
+  "package.json",
+  "package-lock.json",
+  "opencode.json",
+  "skills-lock.json",
+  "AGENTS.md",
+  "CONTEXT.md",
+  "CHUNK_VALIDATOR.md",
+  "benchmarks.md",
+]
 
 [lib]
 name = "codehound"
