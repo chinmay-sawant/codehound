@@ -7,7 +7,7 @@ use helpers::unique_temp_root;
 use std::sync::Arc;
 
 use codehound::core::ScanContext;
-use codehound::engine::Analyzer;
+use codehound::engine::{Analyzer, project_relative_path};
 
 #[test]
 fn analyze_paths_handles_unicode_and_omits_non_utf8_source_cache_entries() {
@@ -26,21 +26,19 @@ fn analyze_paths_handles_unicode_and_omits_non_utf8_source_cache_entries() {
         })
         .build();
     let result = analyzer.analyze_paths(&[&root], None).unwrap();
+    let unicode_key = project_relative_path(&unicode_path, &root);
 
     assert!(result.findings.is_empty());
     assert_eq!(result.errors.len(), 1);
     assert_eq!(result.errors[0].path, invalid_path);
     assert_eq!(
-        result
-            .source_cache
-            .get(&unicode_path.display().to_string())
-            .map(|s| s.as_ref()),
+        result.source_cache.get(&unicode_key).map(|s| s.as_ref()),
         Some(unicode_source)
     );
     assert!(
         !result
             .source_cache
-            .contains_key(&invalid_path.display().to_string()),
+            .contains_key(&project_relative_path(&invalid_path, &root)),
         "invalid UTF-8 files should produce scan errors and no source cache entry"
     );
 
@@ -65,7 +63,7 @@ fn analyze_paths_caches_large_utf8_sources() {
         })
         .build();
     let result = analyzer.analyze_paths(&[&root], None).unwrap();
-    let key = source_path.display().to_string();
+    let key = project_relative_path(&source_path, &root);
 
     assert!(result.errors.is_empty(), "errors: {:?}", result.errors);
     assert!(result.findings.is_empty());
@@ -97,7 +95,7 @@ fn source_cache_arc_clone_shares_source_allocation() {
         })
         .build();
     let result = analyzer.analyze_paths(&[&root], None).unwrap();
-    let key = source_path.display().to_string();
+    let key = project_relative_path(&source_path, &root);
 
     let cached = result.source_cache.get(&key).unwrap();
     let cloned = Arc::clone(cached);

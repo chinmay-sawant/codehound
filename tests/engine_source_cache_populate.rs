@@ -5,7 +5,7 @@ mod helpers;
 use helpers::unique_temp_root;
 
 use codehound::core::ScanContext;
-use codehound::engine::Analyzer;
+use codehound::engine::{Analyzer, project_relative_path};
 
 #[test]
 fn analyze_paths_populates_source_cache_for_scanned_files() {
@@ -22,7 +22,7 @@ fn analyze_paths_populates_source_cache_for_scanned_files() {
         })
         .build();
     let result = analyzer.analyze_paths(&[&root], None).unwrap();
-    let key = source_path.display().to_string();
+    let key = project_relative_path(&source_path, &root);
 
     assert_eq!(result.source_cache.len(), 1);
     assert_eq!(
@@ -51,7 +51,7 @@ fn analyze_paths_populates_source_cache_for_files_with_zero_findings() {
         })
         .build();
     let result = analyzer.analyze_paths(&[&root], None).unwrap();
-    let key = source_path.display().to_string();
+    let key = project_relative_path(&source_path, &root);
 
     assert!(result.findings.is_empty());
     assert_eq!(result.source_cache.len(), 1);
@@ -77,7 +77,7 @@ fn analyze_paths_populates_source_cache_for_empty_files() {
         })
         .build();
     let result = analyzer.analyze_paths(&[&root], None).unwrap();
-    let key = source_path.display().to_string();
+    let key = project_relative_path(&source_path, &root);
 
     assert!(result.findings.is_empty());
     assert_eq!(result.source_cache.len(), 1);
@@ -111,21 +111,17 @@ func add(a int, b int) int {
         })
         .build();
     let result = analyzer.analyze_paths(&[&root], None).unwrap();
+    let go_key = project_relative_path(&go_path, &root);
+    let py_key = project_relative_path(&py_path, &root);
 
     assert!(result.errors.is_empty(), "errors: {:?}", result.errors);
     assert_eq!(result.source_cache.len(), 2);
     assert_eq!(
-        result
-            .source_cache
-            .get(&go_path.display().to_string())
-            .map(|s| s.as_ref()),
+        result.source_cache.get(&go_key).map(|s| s.as_ref()),
         Some(go_source)
     );
     assert_eq!(
-        result
-            .source_cache
-            .get(&py_path.display().to_string())
-            .map(|s| s.as_ref()),
+        result.source_cache.get(&py_key).map(|s| s.as_ref()),
         Some(py_source)
     );
     assert_eq!(

@@ -5,7 +5,7 @@ mod helpers;
 use helpers::unique_temp_root;
 
 use codehound::core::ScanContext;
-use codehound::engine::Analyzer;
+use codehound::engine::{Analyzer, project_relative_path};
 use codehound::export::{ExportOptions, export_findings};
 
 #[test]
@@ -24,10 +24,11 @@ fn export_uses_source_cache_after_source_file_is_removed() {
         .build();
     let result = analyzer.analyze_paths(&[&root], None).unwrap();
     assert_eq!(result.findings.len(), 1);
+    // Source-cache keys match finding paths: project-relative, not absolute.
     assert!(
         result
             .source_cache
-            .contains_key(&source_path.display().to_string())
+            .contains_key(&project_relative_path(&source_path, &root))
     );
 
     std::fs::remove_file(&source_path).unwrap();
