@@ -573,13 +573,9 @@ mod tests {
 
     #[test]
     fn export_flags_enable_source_retention() {
-        let with_export = Cli::try_parse_from([
-            "codehound",
-            "--export-context",
-            "--export-chunks",
-            ".",
-        ])
-        .expect("parse export flags");
+        let with_export =
+            Cli::try_parse_from(["codehound", "--export-context", "--export-chunks", "."])
+                .expect("parse export flags");
         let ctx = build_scan_context(scan_context_params_for_run(&with_export, None));
         assert!(
             ctx.retain_sources,

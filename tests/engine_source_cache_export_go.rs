@@ -17,7 +17,11 @@ fn export_context_works_for_relative_paths_when_sources_retained() {
     let root = unique_temp_root("source-cache-export-go");
     let pkg = root.join("internal");
     std::fs::create_dir_all(&pkg).unwrap();
-    std::fs::write(root.join("go.mod"), "module example.com/export-test\n\ngo 1.22\n").unwrap();
+    std::fs::write(
+        root.join("go.mod"),
+        "module example.com/export-test\n\ngo 1.22\n",
+    )
+    .unwrap();
     // BP-1: discarded error return (explicit blank assignment).
     std::fs::write(
         pkg.join("handler.go"),
@@ -100,10 +104,7 @@ fn export_without_source_cache_cannot_resolve_foreign_relative_paths() {
             "BP-1",
             "Discarded Error Return",
             "internal/handler.go",
-            codehound::rules::LineCol {
-                line: 5,
-                column: 2,
-            },
+            codehound::rules::LineCol { line: 5, column: 2 },
             "discarded error return",
             codehound::rules::Severity::Low,
             std::borrow::Cow::Borrowed(&[]),
