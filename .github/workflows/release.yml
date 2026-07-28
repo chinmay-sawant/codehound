@@ -214,7 +214,7 @@ jobs:
             cargo install codehound --locked
             ```
 
-            **License:** MIT OR Apache-2.0
+            **License:** MIT
 
             See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) and [ROADMAP.md](https://github.com/${{ github.repository }}/blob/main/ROADMAP.md).
         env:

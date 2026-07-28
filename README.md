@@ -239,4 +239,4 @@ cargo run -- ./tests/fixtures
 
 ## License
 
-Licensed under either of [MIT](LICENSE)
+Licensed under the [MIT License](LICENSE).
