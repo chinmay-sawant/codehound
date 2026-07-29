@@ -15,13 +15,14 @@ import {
   Terminal,
 } from 'lucide-react'
 import { useLayoutEffect, useState } from 'react'
+import { DocsView } from './components/DocsView'
 import { HeroTitle } from './components/HeroTitle'
+import { docPageFromHash, docPages, externalDocLinks, githubDocsUrl, type DocPageId } from './data/docs'
 import { formatStarCount, useGithubStars } from './hooks/useGithubStars'
 import { useTheme } from './hooks/useTheme'
 import './styles/global.css'
 
 const githubUrl = 'https://github.com/chinmay-sawant/codehound'
-const docsUrl = `${githubUrl}/blob/master/documents`
 const gocorePdfEngineUrl = 'https://github.com/chinmay-sawant/gocorepdfengine'
 const gopdfSuitUrl = 'https://github.com/chinmay-sawant/gopdfsuit'
 const benchmarkPulls = [
@@ -29,20 +30,9 @@ const benchmarkPulls = [
   ['Go linters only', 'https://github.com/chinmay-sawant/gocorepdfengine/pull/6'],
   ['After CodeHound', 'https://github.com/chinmay-sawant/gocorepdfengine/pull/4'],
 ] as const
-const documentation = [
-  ['Recommended pack', 'The high-signal starting point for everyday Go projects.', 'go-recommended-pack.md'],
-  ['How it compares', 'Where CodeHound fits beside golangci-lint and staticcheck.', 'go-vs-staticcheck.md'],
-  ['Rule catalogue', 'Every performance rule, maturity level, and rationale.', 'perf-rules.md'],
-  ['Configuration', 'Profiles, baselines, ignores, and codehound.toml.', 'configuration.md'],
-  ['Output formats', 'Text, JSON, and SARIF output for people and CI.', 'output-formats.md'],
-  ['Taint tracking', 'The experimental Go data-flow model and its boundaries.', 'taint.md'],
-  ['Bad practices', 'The advisory Go BP catalogue and its profile policy.', 'bad-practices.md'],
-  ['Incremental cache', 'How repeat scans stay quick without changing findings.', 'incremental-cache.md'],
-  ['Add a language', 'The plugin path for adding a real language implementation.', 'adding-a-language.md'],
-  ['Architecture & performance', 'The engine choices that preserve fast, predictable scans.', 'architecture-performance.md'],
-  ['Performance tiers', 'How performance rules are scoped and prioritized.', 'perf-tiers.md'],
-  ['Build a detector', 'A practical guide to extending the performance catalogue.', 'perf-detector-development.md'],
-] as const
+
+/** In-app docs cards shown on the home page (hash routes). */
+const inAppDocs = docPages.filter((p) => p.id !== 'overview')
 
 function Mark() {
   return <span className="mark" aria-hidden="true">C.</span>
@@ -89,20 +79,36 @@ function StoryView() {
   )
 }
 
+type SiteView =
+  | { kind: 'home' }
+  | { kind: 'story' }
+  | { kind: 'docs'; page: DocPageId }
+
+function viewFromHash(hash: string): SiteView {
+  if (hash === '#story') return { kind: 'story' }
+  const docsPage = docPageFromHash(hash)
+  if (docsPage) return { kind: 'docs', page: docsPage }
+  return { kind: 'home' }
+}
+
 export default function App() {
   const { theme, toggle } = useTheme()
   const { stars } = useGithubStars()
-  const [showStory, setShowStory] = useState(() => window.location.hash === '#story')
+  const [view, setView] = useState<SiteView>(() => viewFromHash(window.location.hash))
 
   useLayoutEffect(() => {
     const syncView = () => {
-      const story = window.location.hash === '#story'
-      setShowStory(story)
-      if (!story && window.location.hash) {
-        window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
-          const target = document.querySelector(window.location.hash)
-          if (target) window.scrollTo(0, target.getBoundingClientRect().top + window.scrollY)
-        }))
+      const next = viewFromHash(window.location.hash)
+      setView(next)
+      if (next.kind === 'home' && window.location.hash && window.location.hash !== '#top') {
+        window.requestAnimationFrame(() =>
+          window.requestAnimationFrame(() => {
+            const target = document.querySelector(window.location.hash)
+            if (target) window.scrollTo(0, target.getBoundingClientRect().top + window.scrollY)
+          }),
+        )
+      } else if (next.kind !== 'home') {
+        window.scrollTo(0, 0)
       }
     }
 
@@ -110,6 +116,9 @@ export default function App() {
     syncView()
     return () => window.removeEventListener('hashchange', syncView)
   }, [])
+
+  const showStory = view.kind === 'story'
+  const showDocs = view.kind === 'docs'
 
   return (
     <div className="site-shell">
@@ -120,9 +129,9 @@ export default function App() {
         </a>
 
         <nav className="site-nav" aria-label="Primary navigation">
-          <a href="#top">Home</a>
+          <a href="#top" aria-current={!showStory && !showDocs ? 'page' : undefined}>Home</a>
           <a href="#story" aria-current={showStory ? 'page' : undefined}>The story</a>
-          <a href="#docs">Documentation</a>
+          <a href="#docs" aria-current={showDocs ? 'page' : undefined}>Documentation</a>
         </nav>
 
         <div className="header-actions">
@@ -148,7 +157,9 @@ export default function App() {
         </div>
       </header>
 
-      {showStory ? <StoryView /> : <main id="top">
+      {showStory ? <StoryView /> : showDocs && view.kind === 'docs' ? (
+        <DocsView page={view.page} />
+      ) : <main id="top">
         <section className="hero-section" aria-labelledby="hero-title">
           <div className="hero-copy">
             <HeroTitle />
@@ -249,8 +260,14 @@ export default function App() {
           </div>
         </section>
 
-        <section className="docs-section" id="docs" aria-labelledby="docs-title">
-          <div className="docs-head"><h2 id="docs-title">The details, without<br />the documentation maze.</h2><div className="docs-intro"><p>The original documentation remains available in full. Start with the guide that meets you where you are.</p><a className="underlined-link" href={`${githubUrl}/tree/master/documents`} target="_blank" rel="noreferrer">View all documentation <ArrowUpRight size={15} /></a></div></div>
+        <section className="docs-section" id="docs-home" aria-labelledby="docs-title">
+          <div className="docs-head">
+            <h2 id="docs-title">The details, without<br />the documentation maze.</h2>
+            <div className="docs-intro">
+              <p>Guides live on this site. Full markdown references stay in the repo when you need every field.</p>
+              <a className="underlined-link" href="#docs">Open documentation <ChevronRight size={15} /></a>
+            </div>
+          </div>
           <section className="docs-quickstart" aria-labelledby="quickstart-title">
             <div><span className="story-kicker">Quick start</span><h3 id="quickstart-title">Install once. Scan once.<br /><em>Start delegating.</em></h3></div>
             <ol>
@@ -259,8 +276,15 @@ export default function App() {
             </ol>
           </section>
           <div className="docs-grid">
-            {documentation.map(([title, description, path]) => (
-              <a key={path} href={`${docsUrl}/${path}`} target="_blank" rel="noreferrer">
+            {inAppDocs.map((page) => (
+              <a key={page.id} href={page.hash}>
+                <h3>{page.nav}</h3>
+                <p>{page.lead}</p>
+                <ChevronRight size={18} />
+              </a>
+            ))}
+            {externalDocLinks.slice(0, 8).map(([title, description, path]) => (
+              <a key={path} href={`${githubDocsUrl}/${path}`} target="_blank" rel="noreferrer">
                 <h3>{title}</h3>
                 <p>{description}</p>
                 <ArrowUpRight size={18} />
