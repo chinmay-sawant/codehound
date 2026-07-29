@@ -35,7 +35,7 @@ Add the optional `[codehound.cache]` block to `codehound.toml`:
 [codehound.cache]
 enabled = true
 path = ".codehound-cache"      # custom directory
-max_size_mb = 500              # size limit (LRU eviction TBD)
+max_size_mb = 500              # size limit; oldest-by-cached_at eviction on flush
 evict_target_ratio = 0.9       # evict down to 90% of max_size_mb
 max_file_size_mb = 4           # skip cache for files larger than 4 MiB
 ```
@@ -46,12 +46,25 @@ CLI flags override config values.
 
 ```
 .codehound-cache/
-├── manifest.json       # maps file path → content hash + cache key + deps
-├── metadata.json       # tool version, last scan timestamp
+├── manifest.json       # schema_version, tool_version, rule_config_hash, file map
+├── .manifest.lock      # advisory exclusive lock during flush (fs2)
 └── files/
-    ├── <sha256>.json   # per-file findings + metadata
+    ├── <sha256>.json   # per-file findings + content_hash + deps + cached_at
     └── ...
 ```
+
+There is **no** separate `metadata.json`. Tool version and related fields live
+in `manifest.json` (`CacheManifest`). Schema version is `CACHE_VERSION = 2`.
+
+## Project roots (two concepts)
+
+| Root | How | Used for |
+|------|-----|----------|
+| Prep / project root | Walk for `.git` **or** `go.mod` | Pack prep, some discovery |
+| Dependency base root | Prefer `go.mod` directory (never bare parent `.git` alone) | Cache keys, dep graph, prune safety |
+
+CI sandboxes that only inherit a parent `.git` without a local `go.mod` rely on
+this split — see `src/engine/dependencies/project_root.rs`.
 
 ## Invalidation strategy
 
@@ -59,11 +72,15 @@ A file is treated as stale and re-parsed when any of the following is true:
 
 - No cache entry exists (first scan).
 - The file's SHA-256 content hash differs from the cached hash.
-- The CodeHound tool version changed.
+- The CodeHound **tool version** changed (`manifest.tool_version`).
+- The **rule-config fingerprint** changed (`rule_config_hash`): profile,
+  only/skip, taint/typed/BP toggles, taint depth, and related knobs from
+  `ScanContext::rule_config_fingerprint`.
+- `CACHE_VERSION` / schema mismatch (store refuses or rebuilds).
 - Any project-local dependency's content hash changed (transitive invalidation).
 
-`mtime` is recorded for diagnostics but is not authoritative; the content hash
-is.
+Content hash is authoritative. Entries record `content_hash`, `dependencies`,
+and `cached_at` — **not** mtime.
 
 ### Transitive invalidation
 
@@ -88,10 +105,18 @@ suppressions is essentially free.
 ## Housekeeping
 
 - At the end of a normal scan, entries for files that no longer exist are
-  removed from the manifest.
-- `--prune-cache` performs the same cleanup plus removes orphaned
+  removed from the manifest **when the scan covers the full dependency root**
+  (`covers_dependency_root`). Nested path or single-file scans do **not** prune
+  sibling packages.
+- `--prune-cache` / `codehound cache prune` perform cleanup plus remove orphaned
   `files/<key>.json` entries whose keys are not in the manifest.
 - `--rebuild-cache` deletes the entire cache directory and starts fresh.
+
+### Taint interaction
+
+When taint is enabled, detectors may set `requires_cache_state` so project
+finalize still receives units even on “hits”. Expect less free warm-cache
+speedup under `--taint` / `--profile security`.
 
 ## Same-scan cascade (Phase 5)
 
@@ -113,17 +138,18 @@ slashes, no `./` prefix). See [ADR 0002](./adr/0002-project-path-identity.md).
 
 ## Limitations / concurrency policy
 
-- **Single-writer assumption:** one CodeHound process owns a given cache
-  directory per scan. Concurrent writers on the same `.codehound-cache/` may
-  race on `manifest.json`.
+- **Single-writer preferred:** one CodeHound process should own a given cache
+  directory per scan. Parallel CI jobs should use distinct `--cache-dir` paths.
+- Flush uses an **advisory exclusive lock** (`.manifest.lock` via `fs2`). On
+  lock contention the writer may **skip flush** rather than corrupt the store —
+  this is not a multi-writer merge protocol.
 - Entry files are written as whole JSON documents; a torn manifest is detected
   on the next `open()` and falls back to an empty manifest.
-- File locking is intentionally **not** implemented yet; prefer exclusive CI
-  jobs or distinct `--cache-dir` paths for parallel scans.
 - Tests (`engine_cache_concurrent`) assert concurrent open/scan does not panic;
   they do not guarantee merge correctness under dual writers.
-- Size-based LRU eviction (`max_size_mb`) is enforced on `flush()` via
-  `CacheStore::evict_to_size()`. `evict_target_ratio` controls how far the
-  cache is trimmed once the limit is exceeded.
+- Size-based eviction (`max_size_mb`) is enforced on `flush()` via
+  `CacheStore::evict_to_size()` (oldest by `cached_at`). `evict_target_ratio`
+  controls how far the cache is trimmed once the limit is exceeded.
 - Files larger than `max_file_size_mb` still scan normally, but CodeHound skips
   cache lookups and cache writes for them to avoid bloating the on-disk store.
+- In-memory `CacheBackend` exists for tests/embedders; disk is the default.

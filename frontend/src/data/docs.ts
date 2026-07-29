@@ -62,10 +62,15 @@ export const githubDocsUrl = 'https://github.com/chinmay-sawant/codehound/blob/m
 
 /** Repo markdown still linked from the docs hub (deep reference, not rendered here). */
 export const externalDocLinks = [
+  ['CLI reference', 'Full flag and subcommand encyclopedia.', 'cli.md'],
   ['Recommended pack', 'High-signal default CI pack and fail policy.', 'go-recommended-pack.md'],
+  ['CI integration', 'GitHub Actions, SARIF upload, brownfield adoption.', 'ci-integration.md'],
+  ['Rule catalog index', 'How to navigate PERF / BP / CWE inventory.', 'rule-catalog.md'],
+  ['PERF tiers', 'S/A/B/C pack policy and hot-path rules.', 'perf-tiers.md'],
   ['How it compares', 'Beside golangci-lint, staticcheck, and govulncheck.', 'go-vs-staticcheck.md'],
-  ['Rule catalogue', 'Performance rules, maturity, and rationale.', 'perf-rules.md'],
-  ['Configuration', 'codehound.toml, profiles, ignores, baselines.', 'configuration.md'],
+  ['Rule notes (PERF)', 'Partial human notes — use --list-rules for full inventory.', 'perf-rules.md'],
+  ['Configuration', 'codehound.toml, profiles, fails, cache, taint.', 'configuration.md'],
+  ['Finding identity', 'Fingerprints, ignores, baseline workflow.', 'finding-identity.md'],
   ['Taint tracking', 'Experimental data-flow model and limits.', 'taint.md'],
   ['Bad practices', 'BP catalogue and style pack policy.', 'bad-practices.md'],
   ['Incremental cache', 'Warm scans without changing findings.', 'incremental-cache.md'],
@@ -75,24 +80,61 @@ export const externalDocLinks = [
 export const profiles = [
   {
     name: 'recommended',
-    blurb: 'Default CI pack: S-tier PERF + taint-core CWEs. BP off. Fail on high+.',
+    blurb: 'Default CI pack: S-tier PERF + taint-core CWEs. BP off. Fail on high+ only. Taint off until --taint.',
   },
   {
     name: 'perf',
-    blurb: 'Broader framework and hot-path PERF pack. BP off.',
+    blurb: 'S+A PERF (framework + hot-path). BP off. Fail on high+.',
   },
   {
     name: 'security',
-    blurb: 'Taint-core CWEs with experimental taint enabled. BP off.',
+    blurb: 'Security CWE pack (22/41/59/78/79/89/90/91/93). Experimental taint on. BP off.',
   },
   {
     name: 'style',
-    blurb: 'Bad practices only (advisory). No fail by default.',
+    blurb: 'BP-* only (skips BP-21/28/30). Advisory — no fail by default.',
   },
   {
     name: 'all',
-    blurb: 'Full catalog: PERF + CWE + BP. Use when you want everything exported.',
+    blurb: 'Full catalog: PERF + CWE + BP. Fail on medium+. Best for agent export.',
   },
+] as const
+
+/** Exact recommended-pack membership for the Features page. */
+export const recommendedPerfRules = [
+  ['PERF-1', 'Regex compilation inside a loop'],
+  ['PERF-7', 'defer inside a loop'],
+  ['PERF-50', 'regexp.MatchString inside a loop'],
+  ['PERF-58', 'Gin request body not closed'],
+  ['PERF-71', 'GORM N+1 query pattern'],
+  ['PERF-101', 'http.Server missing timeouts'],
+  ['PERF-103', 'HTTP response body not closed'],
+  ['PERF-189', 'Response body not drained before close'],
+  ['PERF-190', 'HTTP client missing timeout'],
+] as const
+
+export const recommendedCweRules = [
+  ['CWE-22', 'Path traversal (taint)'],
+  ['CWE-78', 'OS command injection (taint)'],
+  ['CWE-79', 'XSS / template + HTTP write (taint)'],
+  ['CWE-89', 'SQL injection heuristic (taint)'],
+  ['CWE-90', 'LDAP injection (taint)'],
+  ['CWE-91', 'XML injection (taint)'],
+] as const
+
+export const perfTierRows = [
+  ['S', 'Medium', 'recommended + perf', 'CI surface — timeouts, body close, regex/defer in loop, N+1'],
+  ['A', 'Medium', 'perf', 'Framework / hot-path (sqlx, caches, MaxBytesReader, …)'],
+  ['B', 'Info', 'all only', 'Micro-opts (time.Since, TrimPrefix, …)'],
+  ['C', 'Info', 'all only', 'staticcheck / prealloc overlap — prefer those tools in CI'],
+] as const
+
+export const toolchainRows = [
+  ['go vet / staticcheck', 'Language correctness and deep static analysis'],
+  ['errcheck / wrapcheck', 'Error-handling completeness'],
+  ['govulncheck', 'Live module CVEs'],
+  ['golangci-lint', 'Aggregator for the above'],
+  ['CodeHound', 'PERF hot paths, framework footguns, optional taint + BP'],
 ] as const
 
 export const featureCards = [
@@ -102,7 +144,7 @@ export const featureCards = [
   },
   {
     title: 'Framework footguns',
-    body: 'Gin, Echo, GORM, and sqlx awareness — unclosed bodies, unbounded rows, missing timeouts, context leaks.',
+    body: 'net/http, Gin, Echo, Chi, Fiber, GORM, and sqlx awareness — unclosed bodies, unbounded rows, missing timeouts, context leaks.',
   },
   {
     title: 'CWE heuristics',
@@ -114,7 +156,7 @@ export const featureCards = [
   },
   {
     title: 'Taint (experimental)',
-    body: 'Intra-procedural tracking for CWE-22 / 78 / 79 / 89. Enable with --taint or --profile security. Not security-grade whole-program analysis.',
+    body: 'Intra/same-package tracking for CWE-22 / 78 / 79 / 89 / 90 / 91. Enable with --taint or --profile security. Not security-grade whole-program analysis.',
   },
   {
     title: 'Offline & agent-ready',
@@ -128,7 +170,20 @@ export const cliSubcommands = [
   { cmd: 'codehound init', desc: 'Write a starter codehound.toml in the current directory.' },
   { cmd: 'codehound rules', desc: 'List rules; filter with --category; explain with --explain RULE.' },
   { cmd: 'codehound cache prune', desc: 'Drop stale incremental-cache entries, then exit.' },
-  { cmd: 'codehound baseline list|save|update|prune|diff', desc: 'Brownfield baseline management for accepted debt.' },
+  {
+    cmd: 'codehound baseline list|save|update|prune|diff',
+    desc: 'Brownfield baseline management (list, save, merge, prune stale, diff). Optional --path.',
+  },
+] as const
+
+export const cliEnvVars = [
+  ['CODEHOUND_PROFILE', '--profile'],
+  ['CODEHOUND_CONFIG', '--config'],
+  ['CODEHOUND_ONLY', '--only'],
+  ['CODEHOUND_SKIP', '--skip'],
+  ['CODEHOUND_GO', 'go binary for --typed'],
+  ['NO_COLOR', '--no-color (truthy)'],
+  ['RUST_LOG', 'Tracing verbosity (not a product flag)'],
 ] as const
 
 export const cliFlagGroups = [
@@ -141,16 +196,18 @@ export const cliFlagGroups = [
       ['--no-snippet', 'Hide source snippets in text output.'],
       ['--quiet / --no-terminal', 'Suppress non-error or stdout findings.'],
       ['--verbose / --show-fingerprint', 'Extra detector detail or fingerprints.'],
+      ['--no-color', 'Disable color (also honors NO_COLOR).'],
     ],
   },
   {
     title: 'Profiles & rules',
     rows: [
-      ['--profile recommended|perf|security|style|all', 'Product pack (default: recommended).'],
-      ['--only / --skip', 'Comma-separated rule IDs (env: CODEHOUND_ONLY / SKIP).'],
+      ['--profile recommended|perf|security|style|all', 'Product pack (default: recommended). Aliases: ci, sec, bp, full.'],
+      ['--only / --skip', 'Comma-separated rule IDs or globs like BP-* (env: CODEHOUND_ONLY / SKIP).'],
       ['--bp-only / --no-bp', 'Only bad-practice rules, or disable them.'],
-      ['--list-rules / --explain RULE', 'Browse or deep-dive a single rule.'],
-      ['--config PATH', 'Override codehound.toml discovery.'],
+      ['--list-rules / --rule-category …', 'Browse rules; filter security|performance|bad-practice|general.'],
+      ['--explain RULE', 'Deep-dive pack eligibility, maturity, quarantine.'],
+      ['--config PATH', 'Override codehound.toml discovery (env: CODEHOUND_CONFIG).'],
     ],
   },
   {
@@ -159,24 +216,26 @@ export const cliFlagGroups = [
       ['--taint / --no-taint', 'Toggle experimental taint engine.'],
       ['--taint-show-paths', 'Emit taint-path evidence in all formats.'],
       ['--taint-depth N', 'Inter-procedural hops (1–4, default 1).'],
-      ['--typed / --no-typed', 'Optional go list package facts (G4).'],
+      ['--typed / --no-typed', 'Optional go list package facts (G4). Needs Go toolchain.'],
     ],
   },
   {
     title: 'Exit policy',
     rows: [
-      ['(profile default)', 'recommended / security fail on high+.'],
-      ['--strict', 'Fail only on high-severity findings.'],
-      ['--warnings-as-errors', 'Fail on medium+ (CLI-explicit).'],
+      ['(profile default)', 'recommended / perf / security: high+. style: never. all: medium+.'],
+      ['--strict', 'Fail only on high-severity findings (CLI-explicit).'],
+      ['--warnings-as-errors', 'Fail on medium+ (CLI-explicit; use to gate PERF).'],
       ['--no-fail', 'Always exit 0 for findings.'],
     ],
   },
   {
     title: 'Cache, baseline, discovery',
     rows: [
+      ['--lang auto|go|python', 'Language filter (Python needs --features python).'],
       ['--no-cache / --rebuild-cache / --prune-cache', 'Control incremental analysis cache.'],
       ['--cache-dir DIR', 'Override cache directory.'],
       ['--baseline / --no-baseline / --baseline-file', 'Save or ignore baselines.'],
+      ['--show-baselined / --show-ignored', 'Emit baselined or codehound-ignore suppressions.'],
       ['--include-tests', 'Include *_test.* (excluded by default).'],
       ['--exclude-examples', 'Skip examples / samples paths.'],
     ],
@@ -206,6 +265,9 @@ codehound .
 # Product wedge — request-path / timeouts
 codehound --profile recommended --only PERF-101 .
 
+# Fail on medium PERF too (recommended defaults to high+ only)
+codehound --warnings-as-errors .
+
 # Security pack (enables taint) or full catalog
 codehound --profile security .
 codehound --profile all .
@@ -215,18 +277,20 @@ codehound --format json ./...
 codehound --format sarif ./... > codehound.sarif
 codehound --format sarif --sarif-compact . > codehound.sarif
 
-# Export for agent triage (off by default)
+# Export for agent triage (off by default; keep off pure CI gates)
 codehound --profile all --export-context --export-chunks --no-cache .
 
 # Rule browser
-codehound --list-rules
+codehound --list-rules --rule-category performance
 codehound rules --explain PERF-101
 codehound --explain CWE-334
 
 # Brownfield baseline
+codehound --no-fail .
 codehound --baseline .
 codehound baseline diff .
 codehound baseline prune .
+codehound --show-baselined .
 
 # Cache
 codehound --rebuild-cache .
@@ -363,7 +427,38 @@ export const exitCodes = [
   ['0', 'Clean — no failing findings, no scan errors'],
   ['1', 'Findings exceeded the fail policy'],
   ['2', 'Configuration / CLI error'],
-  ['3', 'Internal, I/O, or engine error'],
+  ['3', 'Internal, I/O, encoding, or aborted engine error'],
+  ['4', 'Per-file parse error (tree-sitter)'],
+  ['5', 'Per-file detector/engine error'],
   ['101', 'Rust panic in a worker thread'],
+] as const
+
+export const githubWorkflowExample = `name: codehound
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/codehound-scan
+        with:
+          profile: recommended
+          paths: .
+          upload-sarif: "true"`
+
+export const actionInputs = [
+  ['profile', 'recommended', 'Scan pack'],
+  ['paths', '.', 'Paths to scan'],
+  ['args', '(empty)', 'Extra CLI args'],
+  ['sarif-file', 'codehound.sarif', 'Output path'],
+  ['upload-sarif', 'true', 'Upload to GitHub Code Scanning'],
+  ['strict', 'true', 'Pass --strict'],
 ] as const
 

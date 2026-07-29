@@ -2,9 +2,29 @@
 
 CodeHound emits findings in three formats. Pick with `--format {text|json|sarif}`.
 
+Severity on the wire is always one of:
+
+| Severity | Text color (approx.) | SARIF `level` | `security-severity` |
+|----------|----------------------|---------------|---------------------|
+| `info` | cyan | `note` | `0.0` |
+| `low` | yellow | `warning` | `2.0` |
+| `medium` | yellow (bold) | `warning` | `5.0` |
+| `high` | red | `error` | `7.5` |
+| `critical` | red+bold | `error` | `9.5` |
+
+BP pack findings use a fixed SARIF `security-severity` of `5.0` unless
+overridden. Values come from `src/reporting/sarif/log.rs` and
+`src/rules/severity.rs` — treat this table as the source of truth for
+machine consumers.
+
+Related: [cli.md](./cli.md), [finding-identity.md](./finding-identity.md),
+[ci-integration.md](./ci-integration.md).
+
+---
+
 ## Text (default)
 
-```
+```text
 high  CWE-22  src/handler.go:14:5  user-controlled input reaches a filesystem path sink
   ↳ CWE-22 (Improper Limitation of a Pathname to a Restricted Directory)
   fix: validate and normalize the path, then check it stays under the allowed root
@@ -17,108 +37,115 @@ critical  CWE-89  src/db.go:9:18  user-controlled input is concatenated into a S
   scan errors: 0
 ```
 
-- Severity tokens are color-coded: `cyan` (info), `yellow` (warning),
-  `red` (high), `red+bold` (critical). Disable with `--no-color` or
-  `NO_COLOR=1`.
-- Use `--no-snippet` to suppress the source snippet block.
-- Use `--verbose` to show structured evidence summaries, confidence, tags, and suppression status.
-- Use `--debug-timing` to print a per-detector timing breakdown after findings.
-- CWE list is sorted by id for deterministic output.
-- A summary footer lists totals by severity and the top 5 rules by count.
-- When stats collection is enabled (`--debug-timing` or `--diagnostics`), the footer also shows files scanned, lines scanned, and total wall time.
+- Disable color with `--no-color` or `NO_COLOR=1`.
+- `--no-snippet` suppresses the source snippet block.
+- `--verbose` shows structured evidence, confidence, tags, and suppression status.
+- `--show-fingerprint` prints the stable fingerprint in text.
+- `--debug-timing` prints a per-detector timing breakdown after findings.
+- Summary footer lists totals by severity and the top 5 rules by count.
+- When stats collection is on (`--debug-timing` or `--diagnostics`), the footer
+  also shows files scanned, lines scanned, and wall time.
 
-## JSON (NDJSON, one finding per line)
+---
+
+## JSON (NDJSON by default)
+
+One finding object per line (stream-friendly):
 
 ```json
-{"rule_id":"CWE-22","rule_title":"Path traversal","file":"src/handler.go","line":14,"column":5,"message":"...","severity":"high","cwe":[],"fix":null}
+{"rule_id":"CWE-22","rule_title":"Path traversal","file":"src/handler.go","line":14,"column":5,"message":"...","severity":"high","cwe":[],"fix":null,"fingerprint":"codehound:2:CWE-22:src/handler.go:a1b2c3d4e5f60718"}
 ```
 
-- No envelope, no header — stream-friendly.
-- `cwe` is always an array (`[]` when no CWE references).
-- One JSON object per line; suitable for `jq` pipelines.
-- `severity` is one of `"info"`, `"warning"`, `"high"`, `"critical"`.
-- `fingerprint` is always present and is stable across text, JSON, SARIF,
-  baseline matching, and CI diffing.
-- Structured detector fields are additive and omitted when unset, so older
-  consumers can keep parsing the core finding shape.
-- `--json-envelope` wraps findings in a single object that also includes
-  `findingCount`, `errorCount`, `suppressedCount`, and an optional `stats`
-  object when timing/stats collection is enabled.
+- `severity` is one of `"info"`, `"low"`, `"medium"`, `"high"`, `"critical"`
+  (not `"warning"`).
+- `cwe` is always an array (`[]` when empty).
+- `fingerprint` is always present and stable across text, JSON, SARIF,
+  baselines, and CI diffing.
+- Structured detector fields are additive and omitted when unset.
 
-Optional structured fields:
+Optional / extended fields (when present):
 
-| Field         | Meaning |
-|---------------|---------|
-| `evidence`    | Machine-readable detector evidence such as `DangerousCall`, `TaintFlow`, `PatternMatch`, `MissingConfig`, or `ControlFlowIssue`. |
-| `confidence`  | Detector confidence from `0.0` to `1.0` when a heuristic rule can quantify certainty. |
-| `tags`        | Machine-readable labels for workflow hints, false-positive risk, framework context, or detector category. |
-| `suppressed`  | Present only when the finding is emitted in ignored/suppressed mode. |
-| `remediation` | Longer actionable remediation guidance, separate from the shorter `fix` hint. |
+| Field | Meaning |
+|-------|---------|
+| `category` | Coarse family (`performance`, `security`, …) |
+| `end_line` / `end_column` | Span end when known |
+| `byte_offset` / `byte_length` | Byte span when known |
+| `snippet` | Source excerpt |
+| `evidence` | Machine-readable detector evidence |
+| `confidence` | `0.0`–`1.0` when set |
+| `tags` | Workflow / category labels |
+| `suppressed` | Present when emitted in ignored/suppressed mode |
+| `remediation` | Longer fix guidance (vs short `fix`) |
+
+### Envelope mode
+
+```sh
+codehound --format json --json-envelope .
+```
+
+Wraps findings in a single object with `findingCount`, `errorCount`,
+`suppressedCount`, tool/version metadata, and optional `stats` when timing
+collection is enabled. Requires `--format json`.
+
+---
 
 ## SARIF 2.1.0
 
 ```sh
 codehound --format sarif ./... > out.sarif
+codehound --format sarif --sarif-compact ./... > out.sarif
 ```
 
-Or compact (one line, no indentation) for machine consumers:
+| Field | Value |
+|-------|-------|
+| `$schema` | `https://json.schemastore.org/sarif-2.1.0.json` |
+| `version` | `2.1.0` |
+| `tool.driver.name` | `codehound` |
+| `tool.driver.informationUri` | repository URL |
+| `tool.driver.version` / `semanticVersion` | package version |
+| `tool.driver.rules[]` | Rule metadata, sorted by id |
+| `invocations[0].executionSuccessful` | `true` if no per-file errors |
+| `results[].ruleId` | Stable id (`PERF-*`, `CWE-*`, `BP-*`) |
+| `results[].ruleIndex` | Index into `rules` |
+| `results[].level` | `note` / `warning` / `error` (see severity table) |
+| `results[].locations` | File URI + 1-indexed `startLine` / `startColumn` |
+| `partialFingerprints["codehound/v1"]` | Stable fingerprint (`codehound:2:…`) |
+| `properties.security-severity` | See severity table (not GitHub’s older 4.0/7.0/9.0 scale) |
+| `properties.tags` | Category / CWE tags |
+| `properties.remediation` / `codehoundEvidence` | Optional longer guidance and evidence |
+| `results[].rank` | confidence × 100 when confidence is set |
+| `results[].suppressions[].kind` | `"external"` when suppressed |
 
-```sh
-codehound --format sarif --sarif-compact ./... | jq > out.sarif
-```
+Additive `properties` fields are safe for consumers that ignore unknowns.
 
-The output conforms to
-[SARIF 2.1.0](https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html)
-and includes:
+GitHub Code Scanning upload pattern (upload SARIF even when exit ≠ 0):
+[ci-integration.md](./ci-integration.md).
 
-| Field                                              | Value |
-|----------------------------------------------------|-------|
-| `$schema`                                          | `https://json.schemastore.org/sarif-2.1.0.json` |
-| `version`                                          | `2.1.0` |
-| `runs[0].tool.driver.name`                         | `codehound` |
-| `runs[0].tool.driver.informationUri`               | repository URL (from `Cargo.toml`) |
-| `runs[0].tool.driver.version`                      | package version (from `Cargo.toml`) |
-| `runs[0].tool.driver.semanticVersion`              | same |
-| `runs[0].tool.driver.rules[].id`                   | rule id, e.g. `CWE-22` |
-| `runs[0].tool.driver.rules[]`                      | sorted alphabetically by id |
-| `runs[0].invocations[0].executionSuccessful`       | `true` if no per-file errors |
-| `runs[0].invocations[0].endTimeUtc`                | ISO 8601 UTC at scan end |
-| `runs[0].invocations[0].workingDirectory.uri`      | process CWD (absolute when available) |
-| `runs[0].tool.driver.rules[].shortDescription`     | rule title |
-| `runs[0].tool.driver.rules[].fullDescription`      | rule title (same when longer text unavailable) |
-| `runs[0].tool.driver.rules[].helpUri`              | CWE definition URL when the finding carries CWE refs |
-| `runs[0].results[].ruleId`                         | rule id |
-| `runs[0].results[].ruleIndex`                      | index into the `rules` array |
-| `runs[0].results[].level`                          | `note` / `warning` / `error` |
-| `runs[0].results[].message.text`                   | detector message |
-| `runs[0].results[].locations[].physicalLocation.artifactLocation.uri` | file path |
-| `runs[0].results[].locations[].physicalLocation.region.startLine`/`startColumn` | 1-indexed camelCase SARIF 2.1.0 |
-| `runs[0].results[].partialFingerprints["codehound/v1"]` | stable fingerprint (`codehound:2:<rule>:<file>:<msg_hash>` — key name kept for SARIF consumers) |
-| `runs[0].results[].properties.tags`                | `["security", "cwe", "cwe-22", ...]` |
-| `runs[0].results[].properties.security-severity`   | info `0.0` / low `2.0` / medium `5.0` / high `7.5` / critical `9.5` (BP pack fixed `5.0`) |
-| `runs[0].results[].rank`                           | confidence × 100 (only when `confidence` is set) |
-| `runs[0].results[].suppressions[].kind`            | `"external"` when the finding is suppressed |
-| `runs[0].results[].properties.codehoundEvidence`   | full structured detector evidence as JSON |
-| `runs[0].results[].properties.remediation`         | longer remediation guidance when set |
+---
 
-New properties are additive and use SARIF's standard `properties` bag, so existing SARIF consumers should ignore unknown fields gracefully.
+## Fail policy vs formats
 
-The `security-severity` mapping follows the
-[GitHub Code Scoring scale](https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/about-code-scanning-alerts#about-severity-levels):
+Reporter choice does **not** change exit policy. SARIF/JSON jobs still exit
+non-zero when findings exceed the fail policy — capture the file first, then
+fail the job (the composite action does this).
 
-| Severity    | security-severity |
-|-------------|-------------------|
-| `info`      | `0.0`             |
-| `warning`   | `4.0`             |
-| `high`      | `7.0`             |
-| `critical`  | `9.0`             |
+Under `--profile recommended`, medium PERF findings appear in output but do not
+fail unless `--warnings-as-errors` is set. See
+[go-recommended-pack.md](./go-recommended-pack.md).
+
+---
 
 ## Exit codes
 
-| Code | Meaning                                                  |
-|------|----------------------------------------------------------|
-| `0`  | clean (no failing findings, no scan errors)             |
-| `1`  | findings exceeded the `FailPolicy`                       |
-| `2`  | configuration error (unknown flag, invalid config, etc.) |
-| `3`  | internal / I-O / engine error                            |
-| `101` | Rust panic (unhandled unwind in a worker thread)         |
+| Code | Meaning |
+|------|---------|
+| `0` | Clean — no failing findings, no scan errors |
+| `1` | Findings exceeded the `FailPolicy` |
+| `2` | Configuration / CLI error |
+| `3` | Internal / I/O / encoding error (or scan aborted) |
+| `4` | Per-file parse error (tree-sitter) |
+| `5` | Per-file detector/engine error |
+| `101` | Rust panic in a worker thread |
+
+Per-file scan errors take precedence over finding fail policy when both occur
+(`scan_exit_code` in `src/app/run.rs`).

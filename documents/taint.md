@@ -1,10 +1,16 @@
 # Taint Tracking (Experimental)
 
-CodeHound includes an experimental intra-procedural taint-tracking engine for Go
-that augments the substring-based CWE detectors (CWE-22, CWE-78, CWE-79,
-CWE-89). When enabled, it traces data flow from untrusted sources to
-dangerous sinks and suppresses findings where a recognized sanitizer
-intercepts the flow.
+CodeHound includes an experimental taint-tracking engine for Go that augments
+substring-based CWE detectors for the **taint-core** family:
+
+`CWE-22`, `CWE-78`, `CWE-79`, `CWE-89`, `CWE-90`, `CWE-91`
+
+When enabled, it traces data flow from untrusted sources to dangerous sinks and
+suppresses findings where a recognized sanitizer intercepts the flow.
+
+**Honesty bar:** name-string and intra/same-package analysis — useful for triage,
+**not** a CodeQL / whole-program security gate. See [ADR 0003](./adr/0003-taint-model.md)
+and [SECURITY.md](../SECURITY.md).
 
 ## Enabling
 
@@ -12,12 +18,26 @@ intercepts the flow.
 |--------|-----|
 | CLI flag | `codehound --taint` |
 | Config file | `[codehound.taint]\nenabled = true` |
+| Profile | `--profile security` (taint **on** by default) |
 | Disable | `--no-taint` or `[codehound.taint]\nenabled = false` |
 | Show paths | `--taint-show-paths` or `[codehound.taint]\nshow_paths = true` |
 | Inter-proc depth | `--taint-depth N` (1–4, default **1** = direct caller→callee only) |
 
-Taint is disabled by default. The substring-based heuristic still runs as a
-fallback when taint is off.
+Taint is disabled by default under `recommended` (CWE IDs stay allow-listed).
+The substring-based heuristic still runs as a fallback when taint is off.
+
+### Pipeline (high level)
+
+1. **Extract** source/sink/sanitizer annotations from the Go AST (`taint/extract/`).
+2. **Build** an intra-procedural data-flow graph per function.
+3. **Query** paths from sinks back to sources; apply sanitizers.
+4. **Accumulate** per-file units; on project **finalize**, refine
+   same-package call summaries with multi-hop depth 1–4.
+5. Emit evidence (`TaintFlow`) when `--taint-show-paths` is set.
+
+Cache hits with taint enabled still re-parse or re-accumulate project units when
+`requires_cache_state` is set — warm cache is not free for taint-heavy scans.
+See [incremental-cache.md](./incremental-cache.md).
 
 ### Intra-proc precision (Phase 8)
 
@@ -38,13 +58,15 @@ paths to recognized sources.
 
 ### Sources
 
+Classifier lives in `taint/extract/classify.rs` (source of truth over this table).
+
 | Kind | Examples |
 |------|----------|
-| `UserInput` | `r.URL.Query()`, `r.FormValue()`, `r.PostForm` |
-| `Args` | `os.Args`, `flag.Args()`, `flag.String()` |
+| `UserInput` | `r.URL.Query()`, `r.FormValue()`, `r.PostForm`, `r.Header.Get`, `r.PathValue`, framework params (Gin/Echo/Chi/Fiber) |
+| `Args` | `os.Args`, `flag.Args()`, `flag.String()`, `flag.Int` |
 | `EnvVar` | `os.Getenv()`, `os.LookupEnv()` |
-| `File` | `os.ReadFile()`, `ioutil.ReadFile()`, `os.Open()` |
-| `Network` | `net.Conn.Read()`, `http.Request.Body` |
+| `File` | `os.ReadFile()`, `ioutil.ReadFile()`, `os.Open()`, `io.ReadAll` on files |
+| `Network` | `net.Conn.Read()`, `http.Request.Body`, scanners over network readers |
 
 ### Sinks
 
@@ -55,9 +77,13 @@ paths to recognized sources.
 | `FileOpen` | CWE-22 | `os.Create()`, `os.OpenFile()`, `os.WriteFile()` |
 | `Template` | CWE-79 | `(*template.Template).Execute()` |
 | `HTTPWrite` | CWE-79 | `w.Write()`, `w.WriteHeader()` |
+| `LDAPQuery` | CWE-90 | LDAP search / filter construction sinks |
+| `XMLQuery` | CWE-91 | XML query / decode sinks treated as injection targets |
 | `Deserialization` | — | `json.Unmarshal()`, `xml.Unmarshal()` |
 
 ### Sanitizers
+
+Source of truth is the runtime **classifier**, not enum comments in `model.rs`.
 
 | Kind | Examples |
 |------|----------|
@@ -65,6 +91,7 @@ paths to recognized sources.
 | `HTML` | `html.EscapeString()`, `template.HTMLEscaper()` |
 | `URL` | `url.QueryEscape()`, `url.PathEscape()` |
 | `SQL` | **Not** bare `.Prepare` (dynamic Prepare is still injectable). Safe paths: (1) **literal** first arg at Query/Exec; (2) same-function same-var literal `Prepare`/`PrepareContext` → `Stmt.Query`/`Exec` (or `*Context` forms). |
+| `LDAP` / `XML` | Escape helpers recognized for CWE-90/91 when classified |
 | `Validation` | `strconv.Atoi()`, `strconv.ParseInt()`, allowlist-style `sanitize*` / `escape*` / `validate*` helpers |
 | `Bounded` | `len` (weak; prefer explicit validation) |
 
@@ -178,6 +205,7 @@ matches the regex `^(sanitize|clean|escape|validate|purify)` is treated as a
 `c.ShouldBindJSON`) are treated as `Validation` sanitizers when the Gin or
 Echo packages are imported.
 
-To extend the sanitizer set, see the `SanitizerKind` enum in
-`src/lang/go/detectors/cwe/taint/model.rs` and the matcher table in
-`src/lang/go/detectors/cwe/taint/extract.rs`.
+To extend sources/sinks/sanitizers, edit the classifier and walkers under
+`src/lang/go/detectors/cwe/taint/extract/` (`classify.rs`, walkers, call graph)
+and graph query helpers under `taint/graph_query/`. Enum kinds live in
+`taint/model.rs` — runtime classification is the product source of truth.
