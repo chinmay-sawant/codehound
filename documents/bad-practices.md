@@ -2,6 +2,34 @@
 
 This document summarizes the Go bad-practice (`BP-*`) rules shipped by CodeHound. Each rule records the rationale for the heuristic and the canonical fix the detector expects.
 
+## Inventory
+
+| Fact | Value |
+|------|-------|
+| Count | **135** (must match README / `codehound --list-rules`) |
+| SSOT for titles | `ruleset/golang/bad-practices.json` |
+| Numbering | Gaps are intentional (e.g. no `BP-35`) |
+
+```bash
+codehound --list-rules --rule-category bad-practice
+codehound --explain BP-6
+codehound --profile style .
+```
+
+Catalog hub: [rule-catalog.md](./rule-catalog.md). Propose rules:
+[rule-rfc-template.md](./rule-rfc-template.md).
+
+### BP vs PERF twins (same concern, different packs)
+
+| Concern | CI / recommended | Style pack |
+|---------|------------------|------------|
+| HTTP body not closed | **PERF-103** (S-tier) | BP-95 |
+| Server timeouts | **PERF-101** (S-tier) | BP-46 |
+| `defer` in loop | **PERF-7** (S-tier) | BP-11 |
+| Module CVEs | **govulncheck** | BP-63 reserved snapshot |
+
+Prefer PERF S-tier for CI gates; keep BP under `--profile style` as advisory.
+
 ## Product policy
 
 | Profile | BP rules | Fail policy |
@@ -10,10 +38,11 @@ This document summarizes the Go bad-practice (`BP-*`) rules shipped by CodeHound
 | `style` (`--profile style` / `bp`) | **on** (with a few default-off) | **no-fail** (advisory) |
 | `all` | full catalog | medium-as-errors |
 
-Default-off under `style` (opt back in with `--only BP-21` / `--only BP-28`):
+Default-off under `style` (opt back in with `--only BP-21` / `--only BP-28` / `--only BP-30`):
 
 - `BP-21` — missing `t.Parallel` (policy preference, not correctness)
 - `BP-28` — single-method interface (opinionated API style)
+- `BP-30` — external implementations / capability interfaces
 
 Severity discipline when BP is on:
 

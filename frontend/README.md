@@ -1,66 +1,99 @@
 # CodeHound — frontend
 
-Marketing site for [CodeHound](https://github.com/chinmay-sawant/codehound): a Rust
-static analyzer for Go performance hot-path regressions, framework footguns,
-and curated CWE heuristics.
+Marketing site + in-app product docs for [CodeHound](https://github.com/chinmay-sawant/codehound):
+a Rust static analyzer for Go performance hot-path regressions, framework
+footguns, and curated CWE heuristics.
+
+Static SPA — no backend. Hash-routed views: **home**, **story** (`#story`), and
+**docs** (`#docs…`).
 
 ## Stack
 
 - React 19 · TypeScript 6 · Vite 8
-- Tailwind CSS v4 · shadcn/ui (Button)
+- Tailwind CSS v4
 - lucide-react icons
-- **Geist Mono** + JetBrains Mono (computer type, mono-first)
+- Fonts: **Newsreader** (display) · **Geist** (UI) · **Geist Mono** (code chrome)
+
+Scaffold still present but unused in the live tree: shadcn `Button`, JetBrains
+Mono, Phosphor. Prefer lucide + CSS tokens when adding UI.
 
 ## Design
 
-Flat terminal aesthetic. No gradients. Phosphor accent on near-black (dark)
-or ink on paper (light). Everything is monospace. Content lives in
-`src/data/sections.ts` — add a section, the nav and layout follow.
+Editorial layout on warm paper/ink tokens (light) or near-black with accent
+(dark). Monospace is for chrome and code, not the entire page. Tokens live as
+CSS variables in `src/styles/global.css`.
 
 ## Development
 
 ```sh
-npm run dev    # Vite dev server
-npm run build  # production build → ../docs/
-npm run lint   # oxlint
+npm install
+npm run dev      # Vite dev server (base: /)
+npm run build    # typecheck + production build → ../docs/
+npm run preview  # local prod-like server (catches base-path issues)
+npm run lint     # oxlint
 ```
+
+No `VITE_*` env files are required. Only `NODE_ENV` changes the asset `base`.
 
 ## Production build
 
 `npm run build` typechecks, then runs Vite with output aimed at the **repo-root**
 `docs/` directory (one level up from `frontend/`).
 
-- If `docs/` already exists (previous `assets/`, `index.html`, fonts, etc.), Vite
-  **empties it first** (`emptyOutDir: true`), then writes only the latest build.
-- Result: `docs/` always reflects the most recent production build — no stale
-  hashed assets left behind.
+- If `docs/` already exists, Vite **empties it first** (`emptyOutDir: true`), then
+  writes only the latest build — no stale hashed assets left behind.
 - Production `base` is `/codehound/` so assets resolve on GitHub Pages project
   site: `https://chinmay-sawant.github.io/codehound/`.
-- Section deep links use hash URLs (works on Pages without SPA rewrites), e.g.
-  `…/codehound/#audience` → “Who this is built for”.
+- Routing is **hash-based** (works on Pages without SPA rewrites).
 
 Configured in `vite.config.ts` (`base` + `build.outDir` → `../docs`).
+
+### Live hashes
+
+| Hash | View |
+|------|------|
+| `#top` / empty | Home |
+| `#story` | Story |
+| `#docs`, `#docs/features`, `#docs/cli`, `#docs/sarif`, `#docs/export` | In-app docs |
+| Home anchors | `#why`, `#workflow`, `#install`, `#docs-home` |
 
 ### GitHub Pages
 
 1. Repo **Settings → Pages → Build and deployment**
 2. Source: **Deploy from a branch**
 3. Branch: your default branch, folder **`/docs`**
-4. After deploy, open `https://chinmay-sawant.github.io/codehound/#audience`
-   (or any section id from `src/data/sections.ts`).
+4. After deploy, open `https://chinmay-sawant.github.io/codehound/#docs`
 
-## Structure
+Commit `frontend/` and the built `docs/` together when using branch deploy.
+
+## Structure (live)
 
 | Path | What |
-|---|---|
-| `src/App.tsx` | Full-width hero grid, sections, footer |
-| `src/data/sections.ts` | All marketing content as data |
-| `src/components/TopNav.tsx` | Sticky top nav + scroll-spy |
-| `src/components/Section.tsx` | Section with left rail + split layout |
-| `src/styles/global.css` | Flat mono, full-width, no sidebar |
+|------|------|
+| `src/App.tsx` | Shell, hash view switch, home + story content |
+| `src/components/HeroTitle.tsx` | Rotating hero lines |
+| `src/components/DocsView.tsx` | In-app documentation pages |
+| `src/data/docs.ts` | Docs catalog, CLI/SARIF/export content |
+| `src/hooks/useTheme.ts` | Dark/light toggle |
+| `src/hooks/useGithubStars.ts` | GitHub star badge |
+| `src/styles/global.css` | Design tokens + layout |
+| `public/` | favicon, OG image, logos |
+
+### Legacy / orphan (not mounted by `App.tsx`)
+
+`src/data/sections.ts`, `TopNav.tsx`, `Section.tsx`, diagram components, and
+related helpers are leftover from an older section-scroller layout. **Do not
+author new marketing content there** unless you rewire `App.tsx` to mount them.
+`sections.ts` may still hold copy used as a reference; keep rule counts in sync
+with the README when you edit it.
 
 ## Positioning
 
 CodeHound leads with **PERF scanning + framework footguns** (Gin/Echo/GORM
 blind spots) and positions as a **complement** to golangci-lint, staticcheck,
 and govulncheck — not a replacement.
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for content authoring, adding a docs
+page, design tokens, pitfalls, and the deploy checklist.

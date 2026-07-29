@@ -12,9 +12,10 @@ and cache session maps instead of `std::HashMap` + SipHash.
 ## Decision
 
 1. **SourceIndex needle lookup** uses a process-lifetime `std::HashMap<&'static str, usize>`
-   built once per static needle table (CWE / PERF / BP). Table size is ~dozen to
-   ~700 keys; build cost is amortized across every file. Lookup is O(1) average
-   and no longer a linear `position` scan.
+   for O(1) `has()` after build. The **build** path uses multi-pattern
+   **Aho-Corasick** over the static needle table (CWE / PERF / BP), not one
+   `contains` pass per needle. Table size is ~dozen to ~700 keys; build cost is
+   amortized across every file.
 
 2. **General analysis maps** (taint graphs, import maps, cache manifests) keep
    `std::HashMap` for now. SipHash is intentional until profiling shows a

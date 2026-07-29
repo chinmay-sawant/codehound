@@ -1,7 +1,9 @@
 import { ArrowLeft, ArrowUpRight, ChevronRight, Terminal } from 'lucide-react'
 import type { ReactNode } from 'react'
 import {
+  actionInputs,
   chunkExample,
+  cliEnvVars,
   cliExamples,
   cliFlagGroups,
   cliSubcommands,
@@ -12,9 +14,14 @@ import {
   featureCards,
   functionExample,
   githubDocsUrl,
+  githubWorkflowExample,
+  perfTierRows,
   profiles,
+  recommendedCweRules,
+  recommendedPerfRules,
   sarifExample,
   sarifFieldTable,
+  toolchainRows,
   type DocPageId,
 } from '../data/docs'
 
@@ -99,10 +106,51 @@ function OverviewPage() {
           chunks for agent triage. Deep reference stays in the repo under{' '}
           <code>documents/</code>; the pages here explain the product surface you use day to day.
         </p>
-        <CodeBlock label="quick start">{`cargo install --path .
+        <CodeBlock label="quick start">{`# From source (Go-first default)
+cargo install --path .
+
+# Optional experimental Python (SLOP101 only)
+# cargo install --path . --features python
+
+# Or download a release binary from GitHub Releases
+
 codehound .
 codehound --format sarif . > codehound.sarif
 codehound --profile all --export-context --export-chunks .`}</CodeBlock>
+      </section>
+
+      <section className="docs-section-block">
+        <h2>Default pack in one screen</h2>
+        <p>
+          <code>--profile recommended</code> is the default: S-tier PERF + taint-core CWE IDs, BP
+          off, fail on <strong>high+</strong> only. S-tier PERF findings are medium severity — they
+          print but do not fail CI unless you pass <code>--warnings-as-errors</code>. Taint stays
+          off until <code>--taint</code> or <code>--profile security</code>.
+        </p>
+        <CodeBlock label="CI in 30 seconds">{`# After golangci-lint + govulncheck
+codehound --profile recommended --format sarif . > codehound.sarif`}</CodeBlock>
+      </section>
+
+      <section className="docs-section-block">
+        <h2>Day-2 paths</h2>
+        <ul className="docs-bullets">
+          <li>
+            <strong>Brownfield</strong> — start with <code>--no-fail</code>, then{' '}
+            <code>codehound --baseline .</code> so only new fingerprints fail.
+          </li>
+          <li>
+            <strong>Config</strong> — <code>codehound init</code> writes a commented{' '}
+            <code>codehound.toml</code>; full schema lives under <code>documents/</code>.
+          </li>
+          <li>
+            <strong>Cache</strong> — warm scans under <code>.codehound-cache/</code> (on by
+            default).
+          </li>
+          <li>
+            <strong>Agent export</strong> — opt-in <code>--export-context</code> /{' '}
+            <code>--export-chunks</code> for bounded LLM triage.
+          </li>
+        </ul>
       </section>
 
       <section className="docs-section-block">
@@ -186,6 +234,115 @@ function FeaturesPage() {
       </section>
 
       <section className="docs-section-block">
+        <h2>Recommended pack (exact)</h2>
+        <p>
+          Default profile membership. S-tier PERF is <strong>medium</strong> severity — visible
+          under recommended, but the process only fails on high/critical unless you pass{' '}
+          <code>--warnings-as-errors</code>. Taint-core CWE IDs stay allow-listed; the taint engine
+          is off until <code>--taint</code>.
+        </p>
+        <h3>S-tier PERF</h3>
+        <div className="docs-table-wrap">
+          <table className="docs-table">
+            <thead>
+              <tr>
+                <th>Rule</th>
+                <th>Why</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recommendedPerfRules.map(([id, why]) => (
+                <tr key={id}>
+                  <td>
+                    <code>{id}</code>
+                  </td>
+                  <td>{why}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <h3>Taint-core CWEs (allow-list)</h3>
+        <div className="docs-table-wrap">
+          <table className="docs-table">
+            <thead>
+              <tr>
+                <th>Rule</th>
+                <th>Why</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recommendedCweRules.map(([id, why]) => (
+                <tr key={id}>
+                  <td>
+                    <code>{id}</code>
+                  </td>
+                  <td>{why}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="docs-section-block">
+        <h2>PERF tiers</h2>
+        <p>
+          Tiers control pack membership and PERF severity. They are not the same as maturity tags
+          (<code>heuristic</code>, <code>fixture-only</code>, …) shown by{' '}
+          <code>--list-rules</code>.
+        </p>
+        <div className="docs-table-wrap">
+          <table className="docs-table">
+            <thead>
+              <tr>
+                <th>Tier</th>
+                <th>Severity</th>
+                <th>Profile</th>
+                <th>Meaning</th>
+              </tr>
+            </thead>
+            <tbody>
+              {perfTierRows.map(([tier, sev, profile, meaning]) => (
+                <tr key={tier}>
+                  <td>
+                    <strong>{tier}</strong>
+                  </td>
+                  <td>{sev}</td>
+                  <td>{profile}</td>
+                  <td>{meaning}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="docs-section-block">
+        <h2>Where it sits in the toolchain</h2>
+        <div className="docs-table-wrap">
+          <table className="docs-table">
+            <thead>
+              <tr>
+                <th>Tool</th>
+                <th>Use for</th>
+              </tr>
+            </thead>
+            <tbody>
+              {toolchainRows.map(([tool, use]) => (
+                <tr key={tool}>
+                  <td>
+                    <strong>{tool}</strong>
+                  </td>
+                  <td>{use}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="docs-section-block">
         <h2>Workflow features</h2>
         <ul className="docs-bullets">
           <li>
@@ -198,7 +355,7 @@ function FeaturesPage() {
           </li>
           <li>
             <strong>Inline ignores</strong> — <code>codehound-ignore</code> comments (Go{' '}
-            <code>//</code>, Python <code>#</code>).
+            <code>//</code>, Python <code>#</code>). Not <code>//nolint</code>.
           </li>
           <li>
             <strong>Stable fingerprints</strong> — same identity in text, JSON, SARIF, and baseline
@@ -208,6 +365,10 @@ function FeaturesPage() {
             <strong>Agent export</strong> — opt-in <code>--export-context</code> and{' '}
             <code>--export-chunks</code> for bounded LLM review.
           </li>
+          <li>
+            <strong>Fixture-only quarantine</strong> — museum CWEs stay under{' '}
+            <code>--profile all</code> / explicit <code>--only</code>, not default CI packs.
+          </li>
         </ul>
       </section>
 
@@ -216,7 +377,8 @@ function FeaturesPage() {
         <p>
           CodeHound does not replace golangci-lint, staticcheck, govulncheck, or CodeQL. It is not a
           CVE scanner, not default-on full bad-practice CI, and experimental taint is for triage —
-          not hard security gates.
+          not hard security gates. <code>filepath.Clean</code> alone is not treated as a path
+          sanitizer.
         </p>
       </section>
     </>
@@ -292,6 +454,30 @@ Commands:
           </div>
         </section>
       ))}
+
+      <section className="docs-section-block">
+        <h2>Environment variables</h2>
+        <div className="docs-table-wrap">
+          <table className="docs-table">
+            <thead>
+              <tr>
+                <th>Variable</th>
+                <th>Equivalent</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cliEnvVars.map(([env, equiv]) => (
+                <tr key={env}>
+                  <td>
+                    <code>{env}</code>
+                  </td>
+                  <td>{equiv}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <section className="docs-section-block">
         <h2>Exit codes</h2>
@@ -395,20 +581,48 @@ codehound --profile security --format sarif . > codehound.sarif`}</CodeBlock>
         <p>
           The repo ships a composite action and sample workflow that build CodeHound, run the
           recommended pack with <code>--format sarif</code>, and upload via{' '}
-          <code>github/codeql-action/upload-sarif</code>.
+          <code>github/codeql-action/upload-sarif</code>. The action always attempts SARIF upload
+          first, then propagates the scan exit code (upload-then-fail).
         </p>
-        <CodeBlock label=".github/workflows/codehound.yml">{`# permissions: security-events: write
-- name: CodeHound scan (recommended + SARIF)
-  uses: ./.github/actions/codehound-scan
-  with:
-    profile: recommended
-    paths: .
-    strict: "true"
-    upload-sarif: "true"`}</CodeBlock>
+        <p>
+          Severity note: under recommended, S-tier PERF is medium and does not fail the job unless
+          you pass <code>--warnings-as-errors</code> (via <code>args</code>). Fail policy is
+          independent of reporter format.
+        </p>
+        <CodeBlock label="minimal workflow">{githubWorkflowExample}</CodeBlock>
+        <h3>Composite action inputs</h3>
+        <div className="docs-table-wrap">
+          <table className="docs-table">
+            <thead>
+              <tr>
+                <th>Input</th>
+                <th>Default</th>
+                <th>Purpose</th>
+              </tr>
+            </thead>
+            <tbody>
+              {actionInputs.map(([name, def, purpose]) => (
+                <tr key={name}>
+                  <td>
+                    <code>{name}</code>
+                  </td>
+                  <td>
+                    <code>{def}</code>
+                  </td>
+                  <td>{purpose}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         <p>
           Full field-level reference:{' '}
           <a href={`${githubDocsUrl}/output-formats.md`} target="_blank" rel="noreferrer">
             documents/output-formats.md <ArrowUpRight size={13} />
+          </a>
+          {' · '}
+          <a href={`${githubDocsUrl}/ci-integration.md`} target="_blank" rel="noreferrer">
+            documents/ci-integration.md <ArrowUpRight size={13} />
           </a>
         </p>
       </section>

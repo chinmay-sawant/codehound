@@ -1,13 +1,25 @@
 # Go Performance Rules (PERF)
 
-This document summarizes the shipped Go performance (`PERF-*`) detectors in CodeHound. Each entry describes the detected pattern, why it matters, and the canonical fix.
+This document is a **partial human-notes catalog** for Go performance (`PERF-*`)
+detectors — not a complete listing of all **239** shipped rules.
+
+| Truth source | How to use |
+|--------------|------------|
+| Live inventory | `codehound --list-rules --rule-category performance` |
+| Titles / detection notes | `ruleset/golang/chunks/perf-*.json` + `codehound --explain PERF-N` |
+| Pack / tier policy | [perf-tiers.md](./perf-tiers.md), [go-recommended-pack.md](./go-recommended-pack.md) |
+| Catalog hub | [rule-catalog.md](./rule-catalog.md) |
+
+Canonical CLI IDs are unpadded (`PERF-1`, not `PERF-001`). Prefer the CLI and
+ruleset JSON when prose here conflicts.
 
 ## 1 — Idiomatic Usage
 
 - **PERF-101** flags `http.Server` values without `ReadTimeout` or `WriteTimeout` because unbounded connections can exhaust server resources. *Fix:* set both timeout fields to a reasonable duration (e.g. `5s` / `10s`).
-- **PERF-102** flags multiple calls to `w.WriteHeader` in the same handler because only the first call sets the status code; later calls are logged but ignored and may indicate a logic mistake. *Fix:* call `WriteHeader` once, typically at the top of the handler.
-- **PERF-103** flags `http.ServeMux` patterns that shadow narrower routes because a broader pattern can silently capture requests intended for a more specific route. *Fix:* register specific patterns before fallback ones.
-- **PERF-105** flags `defer w.Write(body)` inside handlers because the deferred write executes after headers are sent, producing an incomplete response. *Fix:* write the body inline before the handler returns.
+- **PERF-102** flags HTTP `Transport` not shared across requests (new `http.Client` / transport per call thrash). *Fix:* reuse a shared `http.Client` / `http.Transport`.
+- **PERF-103** flags HTTP response bodies that are never closed (resource leak). *Fix:* `defer resp.Body.Close()` (and drain when required — see PERF-189).
+- **PERF-104** flags multiple calls to `w.WriteHeader` in the same handler because only the first call sets the status code. *Fix:* call `WriteHeader` once.
+- **PERF-105** flags `runtime.SetFinalizer` on hot-path objects because finalizers add GC cost and surprising lifetime semantics. *Fix:* avoid finalizers on request-scoped objects; prefer explicit cleanup.
 - **PERF-107** flags `encoding/binary.Read` or `binary.Write` inside a loop because the reflection-based API allocates per call. *Fix:* call `binary.Read`/`Write` once or batch the data outside the loop.
 - **PERF-108** flags `sort.Search` inside a loop because binary search is already O(log n) and iterating it removes the benefit. *Fix:* compute the search key and call `sort.Search` once.
 - **PERF-111** flags `fmt.Sprintf` with `%s` and a string argument because it is equivalent to a direct string concatenation or `string()` conversion. *Fix:* replace with `+` or the appropriate conversion.
@@ -19,14 +31,14 @@ This document summarizes the shipped Go performance (`PERF-*`) detectors in Code
 - **PERF-117** flags `fmt.Sprintf` with `%v` and a known primitive type because the explicit verb is faster and self-documenting. *Fix:* use the type-specific verb or `strconv` function.
 - **PERF-118** flags `fmt.Sprintf` with `%p` because `reflect.ValueOf` (used by `%p`) is unnecessary for pointer formatting; use `fmt.Sprintf("%x", …)` or `%x` with a `uintptr`. *Fix:* use a more specific formatting approach.
 - **PERF-119** flags `fmt.Sprintf` with a single format argument and no dynamic values because a plain string is simpler. *Fix:* use a plain string literal.
-- **PERF-120** flags `strconv.Itoa` in a loop because the allocation per iteration adds up. *Fix:* pre-allocate or use `strconv.AppendInt` with a reused buffer.
+- **PERF-120** flags `time.Now().Sub(t)` where `time.Since(t)` is clearer and preferred. *Fix:* use `time.Since`.
 - **PERF-121** flags allocations inside request-scoped loops where the total allocation is proportional to request concurrency. *Fix:* move the allocation outside the loop or use a `sync.Pool`.
-- **PERF-122** flags `bytes.Buffer` declared inside a loop because a new buffer is allocated on every iteration. *Fix:* declare the buffer outside and call `Reset()` each iteration.
+- **PERF-122** flags `HasPrefix` + slice where `TrimPrefix` is the clearer API. *Fix:* use `strings.TrimPrefix` / `bytes.TrimPrefix`.
 - **PERF-123** flags `json.Marshal` inside loops because marshalling allocates new memory per call. *Fix:* marshal outside the loop or use `json.Encoder` with a pooled buffer.
 - **PERF-124** flags `strings.Replace(s, old, new, -1)` because the magic `-1` is less readable than `strings.ReplaceAll`. *Fix:* use `strings.ReplaceAll`.
 - **PERF-125** flags `strings.TrimSuffix` / `strings.TrimPrefix` when a simple suffix/prefix check and slice would suffice, because the allocation is unnecessary in hot paths. *Fix:* use `strings.HasPrefix` + slice or `strings.Cut`.
 - **PERF-126** flags `w.Header().Set(key, val)` inside a loop when the key is loop-invariant, because redundant header writes are wasteful. *Fix:* hoist the header set outside the loop.
-- **PERF-127** flags `w.Write(body)` with a `[]byte(body)` or `string(body)` conversion in a hot path because the conversion allocates. *Fix:* keep the type that matches the `Write` signature.
+- **PERF-127** flags unnecessary `fmt.Sprintf` inside log calls. *Fix:* pass structured fields / format args to the logger instead of pre-sprintf.
 - **PERF-128** flags `for i, c := range s` on a string where only the rune count or length is needed, because decoding each rune is wasted work. *Fix:* use `utf8.RuneCountInString` or `len` instead.
 - **PERF-129** flags `for range s` on a string where only the byte length matters, because the range decodes runes unnecessarily. *Fix:* use `len(s)`.
 - **PERF-130** flags `for range m` on a map where only the key or value is needed, because map iteration with undesired value extraction wastes cycles. *Fix:* iterate only the needed fields.
@@ -37,13 +49,13 @@ This document summarizes the shipped Go performance (`PERF-*`) detectors in Code
 - **PERF-137** flags `runtime.Caller` in request handlers because it is expensive (stack-walking) and debug information is rarely needed on every request. *Fix:* remove `runtime.Caller` from the hot path or use structured logging.
 - **PERF-140** flags creating a new `regexp.Regexp` inside a function called repeatedly, because regex compilation is expensive. *Fix:* use `regexp.MustCompile` at package level or `sync.Once`.
 - **PERF-141** flags calling `r.URL.Query()` more than once in the same handler because each call parses the query string from scratch. *Fix:* call `r.URL.Query()` once and reuse the returned `Values`.
-- **PERF-145** flags `database/sql` rows iteration without checking `.Err()` after the loop, because iteration errors are silently lost. *Fix:* check `rows.Err()` after the `for rows.Next()` loop.
-- **PERF-146** flags `bytes.Compare` where `==` works, because `==` on byte slices is valid and simpler. *Fix:* replace `bytes.Compare(a, b) == 0` with `bytes.Equal(a, b)`.
+- **PERF-145** flags `http.Request.WithContext` allocations on hot middleware paths (advisory). *Fix:* avoid redundant `WithContext` when the request already carries the needed context.
+- **PERF-146** flags `fmt.Sprintf` with a single string and no verbs. *Fix:* use the string directly.
 - **PERF-147** flags `bytes.Equal` with a single-byte slice where a byte comparison is simpler. *Fix:* compare the single byte directly.
 - **PERF-149** flags `net.Conn` `Read` / `Write` without a deadline because a missing deadline can hang the connection indefinitely. *Fix:* set `SetReadDeadline` / `SetWriteDeadline` before each I/O call.
 - **PERF-153** flags package-level maps without an eviction strategy because unbounded caches grow indefinitely under load. *Fix:* add an eviction policy (e.g. `sync.Map` with periodic cleanup, or an LRU wrapper).
 - **PERF-156** flags `copy` with overlapping source and destination slices because the behavior is undefined. *Fix:* ensure the slices do not overlap or use a temporary buffer.
-- **PERF-157** flags `append` inside a loop where the slice capacity is not pre-sized, because repeated growth re-allocates. *Fix:* pre-allocate the slice with `make([]T, 0, n)`.
+- **PERF-157** flags unnecessary `fmt.Sprint` with a single string. *Fix:* use the string directly.
 - **PERF-158** flags `sync.Pool` objects that are returned via deferred `Put` in a hot loop, because defer overhead adds up. *Fix:* call `Put` explicitly after each use rather than deferred.
 - **PERF-161** flags `database/sql` rows iteration without checking `.Err()` after the loop. *Fix:* check `rows.Err()`.
 - **PERF-163** flags `db.Query` for a query that returns at most one row, because `QueryRow` is simpler and avoids the boilerplate. *Fix:* use `db.QueryRow`.
@@ -59,11 +71,11 @@ This document summarizes the shipped Go performance (`PERF-*`) detectors in Code
 - **PERF-179** flags repeated `time.Now()` calls in a single scope because each call incurs a syscall. *Fix:* call `time.Now()` once and reuse.
 - **PERF-181** flags creating a `context.Context` with `context.WithTimeout` / `context.WithCancel` inside a loop without deferring the cancel, because resources leak until the context is garbage-collected. *Fix:* defer or call `cancel()` explicitly each iteration.
 - **PERF-182** flags `time.Timer` without a `Stop` call in a loop, because the timer's channel and goroutine are not freed until it fires. *Fix:* call `timer.Stop()` and drain the channel if needed.
-- **PERF-190** flags `bytes.Buffer` used with `WriteString` for a static string, because `WriteString` with a static string is equivalent to a direct byte slice copy.
+- **PERF-190** flags HTTP clients missing `Timeout` (or equivalent deadline). *Fix:* set `http.Client.Timeout` or per-request contexts.
 - **PERF-192** flags creating a `*template.Template` from string inside a function called repeatedly, because template parsing is expensive. *Fix:* parse the template at package level with `template.Must`.
 - **PERF-195** flags `log.Fatal` inside a goroutine because it calls `os.Exit(1)`, which does not give other goroutines a chance to clean up. *Fix:* return the error to the caller or signal the main goroutine.
 - **PERF-198** flags `panic` in library code outside initialization, because panics in library code abort the caller's process without recovery options. *Fix:* return an error instead.
-- **PERF-203** flags creating a `sync.Pool` inside a function called repeatedly, because pool initialization cost is paid each call. *Fix:* use a package-level `sync.Pool`.
+- **PERF-203** flags repeated `net.IP.String` on hot paths. *Fix:* cache the string form or avoid formatting per request.
 - **PERF-204** flags `http.Server` without `ReadHeaderTimeout` set, because slow headers can hold connections open indefinitely. *Fix:* set `ReadHeaderTimeout` alongside `ReadTimeout`.
 - **PERF-209** flags `json.Decoder` use without `DisallowUnknownFields` or `UseNumber` when the input schema is strictly controlled, because silent unknown fields mask data quality issues. *Fix:* enable strict decoding options.
 - **PERF-211** flags `Request.ParseForm` called implicitly by `r.Form` / `r.PostForm` without checking the returned error, because parse errors can silently produce partial results. *Fix:* call `r.ParseForm` explicitly and check the error.

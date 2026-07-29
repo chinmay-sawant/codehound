@@ -46,32 +46,36 @@ Add an entry to the appropriate chunk under `ruleset/golang/chunks/perf-*.json`
 
 ### Step 2: Add registry TOML entry
 
-Pick the matching domain module and add to its `registry.{domain}.toml`:
+Codegen expects **`[[detector]]`** (not `[[rule]]`) with `perf` / `domain` /
+`function` (`build/types.rs` → `PerfRegistryDetector`).
 
 ```toml
-[[rule]]
+[[detector]]
 perf = 213
-domain = "string_bytes"
+domain = "general_perf"
 function = "detect_perf_213"
 ```
 
-**Existing domains:**
+**Registry TOML files on disk** (`src/lang/go/detectors/perf/registry/`):
 
-| TOML file | Rust module | Example rules |
-|-----------|------------|--------------|
-| `registry.concurrency.toml` | `domains/concurrency.rs` | PERF-148, 167, 172, 173, 174, 175, 183, 193, 194 |
-| `registry.data_access.toml` | `domains/data_access/` | PERF-160, 162, 164, 205, 206 |
-| `registry.general_perf.toml` | `domains/general_perf/` | PERF-101..141 (category A/B mix) |
-| `registry.gin_framework.toml` | `domains/gin_framework/` | Gin-specific patterns |
-| `registry.loop_allocations.toml` | `domains/loop_allocations/` | PERF-108, 109 |
-| `registry.parsing_in_loops.toml` | `domains/parsing_in_loops/` | PERF-180, 186 |
-| `registry.protocols.toml` | `domains/protocols/` | HTTP protocol patterns |
-| `registry.request_path.toml` | `domains/request_path/` | PERF-141, 144 |
-| `registry.memory_gc.toml` | `domains/memory_gc.rs` | PERF-134, 138, 139, 150, 151, 169, 191 |
-| `registry.stdlib_optimization.toml` | `domains/stdlib_optimization.rs` | PERF-142, 143, 152, 153, 154, 155, 159, 160, 162, 164, 180, 184, 185, 187, 188, 189, 196, 197, 199, 200, 201, 202, 205, 206, 207, 210, 212 |
-| `registry.string_bytes.toml` | `domains/string_bytes.rs` | PERF-159, 178, 179, 186, 203 |
+| TOML file | Typical domain modules |
+|-----------|------------------------|
+| `registry.data_access.toml` | `domains/data_access/` |
+| `registry.general_perf.toml` | Many domains share this file (concurrency, memory, string helpers, …) |
+| `registry.gin_framework.toml` | `domains/gin_framework/` |
+| `registry.loop_allocations.toml` | `domains/loop_allocations/` |
+| `registry.parsing_in_loops.toml` | `domains/parsing_in_loops/` |
+| `registry.protocols.toml` | `domains/protocols/` |
+| `registry.request_path.toml` | `domains/request_path/` |
 
-Don't see a matching domain? Add a new file to both `registry/` and `domains/`, then wire it in `build.rs`.
+**Important:** domain *module* name ≠ registry *file* name. Several domain
+modules register under `registry.general_perf.toml`. Do not invent phantom
+TOML files (there is no `registry.concurrency.toml` / `registry.string_bytes.toml`
+on disk today).
+
+Needles for the SourceIndex pre-filter live in `perf/source_index.rs`
+(`NEEDLES`). Facts layout: `facts/{mod,types,walker,classifier}.rs`. Generated
+dispatch is `include!`d from `OUT_DIR` into `perf/mod.rs`.
 
 ### Step 3: Implement the detector function
 

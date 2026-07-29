@@ -7,9 +7,22 @@ Workflow source: [`.github/workflows/release.yml`](../.github/workflows/release.
 
 ---
 
+## Pre-tag checklist
+
+- [ ] `Cargo.toml` version matches the tag you will push (e.g. `1.0.0` → `v1.0.0`)
+- [ ] `CHANGELOG.md` updated for the release
+- [ ] README status / install notes still accurate
+- [ ] Canaries and CI green on the default branch
+- [ ] Secrets present for crates.io when publishing the crate
+
+**What is not on crates.io:** `documents/`, `plans/`, and the marketing
+`frontend/` / GitHub Pages site are excluded from the crate tarball
+(`Cargo.toml` `exclude`). User docs and binaries live on GitHub (repo +
+Releases), not inside the published crate.
+
 ## Overview
 
-Pushing a version tag matching `v*` (for example `v0.1.0`) runs the **release**
+Pushing a version tag matching `v*` (for example `v1.0.0`) runs the **release**
 workflow:
 
 ```

@@ -301,7 +301,7 @@ for i := range members {
     facts: [
       { k: 'PERF rules', v: '239 registered — regex-in-loops, fmt.Sprintf on hot paths, defer in hot funcs, request-path allocation thrash' },
       { k: 'CWE heuristics', v: '175 fixture-backed entries for file I/O, SQL injection, command injection; auto-generated from sink registry' },
-      { k: 'Bad practices', v: '65 across 8 categories: errors, panics, concurrency, testing, API design, code org, prod hardening, dependency hygiene' },
+      { k: 'Bad practices', v: '135 across errors, panics, concurrency, testing, API design, code org, prod hardening, dependency hygiene — off under recommended; use --profile style' },
       { k: 'Framework footguns', v: 'Gin / Echo / GORM / sqlx aware — unclosed bodies, unbounded rows, missing timeouts, context leaks' },
       { k: 'Taint (experimental)', v: 'intra-procedural, name-string sinks; CWE-22/78/79/89 — use for triage, not hard gates' },
       { k: 'Languages', v: 'Go (production); Python opt-in (1 experimental rule, SLOP101)' },
